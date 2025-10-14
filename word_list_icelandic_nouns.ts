@@ -34,7 +34,6 @@ export const WORD_DICTIONARY = new Set([
   "aðal",
   "aðalaðdráttarafl",
   "aðalaðili",
-  "aðalaðsetur",
   "aðalafbrigði",
   "aðalafl",
   "aðalaflahrota",

@@ -30,15 +30,20 @@ The name Wottle a short for Word Battle.
 - The player is presented with the 16x16 grid showing 256 letter tiles, each one showing a random letter
 - The grid has been filled with the letters of the alphabet randomly but with the following conditions:
   1. the randomness is according to the weighted distribution of the scoring, so the letters that score the lowest appear most often and the once that score the highest appear most often in the grid
-  2. every letter must appear at least once somewhere in the grid, i.e. none of the valid letter is missing from the board.
-- For clarification, the distribution is true weigthed randomness, which means that some letters may be shown only once while other can appear multiple times, and the starting board is thus different each tim.
-- The player plays an opponent in real time with a visible timer counting down while it is their turn to play.
-- They players tae turns maing a move where they switch two letters in the grid. At any time it is either the current player's turn or the opponent's turn like as in chess and it should be obvious to the player when it is their turn to make a move
-- The game may be 10 minutes for each player and their times are shown on the screen counting down as they are playing, Each player has one clock which counts down while it is their turn to play.
+  2. every letter must appear at least once somewhere in the grid, i.e. none of the valid letter is missing from the board
+- For clarification, the distribution is true weigthed randomness, which means that some letters may be shown only once while other can appear multiple times, and the starting board is thus different each time
+- The player plays an opponent in real time with a visible timer counting down while it is their turn to play
+- They players take turns making a move where 
+- For each move the player selects two letters in the grid that are swapped
+- Any words in the grid that get are discovered by the letter swap are highlighted with the player's color 
+- The score is updated with all value of all new words that have been found by the letter swap
+- At any time it is either the current player's turn or the opponent's turn like as in chess and it should be obvious to the player when it is their turn to make a move
+- The game may be 10 minutes for each player and their times are shown on the screen counting down as they are playing
+- Each player has one clock which counts down while it is their turn to play
 
 ### Make Move
 
-- Score: Score is updated for each round with the value of all new words formed in that move with the following formula: Sum of all letter values of all letters in new words found in the entire gride in that round
+- Score is updated for each round with the value of all new words formed in that move with the following formula: Sum of all letter values of all letters in new words found in the entire gride in that round
 - Players take turns swapping two letters on the 16x16 grid
 - Time Limit: 30 seconds per turn
 - Game Length: 10 moves per player
@@ -65,7 +70,7 @@ Users and Game Management (Initial version MVP)
      - You will then be paired with either an other player who has selected "Start a game". Or if there is noone who has pressed "Start a game", i.e. a waiting player, then an invitation is sent to player who is wait
 
 ## Architecture
-
+ðö
 **Server-Side** (`ssserver.coffee`):
 
 - Express HTTP server for static files
