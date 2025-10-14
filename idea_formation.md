@@ -31,12 +31,23 @@ The name Wottle a short for Word Battle.
 - The grid has been filled with the letters of the alphabet randomly but with the following conditions:
   1. the randomness is according to the weighted distribution of the scoring, so the letters that score the lowest appear most often and the once that score the highest appear most often in the grid
   2. every letter must appear at least once somewhere in the grid, i.e. none of the valid letter is missing from the board
-- For clarification, the distribution is true weigthed randomness, which means that some letters may be shown only once while other can appear multiple times, and the starting board is thus different each time
+- The distribution is true weigthed randomness, which means that some letters may be shown only once while other can appear multiple times, and the starting board is thus different each time
 - The player plays an opponent in real time with a visible timer counting down while it is their turn to play
-- They players take turns making a move where 
-- For each move the player selects two letters in the grid that are swapped
-- Any words in the grid that get are discovered by the letter swap are highlighted with the player's color 
-- The score is updated with all value of all new words that have been found by the letter swap
+- They players take turns making a move for 10 rounds, i.e. each player gets to make 10 moves.
+- The players take turn
+- Each player has a color that identifies the tiles they have found in the grid. One player is teal, the other is orange.
+- The teal colored player starts the game, i.e. makes the first move, meaning as soon as the game starts and the board is presented, the teal player's timer is counting down
+
+### Moves
+
+- For each move the player selects two letter tiles in the grid that are swapped
+- The player's timer counts down as soon as it is their turn to make a move and stops when they click/tap on the first tile
+- As soon as the click on or touch the first tile they have 2 seconds for clicking on/tapping on the second tile and if they
+- The two seconds are added to their remaining time as soon as they touch the first tile, and the timer turns red and continues to count down.
+- If they fail to click on the second tile within 2 seconds their timer stops and they forfit their move and the move switches to the opponent
+- Any words in the grid that get are discovered by the letter swap are highlighted with the player's color
+- The score is updated with by adding the sum of the value of all new words that have been found in the whole grid by the letter swap
+- The tiles of the words that were found by the tile swap are colored with the player's color, i.e. the tiles in the grid are colored
 - At any time it is either the current player's turn or the opponent's turn like as in chess and it should be obvious to the player when it is their turn to make a move
 - The game may be 10 minutes for each player and their times are shown on the screen counting down as they are playing
 - Each player has one clock which counts down while it is their turn to play
@@ -54,6 +65,12 @@ The name Wottle a short for Word Battle.
 - Take turns swapping letters to form words
 - Game ends after 10 moves each - highest score wins!
 
+### Game Completion
+
+- The Game ends when:
+  - When either player runs out of time, i.e. the timer goes to zero
+  - When the second player
+
 ## Initial Word List: Icelandic Nouns
 
 - The initial MVP version uses a list of Icelandic nouns. Words must be in nominative case, singular, without articles.
@@ -70,26 +87,9 @@ Users and Game Management (Initial version MVP)
      - You will then be paired with either an other player who has selected "Start a game". Or if there is noone who has pressed "Start a game", i.e. a waiting player, then an invitation is sent to player who is wait
 
 ## Architecture
-ðö
-**Server-Side** (`ssserver.coffee`):
 
-- Express HTTP server for static files
-- Socket.IO WebSocket server for real-time communication
-- Game session management and player matchmaking
-- Turn-based timer system (60 seconds per turn)
-
-**Game Logic**:
-
-- `GameManager`: Handles multiple games and player management
-- `Game`: Individual game state and turn management
-- `Player`: Player data, scoring, and move validation
-- `Dictionary`: Icelandic word validation and marking
-- `Grid`: 8×8 letter grid with swap functionality
+- TBD
 
 ### Communication Flow
 
-```text
-Client ←→ Socket.IO ←→ Server
-  ↓                       ↓
-Login → Lobby → Invite → Game → Moves → Results → End
-```
+- TBD
