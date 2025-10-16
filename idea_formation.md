@@ -68,15 +68,15 @@ The name Wottle a short for Word Battle.
 ### Game Completion
 
 - The Game ends when:
-  - When either player runs out of time, i.e. the timer goes to zero
-  - When the second player
+  - either player runs out of time, i.e. the timer goes to zero
+  - the player two plays the last move of 10 moves,
 
 ## Initial Word List: Icelandic Nouns
 
 - The initial MVP version uses a list of Icelandic nouns. Words must be in nominative case, singular, without articles.
   - The word list is available in the WORD_DICTIONARY set in the file [word_list_icelandic_noun.ts](./word_list_icelandic_nouns.ts) and contains just under to 18.000 Icelandic nouns.
 
-Users and Game Management (Initial version MVP)
+## Users and Game Management (Initial version MVP)
 
 - You can register as a user and create a user name
 - When you login you end upp in the game lobby, where you can see other users who have logged in
@@ -85,11 +85,3 @@ Users and Game Management (Initial version MVP)
   2. Immediate Rated Pairing:
      You can also start to play by pressing "Start a game" button, in which case you are immediately paired with the person with the closest Elo rating in the game lobby.
      - You will then be paired with either an other player who has selected "Start a game". Or if there is noone who has pressed "Start a game", i.e. a waiting player, then an invitation is sent to player who is wait
-
-## Architecture
-
-- TBD
-
-### Communication Flow
-
-- TBD
