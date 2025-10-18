@@ -1,4 +1,4 @@
-export const WORD_DICTIONARY = new Set([
+export const WORD_LIST_IS_NOUNS = new Set([
   "aborri",
   "absintglas",
   "absintufyllirí",

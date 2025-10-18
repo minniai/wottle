@@ -1,4 +1,4 @@
-export const WORD_LIST_ICELANDIC_SCORING = {
+export const LETTER_SCORING_VALUES_IS = {
   A: 1,
   Á: 4,
   B: 4,

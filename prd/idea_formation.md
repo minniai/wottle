@@ -22,7 +22,7 @@ The name Wottle a short for Word Battle.
   - diagonal from top-left to bottom-right
   - diagonal from bottom-right to top-left
   - diagonal from bottom-left to top-right
-  - diagonal from bottom-right to top-left 
+  - diagonal from bottom-right to top-left
 - Valid words cannot wrap around the grid (e.g. from column 16 and continue in column 1)
 - The word list can be with a specific theme and rules about what kind of words to find, e.g. from a a list of Icelandic nouns to a list of English verbs, or it can be a words with a specific theme, like all the words from the the script of _Game of Thrones_
 - The word list can be extensive, e.g. the whole English Scrabble word list which is almost 300.000 words
@@ -41,7 +41,7 @@ The name Wottle a short for Word Battle.
 - The players play against eachothher in real time with a visible timer counting down while it is their turn to play
 - Both players can make the first move as soon the game starts and the timers of both players are counting down in the beginning
 - As soon as a move is made by either player, their timer stops and they are considered to have made the first move
-- The clock keeps counting down for the player who did not make the first move until they have made their move 
+- The clock keeps counting down for the player who did not make the first move until they have made their move
 - They players then take turns making a move for 10 rounds, i.e. each player gets to make 10 moves in tota in total
 - The timer counts down when it is their turn to make a move
 - On each completed move, two seconds are added to the remaining time, i.e. the moment the user makes a swich
@@ -60,7 +60,7 @@ The name Wottle a short for Word Battle.
 - The score of each move is calculated as follows:
   1. Add the sum of the letter-values of all leters in that have been found in the whole grid by the letter swap
   2. Word length bonus: Add +(word length – 2) per new word, i.e. +1 for 3‑letter, +5 for 7‑letter, etc.
-  3. Multi‑word bonus: +2 for 2 words, +5 for 3+ words, +7 for 4+ words etc. for words formed in the same swap  
+  3. Multi‑word bonus: +2 for 2 words, +5 for 3+ words, +7 for 4+ words etc. for words formed in the same swap
 - The tiles of the words that were found by the tile swap are colored with the player's color, i.e. the tiles in the grid are colored
 - The coloring of the claimed tiles must be done in a subtle way so as not to degrade readability of undiscovered words
 - At any time it is either the current player's turn or the opponent's turn like as in chess and it should be obvious to the player when it is their turn to make a move
@@ -71,7 +71,7 @@ The name Wottle a short for Word Battle.
 ### Scoring
 
 - Score is updated for each round with the value of all new words formed in that move with the following formula: Sum of all letter values of all letters in new words found in the entire gride in that round
-- The scoring of Icelandic letters can be found in the file [word_list_icelandic_scoring.ts](./word_list_icelandic_scoring.ts)
+- The scoring of Icelandic letters can be found in the file [letter_scoring_values_is.ts](../src/wordlist/letter_scoring_values_is.ts)
 - Players take turns swapping two letters on the 16x16 grid
 - Enter your username on the landing page
 - Wait for other players to join the lobby
@@ -90,7 +90,7 @@ The name Wottle a short for Word Battle.
 ### Initial Word List: Icelandic Nouns
 
 - The initial MVP version uses a list of Icelandic nouns. Words must be in nominative case, singular, without articles.
-  - The word list is available in the WORD_DICTIONARY set in the file [word_list_icelandic_noun.ts](./word_list_icelandic_nouns.ts) and contains just under to 18.000 Icelandic nouns.
+  - The word list is available in the WORD_LIST_IS_NOUNS set in the file [word_list_is_nouns.ts](../src/wordlist/letter_scoring_values_is.ts) and contains just under to 18.000 Icelandic nouns.
 
 ## Users and Game Management (Initial version MVP)
 
@@ -105,10 +105,12 @@ The name Wottle a short for Word Battle.
 ## Architecture and technology
 
 Front-end:
-* TypeScript
-* Next.JS
-* Tailwind CSS
+
+- TypeScript
+- Next.JS
+- Tailwind CSS
 
 Back-end:
-* Superbase Functions
-* Superbase DB
+
+- Superbase Functions
+- Superbase DB
