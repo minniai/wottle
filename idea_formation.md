@@ -14,7 +14,7 @@ The name Wottle a short for Word Battle.
 - The player with white starts the game by making a move, like in chess
 - Players take turns on switching two letters with the goal of finding words
 - The objective of the game is to as many words from a list of words provided by the game
-- The words are considered valid if they are readable in any direction in the grid, meaning all of the below:
+- The words are considered valid if they are readable in any direction in the grid, meaning all of the following:
   - horizontally from left-to-right
   - horizontally from right-to-left
   - vertically from top-to-bottom
@@ -28,8 +28,6 @@ The name Wottle a short for Word Battle.
 - The word list can be extensive, e.g. the whole English Scrabble word list which is almost 300.000 words
 - The scoring system is like in Scrabble, where each letter has a point value and valid word found are scored as a sum of the letter weights
 - The players battle in real time under time pressure as they have fixed time to play the game where they are timed like in a chess game with a chess clock.
-
-## Gameplay
 
 ### Game Start
 
@@ -70,7 +68,7 @@ The name Wottle a short for Word Battle.
 - Discovered words are marked in the player's color so all frozen letters are marked in the players color, and shared letters in overlapping words are marked in both player's colors
 - It is important that the tile coloring is subtle so as not to interfere with the readability of words in the grid
 
-## Scoring
+### Scoring
 
 - Score is updated for each round with the value of all new words formed in that move with the following formula: Sum of all letter values of all letters in new words found in the entire gride in that round
 - The scoring of Icelandic letters can be found in the file [word_list_icelandic_scoring.ts](./word_list_icelandic_scoring.ts)
@@ -83,13 +81,13 @@ The name Wottle a short for Word Battle.
 - Game ends after 10 moves each or if either player is flagged
 - Highest score wins!
 
-## Game Completion
+### Game Completion
 
 - The Game ends when:
   - either player runs out of time and their opponent completes their 10th move, or runs out of time also, i.e. their timer goes to zero and the opponent ha
   - the player with black plays the last move of 10 moves, if neither player ran out of time
 
-## Initial Word List: Icelandic Nouns
+### Initial Word List: Icelandic Nouns
 
 - The initial MVP version uses a list of Icelandic nouns. Words must be in nominative case, singular, without articles.
   - The word list is available in the WORD_DICTIONARY set in the file [word_list_icelandic_noun.ts](./word_list_icelandic_nouns.ts) and contains just under to 18.000 Icelandic nouns.
@@ -103,3 +101,14 @@ The name Wottle a short for Word Battle.
   2. Immediate Rated Pairing:
      You can also start to play by pressing "Start a game" button, in which case you are immediately paired with the person with the closest Elo rating in the game lobby.
      - You will then be paired with either an other player who has selected "Start a game". Or if there is noone who has pressed "Start a game", i.e. a waiting player, then an invitation is sent to player who is wait
+
+## Architecture and technology
+
+Front-end:
+* TypeScript
+* Next.JS
+* Tailwind CSS
+
+Back-end:
+* Superbase Functions
+* Superbase DB
