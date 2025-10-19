@@ -1,14 +1,31 @@
-# Wottle: Product Requirements Document
+# Wottle: Game Design PRD (MVP → v1)
 
 ## Executive Summary
 
-Wottle is a competitive 2-player real-time word game combining strategic grid manipulation with word formation. Players swap two letters per turn on a 16x16 grid to form words across 8 directions, claiming territory through "frozen tiles" while managing chess-style time controls. The MVP targets the competitive word game market with unique simultaneous-turn mechanics and Icelandic language focus, positioning between traditional async word games (Words with Friends) and real-time strategy games.
+Wottle is a competitive 2-player real-time word game combining strategic grid manipulation with word formation. Players swap two letters per turn on a 16x16 grid to form words across 8 directions, claiming territory through "frozen tiles" while managing chess-style time controls.
+
+The MVP targets the competitive word game market with unique simultaneous-turn mechanics and Icelandic language focus, positioning between traditional async word games (Words with Friends) and real-time strategy games.
 
 **Core Innovation:** Territory-claiming frozen tile mechanic creates spatial strategy beyond pure word-finding, while simultaneous first-move capability and chess clocks inject urgency into a traditionally leisurely genre.
 
 **Target Market:** Competitive puzzle gamers aged 18-34, Icelandic language speakers, chess players seeking word game alternatives.
 
 **Success Hinges On:** Fair resolution of simultaneous moves, intuitive frozen tile visualization, sub-50ms word validation, and matchmaking that maintains player engagement despite narrow multiplayer windows.
+
+--- 
+
+## Product Vision & Strategy
+
+**Vision.** Make head-to-head word play feel like a speed-chess duel: tense, fair, and endlessly replayable. Wottle blends the pattern-seeking joy of word-search with the tactical brinkmanship of chess clocks.
+
+**Target outcomes.**
+
+* **Retention:** Players return because every board is different and skill matters.
+* **Fairness:** Clear, deterministic rules; low RNG tilt; transparent scoring.
+* **Speed to market:** Ship a polished MVP that stands on its own, then iterate with live data.
+
+**Core one-liner.**
+*Wottle is a 2-player, real-time word battle on a 16×16 letter grid. Players alternate swapping two tiles to reveal dictionary words in any straight line, racing the clock for the highest score.* 
 
 ---
 
@@ -22,7 +39,27 @@ Wottle is a competitive 2-player real-time word game combining strategic grid ma
 **Players:** Exactly 2 (1v1)  
 **Dictionary:** ~18,000 Icelandic nouns (MVP); expandable to other languages
 
+### Personas
+
+* **The Duelist.** Enjoys speed and rating ladders, expects fairness and instant pairing.
+* **The Wordie.** Loves language and pattern recognition; appreciates post-game insights.
+* **The Newcomer.** Needs rules clarity, guided first game, and practice vs. bot.
+
+### First-time flow
+
+* Landing → “Play Now” (guest name allowed) → quick tutorial (30–45s) → instant pairing or bot.
+* Crisp visual hierarchy: whose move, clocks, score delta per move, remaining moves.
+* Color-safe highlighting for discovered words (WCAG AA contrast).
+
+
 ### Core Gameplay Loop
+
+1. See board state and remaining time/moves.
+2. **Select two tiles** (or drag) to swap.
+3. Animation (≤180ms) confirms swap; word(s) discovered are highlighted and *claimed*.
+4. Score update pops (e.g., “+18 (word) +3 len +2 multi”).
+5. Tiles from discovered words **freeze** (immovable). Shared letters show dual tint.
+6. Turn passes; opponent’s clock activates. 
 
 **Setup Phase:**
 1. 16x16 grid populated with weighted-random letter distribution
@@ -48,13 +85,33 @@ Wottle is a competitive 2-player real-time word game combining strategic grid ma
    - Player with highest cumulative score wins
    - Tiebreaker: Most frozen tiles claimed
 
+## Rules & Time Controls
+
+### Turn order and clocks (MVP)
+
+* **White moves first**; only the *active* player’s clock counts down. 5:00 per side; **+2s** increment added **on move commit** (not on selection). 
+* If a player flags (time ≤ 0) *before* completing 10 moves, opponent may still use their remaining time to finish their own 10 moves; final result by score. (Kept from ideation; we’ll A/B alternative: game ends on flag.) 
+
+> **Change vs. ideation:** Remove “both players’ timers count at start” for clarity and to match player expectations of turn-based chess-style timing. 
+
+### Move definition
+
+* A move is a **swap of two tiles** (adjacent or non-adjacent; MVP allows any two).
+* The swap is atomic; on commit, server finds new words (see 4.3).
+
 ### Word Validation Rules
+
+* Straight lines only: 8 compass directions; **no wrap**. Minimum length: **3**.
+* Case-insensitive; diacritics respected; language-specific letters (e.g., ð, þ, æ) are distinct.
+* A word scores **once per match** per player; re-forming the same word by future swaps yields no additional base word score (prevents farm exploits).
 
 **Valid Words Must:**
 - Minimum 3 letters long
 - Exist in official dictionary
 - Form continuous path in one of 8 directions (horizontal, vertical, diagonal - both orientations)
 - Use contiguous, non-frozen tiles (own frozen tiles can be incorporated)
+
+## Scoring (precise)
 
 **Scoring Formula:**
 ```
@@ -63,6 +120,27 @@ Length Bonus = (word_length - 3) × 5 points
 Multi-Word Bonus = (words_formed - 1) × 10 points
 Turn Score = Σ(Base + Length Bonus) + Multi-Word Bonus
 ```
+**Per move, score = Σ(Base word score for each *newly discovered* word) + Σ(Length bonus) + Multi-word combo bonus.** 
+
+* **Base word score:** sum of letter values (Scrabble-like). (Icelandic letter values come from the provided scoring file; we will store them in DB and version them.) 
+* **Length bonus (per new word):** `max(0, word_len - 2)` (so +1 for 3-letter; +5 for 7-letter; etc.). 
+* **Multi-word combo bonus (per move):**
+
+  * 1 word → +0
+  * 2 words → +2
+  * 3 words → +5
+  * 4+ words → `+7 + (n-4)` (linear tail to reward larger combos while capping runaway). (Ideation gave examples but not a full function; this makes it explicit.) 
+* **Shared letters:** If two new words discovered this move overlap, both count fully once; frozen letter tiles can contribute to new words later, but base word scores never double-count the *same word string* for the same player.
+
+
+## Tile Claiming & Freezing (MVP)
+
+* Tiles in newly discovered words become **frozen**: they cannot be selected for future swaps by *either* player. Overlaps stay visible and share ownership tint. 
+* **Safeguards (MVP):**
+
+  * Ensure at least **K movable tiles** remain after any move (server rejects swaps that would push below K=24 by default).
+  * Guarantee seed words are not fully locked before both players’ turn 4 (generator constraint).
+* **v1+ options (if late-game stagnates):** a one-time “shuffle two unfrozen tiles anywhere”; or “thaw one tile” power (ranked off, casual on).
 
 ### Frozen Tile Mechanic
 
@@ -79,8 +157,84 @@ Turn Score = Σ(Base + Length Bonus) + Multi-Word Bonus
 - Introduces spatial awareness beyond word-finding
 - Rewards long-term board control planning
 
+### End of game
+
+* After **10 moves per player**; or after both clocks hit zero; or resignation. Highest score wins. 
+
+## Letter Distribution & Board Generation
+
+**Problem:** “Weighted by score” makes rare letters more frequent if misapplied. We must separate *frequency* (for generation) from *value* (for scoring).
+
+**MVP generation policy**
+
+* Use **language frequency** weights (derived from the dictionary corpus) to sample letters for the 16×16 board.
+* Guarantee all in-alphabet letters appear **≥ once** (if required by design), but do not force uniformity if it harms naturalness. 
+* **Seeding for solvability:** insert at least **S seed words** (S=6 default) invisibly by arranging letters so they *can* be formed by ≤2 swaps (not necessarily present at t=0). (Tech section 13.)
+* **Reproducibility:** board is generated by **seed = match_id**, enabling replays.
+
+---
+## Modes & Matchmaking
+
+**MVP**
+
+* **Unrated Quick Play** (vs player or bot).
+* **Rated** (Elo-like): instant pairing within ±200, expanding by 50 every 10s.
+* **Direct Challenge** via lobby invitation. 
+
+**v1**
+
+* **Practice vs Bot** (simple heuristic: maximize length bonus; avoid over-freezing).
+* **Custom rooms** (variants; time control presets).
+
 ---
 
+## Social & Live Ops
+
+* **Usernames**, avatar color themes, presence (online/playing).
+* **Spectator** (v1): delayed by 1 move to avoid stream-sniping.
+* **Replays** (seed + move list).
+* **Moderation:** Profanity filter for names; report/mute.
+
+---
+
+## Anti-Cheat & Fair Play
+
+* Server-authoritative validation of swaps, clock, claims, scoring.
+* Rate-limit move submissions; discard late/dup packets.
+* Optionally obfuscate board transport (not security, but reduces trivial memory-scan cheats).
+* Detect suspicious pause patterns, repeated perfect play, and dictionary probing via analytics.
+
+## Accessibility & Internationalization
+
+* Color-blind friendly palettes; icon + color state for claimed tiles.
+* Keyboard support (arrow navigation, Enter to select, Space to confirm).
+* Localization pipeline (Icelandic/English to start; dictionaries are language-specific).
+
+---
+
+## Success Metrics (MVP → v1)
+
+* **DAU / New user day-0 conversion.**
+* **Median queue time (p50 < 10s).**
+* **G1 Retention (Day-1 ≥ 25% for organic).**
+* **Avg. session length** (target ~6–10 min).
+* **Fairness:** win rate by seat (white/black) within 49–51%.
+* **Stagnation rate:** matches with <4 total words by turn 6 < 5%.
+* **Abandon rate:** resignations/flags before move 4 < 8%.
+
+
+## Summary of the Provided Ideation (with critical notes)
+
+Your ideation specifies: 16×16 board initialized with weighted random letters; words valid in 8 straight-line directions (no wrap); Scrabble-like letter scores; chess-style clocks; 10 moves per player with +2s increment; discovered word tiles freeze; overlapping words can be shared and color-marked; Icelandic nouns dictionary for MVP; Next.js/Tailwind FE and Supabase BE. 
+
+**Critical observations and improvements suggested throughout this PRD:**
+
+1. **Letter distribution “weighted by score”** is likely *backwards* for balance: low-value letters tend to be common because they’re common in the language, not because they’re low-value. Use *language frequency* (per dictionary) to drive generation and keep Scrabble-style scores for valuation. (Design section 6.)
+2. **Simultaneous initial countdown** is confusing; use a clear *who-to-move* state and a standard activation of the active player’s clock only. (Design section 4.)
+3. **Tile freezing** after discovery could create late-game lockups. We keep it, but add safeguards (e.g., minimum movable tiles; smart seeding; optional late-game relief for v1). (Design section 5.)
+4. **Bonuses** (word length and multi-word) need precise, monotonic formulas to prevent exploits. (Design section 7.)
+5. **Board solvability** at start is not guaranteed by random fill; add seeding to guarantee *at least N* latent words and prevent dead boards. (Tech section 13.)
+6. **Real-time correctness**: make servers authoritative for move legality, scoring, freezes, and time control to prevent desyncs/cheats. (Tech section 10.)
 ## Critical Analysis & Design Recommendations
 
 ### Issue 1: Simultaneous First Move Conflicts
@@ -470,6 +624,88 @@ function calculateScore(words, letterValues) {
                                     [PostgreSQL]
 ```
 
+### 13.1 High-level
+
+
+```
+[Client (Next.js/TS/Tailwind)]
+       |  WebSocket (Supabase Realtime) + HTTPS
+       v
+[API Layer: Supabase Functions (Edge) / RPC]
+       |   (authoritative scoring/validation/time)
+       v
+[Postgres (Supabase)]
+  - users, sessions, matches, moves
+  - boards, tiles, letter_scores, dictionaries
+  - ratings (Elo/Glicko), invitations, queues
+  - analytics events (BigQuery/Snowflake later)
+```
+
+**Frontend:** TypeScript, Next.js, Tailwind (per ideation). Keep the board and animations client-side; all **rules, scoring, and clocks** server-authoritative. 
+
+**Backend:** Supabase Postgres + Functions + Realtime channels per match for state fan-out (or a thin Node/Cloudflare Worker if we outgrow Function limits). 
+
+### Real-time & State
+
+* **Match channel:** `match:{id}`.
+* **Server tickless model:** state advances only on move events with timestamps; clock math performed server-side using the last server-acknowledged time.
+* **Optimistic UI:** client animates swap; server confirmation updates canon state; on mismatch, client snaps to server (rare if validations are pre-checked).
+
+### Data Model (outline)
+
+* `users(id, username, created_at, rating, …)`
+* `matches(id, seed, lang, status, created_at, white_id, black_id, time_ms, inc_ms)`
+* `match_players(match_id, user_id, seat, time_left_ms, moves_done)`
+* `boards(match_id, grid_16x16 char(1)[])` (or compact byte array)
+* `letter_scores(lang, letter, value, version)`
+* `dictionaries(lang, word, normalized, flags)` (indexed trie/GIN)
+* `moves(id, match_id, ply, actor, pos_a, pos_b, found_words[], score_delta, ts)`
+* `claims(match_id, word, path, tiles[])` (for replay/coloring)
+* `ratings(user_id, rating, rd, last_match_at)`
+* `invitations(from_user, to_user, status, expires_at)`
+* `queue_entries(user_id, rating_snapshot, enqueued_at)`
+
+### Dictionary & Scoring
+
+* Import the provided Icelandic nouns (singular nominative) for MVP. Store as normalized uppercase with diacritics preserved; create GIN index on `word`. 
+* Import letter scoring from the provided file into `letter_scores`. Version to allow future balance patches. 
+
+### Word-find algorithm (per move)
+
+* **Brute force is fine** for 16×16, but optimize:
+
+  * Only scan lines passing through the two swapped tiles (8 rays × 2 origins).
+  * For each ray, accumulate contiguous sequences including the swapped tile; check substrings length ≥ 3 that include at least one swapped tile (to ensure “newly formed”).
+  * Lookups: O(1) set membership (hash) or trie.
+* Complexity: tiny (<1 ms typical) with constrained scans; keep in a Supabase Function (Deno/TS) or a co-located service.
+
+### Board generation with seeding
+
+1. Fill 16×16 using **language frequencies**.
+2. Reserve **S seed lines** (random directions/lengths 4–9) for words from dictionary; ensure each can be formed by ≤2 swaps from t=0 state.
+3. Validate:
+
+   * At least **M latent words** exist (M=20 default).
+   * No more than **R rare-letter clusters** (R=2) to avoid unsolvable corners.
+4. Re-roll if constraints fail; cap retries; log metrics for tuning.
+
+### Time control & increments (server)
+
+* Store `last_server_turn_ts`. On move:
+
+  * `consumed = now - last_server_turn_ts`.
+  * Deduct from active player's `time_left_ms`.
+  * If `time_left_ms < 0`, set `flagged=true` and handle per rules.
+
+### Security & Ops
+
+* Supabase RLS for per-match rows.
+* Functions validate user seat, turn, and cooldown (min 300ms between move requests to deter macros).
+* Observability: structured logs, traces, per-move timings, and match health dashboard.
+* CI/CD: PR checks, seed test suites, canary deploy of functions.
+
+---
+
 ### Real-Time Communication
 
 **Socket.io with Redis Adapter:**
@@ -563,8 +799,26 @@ redis.zadd('queue:ranked:5+3', playerRating, playerId);
 - CORS whitelisting
 
 ---
+## UX Details & Visual Language
+
+* **Board tiles:** clean sans serif glyphs; avoid excessive tint fill; use outline or corner pips to show claim color; ensure letters remain fully legible. 
+* **Feedback:** Floating, short-lived (+800ms) score delta chips near discovered words; consolidated move summary under the clock.
+* **Error states:** Clear reasons (e.g., “Swap rejected: would leave <24 movable tiles”).
+* **Mobile:** One-handed swap (tap-tap), haptics on claim, safe thumb zones for clocks.
+
+---
 
 ## Success Metrics & KPIs
+
+### Success Metrics (MVP → v1)
+
+* **DAU / New user day-0 conversion.**
+* **Median queue time (p50 < 10s).**
+* **G1 Retention (Day-1 ≥ 25% for organic).**
+* **Avg. session length** (target ~6–10 min).
+* **Fairness:** win rate by seat (white/black) within 49–51%.
+* **Stagnation rate:** matches with <4 total words by turn 6 < 5%.
+* **Abandon rate:** resignations/flags before move 4 < 8%.gg
 
 ### North Star Metric
 
@@ -616,9 +870,20 @@ redis.zadd('queue:ranked:5+3', playerRating, playerId);
 - `match_started`, `match_completed`, `match_abandoned`
 - `friend_added`, `friend_challenge_sent`
 
+
 ---
 
 ## Implementation Roadmap
+
+**MVP (6–8 weeks)**
+
+* Core rules & timers; rated + unrated; direct challenge; bot (very simple); Icelandic nouns dictionary; Icelandic letter scores; analytics; basic anti-cheat; replays; seed reproducibility. 
+
+**v1 (next 6–8 weeks)**
+
+* Improved bot (beam search with heuristic); spectator (delayed); variants (shorter time controls); more dictionaries (EN verbs, EN Scrabble, themed sets); progression cosmetics; A/B on tile-freeze relief.
+
+---
 
 ### Phase 0: Foundation (Weeks 1-4)
 - Project scaffolding, CI/CD
@@ -656,8 +921,29 @@ redis.zadd('queue:ranked:5+3', playerRating, playerId);
 - **Weeks 28-30:** AI practice mode, daily challenges
 
 ---
+## Test Plan
+
+* **Unit:** scoring math, line scanning, freeze enforcement, clock arithmetic.
+* **Property-based:** board generator always yields ≥M latent words and ≥K movable tiles after any legal move.
+* **Load:** 1k concurrent matches; Realtime fan-out latency p95 < 150ms.
+* **Fairness checks:** first-move advantage within tolerance; dictionary hit rate per language.
+
+## 17) KPIs & Experiments
+
+* **A/B:** freeze safeguard thresholds (K=16, 24, 32); multi-word bonus tail; time control presets (3+2 vs 5+2).
+* **Tuning:** letter frequency weights → early discoverability vs. late-game depth.
+* **Onboarding:** tutorial length (skippable vs mandatory) and its impact on first-match completion.
+
+
+---
 
 ## Risk Analysis & Mitigation
+
+* **Dead boards / stagnation** → seeding & K-movables safeguard; optional relief power in v1.
+* **Dictionary disputes** (Icelandic morphology) → clear policy: nominative singular only for MVP; publish rules in-app; backlog declension-aware expansions.
+* **Cheat clients** → server authoritativeness; detect automation patterns.
+* **Realtime flakiness** → idempotent move API; graceful reconnection; session resume.
+
 
 ### Critical Risks
 
@@ -857,11 +1143,91 @@ test('Frozen tiles prevent opponent moves')
 - Matchmaking range: ±100 vs. ±150 initial range
 - Grid size: 16x16 vs. 12x12 (for mobile-only variant)
 
+## Build Plan (MVP backlog)
+
+1. **Data & tools:** Import dictionary + letter scores; seed analyzer; board generator.
+2. **Realtime core:** Match lifecycle; channels; server move-resolve; clock engine.
+3. **Client:** Board UI, selection/drag swap, highlighting, animations, score HUD.
+4. **Matchmaking:** Unrated + rated queues; lobby invites.
+5. **Persistence:** Replays; analytics events; crash-safe resumes.
+6. **QA:** Unit + property tests; soak tests; device matrix; accessibility pass.
+7. **Soft launch:** Iceland; collect telemetry; tune K, S, M; adjust letter weights.
+8. **v1 enhancements:** Bot+, spectator, variants, more dictionaries.
+
+
+## Implementation Notes & Pseudocode
+
+### 20.1 Server move-resolve (TS/Deno sketch)
+
+```ts
+function resolveMove(matchId, playerId, a, b) {
+  const match = loadMatch(matchId);
+  assertTurn(match, playerId);
+  applyClock(match); // server time math
+
+  const board = loadBoard(matchId);
+  if (wouldDropMovablesBelowK(board, a, b, K=24)) throw 'Swap rejected';
+
+  swap(board, a, b);
+
+  const newWords = findNewWords(board, [a,b], dict, minLen=3);
+  const claims = wordsToClaims(newWords);
+  freezeTiles(board, claims.tiles);
+
+  const delta = scoreMove(newWords, letterScores, lenBonusFn, multiBonusFn);
+  persist(board, claims, delta);
+  advanceTurn(match, playerId, incrementMs=2000);
+
+  return { delta, newWords, next: match.activeSeat };
+}
+```
+
+### 20.2 Find words along rays
+
+```ts
+function findNewWords(board, swappedCells, dict) {
+  const rays = directions8.flatMap(d => swappedCells.map(c => ray(c,d)));
+  const candidates = extractContiguousSequences(rays, minLen=3);
+  const unique = dedupe(candidates).filter(seq => includesSwapped(seq, swappedCells));
+  return unique.filter(seq => dict.has(seq.toString())); // normalized
+}
+```
+
 ---
+## Content & Dictionary Policy (MVP)
+
+* **Language:** Icelandic nouns (nominative singular, no articles). Provide in-app examples and rejections for common near-misses (declensions). 
+* **Scoring:** Icelandic letter values from supplied file; store versioned. 
+* **Theming:** Light/dark boards; subtle player color accents; grid always prioritizes legibility.
+
+## What We Kept vs. Changed (Traceability)
+
+* **Kept:** 16×16, 8 directions, no wrap, 10 moves each, +2s increment, tile freezing, overlapping tinting, lobby + invitations, Supabase/Next.js/Tailwind, Icelandic nouns + Scrabble-style scoring. 
+* **Changed/Clarified:**
+
+  * Clocks: only active player’s timer runs; clear turn indicator. 
+  * Scoring math: explicit formulas and combo tail. 
+  * Generation: language frequency-based, not score-based; add solvability seeding. 
+  * Safeguard: minimum movable tiles check to prevent freezes causing soft-locks. 
+
+
+---
+## Open Questions (captured to backlog; not blocking MVP)
+
+* Should flagging end the game immediately (classical chess) or keep “finish your own moves” rule? (We’ll keep ideation’s rule for now and test.) 
+* Are non-adjacent swaps intended forever? Consider an “adjacent-only” ranked variant for higher tactical difficulty.
+* Do we want ranked mirrors (alternating who starts) in best-of-2?
+
 
 ## Appendices
 
-### Appendix A: Letter Distribution Table
+### Appendix A — References to Ideation
+
+* 16×16 board, random weighted letters, timers, first-move, 10 moves, increments, tile freezing, 8 directions, Icelandic nouns dictionary, Scrabble-like scoring, Next/Tailwind/Supabase stack, lobby & invitations are from the ideation draft and are preserved or clarified here. 
+
+If you want, I can turn this into a Jira-ready epic/issue breakdown with acceptance criteria next.
+
+### Appendix B: Letter Distribution Table
 
 | Letter | Frequency | Point Value | Count (in 256 tiles) |
 |--------|-----------|-------------|----------------------|
@@ -898,7 +1264,7 @@ test('Frozen tiles prevent opponent moves')
 
 **Total: 256 tiles**
 
-### Appendix B: Competitive Comparison Matrix
+### Appendix C: Competitive Comparison Matrix
 
 | Feature | Wottle | Words With Friends | Scrabble GO | Chess.com |
 |---------|--------|-------------------|-------------|-----------|
@@ -918,7 +1284,7 @@ test('Frozen tiles prevent opponent moves')
 3. Icelandic language focus (underserved market)
 4. Simultaneous move planning (strategic depth)
 
-### Appendix C: Glossary
+### Appendix D: Glossary
 
 **Chess Clock:** Time control system where each player has independent time bank that counts down during their turn
 
