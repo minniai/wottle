@@ -22,8 +22,9 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 
 ### 1.4 Turn Structure & Time Control
 - **Simultaneous Turn Start:** At the **start of the game**, both players begin with an active timer (“chess clock”). Each player has **5:00 minutes** of base time, with a **+3 second** increment added after each move (5+3 time control). **Both clocks start running when the game begins**, allowing *either player to make the first move* (a simultaneous planning phase). The server resolves who moved first, and stops the clock of the first-mover. The second player's clock keeps running until they make a move, after which the players take turns making moves. In the case of both players making the first move simultaniously, or nearly at the same time such that it can't be determined fairly who moved first, it is decided by random which player moved first.
-- **Turn-by-Turn Flow:** Players alternate turns after the first move. Only one move executes at a time. When one player’s move resolves, control passes to the opponent.
-- **Clock Behavior:** Each player’s clock counts down **only** during their turn (except for the initial move when both player's clocks count down). When a move is made, that player’s clock pauses and the opponent’s continues. Each completed move adds +3 seconds to the mover’s clock.
+- **Turn-by-Turn Flow:** Players alternate turns after the first move. Only one move executes at a time. When one player's move resolves, control passes to the opponent. **Simultaneous moves are only possible during the initial move** when both players' clocks are running and either player can make the first move. Once the first move is resolved, the game switches to strict turn-based play where simultaneous moves are not possible—only the player whose turn it is can execute a move, and their opponent's move input is disabled until the turn switches.
+- **Clock Behavior:** Each player's clock counts down **only** during their turn (except for the initial move when both player's clocks count down). When a move is made, that player's clock pauses and the opponent's continues. Each completed move adds +3 seconds to the mover's clock.
+- **Visual Timer Indication:** The active player's timer displays in **green** when it is actively counting down, and in a neutral color when paused. This provides immediate visual feedback about whose turn it is.
 - **Fair Play Safeguards:**
   - If a player’s clock expires before completing 10 moves, the opponent may still finish their remaining moves.
   - All timing is enforced server-side for fairness and to prevent client manipulation.
@@ -69,12 +70,41 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 ## 3. Game Modes & Player Flow
 
-### 3.1 Lobby & Matchmaking
-- **Modes:**
-  - **Ranked:** Elo-based, ±200 expanding +50 every 10s.
-  - **Casual:** Unrated; flexible pairing.
-  - **Challenge:** Direct invite.
-- **Flow:** Lobby → Select Mode → Match Found → Game Start.
+### 3.1 User Registration & Lobby Flow
+
+**Landing Page & Authentication:**
+1. User enters username on landing page.
+2. System registers/authenticates user and creates profile (if new user).
+3. User is redirected to game lobby upon successful login.
+
+**Lobby Display:**
+- Shows all currently logged-in users.
+- Displays each user's username and status (available, in-game, waiting for match).
+- For ranked mode, displays Elo rating next to username.
+- Updates in real-time as users join/leave.
+
+**Matchmaking Methods:**
+
+1. **Direct Invitation (Challenge Mode):**
+   - User clicks on another player's name in the lobby.
+   - System sends invitation to selected player.
+   - Invited player receives notification and can accept/decline.
+   - If accepted, match is created and game begins.
+
+2. **Immediate Rated Pairing:**
+   - User clicks "Start a game" button to enter matchmaking queue.
+   - System attempts to pair with closest Elo rating (initial range ±200, expanding by ±50 every 10 seconds).
+   - Pairing logic:
+     - First priority: Pair with another waiting player who has also pressed "Start a game".
+     - If no waiting player available: Send invitation to player with closest Elo in lobby.
+   - Once paired (or invitation accepted), match is created and game begins.
+
+**Modes:**
+- **Ranked:** Elo-based matching, results update player ratings.
+- **Casual:** Unrated; flexible pairing without Elo constraints.
+- **Challenge:** Direct invite only (unrated unless both players are ranked).
+
+**Flow Summary:** Landing Page → Login/Register → Lobby → [Select Matchmaking Method] → Match Found → Game Start.
 
 ### 3.2 Game Setup
 1. Assign White/Black roles randomly.
@@ -114,7 +144,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 ## 6. Technical Architecture
 
 ### 6.1 Frontend
-- **Stack:** Next.js (React), TypeScript, Tailwind CSS.
+- **Stack:** Next.js 16 (React), TypeScript, Tailwind CSS.
 - **Realtime:** Supabase Realtime / Socket.io.
 - **Animations:** CSS transforms; 60 FPS.
 
@@ -148,13 +178,20 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 │ You [04:47] | Score 385 | M7 │
 └──────────────────────────────┘
 ```
+
+**Layout Elements:**
+- **Opponent Info:** Timer display and current score
+- **Game Board:** 16×16 grid of letter tiles
+- **Player Info:** Timer display, current score, and **move counter** (e.g., "M7" indicates player has completed 7 moves)
+- **Move Counter:** Displays current move number for the active player, formatted as "M{n}" where n is the number of completed moves (range: M0 to M10). Updates immediately after each move completes.
 ### 7.2 Visual Feedback
+- **Timer Status:** Active timer displays in green when counting down; neutral color when paused.
 - Frozen tiles: colored border + tint.
 - New words: flash highlight.
 - Invalid swap: shake/red border.
 - Score delta: transient popup near score.
 
-## 9. Non-Functional Requirements
+## 8. Non-Functional Requirements
 - **Latency:** <200ms move RTT.
 - **Validation:** <50ms per move.
 - **Match Length:** ~10–20min.
@@ -162,7 +199,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 - **Testing:** Unit (Trie, Scoring, Clock), Integration (Match Flow).
 - **Security:** Sanitized input, HTTPS/WSS.
 
-## 10. Success Metrics
+## 9. Success Metrics
 | Metric | Target |
 |---------|--------|
 | Matchmaking Time | <10s |
@@ -171,3 +208,48 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 | Avg Session | 6–10min |
 | Fairness (Win Split) | 49–51% |
 | Abandon Rate (<4 moves) | <8% |
+
+## 10. Error Handling & Edge Cases
+
+### 10.1 Player Disconnection
+- **During Game:**
+  - If a player disconnects mid-match, the game enters a **pause state** with a visible indicator.
+  - Disconnected player's clock **pauses immediately**.
+  - Opponent sees "Waiting for opponent to reconnect..." message.
+  - **Reconnection Window:** Player has ≤10 seconds to reconnect and resume.
+  - **After 10 seconds:** If disconnected player doesn't reconnect, their clock resumes and continues counting down. If their clock expires, they forfeit and opponent wins.
+  - If disconnected player reconnects within window: Game resumes from exact state (board, scores, timers restored).
+- **Before Game Starts:** If a player disconnects during lobby/matchmaking, invitation is cancelled or matchmaking returns to queue.
+- **Network Errors:** Transient network issues are handled with automatic retry logic (up to 3 attempts) before treating as disconnection.
+
+### 10.2 Invalid Swap Attempts
+- **Both Tiles Frozen:** Server rejects swap and returns error. Client displays invalid swap feedback (shake/red border animation). No timer penalty; player can attempt another swap.
+- **Same Tile Selected Twice:** Server rejects swap (no-op). Client clears selection without animation or penalty.
+- **Tile Selection During Opponent's Turn:** Client prevents selection UI; server rejects any swap attempts as invalid move.
+- **Swap Attempts on Non-Existent Tiles:** Server validates tile coordinates exist on 16×16 grid before processing. Invalid coordinates return 400 error.
+
+### 10.3 Server Errors During Move Validation
+- **Validation Timeout:** If word validation exceeds 50ms threshold, server logs error but continues processing. If validation completely fails (>500ms), server returns error response and move is rejected. Player's timer pauses until resolution; no move penalty.
+- **Dictionary Loading Failure:** If dictionary fails to load at game start, match cannot begin. Error returned to both players; match cancelled. Users returned to lobby.
+- **Scoring Calculation Error:** If scoring fails, server logs error with move details. Move is rejected and player can retry. No score awarded until successful calculation.
+- **Database Persistence Failure:** Game state continues in memory, but persistence is queued for retry. If multiple retries fail, error is logged and operations team is alerted. Game continues normally; persistence retried in background.
+
+### 10.4 Time-Related Edge Cases
+- **Simultaneous Time Expiration:** If both players' clocks expire at the same time (within same server tick), game ends immediately. Winner determined by score, then frozen tiles, then draw.
+- **Clock Synchronization Issues:** Server time is authoritative. Client clocks are for display only. Server sends periodic clock sync updates to prevent drift (>1s difference triggers correction).
+- **Negative Time:** Server prevents negative time values. When clock reaches 0, player is flagged immediately and turn switches (if applicable).
+
+### 10.5 Board Generation Edge Cases
+- **Generation Failure:** If board generation exceeds 200ms or fails, retry with new seed. After 3 failed attempts, match is cancelled and error returned to players.
+- **Insufficient Movable Tiles:** Server validates ≥24 unfrozen tiles after each move. If threshold breached, game ends immediately with winner determined by current scores.
+- **No Valid Words Found:** If a swap creates a board state with <20 possible words remaining, server logs warning but game continues. Players notified if no words remain.
+
+### 10.6 Matchmaking & Invitation Edge Cases
+- **Invitation to In-Game Player:** System prevents sending invitations to players already in a match. Client shows "Player is currently in a game" message.
+- **Duplicate Invitations:** If player receives multiple invitations, only most recent is displayed. Older invitations are automatically declined if new one is accepted.
+- **Matchmaking Queue Timeout:** If player waits >60 seconds in matchmaking queue without pairing, they are notified and can choose to continue waiting or cancel.
+
+### 10.7 UI/Client Error Handling
+- **Failed Move Animation:** If client-side animation fails, swap still executes on server. Board state syncs on next server update.
+- **Stale State:** Client checks move sequence numbers. If out of sync, client requests full board state refresh from server.
+- **Concurrent Move Attempts:** Client prevents multiple simultaneous move submissions. If duplicate submission detected, only first is processed; subsequent are ignored by server.
