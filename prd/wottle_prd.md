@@ -1,5 +1,7 @@
 # Wottle MVP – Product Requirements Document
 
+Wottle is a competitive **2-player real-time word duel** merging word-search gameplay with chess-clock tension and spatial tile-freezing strategy. This PRD provides exact gameplay rules, scoring formulas, architecture, and UX requirements for implementation of the MVP with clear, testable specifications.
+
 ## 1. Gameplay Mechanics & Rules
 
 ### 1.1 Board and Letter Layout
@@ -115,11 +117,9 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 - **Stack:** Next.js (React), TypeScript, Tailwind CSS.
 - **Realtime:** Supabase Realtime / Socket.io.
 - **Animations:** CSS transforms; 60 FPS.
-- **Responsive:** Zoom/pan on mobile; click-drag desktop.
-- **Accessibility:** High-contrast, keyboard support.
 
 ### 6.2 Backend
-- **Stack:** Supabase (Postgres + Functions) + Redis.
+- **Stack:** Supabase (Postgres + Functions).
 - **Responsibilities:**
   - Validate swaps & scoring.
   - Manage turn order & clocks.
@@ -132,7 +132,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
   - `moves` (coords, words, delta)
   - `dictionaries` (per language)
   - `ratings` (history)
-- **Scalability:** Redis for active state; Postgres for persistence.
+- **Scalability:** Postgres for persistence.
 - **Security:** JWT auth; WSS required; server-authoritative logic.
 
 ## 7. UI / UX
@@ -148,34 +148,11 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 │ You [04:47] | Score 385 | M7 │
 └──────────────────────────────┘
 ```
-**Mobile:**
-```
-┌ Opp:340 [04:23] ┐
-│     16×16 GRID  │
-└ You:385 [04:47] ┘
-[ A ][ R ] [Undo] [✓]
-```
-
 ### 7.2 Visual Feedback
 - Frozen tiles: colored border + tint.
 - New words: flash highlight.
 - Invalid swap: shake/red border.
 - Score delta: transient popup near score.
-
-### 7.3 Accessibility
-- Colorblind mode (patterns).
-- Reduced motion toggle.
-- Keyboard control (desktop).
-
-## 8. Open Questions Resolved
-| Issue | Resolution |
-|--------|-------------|
-| Simultaneous moves | Planning phase with alternating initiative |
-| Starting player | Randomized |
-| Time enforcement | Server-authoritative 5+3 |
-| Undo | None (except pre-confirm cancel) |
-| Spectator mode | Post-MVP |
-| Resignation | Immediate loss, server-logged |
 
 ## 9. Non-Functional Requirements
 - **Latency:** <200ms move RTT.
@@ -185,16 +162,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 - **Testing:** Unit (Trie, Scoring, Clock), Integration (Match Flow).
 - **Security:** Sanitized input, HTTPS/WSS.
 
-## 10. Implementation Roadmap
-| Phase | Duration | Deliverable |
-|--------|-----------|-------------|
-| 0. Foundation | Weeks 1–4 | Auth, DB, WebSocket infra |
-| 1. MVP Core | Weeks 5–12 | Engine, UI, matchmaking |
-| 2. Beta | Weeks 13–16 | Closed test, tuning |
-| 3. Launch | Week 17 | Public MVP |
-| 4. Post-Launch | Weeks 18–30 | Replays, bots, social |
-
-## 11. Success Metrics
+## 10. Success Metrics
 | Metric | Target |
 |---------|--------|
 | Matchmaking Time | <10s |
@@ -203,9 +171,3 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 | Avg Session | 6–10min |
 | Fairness (Win Split) | 49–51% |
 | Abandon Rate (<4 moves) | <8% |
-
----
-
-### Summary
-Wottle is a competitive **2-player real-time word duel** merging word-search gameplay with chess-clock tension and spatial tile-freezing strategy. This PRD provides exact gameplay rules, scoring formulas, architecture, and UX requirements for implementation of the MVP with clear, testable specifications.
-
