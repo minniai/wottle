@@ -1,6 +1,6 @@
 # Wottle MVP Game Ideation
 
-This is a description of a MVP for the Wottle word game to be implemented as the first iteration of the game do a trial with actual users.
+This is a description of an MVP for the Wottle word game to be implemented as the first iteration of the game do a trial with actual users.
 
 This will be a fully functioning version of the game but with Minimum Viable functionality. The implementation will however have to be a full game that stands on its own and can attract users.
 

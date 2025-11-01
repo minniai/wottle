@@ -15,15 +15,14 @@
 
 ### 1.3 Move Mechanics
 - **Swapping Letters:** A **move** consists of selecting any two letter tiles on the board (they do **not** need to be adjacent) and swapping their positions. This is the only move action in the game. After a swap, the resulting board is automatically checked for new words formed by that swap.
-- **Controls:** On **desktop**, a swap can be done by clicking one tile and then another, or by dragging the first tile onto the second. On **mobile**, to avoid mis-taps on the smaller grid, the input uses a tap–tap–confirm pattern: the player taps one tile, then taps a second tile, then confirms the swap (e.g. via a ✓ button). The board supports standard gestures on mobile, including pinch-to-zoom (to magnify the grid up to ~3×) and drag-to-pan for easier navigation on smaller screens.
+- **Controls:** On **desktop**, a swap can be done by clicking one tile and then another, or by dragging the first tile onto the second. On **mobile**, swapping is done by tapping one tile and then another, and the swapp happens instantly when the second tile is tapped.
 - **Move Resolution:** When the player confirms a swap, a brief animation (~150–250ms) plays to swap the tiles. Immediately after, any new word(s) formed by that swap are highlighted on the board and *claimed* by the player. The server calculates the score for that move and updates the player’s total (see **Scoring** below). The move is then finalized: claimed tiles freeze in place, and control passes to the opponent.
 
 ### 1.4 Turn Structure & Time Control
-- **Simultaneous Turn Start:** At the **start of the game**, both players begin with an active timer (“chess clock”). Each player has **5:00 minutes** of base time, with a **+3 second** increment added after each move (5+3 time control). **Both clocks start running when the game begins**, allowing *either player to make the first move* (a simultaneous planning phase). This is a fairness mechanism: effectively, there is no forced “White always moves first” – either player can act first. However, **initiative** for resolving simultaneous moves is predetermined: one player is randomly assigned **initiative** at game start (this is communicated, e.g. “You have initiative for the first move”). If both players submit a swap at nearly the same time, the player with initiative’s move will be processed first, followed immediately by the second player’s move on the updated board (the game alternates who has initiative on each turn to keep things fair).
+- **Simultaneous Turn Start:** At the **start of the game**, both players begin with an active timer (“chess clock”). Each player has **5:00 minutes** of base time, with a **+3 second** increment added after each move (5+3 time control). **Both clocks start running when the game begins**, allowing *either player to make the first move* (a simultaneous planning phase). The server resolves who moved first, and stops the clock of the first-mover. The second player's clock keeps running until they make a move, after which the players take turns making moves. In the case of both players making the first move simultaniously, or nearly at the same time such that it can't be determined fairly who moved first, it is decided by random which player moved first.
 - **Turn-by-Turn Flow:** Players alternate turns after the first move. Only one move executes at a time. When one player’s move resolves, control passes to the opponent.
-- **Clock Behavior:** Each player’s clock counts down **only** during their turn. When a move is made, that player’s clock pauses and the opponent’s continues. Each completed move adds +3 seconds to the mover’s clock.
+- **Clock Behavior:** Each player’s clock counts down **only** during their turn (except for the initial move when both player's clocks count down). When a move is made, that player’s clock pauses and the opponent’s continues. Each completed move adds +3 seconds to the mover’s clock.
 - **Fair Play Safeguards:**
-  - Initiative alternates each turn to prevent consistent first-move advantage.
   - If a player’s clock expires before completing 10 moves, the opponent may still finish their remaining moves.
   - All timing is enforced server-side for fairness and to prevent client manipulation.
 
@@ -144,15 +143,15 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 ┌──────────────────────────────┐
 │ Opponent [04:23] |  Score 340│
 │──────────────────────────────│
-│         16×16 GRID          │
+│         16×16 GRID           │
 │──────────────────────────────│
-│ You [04:47] | Score 385 | M7│
+│ You [04:47] | Score 385 | M7 │
 └──────────────────────────────┘
 ```
 **Mobile:**
 ```
 ┌ Opp:340 [04:23] ┐
-│     16×16 GRID   │
+│     16×16 GRID  │
 └ You:385 [04:47] ┘
 [ A ][ R ] [Undo] [✓]
 ```
