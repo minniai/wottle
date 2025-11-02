@@ -13,7 +13,7 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 ### 1.2 Word Formation Rules
 
 - **Valid Words:** Players form words by swapping letters (see **Moves** below). A valid word is any sequence of **3 or more letters** found in a straight line on the grid. All 8 directions are allowed: horizontal (left-to-right **and** right-to-left), vertical (top-down **and** bottom-up), and diagonals in all four orientations. Words cannot wrap around edges of the board.
-- **Contiguous Path:** The letters of a word must lie in contiguous adjacent tiles in one direction with no gaps. Only unfrozen (movable) tiles can form new words (see **Frozen Tiles** below), though a player’s *own* frozen tiles may be part of a new word if they line up appropriately.
+- **Contiguous Path:** The letters of a word must lie in contiguous adjacent tiles in one direction with no gaps. Only unfrozen (movable) tiles can form new words (see **Frozen Tiles** below), though a player’s _own_ frozen tiles may be part of a new word if they line up appropriately.
 - **Word Validation:** After each move, the game server checks all 8 directions from the swapped positions to identify any new contiguous sequences of ≥3 letters that form valid dictionary words. Word matching is case-insensitive and respects diacritical marks in the current language.
 - **Word Scoring Uniqueness:** Each distinct word can contribute to a player’s score **only once per match**. If the same exact word (same letter sequence) is formed by the **same player** again in a later move, it will be identified but will **not** award points a second time. (This prevents exploits like re-forming a word repeatedly for points.) Each newly discovered word by a player is only scored the first time that player finds it.
 
@@ -30,11 +30,11 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
     - **Board Navigation:** For smaller screens, board is vertically scrollable with pinch-to-zoom support (min 50%, max 150% zoom level). Grid maintains aspect ratio during zoom.
     - **Swipe Gestures:** Horizontal swipe on board header can switch between game view and score details view (if space-constrained).
     - **Haptic Feedback:** Subtle vibration feedback on successful tile selection and swap completion (optional, can be disabled).
-- **Move Resolution:** When the player confirms a swap, a brief animation (~150–250ms) plays to swap the tiles. Immediately after, any new word(s) formed by that swap are highlighted on the board and *claimed* by the player. The server calculates the score for that move and updates the player’s total (see **Scoring** below). The move is then finalized: claimed tiles freeze in place, and control passes to the opponent.
+- **Move Resolution:** When the player confirms a swap, a brief animation (~150–250ms) plays to swap the tiles. Immediately after, any new word(s) formed by that swap are highlighted on the board and _claimed_ by the player. The server calculates the score for that move and updates the player’s total (see **Scoring** below). The move is then finalized: claimed tiles freeze in place, and control passes to the opponent.
 
 ### 1.4 Turn Structure & Time Control
 
-- **Simultaneous Turn Start:** At the **start of the game**, both players begin with an active timer (“chess clock”). Each player has **5:00 minutes** of base time, with a **+3 second** increment added after each move (5+3 time control). **Both clocks start running when the game begins**, allowing *either player to make the first move* (a simultaneous planning phase). The server resolves who moved first, and stops the clock of the first-mover. The second player's clock keeps running until they make a move, after which the players take turns making moves. In the case of both players making the first move simultaniously, or nearly at the same time such that it can't be determined fairly who moved first, it is decided by random which player moved first.
+- **Simultaneous Turn Start:** At the **start of the game**, both players begin with an active timer (“chess clock”). Each player has **5:00 minutes** of base time, with a **+3 second** increment added after each move (5+3 time control). **Both clocks start running when the game begins**, allowing _either player to make the first move_ (a simultaneous planning phase). The server resolves who moved first, and stops the clock of the first-mover. The second player's clock keeps running until they make a move, after which the players take turns making moves. In the case of both players making the first move simultaniously, or nearly at the same time such that it can't be determined fairly who moved first, it is decided by random which player moved first.
 - **Turn-by-Turn Flow:** Players alternate turns after the first move. Only one move executes at a time. When one player's move resolves, control passes to the opponent. **Simultaneous moves are only possible during the initial move** when both players' clocks are running and either player can make the first move. Once the first move is resolved, the game switches to strict turn-based play where simultaneous moves are not possible—only the player whose turn it is can execute a move, and their opponent's move input is disabled until the turn switches.
 - **Clock Behavior:** Each player's clock counts down **only** during their turn (except for the initial move when both player's clocks count down). When a move is made, that player's clock pauses and the opponent's continues. Each completed move adds +3 seconds to the mover's clock.
 - **Visual Timer Indication:** The active player's timer displays in **green** when it is actively counting down, and in a neutral color when paused. This provides immediate visual feedback about whose turn it is.
@@ -106,6 +106,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 **Matchmaking Methods:**
 
 1. **Direct Invitation (Challenge Mode):**
+
    - User clicks on another player's name in the lobby.
    - System sends invitation to selected player.
    - Invited player receives notification and can accept/decline.
@@ -276,14 +277,14 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 ## 9. Success Metrics
 
-| Metric | Target |
-|---------|--------|
-| Matchmaking Time | <10s |
-| Word Validation | <50ms |
-| Day-1 Retention | ≥30% |
-| Avg Session | 6–10min |
-| Fairness (Win Split) | 49–51% |
-| Abandon Rate (<4 moves) | <8% |
+| Metric                  | Target  |
+| ----------------------- | ------- |
+| Matchmaking Time        | <10s    |
+| Word Validation         | <50ms   |
+| Day-1 Retention         | ≥30%    |
+| Avg Session             | 6–10min |
+| Fairness (Win Split)    | 49–51%  |
+| Abandon Rate (<4 moves) | <8%     |
 
 ## 10. Error Handling & Edge Cases
 
@@ -321,7 +322,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 ### 10.5 Board Generation Edge Cases
 
-- **Generation Failure:** If board generation exceeds 200ms or fails, retry with new seed. After 3 failed attempts, match is cancelled and error returned to players.
+- **Generation Failure:** If board generation exceeds 250ms or fails, retry with new seed. After 3 failed attempts, match is cancelled and error returned to players.
 - **Insufficient Movable Tiles:** Server validates ≥24 unfrozen tiles after each move. If threshold breached, game ends immediately with winner determined by current scores.
 - **No Valid Words Found:** If a swap creates a board state with <20 possible words remaining, server logs warning but game continues. Players notified if no words remain.
 
