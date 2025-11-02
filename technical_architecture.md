@@ -58,38 +58,38 @@ This document outlines the technical architecture for Wottle, a real-time 2-play
 ### 2.1 High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Client Layer                             │
-│  ┌──────────────┐                          ┌──────────────┐     │
-│  │   Player 1   │                          │   Player 2   │     │
-│  │  (Browser)   │                          │  (Browser)   │     │
-│  └──────┬───────┘                          └───────┬──────┘     │
-│         │                                          │            │
-│         └──────────────────┬───────────────────────┘            │
-│                            │                                    │
-│                    HTTPS/WSS (TLS 1.3)                          │
-│                            │                                    │
-└────────────────────────────┼────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                         Client Layer                           │
+│  ┌──────────────┐                          ┌──────────────┐    │
+│  │   Player 1   │                          │   Player 2   │    │
+│  │  (Browser)   │                          │  (Browser)   │    │
+│  └──────┬───────┘                          └───────┬──────┘    │
+│         │                                          │           │
+│         └──────────────────┬───────────────────────┘           │
+│                            │                                   │
+│                    HTTPS/WSS (TLS 1.3)                         │
+│                            │                                   │
+└────────────────────────────┼───────────────────────────────────┘
                              │
-┌────────────────────────────┼────────────────────────────────────┐
-│                    API Gateway Layer                             │
-│                   (Supabase Edge Network)                        │
-│                            │                                    │
-│         ┌──────────────────┼──────────────────┐                 │
-│         │                  │                  │                 │
+┌────────────────────────────┼───────────────────────────────────┐
+│                    API Gateway Layer                           │
+│                   (Supabase Edge Network)                      │
+│                            │                                   │
+│         ┌──────────────────┼──────────────────┐                │
+│         │                  │                  │                │
 │    ┌────▼────┐      ┌──────▼─────┐    ┌──────▼─────┐           │
 │    │ REST API│      │  Realtime  │    │    Auth    │           │
 │    │   HTTP  │      │   Server   │    │   (JWT)    │           │
 │    └────┬────┘      └──────┬─────┘    └──────┬─────┘           │
-│         │                  │                  │                 │
-└─────────┼──────────────────┼──────────────────┼─────────────────┘
-          │                  │                  │
-┌─────────┼──────────────────┼──────────────────┼─────────────────┐
-│         │         Application Layer           │                 │
-│         │                  │                  │                 │
+│         │                  │                 │                 │
+└─────────┼──────────────────┼─────────────────┼─────────────────┘
+          │                  │                 │
+┌─────────┼──────────────────┼─────────────────┼─────────────────┐
+│         │         Application Layer          │                 │
+│         │                  │                 │                 │
 │    ┌────▼────────────┐ ┌───▼──────────────┐  │                 │
-│    │ Edge Functions  │ │  Realtime Channels│  │                 │
-│    │  (Deno)         │ │  (Presence/Broadcast)                  │
+│    │ Edge Functions  │ │ Realtime Channels│  │                 │
+│    │  (Deno)         │ │(Presence/Broadcast) │                 │
 │    │                 │ │                  │  │                 │
 │    │ • Move Handler  │ └───┬──────────────┘  │                 │
 │    │ • Board Gen     │     │                 │                 │
@@ -104,23 +104,23 @@ This document outlines the technical architecture for Wottle, a real-time 2-play
 │         │                  │                 │                 │
 │    ┌────▼──────────────────▼─────────────────▼─────┐           │
 │    │         PostgreSQL 15 (Supabase)              │           │
-│    │                                                │           │
+│    │                                               │           │
 │    │  Tables: users, matches, boards, moves,       │           │
 │    │          dictionaries, ratings, presence      │           │
-│    │                                                │           │
+│    │                                               │           │
 │    │  Row-Level Security (RLS) enabled             │           │
-│    └────────────────────────────────────────────────┘           │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+│    └───────────────────────────────────────────────┘           │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────┐
-│                      External Services                           │
-│                                                                 │
+┌────────────────────────────────────────────────────────────────┐
+│                      External Services                         │
+│                                                                │
 │    ┌──────────────┐         ┌──────────────┐                   │
 │    │   Vercel     │         │   Sentry     │                   │
 │    │  (Hosting)   │         │  (Logging)   │                   │
 │    └──────────────┘         └──────────────┘                   │
-└─────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.2 Architectural Principles
@@ -138,21 +138,21 @@ This document outlines the technical architecture for Wottle, a real-time 2-play
 ```
 Player 1 Client                  Supabase Backend                Player 2 Client
       │                                  │                              │
-      │ 1. Swap tiles (A5↔D12)          │                              │
+      │ 1. Swap tiles (A5↔D12)           │                              │
       ├─────────────────────────────────>│                              │
       │                                  │ 2. Validate move (turn, frozen)
       │                                  │ 3. Apply swap to board       │
-      │                                  │ 4. Scan 8 directions          │
-      │                                  │ 5. Validate words (Trie)      │
-      │                                  │ 6. Calculate score            │
-      │                                  │ 7. Freeze tiles               │
-      │                                  │ 8. Update DB (atomic)         │
-      │                                  │ 9. Broadcast via Realtime     │
-      │ 10. Receive board update        │                              │
-      │<─────────────────────────────────┤──────────────────────────────>│ 11. Receive board update
-      │ 12. Animate swap (150-250ms)    │                              │ 12. Animate swap
-      │ 13. Highlight words (600-800ms) │                              │ 13. Highlight words
-      │ 14. Update score display        │                              │ 14. Update score display
+      │                                  │ 4. Scan 8 directions         │
+      │                                  │ 5. Validate words (Trie)     │
+      │                                  │ 6. Calculate score           │
+      │                                  │ 7. Freeze tiles              │
+      │                                  │ 8. Update DB (atomic)        │
+      │                                  │ 9. Broadcast via Realtime    │
+      │ 10. Receive board update         │                              │
+      │<─────────────────────────────────┤─────────────────────────────>│ 11. Receive board update
+      │ 12. Animate swap (150-250ms)     │                              │ 12. Animate swap
+      │ 13. Highlight words (600-800ms)  │                              │ 13. Highlight words
+      │ 14. Update score display         │                              │ 14. Update score display
 ```
 
 ---
