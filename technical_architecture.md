@@ -46,10 +46,15 @@ This document outlines the technical architecture for Wottle, a real-time 2-play
 
 **Proposed Stack:**
 - **Frontend:** Next.js 16 (App Router), React 18+, TypeScript 5.x, Tailwind CSS 4.x, Framer Motion
-- **Backend:** Supabase (PostgreSQL 15+, Edge Functions, Realtime)
+- **Backend:** Hybrid approach:
+  - **Next.js Server Actions** for type-safe operations and Server Components
+  - **Supabase Edge Functions** for performance-critical operations and real-time handlers
+  - **Supabase** (PostgreSQL 15+, Realtime)
 - **Real-time:** Supabase Realtime (WebSocket-based) with fallback to REST polling
 - **Hosting:** Vercel (Frontend), Supabase Cloud (Backend)
 - **Dictionary:** In-memory Trie structure with binary search fallback
+
+**📋 Server Actions Review:** See `server-actions-review.md` for detailed analysis of where Next.js Server Actions improve architecture, type safety, and developer experience.
 
 ---
 
@@ -163,12 +168,14 @@ Player 1 Client                  Supabase Backend                Player 2 Client
 
 - **Framework:** Next.js 16 (App Router with React Server Components)
 - **UI Library:** React 18+ with TypeScript 5.x
+- **Server Actions:** Next.js Server Actions for type-safe client-server communication
 - **Styling:** Tailwind CSS 4.x + CSS Modules for complex animations
 - **Animation:** Framer Motion for declarative animations + CSS transforms for 60 FPS performance
 - **State Management:**
   - Zustand for global client state (lobby, user profile)
   - React Context for game state (scoped to match)
   - Jotai for atomic state (timer display, selected tiles)
+  - Server Actions + `useActionState` for form submissions and mutations
 - **Real-time Client:** Supabase JS Client v2 (Realtime subscriptions)
 - **Form Validation:** Zod for type-safe schemas
 - **Testing:** Vitest + React Testing Library + Playwright (E2E)
@@ -177,6 +184,11 @@ Player 1 Client                  Supabase Backend                Player 2 Client
 
 ```
 /app
+  /actions                 # Server Actions (type-safe server functions)
+    match.ts               # createMatch, getMatchState
+    matchmaking.ts         # enterMatchmaking, exitMatchmaking
+    challenges.ts          # sendChallenge, acceptChallenge
+    game.ts                # executeMove, resignMatch, refreshMatchState
   /(auth)
     /login
       page.tsx              # Landing page with username entry
@@ -188,7 +200,7 @@ Player 1 Client                  Supabase Backend                Player 2 Client
         MatchmakingButton.tsx
         InvitationModal.tsx
     /match/[matchId]
-      page.tsx              # Game board view
+      page.tsx              # Server Component - initial match state load
       components/
         GameBoard.tsx       # 16x16 grid
         Tile.tsx            # Individual letter tile
@@ -278,6 +290,7 @@ Player 1 Client                  Supabase Backend                Player 2 Client
 ### 3.4 State Management Strategy
 
 **Zustand Store (Global App State):**
+
 ```typescript
 // lib/stores/lobbyStore.ts
 interface LobbyStore {
@@ -380,16 +393,26 @@ const shakeInvalidSwap = () => {
 ### 4.1 Technology Stack
 
 - **Database:** PostgreSQL 15+ (Supabase-managed)
-- **Serverless Functions:** Supabase Edge Functions (Deno runtime)
+- **Server Functions:** Hybrid approach:
+  - **Next.js Server Actions** (Node.js/Edge runtime) for type-safe operations, initial data loading, and user-initiated actions
+  - **Supabase Edge Functions** (Deno runtime) for performance-critical operations and real-time event handlers
 - **Real-time:** Supabase Realtime (WebSocket protocol)
 - **Authentication:** Supabase Auth (JWT-based)
 - **File Storage:** Not required for MVP (future: replays, avatars)
 
+**Architecture Decision:** Use Server Actions for improved type safety and developer experience, with Edge Functions reserved for:
+- Operations requiring guaranteed <200ms RTT globally (move execution, after testing edge runtime)
+- Real-time event handlers triggered by WebSocket presence
+- Scheduled cron jobs
+
 ### 4.2 Edge Functions Structure
+
+**Note:** See `server-actions-review.md` for detailed Server Actions migration recommendations. Many operations can be migrated to Server Actions for improved type safety and developer experience.
 
 **Core Functions:**
 
 1. **`create-match`** (POST /functions/v1/create-match)
+   - **Migration Status:** ✅ Recommended to migrate to Server Action (`app/actions/match.ts`)
    - Input: `{ player1Id, player2Id, mode: 'ranked' | 'casual', seed?: number }`
    - Logic:
      1. Validate both players exist and available
@@ -402,6 +425,7 @@ const shakeInvalidSwap = () => {
    - Performance: <200ms (PRD requirement)
 
 2. **`execute-move`** (POST /functions/v1/execute-move)
+   - **Migration Status:** ⚠️ Conditional - Test edge runtime Server Actions first (see review doc)
    - Input: `{ matchId, playerId, from: Position, to: Position, moveNumber: number }`
    - Logic:
      1. Validate player's turn (or simultaneous phase)
@@ -444,6 +468,7 @@ const shakeInvalidSwap = () => {
    - Total: <10ms typically
 
 5. **`matchmaking`** (POST /functions/v1/matchmaking)
+   - **Migration Status:** ✅ Recommended to migrate to Server Action (`app/actions/matchmaking.ts`)
    - Input: `{ userId, mode: 'ranked' | 'casual' }`
    - Logic:
      1. Add user to `matchmaking_queue` table with timestamp
@@ -1189,12 +1214,47 @@ export function useMatchSubscription(matchId: string, onUpdate: (payload: any) =
 **Client-Side Flow:**
 
 1. Player swaps tiles → **Immediately animate swap on client** (optimistic)
-2. Send request to `execute-move` function
+2. Call Server Action (or Edge Function) via Server Action
 3. Await server response:
    - **Success:** Server broadcasts update; client reconciles (should match optimistic state)
    - **Failure:** Rollback optimistic update; show error; restore previous board state
 
-**Example:**
+**Example with Server Action:**
+
+```typescript
+// components/game/GameBoard.tsx
+import { executeMove } from '@/app/actions/game'
+import { useActionState, useOptimistic } from 'react'
+
+const [optimisticState, addOptimistic] = useOptimistic(
+  grid,
+  (currentGrid, { from, to }: { from: Position; to: Position }) => {
+    return applySwapLocally(currentGrid, from, to)
+  }
+)
+
+const [state, formAction, pending] = useActionState(executeMove, null)
+
+const handleSwap = async (from: Position, to: Position) => {
+  // Optimistic update
+  addOptimistic({ from, to })
+  
+  try {
+    await formAction({
+      matchId,
+      from,
+      to,
+      moveNumber: moveNumber + 1
+    })
+    // Server will broadcast; subscription handler updates state
+  } catch (error) {
+    // Error handled by useActionState
+    // React error boundary catches errors
+  }
+}
+```
+
+**Example with Edge Function (if Server Action not used):**
 
 ```typescript
 // components/game/GameBoard.tsx
@@ -1205,7 +1265,7 @@ const handleSwap = async (from: Position, to: Position) => {
   setGrid(optimisticGrid)
 
   try {
-    const response = await fetch('/api/execute-move', {
+    const response = await fetch('/functions/v1/execute-move', {
       method: 'POST',
       body: JSON.stringify({ matchId, playerId, from, to, moveNumber })
     })
@@ -1573,31 +1633,50 @@ function formatTime(seconds: number): string {
 
 ### 11.2 State Synchronization Flow
 
-**Initial Load:**
+**Initial Load (Server Component Pattern):**
 
 ```typescript
-// On match page load
-async function loadMatch(matchId: string) {
-  // Fetch current match state from DB
+// app/(game)/match/[matchId]/page.tsx (Server Component)
+import { getMatchState } from '@/app/actions/match'
+
+export default async function MatchPage({ params }: { params: { matchId: string } }) {
+  // Server-side data fetching - zero loading state on client
+  const initialMatchState = await getMatchState(params.matchId)
+  
+  return (
+    <MatchClient 
+      initialMatchState={initialMatchState}
+      matchId={params.matchId}
+    />
+  )
+}
+
+// app/actions/match.ts
+'use server'
+
+export async function getMatchState(matchId: string): Promise<MatchState> {
+  const supabase = createServerClient()
   const { data } = await supabase
     .from('matches')
     .select('*, boards(*), moves(*)')
     .eq('id', matchId)
     .single()
 
-  // Hydrate client state
-  setGameState({
+  return {
     board: data.boards.grid,
     scores: { white: data.score_white, black: data.score_black },
     clocks: { white: data.clock_white_seconds, black: data.clock_black_seconds },
     currentTurn: data.current_turn,
     frozenTiles: data.boards.frozen_positions
-  })
-
-  // Subscribe to real-time updates
-  subscribeToMatch(matchId)
+  }
 }
 ```
+
+**Benefits:**
+- Zero client-side loading state (data streams from server)
+- Type-safe end-to-end (server → client)
+- Faster Time-to-Interactive
+- SEO-friendly (if public viewing added)
 
 **Real-Time Updates:**
 
@@ -1639,7 +1718,95 @@ function handleMoveUpdate(payload: MovePayload) {
 
 ## 12. API Design
 
-### 12.1 REST API Endpoints
+### 12.1 Server Actions (Primary Pattern)
+
+**Match Operations:**
+
+```typescript
+// app/actions/match.ts
+'use server'
+
+export async function createMatch(
+  opponentId: string,
+  mode: 'ranked' | 'casual',
+  seed?: number
+): Promise<{ matchId: string; initialBoard: LetterGrid }> {
+  // Type-safe server function
+  // Automatically handles authentication via cookies
+  // No HTTP layer overhead
+}
+
+export async function getMatchState(matchId: string): Promise<MatchState> {
+  // Used by Server Components for initial load
+}
+
+// Client usage:
+import { createMatch } from '@/app/actions/match'
+const { matchId } = await createMatch(opponentId, 'ranked')
+```
+
+**Game Actions:**
+
+```typescript
+// app/actions/game.ts
+'use edge'  // Optional: use edge runtime for lower latency
+
+export async function executeMove(
+  matchId: string,
+  from: Position,
+  to: Position,
+  moveNumber: number
+): Promise<MoveResult> {
+  // Performance-critical: use 'use edge' if edge runtime supports all APIs
+  // Otherwise, use default Node.js runtime
+}
+
+// Client usage with useActionState:
+const [state, formAction, pending] = useActionState(executeMove, initialState)
+```
+
+**Matchmaking:**
+
+```typescript
+// app/actions/matchmaking.ts
+'use server'
+
+export async function enterMatchmaking(mode: 'ranked' | 'casual') {
+  // Add user to queue
+}
+
+export async function exitMatchmaking() {
+  // Remove from queue
+}
+```
+
+**Challenges:**
+
+```typescript
+// app/actions/challenges.ts
+'use server'
+
+export async function sendChallenge(
+  toUserId: string,
+  mode: 'ranked' | 'casual' | 'challenge'
+): Promise<{ invitationId: string }> {
+  // Create invitation record
+  // Broadcast via Realtime (handled by trigger or Edge Function)
+}
+
+export async function acceptChallenge(invitationId: string) {
+  // Accept and create match
+}
+```
+
+### 12.2 REST API Endpoints (Legacy/Edge Functions)
+
+**Note:** Most operations should use Server Actions. REST endpoints remain for:
+- Operations requiring Edge Functions (real-time handlers, cron jobs)
+- External integrations
+- Legacy support during migration
+
+### 12.3 REST API Endpoints
 
 **Authentication:**
 
