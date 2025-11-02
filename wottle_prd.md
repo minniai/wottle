@@ -17,7 +17,16 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 
 ### 1.3 Move Mechanics
 - **Swapping Letters:** A **move** consists of selecting any two letter tiles on the board (they do **not** need to be adjacent) and swapping their positions. This is the only move action in the game. After a swap, the resulting board is automatically checked for new words formed by that swap.
-- **Controls:** On **desktop**, a swap can be done by clicking one tile and then another, or by dragging the first tile onto the second. On **mobile**, swapping is done by tapping one tile and then another, and the swapp happens instantly when the second tile is tapped.
+- **Controls:** 
+  - **Desktop:** A swap can be done by clicking one tile and then another, or by dragging the first tile onto the second.
+  - **Mobile:** 
+    - Swapping is done by **tapping** one tile and then another. The swap executes instantly when the second tile is tapped.
+    - **Touch Feedback:** First selected tile shows visual indication (border highlight, slight scale-up) to confirm selection. Second tap completes the swap immediately.
+    - **Touch Area:** Minimum touch target size of 44×44px per tile for accessibility.
+    - **Long Press:** Optional long-press (500ms+) on a tile shows word hints/tooltip (if enabled in settings).
+    - **Board Navigation:** For smaller screens, board is vertically scrollable with pinch-to-zoom support (min 50%, max 150% zoom level). Grid maintains aspect ratio during zoom.
+    - **Swipe Gestures:** Horizontal swipe on board header can switch between game view and score details view (if space-constrained).
+    - **Haptic Feedback:** Subtle vibration feedback on successful tile selection and swap completion (optional, can be disabled).
 - **Move Resolution:** When the player confirms a swap, a brief animation (~150–250ms) plays to swap the tiles. Immediately after, any new word(s) formed by that swap are highlighted on the board and *claimed* by the player. The server calculates the score for that move and updates the player’s total (see **Scoring** below). The move is then finalized: claimed tiles freeze in place, and control passes to the opponent.
 
 ### 1.4 Turn Structure & Time Control
@@ -168,6 +177,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 ## 7. UI / UX
 
 ### 7.1 Layout
+
 **Desktop:**
 ```
 ┌──────────────────────────────┐
@@ -179,17 +189,57 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 └──────────────────────────────┘
 ```
 
+**Mobile:**
+```
+┌─────────────────────┐
+│ Opponent            │
+│ [04:23]  Score 340  │
+├─────────────────────┤
+│                     │
+│   16×16 GRID        │
+│   (scrollable)      │
+│                     │
+├─────────────────────┤
+│ You [04:47] | M7    │
+│ Score 385           │
+└─────────────────────┘
+```
+
 **Layout Elements:**
 - **Opponent Info:** Timer display and current score
 - **Game Board:** 16×16 grid of letter tiles
+  - **Mobile:** Board is vertically scrollable and supports pinch-to-zoom. Grid adapts to screen size while maintaining tile readability.
 - **Player Info:** Timer display, current score, and **move counter** (e.g., "M7" indicates player has completed 7 moves)
+  - **Mobile:** Stacked vertically for smaller screens; timer and move counter may wrap to separate lines.
 - **Move Counter:** Displays current move number for the active player, formatted as "M{n}" where n is the number of completed moves (range: M0 to M10). Updates immediately after each move completes.
+
+**Mobile-Specific Layout Considerations:**
+- **Responsive Design:** Layout adapts to portrait and landscape orientations.
+- **Touch Targets:** All interactive elements meet minimum 44×44px touch target size for accessibility.
+- **Information Density:** Mobile layout prioritizes board visibility; secondary information (detailed scores, move history) accessible via swipe or tap to expand.
+- **Orientation Lock:** Game can be played in portrait (default) or landscape mode. Board scales appropriately for both orientations.
 ### 7.2 Visual Feedback
-- **Timer Status:** Active timer displays in green when counting down; neutral color when paused.
-- Frozen tiles: colored border + tint.
-- New words: flash highlight.
-- Invalid swap: shake/red border.
-- Score delta: transient popup near score.
+
+**Timer Status:** Active timer displays in green when counting down; neutral color when paused.
+
+**Frozen Tiles:** Colored border + tint (40% opacity overlay) applied immediately when word is discovered.
+
+**Animation Timing Specifications:**
+
+- **Tile Swap Animation:** When a swap is confirmed, tiles animate to their new positions. Duration: **150–250ms** with smooth easing. Animation must complete before word validation begins.
+- **Word Highlight:** New words discovered after a swap are highlighted with player's color. 
+  - **Flash Duration:** 600–800ms total (fade in: 200ms, hold: 200–400ms, fade out: 200ms).
+  - **Highlight Style:** Pulsing glow or border animation to draw attention.
+  - Multiple words highlight simultaneously if found in the same move.
+- **Score Delta Popup:** Transient popup appears near player's score displaying move points breakdown.
+  - **Display Duration:** 2–3 seconds before auto-dismissing.
+  - **Animation:** Fade in over 200ms, hold for 2–2.8s, fade out over 200ms.
+  - **Content Format:** "+18 letters, +3 length, +2 combo" or similar breakdown.
+  - **Position:** Appears adjacent to score display, above or to the side, non-intrusive.
+- **Invalid Swap Feedback:** When swap is rejected (frozen tiles, invalid selection, etc.):
+  - **Shake Animation:** Tiles shake with 3–4 oscillations over 300–400ms.
+  - **Red Border:** Brief red border flash (200ms duration) around selected tiles.
+  - **Audio (optional):** Short error sound cue (<100ms) for accessibility.
 
 ## 8. Non-Functional Requirements
 - **Latency:** <200ms move RTT.
