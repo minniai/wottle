@@ -1,4 +1,5 @@
 # Server Actions Architecture Review
+
 ## Next.js Server Actions Integration Analysis for Wottle
 
 **Review Date:** 2025-01-02  
@@ -10,6 +11,7 @@
 ## Executive Summary
 
 Next.js Server Actions provide significant opportunities to improve the Wottle architecture, particularly for:
+
 - **Initial match state loading** (Server Components + Server Actions)
 - **Type-safe client-server communication**
 - **Reduced serialization overhead**
@@ -22,13 +24,15 @@ However, **performance-critical operations** (move execution) should remain as E
 
 ## Current Architecture Analysis
 
-### Current Pattern:
-```
+### Current Pattern
+
+```txt
 Client → fetch('/functions/v1/execute-move') → Supabase Edge Function → DB → Realtime Broadcast
 ```
 
-### Proposed Hybrid Pattern:
-```
+### Proposed Hybrid Pattern
+
+```txt
 Client → Server Action → Supabase DB → Realtime Broadcast
    (for non-critical-path operations)
 
@@ -43,11 +47,13 @@ Client → Edge Function → Supabase DB → Realtime Broadcast
 ### 1. **Initial Match State Loading** ⭐⭐⭐ (Highest Priority)
 
 **Current Implementation:**
+
 - Client-side `useEffect` hook fetches match state on mount
 - Requires loading state management
 - No SSR/SSG benefits
 
 **Server Action Solution:**
+
 ```typescript
 // app/(game)/match/[matchId]/page.tsx
 export default async function MatchPage({ params }: { params: { matchId: string } }) {
@@ -84,6 +90,7 @@ async function getMatchState(matchId: string): Promise<MatchState> {
 ```
 
 **Benefits:**
+
 - ✅ **Zero client-side loading state** - data available immediately
 - ✅ **SEO-friendly** (if public match viewing added later)
 - ✅ **Reduced Time-to-Interactive** - faster initial paint
@@ -99,6 +106,7 @@ async function getMatchState(matchId: string): Promise<MatchState> {
 **Current:** Edge Function `create-match`
 
 **Server Action Solution:**
+
 ```typescript
 // app/actions/match.ts
 'use server'
@@ -129,6 +137,7 @@ export async function createMatch(
 ```
 
 **Benefits:**
+
 - ✅ **Type safety** - parameters and return types automatically inferred
 - ✅ **Direct function calls** - no HTTP overhead
 - ✅ **Better error handling** - use React error boundaries
@@ -136,6 +145,7 @@ export async function createMatch(
 - ✅ **Authentication built-in** - use `createServerClient()` with session
 
 **Trade-off:** 
+
 - Runs on Next.js server (Node.js runtime) vs Deno edge runtime
 - Still achieves <200ms target (board generation is CPU-bound, not network-bound)
 
@@ -148,6 +158,7 @@ export async function createMatch(
 **Current:** Edge Function `matchmaking`
 
 **Server Action Solution:**
+
 ```typescript
 // app/actions/matchmaking.ts
 'use server'
@@ -173,6 +184,7 @@ export async function exitMatchmaking() {
 ```
 
 **Benefits:**
+
 - ✅ Simple, type-safe API
 - ✅ Client can use `useActionState` for built-in loading states
 - ✅ No need for separate API route
@@ -186,6 +198,7 @@ export async function exitMatchmaking() {
 **Current:** Edge Functions `send-challenge`, `accept-challenge`
 
 **Server Action Solution:**
+
 ```typescript
 // app/actions/challenges.ts
 'use server'
@@ -220,6 +233,7 @@ export async function acceptChallenge(invitationId: string) {
 ```
 
 **Benefits:**
+
 - ✅ Type-safe invitation handling
 - ✅ Better integration with React forms
 - ✅ Use `useOptimistic` for instant UI updates
@@ -233,6 +247,7 @@ export async function acceptChallenge(invitationId: string) {
 **Current:** Edge Function `resign`
 
 **Server Action Solution:**
+
 ```typescript
 // app/actions/game.ts
 'use server'
@@ -261,10 +276,12 @@ export async function resignMatch(matchId: string) {
 **Current:** Edge Function (performance-critical)
 
 **Consideration:**
+
 - Server Actions can use `'use edge'` directive for edge runtime
 - However, edge runtime has limitations (smaller subset of Node.js APIs)
 
 **Hybrid Approach:**
+
 ```typescript
 // app/actions/game.ts
 'use edge'  // Run on edge runtime for low latency
@@ -281,6 +298,7 @@ export async function executeMove(
 ```
 
 **Trade-offs:**
+
 - ✅ Type safety improvement
 - ✅ Eliminates HTTP layer overhead (~10-20ms)
 - ⚠️ Edge runtime limitations (Deno subset)
@@ -290,6 +308,7 @@ export async function executeMove(
 **Recommendation:** ⚠️ **Test in staging first** - if edge runtime supports all required APIs and performance meets <200ms target, migrate. Otherwise keep as Edge Function.
 
 **Testing Checklist:**
+
 - [ ] Trie structure loads in edge runtime
 - [ ] Board generation completes in <200ms
 - [ ] Word validation completes in <50ms
@@ -303,6 +322,7 @@ export async function executeMove(
 **Current:** Client-side Supabase queries
 
 **Server Action for Refetching:**
+
 ```typescript
 // app/actions/game.ts
 'use server'
@@ -343,16 +363,19 @@ export async function refreshMatchState(matchId: string) {
 ## Implementation Strategy
 
 ### Phase 1: Low-Risk Migrations (Week 1)
+
 1. ✅ Initial match state loading (Server Components)
 2. ✅ Challenge/invitation system
 3. ✅ Resignation
 
 ### Phase 2: Medium-Risk Migrations (Week 2)
+
 4. ✅ Match creation
 5. ✅ Matchmaking queue operations
 6. ✅ Match state refresh (reconnection)
 
 ### Phase 3: High-Risk Migration (Week 3)
+
 7. ⚠️ Move execution (if edge runtime supports all requirements)
    - Test thoroughly in staging
    - Load test to verify performance targets
@@ -378,6 +401,7 @@ export async function refreshMatchState(matchId: string) {
 ## Type Safety Improvements
 
 ### Current Pattern:
+
 ```typescript
 // Client
 const response = await fetch('/functions/v1/execute-move', {
@@ -387,6 +411,7 @@ const data = await response.json() // ❌ No type safety
 ```
 
 ### Server Action Pattern:
+
 ```typescript
 // Server Action
 export async function executeMove(
@@ -407,6 +432,7 @@ const result = await executeMove(matchId, from, to, moveNumber)
 ```
 
 **Benefits:**
+
 - End-to-end type safety (server → client)
 - Autocomplete in IDE
 - Compile-time error catching
@@ -417,6 +443,7 @@ const result = await executeMove(matchId, from, to, moveNumber)
 ## Error Handling Improvements
 
 ### Current Pattern:
+
 ```typescript
 try {
   const response = await fetch('/api/execute-move')
@@ -430,6 +457,7 @@ try {
 ```
 
 ### Server Action Pattern:
+
 ```typescript
 'use server'
 
@@ -449,6 +477,7 @@ const [state, formAction, pending] = useActionState(executeMove, initialState)
 ```
 
 **Benefits:**
+
 - Typed error classes
 - React error boundaries integration
 - Better UX with `useActionState` loading states
@@ -495,6 +524,7 @@ export async function executeMove(...) {
 ```
 
 **Benefits:**
+
 - No manual token management
 - Secure by default (cookies, not localStorage)
 - Works with Next.js middleware
@@ -520,12 +550,14 @@ export async function executeMove(...) {
 ## Recommended Architecture Split
 
 ### Use Server Actions For:
+
 1. ✅ Initial data loading (Server Components)
 2. ✅ User-initiated actions (match creation, resignation)
 3. ✅ Low-frequency operations (challenges, matchmaking)
 4. ✅ Type-safe client-server communication
 
 ### Keep Edge Functions For:
+
 1. ✅ Realtime event handlers (presence, disconnection)
 2. ✅ Scheduled jobs (cron, time forfeit checks)
 3. ✅ Move execution (if edge runtime Server Actions don't work)
@@ -544,6 +576,7 @@ export async function executeMove(...) {
 **Recommendation:** Proceed with phased migration, starting with low-risk operations (match state loading, challenges, matchmaking) and evaluating move execution migration after thorough edge runtime testing.
 
 **Expected Outcome:**
+
 - ~20-30% reduction in client-side code complexity
 - Improved type safety across the application
 - Faster initial page loads (Server Components)
@@ -552,6 +585,7 @@ export async function executeMove(...) {
 ---
 
 **Next Steps:**
+
 1. Review this analysis with team
 2. Begin Phase 1 migrations (low-risk)
 3. Set up edge runtime testing environment
