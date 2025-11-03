@@ -43,6 +43,8 @@
 
 **Clean Code**: Function design reviewed for single responsibility, meaningful names, minimal parameters; code structure follows DRY and domain organization.
 
+**TDD**: All code changes must follow Red-Green-Refactor cycle; tests written before implementation; frequent commits for each passing test.
+
 ## Project Structure
 
 ### Documentation (this feature)

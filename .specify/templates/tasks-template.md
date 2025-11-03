@@ -8,7 +8,7 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: Tests are MANDATORY per Constitution Principle VII (TDD). All implementation tasks MUST have corresponding test tasks that are executed FIRST (Red-Green-Refactor cycle).
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -79,22 +79,40 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### TDD Phase 1: Tests for User Story 1 (RED) ⚠️ MANDATORY
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **TDD CYCLE ENFORCEMENT**: Tests MUST be written FIRST and MUST fail before implementation begins.
+> Commit each passing test separately after implementation (see TDD Principle VII).
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
-- [ ] T011a [US1] Performance test: Verify [performance SLA] meets target ([if applicable])
+- [ ] T010 [P] [US1] [TDD-RED] Write failing test for [Entity1] behavior in tests/unit/test_[entity1].ts
+  - **Commit after T014**: `test([scope]): verify [Entity1] [behavior]` (test passes)
+- [ ] T011 [P] [US1] [TDD-RED] Write failing test for [Entity2] behavior in tests/unit/test_[entity2].ts
+  - **Commit after T015**: `test([scope]): verify [Entity2] [behavior]` (test passes)
+- [ ] T012 [P] [US1] [TDD-RED] Write failing contract test for [endpoint] in tests/contract/test_[name].ts
+  - **Commit after T017**: `test([scope]): verify [endpoint] contract` (test passes)
+- [ ] T013 [P] [US1] [TDD-RED] Write failing integration test for [user journey] in tests/integration/test_[name].ts
+  - **Commit after T017**: `test([scope]): verify [user journey] integration` (test passes)
+- [ ] T013a [US1] [TDD-RED] Write failing performance test: Verify [performance SLA] meets target in tests/performance/test_[name].ts
+  - **Commit after T017**: `test([scope]): verify [performance SLA]` (test passes)
 
-### Implementation for User Story 1
+### TDD Phase 2: Implementation for User Story 1 (GREEN → REFACTOR)
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+> **TDD WORKFLOW**: For each test above, implement minimum code to pass (GREEN), then refactor while keeping tests green (REFACTOR).
+> Commit after each test passes: `feat([scope]): implement [feature] - pass test for [behavior]`
+
+- [ ] T014 [P] [US1] [TDD-GREEN] Implement [Entity1] in src/models/[entity1].ts (makes T010 pass)
+  - **Commit**: `feat([scope]): implement [Entity1] - pass test for [behavior]`
+- [ ] T015 [P] [US1] [TDD-GREEN] Implement [Entity2] in src/models/[entity2].ts (makes T011 pass)
+  - **Commit**: `feat([scope]): implement [Entity2] - pass test for [behavior]`
+- [ ] T016 [US1] [TDD-GREEN] Implement [Service] in src/services/[service].ts (makes T012 pass; depends on T014, T015)
+  - **Commit**: `feat([scope]): implement [Service] - pass contract test`
+- [ ] T017 [US1] [TDD-GREEN] Implement [endpoint/feature] in src/[location]/[file].ts (makes T013 pass)
+  - **Commit**: `feat([scope]): implement [endpoint] - pass integration test`
+- [ ] T018 [US1] [TDD-REFACTOR] Refactor [Service] and [endpoint] while keeping all tests green
+  - Apply Clean Code principles (Principle VI): extract methods, improve naming
+  - **Commit**: `refactor([scope]): improve [Service] code quality`
+- [ ] T019 [US1] Add validation and error handling (with TDD: test first, then implement)
+- [ ] T020 [US1] Add logging for user story 1 operations (with TDD: test first, then implement)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 

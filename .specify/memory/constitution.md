@@ -1,6 +1,6 @@
 # Wottle Constitution
 <!-- Sync Impact Report:
-  Version: 1.0.0 → 1.1.0 (MINOR: new principle added)
+  Version: 1.1.0 → 1.2.0 (MINOR: new principle added)
   Created: 2025-01-08
   Last Amended: 2025-01-08
   
@@ -14,15 +14,18 @@
   Principles Added (v1.1.0):
   - VI. Clean Code Principles (Uncle Bob)
   
+  Principles Added (v1.2.0):
+  - VII. Test Driven Development (TDD) (NON-NEGOTIABLE)
+  
   Sections Added:
   - Technology Stack Standards
   - Code Organization & Patterns
   - Development Workflow
   
   Templates Requiring Updates:
-  - ✅ updated: .specify/templates/plan-template.md - added constitution compliance checks + Clean Code gate
+  - ✅ updated: .specify/templates/plan-template.md - added constitution compliance checks + Clean Code gate + TDD check
   - ✅ updated: .specify/templates/spec-template.md - added performance requirements section
-  - ✅ updated: .specify/templates/tasks-template.md - added performance test tasks
+  - ✅ updated: .specify/templates/tasks-template.md - added TDD workflow (Red-Green-Refactor phases) with commit guidelines
 -->
 
 ## Core Principles
@@ -133,6 +136,55 @@ All code MUST follow Clean Code principles for maintainability and readability.
 
 **Rationale**: Clean Code principles ensure long-term maintainability, reduce bugs, and make onboarding faster. Real-time game code requires clarity for debugging latency issues and race conditions.
 
+### VII. Test Driven Development (TDD) (NON-NEGOTIABLE)
+
+All code changes MUST follow the TDD cycle: Red → Green → Refactor.
+
+**The TDD Cycle (Mandatory)**:
+
+1. **Red**: Write a failing test FIRST that describes the desired behavior
+   - Test MUST fail for the right reason (expected behavior not yet implemented)
+   - Test MUST be minimal—just enough to specify one behavior
+2. **Green**: Write the MINIMUM code to make the test pass
+   - No premature optimization or extra features
+   - Code quality acceptable temporarily; refactoring comes next
+3. **Refactor**: Improve code quality while keeping tests green
+   - Apply Clean Code principles (Principle VI)
+   - Extract methods, improve naming, remove duplication
+   - Tests remain passing throughout refactoring
+
+**Commit Frequency**:
+
+- Each passing test MUST be committed separately (frequent, atomic commits)
+- Commit message format: `test: [what the test verifies]` or `feat: [feature] - add test for [behavior]`
+- NEVER commit failing tests (except as WIP/experimental with clear `[WIP]` prefix)
+- NEVER commit production code without a corresponding passing test
+
+**Test Coverage Requirements**:
+
+- All Server Actions MUST have tests (unit tests for logic, integration tests for DB interactions)
+- Game engine modules (Trie, WordFinder, Scorer, BoardGenerator) MUST have comprehensive unit tests
+- Critical paths (move validation, scoring, clock management) MUST have integration tests
+- Frontend components MUST have tests for user interactions and state changes
+- Performance-critical paths MUST have performance tests validating SLA targets
+
+**Test Quality Standards**:
+
+- Tests MUST be independent (no shared state between tests)
+- Tests MUST be deterministic (same input = same output; no flakiness)
+- Tests MUST use descriptive names: `test('should [expected behavior] when [condition]')`
+- Tests MUST test behavior, not implementation details
+- Test setup MUST be minimal; prefer factories/builders over complex fixtures
+
+**TDD Workflow Enforcement**:
+
+- PRs MUST show evidence of TDD: test commits before implementation commits
+- Code reviews MUST verify that tests exist for all new/changed functionality
+- CI pipeline MUST run tests before allowing merge; failing tests block PR
+- Hotfix exceptions: Emergency production fixes may temporarily skip TDD, but tests MUST be added in immediate follow-up PR
+
+**Rationale**: TDD ensures all code is testable, reduces bugs, and provides living documentation. Frequent commits create a clear history and enable safe rollbacks. The Red-Green-Refactor cycle prevents over-engineering and ensures tests drive design.
+
 ## Technology Stack Standards
 
 **Primary Stack (Mandatory)**:
@@ -163,6 +215,7 @@ All code MUST follow Clean Code principles for maintainability and readability.
 - Integration: Playwright for match flow (login → lobby → match → move)
 - Performance: Load testing with Artillery.io; monitor p95 latencies
 - All tests MUST pass before deployment; failing tests block PR merge
+- TDD workflow: Tests written before implementation (see Principle VII)
 
 ## Development Workflow
 
@@ -170,6 +223,8 @@ All code MUST follow Clean Code principles for maintainability and readability.
 
 - Feature branches: `###-feature-name` (e.g., `001-matchmaking`)
 - Commits: Conventional format `type(scope): message` (e.g., `feat(game): add tile swap animation`)
+  - Test commits: `test(scope): verify [behavior]` before implementation
+  - Frequent commits: Each passing test committed separately (TDD Principle VII)
 - PRs: Required; must pass CI tests and Constitution compliance check
 
 **Constitution Compliance Gates**:
@@ -203,4 +258,4 @@ All code MUST follow Clean Code principles for maintainability and readability.
 
 **Documentation**: All Server Actions MUST document input/output types in JSDoc; game engine modules require algorithmic complexity notes.
 
-**Version**: 1.1.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2025-01-08
+**Version**: 1.2.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2025-01-08
