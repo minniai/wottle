@@ -85,6 +85,7 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T011a [US1] Performance test: Verify [performance SLA] meets target ([if applicable])
 
 ### Implementation for User Story 1
 

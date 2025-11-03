@@ -31,7 +31,17 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**Server-Authoritative**: Does this feature modify game state? If yes, Server Action implementation plan verified.
+
+**Performance SLA**: Does this touch real-time paths (moves, clocks, broadcasts)? If yes, <200ms RTT target documented with measurement strategy.
+
+**Type Safety**: All new Server Actions must have explicit return types; shared types defined in `/lib/types/`.
+
+**Mobile-First**: UI components must support 44×44px touch targets; desktop features are additive enhancements.
+
+**Observability**: Performance-critical paths instrumented with `performance.mark()`; errors sent to Sentry.
+
+**Clean Code**: Function design reviewed for single responsibility, meaningful names, minimal parameters; code structure follows DRY and domain organization.
 
 ## Project Structure
 
