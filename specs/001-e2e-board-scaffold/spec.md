@@ -70,7 +70,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 
 - What happens when the network round-trip fails during a swap submission? System should show an error and restore prior board state.
 - How does the system handle concurrent initial moves? The second submission is rejected with a clear message and the client refreshes the board state.
-- What happens when Supabase CLI dependencies or Docker are missing locally? Quickstart documentation must surface prerequisites and remediation steps before startup.
+- What happens when Supabase CLI dependencies or Docker are missing locally? Quickstart script MUST fail fast via preflight checks and surface remediation steps before startup.
 - How does the system handle a port conflict or already-running Supabase instance? Startup flow alerts the developer and provides resolution guidance.
 - What happens if environment variables point to a cloud Supabase project? Validation warns and blocks until local settings are restored.
 - How are service_role keys protected during local development? Tooling ensures they stay server-side and never ship to client bundles.
@@ -88,10 +88,10 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-006**: System MUST support basic responsiveness so the 16×16 grid is viewable on desktop and mobile.
 - **FR-007**: System MUST provide a minimal confirmation indicator after a successful swap.
 - **FR-008**: System MUST prevent wrap-around or out-of-bounds coordinates in swap requests.
-- **FR-009**: System MUST provide a documented quickstart that installs Supabase CLI prerequisites and launches the Docker-backed stack via `supabase start` end-to-end.
+- **FR-009**: System MUST provide a version-controlled quickstart script or `make` target that installs Supabase CLI prerequisites, validates required versions, performs preflight checks for Docker availability, Supabase authentication, and required ports, launches the Docker-backed stack via `supabase start`, and is referenced from the documentation with fail-fast remediation guidance.
 - **FR-010**: System MUST supply project configuration files and environment templates that default client contexts to the anon key and server actions to the service_role key.
 - **FR-011**: System MUST expose a verification checklist or script confirming Supabase services (database, auth, realtime, storage, RLS policies) are reachable and aligned with production settings.
-- **FR-012**: System MUST include seed/reset workflows that populate and restore the database with baseline board and tile data while applying production-equivalent RLS policies.
+- **FR-012**: System MUST include seed/reset workflows that populate and restore the database with baseline board and tile data while applying production-equivalent RLS policies, and these workflows MUST run automatically as part of the quickstart script after Supabase starts.
 - **FR-013**: System MUST describe troubleshooting guidance for common local Supabase failures (missing binaries, port conflicts, key mismatches).
 - **FR-014**: System MUST ensure local Supabase credentials are stored in developer `.env` files excluded from version control, with service_role keys limited to server-only runtime contexts.
 
@@ -130,6 +130,9 @@ After a successful swap, the user receives basic confirmation that the move was 
 - Q: Which local Supabase setup approach should the scaffold standardize? → A: Use Supabase CLI `supabase start` with Docker services.
 - Q: How should local Supabase keys be used for client versus server paths? → A: Use anon key for client calls and service_role key for server actions.
 - Q: Should local RLS policies mirror production rules? → A: Mirror production RLS policies in local schema.
+- Q: How should the Supabase quickstart be delivered to keep onboarding consistent? → A: Provide a repo automation script or target that installs prerequisites, validates CLI versions, and starts Supabase, with docs linking to it.
+- Q: Should the quickstart also handle migrations and seeding? → A: Automatically run migrations and apply the baseline seed dataset after Supabase starts.
+- Q: Should the quickstart script detect missing Supabase/Docker/login prerequisites before startup? → A: Yes, run preflight checks and fail fast with remediation tips.
 
 ## Assumptions
 
