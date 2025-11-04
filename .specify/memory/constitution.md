@@ -1,8 +1,8 @@
 # Wottle Constitution
 <!-- Sync Impact Report:
-  Version: 1.1.0 → 1.2.0 (MINOR: new principle added)
+  Version: 1.2.0 → 1.3.0 (MINOR: new principle added)
   Created: 2025-01-08
-  Last Amended: 2025-01-08
+  Last Amended: 2025-11-04
   
   Principles Added (v1.0.0):
   - I. Server-Authoritative Game Logic (NON-NEGOTIABLE)
@@ -17,15 +17,18 @@
   Principles Added (v1.2.0):
   - VII. Test Driven Development (TDD) (NON-NEGOTIABLE)
   
+  Principles Added (v1.3.0):
+  - VIII. External Context Providers (Context7)
+  
   Sections Added:
   - Technology Stack Standards
   - Code Organization & Patterns
   - Development Workflow
   
   Templates Requiring Updates:
-  - ✅ updated: .specify/templates/plan-template.md - added constitution compliance checks + Clean Code gate + TDD check
-  - ✅ updated: .specify/templates/spec-template.md - added performance requirements section
-  - ✅ updated: .specify/templates/tasks-template.md - added TDD workflow (Red-Green-Refactor phases) with commit guidelines
+  - ✅ updated: .specify/templates/plan-template.md - added Constitution Check for external context providers
+  - ✅ updated: .specify/templates/spec-template.md - no changes required
+  - ✅ updated: .specify/templates/tasks-template.md - no changes required
 -->
 
 ## Core Principles
@@ -173,7 +176,6 @@ All code changes MUST follow the TDD cycle: Red → Green → Refactor.
 - Tests MUST be independent (no shared state between tests)
 - Tests MUST be deterministic (same input = same output; no flakiness)
 - Tests MUST use descriptive names: `test('should [expected behavior] when [condition]')`
-- Tests MUST test behavior, not implementation details
 - Test setup MUST be minimal; prefer factories/builders over complex fixtures
 
 **TDD Workflow Enforcement**:
@@ -184,6 +186,24 @@ All code changes MUST follow the TDD cycle: Red → Green → Refactor.
 - Hotfix exceptions: Emergency production fixes may temporarily skip TDD, but tests MUST be added in immediate follow-up PR
 
 **Rationale**: TDD ensures all code is testable, reduces bugs, and provides living documentation. Frequent commits create a clear history and enable safe rollbacks. The Red-Green-Refactor cycle prevents over-engineering and ensures tests drive design.
+
+### VIII. External Context Providers (Context7)
+
+Agent development MUST proactively fetch and cite authoritative external context from approved
+providers when the feature requires reference material (e.g., library APIs, framework behavior,
+logo assets, UI components), prioritizing Context7 when applicable.
+
+- Approved providers include Context7; additional providers may be added by governance.
+- When user requests libraries/docs/usage or brand assets, the agent MUST fetch current
+  context from providers and cite source and version/date in outputs.
+- Prefer official, high-trust sources; if unavailable, clearly label alternatives.
+- Respect provider rate limits and terms; cache stable IDs (e.g., library IDs) during a session.
+- Fallbacks MUST be explicit when a provider is unavailable; do not hallucinate APIs.
+- Provenance is mandatory: link or identifier of the fetched context MUST be included in deliverables
+  where appropriate (specs, plans, code comments only when necessary for maintainers).
+
+**Rationale**: Ensures up-to-date, authoritative guidance and reduces errors when integrating with
+external libraries and assets. Clear provenance builds trust and aids maintenance.
 
 ## Technology Stack Standards
 
@@ -258,4 +278,4 @@ All code changes MUST follow the TDD cycle: Red → Green → Refactor.
 
 **Documentation**: All Server Actions MUST document input/output types in JSDoc; game engine modules require algorithmic complexity notes.
 
-**Version**: 1.2.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2025-01-08
+**Version**: 1.3.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2025-11-04
