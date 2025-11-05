@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Wottle MVP Board Scaffold API
+  version: 0.1.0
+  description: |
+    REST contracts to support contract/integration testing for the MVP board scaffold.
+    The application will primarily use Next.js Server Actions for mutations; these
+    endpoints mirror the shapes for black-box testing.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /api/board:
+    get:
+      summary: Get current board grid
+      operationId: getBoard
+      responses:
+        '200':
+          description: Current board state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBoardResponse'
+        '500':
+          description: Server error
+  /api/swap:
+    post:
+      summary: Swap two tiles on the board
+      operationId: postSwap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveRequest'
+      responses:
+        '200':
+          description: Result of swap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveResult'
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
+components:
+  schemas:
+    Coordinate:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: integer
+          minimum: 0
+          maximum: 15
+        y:
+          type: integer
+          minimum: 0
+          maximum: 15
+    BoardGrid:
+      type: array
+      minItems: 16
+      maxItems: 16
+      items:
+        type: array
+        minItems: 16
+        maxItems: 16
+        items:
+          type: string
+          minLength: 1
+          maxLength: 1
+          pattern: '^[A-Za-z]$'
+    GetBoardResponse:
+      type: object
+      required: [boardId, grid]
+      properties:
+        boardId:
+          type: string
+          format: uuid
+        grid:
+          $ref: '#/components/schemas/BoardGrid'
+    MoveRequest:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          $ref: '#/components/schemas/Coordinate'
+        to:
+          $ref: '#/components/schemas/Coordinate'
+    MoveResult:
+      type: object
+      required: [status, grid]
+      properties:
+        status:
+          type: string
+          enum: [accepted, rejected]
+        grid:
+          $ref: '#/components/schemas/BoardGrid'
+        error:
+          type: string
+          nullable: true
+
