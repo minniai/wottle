@@ -1,0 +1,33 @@
+{
+  "name": "wottle",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.11.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --pretty --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.9.0",
+    "eslint-config-next": "^16.0.0",
+    "postcss": "^8.4.41",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.5",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
+  }
+}
