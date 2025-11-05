@@ -45,6 +45,8 @@
 
 **TDD**: All code changes must follow Red-Green-Refactor cycle; tests written before implementation; frequent commits for each passing test.
 
+**External Context**: If libraries/docs/assets are referenced, plan includes fetching and citing authoritative context from approved providers (e.g., Context7), with provenance and fallback strategy.
+
 ## Project Structure
 
 ### Documentation (this feature)
