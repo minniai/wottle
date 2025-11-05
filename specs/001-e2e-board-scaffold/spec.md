@@ -94,14 +94,21 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-012**: System MUST include seed/reset workflows that populate and restore the database with baseline board and tile data while applying production-equivalent RLS policies, and these workflows MUST run automatically as part of the quickstart script after Supabase starts.
 - **FR-013**: System MUST describe troubleshooting guidance for common local Supabase failures (missing binaries, port conflicts, key mismatches).
 - **FR-014**: System MUST ensure local Supabase credentials are stored in developer `.env` files excluded from version control, with service_role keys limited to server-only runtime contexts.
+ - **FR-015**: Swaps MAY occur between any two coordinates on the 16×16 grid; adjacency is not required for MVP.
+ - **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
+ - **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
+ - **FR-018**: Seed/reset MUST generate a fresh random 16×16 letter grid each run (letters A–Z), ensuring variability across sessions.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Board**: A 16×16 matrix of tiles, each with a letter and immutability flags reserved for future stages; for this feature, only letter and coordinates are required to visualize and swap.
+  - MVP scope: Single global board reused and reset via quickstart workflows.
 - **Move**: A swap action with source and destination coordinates and a server-evaluated result (accepted/rejected) with updated board state.
 - **Local Supabase Project**: Developer-scoped environment including URLs, anon and service_role keys, storage buckets, and RLS policy set that mirrors production defaults.
 - **Seed Dataset**: Canonical board and tile records plus metadata used to prime the local database and enable deterministic reset workflows.
+  - MVP scope: Seed generates random letters on each seed/reset invocation.
 - **Developer Environment Config**: `.env` templates and scripts that bind the scaffolded app to the local Supabase instance and enforce key-handling rules.
+  - MVP scope: Grid representation uses a JSONB 2D array (16×16) of single-character strings.
 
 ## Success Criteria *(mandatory)*
 
@@ -134,8 +141,17 @@ After a successful swap, the user receives basic confirmation that the move was 
 - Q: Should the quickstart also handle migrations and seeding? → A: Automatically run migrations and apply the baseline seed dataset after Supabase starts.
 - Q: Should the quickstart script detect missing Supabase/Docker/login prerequisites before startup? → A: Yes, run preflight checks and fail fast with remediation tips.
 
+### Session 2025-11-05
+
+- Q: What swap rule should the MVP enforce (adjacent-only vs any positions)? → A: Any two coordinates on the 16×16 grid (non-adjacent allowed).
+ - Q: What is the board identity model for MVP? → A: Single global board reused/reset (stable `boardId`).
+ - Q: Is authentication required for the MVP scaffold? → A: No auth required (public local usage).
+ - Q: How is the board grid represented in the database? → A: JSONB 2D array 16×16 of single-character strings.
+ - Q: What seed dataset strategy should MVP use? → A: Random letters on each seed/reset.
+
 ## Assumptions
 
 - Developers have permission to install the Supabase CLI and run Docker-based services required by `supabase start` on their machines.
 - The MVP board scaffold continues to use Supabase as the backing service for all server-authoritative actions and keeps the service_role key restricted to server environments while mirroring production RLS rules locally.
+- Authentication is out of scope for the MVP scaffold; local usage assumes no login is required.
 - Documentation updates ship alongside the scaffold so onboarding teams can reference a single source of truth.
