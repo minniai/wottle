@@ -14,7 +14,7 @@ Technical approach:
 - Next.js 16 (App Router) + React 19 + TypeScript 5.x
 - Server Actions for mutations (swap) with service_role usage restricted to server-only contexts; anon key for client reads
 - Supabase PostgreSQL 15+ with minimal schema: `boards` (JSONB grid) and `moves` (audit log)
-- Contracts documented as REST Route Handlers for testability; Server Action remains the primary app path
+- Contracts documented as REST Route Handlers for testability; Server Action remains the primary app path; route handlers for perf-critical paths export `runtime = 'edge'`
 - GitHub Actions pipeline: install, type-check, lint, unit + integration tests, optional Supabase CLI spin-up for DB-backed tests; artifact and cache strategy
 
 ## Technical Context
@@ -28,11 +28,11 @@ Technical approach:
 **Language/Version**: TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19  
 **Primary Dependencies**: Next.js, React, `@supabase/supabase-js`, Zod, Tailwind CSS 4.x, ESLint, Prettier  
 **Storage**: Supabase PostgreSQL 15+ (local via Supabase CLI `supabase start`), JSONB grid model (`boards`), audit log (`moves`)  
-**Testing**: Vitest (unit), Playwright (e2e), Testing Library (components); contract tests against Route Handlers  
+**Testing**: Vitest (unit), Playwright (e2e), Testing Library (components); contract tests against Route Handlers; Artillery (performance) with CI gate on p95 move RTT <200ms  
 **Target Platform**: Web (local dev; deploy target Vercel per constitution)
 **Project Type**: web (single Next.js app hosting UI + Server Actions)  
 **Performance Goals**: Local MVP: swaps appear <1s end-to-end; production SLA alignment: <200ms RTT on critical server path with instrumentation  
-**Constraints**: Server-authoritative mutations, RLS parity with production, anon vs service_role key separation, mobile-first grid readability  
+**Constraints**: Server-authoritative mutations, RLS parity with production, anon vs service_role key separation, mobile-first grid readability, edge runtime for performance-critical routes (e.g., `/api/swap`) unless explicitly justified  
 **Scale/Scope**: MVP scope limited to single board render and swap mutation; no dictionary checks
 
 ## Constitution Check
@@ -41,7 +41,7 @@ Technical approach:
 
 **Server-Authoritative**: PASS — Swap executes via Next.js Server Action on server, using Supabase service_role only in server runtime.
 
-**Performance SLA**: PASS (MVP-local) — Instrument swap path with `performance.mark()` and log timings; target <200ms server processing, <1s perceived RTT locally. Production SLA tracked for later staging.
+**Performance SLA**: PASS — Instrument swap path with `performance.mark()` and log timings; production SLA p95 end-to-end move RTT <200ms validated by automated performance tests; local perceived RTT ≤1s is a non-binding developer target.
 
 **Type Safety**: PASS — Shared types in `/lib/types/`; Zod validates inputs; Server Actions return explicit typed payloads.
 
@@ -102,7 +102,8 @@ supabase/
 tests/
 ├── unit/
 ├── integration/
-└── contract/
+├── contract/
+└── perf/                 # Artillery scenarios and thresholds for p95 RTT gating
 
 .github/
 └── workflows/            # CI pipeline (lint, typecheck, tests, optional Supabase)

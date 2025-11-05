@@ -48,6 +48,9 @@
 - [ ] T018 [P] Create server-side Supabase client factory enforcing service_role isolation in `lib/supabase/server.ts`
 - [ ] T019 Configure Vitest + Testing Library setup for React and server actions in `vitest.config.ts` and `tests/setup.ts`
 - [ ] T020 [P] Configure Playwright project for local e2e runs targeting `http://localhost:3000` in `playwright.config.ts`
+ - [ ] T021a Add repository `.gitignore` rules for `.env*` and verify with a CI check
+ - [ ] T021b Add static guardrail: forbid `service_role` usage in client bundles via lint/script in `scripts/guards/no-service-role-in-client.ts` and CI job
+ - [ ] T021c Add `server-only` boundary module and enforce imports for any code accessing `service_role` in `lib/supabase/server.ts`
 
 ---
 
@@ -63,6 +66,7 @@
 - [ ] T025 [US1] [TDD-GREEN] Add `quickstart` target and PNPM script delegating to the automation in `Makefile`
 - [ ] T026 [US1] Update quickstart instructions to reference the automation and troubleshooting in `specs/001-e2e-board-scaffold/quickstart.md`
 - [ ] T027 [US1] Update onboarding checklist with quickstart verification steps in `specs/001-e2e-board-scaffold/checklists/requirements.md`
+ - [ ] T027a [US1] Capture timings in quickstart: end-to-end startup and seed durations; assert startup ≤3m and seed ≤2m with warnings on breach; emit structured logs for CI artifacts
 
 ---
 
@@ -79,6 +83,7 @@
 - [ ] T033 [US2] [TDD-GREEN] Implement `BoardGrid` component with Tailwind layout in `components/game/BoardGrid.tsx`
 - [ ] T034 [US2] [TDD-GREEN] Fetch board via server action and render grid in `app/page.tsx`
 - [ ] T035 [US2] [TDD-REFACTOR] Extract responsive grid styling helpers into `app/styles/board.css`
+ - [ ] T035a [US2] Add measurement: grid TTI ≤2s on cold load (local) using Playwright trace/timing; fail test on breach (local target)
 
 ---
 
@@ -95,6 +100,7 @@
 - [ ] T041 [US3] [TDD-GREEN] Implement swap + audit helpers writing to Supabase boards/moves in `lib/game-engine/mutations.ts`
 - [ ] T042 [US3] [TDD-GREEN] Wire `BoardGrid` interaction handlers to call `swapTiles` and refresh data in `components/game/BoardGrid.tsx`
 - [ ] T043 [US3] [TDD-REFACTOR] Add structured logging and performance marks for swaps in `lib/observability/perf.ts`
+ - [ ] T043a [US3] Enforce edge runtime for perf-critical routes: `export const runtime = 'edge'` in `app/api/swap/route.ts` with justification if not possible
 
 ---
 
@@ -117,6 +123,9 @@
 
 - [ ] T049 [P] Add Supabase quickstart, lint, typecheck, and Playwright jobs to the pipeline in `.github/workflows/ci.yml`
 - [ ] T050 Record quickstart verification evidence and Supabase status outputs in `specs/001-e2e-board-scaffold/checklists/requirements.md`
+ - [ ] T051 [P] Add Artillery scenarios in `tests/perf/swap.yml` to measure p95 end-to-end move RTT; assert <200ms p95; export CI-friendly report
+ - [ ] T052 [P] Add CI perf gate job: run Artillery against local/preview env; fail pipeline if p95 ≥200ms or sample size <N
+ - [ ] T053 [P] Add server processing time metric and assert median/95th <200ms in logs, parsed by CI check
 
 ---
 
