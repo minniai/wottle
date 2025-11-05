@@ -10,6 +10,7 @@
 Goal: deliver an iterative end-to-end development scaffold that stands up a local Supabase-backed environment and a Next.js app rendering a 16×16 board with a server-authoritative swap path. The MVP confirms the development architecture (local dev, CI/CD via GitHub Actions, typed contracts, and RLS-aligned data model) without full game logic or word checks.
 
 Technical approach:
+
 - Next.js 16 (App Router) + React 19 + TypeScript 5.x
 - Server Actions for mutations (swap) with service_role usage restricted to server-only contexts; anon key for client reads
 - Supabase PostgreSQL 15+ with minimal schema: `boards` (JSONB grid) and `moves` (audit log)
