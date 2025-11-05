@@ -86,7 +86,7 @@
 
 ## Seed/Reset (Outline)
 
-- Seed: insert a single `boards` row with a deterministic 16×16 grid (e.g., from `src/wordlist` letters or simple pattern).
+- Seed: insert a single `boards` row with a deterministic 16×16 grid (e.g., from `prd/wordlist` letters or simple pattern).
 - Reset: truncate `moves`; restore `boards.grid` to baseline.
 - Provide scripts under `scripts/supabase/` and SQL under `supabase/migrations/`.
 

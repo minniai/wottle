@@ -109,10 +109,10 @@ tests/
 └── workflows/            # CI pipeline (lint, typecheck, tests, optional Supabase)
 
 # Existing repository assets
-src/wordlist/             # Current word list modules (to be referenced by lib/ later)
+prd/wordlist/             # Current word list modules (to be referenced by lib/ later)
 ```
 
-**Structure Decision**: Single Next.js project that hosts both UI and server logic via Server Actions, aligned with the constitution’s "Primary Stack". Existing `src/wordlist/` remains in place and can be referenced or migrated under `lib/game-engine/` as needed during later features.
+**Structure Decision**: Single Next.js project that hosts both UI and server logic via Server Actions, aligned with the constitution’s "Primary Stack". Existing `prd/wordlist/` remains in place and can be referenced or migrated under `lib/game-engine/` as needed during later features.
 
 ## Complexity Tracking
 
