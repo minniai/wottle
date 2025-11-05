@@ -1,8 +1,8 @@
 # Wottle Constitution
 <!-- Sync Impact Report:
-  Version: 1.2.0 → 1.3.0 (MINOR: new principle added)
+  Version: 1.3.0 → 1.4.0 (MINOR: new principle added)
   Created: 2025-01-08
-  Last Amended: 2025-11-04
+  Last Amended: 2025-11-05
   
   Principles Added (v1.0.0):
   - I. Server-Authoritative Game Logic (NON-NEGOTIABLE)
@@ -20,6 +20,9 @@
   Principles Added (v1.3.0):
   - VIII. External Context Providers (Context7)
   
+  Principles Added (v1.4.0):
+  - IX. Commit Message Standards
+  
   Sections Added:
   - Technology Stack Standards
   - Code Organization & Patterns
@@ -29,6 +32,7 @@
   - ✅ updated: .specify/templates/plan-template.md - added Constitution Check for external context providers
   - ✅ updated: .specify/templates/spec-template.md - no changes required
   - ✅ updated: .specify/templates/tasks-template.md - no changes required
+  - ✅ reviewed: commit message guidance requires no template changes (covered under Development Workflow)
 -->
 
 ## Core Principles
@@ -205,6 +209,21 @@ logo assets, UI components), prioritizing Context7 when applicable.
 **Rationale**: Ensures up-to-date, authoritative guidance and reduces errors when integrating with
 external libraries and assets. Clear provenance builds trust and aids maintenance.
 
+### IX. Commit Message Standards
+
+Commit messages MUST follow a concise, consistent structure to keep history readable and automate
+tooling.
+
+- Subject line MUST be a short, single-line summary (<60 characters), imperative mood, no trailing period
+- Use Conventional Commits format: `type(scope): subject`
+- Separate body from subject with a single blank line
+- Body SHOULD explain the what and why, not the how; wrap at ~72 characters
+- Reference issues/PRs in the body when relevant
+- Test commits follow `test(scope): ...`; refactors use `refactor(scope): ...`
+
+**Rationale**: Short subjects improve scanability and changelog quality; a structured body provides
+necessary context without cluttering the one-liner history.
+
 ## Technology Stack Standards
 
 **Primary Stack (Mandatory)**:
@@ -242,7 +261,9 @@ external libraries and assets. Clear provenance builds trust and aids maintenanc
 **Git Flow**:
 
 - Feature branches: `###-feature-name` (e.g., `001-matchmaking`)
-- Commits: Conventional format `type(scope): message` (e.g., `feat(game): add tile swap animation`)
+- Commits: Conventional format `type(scope): subject` with subject <60 chars; body after a blank line
+  - Subject: imperative, no trailing period; keep concise
+  - Body: optional details (what/why), ~72-char wraps, references as needed
   - Test commits: `test(scope): verify [behavior]` before implementation
   - Frequent commits: Each passing test committed separately (TDD Principle VII)
 - PRs: Required; must pass CI tests and Constitution compliance check
@@ -278,4 +299,4 @@ external libraries and assets. Clear provenance builds trust and aids maintenanc
 
 **Documentation**: All Server Actions MUST document input/output types in JSDoc; game engine modules require algorithmic complexity notes.
 
-**Version**: 1.3.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2025-11-04
+**Version**: 1.4.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2025-11-05
