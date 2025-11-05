@@ -21,14 +21,14 @@
 
 **Purpose**: Establish the Next.js + Supabase-ready project scaffold
 
-- [ ] T001 Initialize Next.js 16 + TypeScript project with PNPM scripts in `package.json`
-- [ ] T002 Scaffold App Router entry files (`app/layout.tsx`, `app/page.tsx`, `app/globals.css`) for the base UI shell
-- [ ] T003 Add TypeScript config and Next env stubs in `tsconfig.json` and `next-env.d.ts`
-- [ ] T004 [P] Configure ESLint rules for React/Next in `.eslintrc.js`
-- [ ] T005 [P] Configure Prettier formatting standards in `.prettierrc`
-- [ ] T006 [P] Install Tailwind CSS baseline and generate `tailwind.config.ts` plus `postcss.config.cjs`
-- [ ] T007 Establish project structure directories (`app/actions/`, `components/game/`, `lib/`) with placeholder documentation in `app/actions/README.md`
-- [ ] T008 [P] Create CI workflow scaffold for lint/typecheck/test stages in `.github/workflows/ci.yml`
+- [x] T001 Initialize Next.js 16 + TypeScript project with PNPM scripts in `package.json`
+- [x] T002 Scaffold App Router entry files (`app/layout.tsx`, `app/page.tsx`, `app/globals.css`) for the base UI shell
+- [x] T003 Add TypeScript config and Next env stubs in `tsconfig.json` and `next-env.d.ts`
+- [x] T004 [P] Configure ESLint rules for React/Next in `.eslintrc.js`
+- [x] T005 [P] Configure Prettier formatting standards in `.prettierrc`
+- [x] T006 [P] Install Tailwind CSS baseline and generate `tailwind.config.ts` plus `postcss.config.cjs`
+- [x] T007 Establish project structure directories (`app/actions/`, `components/game/`, `lib/`) with placeholder documentation in `app/actions/README.md`
+- [x] T008 [P] Create CI workflow scaffold for lint/typecheck/test stages in `.github/workflows/ci.yml`
 
 ---
 
