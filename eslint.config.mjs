@@ -1,13 +1,14 @@
 import next from "eslint-config-next";
 
 export default [
-  ...next(),
+  ...next,
   {
     ignores: [
       "node_modules",
       ".next",
       "out",
       "dist",
+      "build",
       "coverage",
       ".supabase",
       "pnpm-lock.yaml",
