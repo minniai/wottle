@@ -33,6 +33,8 @@ jobs:
         run: pnpm install --frozen-lockfile false
       - name: Run ESLint
         run: pnpm lint
+      - name: Guard service_role usage
+        run: pnpm guard:no-service-role
 
   typecheck:
     name: Typecheck

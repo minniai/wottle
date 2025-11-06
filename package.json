@@ -9,15 +9,25 @@
     "start": "next start",
     "lint": "eslint --max-warnings=0 --ext .ts,.tsx .",
     "typecheck": "tsc --pretty --noEmit",
-    "test": "vitest --passWithNoTests"
+    "test": "vitest --passWithNoTests",
+    "guard:no-service-role": "tsx scripts/guards/no-service-role-in-client.ts",
+    "supabase:seed": "tsx scripts/supabase/seed.ts",
+    "supabase:reset": "tsx scripts/supabase/reset.ts",
+    "supabase:verify": "tsx scripts/supabase/verify.ts",
+    "supabase:policies": "tsx scripts/supabase/policies/check.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.48.0",
     "next": "^16.0.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4.1.17",
+    "pg": "^8.13.1",
+    "tsx": "^4.19.1",
     "@types/node": "^20.19.24",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
