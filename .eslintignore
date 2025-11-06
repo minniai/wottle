@@ -1,8 +1,0 @@
-node_modules/
-.next/
-out/
-dist/
-coverage/
-.supabase/
-!.supabase/config.toml
-pnpm-lock.yaml
