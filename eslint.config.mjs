@@ -4,6 +4,7 @@ const config = [
   ...next,
   {
     ignores: [
+      "prd/wordlist",
       "node_modules",
       ".next",
       "out",
