@@ -170,7 +170,7 @@ Player 1 Client                  Server Actions                  Player 2 Client
       │ 13. Animate swap (150-250ms)     │                              │ 13. Animate swap
       │ 14. Highlight words (600-800ms)  │                              │ 14. Highlight words
       │ 15. Update score display         │                              │ 15. Update score display
-      │ 16. Update move counter           │                              │ 16. Update move counter
+      │ 16. Update move counter          │                              │ 16. Update move counter
 ```
 
 ---
