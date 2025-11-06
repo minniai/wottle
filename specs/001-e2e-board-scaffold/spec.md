@@ -98,6 +98,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
 - **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
 - **FR-018**: Seed/reset MUST generate a fresh random 16×16 letter grid each run (letters A–Z), ensuring variability across sessions.
+  - _Phase 2 scaffold note_: current implementation seeds a deterministic baseline grid to unblock foundational setup; Phase 3 introduces randomized generation (see tasks.T012b).
 
 ### Key Entities *(include if feature involves data)*
 

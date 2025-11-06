@@ -71,6 +71,7 @@
 - [ ] T026 [US1] Update quickstart instructions to reference the automation and troubleshooting in `specs/001-e2e-board-scaffold/quickstart.md`
 - [ ] T027 [US1] Update onboarding checklist with quickstart verification steps in `specs/001-e2e-board-scaffold/checklists/requirements.md`
 - [ ] T027a [US1] Capture timings in quickstart: end-to-end startup and seed durations; assert startup ≤3m and seed ≤2m with warnings on breach; emit structured logs for CI artifacts
+- [ ] T027b [US1] Randomize Supabase seed grid output per FR-018 once foundational deterministic scaffold is validated
 
 ---
 
