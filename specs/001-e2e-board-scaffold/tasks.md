@@ -21,14 +21,14 @@
 
 **Purpose**: Establish the Next.js + Supabase-ready project scaffold
 
-- [ ] T001 Initialize Next.js 16 + TypeScript project with PNPM scripts in `package.json`
-- [ ] T002 Scaffold App Router entry files (`app/layout.tsx`, `app/page.tsx`, `app/globals.css`) for the base UI shell
-- [ ] T003 Add TypeScript config and Next env stubs in `tsconfig.json` and `next-env.d.ts`
-- [ ] T004 [P] Configure ESLint rules for React/Next in `.eslintrc.js`
-- [ ] T005 [P] Configure Prettier formatting standards in `.prettierrc`
-- [ ] T006 [P] Install Tailwind CSS baseline and generate `tailwind.config.ts` plus `postcss.config.cjs`
-- [ ] T007 Establish project structure directories (`app/actions/`, `components/game/`, `lib/`) with placeholder documentation in `app/actions/README.md`
-- [ ] T008 [P] Create CI workflow scaffold for lint/typecheck/test stages in `.github/workflows/ci.yml`
+- [x] T001 Initialize Next.js 16 + TypeScript project with PNPM scripts in `package.json`
+- [x] T002 Scaffold App Router entry files (`app/layout.tsx`, `app/page.tsx`, `app/globals.css`) for the base UI shell
+- [x] T003 Add TypeScript config and Next env stubs in `tsconfig.json` and `next-env.d.ts`
+- [x] T004 [P] Configure ESLint rules for React/Next in `.eslintrc.js`
+- [x] T005 [P] Configure Prettier formatting standards in `.prettierrc`
+- [x] T006 [P] Install Tailwind CSS baseline and generate `tailwind.config.ts` plus `postcss.config.cjs`
+- [x] T007 Establish project structure directories (`app/actions/`, `components/game/`, `lib/`) with placeholder documentation in `app/actions/README.md`
+- [x] T008 [P] Create CI workflow scaffold for lint/typecheck/test stages in `.github/workflows/ci.yml`
 
 ---
 
@@ -39,15 +39,22 @@
 - [ ] T009 Create environment templates isolating anon/service_role keys in `.env.example` and `.env.local.example`
 - [ ] T010 Add Supabase CLI configuration for local stack parity in `supabase/config.toml`
 - [ ] T011 Define boards/moves schema migration in `supabase/migrations/20251105001_init.sql`
+ - [ ] T011a Add stable `board_id` primary key/unique constraint to `boards`; enforce single global board model.
 - [ ] T012 [P] Implement deterministic seed workflow populating the baseline grid in `scripts/supabase/seed.ts`
+ - [ ] T012a Ensure seed preserves the stable `board_id` and does not create duplicates; idempotent upsert.
 - [ ] T013 [P] Implement database reset workflow clearing moves and restoring board in `scripts/supabase/reset.ts`
 - [ ] T014 Add Supabase service health verification wrapper in `scripts/supabase/verify.ts`
+ - [ ] T014a [P] Instrument `scripts/supabase/verify.ts` to measure misconfiguration detection latency and emit duration in structured logs.
+ - [ ] T014b [P] Add integration test asserting detection ≤10s in `tests/integration/verify/verify-timing.spec.ts`.
 - [ ] T015 [P] Add RLS policy snapshot diff script guarding drift in `scripts/supabase/policies/check.ts`
 - [ ] T016 Define shared domain types (BoardGrid, MoveRequest, MoveResult) in `lib/types/board.ts`
 - [ ] T017 [P] Implement board utility helpers (serialization, applySwap) in `lib/game-engine/board.ts`
 - [ ] T018 [P] Create server-side Supabase client factory enforcing service_role isolation in `lib/supabase/server.ts`
 - [ ] T019 Configure Vitest + Testing Library setup for React and server actions in `vitest.config.ts` and `tests/setup.ts`
 - [ ] T020 [P] Configure Playwright project for local e2e runs targeting `http://localhost:3000` in `playwright.config.ts`
+- [ ] T021a Add repository `.gitignore` rules for `.env*` and verify with a CI check
+- [ ] T021b Add static guardrail: forbid `service_role` usage in client bundles via lint/script in `scripts/guards/no-service-role-in-client.ts` and CI job
+- [ ] T021c Add `server-only` boundary module and enforce imports for any code accessing `service_role` in `lib/supabase/server.ts`
 
 ---
 
@@ -63,6 +70,7 @@
 - [ ] T025 [US1] [TDD-GREEN] Add `quickstart` target and PNPM script delegating to the automation in `Makefile`
 - [ ] T026 [US1] Update quickstart instructions to reference the automation and troubleshooting in `specs/001-e2e-board-scaffold/quickstart.md`
 - [ ] T027 [US1] Update onboarding checklist with quickstart verification steps in `specs/001-e2e-board-scaffold/checklists/requirements.md`
+- [ ] T027a [US1] Capture timings in quickstart: end-to-end startup and seed durations; assert startup ≤3m and seed ≤2m with warnings on breach; emit structured logs for CI artifacts
 
 ---
 
@@ -79,6 +87,7 @@
 - [ ] T033 [US2] [TDD-GREEN] Implement `BoardGrid` component with Tailwind layout in `components/game/BoardGrid.tsx`
 - [ ] T034 [US2] [TDD-GREEN] Fetch board via server action and render grid in `app/page.tsx`
 - [ ] T035 [US2] [TDD-REFACTOR] Extract responsive grid styling helpers into `app/styles/board.css`
+- [ ] T035a [US2] Add measurement: grid TTI ≤2s on cold load (local) using Playwright trace/timing; fail test on breach (local target)
 
 ---
 
@@ -90,11 +99,14 @@
 - [ ] T036 [P] [US3] [TDD-RED] Write unit tests covering swap validation branches in `tests/unit/app/actions/swapTiles.test.ts`
 - [ ] T037 [P] [US3] [TDD-RED] Write contract test for POST `/api/swap` success and error payloads in `tests/contract/post-swap.contract.test.ts`
 - [ ] T038 [P] [US3] [TDD-RED] Write Playwright test simulating swap success and rejection in `tests/integration/ui/swap-flow.spec.ts`
+ - [ ] T038a [US3] Add Playwright test simulating network failure during swap and asserting error + board rollback in `tests/integration/ui/swap-network-failure.spec.ts`.
 - [ ] T039 [US3] [TDD-GREEN] Implement `swapTiles` server action applying validation and returning `MoveResult` in `app/actions/swapTiles.ts`
 - [ ] T040 [US3] [TDD-GREEN] Implement POST `/api/swap` route handler adhering to OpenAPI schema in `app/api/swap/route.ts`
 - [ ] T041 [US3] [TDD-GREEN] Implement swap + audit helpers writing to Supabase boards/moves in `lib/game-engine/mutations.ts`
 - [ ] T042 [US3] [TDD-GREEN] Wire `BoardGrid` interaction handlers to call `swapTiles` and refresh data in `components/game/BoardGrid.tsx`
 - [ ] T043 [US3] [TDD-REFACTOR] Add structured logging and performance marks for swaps in `lib/observability/perf.ts`
+- [ ] T043a [US3] Enforce edge runtime for perf-critical routes: `export const runtime = 'edge'` in `app/api/swap/route.ts` with justification if not possible
+ - [ ] T043b [US3] Add UI performance test for swap animation in `tests/perf/ui/swap-fps.spec.ts`; assert p95 frame time ≤16.7ms (60 FPS).
 
 ---
 
@@ -117,6 +129,9 @@
 
 - [ ] T049 [P] Add Supabase quickstart, lint, typecheck, and Playwright jobs to the pipeline in `.github/workflows/ci.yml`
 - [ ] T050 Record quickstart verification evidence and Supabase status outputs in `specs/001-e2e-board-scaffold/checklists/requirements.md`
+- [ ] T051 [P] Add Artillery scenarios in `tests/perf/swap.yml` to measure p95 end-to-end move RTT; assert <200ms p95; export CI-friendly report
+- [ ] T052 [P] Add CI perf gate job: run Artillery against local/preview env; fail pipeline if p95 ≥200ms or sample size <N
+- [ ] T053 [P] Add server processing time metric and assert median/95th <200ms in logs, parsed by CI check
 
 ---
 

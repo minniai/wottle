@@ -93,11 +93,11 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-011**: System MUST expose a verification checklist or script confirming Supabase services (database, auth, realtime, storage, RLS policies) are reachable and aligned with production settings.
 - **FR-012**: System MUST include seed/reset workflows that populate and restore the database with baseline board and tile data while applying production-equivalent RLS policies, and these workflows MUST run automatically as part of the quickstart script after Supabase starts.
 - **FR-013**: System MUST describe troubleshooting guidance for common local Supabase failures (missing binaries, port conflicts, key mismatches).
-- **FR-014**: System MUST ensure local Supabase credentials are stored in developer `.env` files excluded from version control, with service_role keys limited to server-only runtime contexts.
- - **FR-015**: Swaps MAY occur between any two coordinates on the 16×16 grid; adjacency is not required for MVP.
- - **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
- - **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
- - **FR-018**: Seed/reset MUST generate a fresh random 16×16 letter grid each run (letters A–Z), ensuring variability across sessions.
+- **FR-014**: System MUST ensure local Supabase credentials are stored in developer `.env` files excluded from version control, with service_role keys limited to server-only runtime contexts; repository MUST include `.gitignore` rules for `.env*`; CI MUST include a static guardrail preventing `service_role` usage in any client bundle.
+- **FR-015**: Swaps MAY occur between any two coordinates on the 16×16 grid; adjacency is not required for MVP.
+- **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
+- **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
+- **FR-018**: Seed/reset MUST generate a fresh random 16×16 letter grid each run (letters A–Z), ensuring variability across sessions.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -115,19 +115,22 @@ After a successful swap, the user receives basic confirmation that the move was 
 ### Measurable Outcomes
 
 - **SC-001**: A user can load the app and see a 16×16 grid within 2 seconds on a typical broadband connection.
-- **SC-002**: At least 95% of valid swap attempts update the board within 1 second during local development testing.
+- **SC-002**: At least 95% of valid swap attempts update the board within 1 second during local development testing (local target, non-binding).
 - **SC-003**: 100% of invalid swap attempts are rejected with a clear error message and no board change.
 - **SC-004**: A developer can install prerequisites and start the local Supabase stack within 20 minutes following the quickstart.
 - **SC-005**: 100% of application requests during local testing route to the local Supabase instance (verified via provided checklist or tooling).
 - **SC-006**: Seed/reset workflows complete successfully in under 2 minutes and reproduce the documented baseline board state.
 - **SC-007**: At least 90% of developers in onboarding surveys report confidence running the app end-to-end without relying on cloud Supabase resources.
+- **SC-008**: Production SLA — p95 end-to-end move RTT is <200ms, validated by performance tests in CI.
 
 ### Performance Requirements (if applicable)
 
-- **PERF-001**: End-to-end swap action appears complete to the user within 1 second in local testing.
-- **PERF-002**: Board render maintains smooth visual updates without stutter during a single swap interaction.
+- **PERF-001**: Production SLA — p95 end-to-end move RTT <200ms (measured by automated performance tests).
+- **PERF-001L**: Local target — perceived completion ≤1s (non-binding, used only for local developer feedback).
+- **PERF-002**: Swap animation maintains 60 FPS (p95 frame time ≤16.7ms) during a single swap on reference local hardware; CI asserts this via automated UI performance test.
 - **PERF-003**: Local Supabase stack startup (command execution to ready state) completes within 3 minutes on standard developer hardware.
-- **PERF-004**: Application connection health checks detect misconfigured Supabase endpoints within 10 seconds and surface actionable guidance.
+ - **PERF-004**: Application connection health checks detect misconfigured Supabase endpoints within 10 seconds (p95) and surface actionable guidance; `verify.ts` records detection latency and CI asserts the threshold.
+- **PERF-005**: Performance-critical routes (e.g., `/api/swap`) MUST run with edge runtime unless a documented exception is approved and benchmarked to meet PERF-001.
 
 ## Clarifications
 
@@ -144,10 +147,10 @@ After a successful swap, the user receives basic confirmation that the move was 
 ### Session 2025-11-05
 
 - Q: What swap rule should the MVP enforce (adjacent-only vs any positions)? → A: Any two coordinates on the 16×16 grid (non-adjacent allowed).
- - Q: What is the board identity model for MVP? → A: Single global board reused/reset (stable `boardId`).
- - Q: Is authentication required for the MVP scaffold? → A: No auth required (public local usage).
- - Q: How is the board grid represented in the database? → A: JSONB 2D array 16×16 of single-character strings.
- - Q: What seed dataset strategy should MVP use? → A: Random letters on each seed/reset.
+- Q: What is the board identity model for MVP? → A: Single global board reused/reset (stable `boardId`).
+- Q: Is authentication required for the MVP scaffold? → A: No auth required (public local usage).
+- Q: How is the board grid represented in the database? → A: JSONB 2D array 16×16 of single-character strings.
+- Q: What seed dataset strategy should MVP use? → A: Random letters on each seed/reset.
 
 ## Assumptions
 
