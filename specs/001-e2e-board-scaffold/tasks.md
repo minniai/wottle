@@ -40,15 +40,19 @@
 - [x] T010 Add Supabase CLI configuration for local stack parity in `supabase/config.toml`
 - [x] T011 Define boards/moves schema migration in `supabase/migrations/20251105001_init.sql`
 - [x] T011a Add stable `board_id` primary key/unique constraint to `boards`; enforce single global board model.
+- [ ] T012R [US0] [TDD-RED] Write failing unit tests for seed/reset workflows in `tests/unit/scripts/seed-reset.test.ts`
 - [x] T012 [P] Implement deterministic seed workflow populating the baseline grid in `scripts/supabase/seed.ts`
 - [x] T012a Ensure seed preserves the stable `board_id` and does not create duplicates; idempotent upsert.
 - [x] T013 [P] Implement database reset workflow clearing moves and restoring board in `scripts/supabase/reset.ts`
+- [ ] T014R [US0] [TDD-RED] Write failing unit test for Supabase verify instrumentation in `tests/unit/scripts/verify.test.ts`
 - [x] T014 Add Supabase service health verification wrapper in `scripts/supabase/verify.ts`
 - [x] T014a [P] Instrument `scripts/supabase/verify.ts` to measure misconfiguration detection latency and emit duration in structured logs.
 - [x] T014b [P] Add integration test asserting detection ≤10s in `tests/integration/verify/verify-timing.spec.ts`.
 - [x] T015 [P] Add RLS policy snapshot diff script guarding drift in `scripts/supabase/policies/check.ts`
+- [ ] T017R [US0] [TDD-RED] Write failing unit tests for board utility helpers in `tests/unit/lib/game-engine/board.test.ts`
 - [x] T016 Define shared domain types (BoardGrid, MoveRequest, MoveResult) in `lib/types/board.ts`
 - [x] T017 [P] Implement board utility helpers (serialization, applySwap) in `lib/game-engine/board.ts`
+- [ ] T018R [US0] [TDD-RED] Write failing unit tests for service-role Supabase client factory in `tests/unit/lib/supabase/server.test.ts`
 - [x] T018 [P] Create server-side Supabase client factory enforcing service_role isolation in `lib/supabase/server.ts`
 - [x] T019 Configure Vitest + Testing Library setup for React and server actions in `vitest.config.ts` and `tests/setup.ts`
 - [x] T020 [P] Configure Playwright project for local e2e runs targeting `http://localhost:3000` in `playwright.config.ts`
