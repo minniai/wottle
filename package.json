@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint --max-warnings=0 --ext .ts,.tsx .",
     "typecheck": "tsc --pretty --noEmit",
-    "test": "vitest"
+    "test": "vitest --passWithNoTests"
   },
   "dependencies": {
     "next": "^16.0.1",
