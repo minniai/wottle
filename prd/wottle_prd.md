@@ -39,9 +39,10 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 - **Clocks:** Both players’ clocks count down during a round. When a player submits their swap, their clock pauses for the remainder of the round; the opponent’s clock continues until they submit or their time expires.
 - **Visibility:** Neither player sees the opponent’s submitted swap until both swaps have been submitted for the round. At reveal, both swaps are resolved and applied to the board state, words are validated, and scores are updated.
 - **Identical Swap Conflict:** If both players submit the exact same swap in a round (same two tiles), the swap with the earlier valid submission time takes precedence. The later identical swap is ignored.
-- **Time Control:** Each player begins with **5:00 minutes** of base time. A **+3 second** increment is awarded per completed round for each player who successfully submitted a swap in that round.
+- **Time Control:** Each player begins with **5:00 minutes** of base time. **No increments** are awarded (5+0).
 - **Round Progression:** After both moves are revealed and resolved, the next round begins. This continues until each player has completed 10 rounds, or time-based end conditions trigger.
 - **Visual Timer Indication:** A player’s timer displays in **green** while they have not yet submitted their swap for the current round; it changes to a neutral state once their swap is submitted and their clock is paused.
+- **Time Expiration:** If a player’s clock reaches 0 before all rounds are completed, that player cannot submit further swaps. The opponent may continue submitting swaps for all remaining rounds.
 - **Fair Play Safeguards:** Timing and round resolution are enforced server-side for fairness and to prevent client manipulation.
 
 ### 1.5 Frozen Tiles & Territory Control
@@ -58,8 +59,8 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 
 - **Move Limit:** 10 moves per player (20 total).
 - **Game Ends When:**
-  - Both players reach 10 moves, or
-  - Time expires for both players, or
+  - Both players reach 10 moves (all rounds completed), or
+  - One player’s time expires and the opponent completes all remaining rounds, or
   - One player resigns.
 - **Winner:** Highest score wins. Tiebreaker: most frozen tiles. If tied, draw.
 
@@ -134,7 +135,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 1. Assign White/Black roles randomly.
 2. Generate board using weighted letter distribution + seed words.
-3. Initialize 5+3 clocks.
+3. Initialize 5+0 clocks.
 4. Display round instructions.
 5. Begin Round 1.
 
@@ -319,6 +320,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 ### 10.4 Time-Related Edge Cases
 
 - **Simultaneous Time Expiration:** If both players' clocks expire at the same time (within same server tick), game ends immediately. Winner determined by score, then frozen tiles, then draw.
+- **Single Player Time Expiration:** If one player’s clock expires before all rounds are completed, that player submits no further swaps. The opponent may proceed to submit swaps for all remaining rounds; the match concludes once those rounds are completed.
 - **Clock Synchronization Issues:** Server time is authoritative. Client clocks are for display only. Server sends periodic clock sync updates to prevent drift (>1s difference triggers correction).
 - **Negative Time:** Server prevents negative time values. When clock reaches 0, player is flagged immediately and turn switches (if applicable).
 
