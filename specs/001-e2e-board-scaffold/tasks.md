@@ -77,6 +77,9 @@
 - [ ] T027a [US1] Capture timings in quickstart: end-to-end startup and seed durations; assert startup ≤3m and seed ≤2m with warnings on breach; emit structured logs for CI artifacts
 - [ ] T027b [US1] Randomize Supabase seed grid output per FR-018 once foundational deterministic scaffold is validated
 - [ ] T027c [US1] [TDD-RED] Add integration assertion ensuring app requests target the local Supabase instance in `tests/integration/quickstart/local-routing.spec.ts`
+- [ ] T027d [US1] [TDD-RED] Author unit tests for weighted seeded board generator ensuring Icelandic alphabet coverage in `tests/unit/lib/game-engine/boardGenerator.test.ts`
+- [ ] T027e [US1] [TDD-GREEN] Implement weighted seeded board generator keyed by match identifier in `scripts/supabase/generateBoard.ts`
+- [ ] T027f [US1] Add integration guard validating generated boards satisfy weighting and alphabet coverage in `tests/integration/quickstart/board-generation.spec.ts`
 
 ---
 

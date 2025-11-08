@@ -27,13 +27,13 @@ Technical approach:
 
 **Language/Version**: TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19  
 **Primary Dependencies**: Next.js, React, `@supabase/supabase-js`, Zod, Tailwind CSS 4.x, ESLint, Prettier  
-**Storage**: Supabase PostgreSQL 15+ (local via Supabase CLI `supabase start`), JSONB grid model (`boards`), audit log (`moves`)  
+**Storage**: Supabase PostgreSQL 15+ (local via Supabase CLI `supabase start`), JSONB grid model (`boards`), audit log (`moves`), weighted seeded board generator keyed by `match_id` (Icelandic alphabet coverage)  
 **Testing**: Vitest (unit), Playwright (e2e), Testing Library (components); contract tests against Route Handlers; Artillery (performance) with CI gate on p95 move RTT <200ms  
 **Target Platform**: Web (local dev; deploy target Vercel per constitution)
 **Project Type**: web (single Next.js app hosting UI + Server Actions)  
 **Performance Goals**: Local MVP: swaps appear <1s end-to-end; production SLA alignment: <200ms RTT on critical server path with instrumentation  
 **Constraints**: Server-authoritative mutations, RLS parity with production, anon vs service_role key separation, mobile-first grid readability, edge runtime for performance-critical routes (e.g., `/api/swap`) unless explicitly justified  
-**Scale/Scope**: MVP scope limited to single board render and swap mutation; no dictionary checks
+**Scale/Scope**: MVP scope limited to single board render and swap mutation; no dictionary checks. Phase 3 introduces weighted seeded board generation that respects Icelandic letter frequency and deterministic reproduction.
 
 ## Constitution Check
 

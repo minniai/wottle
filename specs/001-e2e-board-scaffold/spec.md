@@ -97,8 +97,8 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-015**: Swaps MAY occur between any two coordinates on the 16×16 grid; adjacency is not required for MVP.
 - **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
 - **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
-- **FR-018**: Seed/reset MUST generate the documented deterministic 16×16 baseline grid during Phase 2; Phase 3 introduces fresh random output (letters A–Z) via task `tasks.T027b` while preserving the same timing targets.
-  - *Phase 2 scaffold note*: current implementation seeds a deterministic baseline grid to unblock foundational setup; Phase 3 introduces randomized generation (see `tasks.T027b`).
+- **FR-018**: Seed/reset MUST generate a 16×16 grid using weighted, language-aware distribution that guarantees each alphabet character appears at least once, keyed deterministically by `match_id` while producing per-run variability.
+  - *Phase Note*: Phase 2 scaffolds with a deterministic baseline grid; Phase 3 delivers the weighted seeded generator and verification (see `tasks.T027b`–`T027e`).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -107,7 +107,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **Move**: A swap action with source and destination coordinates and a server-evaluated result (accepted/rejected) with updated board state.
 - **Local Supabase Project**: Developer-scoped environment including URLs, anon and service_role keys, storage buckets, and RLS policy set that mirrors production defaults.
 - **Seed Dataset**: Canonical board and tile records plus metadata used to prime the local database and enable deterministic reset workflows.
-  - MVP scope: Phase 2 uses a deterministic baseline grid; Phase 3 shifts to randomized letters per `tasks.T027b`.
+  - MVP scope: Phase 2 uses a deterministic baseline grid; Phase 3 introduces the weighted seeded generator tied to `match_id` (tasks `T027b`–`T027e`).
 - **Developer Environment Config**: `.env` templates and scripts that bind the scaffolded app to the local Supabase instance and enforce key-handling rules.
   - MVP scope: Grid representation uses a JSONB 2D array (16×16) of single-character strings.
 
