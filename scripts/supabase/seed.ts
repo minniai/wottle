@@ -1,7 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { performance } from "node:perf_hooks";
 
 import { BASELINE_GRID, PRIMARY_BOARD_ID } from "./constants";
+
+type AnySupabaseClient = SupabaseClient<any, any, any, any, any>;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -64,7 +66,7 @@ async function seedBoard() {
   };
 }
 
-async function getBoardId(supabase: ReturnType<typeof createClient>) {
+async function getBoardId(supabase: AnySupabaseClient) {
   const { data, error } = await supabase
     .from("boards")
     .select("id")

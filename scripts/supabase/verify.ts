@@ -8,7 +8,7 @@ interface VerifyOptions {
   now?: () => number;
 }
 
-interface VerifyResult {
+interface VerifyResult extends Record<string, unknown> {
   status: "healthy" | "error";
   durationMs: number;
   message?: string;

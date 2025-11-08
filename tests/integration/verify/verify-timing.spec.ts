@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { verifySupabase } from "../../../scripts/supabase/verify.ts";
+import { verifySupabase } from "../../../scripts/supabase/verify";
 
 describe("verifySupabase instrumentation", () => {
   test("reports healthy status within 10s", async () => {
