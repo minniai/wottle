@@ -83,7 +83,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-001**: System MUST render a 16×16 letter grid representing the current match board.
 - **FR-002**: Users MUST be able to select any two tiles and submit a swap request.
 - **FR-003**: System MUST validate swaps server-side by confirming coordinates exist, tiles are movable, and no dictionary/word checks are required for this MVP, then either accept (apply and return updated board) or reject with a reason.
-- **FR-004**: On acceptance, System MUST return the updated grid and reflect it for the user within one interaction cycle.
+- **FR-004**: On acceptance, System MUST return the updated grid and reflect it for the user within 500 ms of the server acknowledging the swap.
 - **FR-005**: On rejection or failure, System MUST preserve the previous grid and display an actionable error.
 - **FR-006**: System MUST support basic responsiveness so the 16×16 grid is viewable on desktop and mobile.
 - **FR-007**: System MUST provide a minimal confirmation indicator after a successful swap.
@@ -97,8 +97,8 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-015**: Swaps MAY occur between any two coordinates on the 16×16 grid; adjacency is not required for MVP.
 - **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
 - **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
-- **FR-018**: Seed/reset MUST generate a fresh random 16×16 letter grid each run (letters A–Z), ensuring variability across sessions.
-  - _Phase 2 scaffold note_: current implementation seeds a deterministic baseline grid to unblock foundational setup; Phase 3 introduces randomized generation (see tasks.T012b).
+- **FR-018**: Seed/reset MUST generate the documented deterministic 16×16 baseline grid during Phase 2; Phase 3 introduces fresh random output (letters A–Z) via task `tasks.T027b` while preserving the same timing targets.
+  - *Phase 2 scaffold note*: current implementation seeds a deterministic baseline grid to unblock foundational setup; Phase 3 introduces randomized generation (see `tasks.T027b`).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -107,7 +107,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **Move**: A swap action with source and destination coordinates and a server-evaluated result (accepted/rejected) with updated board state.
 - **Local Supabase Project**: Developer-scoped environment including URLs, anon and service_role keys, storage buckets, and RLS policy set that mirrors production defaults.
 - **Seed Dataset**: Canonical board and tile records plus metadata used to prime the local database and enable deterministic reset workflows.
-  - MVP scope: Seed generates random letters on each seed/reset invocation.
+  - MVP scope: Phase 2 uses a deterministic baseline grid; Phase 3 shifts to randomized letters per `tasks.T027b`.
 - **Developer Environment Config**: `.env` templates and scripts that bind the scaffolded app to the local Supabase instance and enforce key-handling rules.
   - MVP scope: Grid representation uses a JSONB 2D array (16×16) of single-character strings.
 
@@ -120,9 +120,9 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **SC-003**: 100% of invalid swap attempts are rejected with a clear error message and no board change.
 - **SC-004**: A developer can install prerequisites and start the local Supabase stack within 20 minutes following the quickstart.
 - **SC-005**: 100% of application requests during local testing route to the local Supabase instance (verified via provided checklist or tooling).
-- **SC-006**: Seed/reset workflows complete successfully in under 2 minutes and reproduce the documented baseline board state.
+- **SC-006**: Seed/reset workflows complete successfully in under 2 minutes and reproduce the documented Phase 2 baseline grid; Phase 3 randomization (task `T027b`) MUST meet the same timing target.
 - **SC-007**: At least 90% of developers in onboarding surveys report confidence running the app end-to-end without relying on cloud Supabase resources.
-- **SC-008**: Production SLA — p95 end-to-end move RTT is <200ms, validated by performance tests in CI.
+- **SC-008**: Production move RTT meets PERF-001 (p95 <200 ms), validated by performance tests in CI.
 
 ### Performance Requirements (if applicable)
 
@@ -130,7 +130,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **PERF-001L**: Local target — perceived completion ≤1s (non-binding, used only for local developer feedback).
 - **PERF-002**: Swap animation maintains 60 FPS (p95 frame time ≤16.7ms) during a single swap on reference local hardware; CI asserts this via automated UI performance test.
 - **PERF-003**: Local Supabase stack startup (command execution to ready state) completes within 3 minutes on standard developer hardware.
- - **PERF-004**: Application connection health checks detect misconfigured Supabase endpoints within 10 seconds (p95) and surface actionable guidance; `verify.ts` records detection latency and CI asserts the threshold.
+- **PERF-004**: Application connection health checks detect misconfigured Supabase endpoints within 10 seconds (p95) and surface actionable guidance; `verify.ts` records detection latency and CI asserts the threshold.
 - **PERF-005**: Performance-critical routes (e.g., `/api/swap`) MUST run with edge runtime unless a documented exception is approved and benchmarked to meet PERF-001.
 
 ## Clarifications
