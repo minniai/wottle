@@ -1,6 +1,14 @@
 import { defineConfig } from "vitest/config";
+import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "server-only": fileURLToPath(
+        new URL("./tests/helpers/stubs/server-only.ts", import.meta.url)
+      ),
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",
