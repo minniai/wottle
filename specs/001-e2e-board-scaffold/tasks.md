@@ -39,13 +39,13 @@
 - [ ] T009 Create environment templates isolating anon/service_role keys in `.env.example` and `.env.local.example`
 - [ ] T010 Add Supabase CLI configuration for local stack parity in `supabase/config.toml`
 - [ ] T011 Define boards/moves schema migration in `supabase/migrations/20251105001_init.sql`
- - [ ] T011a Add stable `board_id` primary key/unique constraint to `boards`; enforce single global board model.
+- [ ] T011a Add stable `board_id` primary key/unique constraint to `boards`; enforce single global board model.
 - [ ] T012 [P] Implement deterministic seed workflow populating the baseline grid in `scripts/supabase/seed.ts`
- - [ ] T012a Ensure seed preserves the stable `board_id` and does not create duplicates; idempotent upsert.
+- [ ] T012a Ensure seed preserves the stable `board_id` and does not create duplicates; idempotent upsert.
 - [ ] T013 [P] Implement database reset workflow clearing moves and restoring board in `scripts/supabase/reset.ts`
 - [ ] T014 Add Supabase service health verification wrapper in `scripts/supabase/verify.ts`
- - [ ] T014a [P] Instrument `scripts/supabase/verify.ts` to measure misconfiguration detection latency and emit duration in structured logs.
- - [ ] T014b [P] Add integration test asserting detection ≤10s in `tests/integration/verify/verify-timing.spec.ts`.
+- [ ] T014a [P] Instrument `scripts/supabase/verify.ts` to measure misconfiguration detection latency and emit duration in structured logs.
+- [ ] T014b [P] Add integration test asserting detection ≤10s in `tests/integration/verify/verify-timing.spec.ts`.
 - [ ] T015 [P] Add RLS policy snapshot diff script guarding drift in `scripts/supabase/policies/check.ts`
 - [ ] T016 Define shared domain types (BoardGrid, MoveRequest, MoveResult) in `lib/types/board.ts`
 - [ ] T017 [P] Implement board utility helpers (serialization, applySwap) in `lib/game-engine/board.ts`
@@ -99,14 +99,14 @@
 - [ ] T036 [P] [US3] [TDD-RED] Write unit tests covering swap validation branches in `tests/unit/app/actions/swapTiles.test.ts`
 - [ ] T037 [P] [US3] [TDD-RED] Write contract test for POST `/api/swap` success and error payloads in `tests/contract/post-swap.contract.test.ts`
 - [ ] T038 [P] [US3] [TDD-RED] Write Playwright test simulating swap success and rejection in `tests/integration/ui/swap-flow.spec.ts`
- - [ ] T038a [US3] Add Playwright test simulating network failure during swap and asserting error + board rollback in `tests/integration/ui/swap-network-failure.spec.ts`.
+- [ ] T038a [US3] Add Playwright test simulating network failure during swap and asserting error + board rollback in `tests/integration/ui/swap-network-failure.spec.ts`.
 - [ ] T039 [US3] [TDD-GREEN] Implement `swapTiles` server action applying validation and returning `MoveResult` in `app/actions/swapTiles.ts`
 - [ ] T040 [US3] [TDD-GREEN] Implement POST `/api/swap` route handler adhering to OpenAPI schema in `app/api/swap/route.ts`
 - [ ] T041 [US3] [TDD-GREEN] Implement swap + audit helpers writing to Supabase boards/moves in `lib/game-engine/mutations.ts`
 - [ ] T042 [US3] [TDD-GREEN] Wire `BoardGrid` interaction handlers to call `swapTiles` and refresh data in `components/game/BoardGrid.tsx`
 - [ ] T043 [US3] [TDD-REFACTOR] Add structured logging and performance marks for swaps in `lib/observability/perf.ts`
 - [ ] T043a [US3] Enforce edge runtime for perf-critical routes: `export const runtime = 'edge'` in `app/api/swap/route.ts` with justification if not possible
- - [ ] T043b [US3] Add UI performance test for swap animation in `tests/perf/ui/swap-fps.spec.ts`; assert p95 frame time ≤16.7ms (60 FPS).
+- [ ] T043b [US3] Add UI performance test for swap animation in `tests/perf/ui/swap-fps.spec.ts`; assert p95 frame time ≤16.7ms (60 FPS).
 
 ---
 
