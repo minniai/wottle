@@ -30,17 +30,20 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
     - **Board Navigation:** For smaller screens, board is vertically scrollable with pinch-to-zoom support (min 50%, max 150% zoom level). Grid maintains aspect ratio during zoom.
     - **Swipe Gestures:** Horizontal swipe on board header can switch between game view and score details view (if space-constrained).
     - **Haptic Feedback:** Subtle vibration feedback on successful tile selection and swap completion (optional, can be disabled).
-- **Move Resolution:** When the player confirms a swap, a brief animation (~150–250ms) plays to swap the tiles. Immediately after, any new word(s) formed by that swap are highlighted on the board and _claimed_ by the player. The server calculates the score for that move and updates the player’s total (see **Scoring** below). The move is then finalized: claimed tiles freeze in place, and control passes to the opponent.
+- **Move Resolution:** When the player confirms a swap, a brief animation (~150–250ms) plays to swap the tiles. Immediately after, any new word(s) formed by that swap are highlighted on the board and _claimed_ by the player. The server calculates the score for that move and updates the player’s total (see **Scoring** below). Claimed tiles freeze in place when the round resolves.
+- **Round-Based Submissions:** Gameplay proceeds in rounds. In each round, both players independently submit one swap. A player’s submitted swap remains hidden from the opponent until both players have submitted for that round.
 
 ### 1.4 Turn Structure & Time Control
 
-- **Simultaneous Turn Start:** At the **start of the game**, both players begin with an active timer (“chess clock”). Each player has **5:00 minutes** of base time, with a **+3 second** increment added after each move (5+3 time control). **Both clocks start running when the game begins**, allowing _either player to make the first move_ (a simultaneous planning phase). The server resolves who moved first, and stops the clock of the first-mover. The second player's clock keeps running until they make a move, after which the players take turns making moves. In the case of both players making the first move simultaniously, or nearly at the same time such that it can't be determined fairly who moved first, it is decided by random which player moved first.
-- **Turn-by-Turn Flow:** Players alternate turns after the first move. Only one move executes at a time. When one player's move resolves, control passes to the opponent. **Simultaneous moves are only possible during the initial move** when both players' clocks are running and either player can make the first move. Once the first move is resolved, the game switches to strict turn-based play where simultaneous moves are not possible—only the player whose turn it is can execute a move, and their opponent's move input is disabled until the turn switches.
-- **Clock Behavior:** Each player's clock counts down **only** during their turn (except for the initial move when both player's clocks count down). When a move is made, that player's clock pauses and the opponent's continues. Each completed move adds +3 seconds to the mover's clock.
-- **Visual Timer Indication:** The active player's timer displays in **green** when it is actively counting down, and in a neutral color when paused. This provides immediate visual feedback about whose turn it is.
-- **Fair Play Safeguards:**
-  - If a player’s clock expires before completing 10 moves, the opponent may still finish their remaining moves.
-  - All timing is enforced server-side for fairness and to prevent client manipulation.
+- **Round-Based Simultaneous Play:** The match consists of **10 rounds (“moves”) per player**. In each round, both players may submit exactly one swap. Moves are hidden from the opponent until both have submitted for that round.
+- **Clocks:** Both players’ clocks count down during a round. When a player submits their swap, their clock pauses for the remainder of the round; the opponent’s clock continues until they submit or their time expires.
+- **Visibility:** Neither player sees the opponent’s submitted swap until both swaps have been submitted for the round. At reveal, both swaps are resolved and applied to the board state, words are validated, and scores are updated.
+- **Identical Swap Conflict:** If both players submit the exact same swap in a round (same two tiles), the swap with the earlier valid submission time takes precedence. The later identical swap is ignored.
+- **Time Control:** Each player begins with **5:00 minutes** of base time. **No increments** are awarded (5+0).
+- **Round Progression:** After both moves are revealed and resolved, the next round begins. This continues until each player has completed 10 rounds, or time-based end conditions trigger.
+- **Visual Timer Indication:** A player’s timer displays in **green** while they have not yet submitted their swap for the current round; it changes to a neutral state once their swap is submitted and their clock is paused.
+- **Time Expiration:** If a player’s clock reaches 0 before all rounds are completed, that player cannot submit further swaps. The opponent may continue submitting swaps for all remaining rounds.
+- **Fair Play Safeguards:** Timing and round resolution are enforced server-side for fairness and to prevent client manipulation.
 
 ### 1.5 Frozen Tiles & Territory Control
 
@@ -56,8 +59,8 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 
 - **Move Limit:** 10 moves per player (20 total).
 - **Game Ends When:**
-  - Both players reach 10 moves, or
-  - Time expires for both players, or
+  - Both players reach 10 moves (all rounds completed), or
+  - One player’s time expires and the opponent completes all remaining rounds, or
   - One player resigns.
 - **Winner:** Highest score wins. Tiebreaker: most frozen tiles. If tied, draw.
 
@@ -132,17 +135,17 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 1. Assign White/Black roles randomly.
 2. Generate board using weighted letter distribution + seed words.
-3. Initialize 5+3 clocks.
-4. Display initiative message.
-5. Begin simultaneous phase.
+3. Initialize 5+0 clocks.
+4. Display round instructions.
+5. Begin Round 1.
 
 ### 3.3 In-Game Flow
 
-1. Active player swaps two letters.
-2. Server validates move, finds words, calculates score.
+1. Both players independently select and submit one swap for the current round.
+2. When both submissions are in (or a timer condition triggers), the server reveals both swaps, validates words, and calculates scores.
 3. Freeze claimed tiles.
-4. Broadcast new board state + scores.
-5. Switch turn or resolve simultaneous moves.
+4. Broadcast updated board state + scores to both players simultaneously.
+5. Begin the next round until all 10 rounds are completed or time expires.
 
 ### 3.4 Post-Game Flow
 
@@ -245,7 +248,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 ### 7.2 Visual Feedback
 
-**Timer Status:** Active timer displays in green when counting down; neutral color when paused.
+**Timer Status:** A player’s timer displays in green while they have not yet submitted their swap for the current round; it switches to a neutral color once they submit (their clock pauses).
 
 **Frozen Tiles:** Colored border + tint (40% opacity overlay) applied immediately when word is discovered.
 
@@ -317,6 +320,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 ### 10.4 Time-Related Edge Cases
 
 - **Simultaneous Time Expiration:** If both players' clocks expire at the same time (within same server tick), game ends immediately. Winner determined by score, then frozen tiles, then draw.
+- **Single Player Time Expiration:** If one player’s clock expires before all rounds are completed, that player submits no further swaps. The opponent may proceed to submit swaps for all remaining rounds; the match concludes once those rounds are completed.
 - **Clock Synchronization Issues:** Server time is authoritative. Client clocks are for display only. Server sends periodic clock sync updates to prevent drift (>1s difference triggers correction).
 - **Negative Time:** Server prevents negative time values. When clock reaches 0, player is flagged immediately and turn switches (if applicable).
 
