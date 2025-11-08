@@ -1,5 +1,7 @@
 # Feature Specification: MVP E2E Board & Swaps
 
+> **Milestone Scope:** This document defines Milestone **M0**, a scoped-down scaffold that exercises a single board swap end-to-end. Competitive features from the full Wottle PRD (dictionary validation, scoring, frozen tiles, timers, matchmaking, animations) are intentionally deferred to later milestones while we validate architecture and tooling.
+
 **Feature Branch**: `001-e2e-board-scaffold`  
 **Created**: 2025-11-04  
 **Status**: Draft  
@@ -152,6 +154,12 @@ After a successful swap, the user receives basic confirmation that the move was 
 - Q: Is authentication required for the MVP scaffold? → A: No auth required (public local usage).
 - Q: How is the board grid represented in the database? → A: JSONB 2D array 16×16 of single-character strings.
 - Q: What seed dataset strategy should MVP use? → A: Random letters on each seed/reset.
+
+## PRD Alignment
+
+- **Milestone M0 (this spec)**: Validate architecture with a local Supabase stack, deterministic-to-weighted board generation, and a single server-authoritative swap workflow.
+- **Deferred PRD Features**: Dictionary validation, scoring, frozen tiles/territory, simultaneous rounds with clocks, matchmaking/lobby flows, multiplayer animations, and advanced UX behaviors remain tracked in `prd/wottle_prd.md` for Milestones M1+.
+- **Traceability**: Deferred requirements stay referenced in the PRD and will drive future specs/tasks once the scaffold milestone is integrated.
 
 ## Assumptions
 

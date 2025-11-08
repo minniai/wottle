@@ -7,7 +7,7 @@
 
 ## Summary
 
-Goal: deliver an iterative end-to-end development scaffold that stands up a local Supabase-backed environment and a Next.js app rendering a 16×16 board with a server-authoritative swap path. The MVP confirms the development architecture (local dev, CI/CD via GitHub Actions, typed contracts, and RLS-aligned data model) without full game logic or word checks.
+Goal: deliver an iterative end-to-end development scaffold that stands up a local Supabase-backed environment and a Next.js app rendering a 16×16 board with a server-authoritative swap path. The MVP confirms the development architecture (local dev, CI/CD via GitHub Actions, typed contracts, and RLS-aligned data model) without full game logic or word checks. This milestone is intentionally scoped to M0—one swap use case—while full competitive gameplay from the PRD lands in follow-on milestones.
 
 Technical approach:
 
@@ -33,7 +33,7 @@ Technical approach:
 **Project Type**: web (single Next.js app hosting UI + Server Actions)  
 **Performance Goals**: Local MVP: swaps appear <1s end-to-end; production SLA alignment: <200ms RTT on critical server path with instrumentation  
 **Constraints**: Server-authoritative mutations, RLS parity with production, anon vs service_role key separation, mobile-first grid readability, edge runtime for performance-critical routes (e.g., `/api/swap`) unless explicitly justified  
-**Scale/Scope**: MVP scope limited to single board render and swap mutation; no dictionary checks. Phase 3 introduces weighted seeded board generation that respects Icelandic letter frequency and deterministic reproduction.
+**Scale/Scope**: Milestone M0 scope limited to single board render and swap mutation; no dictionary checks or multiplayer systems. Phase 3 introduces weighted seeded board generation that respects Icelandic letter frequency and deterministic reproduction. Future milestones (M1+) will add scoring, frozen tiles, timers, matchmaking, and UX polish per the PRD.
 
 ## Constitution Check
 

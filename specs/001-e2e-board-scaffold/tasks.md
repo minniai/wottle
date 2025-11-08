@@ -80,6 +80,7 @@
 - [ ] T027d [US1] [TDD-RED] Author unit tests for weighted seeded board generator ensuring Icelandic alphabet coverage in `tests/unit/lib/game-engine/boardGenerator.test.ts`
 - [ ] T027e [US1] [TDD-GREEN] Implement weighted seeded board generator keyed by match identifier in `scripts/supabase/generateBoard.ts`
 - [ ] T027f [US1] Add integration guard validating generated boards satisfy weighting and alphabet coverage in `tests/integration/quickstart/board-generation.spec.ts`
+- [ ] T027g [US1] Document Milestone M0 scope boundaries and deferred PRD features in `specs/001-e2e-board-scaffold/readme.md`
 
 ---
 
