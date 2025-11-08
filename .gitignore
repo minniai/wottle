@@ -28,6 +28,9 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+!.env.example
+!.env.local.example
 
 # Lock files (optional - uncomment if you want to ignore)
  package-lock.json

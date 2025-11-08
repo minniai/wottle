@@ -9,26 +9,38 @@
     "start": "next start",
     "lint": "eslint --max-warnings=0 --ext .ts,.tsx .",
     "typecheck": "tsc --pretty --noEmit",
-    "test": "vitest --passWithNoTests"
+    "test": "vitest --passWithNoTests",
+    "guard:no-service-role": "tsx scripts/guards/no-service-role-in-client.ts",
+    "supabase:seed": "tsx scripts/supabase/seed.ts",
+    "supabase:reset": "tsx scripts/supabase/reset.ts",
+    "supabase:verify": "tsx scripts/supabase/verify.ts",
+    "supabase:policies": "tsx scripts/supabase/policies/check.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.80.0",
     "next": "^16.0.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^20.19.24",
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@testing-library/jest-dom": "^6.9.1",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.1",
+    "jsdom": "^27.1.0",
+    "pg": "^8.16.3",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.1.17",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^1.6.1"
   }

@@ -1,0 +1,22 @@
+# Supabase local development configuration
+# Mirrors the defaults provided by `supabase init` but reads secrets from env templates.
+
+[project]
+ref = "wottle-local"
+api_url = "http://localhost:54321"
+studio_url = "http://localhost:54323"
+anon_key = "{{ env(NEXT_PUBLIC_SUPABASE_ANON_KEY) }}"
+service_role_key = "{{ env(SUPABASE_SERVICE_ROLE_KEY) }}"
+
+[database]
+port = 54322
+shadow_port = 54320
+password = "{{ env(SUPABASE_DB_PASSWORD) }}"
+# Optional override when running multiple Supabase projects in parallel
+fallback_port_range = "54340-54400"
+
+[studio]
+port = 54323
+
+[storage]
+file_size_limit = "50mb"
