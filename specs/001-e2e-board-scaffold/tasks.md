@@ -67,20 +67,20 @@
 **Goal**: Automate the quickstart so a developer can stand up Supabase locally with one command
 **Independent Test**: Run `make quickstart`; Supabase services report healthy status and seed data loads without manual intervention
 
-- [ ] T021 [P] [US1] [TDD-RED] Write failing integration test that executes `scripts/supabase/quickstart.sh` and expects healthy status in `tests/integration/quickstart/quickstart.spec.ts`
-- [ ] T022 [P] [US1] [TDD-RED] Write failing unit test covering preflight validation branches in `tests/unit/scripts/quickstartPreflight.test.ts`
-- [ ] T023 [US1] [TDD-GREEN] Implement TypeScript preflight module (Docker, Supabase login, port checks) in `scripts/supabase/preflight.ts`
-- [ ] T024 [US1] [TDD-GREEN] Implement bash automation orchestrating preflight, `supabase start`, migrations, and seed in `scripts/supabase/quickstart.sh`
-- [ ] T025 [US1] [TDD-GREEN] Add `quickstart` target and PNPM script delegating to the automation in `Makefile`
-- [ ] T026 [US1] Update quickstart instructions to reference the automation and troubleshooting in `specs/001-e2e-board-scaffold/quickstart.md`
-- [ ] T027 [US1] Update onboarding checklist with quickstart verification steps in `specs/001-e2e-board-scaffold/checklists/requirements.md`
-- [ ] T027a [US1] Capture timings in quickstart: end-to-end startup and seed durations; assert startup ≤3m and seed ≤2m with warnings on breach; emit structured logs for CI artifacts
-- [ ] T027b [US1] Randomize Supabase seed grid output per FR-018 once foundational deterministic scaffold is validated
-- [ ] T027c [US1] [TDD-RED] Add integration assertion ensuring app requests target the local Supabase instance in `tests/integration/quickstart/local-routing.spec.ts`
-- [ ] T027d [US1] [TDD-RED] Author unit tests for weighted seeded board generator ensuring Icelandic alphabet coverage in `tests/unit/lib/game-engine/boardGenerator.test.ts`
-- [ ] T027e [US1] [TDD-GREEN] Implement weighted seeded board generator keyed by match identifier in `scripts/supabase/generateBoard.ts`
-- [ ] T027f [US1] Add integration guard validating generated boards satisfy weighting and alphabet coverage in `tests/integration/quickstart/board-generation.spec.ts`
-- [ ] T027g [US1] Document Milestone M0 scope boundaries and deferred PRD features in `specs/001-e2e-board-scaffold/readme.md`
+- [x] T021 [P] [US1] [TDD-RED] Write failing integration test that executes `scripts/supabase/quickstart.sh` and expects healthy status in `tests/integration/quickstart/quickstart.spec.ts`
+- [x] T022 [P] [US1] [TDD-RED] Write failing unit test covering preflight validation branches in `tests/unit/scripts/quickstartPreflight.test.ts`
+- [x] T023 [US1] [TDD-GREEN] Implement TypeScript preflight module (Docker, Supabase login, port checks) in `scripts/supabase/preflight.ts`
+- [x] T024 [US1] [TDD-GREEN] Implement bash automation orchestrating preflight, `supabase start`, migrations, and seed in `scripts/supabase/quickstart.sh`
+- [x] T025 [US1] [TDD-GREEN] Add `quickstart` target and PNPM script delegating to the automation in `Makefile`
+- [x] T026 [US1] Update quickstart instructions to reference the automation and troubleshooting in `specs/001-e2e-board-scaffold/quickstart.md`
+- [x] T027 [US1] Update onboarding checklist with quickstart verification steps in `specs/001-e2e-board-scaffold/checklists/requirements.md`
+- [x] T027a [US1] Capture timings in quickstart: end-to-end startup and seed durations; assert startup ≤3m and seed ≤2m with warnings on breach; emit structured logs for CI artifacts
+- [x] T027b [US1] Randomize Supabase seed grid output per FR-018 once foundational deterministic scaffold is validated
+- [x] T027c [US1] [TDD-RED] Add integration assertion ensuring app requests target the local Supabase instance in `tests/integration/quickstart/local-routing.spec.ts`
+- [x] T027d [US1] [TDD-RED] Author unit tests for weighted seeded board generator ensuring Icelandic alphabet coverage in `tests/unit/lib/game-engine/boardGenerator.test.ts`
+- [x] T027e [US1] [TDD-GREEN] Implement weighted seeded board generator keyed by match identifier in `scripts/supabase/generateBoard.ts`
+- [x] T027f [US1] Add integration guard validating generated boards satisfy weighting and alphabet coverage in `tests/integration/quickstart/board-generation.spec.ts`
+- [x] T027g [US1] Document Milestone M0 scope boundaries and deferred PRD features in `specs/001-e2e-board-scaffold/readme.md`
 
 ---
 

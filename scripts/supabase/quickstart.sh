@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SUPABASE_BIN="${SUPABASE_BIN:-supabase}"
+PNPM_BIN="${PNPM_BIN:-pnpm}"
+ENV_FILE="${QUICKSTART_ENV_FILE:-.env.local}"
+MATCH_ID="${QUICKSTART_MATCH_ID:-quickstart-$(node -p 'Date.now()')}"
+DISABLE_STOP="${QUICKSTART_DISABLE_STOP:-}"
+DRY_RUN="${QUICKSTART_DRY_RUN:-}"
+
+function emit_json() {
+  node - <<'NODE' "$@"
+const [, , ...args] = process.argv;
+const [event, ...rest] = args;
+const payload = { event, timestamp: new Date().toISOString() };
+for (let i = 0; i < rest.length; i += 2) {
+  const key = rest[i];
+  const value = rest[i + 1];
+  if (key === undefined || value === undefined) continue;
+  const numeric = Number(value);
+  payload[key] = Number.isNaN(numeric) ? value : numeric;
+}
+console.log(JSON.stringify(payload));
+NODE
+}
+
+function now_ms() {
+  node -p 'Date.now()'
+}
+
+function update_env_var() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  node - "$file" "$key" "$value" <<'NODE'
+const fs = require('fs');
+const [, , path, key, value] = process.argv;
+const escape = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+let lines = [];
+if (fs.existsSync(path)) {
+  lines = fs.readFileSync(path, 'utf8').split(/\r?\n/);
+}
+const pattern = new RegExp(`^${escape(key)}=`); 
+let updated = false;
+lines = lines.filter(Boolean).map((line) => {
+  if (pattern.test(line)) {
+    updated = true;
+    return `${key}=${value}`;
+  }
+  return line;
+});
+if (!updated) {
+  lines.push(`${key}=${value}`);
+}
+fs.writeFileSync(path, lines.join('\n') + '\n', 'utf8');
+NODE
+}
+
+function on_error() {
+  local exit_code=$?
+  emit_json "supabase.quickstart.error" "exitCode" "$exit_code" "message" "${BASH_COMMAND:-quickstart failed}"
+  exit "$exit_code"
+}
+
+trap on_error ERR
+
+cd "$ROOT_DIR"
+
+PRE_PRECHECK_MS="$(now_ms)"
+"$PNPM_BIN" tsx scripts/supabase/preflight.ts
+
+SUPABASE_START_BEGIN_MS="$(now_ms)"
+"$SUPABASE_BIN" start >/dev/null
+SUPABASE_START_END_MS="$(now_ms)"
+
+STATUS_JSON="$(mktemp)"
+"$SUPABASE_BIN" status --json >"$STATUS_JSON"
+
+SUPABASE_URL="$(node - "$STATUS_JSON" <<'NODE'
+const fs = require('fs');
+const statusPath = process.argv.at(-1);
+const data = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+const apiUrl = data?.status?.credentials?.apiUrl ?? data?.status?.services?.api?.url ?? '';
+process.stdout.write(apiUrl);
+NODE
+)"
+
+SUPABASE_ANON_KEY="$(node - "$STATUS_JSON" <<'NODE'
+const fs = require('fs');
+const statusPath = process.argv.at(-1);
+const data = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+const anon = data?.status?.credentials?.anonKey ?? '';
+process.stdout.write(anon);
+NODE
+)"
+
+SUPABASE_SERVICE_ROLE_KEY="$(node - "$STATUS_JSON" <<'NODE'
+const fs = require('fs');
+const statusPath = process.argv.at(-1);
+const data = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+const key = data?.status?.credentials?.serviceRoleKey ?? '';
+process.stdout.write(key);
+NODE
+)"
+
+if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
+  emit_json "supabase.quickstart.error" "message" "Supabase status did not return credentials"
+  exit 1
+fi
+
+update_env_var "$ENV_FILE" "NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL"
+update_env_var "$ENV_FILE" "SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_SERVICE_ROLE_KEY"
+update_env_var "$ENV_FILE" "SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
+
+export NEXT_PUBLIC_SUPABASE_URL="$SUPABASE_URL"
+export SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
+export SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+export BOARD_MATCH_ID="$MATCH_ID"
+
+SEED_BEGIN_MS="$(now_ms)"
+if [[ -z "$DRY_RUN" ]]; then
+  "$PNPM_BIN" tsx scripts/supabase/seed.ts >/dev/null
+  "$PNPM_BIN" tsx scripts/supabase/verify.ts >/dev/null
+fi
+SEED_END_MS="$(now_ms)"
+
+if [[ -z "$DISABLE_STOP" ]]; then
+  "$SUPABASE_BIN" stop >/dev/null || true
+fi
+
+emit_json \
+  "supabase.quickstart.success" \
+  "startupDurationMs" "$((SUPABASE_START_END_MS - SUPABASE_START_BEGIN_MS))" \
+  "seedDurationMs" "$((SEED_END_MS - SEED_BEGIN_MS))" \
+  "supabaseUrl" "$SUPABASE_URL" \
+  "matchId" "$MATCH_ID"
+
+rm -f "$STATUS_JSON"
+

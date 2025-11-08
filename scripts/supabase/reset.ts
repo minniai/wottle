@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-import { BASELINE_GRID, PRIMARY_BOARD_ID } from "./constants";
+import { PRIMARY_BOARD_ID } from "./constants";
+import { generateBoard } from "./generateBoard";
 import { seedBoard } from "./seed";
 
 function requireEnv(name: string): string {
@@ -30,9 +31,11 @@ async function resetBoard() {
   }
 
   if (board) {
+    const matchId = process.env.BOARD_MATCH_ID ?? `board-${Date.now()}`;
+    const grid = generateBoard({ matchId });
     const { error: resetBoardError } = await supabase
       .from("boards")
-      .update({ grid: BASELINE_GRID })
+      .update({ grid })
       .eq("id", board.id);
 
     if (resetBoardError) {

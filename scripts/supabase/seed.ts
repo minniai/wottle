@@ -1,7 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { performance } from "node:perf_hooks";
 
-import { BASELINE_GRID, PRIMARY_BOARD_ID } from "./constants";
+import { PRIMARY_BOARD_ID } from "./constants";
+import { generateBoard } from "./generateBoard";
 
 type AnySupabaseClient = SupabaseClient<any, any, any, any, any>;
 
@@ -17,6 +18,8 @@ async function seedBoard() {
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
   const started = performance.now();
+  const matchId = process.env.BOARD_MATCH_ID ?? `board-${Date.now()}`;
+  const grid = generateBoard({ matchId });
 
   const supabase = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -35,7 +38,7 @@ async function seedBoard() {
   if (existing) {
     const { error: updateError } = await supabase
       .from("boards")
-      .update({ grid: BASELINE_GRID })
+      .update({ grid })
       .eq("id", existing.id);
 
     if (updateError) {
@@ -44,7 +47,7 @@ async function seedBoard() {
   } else {
     const { error: insertError } = await supabase.from("boards").insert({
       board_id: PRIMARY_BOARD_ID,
-      grid: BASELINE_GRID,
+      grid,
     });
 
     if (insertError) {
@@ -63,6 +66,7 @@ async function seedBoard() {
 
   return {
     durationMs: Math.round(performance.now() - started),
+    matchId,
   };
 }
 
@@ -80,11 +84,12 @@ async function getBoardId(supabase: AnySupabaseClient) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   seedBoard()
-    .then(({ durationMs }) => {
+    .then(({ durationMs, matchId }) => {
       console.log(
         JSON.stringify({
           event: "supabase.seed.success",
           durationMs,
+          matchId,
           boardId: PRIMARY_BOARD_ID,
           timestamp: new Date().toISOString(),
         })
