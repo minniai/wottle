@@ -1,4 +1,4 @@
-vi.mock("server-only", () => ({}), { virtual: true });
+vi.mock("server-only", () => ({}));
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const originalEnv = { ...process.env };

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { vi } from "vitest";
 
 export interface SupabaseBoardFetchResponse {
@@ -32,10 +33,10 @@ export interface SupabaseClientStubHistory {
   movesDeleteFilters: Array<{ column: string; value: unknown }>;
 }
 
+type AnySupabaseClient = SupabaseClient<any, any, any, any, any>;
+
 export interface SupabaseClientStub {
-  client: {
-    from: ReturnType<typeof vi.fn>;
-  };
+  client: AnySupabaseClient;
   history: SupabaseClientStubHistory;
 }
 
@@ -59,7 +60,7 @@ export function createSupabaseClientStub(
     movesDeleteFilters: [],
   };
 
-  const client = {
+  const clientImpl = {
     from: vi.fn((table: string) => {
       history.fromTables.push(table);
 
@@ -118,6 +119,9 @@ export function createSupabaseClientStub(
     }),
   };
 
-  return { client, history };
+  return {
+    client: clientImpl as unknown as AnySupabaseClient,
+    history,
+  };
 }
 

@@ -13,6 +13,10 @@ import { createSupabaseClientStub } from "../../helpers/supabaseClientStub";
 const createClientMock = vi.mocked(createClient);
 const originalEnv = { ...process.env };
 
+function asSupabaseClient(stub: ReturnType<typeof createSupabaseClientStub>) {
+  return stub.client as unknown as ReturnType<typeof createClient>;
+}
+
 beforeEach(() => {
   createClientMock.mockReset();
   process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321";
@@ -64,7 +68,7 @@ describe("verifySupabase instrumentation", () => {
     const stub = createSupabaseClientStub({
       boardLimitResponses: [{ error: null }],
     });
-    createClientMock.mockReturnValueOnce(stub.client);
+    createClientMock.mockReturnValueOnce(asSupabaseClient(stub));
 
     const result = await verifySupabase();
 

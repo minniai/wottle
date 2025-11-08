@@ -15,6 +15,10 @@ import { createSupabaseClientStub } from "../../helpers/supabaseClientStub";
 const createClientMock = vi.mocked(createClient);
 const originalEnv = { ...process.env };
 
+function asSupabaseClient(stub: ReturnType<typeof createSupabaseClientStub>) {
+  return stub.client as unknown as ReturnType<typeof createClient>;
+}
+
 beforeEach(() => {
   createClientMock.mockReset();
   process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321";
@@ -53,7 +57,7 @@ describe("seedBoard", () => {
       ],
     });
 
-    createClientMock.mockReturnValueOnce(stub.client);
+    createClientMock.mockReturnValueOnce(asSupabaseClient(stub));
 
     const result = await seedBoard();
 
@@ -80,7 +84,7 @@ describe("seedBoard", () => {
       boardFetchResponses: [{ data: { id: "existing-board-id" }, error: null }],
     });
 
-    createClientMock.mockReturnValueOnce(stub.client);
+    createClientMock.mockReturnValueOnce(asSupabaseClient(stub));
 
     await seedBoard();
 
@@ -107,8 +111,8 @@ describe("resetBoard", () => {
     });
 
     createClientMock
-      .mockReturnValueOnce(resetStub.client)
-      .mockReturnValueOnce(seedStub.client);
+      .mockReturnValueOnce(asSupabaseClient(resetStub))
+      .mockReturnValueOnce(asSupabaseClient(seedStub));
 
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -128,7 +132,7 @@ describe("resetBoard", () => {
     const stub = createSupabaseClientStub({
       boardFetchResponses: [{ data: { id: "existing-board-id" }, error: null }],
     });
-    createClientMock.mockReturnValueOnce(stub.client);
+    createClientMock.mockReturnValueOnce(asSupabaseClient(stub));
 
     const seedSpy = vi
       .spyOn(seedModule, "seedBoard")
