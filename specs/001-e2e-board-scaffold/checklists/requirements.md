@@ -32,3 +32,8 @@
 ## Notes
 
 - Ready for clarification/planning. No blockers identified for next phase.
+
+## Quickstart Automation
+
+- [x] Quickstart command (`pnpm quickstart`) documented with expected behavior
+- [x] Structured logging outputs and env updates captured in quickstart instructions

@@ -25,29 +25,30 @@
  # Edit .env.local with values from `supabase status` after start (below)
  ```
 
-## 3) Start local Supabase stack
+## 3) Run automated quickstart
+
+```bash
+# One command to run preflight, start Supabase, apply migrations, seed, and verify
+pnpm quickstart
+# or, equivalently
+make quickstart
+```
+
+What the automation does:
+
+- Runs preflight checks for Docker + Supabase CLI + access token
+- Starts the Supabase stack (using the Supabase CLI)
+- Writes the local `NEXT_PUBLIC_SUPABASE_URL`, anon key, and service-role key into `.env.local`
+- Applies migrations, seeds the weighted board grid, clears stale moves, and runs the verification script
+- Emits structured JSON logs including startup/seed durations and the board match id
+
+> **Note:** The script expects `SUPABASE_ACCESS_TOKEN` to be present in the environment (for `supabase status --json`). The automation aborts early with actionable messaging if any prerequisite fails.
+
+## 4) Run the app
 
  ```bash
- supabase start
- # Wait until database, auth, realtime, storage are healthy
- supabase status
- ```
-
-## 4) Apply schema and seed baseline board
-
- ```bash
- # Apply migrations (when present)
- # supabase db reset --linked # or supabase db push
- 
- # Seed baseline board (script placeholder; to be added during implementation)
- # pnpm ts-node scripts/supabase/seed.ts
- ```
-
-## 5) Run the app
-
- ```bash
- pnpm dev
- # Open http://localhost:3000
+pnpm dev
+# Open http://localhost:3000
  ```
 
  Expected:
@@ -55,19 +56,20 @@
 - Home page renders a 16×16 grid
 - Swap two tiles triggers a server-authoritative update
 
-## 6) Troubleshooting
+## 5) Troubleshooting
 
-- Missing Docker or CLI: Install per Supabase documentation
-- Port conflicts: `supabase stop && supabase start` or adjust ports in config
-- Wrong keys in client: Ensure anon key is used client-side; service_role only on server
-- Already running Supabase: Stop prior instance before starting a new one
+- Missing Docker or CLI: Install per Supabase documentation, then rerun `pnpm quickstart`
+- Port conflicts: `supabase stop && supabase start` or adjust ports in `supabase/config.toml`
+- Wrong keys in client: rerun `pnpm quickstart` to regenerate `.env.local`; ensure anon key is used client-side while `SUPABASE_SERVICE_ROLE_KEY` stays server-only
+- Already running Supabase: `supabase stop` before invoking quickstart again
+- Need a dry run (e.g., CI smoke test): set `QUICKSTART_DRY_RUN=1` before running the script to skip seeding while still performing env updates
 
-## 7) CI pipeline (overview)
+## 6) CI pipeline (overview)
 
 - GitHub Actions workflow installs Node, caches deps, runs typecheck/lint/tests
 - Optional integration job spins up Supabase CLI on the runner for DB-backed tests
 
-## 8) Clean up
+## 7) Clean up
 
  ```bash
  supabase stop

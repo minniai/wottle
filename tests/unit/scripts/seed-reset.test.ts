@@ -1,12 +1,18 @@
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(),
 }));
+const MOCK_GRID = Array.from({ length: 16 }, () =>
+  Array.from({ length: 16 }, () => "A")
+);
+vi.mock("../../../scripts/supabase/generateBoard", () => ({
+  generateBoard: vi.fn(() => MOCK_GRID),
+}));
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { BASELINE_GRID, PRIMARY_BOARD_ID } from "../../../scripts/supabase/constants";
+import { PRIMARY_BOARD_ID } from "../../../scripts/supabase/constants";
 import { resetBoard } from "../../../scripts/supabase/reset";
 import { seedBoard } from "../../../scripts/supabase/seed";
 import * as seedModule from "../../../scripts/supabase/seed";
@@ -72,7 +78,7 @@ describe("seedBoard", () => {
     expect(stub.history.boardInsertPayloads).toHaveLength(1);
     expect(stub.history.boardInsertPayloads[0]).toEqual({
       board_id: PRIMARY_BOARD_ID,
-      grid: BASELINE_GRID,
+      grid: MOCK_GRID,
     });
     expect(stub.history.movesDeleteFilters).toEqual([
       { column: "board_id", value: "new-board-id" },
@@ -88,9 +94,7 @@ describe("seedBoard", () => {
 
     await seedBoard();
 
-    expect(stub.history.boardUpdatePayloads).toEqual([
-      { grid: BASELINE_GRID },
-    ]);
+    expect(stub.history.boardUpdatePayloads).toEqual([{ grid: MOCK_GRID }]);
     expect(stub.history.boardInsertPayloads).toHaveLength(0);
     expect(stub.history.movesDeleteFilters).toEqual([
       { column: "board_id", value: "existing-board-id" },
@@ -136,7 +140,7 @@ describe("resetBoard", () => {
 
     const seedSpy = vi
       .spyOn(seedModule, "seedBoard")
-      .mockResolvedValue({ durationMs: 0 });
+      .mockResolvedValue({ durationMs: 0, matchId: "seeded-board" });
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     try {
@@ -147,9 +151,7 @@ describe("resetBoard", () => {
     }
 
     expect(seedSpy).not.toHaveBeenCalled();
-    expect(stub.history.boardUpdatePayloads).toEqual([
-      { grid: BASELINE_GRID },
-    ]);
+    expect(stub.history.boardUpdatePayloads).toEqual([{ grid: MOCK_GRID }]);
     expect(stub.history.movesDeleteFilters).toEqual([
       { column: "board_id", value: "existing-board-id" },
     ]);

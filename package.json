@@ -14,7 +14,8 @@
     "supabase:seed": "tsx scripts/supabase/seed.ts",
     "supabase:reset": "tsx scripts/supabase/reset.ts",
     "supabase:verify": "tsx scripts/supabase/verify.ts",
-    "supabase:policies": "tsx scripts/supabase/policies/check.ts"
+    "supabase:policies": "tsx scripts/supabase/policies/check.ts",
+    "quickstart": "make quickstart"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.80.0",
