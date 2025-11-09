@@ -76,13 +76,13 @@ SUPABASE_START_BEGIN_MS="$(now_ms)"
 SUPABASE_START_END_MS="$(now_ms)"
 
 STATUS_JSON="$(mktemp)"
-"$SUPABASE_BIN" status --json >"$STATUS_JSON"
+"$SUPABASE_BIN" status -o json >"$STATUS_JSON"
 
 SUPABASE_URL="$(node - "$STATUS_JSON" <<'NODE'
 const fs = require('fs');
 const statusPath = process.argv.at(-1);
 const data = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
-const apiUrl = data?.status?.credentials?.apiUrl ?? data?.status?.services?.api?.url ?? '';
+const apiUrl = data?.API_URL ?? data?.status?.credentials?.apiUrl ?? data?.status?.services?.api?.url ?? '';
 process.stdout.write(apiUrl);
 NODE
 )"
@@ -91,7 +91,7 @@ SUPABASE_ANON_KEY="$(node - "$STATUS_JSON" <<'NODE'
 const fs = require('fs');
 const statusPath = process.argv.at(-1);
 const data = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
-const anon = data?.status?.credentials?.anonKey ?? '';
+const anon = data?.ANON_KEY ?? data?.status?.credentials?.anonKey ?? '';
 process.stdout.write(anon);
 NODE
 )"
@@ -100,7 +100,7 @@ SUPABASE_SERVICE_ROLE_KEY="$(node - "$STATUS_JSON" <<'NODE'
 const fs = require('fs');
 const statusPath = process.argv.at(-1);
 const data = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
-const key = data?.status?.credentials?.serviceRoleKey ?? '';
+const key = data?.SERVICE_ROLE_KEY ?? data?.status?.credentials?.serviceRoleKey ?? '';
 process.stdout.write(key);
 NODE
 )"
