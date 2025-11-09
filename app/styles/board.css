@@ -1,3 +1,9 @@
+.board-grid__wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .board-grid {
   --board-grid-gap: clamp(0.15rem, 0.5vw, 0.4rem);
   --board-grid-font-size: clamp(0.75rem, 1vw + 0.45rem, 1.15rem);
@@ -18,6 +24,7 @@
 }
 
 .board-grid__cell {
+  appearance: none;
   position: relative;
   display: flex;
   align-items: center;
@@ -31,6 +38,7 @@
   font-size: var(--board-grid-font-size);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  cursor: pointer;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     inset 0 -4px 12px rgba(15, 23, 42, 0.35);
@@ -47,10 +55,35 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 12px 22px -18px rgba(14, 165, 233, 0.75);
   transform: translateY(-1px);
+  outline: none;
+}
+
+.board-grid__cell:disabled {
+  cursor: wait;
+  opacity: 0.85;
+  transform: none;
+}
+
+.board-grid__cell--selected {
+  border-color: rgba(59, 130, 246, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 3px rgba(59, 130, 246, 0.35),
+    inset 0 -4px 12px rgba(15, 23, 42, 0.35);
 }
 
 .board-grid__tile {
   pointer-events: none;
+}
+
+.board-grid__error {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.12);
+  color: rgba(254, 226, 226, 0.95);
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 10px 24px -20px rgba(248, 113, 113, 0.65);
 }
 
 @media (max-width: 768px) {
