@@ -1,66 +1,194 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { BoardGrid as BoardGridType } from "../../lib/types/board";
+import type {
+  BoardGrid as BoardGridType,
+  MoveRequest,
+  MoveResult,
+} from "../../lib/types/board";
 
 interface BoardGridProps {
   grid: BoardGridType;
   className?: string;
 }
 
+type SelectedTile = {
+  x: number;
+  y: number;
+};
+
 const BASE_CLASS = "board-grid";
 
+async function submitSwapRequest(move: MoveRequest): Promise<MoveResult> {
+  const response = await fetch("/api/swap", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(move),
+  });
+
+  if (response.status === 200) {
+    return (await response.json()) as MoveResult;
+  }
+
+  if (response.status === 400) {
+    return (await response.json()) as MoveResult;
+  }
+
+  const payload = (await response.json().catch(() => ({}))) as {
+    error?: string;
+  };
+
+  throw new Error(
+    payload.error ?? "Failed to process swap request. Please try again."
+  );
+}
+
 export function BoardGrid({ grid, className }: BoardGridProps) {
+  const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
+  const [selected, setSelected] = useState<SelectedTile | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (typeof performance !== "undefined" && typeof performance.mark === "function") {
       performance.mark("board-grid:hydrated");
     }
   }, [grid]);
 
-  const rowCount = grid.length;
-  const colCount = grid[0]?.length ?? 0;
+  useEffect(() => {
+    setCurrentGrid(grid);
+  }, [grid]);
 
-  const containerClass = className ? `${BASE_CLASS} ${className}` : BASE_CLASS;
+  const rowCount = currentGrid.length;
+  const colCount = currentGrid[0]?.length ?? 0;
+
+  const containerClass = useMemo(
+    () => (className ? `${BASE_CLASS} ${className}` : BASE_CLASS),
+    [className]
+  );
+
+  const handleSwap = useCallback(
+    async (from: SelectedTile, to: SelectedTile) => {
+      setIsSubmitting(true);
+      setErrorMessage(null);
+      const previousGrid = currentGrid;
+
+      try {
+        const result = await submitSwapRequest({
+          from,
+          to,
+        });
+
+        if (result.status === "accepted") {
+          setCurrentGrid(result.grid);
+          setErrorMessage(null);
+        } else {
+          setCurrentGrid(previousGrid);
+          setErrorMessage(result.error ?? "Invalid swap request.");
+        }
+      } catch (error) {
+        setCurrentGrid(previousGrid);
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Network error while submitting swap. Please try again.";
+        if (/network/i.test(message)) {
+          setErrorMessage("Network error while submitting swap. Please try again.");
+        } else {
+          setErrorMessage(message);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [currentGrid]
+  );
+
+  const handleTileClick = useCallback(
+    (rowIndex: number, colIndex: number) => {
+      if (isSubmitting) {
+        return;
+      }
+
+      const coordinate = { x: colIndex, y: rowIndex } as SelectedTile;
+
+      if (!selected) {
+        setSelected(coordinate);
+        return;
+      }
+
+      setSelected(null);
+      void handleSwap(selected, coordinate);
+    },
+    [handleSwap, isSubmitting, selected]
+  );
 
   return (
-    <div
-      data-testid="board-grid"
-      role="grid"
-      aria-label="Board grid"
-      aria-rowcount={rowCount}
-      aria-colcount={colCount}
-      className={containerClass}
-    >
-      {grid.map((row, rowIndex) => (
+    <div className="board-grid__wrapper">
+      <div
+        data-testid="board-grid"
+        role="grid"
+        aria-label="Board grid"
+        aria-rowcount={rowCount}
+        aria-colcount={colCount}
+        aria-busy={isSubmitting}
+        className={containerClass}
+        data-submitting={isSubmitting ? "true" : undefined}
+      >
+        {currentGrid.map((row, rowIndex) => (
+          <div
+            key={`row-${rowIndex}`}
+            role="row"
+            aria-rowindex={rowIndex + 1}
+            className="board-grid__row"
+            data-row={rowIndex}
+          >
+            {row.map((letter, colIndex) => {
+              const isSelected =
+                selected?.x === colIndex && selected?.y === rowIndex;
+
+              return (
+                <button
+                  key={`cell-${rowIndex}-${colIndex}`}
+                  type="button"
+                  role="gridcell"
+                  aria-colindex={colIndex + 1}
+                  aria-selected={isSelected}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}`}
+                  data-testid="board-tile"
+                  data-col={colIndex}
+                  data-row={rowIndex}
+                  data-selected={isSelected ? "true" : undefined}
+                  disabled={isSubmitting}
+                  onClick={() => handleTileClick(rowIndex, colIndex)}
+                >
+                  <span className="board-grid__tile" aria-hidden="true">
+                    {letter}
+                  </span>
+                  <span className="sr-only">
+                    Row {rowIndex + 1}, column {colIndex + 1}, letter {letter}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {errorMessage && (
         <div
-          key={`row-${rowIndex}`}
-          role="row"
-          aria-rowindex={rowIndex + 1}
-          className="board-grid__row"
-          data-row={rowIndex}
+          data-testid="swap-error"
+          role="alert"
+          aria-live="assertive"
+          className="board-grid__error"
         >
-          {row.map((letter, colIndex) => (
-            <div
-              key={`cell-${rowIndex}-${colIndex}`}
-              role="gridcell"
-              aria-colindex={colIndex + 1}
-              className="board-grid__cell"
-              data-testid="board-tile"
-              data-col={colIndex}
-            >
-              <span className="board-grid__tile" aria-hidden="true">
-                {letter}
-              </span>
-              <span className="sr-only">
-                Row {rowIndex + 1}, column {colIndex + 1}, letter {letter}
-              </span>
-            </div>
-          ))}
+          {errorMessage}
         </div>
-      ))}
+      )}
     </div>
   );
 }
-
 

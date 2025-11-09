@@ -106,17 +106,17 @@
 **Goal**: Allow a player to swap two tiles with server-authoritative validation and board refresh
 **Independent Test**: Select two tiles in the UI; valid swaps update the board, invalid swaps show an error and preserve state
 
-- [ ] T036 [P] [US3] [TDD-RED] Write unit tests covering swap validation branches in `tests/unit/app/actions/swapTiles.test.ts`
-- [ ] T037 [P] [US3] [TDD-RED] Write contract test for POST `/api/swap` success and error payloads in `tests/contract/post-swap.contract.test.ts`
-- [ ] T038 [P] [US3] [TDD-RED] Write Playwright test simulating swap success and rejection in `tests/integration/ui/swap-flow.spec.ts`
-- [ ] T038a [US3] Add Playwright test simulating network failure during swap and asserting error + board rollback in `tests/integration/ui/swap-network-failure.spec.ts`.
-- [ ] T039 [US3] [TDD-GREEN] Implement `swapTiles` server action applying validation and returning `MoveResult` in `app/actions/swapTiles.ts`
-- [ ] T040 [US3] [TDD-GREEN] Implement POST `/api/swap` route handler adhering to OpenAPI schema in `app/api/swap/route.ts`
-- [ ] T041 [US3] [TDD-GREEN] Implement swap + audit helpers writing to Supabase boards/moves in `lib/game-engine/mutations.ts`
-- [ ] T042 [US3] [TDD-GREEN] Wire `BoardGrid` interaction handlers to call `swapTiles` and refresh data in `components/game/BoardGrid.tsx`
-- [ ] T043 [US3] [TDD-REFACTOR] Add structured logging and performance marks for swaps in `lib/observability/perf.ts`
-- [ ] T043a [US3] Enforce edge runtime for perf-critical routes: `export const runtime = 'edge'` in `app/api/swap/route.ts` with justification if not possible
-- [ ] T043b [US3] Add UI performance test for swap animation in `tests/perf/ui/swap-fps.spec.ts`; assert p95 frame time ≤16.7ms (60 FPS).
+- [x] T036 [P] [US3] [TDD-RED] Write unit tests covering swap validation branches in `tests/unit/app/actions/swapTiles.test.ts`
+- [x] T037 [P] [US3] [TDD-RED] Write contract test for POST `/api/swap` success and error payloads in `tests/contract/post-swap.contract.test.ts`
+- [x] T038 [P] [US3] [TDD-RED] Write Playwright test simulating swap success and rejection in `tests/integration/ui/swap-flow.spec.ts`
+- [x] T038a [US3] Add Playwright test simulating network failure during swap and asserting error + board rollback in `tests/integration/ui/swap-network-failure.spec.ts`.
+- [x] T039 [US3] [TDD-GREEN] Implement `swapTiles` server action applying validation and returning `MoveResult` in `app/actions/swapTiles.ts`
+- [x] T040 [US3] [TDD-GREEN] Implement POST `/api/swap` route handler adhering to OpenAPI schema in `app/api/swap/route.ts`
+- [x] T041 [US3] [TDD-GREEN] Implement swap + audit helpers writing to Supabase boards/moves in `lib/game-engine/mutations.ts`
+- [x] T042 [US3] [TDD-GREEN] Wire `BoardGrid` interaction handlers to call `swapTiles` and refresh data in `components/game/BoardGrid.tsx`
+- [x] T043 [US3] [TDD-REFACTOR] Add structured logging and performance marks for swaps in `lib/observability/perf.ts`
+- [x] T043a [US3] Enforce edge runtime for perf-critical routes: `export const runtime = 'edge'` in `app/api/swap/route.ts` with justification if not possible
+- [x] T043b [US3] Add UI performance test for swap animation in `tests/perf/ui/swap-fps.spec.ts`; assert p95 frame time ≤16.7ms (60 FPS).
 
 ---
 

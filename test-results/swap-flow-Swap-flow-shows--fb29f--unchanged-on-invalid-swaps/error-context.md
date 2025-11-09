@@ -1,0 +1,813 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - heading "Wottle MVP Board Scaffold" [level=1] [ref=e4]
+      - paragraph [ref=e5]: Foundation for Supabase-powered grid and swap workflows
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - heading "Board Overview" [level=2] [ref=e9]
+        - paragraph [ref=e10]: Supabase stores the authoritative board state. This view fetches the current 16×16 grid via a server action so swaps can update the same data source in later phases.
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - term [ref=e13]: Board ID
+            - definition [ref=e14]: b8d5e878-5088-4980-ac52-60618b4e1c00
+          - generic [ref=e15]:
+            - term [ref=e16]: Updated At
+            - definition [ref=e17]: 2025-11-09T17:08:21.130987+00:00
+      - generic [ref=e18]:
+        - heading "Live Board" [level=3] [ref=e19]
+        - paragraph [ref=e20]: Letters are sized for desktop and mobile viewports. Later phases will enable tile selection and swaps against the same dataset.
+        - generic [ref=e22]:
+          - grid "Board grid" [ref=e23]:
+            - row "Row 1, column 1, letter N Row 1, column 2, letter R Row 1, column 3, letter N Row 1, column 4, letter T Row 1, column 5, letter K Row 1, column 6, letter L Row 1, column 7, letter L Row 1, column 8, letter R Row 1, column 9, letter N Row 1, column 10, letter Ó Row 1, column 11, letter R Row 1, column 12, letter A Row 1, column 13, letter L Row 1, column 14, letter H Row 1, column 15, letter É Row 1, column 16, letter D" [ref=e24]:
+              - gridcell "Row 1, column 1, letter N" [ref=e25] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e26]: Row 1, column 1, letter N
+              - gridcell "Row 1, column 2, letter R" [ref=e27] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e28]: Row 1, column 2, letter R
+              - gridcell "Row 1, column 3, letter N" [ref=e29] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e30]: Row 1, column 3, letter N
+              - gridcell "Row 1, column 4, letter T" [ref=e31] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e32]: Row 1, column 4, letter T
+              - gridcell "Row 1, column 5, letter K" [ref=e33] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e34]: Row 1, column 5, letter K
+              - gridcell "Row 1, column 6, letter L" [ref=e35] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e36]: Row 1, column 6, letter L
+              - gridcell "Row 1, column 7, letter L" [ref=e37] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e38]: Row 1, column 7, letter L
+              - gridcell "Row 1, column 8, letter R" [ref=e39] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e40]: Row 1, column 8, letter R
+              - gridcell "Row 1, column 9, letter N" [ref=e41] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e42]: Row 1, column 9, letter N
+              - gridcell "Row 1, column 10, letter Ó" [ref=e43] [cursor=pointer]:
+                - generic: Ó
+                - generic [ref=e44]: Row 1, column 10, letter Ó
+              - gridcell "Row 1, column 11, letter R" [ref=e45] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e46]: Row 1, column 11, letter R
+              - gridcell "Row 1, column 12, letter A" [ref=e47] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e48]: Row 1, column 12, letter A
+              - gridcell "Row 1, column 13, letter L" [ref=e49] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e50]: Row 1, column 13, letter L
+              - gridcell "Row 1, column 14, letter H" [ref=e51] [cursor=pointer]:
+                - generic: H
+                - generic [ref=e52]: Row 1, column 14, letter H
+              - gridcell "Row 1, column 15, letter É" [ref=e53] [cursor=pointer]:
+                - generic: É
+                - generic [ref=e54]: Row 1, column 15, letter É
+              - gridcell "Row 1, column 16, letter D" [ref=e55] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e56]: Row 1, column 16, letter D
+            - row "Row 2, column 1, letter I Row 2, column 2, letter M Row 2, column 3, letter É Row 2, column 4, letter J Row 2, column 5, letter R Row 2, column 6, letter G Row 2, column 7, letter T Row 2, column 8, letter Æ Row 2, column 9, letter I Row 2, column 10, letter D Row 2, column 11, letter S Row 2, column 12, letter A Row 2, column 13, letter Ö Row 2, column 14, letter K Row 2, column 15, letter S Row 2, column 16, letter I" [ref=e57]:
+              - gridcell "Row 2, column 1, letter I" [ref=e58] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e59]: Row 2, column 1, letter I
+              - gridcell "Row 2, column 2, letter M" [ref=e60] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e61]: Row 2, column 2, letter M
+              - gridcell "Row 2, column 3, letter É" [ref=e62] [cursor=pointer]:
+                - generic: É
+                - generic [ref=e63]: Row 2, column 3, letter É
+              - gridcell "Row 2, column 4, letter J" [ref=e64] [cursor=pointer]:
+                - generic: J
+                - generic [ref=e65]: Row 2, column 4, letter J
+              - gridcell "Row 2, column 5, letter R" [ref=e66] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e67]: Row 2, column 5, letter R
+              - gridcell "Row 2, column 6, letter G" [ref=e68] [cursor=pointer]:
+                - generic: G
+                - generic [ref=e69]: Row 2, column 6, letter G
+              - gridcell "Row 2, column 7, letter T" [ref=e70] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e71]: Row 2, column 7, letter T
+              - gridcell "Row 2, column 8, letter Æ" [ref=e72] [cursor=pointer]:
+                - generic: Æ
+                - generic [ref=e73]: Row 2, column 8, letter Æ
+              - gridcell "Row 2, column 9, letter I" [ref=e74] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e75]: Row 2, column 9, letter I
+              - gridcell "Row 2, column 10, letter D" [ref=e76] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e77]: Row 2, column 10, letter D
+              - gridcell "Row 2, column 11, letter S" [ref=e78] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e79]: Row 2, column 11, letter S
+              - gridcell "Row 2, column 12, letter A" [ref=e80] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e81]: Row 2, column 12, letter A
+              - gridcell "Row 2, column 13, letter Ö" [ref=e82] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e83]: Row 2, column 13, letter Ö
+              - gridcell "Row 2, column 14, letter K" [ref=e84] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e85]: Row 2, column 14, letter K
+              - gridcell "Row 2, column 15, letter S" [ref=e86] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e87]: Row 2, column 15, letter S
+              - gridcell "Row 2, column 16, letter I" [ref=e88] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e89]: Row 2, column 16, letter I
+            - row "Row 3, column 1, letter T Row 3, column 2, letter T Row 3, column 3, letter Ý Row 3, column 4, letter S Row 3, column 5, letter X Row 3, column 6, letter F Row 3, column 7, letter Í Row 3, column 8, letter T Row 3, column 9, letter O Row 3, column 10, letter G Row 3, column 11, letter R Row 3, column 12, letter B Row 3, column 13, letter L Row 3, column 14, letter F Row 3, column 15, letter L Row 3, column 16, letter S" [ref=e90]:
+              - gridcell "Row 3, column 1, letter T" [ref=e91] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e92]: Row 3, column 1, letter T
+              - gridcell "Row 3, column 2, letter T" [ref=e93] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e94]: Row 3, column 2, letter T
+              - gridcell "Row 3, column 3, letter Ý" [ref=e95] [cursor=pointer]:
+                - generic: Ý
+                - generic [ref=e96]: Row 3, column 3, letter Ý
+              - gridcell "Row 3, column 4, letter S" [ref=e97] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e98]: Row 3, column 4, letter S
+              - gridcell "Row 3, column 5, letter X" [ref=e99] [cursor=pointer]:
+                - generic: X
+                - generic [ref=e100]: Row 3, column 5, letter X
+              - gridcell "Row 3, column 6, letter F" [ref=e101] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e102]: Row 3, column 6, letter F
+              - gridcell "Row 3, column 7, letter Í" [ref=e103] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e104]: Row 3, column 7, letter Í
+              - gridcell "Row 3, column 8, letter T" [ref=e105] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e106]: Row 3, column 8, letter T
+              - gridcell "Row 3, column 9, letter O" [ref=e107] [cursor=pointer]:
+                - generic: O
+                - generic [ref=e108]: Row 3, column 9, letter O
+              - gridcell "Row 3, column 10, letter G" [ref=e109] [cursor=pointer]:
+                - generic: G
+                - generic [ref=e110]: Row 3, column 10, letter G
+              - gridcell "Row 3, column 11, letter R" [ref=e111] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e112]: Row 3, column 11, letter R
+              - gridcell "Row 3, column 12, letter B" [ref=e113] [cursor=pointer]:
+                - generic: B
+                - generic [ref=e114]: Row 3, column 12, letter B
+              - gridcell "Row 3, column 13, letter L" [ref=e115] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e116]: Row 3, column 13, letter L
+              - gridcell "Row 3, column 14, letter F" [ref=e117] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e118]: Row 3, column 14, letter F
+              - gridcell "Row 3, column 15, letter L" [ref=e119] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e120]: Row 3, column 15, letter L
+              - gridcell "Row 3, column 16, letter S" [ref=e121] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e122]: Row 3, column 16, letter S
+            - row "Row 4, column 1, letter Æ Row 4, column 2, letter T Row 4, column 3, letter A Row 4, column 4, letter Ö Row 4, column 5, letter I Row 4, column 6, letter R Row 4, column 7, letter R Row 4, column 8, letter Æ Row 4, column 9, letter S Row 4, column 10, letter M Row 4, column 11, letter M Row 4, column 12, letter A Row 4, column 13, letter Ö Row 4, column 14, letter Ú Row 4, column 15, letter K Row 4, column 16, letter J" [ref=e123]:
+              - gridcell "Row 4, column 1, letter Æ" [ref=e124] [cursor=pointer]:
+                - generic: Æ
+                - generic [ref=e125]: Row 4, column 1, letter Æ
+              - gridcell "Row 4, column 2, letter T" [ref=e126] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e127]: Row 4, column 2, letter T
+              - gridcell "Row 4, column 3, letter A" [ref=e128] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e129]: Row 4, column 3, letter A
+              - gridcell "Row 4, column 4, letter Ö" [ref=e130] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e131]: Row 4, column 4, letter Ö
+              - gridcell "Row 4, column 5, letter I" [ref=e132] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e133]: Row 4, column 5, letter I
+              - gridcell "Row 4, column 6, letter R" [ref=e134] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e135]: Row 4, column 6, letter R
+              - gridcell "Row 4, column 7, letter R" [ref=e136] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e137]: Row 4, column 7, letter R
+              - gridcell "Row 4, column 8, letter Æ" [ref=e138] [cursor=pointer]:
+                - generic: Æ
+                - generic [ref=e139]: Row 4, column 8, letter Æ
+              - gridcell "Row 4, column 9, letter S" [ref=e140] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e141]: Row 4, column 9, letter S
+              - gridcell "Row 4, column 10, letter M" [ref=e142] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e143]: Row 4, column 10, letter M
+              - gridcell "Row 4, column 11, letter M" [ref=e144] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e145]: Row 4, column 11, letter M
+              - gridcell "Row 4, column 12, letter A" [ref=e146] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e147]: Row 4, column 12, letter A
+              - gridcell "Row 4, column 13, letter Ö" [ref=e148] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e149]: Row 4, column 13, letter Ö
+              - gridcell "Row 4, column 14, letter Ú" [ref=e150] [cursor=pointer]:
+                - generic: Ú
+                - generic [ref=e151]: Row 4, column 14, letter Ú
+              - gridcell "Row 4, column 15, letter K" [ref=e152] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e153]: Row 4, column 15, letter K
+              - gridcell "Row 4, column 16, letter J" [ref=e154] [cursor=pointer]:
+                - generic: J
+                - generic [ref=e155]: Row 4, column 16, letter J
+            - row "Row 5, column 1, letter U Row 5, column 2, letter M Row 5, column 3, letter L Row 5, column 4, letter Ó Row 5, column 5, letter E Row 5, column 6, letter N Row 5, column 7, letter L Row 5, column 8, letter Ð Row 5, column 9, letter Á Row 5, column 10, letter E Row 5, column 11, letter H Row 5, column 12, letter K Row 5, column 13, letter M Row 5, column 14, letter H Row 5, column 15, letter E Row 5, column 16, letter O" [ref=e156]:
+              - gridcell "Row 5, column 1, letter U" [ref=e157] [cursor=pointer]:
+                - generic: U
+                - generic [ref=e158]: Row 5, column 1, letter U
+              - gridcell "Row 5, column 2, letter M" [ref=e159] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e160]: Row 5, column 2, letter M
+              - gridcell "Row 5, column 3, letter L" [ref=e161] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e162]: Row 5, column 3, letter L
+              - gridcell "Row 5, column 4, letter Ó" [ref=e163] [cursor=pointer]:
+                - generic: Ó
+                - generic [ref=e164]: Row 5, column 4, letter Ó
+              - gridcell "Row 5, column 5, letter E" [ref=e165] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e166]: Row 5, column 5, letter E
+              - gridcell "Row 5, column 6, letter N" [ref=e167] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e168]: Row 5, column 6, letter N
+              - gridcell "Row 5, column 7, letter L" [ref=e169] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e170]: Row 5, column 7, letter L
+              - gridcell "Row 5, column 8, letter Ð" [ref=e171] [cursor=pointer]:
+                - generic: Ð
+                - generic [ref=e172]: Row 5, column 8, letter Ð
+              - gridcell "Row 5, column 9, letter Á" [ref=e173] [cursor=pointer]:
+                - generic: Á
+                - generic [ref=e174]: Row 5, column 9, letter Á
+              - gridcell "Row 5, column 10, letter E" [ref=e175] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e176]: Row 5, column 10, letter E
+              - gridcell "Row 5, column 11, letter H" [ref=e177] [cursor=pointer]:
+                - generic: H
+                - generic [ref=e178]: Row 5, column 11, letter H
+              - gridcell "Row 5, column 12, letter K" [ref=e179] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e180]: Row 5, column 12, letter K
+              - gridcell "Row 5, column 13, letter M" [ref=e181] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e182]: Row 5, column 13, letter M
+              - gridcell "Row 5, column 14, letter H" [ref=e183] [cursor=pointer]:
+                - generic: H
+                - generic [ref=e184]: Row 5, column 14, letter H
+              - gridcell "Row 5, column 15, letter E" [ref=e185] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e186]: Row 5, column 15, letter E
+              - gridcell "Row 5, column 16, letter O" [ref=e187] [cursor=pointer]:
+                - generic: O
+                - generic [ref=e188]: Row 5, column 16, letter O
+            - row "Row 6, column 1, letter D Row 6, column 2, letter Ó Row 6, column 3, letter O Row 6, column 4, letter S Row 6, column 5, letter E Row 6, column 6, letter G Row 6, column 7, letter Á Row 6, column 8, letter Í Row 6, column 9, letter Í Row 6, column 10, letter Æ Row 6, column 11, letter H Row 6, column 12, letter T Row 6, column 13, letter S Row 6, column 14, letter S Row 6, column 15, letter Í Row 6, column 16, letter B" [ref=e189]:
+              - gridcell "Row 6, column 1, letter D" [ref=e190] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e191]: Row 6, column 1, letter D
+              - gridcell "Row 6, column 2, letter Ó" [ref=e192] [cursor=pointer]:
+                - generic: Ó
+                - generic [ref=e193]: Row 6, column 2, letter Ó
+              - gridcell "Row 6, column 3, letter O" [ref=e194] [cursor=pointer]:
+                - generic: O
+                - generic [ref=e195]: Row 6, column 3, letter O
+              - gridcell "Row 6, column 4, letter S" [ref=e196] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e197]: Row 6, column 4, letter S
+              - gridcell "Row 6, column 5, letter E" [ref=e198] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e199]: Row 6, column 5, letter E
+              - gridcell "Row 6, column 6, letter G" [ref=e200] [cursor=pointer]:
+                - generic: G
+                - generic [ref=e201]: Row 6, column 6, letter G
+              - gridcell "Row 6, column 7, letter Á" [ref=e202] [cursor=pointer]:
+                - generic: Á
+                - generic [ref=e203]: Row 6, column 7, letter Á
+              - gridcell "Row 6, column 8, letter Í" [ref=e204] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e205]: Row 6, column 8, letter Í
+              - gridcell "Row 6, column 9, letter Í" [ref=e206] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e207]: Row 6, column 9, letter Í
+              - gridcell "Row 6, column 10, letter Æ" [ref=e208] [cursor=pointer]:
+                - generic: Æ
+                - generic [ref=e209]: Row 6, column 10, letter Æ
+              - gridcell "Row 6, column 11, letter H" [ref=e210] [cursor=pointer]:
+                - generic: H
+                - generic [ref=e211]: Row 6, column 11, letter H
+              - gridcell "Row 6, column 12, letter T" [ref=e212] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e213]: Row 6, column 12, letter T
+              - gridcell "Row 6, column 13, letter S" [ref=e214] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e215]: Row 6, column 13, letter S
+              - gridcell "Row 6, column 14, letter S" [ref=e216] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e217]: Row 6, column 14, letter S
+              - gridcell "Row 6, column 15, letter Í" [ref=e218] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e219]: Row 6, column 15, letter Í
+              - gridcell "Row 6, column 16, letter B" [ref=e220] [cursor=pointer]:
+                - generic: B
+                - generic [ref=e221]: Row 6, column 16, letter B
+            - row "Row 7, column 1, letter D Row 7, column 2, letter D Row 7, column 3, letter I Row 7, column 4, letter D Row 7, column 5, letter A Row 7, column 6, letter G Row 7, column 7, letter D Row 7, column 8, letter E Row 7, column 9, letter R Row 7, column 10, letter O Row 7, column 11, letter F Row 7, column 12, letter K Row 7, column 13, letter U Row 7, column 14, letter M Row 7, column 15, letter N Row 7, column 16, letter A" [ref=e222]:
+              - gridcell "Row 7, column 1, letter D" [ref=e223] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e224]: Row 7, column 1, letter D
+              - gridcell "Row 7, column 2, letter D" [ref=e225] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e226]: Row 7, column 2, letter D
+              - gridcell "Row 7, column 3, letter I" [ref=e227] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e228]: Row 7, column 3, letter I
+              - gridcell "Row 7, column 4, letter D" [ref=e229] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e230]: Row 7, column 4, letter D
+              - gridcell "Row 7, column 5, letter A" [ref=e231] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e232]: Row 7, column 5, letter A
+              - gridcell "Row 7, column 6, letter G" [ref=e233] [cursor=pointer]:
+                - generic: G
+                - generic [ref=e234]: Row 7, column 6, letter G
+              - gridcell "Row 7, column 7, letter D" [ref=e235] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e236]: Row 7, column 7, letter D
+              - gridcell "Row 7, column 8, letter E" [ref=e237] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e238]: Row 7, column 8, letter E
+              - gridcell "Row 7, column 9, letter R" [ref=e239] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e240]: Row 7, column 9, letter R
+              - gridcell "Row 7, column 10, letter O" [ref=e241] [cursor=pointer]:
+                - generic: O
+                - generic [ref=e242]: Row 7, column 10, letter O
+              - gridcell "Row 7, column 11, letter F" [ref=e243] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e244]: Row 7, column 11, letter F
+              - gridcell "Row 7, column 12, letter K" [ref=e245] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e246]: Row 7, column 12, letter K
+              - gridcell "Row 7, column 13, letter U" [ref=e247] [cursor=pointer]:
+                - generic: U
+                - generic [ref=e248]: Row 7, column 13, letter U
+              - gridcell "Row 7, column 14, letter M" [ref=e249] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e250]: Row 7, column 14, letter M
+              - gridcell "Row 7, column 15, letter N" [ref=e251] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e252]: Row 7, column 15, letter N
+              - gridcell "Row 7, column 16, letter A" [ref=e253] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e254]: Row 7, column 16, letter A
+            - row "Row 8, column 1, letter N Row 8, column 2, letter F Row 8, column 3, letter R Row 8, column 4, letter R Row 8, column 5, letter Ö Row 8, column 6, letter R Row 8, column 7, letter K Row 8, column 8, letter Þ Row 8, column 9, letter I Row 8, column 10, letter Þ Row 8, column 11, letter S Row 8, column 12, letter J Row 8, column 13, letter D Row 8, column 14, letter E Row 8, column 15, letter A Row 8, column 16, letter Ó" [ref=e255]:
+              - gridcell "Row 8, column 1, letter N" [ref=e256] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e257]: Row 8, column 1, letter N
+              - gridcell "Row 8, column 2, letter F" [ref=e258] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e259]: Row 8, column 2, letter F
+              - gridcell "Row 8, column 3, letter R" [ref=e260] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e261]: Row 8, column 3, letter R
+              - gridcell "Row 8, column 4, letter R" [ref=e262] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e263]: Row 8, column 4, letter R
+              - gridcell "Row 8, column 5, letter Ö" [ref=e264] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e265]: Row 8, column 5, letter Ö
+              - gridcell "Row 8, column 6, letter R" [ref=e266] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e267]: Row 8, column 6, letter R
+              - gridcell "Row 8, column 7, letter K" [ref=e268] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e269]: Row 8, column 7, letter K
+              - gridcell "Row 8, column 8, letter Þ" [ref=e270] [cursor=pointer]:
+                - generic: Þ
+                - generic [ref=e271]: Row 8, column 8, letter Þ
+              - gridcell "Row 8, column 9, letter I" [ref=e272] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e273]: Row 8, column 9, letter I
+              - gridcell "Row 8, column 10, letter Þ" [ref=e274] [cursor=pointer]:
+                - generic: Þ
+                - generic [ref=e275]: Row 8, column 10, letter Þ
+              - gridcell "Row 8, column 11, letter S" [ref=e276] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e277]: Row 8, column 11, letter S
+              - gridcell "Row 8, column 12, letter J" [ref=e278] [cursor=pointer]:
+                - generic: J
+                - generic [ref=e279]: Row 8, column 12, letter J
+              - gridcell "Row 8, column 13, letter D" [ref=e280] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e281]: Row 8, column 13, letter D
+              - gridcell "Row 8, column 14, letter E" [ref=e282] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e283]: Row 8, column 14, letter E
+              - gridcell "Row 8, column 15, letter A" [ref=e284] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e285]: Row 8, column 15, letter A
+              - gridcell "Row 8, column 16, letter Ó" [ref=e286] [cursor=pointer]:
+                - generic: Ó
+                - generic [ref=e287]: Row 8, column 16, letter Ó
+            - row "Row 9, column 1, letter Á Row 9, column 2, letter S Row 9, column 3, letter S Row 9, column 4, letter A Row 9, column 5, letter I Row 9, column 6, letter E Row 9, column 7, letter N Row 9, column 8, letter N Row 9, column 9, letter E Row 9, column 10, letter Ö Row 9, column 11, letter Ó Row 9, column 12, letter Í Row 9, column 13, letter I Row 9, column 14, letter Á Row 9, column 15, letter T Row 9, column 16, letter Á" [ref=e288]:
+              - gridcell "Row 9, column 1, letter Á" [ref=e289] [cursor=pointer]:
+                - generic: Á
+                - generic [ref=e290]: Row 9, column 1, letter Á
+              - gridcell "Row 9, column 2, letter S" [ref=e291] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e292]: Row 9, column 2, letter S
+              - gridcell "Row 9, column 3, letter S" [ref=e293] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e294]: Row 9, column 3, letter S
+              - gridcell "Row 9, column 4, letter A" [ref=e295] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e296]: Row 9, column 4, letter A
+              - gridcell "Row 9, column 5, letter I" [ref=e297] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e298]: Row 9, column 5, letter I
+              - gridcell "Row 9, column 6, letter E" [ref=e299] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e300]: Row 9, column 6, letter E
+              - gridcell "Row 9, column 7, letter N" [ref=e301] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e302]: Row 9, column 7, letter N
+              - gridcell "Row 9, column 8, letter N" [ref=e303] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e304]: Row 9, column 8, letter N
+              - gridcell "Row 9, column 9, letter E" [ref=e305] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e306]: Row 9, column 9, letter E
+              - gridcell "Row 9, column 10, letter Ö" [ref=e307] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e308]: Row 9, column 10, letter Ö
+              - gridcell "Row 9, column 11, letter Ó" [ref=e309] [cursor=pointer]:
+                - generic: Ó
+                - generic [ref=e310]: Row 9, column 11, letter Ó
+              - gridcell "Row 9, column 12, letter Í" [ref=e311] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e312]: Row 9, column 12, letter Í
+              - gridcell "Row 9, column 13, letter I" [ref=e313] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e314]: Row 9, column 13, letter I
+              - gridcell "Row 9, column 14, letter Á" [ref=e315] [cursor=pointer]:
+                - generic: Á
+                - generic [ref=e316]: Row 9, column 14, letter Á
+              - gridcell "Row 9, column 15, letter T" [ref=e317] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e318]: Row 9, column 15, letter T
+              - gridcell "Row 9, column 16, letter Á" [ref=e319] [cursor=pointer]:
+                - generic: Á
+                - generic [ref=e320]: Row 9, column 16, letter Á
+            - row "Row 10, column 1, letter U Row 10, column 2, letter A Row 10, column 3, letter B Row 10, column 4, letter E Row 10, column 5, letter F Row 10, column 6, letter U Row 10, column 7, letter A Row 10, column 8, letter E Row 10, column 9, letter E Row 10, column 10, letter B Row 10, column 11, letter L Row 10, column 12, letter V Row 10, column 13, letter M Row 10, column 14, letter Í Row 10, column 15, letter T Row 10, column 16, letter U" [ref=e321]:
+              - gridcell "Row 10, column 1, letter U" [ref=e322] [cursor=pointer]:
+                - generic: U
+                - generic [ref=e323]: Row 10, column 1, letter U
+              - gridcell "Row 10, column 2, letter A" [ref=e324] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e325]: Row 10, column 2, letter A
+              - gridcell "Row 10, column 3, letter B" [ref=e326] [cursor=pointer]:
+                - generic: B
+                - generic [ref=e327]: Row 10, column 3, letter B
+              - gridcell "Row 10, column 4, letter E" [ref=e328] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e329]: Row 10, column 4, letter E
+              - gridcell "Row 10, column 5, letter F" [ref=e330] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e331]: Row 10, column 5, letter F
+              - gridcell "Row 10, column 6, letter U" [ref=e332] [cursor=pointer]:
+                - generic: U
+                - generic [ref=e333]: Row 10, column 6, letter U
+              - gridcell "Row 10, column 7, letter A" [ref=e334] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e335]: Row 10, column 7, letter A
+              - gridcell "Row 10, column 8, letter E" [ref=e336] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e337]: Row 10, column 8, letter E
+              - gridcell "Row 10, column 9, letter E" [ref=e338] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e339]: Row 10, column 9, letter E
+              - gridcell "Row 10, column 10, letter B" [ref=e340] [cursor=pointer]:
+                - generic: B
+                - generic [ref=e341]: Row 10, column 10, letter B
+              - gridcell "Row 10, column 11, letter L" [ref=e342] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e343]: Row 10, column 11, letter L
+              - gridcell "Row 10, column 12, letter V" [ref=e344] [cursor=pointer]:
+                - generic: V
+                - generic [ref=e345]: Row 10, column 12, letter V
+              - gridcell "Row 10, column 13, letter M" [ref=e346] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e347]: Row 10, column 13, letter M
+              - gridcell "Row 10, column 14, letter Í" [ref=e348] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e349]: Row 10, column 14, letter Í
+              - gridcell "Row 10, column 15, letter T" [ref=e350] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e351]: Row 10, column 15, letter T
+              - gridcell "Row 10, column 16, letter U" [ref=e352] [cursor=pointer]:
+                - generic: U
+                - generic [ref=e353]: Row 10, column 16, letter U
+            - row "Row 11, column 1, letter V Row 11, column 2, letter J Row 11, column 3, letter Æ Row 11, column 4, letter A Row 11, column 5, letter S Row 11, column 6, letter I Row 11, column 7, letter Þ Row 11, column 8, letter E Row 11, column 9, letter Á Row 11, column 10, letter Í Row 11, column 11, letter L Row 11, column 12, letter V Row 11, column 13, letter Þ Row 11, column 14, letter L Row 11, column 15, letter Ó Row 11, column 16, letter B" [ref=e354]:
+              - gridcell "Row 11, column 1, letter V" [ref=e355] [cursor=pointer]:
+                - generic: V
+                - generic [ref=e356]: Row 11, column 1, letter V
+              - gridcell "Row 11, column 2, letter J" [ref=e357] [cursor=pointer]:
+                - generic: J
+                - generic [ref=e358]: Row 11, column 2, letter J
+              - gridcell "Row 11, column 3, letter Æ" [ref=e359] [cursor=pointer]:
+                - generic: Æ
+                - generic [ref=e360]: Row 11, column 3, letter Æ
+              - gridcell "Row 11, column 4, letter A" [ref=e361] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e362]: Row 11, column 4, letter A
+              - gridcell "Row 11, column 5, letter S" [ref=e363] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e364]: Row 11, column 5, letter S
+              - gridcell "Row 11, column 6, letter I" [ref=e365] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e366]: Row 11, column 6, letter I
+              - gridcell "Row 11, column 7, letter Þ" [ref=e367] [cursor=pointer]:
+                - generic: Þ
+                - generic [ref=e368]: Row 11, column 7, letter Þ
+              - gridcell "Row 11, column 8, letter E" [ref=e369] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e370]: Row 11, column 8, letter E
+              - gridcell "Row 11, column 9, letter Á" [ref=e371] [cursor=pointer]:
+                - generic: Á
+                - generic [ref=e372]: Row 11, column 9, letter Á
+              - gridcell "Row 11, column 10, letter Í" [ref=e373] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e374]: Row 11, column 10, letter Í
+              - gridcell "Row 11, column 11, letter L" [ref=e375] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e376]: Row 11, column 11, letter L
+              - gridcell "Row 11, column 12, letter V" [ref=e377] [cursor=pointer]:
+                - generic: V
+                - generic [ref=e378]: Row 11, column 12, letter V
+              - gridcell "Row 11, column 13, letter Þ" [ref=e379] [cursor=pointer]:
+                - generic: Þ
+                - generic [ref=e380]: Row 11, column 13, letter Þ
+              - gridcell "Row 11, column 14, letter L" [ref=e381] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e382]: Row 11, column 14, letter L
+              - gridcell "Row 11, column 15, letter Ó" [ref=e383] [cursor=pointer]:
+                - generic: Ó
+                - generic [ref=e384]: Row 11, column 15, letter Ó
+              - gridcell "Row 11, column 16, letter B" [ref=e385] [cursor=pointer]:
+                - generic: B
+                - generic [ref=e386]: Row 11, column 16, letter B
+            - row "Row 12, column 1, letter Þ Row 12, column 2, letter Ú Row 12, column 3, letter J Row 12, column 4, letter S Row 12, column 5, letter I Row 12, column 6, letter S Row 12, column 7, letter Ð Row 12, column 8, letter L Row 12, column 9, letter A Row 12, column 10, letter N Row 12, column 11, letter U Row 12, column 12, letter E Row 12, column 13, letter Ó Row 12, column 14, letter F Row 12, column 15, letter D Row 12, column 16, letter N" [ref=e387]:
+              - gridcell "Row 12, column 1, letter Þ" [ref=e388] [cursor=pointer]:
+                - generic: Þ
+                - generic [ref=e389]: Row 12, column 1, letter Þ
+              - gridcell "Row 12, column 2, letter Ú" [ref=e390] [cursor=pointer]:
+                - generic: Ú
+                - generic [ref=e391]: Row 12, column 2, letter Ú
+              - gridcell "Row 12, column 3, letter J" [ref=e392] [cursor=pointer]:
+                - generic: J
+                - generic [ref=e393]: Row 12, column 3, letter J
+              - gridcell "Row 12, column 4, letter S" [ref=e394] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e395]: Row 12, column 4, letter S
+              - gridcell "Row 12, column 5, letter I" [ref=e396] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e397]: Row 12, column 5, letter I
+              - gridcell "Row 12, column 6, letter S" [ref=e398] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e399]: Row 12, column 6, letter S
+              - gridcell "Row 12, column 7, letter Ð" [ref=e400] [cursor=pointer]:
+                - generic: Ð
+                - generic [ref=e401]: Row 12, column 7, letter Ð
+              - gridcell "Row 12, column 8, letter L" [ref=e402] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e403]: Row 12, column 8, letter L
+              - gridcell "Row 12, column 9, letter A" [ref=e404] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e405]: Row 12, column 9, letter A
+              - gridcell "Row 12, column 10, letter N" [ref=e406] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e407]: Row 12, column 10, letter N
+              - gridcell "Row 12, column 11, letter U" [ref=e408] [cursor=pointer]:
+                - generic: U
+                - generic [ref=e409]: Row 12, column 11, letter U
+              - gridcell "Row 12, column 12, letter E" [ref=e410] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e411]: Row 12, column 12, letter E
+              - gridcell "Row 12, column 13, letter Ó" [ref=e412] [cursor=pointer]:
+                - generic: Ó
+                - generic [ref=e413]: Row 12, column 13, letter Ó
+              - gridcell "Row 12, column 14, letter F" [ref=e414] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e415]: Row 12, column 14, letter F
+              - gridcell "Row 12, column 15, letter D" [ref=e416] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e417]: Row 12, column 15, letter D
+              - gridcell "Row 12, column 16, letter N" [ref=e418] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e419]: Row 12, column 16, letter N
+            - row "Row 13, column 1, letter K Row 13, column 2, letter D Row 13, column 3, letter L Row 13, column 4, letter A Row 13, column 5, letter F Row 13, column 6, letter P Row 13, column 7, letter Ú Row 13, column 8, letter T Row 13, column 9, letter U Row 13, column 10, letter N Row 13, column 11, letter I Row 13, column 12, letter A Row 13, column 13, letter M Row 13, column 14, letter Ð Row 13, column 15, letter Ð Row 13, column 16, letter M" [ref=e420]:
+              - gridcell "Row 13, column 1, letter K" [ref=e421] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e422]: Row 13, column 1, letter K
+              - gridcell "Row 13, column 2, letter D" [ref=e423] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e424]: Row 13, column 2, letter D
+              - gridcell "Row 13, column 3, letter L" [ref=e425] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e426]: Row 13, column 3, letter L
+              - gridcell "Row 13, column 4, letter A" [ref=e427] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e428]: Row 13, column 4, letter A
+              - gridcell "Row 13, column 5, letter F" [ref=e429] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e430]: Row 13, column 5, letter F
+              - gridcell "Row 13, column 6, letter P" [ref=e431] [cursor=pointer]:
+                - generic: P
+                - generic [ref=e432]: Row 13, column 6, letter P
+              - gridcell "Row 13, column 7, letter Ú" [ref=e433] [cursor=pointer]:
+                - generic: Ú
+                - generic [ref=e434]: Row 13, column 7, letter Ú
+              - gridcell "Row 13, column 8, letter T" [ref=e435] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e436]: Row 13, column 8, letter T
+              - gridcell "Row 13, column 9, letter U" [ref=e437] [cursor=pointer]:
+                - generic: U
+                - generic [ref=e438]: Row 13, column 9, letter U
+              - gridcell "Row 13, column 10, letter N" [ref=e439] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e440]: Row 13, column 10, letter N
+              - gridcell "Row 13, column 11, letter I" [ref=e441] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e442]: Row 13, column 11, letter I
+              - gridcell "Row 13, column 12, letter A" [ref=e443] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e444]: Row 13, column 12, letter A
+              - gridcell "Row 13, column 13, letter M" [ref=e445] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e446]: Row 13, column 13, letter M
+              - gridcell "Row 13, column 14, letter Ð" [ref=e447] [cursor=pointer]:
+                - generic: Ð
+                - generic [ref=e448]: Row 13, column 14, letter Ð
+              - gridcell "Row 13, column 15, letter Ð" [ref=e449] [cursor=pointer]:
+                - generic: Ð
+                - generic [ref=e450]: Row 13, column 15, letter Ð
+              - gridcell "Row 13, column 16, letter M" [ref=e451] [cursor=pointer]:
+                - generic: M
+                - generic [ref=e452]: Row 13, column 16, letter M
+            - row "Row 14, column 1, letter R Row 14, column 2, letter Y Row 14, column 3, letter G Row 14, column 4, letter T Row 14, column 5, letter N Row 14, column 6, letter Y Row 14, column 7, letter S Row 14, column 8, letter Ö Row 14, column 9, letter K Row 14, column 10, letter Ý Row 14, column 11, letter L Row 14, column 12, letter Ö Row 14, column 13, letter É Row 14, column 14, letter F Row 14, column 15, letter R Row 14, column 16, letter Y" [ref=e453]:
+              - gridcell "Row 14, column 1, letter R" [ref=e454] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e455]: Row 14, column 1, letter R
+              - gridcell "Row 14, column 2, letter Y" [ref=e456] [cursor=pointer]:
+                - generic: "Y"
+                - generic [ref=e457]: Row 14, column 2, letter Y
+              - gridcell "Row 14, column 3, letter G" [ref=e458] [cursor=pointer]:
+                - generic: G
+                - generic [ref=e459]: Row 14, column 3, letter G
+              - gridcell "Row 14, column 4, letter T" [ref=e460] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e461]: Row 14, column 4, letter T
+              - gridcell "Row 14, column 5, letter N" [ref=e462] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e463]: Row 14, column 5, letter N
+              - gridcell "Row 14, column 6, letter Y" [ref=e464] [cursor=pointer]:
+                - generic: "Y"
+                - generic [ref=e465]: Row 14, column 6, letter Y
+              - gridcell "Row 14, column 7, letter S" [ref=e466] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e467]: Row 14, column 7, letter S
+              - gridcell "Row 14, column 8, letter Ö" [ref=e468] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e469]: Row 14, column 8, letter Ö
+              - gridcell "Row 14, column 9, letter K" [ref=e470] [cursor=pointer]:
+                - generic: K
+                - generic [ref=e471]: Row 14, column 9, letter K
+              - gridcell "Row 14, column 10, letter Ý" [ref=e472] [cursor=pointer]:
+                - generic: Ý
+                - generic [ref=e473]: Row 14, column 10, letter Ý
+              - gridcell "Row 14, column 11, letter L" [ref=e474] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e475]: Row 14, column 11, letter L
+              - gridcell "Row 14, column 12, letter Ö" [ref=e476] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e477]: Row 14, column 12, letter Ö
+              - gridcell "Row 14, column 13, letter É" [ref=e478] [cursor=pointer]:
+                - generic: É
+                - generic [ref=e479]: Row 14, column 13, letter É
+              - gridcell "Row 14, column 14, letter F" [ref=e480] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e481]: Row 14, column 14, letter F
+              - gridcell "Row 14, column 15, letter R" [ref=e482] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e483]: Row 14, column 15, letter R
+              - gridcell "Row 14, column 16, letter Y" [ref=e484] [cursor=pointer]:
+                - generic: "Y"
+                - generic [ref=e485]: Row 14, column 16, letter Y
+            - row "Row 15, column 1, letter L Row 15, column 2, letter R Row 15, column 3, letter V Row 15, column 4, letter A Row 15, column 5, letter Ö Row 15, column 6, letter A Row 15, column 7, letter Ý Row 15, column 8, letter N Row 15, column 9, letter O Row 15, column 10, letter T Row 15, column 11, letter O Row 15, column 12, letter I Row 15, column 13, letter S Row 15, column 14, letter J Row 15, column 15, letter E Row 15, column 16, letter X" [ref=e486]:
+              - gridcell "Row 15, column 1, letter L" [ref=e487] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e488]: Row 15, column 1, letter L
+              - gridcell "Row 15, column 2, letter R" [ref=e489] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e490]: Row 15, column 2, letter R
+              - gridcell "Row 15, column 3, letter V" [ref=e491] [cursor=pointer]:
+                - generic: V
+                - generic [ref=e492]: Row 15, column 3, letter V
+              - gridcell "Row 15, column 4, letter A" [ref=e493] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e494]: Row 15, column 4, letter A
+              - gridcell "Row 15, column 5, letter Ö" [ref=e495] [cursor=pointer]:
+                - generic: Ö
+                - generic [ref=e496]: Row 15, column 5, letter Ö
+              - gridcell "Row 15, column 6, letter A" [ref=e497] [cursor=pointer]:
+                - generic: A
+                - generic [ref=e498]: Row 15, column 6, letter A
+              - gridcell "Row 15, column 7, letter Ý" [ref=e499] [cursor=pointer]:
+                - generic: Ý
+                - generic [ref=e500]: Row 15, column 7, letter Ý
+              - gridcell "Row 15, column 8, letter N" [ref=e501] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e502]: Row 15, column 8, letter N
+              - gridcell "Row 15, column 9, letter O" [ref=e503] [cursor=pointer]:
+                - generic: O
+                - generic [ref=e504]: Row 15, column 9, letter O
+              - gridcell "Row 15, column 10, letter T" [ref=e505] [cursor=pointer]:
+                - generic: T
+                - generic [ref=e506]: Row 15, column 10, letter T
+              - gridcell "Row 15, column 11, letter O" [ref=e507] [cursor=pointer]:
+                - generic: O
+                - generic [ref=e508]: Row 15, column 11, letter O
+              - gridcell "Row 15, column 12, letter I" [ref=e509] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e510]: Row 15, column 12, letter I
+              - gridcell "Row 15, column 13, letter S" [ref=e511] [cursor=pointer]:
+                - generic: S
+                - generic [ref=e512]: Row 15, column 13, letter S
+              - gridcell "Row 15, column 14, letter J" [ref=e513] [cursor=pointer]:
+                - generic: J
+                - generic [ref=e514]: Row 15, column 14, letter J
+              - gridcell "Row 15, column 15, letter E" [ref=e515] [cursor=pointer]:
+                - generic: E
+                - generic [ref=e516]: Row 15, column 15, letter E
+              - gridcell "Row 15, column 16, letter X" [ref=e517] [cursor=pointer]:
+                - generic: X
+                - generic [ref=e518]: Row 15, column 16, letter X
+            - row "Row 16, column 1, letter Í Row 16, column 2, letter O Row 16, column 3, letter F Row 16, column 4, letter L Row 16, column 5, letter G Row 16, column 6, letter D Row 16, column 7, letter L Row 16, column 8, letter L Row 16, column 9, letter N Row 16, column 10, letter V Row 16, column 11, letter I Row 16, column 12, letter J Row 16, column 13, letter H Row 16, column 14, letter H Row 16, column 15, letter R Row 16, column 16, letter L" [ref=e519]:
+              - gridcell "Row 16, column 1, letter Í" [ref=e520] [cursor=pointer]:
+                - generic: Í
+                - generic [ref=e521]: Row 16, column 1, letter Í
+              - gridcell "Row 16, column 2, letter O" [ref=e522] [cursor=pointer]:
+                - generic: O
+                - generic [ref=e523]: Row 16, column 2, letter O
+              - gridcell "Row 16, column 3, letter F" [ref=e524] [cursor=pointer]:
+                - generic: F
+                - generic [ref=e525]: Row 16, column 3, letter F
+              - gridcell "Row 16, column 4, letter L" [ref=e526] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e527]: Row 16, column 4, letter L
+              - gridcell "Row 16, column 5, letter G" [ref=e528] [cursor=pointer]:
+                - generic: G
+                - generic [ref=e529]: Row 16, column 5, letter G
+              - gridcell "Row 16, column 6, letter D" [ref=e530] [cursor=pointer]:
+                - generic: D
+                - generic [ref=e531]: Row 16, column 6, letter D
+              - gridcell "Row 16, column 7, letter L" [ref=e532] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e533]: Row 16, column 7, letter L
+              - gridcell "Row 16, column 8, letter L" [ref=e534] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e535]: Row 16, column 8, letter L
+              - gridcell "Row 16, column 9, letter N" [ref=e536] [cursor=pointer]:
+                - generic: "N"
+                - generic [ref=e537]: Row 16, column 9, letter N
+              - gridcell "Row 16, column 10, letter V" [ref=e538] [cursor=pointer]:
+                - generic: V
+                - generic [ref=e539]: Row 16, column 10, letter V
+              - gridcell "Row 16, column 11, letter I" [ref=e540] [cursor=pointer]:
+                - generic: I
+                - generic [ref=e541]: Row 16, column 11, letter I
+              - gridcell "Row 16, column 12, letter J" [ref=e542] [cursor=pointer]:
+                - generic: J
+                - generic [ref=e543]: Row 16, column 12, letter J
+              - gridcell "Row 16, column 13, letter H" [ref=e544] [cursor=pointer]:
+                - generic: H
+                - generic [ref=e545]: Row 16, column 13, letter H
+              - gridcell "Row 16, column 14, letter H" [ref=e546] [cursor=pointer]:
+                - generic: H
+                - generic [ref=e547]: Row 16, column 14, letter H
+              - gridcell "Row 16, column 15, letter R" [ref=e548] [cursor=pointer]:
+                - generic: R
+                - generic [ref=e549]: Row 16, column 15, letter R
+              - gridcell "Row 16, column 16, letter L" [ref=e550] [cursor=pointer]:
+                - generic: L
+                - generic [ref=e551]: Row 16, column 16, letter L
+          - alert [ref=e552]: Failed to process swap request. Please try again.
+  - button "Open Next.js Dev Tools" [ref=e558] [cursor=pointer]:
+    - img [ref=e559]
+  - alert [ref=e562]
+```
