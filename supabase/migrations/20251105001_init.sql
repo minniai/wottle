@@ -46,14 +46,36 @@ create index if not exists moves_board_id_idx on public.moves(board_id);
 alter table public.boards enable row level security;
 alter table public.moves enable row level security;
 
-create policy if not exists service_all_boards on public.boards
-  for all using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'boards' and policyname = 'service_all_boards'
+  ) then
+    execute $ddl$
+      create policy service_all_boards on public.boards
+        for all using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
+    $ddl$;
+  end if;
 
-create policy if not exists service_all_moves on public.moves
-  for all using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'moves' and policyname = 'service_all_moves'
+  ) then
+    execute $ddl$
+      create policy service_all_moves on public.moves
+        for all using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
+    $ddl$;
+  end if;
 
-create policy if not exists anon_read_boards on public.boards
-  for select using (auth.role() = 'anon');
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'boards' and policyname = 'anon_read_boards'
+  ) then
+    execute $ddl$
+      create policy anon_read_boards on public.boards
+        for select using (auth.role() = 'anon');
+    $ddl$;
+  end if;
+end
+$$;
 
 -- Helper view to ensure singleton
 create or replace view public.board_singleton as

@@ -7,10 +7,12 @@ const FAILURE = (message: string) =>
   Promise.reject(Object.assign(new Error(message), { stderr: message }));
 
 describe("runPreflight", () => {
-  const env = { ...process.env };
+  const baseEnv = { ...process.env };
+  delete baseEnv.SUPABASE_ACCESS_TOKEN;
 
   beforeEach(() => {
-    process.env = { ...env };
+    process.env = { ...baseEnv };
+    delete process.env.SUPABASE_ACCESS_TOKEN;
   });
 
   test("fails when Docker is unavailable", async () => {

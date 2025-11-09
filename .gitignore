@@ -28,9 +28,12 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.keys
 .env.*
 !.env.example
 !.env.local.example
+
+# dotenvx
 
 # Lock files (optional - uncomment if you want to ignore)
  package-lock.json
@@ -93,4 +96,5 @@ src/utils/supabase/info.tsx
 # Supabase local artifacts
 .supabase/
 supabase/.branches
+supabase/.temp
 
