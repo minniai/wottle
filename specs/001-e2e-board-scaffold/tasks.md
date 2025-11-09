@@ -89,15 +89,15 @@
 **Goal**: Render a 16×16 board grid fetched from Supabase
 **Independent Test**: With Supabase running, load `/` on desktop and mobile; a legible 16×16 grid appears
 
-- [ ] T028 [P] [US2] [TDD-RED] Write unit test for `getBoard` server action returning the BoardGrid in `tests/unit/app/actions/getBoard.test.ts`
-- [ ] T029 [P] [US2] [TDD-RED] Write component test verifying a 16×16 responsive grid in `tests/unit/components/game/BoardGrid.test.tsx`
-- [ ] T030 [P] [US2] [TDD-RED] Write Playwright spec asserting grid visibility on desktop/mobile in `tests/integration/ui/board-grid.spec.ts`
-- [ ] T031 [US2] [TDD-GREEN] Implement `getBoard` server action querying Supabase in `app/actions/getBoard.ts`
-- [ ] T032 [US2] [TDD-GREEN] Implement GET `/api/board` route handler returning contract schema in `app/api/board/route.ts`
-- [ ] T033 [US2] [TDD-GREEN] Implement `BoardGrid` component with Tailwind layout in `components/game/BoardGrid.tsx`
-- [ ] T034 [US2] [TDD-GREEN] Fetch board via server action and render grid in `app/page.tsx`
-- [ ] T035 [US2] [TDD-REFACTOR] Extract responsive grid styling helpers into `app/styles/board.css`
-- [ ] T035a [US2] Add measurement: grid TTI ≤2s on cold load (local) using Playwright trace/timing; fail test on breach (local target)
+- [x] T028 [P] [US2] [TDD-RED] Write unit test for `getBoard` server action returning the BoardGrid in `tests/unit/app/actions/getBoard.test.ts`
+- [x] T029 [P] [US2] [TDD-RED] Write component test verifying a 16×16 responsive grid in `tests/unit/components/game/BoardGrid.test.tsx`
+- [x] T030 [P] [US2] [TDD-RED] Write Playwright spec asserting grid visibility on desktop/mobile in `tests/integration/ui/board-grid.spec.ts`
+- [x] T031 [US2] [TDD-GREEN] Implement `getBoard` server action querying Supabase in `app/actions/getBoard.ts`
+- [x] T032 [US2] [TDD-GREEN] Implement GET `/api/board` route handler returning contract schema in `app/api/board/route.ts`
+- [x] T033 [US2] [TDD-GREEN] Implement `BoardGrid` component with Tailwind layout in `components/game/BoardGrid.tsx`
+- [x] T034 [US2] [TDD-GREEN] Fetch board via server action and render grid in `app/page.tsx`
+- [x] T035 [US2] [TDD-REFACTOR] Extract responsive grid styling helpers into `app/styles/board.css`
+- [x] T035a [US2] Add measurement: grid TTI ≤2s on cold load (local) using Playwright trace/timing; fail test on breach (local target)
 
 ---
 

@@ -96,5 +96,5 @@ src/utils/supabase/info.tsx
 # Supabase local artifacts
 .supabase/
 supabase/.branches
-supabse/.temp
+supabase/.temp
 
