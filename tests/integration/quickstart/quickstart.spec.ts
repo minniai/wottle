@@ -26,7 +26,7 @@ case "$command" in
     echo '{"event":"stub.supabase.start"}'
     ;;
   "status")
-    if [[ "\${1:-}" == "--json" ]]; then
+    if [[ "\${1:-}" == "--output" && "\${2:-}" == "json" ]]; then
       cat "${jsonPath}"
     else
       echo "All services running"

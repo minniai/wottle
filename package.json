@@ -2,7 +2,7 @@
   "name": "wottle",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.11.0",
+  "packageManager": "pnpm@10.20.0",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -28,11 +28,11 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.1.17",
+    "@testing-library/jest-dom": "^6.9.1",
     "@types/node": "^20.19.24",
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@testing-library/jest-dom": "^6.9.1",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.1",
