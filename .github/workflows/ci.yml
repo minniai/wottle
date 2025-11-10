@@ -152,7 +152,7 @@ jobs:
           pnpm start -- --hostname 0.0.0.0 --port 3000 > next.log 2>&1 &
           echo $! > .next-pid
       - name: Wait for Next.js
-        run: npx wait-on@7.0.1 http://127.0.0.1:3000/api/board
+        run: pnpm exec wait-on http://127.0.0.1:3000/api/board
       - name: Run Playwright tests
         run: pnpm exec playwright test --config=playwright.config.ts --reporter=line
       - name: Stop Next.js server
@@ -209,7 +209,7 @@ jobs:
           pnpm start -- --hostname 0.0.0.0 --port 3000 > perf-next.log 2>&1 &
           echo $! > .perf-next-pid
       - name: Wait for Next.js
-        run: npx wait-on@7.0.1 http://127.0.0.1:3000/api/board
+        run: pnpm exec wait-on http://127.0.0.1:3000/api/board
       - name: Run Artillery scenario
         run: pnpm exec artillery run --output artillery-swap.json tests/perf/swap.yml
       - name: Assert swap latency thresholds
