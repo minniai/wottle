@@ -1,4 +1,4 @@
-import { BoardGrid } from "../components/game/BoardGrid";
+import { BoardExperience } from "../components/game/BoardExperience";
 import { getBoard } from "./actions/getBoard";
 
 export default async function Home() {
@@ -43,8 +43,8 @@ export default async function Home() {
       <div className="rounded-lg border border-white/10 bg-slate-900/70 p-6 text-sm text-white/80 shadow-xl">
         <h3 className="text-base font-semibold text-white">Live Board</h3>
         <p className="mt-2 text-xs text-white/60">
-          Letters are sized for desktop and mobile viewports. Later phases will enable tile
-          selection and swaps against the same dataset.
+          Letters are sized for desktop and mobile viewports. Select any two tiles to request a
+          swap and the result is announced through accessible feedback powered by Supabase data.
         </p>
 
         {errorMessage ? (
@@ -58,7 +58,7 @@ export default async function Home() {
           </div>
         ) : board ? (
           <div className="mt-6 space-y-4">
-            <BoardGrid grid={board.grid} />
+            <BoardExperience initialGrid={board.grid} />
           </div>
         ) : (
           <div className="mt-6 text-xs text-white/60">

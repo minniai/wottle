@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 const BOARD_TILE_SELECTOR = "[data-testid=\"board-tile\"]";
-const ERROR_SELECTOR = "[data-testid=\"swap-error\"]";
+const FEEDBACK_SELECTOR = "[data-testid=\"move-feedback-toast\"]";
 
 test("restores the previous board state when the swap request fails", async ({ page }) => {
   await page.route("**/api/swap", async (route) => {
@@ -27,9 +27,10 @@ test("restores the previous board state when the swap request fails", async ({ p
   await tiles.nth(0).click();
   await tiles.nth(1).click();
 
-  const errorBanner = page.locator(ERROR_SELECTOR);
-  await expect(errorBanner).toBeVisible();
-  await expect(errorBanner).toContainText(/network/i);
+  const feedbackToast = page.locator(FEEDBACK_SELECTOR);
+  await expect(feedbackToast).toBeVisible();
+  await expect(feedbackToast).toHaveAttribute("data-variant", "error");
+  await expect(feedbackToast).toContainText(/network/i);
 
   const [firstAfter, secondAfter] = await Promise.all([
     tiles.nth(0).textContent(),
