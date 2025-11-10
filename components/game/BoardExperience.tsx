@@ -12,6 +12,7 @@ import {
   MoveFeedback,
   type MoveFeedbackDetails,
 } from "./MoveFeedback";
+import { BOARD_SIZE } from "../../lib/constants/board";
 
 interface BoardExperienceProps {
   initialGrid: BoardGridType;
@@ -33,7 +34,9 @@ function createFeedbackId(prefix: string): string {
     return `${prefix}-${crypto.randomUUID()}`;
   }
 
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${Date.now()}-${Math.random()
+    .toString(BOARD_SIZE)
+    .slice(2)}`;
 }
 
 function formatCoordinate({ x, y }: { x: number; y: number }): string {

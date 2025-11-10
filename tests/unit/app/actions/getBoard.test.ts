@@ -4,6 +4,7 @@ import type { BoardGrid } from "../../../../lib/types/board";
 import { getBoard } from "../../../../app/actions/getBoard";
 import { PRIMARY_BOARD_ID } from "../../../../scripts/supabase/constants";
 import { getServiceRoleClient } from "../../../../lib/supabase/server";
+import { BOARD_SIZE } from "../../../../lib/constants/board";
 
 vi.mock("../../../../lib/supabase/server", () => ({
   getServiceRoleClient: vi.fn(),
@@ -15,8 +16,8 @@ type MaybeSingleResult = {
 };
 
 function createGrid(): BoardGrid {
-  return Array.from({ length: 16 }, (_, y) =>
-    Array.from({ length: 16 }, (_, x) =>
+  return Array.from({ length: BOARD_SIZE }, (_, y) =>
+    Array.from({ length: BOARD_SIZE }, (_, x) =>
       String.fromCharCode(65 + ((x + y) % 26))
     )
   );

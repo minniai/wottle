@@ -92,6 +92,6 @@
 
 ## Types (shared)
 
-- `BoardGrid`: `string[16][16]` or `string[]` length 256 with `[x,y]` mapping helper.
+- `BoardGrid`: `string[BOARD_SIZE][BOARD_SIZE]` (default 16×16) or `string[]` length 256 with `[x,y]` mapping helper.
 - `MoveRequest`: `{ from: { x: number; y: number }; to: { x: number; y: number } }`.
 - `MoveResult`: `{ status: 'accepted' | 'rejected'; grid: BoardGrid; error?: string }`.

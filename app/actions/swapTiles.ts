@@ -19,6 +19,10 @@ import {
 } from "../../lib/game-engine/mutations";
 import { PRIMARY_BOARD_ID } from "../../scripts/supabase/constants";
 import { createPerfTimer } from "../../lib/observability/perf";
+import {
+  BOARD_DIMENSIONS_LABEL,
+  BOARD_MAX_INDEX,
+} from "../../lib/constants/board";
 
 interface BoardRow {
   id: string;
@@ -33,12 +37,15 @@ interface BoardQueryResult {
 
 function coordinatesWithinBounds(move: MoveRequest): boolean {
   const values = [move.from.x, move.from.y, move.to.x, move.to.y];
-  return values.every((value) => Number.isInteger(value) && value >= 0 && value <= 15);
+  return values.every(
+    (value) =>
+      Number.isInteger(value) && value >= 0 && value <= BOARD_MAX_INDEX
+  );
 }
 
 function toValidationMessage(error: unknown): string {
   if (error instanceof ZodError) {
-    return "Invalid swap request. Coordinates must be within the 16×16 board.";
+    return `Invalid swap request. Coordinates must be within the ${BOARD_DIMENSIONS_LABEL} board.`;
   }
   if (error instanceof Error) {
     return error.message;

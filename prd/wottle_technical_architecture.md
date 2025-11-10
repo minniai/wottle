@@ -215,7 +215,7 @@ Player 1 Client                  Server Actions                  Player 2 Client
     /match/[matchId]
       page.tsx              # Server Component - initial match state load
       components/
-        GameBoard.tsx       # 16x16 grid
+        GameBoard.tsx       # BOARD_SIZE×BOARD_SIZE grid (default 16×16)
         Tile.tsx            # Individual letter tile
         PlayerInfo.tsx      # Timer + score display
         ScoreDelta.tsx      # Animated score popup
@@ -271,7 +271,7 @@ Player 1 Client                  Server Actions                  Player 2 Client
 
 **Key Components:**
 
-1. **`<GameBoard>`** (16x16 Grid Container)
+1. **`<GameBoard>`** (BOARD_SIZE×BOARD_SIZE Grid Container — default 16×16)
    - Renders 256 `<Tile>` components
    - Manages tile selection state (first/second tile)
    - Handles drag-and-drop + click-to-swap interactions
@@ -330,7 +330,7 @@ interface LobbyStore {
 // app/(game)/match/[matchId]/GameContext.tsx
 interface GameState {
   matchId: string
-  board: LetterGrid  // 16x16 array
+  board: LetterGrid  // BOARD_SIZE×BOARD_SIZE array (default 16×16)
   players: [Player, Player]
   currentTurn: 'white' | 'black' | 'simultaneous'
   moveHistory: Move[]
@@ -404,8 +404,8 @@ const shakeInvalidSwap = () => {
    - Visual feedback on touch (scale up 1.05x on first selection)
 
 2. **Responsive Grid:**
-   - CSS Grid with `grid-template-columns: repeat(16, minmax(0, 1fr))`
-   - Max tile size: `min(calc(100vw / 16), 48px)`
+   - CSS Grid with `grid-template-columns: repeat(BOARD_SIZE, minmax(0, 1fr))` (default 16)
+   - Max tile size: `min(calc(100vw / BOARD_SIZE), 48px)` (default 16)
    - Scrollable container for small screens
 
 3. **Performance:**
@@ -515,7 +515,7 @@ If edge runtime testing fails or performance targets not met:
 
 3. **`generateBoard`** (`lib/game-engine/board.ts` - shared utility)
    - Input: `{ seed: number, languageId: string }`
-   - Output: `LetterGrid (16x16 array)`
+   - Output: `LetterGrid (BOARD_SIZE×BOARD_SIZE array, default 16×16)`
    - Logic:
      1. Seed random number generator
      2. Place letters by weighted frequency distribution
@@ -705,7 +705,7 @@ CREATE INDEX idx_matches_player_black ON matches(player_black_id, created_at DES
 -- Boards (current board state per match)
 CREATE TABLE boards (
   match_id UUID PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,
-  grid JSONB NOT NULL,  -- 16x16 array: [[{letter: 'A', frozen: false, owner: null}, ...], ...]
+  grid JSONB NOT NULL,  -- BOARD_SIZE×BOARD_SIZE array (default 16×16): [[{letter: 'A', frozen: false, owner: null}, ...], ...]
   frozen_positions JSONB DEFAULT '{}',  -- Map of "x,y" -> player_id for quick lookups
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -917,7 +917,7 @@ class BoardGenerator {
   generate(config: BoardGenConfig): LetterGrid {
     const startTime = performance.now()
 
-    // 1. Initialize empty 16x16 grid
+    // 1. Initialize empty BOARD_SIZE×BOARD_SIZE grid (default 16×16)
     const grid = this.createEmptyGrid()
 
     // 2. Place letters by weighted distribution
@@ -2856,7 +2856,7 @@ CREATE TABLE chat_messages (
 **Deliverables:**
 
 - [ ] Lobby page with user presence
-- [ ] Game board component (16x16 grid)
+- [ ] Game board component (NxN grid)
 - [ ] Tile swap animations (150-250ms)
 - [ ] Word highlight animations (600-800ms)
 - [ ] Timer display with clock logic

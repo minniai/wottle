@@ -8,6 +8,7 @@ import {
   serializeGrid,
 } from "../../../../lib/game-engine/board";
 import { BASELINE_GRID } from "../../../../scripts/supabase/constants";
+import { BOARD_MAX_INDEX } from "../../../../lib/constants/board";
 
 function makeTestGrid(): string[][] {
   return BASELINE_GRID.map((row) => [...row]);
@@ -49,8 +50,8 @@ describe("board utilities", () => {
 
   test("assertCoordinate enforces in-bounds coordinates", () => {
     expect(() => assertCoordinate({ x: -1, y: 0 })).toThrow();
-    expect(() => assertCoordinate({ x: 0, y: 16 })).toThrow();
-    expect(() => assertCoordinate({ x: 15, y: 15 })).not.toThrow();
+    expect(() => assertCoordinate({ x: 0, y: BOARD_MAX_INDEX + 1 })).toThrow();
+    expect(() => assertCoordinate({ x: BOARD_MAX_INDEX, y: BOARD_MAX_INDEX })).not.toThrow();
   });
 
   test("serializeGrid and deserializeGrid perform a lossless round trip", () => {

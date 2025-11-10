@@ -5,6 +5,7 @@ import { swapTiles } from "../../../../app/actions/swapTiles";
 import { PRIMARY_BOARD_ID } from "../../../../scripts/supabase/constants";
 import { getServiceRoleClient } from "../../../../lib/supabase/server";
 import { createPerfTimer } from "../../../../lib/observability/perf";
+import { BOARD_SIZE } from "../../../../lib/constants/board";
 
 vi.mock("../../../../lib/supabase/server", () => ({
   getServiceRoleClient: vi.fn(),
@@ -48,8 +49,8 @@ interface SupabaseMovesInsert {
 }
 
 function createGrid(): string[][] {
-  return Array.from({ length: 16 }, (_, y) =>
-    Array.from({ length: 16 }, (_, x) =>
+  return Array.from({ length: BOARD_SIZE }, (_, y) =>
+    Array.from({ length: BOARD_SIZE }, (_, x) =>
       String.fromCharCode("A".charCodeAt(0) + ((x + y) % 26))
     )
   );

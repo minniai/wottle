@@ -1,9 +1,7 @@
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(),
 }));
-const MOCK_GRID = Array.from({ length: 16 }, () =>
-  Array.from({ length: 16 }, () => "A")
-);
+let MOCK_GRID: string[][];
 vi.mock("../../../scripts/supabase/generateBoard", () => ({
   generateBoard: vi.fn(() => MOCK_GRID),
 }));
@@ -17,6 +15,11 @@ import { resetBoard } from "../../../scripts/supabase/reset";
 import { seedBoard } from "../../../scripts/supabase/seed";
 import * as seedModule from "../../../scripts/supabase/seed";
 import { createSupabaseClientStub } from "../../helpers/supabaseClientStub";
+import { BOARD_SIZE } from "../../../lib/constants/board";
+
+MOCK_GRID = Array.from({ length: BOARD_SIZE }, () =>
+  Array.from({ length: BOARD_SIZE }, () => "A")
+);
 
 const createClientMock = vi.mocked(createClient);
 const originalEnv = { ...process.env };
