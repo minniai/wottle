@@ -5,14 +5,14 @@
 }
 
 .board-grid {
-  --board-grid-gap: clamp(0.15rem, 0.5vw, 0.4rem);
-  --board-grid-font-size: clamp(0.75rem, 1vw + 0.45rem, 1.15rem);
-  --board-size: 16;
+  --board-grid-gap: clamp(0.15rem, 1vw + 0.45rem, 1.15rem);
+  --board-grid-font-size: clamp(0.75rem, 1vw + 1.5rem, 3.0rem);
+  --board-size: 12;
   display: grid;
   grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
   gap: var(--board-grid-gap);
-  width: 100%;
-  padding: clamp(0.5rem, 0.8vw, 0.75rem);
+  width: 95%;
+  padding: clamp(0.75rem, 1.0vw, 1.0rem);
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
   box-shadow:
