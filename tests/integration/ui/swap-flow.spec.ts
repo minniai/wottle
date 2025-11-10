@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 const BOARD_TILE_SELECTOR = "[data-testid=\"board-tile\"]";
-const ERROR_SELECTOR = "[data-testid=\"swap-error\"]";
+const FEEDBACK_SELECTOR = "[data-testid=\"move-feedback-toast\"]";
 
 async function getTileLetters(page: import("@playwright/test").Page, indices: number[]) {
   const tiles = page.locator(BOARD_TILE_SELECTOR);
@@ -28,7 +28,10 @@ test.describe("Swap flow", () => {
     await page.click(`${BOARD_TILE_SELECTOR}:nth-of-type(1)`);
     await page.click(`${BOARD_TILE_SELECTOR}:nth-of-type(2)`);
 
-    await expect(page.locator(ERROR_SELECTOR)).toBeHidden({ timeout: 5000 });
+    const feedbackToast = page.locator(FEEDBACK_SELECTOR);
+    await expect(feedbackToast).toBeVisible({ timeout: 5000 });
+    await expect(feedbackToast).toHaveAttribute("data-variant", "success");
+    await expect(feedbackToast).toContainText(/move accepted/i);
 
     await expect
       .poll(async () => getTileLetters(page, [0, 1]))
@@ -49,9 +52,10 @@ test.describe("Swap flow", () => {
     await firstTile.click();
     await firstTile.click();
 
-    const errorBanner = page.locator(ERROR_SELECTOR);
-    await expect(errorBanner).toBeVisible();
-    await expect(errorBanner).toContainText(/invalid swap/i);
+    const feedbackToast = page.locator(FEEDBACK_SELECTOR);
+    await expect(feedbackToast).toBeVisible();
+    await expect(feedbackToast).toHaveAttribute("data-variant", "error");
+    await expect(feedbackToast).toContainText(/invalid swap/i);
 
     const letterAfter = (await firstTile.textContent())?.trim();
     expect(letterAfter).toBe(letterBefore);

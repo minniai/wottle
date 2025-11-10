@@ -11,6 +11,12 @@ import type {
 interface BoardGridProps {
   grid: BoardGridType;
   className?: string;
+  onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
+  onSwapError?: (details: {
+    move: MoveRequest;
+    message: string;
+    grid: BoardGridType;
+  }) => void;
 }
 
 type SelectedTile = {
@@ -46,14 +52,21 @@ async function submitSwapRequest(move: MoveRequest): Promise<MoveResult> {
   );
 }
 
-export function BoardGrid({ grid, className }: BoardGridProps) {
+export function BoardGrid({
+  grid,
+  className,
+  onSwapComplete,
+  onSwapError,
+}: BoardGridProps) {
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+    if (
+      typeof performance !== "undefined" &&
+      typeof performance.mark === "function"
+    ) {
       performance.mark("board-grid:hydrated");
     }
   }, [grid]);
@@ -73,38 +86,38 @@ export function BoardGrid({ grid, className }: BoardGridProps) {
   const handleSwap = useCallback(
     async (from: SelectedTile, to: SelectedTile) => {
       setIsSubmitting(true);
-      setErrorMessage(null);
-      const previousGrid = currentGrid;
+      const previousGrid = currentGrid.map((row) => [...row]) as BoardGridType;
+      const moveRequest: MoveRequest = {
+        from,
+        to,
+      };
 
       try {
-        const result = await submitSwapRequest({
-          from,
-          to,
-        });
+        const result = await submitSwapRequest(moveRequest);
 
-        if (result.status === "accepted") {
-          setCurrentGrid(result.grid);
-          setErrorMessage(null);
-        } else {
-          setCurrentGrid(previousGrid);
-          setErrorMessage(result.error ?? "Invalid swap request.");
-        }
+        setCurrentGrid(result.grid);
+        onSwapComplete?.({ move: moveRequest, result });
       } catch (error) {
         setCurrentGrid(previousGrid);
         const message =
           error instanceof Error
             ? error.message
             : "Network error while submitting swap. Please try again.";
-        if (/network/i.test(message)) {
-          setErrorMessage("Network error while submitting swap. Please try again.");
-        } else {
-          setErrorMessage(message);
-        }
+
+        const normalizedMessage = /network/i.test(message)
+          ? "Network error while submitting swap. Please try again."
+          : message;
+
+        onSwapError?.({
+          move: moveRequest,
+          message: normalizedMessage,
+          grid: previousGrid,
+        });
       } finally {
         setIsSubmitting(false);
       }
     },
-    [currentGrid]
+    [currentGrid, onSwapComplete, onSwapError]
   );
 
   const handleTileClick = useCallback(
@@ -157,7 +170,9 @@ export function BoardGrid({ grid, className }: BoardGridProps) {
                   role="gridcell"
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}`}
+                  className={`board-grid__cell${
+                    isSelected ? " board-grid__cell--selected" : ""
+                  }`}
                   data-testid="board-tile"
                   data-col={colIndex}
                   data-row={rowIndex}
@@ -177,18 +192,6 @@ export function BoardGrid({ grid, className }: BoardGridProps) {
           </div>
         ))}
       </div>
-
-      {errorMessage && (
-        <div
-          data-testid="swap-error"
-          role="alert"
-          aria-live="assertive"
-          className="board-grid__error"
-        >
-          {errorMessage}
-        </div>
-      )}
     </div>
   );
 }
-

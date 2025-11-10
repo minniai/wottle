@@ -125,11 +125,11 @@
 **Goal**: Provide clear confirmation/error feedback after swaps
 **Independent Test**: After a swap, a confirmation (or error) toast appears and is announced to screen readers
 
-- [ ] T044 [P] [US4] [TDD-RED] Write unit test for `MoveFeedback` feedback states in `tests/unit/components/game/MoveFeedback.test.tsx`
-- [ ] T045 [P] [US4] [TDD-RED] Write Playwright spec verifying accessible feedback behavior in `tests/integration/ui/swap-feedback.spec.ts`
-- [ ] T046 [US4] [TDD-GREEN] Implement `MoveFeedback` component with toast + live region in `components/game/MoveFeedback.tsx`
-- [ ] T047 [US4] [TDD-GREEN] Integrate feedback into the swap workflow in `app/page.tsx`
-- [ ] T048 [US4] [TDD-REFACTOR] Harden accessibility with aria-live and focus management in `components/game/MoveFeedback.tsx`
+- [x] T044 [P] [US4] [TDD-RED] Write unit test for `MoveFeedback` feedback states in `tests/unit/components/game/MoveFeedback.test.tsx`
+- [x] T045 [P] [US4] [TDD-RED] Write Playwright spec verifying accessible feedback behavior in `tests/integration/ui/swap-feedback.spec.ts`
+- [x] T046 [US4] [TDD-GREEN] Implement `MoveFeedback` component with toast + live region in `components/game/MoveFeedback.tsx`
+- [x] T047 [US4] [TDD-GREEN] Integrate feedback into the swap workflow in `app/page.tsx`
+- [x] T048 [US4] [TDD-REFACTOR] Harden accessibility with aria-live and focus management in `components/game/MoveFeedback.tsx`
 
 ---
 
