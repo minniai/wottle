@@ -16,7 +16,9 @@
     "supabase:reset": "tsx scripts/supabase/reset.ts",
     "supabase:verify": "tsx scripts/supabase/verify.ts",
     "supabase:policies": "tsx scripts/supabase/policies/check.ts",
-    "quickstart": "make quickstart"
+    "quickstart": "make quickstart",
+    "quickstart:feedback": "tsx scripts/supabase/quickstart-feedback.ts",
+    "perf:swap": "artillery run --output artillery-swap.json tests/perf/swap.yml && tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.80.0",
@@ -34,6 +36,7 @@
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "artillery": "^2.0.26",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.1",
@@ -45,6 +48,7 @@
     "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "wait-on": "^7.2.0"
   }
 }

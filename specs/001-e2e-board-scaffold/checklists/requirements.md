@@ -37,3 +37,5 @@
 
 - [x] Quickstart command (`pnpm quickstart`) documented with expected behavior
 - [x] Structured logging outputs and env updates captured in quickstart instructions
+- [x] Quickstart verification evidence archived via CI job `quickstart` (artifact `quickstart-log/quickstart-log.ndjson`)
+- [x] Supabase status JSON persisted alongside quickstart artifact for audit trail

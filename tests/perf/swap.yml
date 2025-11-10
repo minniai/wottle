@@ -1,0 +1,36 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: steady-load
+  defaults:
+    headers:
+      "content-type": application/json
+    timeout: 20000
+  plugins:
+    expect: {}
+  ensure:
+    - label: swap p95 under 200ms
+      expression: "p95 < 200"
+    - label: swap median under 200ms
+      expression: "median < 200"
+
+scenarios:
+  - name: invalid swap rejection path
+    flow:
+      - get:
+          url: "/api/board"
+          expect:
+            - statusCode: 200
+      - post:
+          url: "/api/swap"
+          json:
+            from:
+              x: 0
+              y: 0
+            to:
+              x: 0
+              y: 0
+          expect:
+            - statusCode: 400

@@ -137,12 +137,12 @@
 
 **Purpose**: Hardening, documentation, and CI coverage across stories
 
-- [ ] T049 [P] Add Supabase quickstart, lint, typecheck, and Playwright jobs to the pipeline in `.github/workflows/ci.yml`
-- [ ] T050 Record quickstart verification evidence and Supabase status outputs in `specs/001-e2e-board-scaffold/checklists/requirements.md`
-- [ ] T050a [P] Capture post-quickstart developer confidence feedback via CLI prompt and persist results in `scripts/supabase/quickstart-feedback.ts`
-- [ ] T051 [P] Add Artillery scenarios in `tests/perf/swap.yml` to measure p95 end-to-end move RTT; assert <200ms p95; export CI-friendly report
-- [ ] T052 [P] Add CI perf gate job: run Artillery against local/preview env; fail pipeline if p95 ≥200ms or sample size <N
-- [ ] T053 [P] Add server processing time metric and assert median/95th <200ms in logs, parsed by CI check
+- [x] T049 [P] Add Supabase quickstart, lint, typecheck, and Playwright jobs to the pipeline in `.github/workflows/ci.yml`
+- [x] T050 Record quickstart verification evidence and Supabase status outputs in `specs/001-e2e-board-scaffold/checklists/requirements.md`
+- [x] T050a [P] Capture post-quickstart developer confidence feedback via CLI prompt and persist results in `scripts/supabase/quickstart-feedback.ts`
+- [x] T051 [P] Add Artillery scenarios in `tests/perf/swap.yml` to measure p95 end-to-end move RTT; assert <200ms p95; export CI-friendly report
+- [x] T052 [P] Add CI perf gate job: run Artillery against local/preview env; fail pipeline if p95 ≥200ms or sample size <N
+- [x] T053 [P] Add server processing time metric and assert median/95th <200ms in logs, parsed by CI check
 
 ---
 
