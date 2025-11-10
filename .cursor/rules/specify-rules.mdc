@@ -3,6 +3,7 @@
 Auto-generated from all feature plans. Last updated: 2025-11-05
 
 ## Active Technologies
+
 - TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19 + Next.js, React, `@supabase/supabase-js`, Zod, Tailwind CSS 4.x, ESLint, Prettier (001-e2e-board-scaffold)
 - Supabase PostgreSQL 15+ (local via Supabase CLI `supabase start`), JSONB grid model (`boards`), audit log (`moves`) (001-e2e-board-scaffold)
 
@@ -18,13 +19,14 @@ tests/
 
 ## Commands
 
-# Add commands for 
+: Add commands for
 
 ## Code Style
 
 : Follow standard conventions
 
 ## Recent Changes
+
 - 001-e2e-board-scaffold: Added TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19 + Next.js, React, `@supabase/supabase-js`, Zod, Tailwind CSS 4.x, ESLint, Prettier
 
 - 001-e2e-board-scaffold: Added
