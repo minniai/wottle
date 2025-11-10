@@ -77,3 +77,160 @@ jobs:
         run: pnpm install --frozen-lockfile false
       - name: Run Unit Tests
         run: pnpm test -- --run
+
+  quickstart:
+    name: Supabase Quickstart
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile false
+      - name: Run quickstart automation
+        run: |
+          pnpm quickstart 2>&1 | tee quickstart-log.ndjson
+      - name: Upload quickstart log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickstart-log
+          path: quickstart-log.ndjson
+          if-no-files-found: warn
+
+  playwright:
+    name: Playwright UI
+    runs-on: ubuntu-latest
+    needs: quickstart
+    timeout-minutes: 45
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QUICKSTART_DISABLE_STOP: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile false
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+      - name: Start Supabase stack via quickstart
+        run: |
+          pnpm quickstart 2>&1 | tee quickstart-playwright.ndjson
+      - name: Build Next.js app
+        run: pnpm build
+      - name: Start Next.js server
+        run: |
+          pnpm start -- --hostname 0.0.0.0 --port 3000 > next.log 2>&1 &
+          echo $! > .next-pid
+      - name: Wait for Next.js
+        run: npx wait-on@7.0.1 http://127.0.0.1:3000/api/board
+      - name: Run Playwright tests
+        run: pnpm exec playwright test --config=playwright.config.ts --reporter=line
+      - name: Stop Next.js server
+        if: always()
+        run: |
+          if [ -f .next-pid ]; then
+            kill $(cat .next-pid) || true
+            rm .next-pid
+          fi
+      - name: Stop Supabase stack
+        if: always()
+        run: supabase stop || true
+      - name: Upload Playwright log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickstart-playwright-log
+          path: quickstart-playwright.ndjson
+          if-no-files-found: warn
+
+  perf-gate:
+    name: Perf Gate (Artillery)
+    runs-on: ubuntu-latest
+    needs: playwright
+    timeout-minutes: 45
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QUICKSTART_DISABLE_STOP: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile false
+      - name: Start Supabase stack via quickstart
+        run: |
+          pnpm quickstart 2>&1 | tee quickstart-perf.ndjson
+      - name: Build Next.js app
+        run: pnpm build
+      - name: Start Next.js server
+        run: |
+          pnpm start -- --hostname 0.0.0.0 --port 3000 > perf-next.log 2>&1 &
+          echo $! > .perf-next-pid
+      - name: Wait for Next.js
+        run: npx wait-on@7.0.1 http://127.0.0.1:3000/api/board
+      - name: Run Artillery scenario
+        run: pnpm exec artillery run --output artillery-swap.json tests/perf/swap.yml
+      - name: Assert swap latency thresholds
+        run: pnpm exec tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json
+      - name: Stop Next.js server
+        if: always()
+        run: |
+          if [ -f .perf-next-pid ]; then
+            kill $(cat .perf-next-pid) || true
+            rm .perf-next-pid
+          fi
+      - name: Stop Supabase stack
+        if: always()
+        run: supabase stop || true
+      - name: Upload perf artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-artifacts
+          path: |
+            quickstart-perf.ndjson
+            perf-next.log
+            artillery-swap.json
+          if-no-files-found: warn

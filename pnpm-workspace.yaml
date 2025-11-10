@@ -1,0 +1,7 @@
+onlyBuiltDependencies:
+  - '@playwright/browser-chromium'
+  - esbuild
+  - protobufjs
+  - sharp
+  - unix-dgram
+  - unrs-resolver
