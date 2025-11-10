@@ -1,25 +1,30 @@
 import { test, expect } from "@playwright/test";
 
+import {
+  BOARD_DIMENSIONS_LABEL,
+  BOARD_TILE_COUNT,
+} from "../../../lib/constants/board";
+
 const BOARD_GRID_SELECTOR = '[data-testid="board-grid"]';
 const BOARD_TILE_SELECTOR = '[data-testid="board-tile"]';
 
 test.describe("Board grid rendering", () => {
-  test("renders a 16×16 grid on desktop", async ({ page }) => {
+  test(`renders a ${BOARD_DIMENSIONS_LABEL} grid on desktop`, async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector(BOARD_GRID_SELECTOR);
 
     const tiles = page.locator(BOARD_TILE_SELECTOR);
-    await expect(tiles).toHaveCount(256);
+    await expect(tiles).toHaveCount(BOARD_TILE_COUNT);
     await expect(page.locator(BOARD_GRID_SELECTOR)).toBeVisible();
   });
 
-  test("renders a 16×16 grid on mobile viewports", async ({ page }) => {
+  test(`renders a ${BOARD_DIMENSIONS_LABEL} grid on mobile viewports`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await page.waitForSelector(BOARD_GRID_SELECTOR);
 
     const tiles = page.locator(BOARD_TILE_SELECTOR);
-    await expect(tiles).toHaveCount(256);
+    await expect(tiles).toHaveCount(BOARD_TILE_COUNT);
     await expect(page.locator(BOARD_GRID_SELECTOR)).toBeVisible();
   });
 

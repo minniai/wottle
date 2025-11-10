@@ -1,13 +1,21 @@
 import { z } from "zod";
 
+import { BOARD_MAX_INDEX, BOARD_SIZE } from "../constants/board";
+
 export const coordinateSchema = z.object({
-  x: z.number().int().min(0).max(15),
-  y: z.number().int().min(0).max(15),
+  x: z.number().int().min(0).max(BOARD_MAX_INDEX),
+  y: z.number().int().min(0).max(BOARD_MAX_INDEX),
 });
 
 export const boardGridSchema = z
-  .array(z.array(z.string().length(1).regex(/^[A-ZÁÐÉÍÓÚÝÞÆÖa-záðéíóúýþæö]$/)).length(16))
-  .length(16);
+  .array(
+    z
+      .array(
+        z.string().length(1).regex(/^[A-ZÁÐÉÍÓÚÝÞÆÖa-záðéíóúýþæö]$/)
+      )
+      .length(BOARD_SIZE)
+  )
+  .length(BOARD_SIZE);
 
 export const moveRequestSchema = z.object({
   from: coordinateSchema,

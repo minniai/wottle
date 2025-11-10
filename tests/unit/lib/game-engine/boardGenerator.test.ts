@@ -5,16 +5,17 @@ import {
   generateBoard,
   getLetterWeights,
 } from "../../../../scripts/supabase/generateBoard";
+import { BOARD_SIZE } from "../../../../lib/constants/board";
 
 const LETTERS = Object.keys(ICELANDIC_LETTER_WEIGHTS);
 
 describe("generateBoard", () => {
-  test("produces a 16x16 grid populated with letters", () => {
+  test(`produces a ${BOARD_SIZE}x${BOARD_SIZE} grid populated with letters`, () => {
     const board = generateBoard({ matchId: "alpha" });
 
-    expect(board).toHaveLength(16);
+    expect(board).toHaveLength(BOARD_SIZE);
     for (const row of board) {
-      expect(row).toHaveLength(16);
+      expect(row).toHaveLength(BOARD_SIZE);
       for (const cell of row) {
         expect(LETTERS).toContain(cell);
       }

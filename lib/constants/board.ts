@@ -1,0 +1,8 @@
+export const BOARD_SIZE = 16;
+
+export const BOARD_MAX_INDEX = BOARD_SIZE - 1;
+
+export const BOARD_DIMENSIONS_LABEL = `${BOARD_SIZE}x${BOARD_SIZE}`;
+
+export const BOARD_TILE_COUNT = BOARD_SIZE * BOARD_SIZE;
+

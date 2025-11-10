@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 
-const BOARD_WIDTH = 16;
-const BOARD_HEIGHT = 16;
-const BOARD_CELL_COUNT = BOARD_WIDTH * BOARD_HEIGHT;
+import {
+  BOARD_SIZE,
+  BOARD_TILE_COUNT,
+} from "../../lib/constants/board";
 
 export const ICELANDIC_LETTER_WEIGHTS: Record<string, number> = {
   A: 9,
@@ -51,7 +52,7 @@ export function getLetterWeights(): Record<string, number> {
 export function generateBoard(options: GenerateBoardOptions = {}): string[][] {
   const weights = options.weights ?? ICELANDIC_LETTER_WEIGHTS;
   const letters = Object.keys(weights);
-  if (letters.length > BOARD_CELL_COUNT) {
+  if (letters.length > BOARD_TILE_COUNT) {
     throw new Error("Alphabet larger than board capacity");
   }
 
@@ -63,7 +64,7 @@ export function generateBoard(options: GenerateBoardOptions = {}): string[][] {
   // Ensure each alphabet character appears at least once
   cells.push(...letters);
 
-  for (let i = cells.length; i < BOARD_CELL_COUNT; i += 1) {
+  for (let i = cells.length; i < BOARD_TILE_COUNT; i += 1) {
     const roll = rng();
     const selected = pickLetter(weightedLetters, roll);
     cells.push(selected);
@@ -72,9 +73,9 @@ export function generateBoard(options: GenerateBoardOptions = {}): string[][] {
   shuffleInPlace(cells, rng);
 
   const board: string[][] = [];
-  for (let row = 0; row < BOARD_HEIGHT; row += 1) {
-    const start = row * BOARD_WIDTH;
-    board.push(cells.slice(start, start + BOARD_WIDTH));
+  for (let row = 0; row < BOARD_SIZE; row += 1) {
+    const start = row * BOARD_SIZE;
+    board.push(cells.slice(start, start + BOARD_SIZE));
   }
 
   return board;

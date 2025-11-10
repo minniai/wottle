@@ -1,5 +1,6 @@
 import { BoardExperience } from "../components/game/BoardExperience";
 import { getBoard } from "./actions/getBoard";
+import { BOARD_DIMENSIONS_LABEL } from "../lib/constants/board";
 
 export default async function Home() {
   let board: Awaited<ReturnType<typeof getBoard>> | null = null;
@@ -19,7 +20,7 @@ export default async function Home() {
       <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-white/80 shadow-lg">
         <h2 className="text-lg font-semibold text-white">Board Overview</h2>
         <p className="mt-2 text-sm">
-          Supabase stores the authoritative board state. This view fetches the current 16×16
+          Supabase stores the authoritative board state. This view fetches the current {BOARD_DIMENSIONS_LABEL}
           grid via a server action so swaps can update the same data source in later phases.
         </p>
         {board && (

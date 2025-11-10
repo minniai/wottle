@@ -7,6 +7,7 @@ vi.mock("../../app/actions/swapTiles", () => ({
 import type { MoveResult } from "../../lib/types/board";
 import { swapTiles } from "../../app/actions/swapTiles";
 import { POST } from "../../app/api/swap/route";
+import { BOARD_SIZE } from "../../lib/constants/board";
 
 function createRequest(payload: unknown) {
   return new Request("http://localhost/api/swap", {
@@ -14,6 +15,12 @@ function createRequest(payload: unknown) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+function createGrid(): string[][] {
+  return Array.from({ length: BOARD_SIZE }, () =>
+    Array.from({ length: BOARD_SIZE }, () => "A")
+  );
 }
 
 describe("POST /api/swap", () => {
@@ -24,9 +31,7 @@ describe("POST /api/swap", () => {
   it("returns 200 with the move result when the swap succeeds", async () => {
     const moveResult: MoveResult = {
       status: "accepted",
-      grid: Array.from({ length: 16 }, () =>
-        Array.from({ length: 16 }, () => "A")
-      ),
+      grid: createGrid(),
     };
     vi.mocked(swapTiles).mockResolvedValue(moveResult);
 
@@ -49,9 +54,7 @@ describe("POST /api/swap", () => {
   it("returns 400 when the server action rejects the swap", async () => {
     const moveResult: MoveResult = {
       status: "rejected",
-      grid: Array.from({ length: 16 }, () =>
-        Array.from({ length: 16 }, () => "A")
-      ),
+      grid: createGrid(),
       error: "Cannot swap a tile with itself",
     };
     vi.mocked(swapTiles).mockResolvedValue(moveResult);
