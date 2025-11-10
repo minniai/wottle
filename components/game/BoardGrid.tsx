@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 
 import type {
   BoardGrid as BoardGridType,
@@ -139,6 +145,11 @@ export function BoardGrid({
     [handleSwap, isSubmitting, selected]
   );
 
+  const boardSize = useMemo(
+    () => Math.max(colCount, rowCount, 1),
+    [colCount, rowCount]
+  );
+
   return (
     <div className="board-grid__wrapper">
       <div
@@ -149,6 +160,11 @@ export function BoardGrid({
         aria-colcount={colCount}
         aria-busy={isSubmitting}
         className={containerClass}
+        style={
+          {
+            "--board-size": boardSize,
+          } as CSSProperties
+        }
         data-submitting={isSubmitting ? "true" : undefined}
       >
         {currentGrid.map((row, rowIndex) => (

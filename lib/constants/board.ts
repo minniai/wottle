@@ -1,4 +1,4 @@
-export const BOARD_SIZE = 16;
+export const BOARD_SIZE = 12;
 
 export const BOARD_MAX_INDEX = BOARD_SIZE - 1;
 
