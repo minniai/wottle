@@ -21,7 +21,7 @@
     "perf:swap": "artillery run --output artillery-swap.json tests/perf/swap.yml && tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.80.0",
+    "@supabase/supabase-js": "^2.81.0",
     "next": "^16.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
