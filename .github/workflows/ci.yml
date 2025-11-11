@@ -159,8 +159,6 @@ jobs:
           if ! supabase status > /dev/null 2>&1; then
             pnpm quickstart 2>&1 | tee -a quickstart-playwright.ndjson
           fi
-      - name: Wait for Next.js
-        run: pnpm exec wait-on http://127.0.0.1:3000/api/board
       - name: Run Playwright tests
         run: pnpm exec playwright test --config=playwright.config.ts --reporter=line
       - name: Stop Next.js server
