@@ -151,6 +151,14 @@ jobs:
         run: |
           pnpm start -- --hostname 0.0.0.0 --port 3000 > next.log 2>&1 &
           echo $! > .next-pid
+      - name: Ensure Supabase bootstrap is running
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          QUICKSTART_DISABLE_STOP: "1"
+        run: |
+          if ! supabase status > /dev/null 2>&1; then
+            pnpm quickstart 2>&1 | tee -a quickstart-playwright.ndjson
+          fi
       - name: Wait for Next.js
         run: pnpm exec wait-on http://127.0.0.1:3000/api/board
       - name: Run Playwright tests
@@ -208,6 +216,14 @@ jobs:
         run: |
           pnpm start -- --hostname 0.0.0.0 --port 3000 > perf-next.log 2>&1 &
           echo $! > .perf-next-pid
+      - name: Ensure Supabase bootstrap is running
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          QUICKSTART_DISABLE_STOP: "1"
+        run: |
+          if ! supabase status > /dev/null 2>&1; then
+            pnpm quickstart 2>&1 | tee -a quickstart-perf.ndjson
+          fi
       - name: Wait for Next.js
         run: pnpm exec wait-on http://127.0.0.1:3000/api/board
       - name: Run Artillery scenario
