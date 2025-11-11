@@ -222,8 +222,6 @@ jobs:
           if ! supabase status > /dev/null 2>&1; then
             pnpm quickstart 2>&1 | tee -a quickstart-perf.ndjson
           fi
-      - name: Wait for Next.js
-        run: pnpm exec wait-on http://127.0.0.1:3000/api/board
       - name: Run Artillery scenario
         run: pnpm exec artillery run --output artillery-swap.json tests/perf/swap.yml
       - name: Assert swap latency thresholds
