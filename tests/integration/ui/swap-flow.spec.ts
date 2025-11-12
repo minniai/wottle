@@ -7,7 +7,10 @@ async function getTileLetters(page: import("@playwright/test").Page, indices: nu
   const tiles = page.locator(BOARD_TILE_SELECTOR);
   return Promise.all(
     indices.map(async (index) => {
-      const raw = await tiles.nth(index).textContent();
+      const raw = await tiles
+        .nth(index)
+        .locator("[aria-hidden=\"true\"]")
+        .textContent();
       return raw?.trim() ?? null;
     })
   );
@@ -43,7 +46,7 @@ test.describe("Swap flow", () => {
     await page.waitForSelector(BOARD_TILE_SELECTOR);
 
     const firstTile = page.locator(BOARD_TILE_SELECTOR).first();
-    const letterBeforeRaw = await firstTile.textContent();
+    const letterBeforeRaw = await firstTile.locator("[aria-hidden=\"true\"]").textContent();
     const letterBefore = letterBeforeRaw?.trim();
     if (!letterBefore) {
       throw new Error("Failed to read tile text before invalid swap");
@@ -57,7 +60,7 @@ test.describe("Swap flow", () => {
     await expect(feedbackToast).toHaveAttribute("data-variant", "error");
     await expect(feedbackToast).toContainText(/invalid swap/i);
 
-    const letterAfter = (await firstTile.textContent())?.trim();
+    const letterAfter = (await firstTile.locator("[aria-hidden=\"true\"]").textContent())?.trim();
     expect(letterAfter).toBe(letterBefore);
   });
 });

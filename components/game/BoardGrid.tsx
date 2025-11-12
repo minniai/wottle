@@ -110,7 +110,8 @@ export function BoardGrid({
             ? error.message
             : "Network error while submitting swap. Please try again.";
 
-        const normalizedMessage = /network/i.test(message)
+        const normalizedMessage =
+          /network/i.test(message) || /failed to fetch/i.test(message)
           ? "Network error while submitting swap. Please try again."
           : message;
 

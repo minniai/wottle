@@ -68,10 +68,13 @@ export function BoardExperience({ initialGrid }: BoardExperienceProps) {
         return;
       }
 
+      const errorMessage = result.error ?? "Invalid swap request.";
+
       setFeedback({
         id: createFeedbackId("error"),
         variant: "error",
-        message: result.error ?? "Invalid swap request.",
+        title: "Invalid swap",
+        message: errorMessage,
       });
     },
     []

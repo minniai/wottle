@@ -14,8 +14,8 @@ test("restores the previous board state when the swap request fails", async ({ p
 
   const tiles = page.locator(BOARD_TILE_SELECTOR);
   const [firstBeforeRaw, secondBeforeRaw] = await Promise.all([
-    tiles.nth(0).textContent(),
-    tiles.nth(1).textContent(),
+    tiles.nth(0).locator('[aria-hidden="true"]').textContent(),
+    tiles.nth(1).locator('[aria-hidden="true"]').textContent(),
   ]);
 
   const firstBefore = firstBeforeRaw?.trim();
@@ -33,8 +33,8 @@ test("restores the previous board state when the swap request fails", async ({ p
   await expect(feedbackToast).toContainText(/network/i);
 
   const [firstAfter, secondAfter] = await Promise.all([
-    tiles.nth(0).textContent(),
-    tiles.nth(1).textContent(),
+    tiles.nth(0).locator('[aria-hidden="true"]').textContent(),
+    tiles.nth(1).locator('[aria-hidden="true"]').textContent(),
   ]);
 
   expect(firstAfter?.trim()).toBe(firstBefore);
