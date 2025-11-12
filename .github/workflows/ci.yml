@@ -23,7 +23,7 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 10.20.0
+          version: 10.22.0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -46,7 +46,7 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 10.20.0
+          version: 10.22.0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -67,7 +67,7 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 10.20.0
+          version: 10.22.0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -91,7 +91,7 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 10.20.0
+          version: 10.22.0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -128,7 +128,7 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 10.20.0
+          version: 10.22.0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -149,7 +149,7 @@ jobs:
         run: pnpm build
       - name: Start Next.js server
         run: |
-          pnpm start -- --hostname 0.0.0.0 --port 3000 > next.log 2>&1 &
+          pnpm start --hostname 127.0.0.1 --port 3000 > next.log 2>&1 &
           echo $! > .next-pid
       - name: Ensure Supabase bootstrap is running
         env:
@@ -195,7 +195,7 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 10.20.0
+          version: 10.22.0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

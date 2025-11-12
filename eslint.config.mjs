@@ -13,7 +13,8 @@ const config = [
       "coverage",
       ".supabase",
       "pnpm-lock.yaml",
-      "**/*.log"
+      "**/*.log",
+      "*.min.js"
     ],
   },
 ];
