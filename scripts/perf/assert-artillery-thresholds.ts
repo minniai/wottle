@@ -24,30 +24,93 @@ interface ArtilleryReport {
 function loadReport(path: string): ArtilleryReport {
   const filePath = resolve(process.cwd(), path);
   const raw = readFileSync(filePath, "utf8");
-  return JSON.parse(raw) as ArtilleryReport;
+  try {
+    return JSON.parse(raw) as ArtilleryReport;
+  } catch (error) {
+    console.error(`Failed to parse Artillery report from ${filePath}:`);
+    console.error(raw.substring(0, 500));
+    throw new Error(`Invalid JSON in Artillery report: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function validate(report: ArtilleryReport) {
+  // Debug: Log report structure if aggregate is missing
+  if (!report.aggregate) {
+    console.error("Artillery report structure:");
+    console.error(JSON.stringify(report, null, 2).substring(0, 2000));
+    throw new Error("Artillery report is missing aggregate metrics. Check the report structure above.");
+  }
+
   const aggregate = report.aggregate;
-  if (!aggregate) {
-    throw new Error("Artillery report is missing aggregate metrics");
+  const anyAggregate = aggregate as any;
+  
+  // Artillery v2 uses counters with dot-notation keys like "http.requests"
+  // Try multiple possible field names for requests completed
+  let sampleSize = aggregate.requestsCompleted ?? 0;
+  
+  if (sampleSize <= 0 && anyAggregate.counters) {
+    // Try various counter key formats
+    sampleSize = anyAggregate.counters["http.requests"] ?? 
+                 anyAggregate.counters["http.requests.completed"] ??
+                 anyAggregate.counters["http.responses"] ??
+                 anyAggregate.counters["http.responses.completed"] ??
+                 anyAggregate.counters.http?.requests?.completed ??
+                 anyAggregate.counters.http?.requests ??
+                 0;
   }
-
-  const sampleSize = aggregate.requestsCompleted ?? 0;
+  
+  // Also try nested structures
+  if (sampleSize <= 0) {
+    sampleSize = anyAggregate.http?.requests?.completed ??
+                 anyAggregate.http?.requests ??
+                 anyAggregate.requests?.completed ??
+                 0;
+  }
+  
   if (Number.isNaN(sampleSize) || sampleSize <= 0) {
-    throw new Error("Artillery report is missing requestsCompleted value");
+    console.error("Available aggregate fields:", Object.keys(aggregate));
+    if (anyAggregate.counters) {
+      console.error("Available counters:", Object.keys(anyAggregate.counters));
+    }
+    console.error("Aggregate structure (first 1000 chars):", JSON.stringify(aggregate, null, 2).substring(0, 1000));
+    throw new Error(`Artillery report is missing requestsCompleted value. Sample size was: ${sampleSize}`);
   }
 
-  const latency = aggregate.latency;
+  // Artillery v2 may have latencies as array or object
+  // Try multiple possible structures for latency metrics
+  let latency = aggregate.latency;
+  
   if (!latency) {
-    throw new Error("Artillery report is missing latency metrics");
+    // Try latencies array (Artillery v2 format)
+    if (Array.isArray(anyAggregate.latencies) && anyAggregate.latencies.length > 0) {
+      latency = anyAggregate.latencies[0];
+    } else if (anyAggregate.latencies) {
+      latency = anyAggregate.latencies;
+    } else {
+      // Try nested structures
+      latency = anyAggregate.latency?.http ?? 
+                anyAggregate.http?.latency ??
+                anyAggregate.metrics?.latency;
+    }
+  }
+  
+  if (!latency || (typeof latency !== "object")) {
+    console.error("Available aggregate fields:", Object.keys(aggregate));
+    if (anyAggregate.counters) {
+      console.error("Available counters:", Object.keys(anyAggregate.counters));
+    }
+    console.error("Aggregate structure (first 1000 chars):", JSON.stringify(aggregate, null, 2).substring(0, 1000));
+    throw new Error("Artillery report is missing latency metrics. Check the report structure above.");
   }
 
-  const medianMs = Number(latency.median ?? NaN);
-  const p95Ms = Number(latency.p95 ?? NaN);
+  const anyLatency = latency as any;
+  const medianMs = Number(anyLatency.median ?? anyLatency.p50 ?? NaN);
+  const p95Ms = Number(anyLatency.p95 ?? NaN);
 
   if (Number.isNaN(medianMs) || Number.isNaN(p95Ms)) {
-    throw new Error("Artillery report does not include median/p95 latency values");
+    console.error("Available latency fields:", Object.keys(latency));
+    console.error("Latency structure:", JSON.stringify(latency, null, 2));
+    throw new Error(`Artillery report does not include median/p95 latency values. median: ${medianMs}, p95: ${p95Ms}`);
   }
 
   const summary = {
