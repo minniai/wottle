@@ -66,6 +66,16 @@ function validate(report: ArtilleryReport) {
                  anyAggregate.requests?.completed ??
                  0;
   }
+
+  if (sampleSize <= 0) {
+    const summaryCount =
+      anyAggregate.summaries?.["http.response_time"]?.count ??
+      anyAggregate.histograms?.["http.response_time"]?.count ??
+      0;
+    if (summaryCount > 0) {
+      sampleSize = summaryCount;
+    }
+  }
   
   if (Number.isNaN(sampleSize) || sampleSize <= 0) {
     console.error("Available aggregate fields:", Object.keys(aggregate));
@@ -90,7 +100,9 @@ function validate(report: ArtilleryReport) {
       // Try nested structures
       latency = anyAggregate.latency?.http ?? 
                 anyAggregate.http?.latency ??
-                anyAggregate.metrics?.latency;
+                anyAggregate.metrics?.latency ??
+                anyAggregate.summaries?.["http.response_time"] ??
+                anyAggregate.histograms?.["http.response_time"];
     }
   }
   
@@ -104,8 +116,21 @@ function validate(report: ArtilleryReport) {
   }
 
   const anyLatency = latency as any;
-  const medianMs = Number(anyLatency.median ?? anyLatency.p50 ?? NaN);
-  const p95Ms = Number(anyLatency.p95 ?? NaN);
+  const medianMs = Number(
+    anyLatency.median ??
+      anyLatency.p50 ??
+      anyLatency["50"] ??
+      anyLatency.percentiles?.p50 ??
+      anyLatency.percentiles?.["50"] ??
+      NaN,
+  );
+  const p95Ms = Number(
+    anyLatency.p95 ??
+      anyLatency["95"] ??
+      anyLatency.percentiles?.p95 ??
+      anyLatency.percentiles?.["95"] ??
+      NaN,
+  );
 
   if (Number.isNaN(medianMs) || Number.isNaN(p95Ms)) {
     console.error("Available latency fields:", Object.keys(latency));
