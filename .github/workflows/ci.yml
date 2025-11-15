@@ -149,8 +149,9 @@ jobs:
         run: pnpm build
       - name: Start Next.js server
         run: |
-          pnpm start --hostname 127.0.0.1 --port 3000 > next.log 2>&1 &
+          pnpm start --hostname 0.0.0.0 --port 3000 > next.log 2>&1 &
           echo $! > .next-pid
+          sleep 2
       - name: Ensure Supabase bootstrap is running
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -160,7 +161,8 @@ jobs:
             pnpm quickstart 2>&1 | tee -a quickstart-playwright.ndjson
           fi
       - name: Wait for Next.js
-        run: pnpm exec wait-on http://127.0.0.1:3000
+        run: |
+          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || (cat next.log && exit 1)
       - name: Run Playwright tests
         run: pnpm exec playwright test --config=playwright.config.ts --reporter=line
       - name: Stop Next.js server
@@ -214,8 +216,9 @@ jobs:
         run: pnpm build
       - name: Start Next.js server
         run: |
-          pnpm start --hostname 127.0.0.1 --port 3000 > perf-next.log 2>&1 &
+          pnpm start --hostname 0.0.0.0 --port 3000 > perf-next.log 2>&1 &
           echo $! > .perf-next-pid
+          sleep 2
       - name: Ensure Supabase bootstrap is running
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -225,7 +228,8 @@ jobs:
             pnpm quickstart 2>&1 | tee -a quickstart-perf.ndjson
           fi
       - name: Wait for Next.js
-        run: pnpm exec wait-on http://127.0.0.1:3000
+        run: |
+          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || (cat perf-next.log && exit 1)
       - name: Run Artillery scenario
         run: pnpm exec artillery run --output artillery-swap.json tests/perf/swap.yml
       - name: Assert swap latency thresholds
