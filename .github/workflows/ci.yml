@@ -17,6 +17,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    container: node:lts
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,6 +40,7 @@ jobs:
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    container: node:lts
     needs: lint
     steps:
       - name: Checkout
@@ -60,6 +62,7 @@ jobs:
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
+    container: node:lts
     needs: typecheck
     steps:
       - name: Checkout
@@ -81,6 +84,7 @@ jobs:
   quickstart:
     name: Supabase Quickstart
     runs-on: ubuntu-latest
+    container: node:lts
     needs: test
     timeout-minutes: 30
     env:
@@ -117,6 +121,7 @@ jobs:
   playwright:
     name: Playwright UI
     runs-on: ubuntu-latest
+    container: node:lts
     needs: quickstart
     timeout-minutes: 45
     env:
@@ -186,6 +191,7 @@ jobs:
   perf-gate:
     name: Perf Gate (Artillery)
     runs-on: ubuntu-latest
+    container: node:lts
     needs: playwright
     timeout-minutes: 45
     env:
