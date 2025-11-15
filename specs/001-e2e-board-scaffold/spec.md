@@ -76,7 +76,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - How does the system handle a port conflict or already-running Supabase instance? Startup flow alerts the developer and provides resolution guidance.
 - What happens if environment variables point to a cloud Supabase project? Validation warns and blocks until local settings are restored.
 - How are service_role keys protected during local development? Tooling ensures they stay server-side and never ship to client bundles.
-- How does the project detect RLS drift between local and production? Checks compare policy snapshots and require alignment before local testing proceeds.
+- How does the project detect RLS drift between local and production? Checks compare policy snapshots (via `scripts/supabase/policies/check.ts`) and require alignment before local testing proceeds. Drift is defined as: (1) policy count mismatch between local and production snapshots, (2) policy name differences, (3) permission differences (SELECT/INSERT/UPDATE/DELETE operations allowed/denied), or (4) role assignment differences (anon vs authenticated vs service_role). The check script MUST fail fast with a diff report if any drift is detected.
 
 ## Requirements *(mandatory)*
 
@@ -85,7 +85,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-001**: System MUST render a 16×16 letter grid representing the current match board.
 - **FR-002**: Users MUST be able to select any two tiles and submit a swap request.
 - **FR-003**: System MUST validate swaps server-side by confirming coordinates exist, tiles are movable, and no dictionary/word checks are required for this MVP, then either accept (apply and return updated board) or reject with a reason.
-- **FR-004**: On acceptance, System MUST return the updated grid and reflect it for the user within 500 ms of the server acknowledging the swap.
+- **FR-004**: On acceptance, System MUST return the updated grid and reflect it for the user. Server RTT MUST meet PERF-001 (<200ms at p95); total perceived completion (server RTT + client render) SHOULD be ≤500ms in production and ≤1s in local development (per PERF-001L).
 - **FR-005**: On rejection or failure, System MUST preserve the previous grid and display an actionable error.
 - **FR-006**: System MUST support basic responsiveness so the 16×16 grid is viewable on desktop and mobile.
 - **FR-007**: System MUST provide a minimal confirmation indicator after a successful swap.
@@ -99,7 +99,7 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-015**: Swaps MAY occur between any two coordinates on the 16×16 grid; adjacency is not required for MVP.
 - **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
 - **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
-- **FR-018**: Seed/reset MUST generate a 16×16 grid using the Icelandic letter-frequency distribution defined in `prd/wottle_prd.md`, guaranteeing each alphabet character (including diacritics) appears at least once, keyed deterministically by `match_id` while producing per-run variability.
+- **FR-018**: Seed/reset MUST generate a 16×16 grid using the Icelandic letter-frequency distribution defined in `prd/wottle_prd.md` and implemented via `prd/wordlist/letter_scoring_values_is.ts`. The generator MUST guarantee each alphabet character (including diacritics) appears at least once, keyed deterministically by `match_id` while producing per-run variability. Algorithm MUST use weighted random selection based on frequency values from the source file.
   - *Phase Note*: Phase 2 scaffolds with a deterministic baseline grid; Phase 3 delivers the weighted seeded generator and verification (see `tasks.T027b`–`T027e`).
 
 ### Key Entities *(include if feature involves data)*
@@ -117,8 +117,8 @@ After a successful swap, the user receives basic confirmation that the move was 
 
 ### Measurable Outcomes
 
-- **SC-001**: A user can load the app and see a 16×16 grid within 2 seconds on a typical broadband connection.
-- **SC-002**: At least 95% of valid swap attempts update the board within 1 second during local development testing (local target, non-binding).
+- **SC-001**: A user can load the app and see a 16×16 grid within 2 seconds on a typical broadband connection (defined as ≥25 Mbps download, ≤100ms latency to server, measured from initial page load to grid render completion).
+- **SC-002**: At least 95% of valid swap attempts update the board within 1 second during local development testing (defined as: macOS/Linux with 8GB+ RAM, Node.js 20.x, local Supabase stack running on same machine, measured from swap submission to UI update; local target, non-binding).
 - **SC-003**: 100% of invalid swap attempts are rejected with a clear error message and no board change.
 - **SC-004**: A developer can install prerequisites and start the local Supabase stack within 20 minutes following the quickstart.
 - **SC-005**: 100% of application requests during local testing route to the local Supabase instance (verified via provided checklist or tooling).
@@ -128,8 +128,8 @@ After a successful swap, the user receives basic confirmation that the move was 
 
 ### Performance Requirements (if applicable)
 
-- **PERF-001**: Production SLA — p95 end-to-end move RTT <200ms (measured by automated performance tests).
-- **PERF-001L**: Local target — perceived completion ≤1s (non-binding, used only for local developer feedback).
+- **PERF-001**: Production SLA — p95 end-to-end move RTT <200ms (measured by automated performance tests from client request to server response).
+- **PERF-001L**: Local target — end-to-end swap completion (client submission to UI update) ≤1s on local development hardware (8GB+ RAM, local Supabase stack; non-binding, used only for local developer feedback; server RTT target remains <200ms per PERF-001).
 - **PERF-002**: Swap animation maintains 60 FPS (p95 frame time ≤16.7ms) during a single swap on reference local hardware; CI asserts this via automated UI performance test.
 - **PERF-003**: Local Supabase stack startup (command execution to ready state) completes within 3 minutes on standard developer hardware.
 - **PERF-004**: Application connection health checks detect misconfigured Supabase endpoints within 10 seconds (p95) and surface actionable guidance; `verify.ts` records detection latency and CI asserts the threshold.
