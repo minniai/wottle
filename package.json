@@ -30,7 +30,8 @@
     "supabase:policies": "tsx scripts/supabase/policies/check.ts",
     "quickstart": "make quickstart",
     "quickstart:feedback": "tsx scripts/supabase/quickstart-feedback.ts",
-    "perf:swap": "artillery run --output artillery-swap.json tests/perf/swap.yml && tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json"
+    "perf:swap": "artillery run --output artillery-swap.json tests/perf/swap.yml && tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json",
+    "act": "./scripts/act.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",

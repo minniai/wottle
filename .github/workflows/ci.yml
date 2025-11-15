@@ -84,12 +84,28 @@ jobs:
   quickstart:
     name: Supabase Quickstart
     runs-on: ubuntu-latest
-    container: node:lts
+    # Note: No container here - needs Docker access for Supabase
+    # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
     needs: test
     timeout-minutes: 30
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
+      - name: Install Docker CLI (for act compatibility)
+        # Only needed when running with act using node:lts platform
+        # In GitHub Actions, Docker is available on the runner
+        run: |
+          if command -v docker &> /dev/null; then
+            echo "Docker CLI already available"
+            docker --version
+          else
+            # Install Docker CLI for Debian-based images (node:lts)
+            # Try apt-get first (faster), fallback to official installer
+            (apt-get update && apt-get install -y docker.io) || \
+            (curl -fsSL https://get.docker.com | sh) || \
+            (echo "Error: Could not install Docker CLI" && exit 1)
+            docker --version
+          fi
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup PNPM
@@ -121,13 +137,29 @@ jobs:
   playwright:
     name: Playwright UI
     runs-on: ubuntu-latest
-    container: node:lts
+    # Note: No container here - needs Docker access for Supabase
+    # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
     needs: quickstart
     timeout-minutes: 45
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
     steps:
+      - name: Install Docker CLI (for act compatibility)
+        # Only needed when running with act using node:lts platform
+        # In GitHub Actions, Docker is available on the runner
+        run: |
+          if command -v docker &> /dev/null; then
+            echo "Docker CLI already available"
+            docker --version
+          else
+            # Install Docker CLI for Debian-based images (node:lts)
+            # Try apt-get first (faster), fallback to official installer
+            (apt-get update && apt-get install -y docker.io) || \
+            (curl -fsSL https://get.docker.com | sh) || \
+            (echo "Error: Could not install Docker CLI" && exit 1)
+            docker --version
+          fi
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup PNPM
@@ -154,9 +186,50 @@ jobs:
         run: pnpm build
       - name: Start Next.js server
         run: |
-          pnpm start --hostname 0.0.0.0 --port 3000 > next.log 2>&1 &
-          echo $! > .next-pid
-          sleep 2
+          # Verify .env.local exists and load environment variables
+          if [ ! -f .env.local ]; then
+            echo "ERROR: .env.local not found! Server will fail without Supabase credentials"
+            echo "Expected .env.local to be created by quickstart step"
+            exit 1
+          fi
+          # Load environment variables
+          set -a
+          source .env.local
+          set +a
+          # Start the server directly with proper signal handling
+          # Use setsid to create a new session and prevent zombie processes
+          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port 3000" < /dev/null > next.log 2>&1 &
+          SERVER_PID=$!
+          echo $SERVER_PID > .next-pid
+          echo "Started server with PID: $SERVER_PID"
+          # Wait for server to initialize
+          sleep 5
+          # Check process state - must check state, not just kill -0 (which works on zombies)
+          PROC_STATE=$(ps -o state= -p $SERVER_PID 2>/dev/null | tr -d ' ' || echo "")
+          if [ -z "$PROC_STATE" ]; then
+            echo "ERROR: Server process $SERVER_PID not found"
+            echo "=== Server log ==="
+            cat next.log
+            exit 1
+          fi
+          if [ "$PROC_STATE" = "Z" ]; then
+            echo "ERROR: Server process $SERVER_PID is a zombie (defunct)"
+            echo "=== Server log ==="
+            cat next.log
+            exit 1
+          fi
+          echo "Server process $SERVER_PID is running (state: $PROC_STATE)"
+          # Find the actual Node.js process (pnpm spawns node)
+          NODE_PID=$(pgrep -P $SERVER_PID 2>/dev/null | head -1 || pgrep -f "next.*start" 2>/dev/null | head -1 || echo "")
+          if [ -n "$NODE_PID" ] && [ "$NODE_PID" != "$SERVER_PID" ]; then
+            echo "Found Node.js process: $NODE_PID"
+            echo $NODE_PID > .next-node-pid
+            NODE_STATE=$(ps -o state= -p $NODE_PID 2>/dev/null | tr -d ' ' || echo "")
+            if [ "$NODE_STATE" = "Z" ]; then
+              echo "ERROR: Node.js process $NODE_PID is a zombie"
+              exit 1
+            fi
+          fi
       - name: Ensure Supabase bootstrap is running
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -167,14 +240,80 @@ jobs:
           fi
       - name: Wait for Next.js
         run: |
-          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || (cat next.log && exit 1)
+          echo "Waiting for Next.js server to be ready..."
+          echo "Checking server logs..."
+          tail -30 next.log || true
+          echo ""
+          echo "=== Checking if server process is still running ==="
+          if [ -f .next-pid ]; then
+            PID=$(cat .next-pid)
+            if kill -0 $PID 2>/dev/null; then
+              echo "Server process $PID is running"
+              ps aux | grep -E "^[^ ]+ +$PID " | grep -v grep || true
+            else
+              echo "ERROR: Server process $PID is NOT running!"
+              echo "=== Full server log ==="
+              cat next.log
+              exit 1
+            fi
+          else
+            echo "ERROR: .next-pid file not found!"
+            exit 1
+          fi
+          echo ""
+          echo "=== Testing server connection ==="
+          # Try multiple methods to test connectivity
+          for url in http://127.0.0.1:3000 http://localhost:3000 http://0.0.0.0:3000; do
+            echo "Testing $url..."
+            if command -v curl &> /dev/null; then
+              if curl -f -s -o /dev/null --max-time 2 "$url" 2>&1; then
+                echo "✓ $url is accessible via curl"
+                break
+              else
+                echo "✗ $url not accessible via curl"
+              fi
+            elif command -v wget &> /dev/null; then
+              if wget -q -O /dev/null --timeout=2 "$url" 2>&1; then
+                echo "✓ $url is accessible via wget"
+                break
+              else
+                echo "✗ $url not accessible via wget"
+              fi
+            else
+              echo "curl/wget not available, skipping connection test"
+            fi
+          done
+          echo ""
+          echo "=== Using wait-on to verify server ==="
+          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || {
+            echo "=== wait-on failed ==="
+            echo "=== Full server log ==="
+            cat next.log
+            echo "=== Process status ==="
+            if [ -f .next-pid ]; then
+              PID=$(cat .next-pid)
+              ps aux | grep -E "(^[^ ]+ +$PID |node|next)" | grep -v grep || true
+            fi
+            exit 1
+          }
+          echo "✓ Server is ready!"
       - name: Run Playwright tests
         run: pnpm exec playwright test --config=playwright.config.ts --reporter=line
       - name: Stop Next.js server
         if: always()
         run: |
           if [ -f .next-pid ]; then
-            kill $(cat .next-pid) || true
+            PID=$(cat .next-pid)
+            echo "Stopping server process $PID"
+            kill $PID 2>/dev/null || true
+            # Also try to kill the Node process if we tracked it
+            if [ -f .next-node-pid ]; then
+              NODE_PID=$(cat .next-node-pid)
+              kill $NODE_PID 2>/dev/null || true
+              rm .next-node-pid
+            fi
+            # Kill any remaining next/node processes
+            pkill -f "next.*start" 2>/dev/null || true
             rm .next-pid
           fi
       - name: Stop Supabase stack
@@ -191,13 +330,29 @@ jobs:
   perf-gate:
     name: Perf Gate (Artillery)
     runs-on: ubuntu-latest
-    container: node:lts
+    # Note: No container here - needs Docker access for Supabase
+    # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
     needs: playwright
     timeout-minutes: 45
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
     steps:
+      - name: Install Docker CLI (for act compatibility)
+        # Only needed when running with act using node:lts platform
+        # In GitHub Actions, Docker is available on the runner
+        run: |
+          if command -v docker &> /dev/null; then
+            echo "Docker CLI already available"
+            docker --version
+          else
+            # Install Docker CLI for Debian-based images (node:lts)
+            # Try apt-get first (faster), fallback to official installer
+            (apt-get update && apt-get install -y docker.io) || \
+            (curl -fsSL https://get.docker.com | sh) || \
+            (echo "Error: Could not install Docker CLI" && exit 1)
+            docker --version
+          fi
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup PNPM
@@ -222,9 +377,50 @@ jobs:
         run: pnpm build
       - name: Start Next.js server
         run: |
-          pnpm start --hostname 0.0.0.0 --port 3000 > perf-next.log 2>&1 &
-          echo $! > .perf-next-pid
-          sleep 2
+          # Verify .env.local exists and load environment variables
+          if [ ! -f .env.local ]; then
+            echo "ERROR: .env.local not found! Server will fail without Supabase credentials"
+            echo "Expected .env.local to be created by quickstart step"
+            exit 1
+          fi
+          # Load environment variables
+          set -a
+          source .env.local
+          set +a
+          # Start the server directly with proper signal handling
+          # Use setsid to create a new session and prevent zombie processes
+          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port 3000" < /dev/null > perf-next.log 2>&1 &
+          SERVER_PID=$!
+          echo $SERVER_PID > .perf-next-pid
+          echo "Started server with PID: $SERVER_PID"
+          # Wait for server to initialize
+          sleep 5
+          # Check process state - must check state, not just kill -0 (which works on zombies)
+          PROC_STATE=$(ps -o state= -p $SERVER_PID 2>/dev/null | tr -d ' ' || echo "")
+          if [ -z "$PROC_STATE" ]; then
+            echo "ERROR: Server process $SERVER_PID not found"
+            echo "=== Server log ==="
+            cat perf-next.log
+            exit 1
+          fi
+          if [ "$PROC_STATE" = "Z" ]; then
+            echo "ERROR: Server process $SERVER_PID is a zombie (defunct)"
+            echo "=== Server log ==="
+            cat perf-next.log
+            exit 1
+          fi
+          echo "Server process $SERVER_PID is running (state: $PROC_STATE)"
+          # Find the actual Node.js process (pnpm spawns node)
+          NODE_PID=$(pgrep -P $SERVER_PID 2>/dev/null | head -1 || pgrep -f "next.*start" 2>/dev/null | head -1 || echo "")
+          if [ -n "$NODE_PID" ] && [ "$NODE_PID" != "$SERVER_PID" ]; then
+            echo "Found Node.js process: $NODE_PID"
+            echo $NODE_PID > .perf-next-node-pid
+            NODE_STATE=$(ps -o state= -p $NODE_PID 2>/dev/null | tr -d ' ' || echo "")
+            if [ "$NODE_STATE" = "Z" ]; then
+              echo "ERROR: Node.js process $NODE_PID is a zombie"
+              exit 1
+            fi
+          fi
       - name: Ensure Supabase bootstrap is running
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -235,7 +431,63 @@ jobs:
           fi
       - name: Wait for Next.js
         run: |
-          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || (cat perf-next.log && exit 1)
+          echo "Waiting for Next.js server to be ready..."
+          echo "Checking server logs..."
+          tail -30 perf-next.log || true
+          echo ""
+          echo "=== Checking if server process is still running ==="
+          if [ -f .perf-next-pid ]; then
+            PID=$(cat .perf-next-pid)
+            if kill -0 $PID 2>/dev/null; then
+              echo "Server process $PID is running"
+              ps aux | grep -E "^[^ ]+ +$PID " | grep -v grep || true
+            else
+              echo "ERROR: Server process $PID is NOT running!"
+              echo "=== Full server log ==="
+              cat perf-next.log
+              exit 1
+            fi
+          else
+            echo "ERROR: .perf-next-pid file not found!"
+            exit 1
+          fi
+          echo ""
+          echo "=== Testing server connection ==="
+          # Try multiple methods to test connectivity
+          for url in http://127.0.0.1:3000 http://localhost:3000 http://0.0.0.0:3000; do
+            echo "Testing $url..."
+            if command -v curl &> /dev/null; then
+              if curl -f -s -o /dev/null --max-time 2 "$url" 2>&1; then
+                echo "✓ $url is accessible via curl"
+                break
+              else
+                echo "✗ $url not accessible via curl"
+              fi
+            elif command -v wget &> /dev/null; then
+              if wget -q -O /dev/null --timeout=2 "$url" 2>&1; then
+                echo "✓ $url is accessible via wget"
+                break
+              else
+                echo "✗ $url not accessible via wget"
+              fi
+            else
+              echo "curl/wget not available, skipping connection test"
+            fi
+          done
+          echo ""
+          echo "=== Using wait-on to verify server ==="
+          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || {
+            echo "=== wait-on failed ==="
+            echo "=== Full server log ==="
+            cat perf-next.log
+            echo "=== Process status ==="
+            if [ -f .perf-next-pid ]; then
+              PID=$(cat .perf-next-pid)
+              ps aux | grep -E "(^[^ ]+ +$PID |node|next)" | grep -v grep || true
+            fi
+            exit 1
+          }
+          echo "✓ Server is ready!"
       - name: Run Artillery scenario
         run: pnpm exec artillery run --output artillery-swap.json tests/perf/swap.yml
       - name: Assert swap latency thresholds
