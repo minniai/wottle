@@ -14,7 +14,7 @@
 
 ## 2) Data model shape for board state
 
-- Decision: Persist the 16×16 grid as JSONB on `boards.grid` with a stable board id; maintain `moves` audit table for swaps and outcomes.
+- Decision: Persist the 10x10 grid as JSONB on `boards.grid` with a stable board id; maintain `moves` audit table for swaps and outcomes.
 - Rationale: Fast to implement; minimal schema; easy to seed/reset; adequate for MVP without scoring.
 - Alternatives considered:
   - Normalized `tiles` table: More flexible queries but slower to scaffold and update in bulk for MVP.

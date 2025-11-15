@@ -1,6 +1,6 @@
 # MVP E2E Board Scaffold (Milestone M0)
 
-This milestone delivers the automated Supabase quickstart workflow and the weighted 16×16 board seed that underpin the subsequent user stories.
+This milestone delivers the automated Supabase quickstart workflow and the weighted 10x10 board seed that underpin the subsequent user stories.
 
 ## Included in M0
 

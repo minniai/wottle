@@ -53,7 +53,7 @@ pnpm dev
 
  Expected:
 
-- Home page renders a 16×16 grid
+- Home page renders a 10x10 grid
 - Swap two tiles triggers a server-authoritative update
 
 ## 5) Troubleshooting

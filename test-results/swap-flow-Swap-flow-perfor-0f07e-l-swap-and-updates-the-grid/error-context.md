@@ -9,7 +9,7 @@
     - generic [ref=e7]:
       - generic [ref=e8]:
         - heading "Board Overview" [level=2] [ref=e9]
-        - paragraph [ref=e10]: Supabase stores the authoritative board state. This view fetches the current 16×16 grid via a server action so swaps can update the same data source in later phases.
+        - paragraph [ref=e10]: Supabase stores the authoritative board state. This view fetches the current 10x10 grid via a server action so swaps can update the same data source in later phases.
         - generic [ref=e11]:
           - generic [ref=e12]:
             - term [ref=e13]: Board ID

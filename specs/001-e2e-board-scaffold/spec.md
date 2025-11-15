@@ -26,15 +26,15 @@ A developer clones the project and starts the local Supabase-backed environment 
 
 ### User Story 2 - See board grid (Priority: P1)
 
-A player opens the app and sees a 16×16 grid of letters representing the current board state.
+A player opens the app and sees a 10x10 grid of letters representing the current board state.
 
 **Why this priority**: Without a visible grid, nothing can be validated end-to-end.
 
-**Independent Test**: Load the app and verify a 16×16 grid renders with legible letters; resizing and mobile viewport still display a complete grid.
+**Independent Test**: Load the app and verify a 10x10 grid renders with legible letters; resizing and mobile viewport still display a complete grid.
 
 **Acceptance Scenarios**:
 
-1. **Given** the app loads, **When** the board state is retrieved, **Then** a 16×16 grid is displayed.
+1. **Given** the app loads, **When** the board state is retrieved, **Then** a 10x10 grid is displayed.
 2. **Given** a mobile viewport, **When** the page is viewed, **Then** the grid remains readable and scrollable as needed.
 
 ---
@@ -82,12 +82,12 @@ After a successful swap, the user receives basic confirmation that the move was 
 
 ### Functional Requirements
 
-- **FR-001**: System MUST render a 16×16 letter grid representing the current match board.
+- **FR-001**: System MUST render a 10x10 letter grid representing the current match board.
 - **FR-002**: Users MUST be able to select any two tiles and submit a swap request.
 - **FR-003**: System MUST validate swaps server-side by confirming coordinates exist, tiles are movable, and no dictionary/word checks are required for this MVP, then either accept (apply and return updated board) or reject with a reason.
 - **FR-004**: On acceptance, System MUST return the updated grid and reflect it for the user. Server RTT MUST meet PERF-001 (<200ms at p95); total perceived completion (server RTT + client render) SHOULD be ≤500ms in production and ≤1s in local development (per PERF-001L).
 - **FR-005**: On rejection or failure, System MUST preserve the previous grid and display an actionable error.
-- **FR-006**: System MUST support basic responsiveness so the 16×16 grid is viewable on desktop and mobile.
+- **FR-006**: System MUST support basic responsiveness so the 10x10 grid is viewable on desktop and mobile.
 - **FR-007**: System MUST provide a minimal confirmation indicator after a successful swap.
 - **FR-008**: System MUST prevent wrap-around or out-of-bounds coordinates in swap requests.
 - **FR-009**: System MUST provide a version-controlled quickstart script or `make` target that installs Supabase CLI prerequisites, validates required versions, performs preflight checks for Docker availability, Supabase authentication, and required ports, launches the Docker-backed stack via `supabase start`, and is referenced from the documentation with fail-fast remediation guidance.
@@ -96,28 +96,28 @@ After a successful swap, the user receives basic confirmation that the move was 
 - **FR-012**: System MUST include seed/reset workflows that populate and restore the database with baseline board and tile data while applying production-equivalent RLS policies, and these workflows MUST run automatically as part of the quickstart script after Supabase starts.
 - **FR-013**: System MUST describe troubleshooting guidance for common local Supabase failures (missing binaries, port conflicts, key mismatches).
 - **FR-014**: System MUST ensure local Supabase credentials are stored in developer `.env` files excluded from version control, with service_role keys limited to server-only runtime contexts; repository MUST include `.gitignore` rules for `.env*`; CI MUST include a static guardrail preventing `service_role` usage in any client bundle.
-- **FR-015**: Swaps MAY occur between any two coordinates on the 16×16 grid; adjacency is not required for MVP.
+- **FR-015**: Swaps MAY occur between any two coordinates on the 10x10 grid; adjacency is not required for MVP.
 - **FR-016**: MVP uses a single global board record identified by a stable `boardId`; seed/reset workflows operate on this board and all users interact with the same board.
 - **FR-017**: MVP requires no user authentication; all scaffold functionality is usable without login in local development (client uses anon context; server-only actions use service_role).
-- **FR-018**: Seed/reset MUST generate a 16×16 grid using the Icelandic letter-frequency distribution defined in `prd/wottle_prd.md` and implemented via `prd/wordlist/letter_scoring_values_is.ts`. The generator MUST guarantee each alphabet character (including diacritics) appears at least once, keyed deterministically by `match_id` while producing per-run variability. Algorithm MUST use weighted random selection based on frequency values from the source file.
+- **FR-018**: Seed/reset MUST generate a 10x10 grid using the Icelandic letter-frequency distribution defined in `prd/wottle_prd.md` and implemented via `prd/wordlist/letter_scoring_values_is.ts`. The generator MUST guarantee each alphabet character (including diacritics) appears at least once, keyed deterministically by `match_id` while producing per-run variability. Algorithm MUST use weighted random selection based on frequency values from the source file.
   - *Phase Note*: Phase 2 scaffolds with a deterministic baseline grid; Phase 3 delivers the weighted seeded generator and verification (see `tasks.T027b`–`T027e`).
 
 ### Key Entities *(include if feature involves data)*
 
-- **Board**: A 16×16 matrix of tiles, each with a letter and immutability flags reserved for future stages; for this feature, only letter and coordinates are required to visualize and swap.
+- **Board**: A 10x10 matrix of tiles, each with a letter and immutability flags reserved for future stages; for this feature, only letter and coordinates are required to visualize and swap.
   - MVP scope: Single global board reused and reset via quickstart workflows.
 - **Move**: A swap action with source and destination coordinates and a server-evaluated result (accepted/rejected) with updated board state.
 - **Local Supabase Project**: Developer-scoped environment including URLs, anon and service_role keys, storage buckets, and RLS policy set that mirrors production defaults.
 - **Seed Dataset**: Canonical board and tile records plus metadata used to prime the local database and enable deterministic reset workflows.
   - MVP scope: Phase 2 uses a deterministic baseline grid; Phase 3 introduces the weighted seeded generator tied to `match_id` and sourced from the PRD’s Icelandic frequency table (tasks `T027b`–`T027e`).
 - **Developer Environment Config**: `.env` templates and scripts that bind the scaffolded app to the local Supabase instance and enforce key-handling rules.
-  - MVP scope: Grid representation uses a JSONB 2D array (16×16) of single-character strings.
+  - MVP scope: Grid representation uses a JSONB 2D array (10x10) of single-character strings.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: A user can load the app and see a 16×16 grid within 2 seconds on a typical broadband connection (defined as ≥25 Mbps download, ≤100ms latency to server, measured from initial page load to grid render completion).
+- **SC-001**: A user can load the app and see a 10x10 grid within 2 seconds on a typical broadband connection (defined as ≥25 Mbps download, ≤100ms latency to server, measured from initial page load to grid render completion).
 - **SC-002**: At least 95% of valid swap attempts update the board within 1 second during local development testing (defined as: macOS/Linux with 8GB+ RAM, Node.js 20.x, local Supabase stack running on same machine, measured from swap submission to UI update; local target, non-binding).
 - **SC-003**: 100% of invalid swap attempts are rejected with a clear error message and no board change.
 - **SC-004**: A developer can install prerequisites and start the local Supabase stack within 20 minutes following the quickstart.
@@ -149,10 +149,10 @@ After a successful swap, the user receives basic confirmation that the move was 
 
 ### Session 2025-11-05
 
-- Q: What swap rule should the MVP enforce (adjacent-only vs any positions)? → A: Any two coordinates on the 16×16 grid (non-adjacent allowed).
+- Q: What swap rule should the MVP enforce (adjacent-only vs any positions)? → A: Any two coordinates on the 10x10 grid (non-adjacent allowed).
 - Q: What is the board identity model for MVP? → A: Single global board reused/reset (stable `boardId`).
 - Q: Is authentication required for the MVP scaffold? → A: No auth required (public local usage).
-- Q: How is the board grid represented in the database? → A: JSONB 2D array 16×16 of single-character strings.
+- Q: How is the board grid represented in the database? → A: JSONB 2D array 10x10 of single-character strings.
 - Q: What seed dataset strategy should MVP use? → A: Random letters on each seed/reset.
 
 ### Session 2025-11-08

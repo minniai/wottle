@@ -1,22 +1,22 @@
 # Data Model: MVP E2E Board & Swaps
 
- This document defines the minimal schema to support a 16×16 board render and a server-authoritative swap, with seed/reset workflows in local Supabase.
+ This document defines the minimal schema to support a 10x10 board render and a server-authoritative swap, with seed/reset workflows in local Supabase.
 
 ## Entities
 
 - Board
   - id: uuid (PK)
-  - grid: jsonb (16×16 letters as nested arrays or a flat 256-char array)
+  - grid: jsonb (10x10 letters as nested arrays or a flat 100-char array)
   - created_at: timestamptz (default now())
   - updated_at: timestamptz (default now(), updated on write)
 
 - Move
   - id: uuid (PK)
   - board_id: uuid (FK → boards.id)
-  - from_x: smallint (0–15)
-  - from_y: smallint (0–15)
-  - to_x: smallint (0–15)
-  - to_y: smallint (0–15)
+  - from_x: smallint (0–9)
+  - from_y: smallint (0–9)
+  - to_x: smallint (0–9)
+  - to_y: smallint (0–9)
   - result: text ("accepted" | "rejected")
   - error: text (nullable; reason when rejected)
   - applied_at: timestamptz (default now())
@@ -52,10 +52,10 @@
  create table if not exists public.moves (
    id uuid primary key default gen_random_uuid(),
    board_id uuid not null references public.boards(id) on delete cascade,
-   from_x smallint not null check (from_x between 0 and 15),
-   from_y smallint not null check (from_y between 0 and 15),
-   to_x smallint not null check (to_x between 0 and 15),
-   to_y smallint not null check (to_y between 0 and 15),
+  from_x smallint not null check (from_x between 0 and 9),
+  from_y smallint not null check (from_y between 0 and 9),
+  to_x smallint not null check (to_x between 0 and 9),
+  to_y smallint not null check (to_y between 0 and 9),
    result text not null check (result in ('accepted','rejected')),
    error text null,
    applied_at timestamptz not null default now()
@@ -86,12 +86,12 @@
 
 ## Seed/Reset (Outline)
 
-- Seed: insert a single `boards` row with a deterministic 16×16 grid (e.g., from `prd/wordlist` letters or simple pattern).
+- Seed: insert a single `boards` row with a deterministic 10x10 grid (e.g., from `prd/wordlist` letters or simple pattern).
 - Reset: truncate `moves`; restore `boards.grid` to baseline.
 - Provide scripts under `scripts/supabase/` and SQL under `supabase/migrations/`.
 
 ## Types (shared)
 
-- `BoardGrid`: `string[BOARD_SIZE][BOARD_SIZE]` (default 16×16) or `string[]` length 256 with `[x,y]` mapping helper.
+- `BoardGrid`: `string[BOARD_SIZE][BOARD_SIZE]` (default 10x10) or `string[]` length 100 with `[x,y]` mapping helper.
 - `MoveRequest`: `{ from: { x: number; y: number }; to: { x: number; y: number } }`.
 - `MoveResult`: `{ status: 'accepted' | 'rejected'; grid: BoardGrid; error?: string }`.

@@ -86,11 +86,11 @@
 
 ## Phase 4: User Story 2 - See board grid (Priority: P1)
 
-**Goal**: Render a 16×16 board grid fetched from Supabase
-**Independent Test**: With Supabase running, load `/` on desktop and mobile; a legible 16×16 grid appears
+**Goal**: Render a 10x10 board grid fetched from Supabase
+**Independent Test**: With Supabase running, load `/` on desktop and mobile; a legible 10x10 grid appears
 
 - [x] T028 [P] [US2] [TDD-RED] Write unit test for `getBoard` server action returning the BoardGrid in `tests/unit/app/actions/getBoard.test.ts`
-- [x] T029 [P] [US2] [TDD-RED] Write component test verifying a 16×16 responsive grid in `tests/unit/components/game/BoardGrid.test.tsx`
+- [x] T029 [P] [US2] [TDD-RED] Write component test verifying a 10x10 responsive grid in `tests/unit/components/game/BoardGrid.test.tsx`
 - [x] T030 [P] [US2] [TDD-RED] Write Playwright spec asserting grid visibility on desktop/mobile in `tests/integration/ui/board-grid.spec.ts`
 - [x] T031 [US2] [TDD-GREEN] Implement `getBoard` server action querying Supabase in `app/actions/getBoard.ts`
 - [x] T032 [US2] [TDD-GREEN] Implement GET `/api/board` route handler returning contract schema in `app/api/board/route.ts`

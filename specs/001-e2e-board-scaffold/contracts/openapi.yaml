@@ -53,19 +53,19 @@ components:
         x:
           type: integer
           minimum: 0
-          maximum: 15
+          maximum: 9
         y:
           type: integer
           minimum: 0
-          maximum: 15
+          maximum: 9
     BoardGrid:
       type: array
-      minItems: 16
-      maxItems: 16
+      minItems: 10
+      maxItems: 10
       items:
         type: array
-        minItems: 16
-        maxItems: 16
+        minItems: 10
+        maxItems: 10
         items:
           type: string
           minLength: 1

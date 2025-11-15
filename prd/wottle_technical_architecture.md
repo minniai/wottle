@@ -215,7 +215,7 @@ Player 1 Client                  Server Actions                  Player 2 Client
     /match/[matchId]
       page.tsx              # Server Component - initial match state load
       components/
-        GameBoard.tsx       # BOARD_SIZE×BOARD_SIZE grid (default 16×16)
+        GameBoard.tsx       # BOARD_SIZE×BOARD_SIZE grid (default 10x10)
         Tile.tsx            # Individual letter tile
         PlayerInfo.tsx      # Timer + score display
         ScoreDelta.tsx      # Animated score popup
@@ -271,8 +271,8 @@ Player 1 Client                  Server Actions                  Player 2 Client
 
 **Key Components:**
 
-1. **`<GameBoard>`** (BOARD_SIZE×BOARD_SIZE Grid Container — default 16×16)
-   - Renders 256 `<Tile>` components
+1. **`<GameBoard>`** (BOARD_SIZE×BOARD_SIZE Grid Container — default 10x10)
+   - Renders 100 `<Tile>` components
    - Manages tile selection state (first/second tile)
    - Handles drag-and-drop + click-to-swap interactions
    - Mobile: Touch event handlers with 44×44px minimum targets
@@ -330,7 +330,7 @@ interface LobbyStore {
 // app/(game)/match/[matchId]/GameContext.tsx
 interface GameState {
   matchId: string
-  board: LetterGrid  // BOARD_SIZE×BOARD_SIZE array (default 16×16)
+  board: LetterGrid  // BOARD_SIZE×BOARD_SIZE array (default 10x10)
   players: [Player, Player]
   currentTurn: 'white' | 'black' | 'simultaneous'
   moveHistory: Move[]
@@ -515,7 +515,7 @@ If edge runtime testing fails or performance targets not met:
 
 3. **`generateBoard`** (`lib/game-engine/board.ts` - shared utility)
    - Input: `{ seed: number, languageId: string }`
-   - Output: `LetterGrid (BOARD_SIZE×BOARD_SIZE array, default 16×16)`
+   - Output: `LetterGrid (BOARD_SIZE×BOARD_SIZE array, default 10x10)`
    - Logic:
      1. Seed random number generator
      2. Place letters by weighted frequency distribution
@@ -705,7 +705,7 @@ CREATE INDEX idx_matches_player_black ON matches(player_black_id, created_at DES
 -- Boards (current board state per match)
 CREATE TABLE boards (
   match_id UUID PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,
-  grid JSONB NOT NULL,  -- BOARD_SIZE×BOARD_SIZE array (default 16×16): [[{letter: 'A', frozen: false, owner: null}, ...], ...]
+  grid JSONB NOT NULL,  -- BOARD_SIZE×BOARD_SIZE array (default 10x10): [[{letter: 'A', frozen: false, owner: null}, ...], ...]
   frozen_positions JSONB DEFAULT '{}',  -- Map of "x,y" -> player_id for quick lookups
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -917,7 +917,7 @@ class BoardGenerator {
   generate(config: BoardGenConfig): LetterGrid {
     const startTime = performance.now()
 
-    // 1. Initialize empty BOARD_SIZE×BOARD_SIZE grid (default 16×16)
+    // 1. Initialize empty BOARD_SIZE×BOARD_SIZE grid (default 10x10)
     const grid = this.createEmptyGrid()
 
     // 2. Place letters by weighted distribution
@@ -2257,8 +2257,8 @@ import { z } from 'zod'
 
 const MoveSchema = z.object({
   matchId: z.string().uuid(),
-  from: z.object({ x: z.number().min(0).max(15), y: z.number().min(0).max(15) }),
-  to: z.object({ x: z.number().min(0).max(15), y: z.number().min(0).max(15) }),
+  from: z.object({ x: z.number().min(0).max(9), y: z.number().min(0).max(9) }),
+  to: z.object({ x: z.number().min(0).max(9), y: z.number().min(0).max(9) }),
   moveNumber: z.number().int().min(1).max(10)
 })
 
