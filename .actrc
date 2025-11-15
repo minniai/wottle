@@ -1,0 +1,8 @@
+# Use node:lts as the platform image for ubuntu-latest runners
+# This provides Node.js for setup actions to work
+-P ubuntu-latest=node:lts
+
+# Note: When running act, you need to mount the Docker socket for jobs that use Supabase.
+# Use the helper script: ./scripts/act.sh
+# Or run manually: act --container-options "-v /var/run/docker.sock:/var/run/docker.sock"
+
