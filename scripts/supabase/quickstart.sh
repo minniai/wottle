@@ -152,6 +152,12 @@ export SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
 export SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 export BOARD_MATCH_ID="$MATCH_ID"
 
+MIGRATE_BEGIN_MS="$(now_ms)"
+if [[ -z "$DRY_RUN" ]]; then
+  "$PNPM_BIN" supabase:migrate >/dev/null
+fi
+MIGRATE_END_MS="$(now_ms)"
+
 SEED_BEGIN_MS="$(now_ms)"
 if [[ -z "$DRY_RUN" ]]; then
   "$PNPM_BIN" tsx scripts/supabase/seed.ts >/dev/null
@@ -166,6 +172,7 @@ fi
 emit_json \
   "supabase.quickstart.success" \
   "startupDurationMs" "$((SUPABASE_START_END_MS - SUPABASE_START_BEGIN_MS))" \
+  "migrationDurationMs" "$((MIGRATE_END_MS - MIGRATE_BEGIN_MS))" \
   "seedDurationMs" "$((SEED_END_MS - SEED_BEGIN_MS))" \
   "supabaseUrl" "$SUPABASE_URL" \
   "matchId" "$MATCH_ID"

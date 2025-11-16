@@ -60,10 +60,8 @@ describe("seedBoard", () => {
 
   test("inserts the baseline grid when the board does not yet exist", async () => {
     const stub = createSupabaseClientStub({
-      boardFetchResponses: [
-        { data: null, error: null },
-        { data: { id: "new-board-id" }, error: null },
-      ],
+      boardFetchResponses: [{ data: null, error: null }],
+      boardInsertResponses: [{ data: { id: "new-board-id" }, error: null }],
     });
 
     createClientMock.mockReturnValueOnce(asSupabaseClient(stub));
@@ -109,11 +107,8 @@ describe("seedBoard", () => {
 describe("resetBoard", () => {
   test("rehydrates Supabase by delegating to seedBoard when the board is missing", async () => {
     const stub = createSupabaseClientStub({
-      boardFetchResponses: [
-        { data: null, error: null }, // initial reset lookup
-        { data: null, error: null }, // seedBoard initial lookup
-        { data: { id: "seeded-board-id" }, error: null }, // getBoardId after insert
-      ],
+      boardFetchResponses: [{ data: null, error: null }],
+      boardInsertResponses: [{ data: { id: "seeded-board-id" }, error: null }],
     });
 
     createClientMock.mockReturnValueOnce(asSupabaseClient(stub));

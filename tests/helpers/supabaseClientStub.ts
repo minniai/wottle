@@ -11,6 +11,7 @@ export interface SupabaseBoardLimitResponse {
 }
 
 export interface SupabaseMutationResponse {
+  data?: unknown;
   error: Error | null;
 }
 
@@ -101,9 +102,23 @@ export function createSupabaseClientStub(
               }),
             };
           }),
-          insert: vi.fn(async (payload: unknown) => {
+          insert: vi.fn((payload: unknown) => {
             history.boardInsertPayloads.push(payload);
-            return boardInsertQueue.shift() ?? { error: null };
+            const response =
+              boardInsertQueue.shift() ?? {
+                data: { id: "inserted-board-id" },
+                error: null,
+              };
+            const promise = Promise.resolve(response);
+            const api = {
+              select: vi.fn(() => ({
+                single: vi.fn(async () => response),
+              })),
+              then: promise.then.bind(promise),
+              catch: promise.catch.bind(promise),
+              finally: promise.finally.bind(promise),
+            };
+            return api;
           }),
         };
       }
