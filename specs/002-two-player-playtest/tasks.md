@@ -6,15 +6,16 @@
 **Organization**: Tasks grouped by user story to preserve independent increments.
 
 ## Format: `[ID] [P?] [Story] Description`
+
 - **[P]**: Task can run in parallel (different files, no unmet dependencies)
 - **[US*]**: User story label (e.g., [US1])
 - All task descriptions include concrete file paths
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Update playtest environment variables (`.env.example`, `.env.local.example`) with `PLAYTEST_INVITE_EXPIRY_SECONDS`, `PLAYTEST_MAX_CONCURRENT_MATCHES`, and document defaults in `README.md#Environment`
-- [ ] T002 Add playtest CI matrix entry that runs dual-session Playwright suite in `.github/workflows/ci.yml`
-- [ ] T003 Create feature flag scaffolding for lobby/match views (`app/layout.tsx`, `lib/constants/featureFlags.ts`)
+- [x] T001 Update playtest environment variables (`.env.example`, `.env.local.example`) with `PLAYTEST_INVITE_EXPIRY_SECONDS`, `PLAYTEST_MAX_CONCURRENT_MATCHES`, and document defaults in `README.md#Environment`
+- [x] T002 Add playtest CI matrix entry that runs dual-session Playwright suite in `.github/workflows/ci.yml`
+- [x] T003 Create feature flag scaffolding for lobby/match views (`app/layout.tsx`, `lib/constants/featureFlags.ts`)
 
 ---
 
@@ -144,4 +145,3 @@
 1. **MVP Slice**: Deliver US1 (login + lobby) end-to-end to validate Realtime presence and session handling.
 2. **Incremental Build**: Layer matchmaking (US2), rounds engine (US3), round summaries (US4), then final recap (US5).
 3. **Hardening**: Execute Final Phase polish tasks, update quickstart, and run full regression suite before inviting external testers.
-
