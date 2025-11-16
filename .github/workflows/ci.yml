@@ -336,7 +336,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: quickstart-playwright-log
+          name: quickstart-playwright-${{ matrix.suite }}-log
           path: quickstart-playwright.ndjson
           if-no-files-found: warn
 
