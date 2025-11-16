@@ -31,6 +31,8 @@ export interface SupabaseClientStubHistory {
   boardUpdateFilters: Array<{ column: string; value: unknown }>;
   boardInsertPayloads: unknown[];
   movesDeleteFilters: Array<{ column: string; value: unknown }>;
+  genericSelectTables: string[];
+  genericSelectLimitValues: Array<{ table: string; value: number }>;
 }
 
 type AnySupabaseClient = SupabaseClient<any, any, any, any, any>;
@@ -58,6 +60,8 @@ export function createSupabaseClientStub(
     boardUpdateFilters: [],
     boardInsertPayloads: [],
     movesDeleteFilters: [],
+    genericSelectTables: [],
+    genericSelectLimitValues: [],
   };
 
   const clientImpl = {
@@ -115,7 +119,17 @@ export function createSupabaseClientStub(
         };
       }
 
-      throw new Error(`Unexpected table: ${table}`);
+      return {
+        select: vi.fn(() => {
+          history.genericSelectTables.push(table);
+          return {
+            limit: vi.fn(async (value: number) => {
+              history.genericSelectLimitValues.push({ table, value });
+              return { error: null };
+            }),
+          };
+        }),
+      };
     }),
   };
 

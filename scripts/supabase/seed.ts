@@ -14,16 +14,19 @@ function requireEnv(name: string): string {
   return value;
 }
 
-async function seedBoard() {
+function createServiceRoleClient(): AnySupabaseClient {
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function seedBoard(supabaseParam?: AnySupabaseClient) {
+  const supabase = supabaseParam ?? createServiceRoleClient();
   const started = performance.now();
   const matchId = process.env.BOARD_MATCH_ID ?? `board-${Date.now()}`;
   const grid = generateBoard({ matchId });
-
-  const supabase = createClient(url, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
 
   const { data: existing, error: fetchError } = await supabase
     .from("boards")
@@ -67,6 +70,81 @@ async function seedBoard() {
   return {
     durationMs: Math.round(performance.now() - started),
     matchId,
+    grid,
+  };
+}
+
+async function seedPlaytestFixtures(
+  supabase: AnySupabaseClient,
+  grid: string[][]
+) {
+  const started = performance.now();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+  const playersPayload = [
+    { username: "playtest-alpha", display_name: "Playtest Alpha" },
+    { username: "playtest-beta", display_name: "Playtest Beta" },
+  ];
+  const { data: players, error: playerError } = await supabase
+    .from("players")
+    .upsert(playersPayload, { onConflict: "username" })
+    .select("id, username");
+
+  if (playerError || !players) {
+    throw playerError ?? new Error("Failed to seed playtest players");
+  }
+
+  const [playerA, playerB] = players;
+
+  const matchId = "playtest-demo-match";
+  const { error: matchError } = await supabase.from("matches").upsert(
+    {
+      id: matchId,
+      board_seed: matchId,
+      player_a_id: playerA.id,
+      player_b_id: playerB.id,
+      state: "pending",
+      round_limit: 10,
+    },
+    { onConflict: "id" }
+  );
+
+  if (matchError) {
+    throw matchError;
+  }
+
+  const { error: roundError } = await supabase.from("rounds").upsert(
+    {
+      match_id: matchId,
+      round_number: 1,
+      state: "collecting",
+      board_snapshot_before: grid,
+    },
+    { onConflict: "match_id,round_number" }
+  );
+
+  if (roundError) {
+    throw roundError;
+  }
+
+  const { error: presenceError } = await supabase.from("lobby_presence").upsert(
+    players.map((player, index) => ({
+      player_id: player.id,
+      connection_id: `demo-connection-${index}`,
+      mode: "auto",
+      invite_token: null,
+      expires_at: expiresAt,
+    })),
+    { onConflict: "player_id" }
+  );
+
+  if (presenceError) {
+    throw presenceError;
+  }
+
+  return {
+    durationMs: Math.round(performance.now() - started),
+    matchId,
   };
 }
 
@@ -82,31 +160,38 @@ async function getBoardId(supabase: AnySupabaseClient) {
   return data.id;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedBoard()
-    .then(({ durationMs, matchId }) => {
-      console.log(
-        JSON.stringify({
-          event: "supabase.seed.success",
-          durationMs,
-          matchId,
-          boardId: PRIMARY_BOARD_ID,
-          timestamp: new Date().toISOString(),
-        })
-      );
+async function seed() {
+  const supabase = createServiceRoleClient();
+
+  const boardResult = await seedBoard(supabase);
+  const playtestResult = await seedPlaytestFixtures(supabase, boardResult.grid);
+
+  console.log(
+    JSON.stringify({
+      event: "supabase.seed.success",
+      boardDurationMs: boardResult.durationMs,
+      playtestDurationMs: playtestResult.durationMs,
+      boardMatchId: boardResult.matchId,
+      demoMatchId: playtestResult.matchId,
+      boardId: PRIMARY_BOARD_ID,
+      timestamp: new Date().toISOString(),
     })
-    .catch((error) => {
-      console.error(
-        JSON.stringify({
-          event: "supabase.seed.error",
-          message: error.message,
-          stack: error.stack,
-          boardId: PRIMARY_BOARD_ID,
-          timestamp: new Date().toISOString(),
-        })
-      );
-      process.exitCode = 1;
-    });
+  );
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seed().catch((error) => {
+    console.error(
+      JSON.stringify({
+        event: "supabase.seed.error",
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        boardId: PRIMARY_BOARD_ID,
+        timestamp: new Date().toISOString(),
+      })
+    );
+    process.exitCode = 1;
+  });
 }
 
 export { seedBoard };

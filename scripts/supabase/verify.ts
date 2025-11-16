@@ -36,13 +36,22 @@ export async function verifySupabase(options: VerifyOptions = {}): Promise<Verif
         auth: { persistSession: false, autoRefreshToken: false },
       });
 
-      const { error } = await supabase
-        .from("boards")
-        .select("board_id")
-        .eq("board_id", PRIMARY_BOARD_ID)
-        .limit(1);
-      if (error) {
-        throw error;
+      const checks = await Promise.all([
+        supabase
+          .from("boards")
+          .select("board_id")
+          .eq("board_id", PRIMARY_BOARD_ID)
+          .limit(1),
+        supabase.from("players").select("id").limit(1),
+        supabase.from("matches").select("id").limit(1),
+        supabase.from("rounds").select("id").limit(1),
+        supabase.from("move_submissions").select("id").limit(1),
+        supabase.from("match_logs").select("id").limit(1),
+      ]);
+
+      const failed = checks.find((result) => result.error);
+      if (failed?.error) {
+        throw failed.error;
       }
     });
 
