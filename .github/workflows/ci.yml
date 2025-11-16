@@ -308,9 +308,13 @@ jobs:
           PLAYWRIGHT_SUITE: ${{ matrix.suite }}
         run: |
           if [ "$PLAYWRIGHT_SUITE" = "playtest" ]; then
-            pnpm exec playwright test --config=playwright.config.ts --reporter=line --grep \"@two-player-playtest\"
+            if grep -R --include='*.spec.ts' -q '@two-player-playtest' tests; then
+              pnpm exec playwright test --config=playwright.config.ts --reporter=line --grep "@two-player-playtest"
+            else
+              echo "Skipping playtest suite: no '@two-player-playtest' tests found yet."
+            fi
           else
-            pnpm exec playwright test --config=playwright.config.ts --reporter=line --grep-invert \"@two-player-playtest\"
+            pnpm exec playwright test --config=playwright.config.ts --reporter=line --grep-invert "@two-player-playtest"
           fi
       - name: Stop Next.js server
         if: always()
