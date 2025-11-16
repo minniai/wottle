@@ -71,6 +71,7 @@ describe("seedBoard", () => {
     const result = await seedBoard();
 
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    expect(result.grid).toEqual(MOCK_GRID);
     expect(createClientMock).toHaveBeenCalledWith(
       "http://localhost:54321",
       "service-role-key",
@@ -107,19 +108,15 @@ describe("seedBoard", () => {
 
 describe("resetBoard", () => {
   test("rehydrates Supabase by delegating to seedBoard when the board is missing", async () => {
-    const resetStub = createSupabaseClientStub({
-      boardFetchResponses: [{ data: null, error: null }],
-    });
-    const seedStub = createSupabaseClientStub({
+    const stub = createSupabaseClientStub({
       boardFetchResponses: [
-        { data: null, error: null },
-        { data: { id: "seeded-board-id" }, error: null },
+        { data: null, error: null }, // initial reset lookup
+        { data: null, error: null }, // seedBoard initial lookup
+        { data: { id: "seeded-board-id" }, error: null }, // getBoardId after insert
       ],
     });
 
-    createClientMock
-      .mockReturnValueOnce(asSupabaseClient(resetStub))
-      .mockReturnValueOnce(asSupabaseClient(seedStub));
+    createClientMock.mockReturnValueOnce(asSupabaseClient(stub));
 
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -129,8 +126,8 @@ describe("resetBoard", () => {
       consoleSpy.mockRestore();
     }
 
-    expect(seedStub.history.boardInsertPayloads).toHaveLength(1);
-    expect(seedStub.history.movesDeleteFilters).toEqual([
+    expect(stub.history.boardInsertPayloads).toHaveLength(1);
+    expect(stub.history.movesDeleteFilters).toEqual([
       { column: "board_id", value: "seeded-board-id" },
     ]);
   });
@@ -143,7 +140,7 @@ describe("resetBoard", () => {
 
     const seedSpy = vi
       .spyOn(seedModule, "seedBoard")
-      .mockResolvedValue({ durationMs: 0, matchId: "seeded-board" });
+      .mockResolvedValue({ durationMs: 0, matchId: "seeded-board", grid: MOCK_GRID });
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     try {

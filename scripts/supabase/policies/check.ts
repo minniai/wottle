@@ -13,6 +13,20 @@ function requireEnv(name: string, fallback?: string): string {
   return value;
 }
 
+const TABLES = [
+  "boards",
+  "moves",
+  "players",
+  "lobby_presence",
+  "match_invitations",
+  "matches",
+  "rounds",
+  "move_submissions",
+  "word_score_entries",
+  "scoreboard_snapshots",
+  "match_logs",
+];
+
 async function fetchPolicies() {
   const password = requireEnv("SUPABASE_DB_PASSWORD", "postgres");
   const host = process.env.SUPABASE_DB_HOST ?? "127.0.0.1";
@@ -27,9 +41,10 @@ async function fetchPolicies() {
       `
         select schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
         from pg_policies
-        where schemaname = 'public' and tablename in ('boards', 'moves')
+        where schemaname = 'public' and tablename = any($1)
         order by tablename, policyname;
-      `
+      `,
+      [TABLES]
     );
     return rows;
   } finally {

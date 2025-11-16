@@ -52,7 +52,7 @@ async function resetBoard() {
     }
   } else {
     // If the board does not exist yet, fall back to seeding.
-    await seedBoard();
+    await seedBoard(supabase);
   }
 
   console.log(

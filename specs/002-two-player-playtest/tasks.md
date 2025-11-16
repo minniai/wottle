@@ -21,14 +21,14 @@
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T004 Author Supabase migration for players, lobby_presence, match_invitations, matches, rounds, move_submissions, word_score_entries, scoreboard_snapshots, match_logs (`supabase/migrations/20251115001_playtest.sql`)
-- [ ] T005 Add RLS policies + verification script updates for new tables (`scripts/supabase/policies/check.ts`, `scripts/supabase/verify.ts`)
-- [ ] T006 Implement shared match domain types (`lib/types/match.ts`) covering `MatchState`, `RoundSummary`, `WordScoreEntry`, `TimerState`
-- [ ] T007 Build Supabase service helpers for lobby/match operations (`lib/matchmaking/service.ts`, `lib/match/stateMachine.ts`)
-- [ ] T008 Create Realtime channel utilities with polling fallback (`lib/realtime/presenceChannel.ts`, `lib/realtime/matchChannel.ts`)
-- [ ] T009 Extend observability helpers with playtest metrics + structured logs (`lib/observability/perf.ts`, `lib/observability/log.ts`)
-- [ ] T010 Seed baseline test data (sample usernames + single open match) in `scripts/supabase/seed.ts`
-- [ ] T011 [P] Add Vitest unit tests for state machine + conflict resolution rules (`tests/unit/lib/match/stateMachine.test.ts`)
+- [x] T004 Author Supabase migration for players, lobby_presence, match_invitations, matches, rounds, move_submissions, word_score_entries, scoreboard_snapshots, match_logs (`supabase/migrations/20251115001_playtest.sql`)
+- [x] T005 Add RLS policies + verification script updates for new tables (`scripts/supabase/policies/check.ts`, `scripts/supabase/verify.ts`)
+- [x] T006 Implement shared match domain types (`lib/types/match.ts`) covering `MatchState`, `RoundSummary`, `WordScoreEntry`, `TimerState`
+- [x] T007 Build Supabase service helpers for lobby/match operations (`lib/matchmaking/service.ts`, `lib/match/stateMachine.ts`)
+- [x] T008 Create Realtime channel utilities with polling fallback (`lib/realtime/presenceChannel.ts`, `lib/realtime/matchChannel.ts`)
+- [x] T009 Extend observability helpers with playtest metrics + structured logs (`lib/observability/perf.ts`, `lib/observability/log.ts`)
+- [x] T010 Seed baseline test data (sample usernames + single open match) in `scripts/supabase/seed.ts`
+- [x] T011 [P] Add Vitest unit tests for state machine + conflict resolution rules (`tests/unit/lib/match/stateMachine.test.ts`)
 
 ---
 

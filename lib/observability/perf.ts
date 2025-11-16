@@ -108,4 +108,11 @@ export function createPerfTimer(
   };
 }
 
+export function createPlaytestPerfTimer(
+  event: string,
+  context: Record<string, unknown> = {}
+): PerfTimer {
+  return createPerfTimer(event, { playtest: true, ...context });
+}
+
 

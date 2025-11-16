@@ -80,7 +80,14 @@ describe("verifySupabase instrumentation", () => {
       })
     );
 
-    expect(stub.history.fromTables).toEqual(["boards"]);
+    expect(stub.history.fromTables).toEqual([
+      "boards",
+      "players",
+      "matches",
+      "rounds",
+      "move_submissions",
+      "match_logs",
+    ]);
     expect(stub.history.boardSelectColumns).toEqual(["board_id"]);
     expect(stub.history.boardSelectFilters).toEqual([
       { column: "board_id", value: PRIMARY_BOARD_ID },
