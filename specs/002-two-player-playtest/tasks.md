@@ -37,14 +37,14 @@
 **Goal**: Username-only login creates/updates player profile and renders real-time lobby list.
 **Independent Test**: Playwright script logs in two browsers, verifies both appear in lobby within 5 seconds and statuses update on join/leave.
 
-- [ ] T012 [US1] [TDD-RED] Add Playwright spec for dual-login lobby visibility (`tests/integration/ui/lobby-presence.spec.ts`)
-- [ ] T013 [US1] Implement username login Server Action + validation (`app/actions/auth/login.ts`, `lib/matchmaking/profile.ts`)
-- [ ] T014 [US1] Wire REST handler `/api/auth/login` to server action for contract tests (`app/api/auth/login/route.ts`)
-- [ ] T015 [US1] Build lobby presence store + Zustand hooks (`lib/matchmaking/presenceStore.ts`)
-- [ ] T016 [US1] Create lobby UI components (`components/lobby/LobbyList.tsx`, `components/lobby/LobbyCard.tsx`) with realtime + polling fallback messaging
-- [ ] T017 [US1] Integrate lobby list + login flow into `app/(lobby)/page.tsx`, including reconnect banner handling
-- [ ] T018 [US1] [P] Add Vitest tests for presence store reducers (`tests/unit/lib/matchmaking/presenceStore.test.ts`)
-- [ ] T019 [US1] [P] Add contract test for `/api/auth/login` happy/error paths (`tests/contract/post-login.contract.test.ts`)
+- [x] T012 [US1] [TDD-RED] Add Playwright spec for dual-login lobby visibility (`tests/integration/ui/lobby-presence.spec.ts`)
+- [x] T013 [US1] Implement username login Server Action + validation (`app/actions/auth/login.ts`, `lib/matchmaking/profile.ts`)
+- [x] T014 [US1] Wire REST handler `/api/auth/login` to server action for contract tests (`app/api/auth/login/route.ts`)
+- [x] T015 [US1] Build lobby presence store + Zustand hooks (`lib/matchmaking/presenceStore.ts`)
+- [x] T016 [US1] Create lobby UI components (`components/lobby/LobbyList.tsx`, `components/lobby/LobbyCard.tsx`) with realtime + polling fallback messaging
+- [x] T017 [US1] Integrate lobby list + login flow into `app/(lobby)/page.tsx`, including reconnect banner handling
+- [x] T018 [US1] [P] Add Vitest tests for presence store reducers (`tests/unit/lib/matchmaking/presenceStore.test.ts`)
+- [x] T019 [US1] [P] Add contract test for `/api/auth/login` happy/error paths (`tests/contract/post-login.contract.test.ts`)
 
 ---
 
