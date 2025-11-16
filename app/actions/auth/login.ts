@@ -23,6 +23,7 @@ export async function loginAction(
   const username = formData.get("username");
 
   try {
+    console.log("loginAction invoked", username);
     const { player, sessionToken } = await performUsernameLogin(
       typeof username === "string" ? username : ""
     );

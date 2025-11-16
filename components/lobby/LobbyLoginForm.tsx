@@ -48,7 +48,7 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
           className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
           data-testid="lobby-username-input"
         />
-        <p className="mt-2 text-xs text-white/50">Letters, numbers, and underscores only.</p>
+        <p className="mt-2 text-xs text-white/50">Letters, numbers, underscores, or hyphens only.</p>
       </div>
 
       {state.status === "error" && state.message && (
