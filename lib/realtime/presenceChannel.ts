@@ -1,6 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
-export interface PresenceCallbacks<TState extends Record<string, unknown> = Record<string, unknown>> {
+export interface PresenceCallbacks<TState extends object = Record<string, unknown>> {
   onJoin?: (payload: TState) => void;
   onLeave?: (payload: TState) => void;
   onSync?: (payload: TState[]) => void;
@@ -12,14 +12,14 @@ export interface PresenceSubscription {
   stopPolling: () => void;
 }
 
-interface PresenceOptions<TPollState extends Record<string, unknown>> {
+interface PresenceOptions<TPollState extends object> {
   poller?: () => Promise<TPollState[]>;
   pollIntervalMs?: number;
   key?: string;
 }
 
 export function subscribeToLobbyPresence<
-  TState extends Record<string, unknown> = Record<string, unknown>
+  TState extends object = Record<string, unknown>
 >(
   client: SupabaseClient,
   callbacks: PresenceCallbacks<TState>,
