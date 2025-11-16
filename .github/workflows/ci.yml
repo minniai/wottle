@@ -135,11 +135,17 @@ jobs:
           if-no-files-found: warn
 
   playwright:
-    name: Playwright UI
+    name: Playwright UI (${{ matrix.suite }})
     runs-on: ubuntu-latest
     # Note: No container here - needs Docker access for Supabase
     # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
     needs: quickstart
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - baseline
+          - playtest
     timeout-minutes: 45
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -298,7 +304,14 @@ jobs:
           }
           echo "✓ Server is ready!"
       - name: Run Playwright tests
-        run: pnpm exec playwright test --config=playwright.config.ts --reporter=line
+        env:
+          PLAYWRIGHT_SUITE: ${{ matrix.suite }}
+        run: |
+          if [ "$PLAYWRIGHT_SUITE" = "playtest" ]; then
+            pnpm exec playwright test --config=playwright.config.ts --reporter=line --grep \"@two-player-playtest\"
+          else
+            pnpm exec playwright test --config=playwright.config.ts --reporter=line --grep-invert \"@two-player-playtest\"
+          fi
       - name: Stop Next.js server
         if: always()
         run: |

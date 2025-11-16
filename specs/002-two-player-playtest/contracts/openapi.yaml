@@ -1,0 +1,405 @@
+openapi: 3.1.0
+info:
+  title: Wottle Two-Player Playtest API
+  version: 0.1.0
+  description: |
+    Contract surface for automated tests that drive login, lobby, matchmaking, round submissions,
+    and scoreboard reads during the Two-Player Playtest milestone. Production clients use Next.js
+    Server Actions directly; these REST handlers mirror the same invariants for contract/e2e tests.
+servers:
+  - url: http://localhost:3000
+    description: Local Next.js dev server
+paths:
+  /api/auth/login:
+    post:
+      summary: Username-only login for playtesters
+      operationId: postLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated session bootstrap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid username
+  /api/lobby/players:
+    get:
+      summary: Fetch current lobby presence snapshot
+      operationId: getLobbyPlayers
+      responses:
+        '200':
+          description: Active lobby entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  players:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LobbyPlayer'
+  /api/lobby/invite:
+    post:
+      summary: Send a direct invitation to another player
+      operationId: postInvite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+      responses:
+        '200':
+          description: Invitation issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteResponse'
+        '409':
+          description: Player unavailable or already invited
+  /api/lobby/invite/{inviteId}/respond:
+    post:
+      summary: Accept or decline an invitation
+      operationId: respondInvite
+      parameters:
+        - in: path
+          name: inviteId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteDecisionRequest'
+      responses:
+        '200':
+          description: Invitation response applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteDecisionResponse'
+        '410':
+          description: Invite expired
+  /api/match/start:
+    post:
+      summary: Enter the auto-pairing queue
+      operationId: postMatchStart
+      responses:
+        '200':
+          description: Match found (immediate) or queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchStartResponse'
+  /api/match/{matchId}:
+    get:
+      summary: Fetch current match state (board, timers, scores)
+      operationId: getMatch
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Match snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchState'
+        '404':
+          description: Match not found or unauthorized
+  /api/match/{matchId}/move:
+    post:
+      summary: Submit a round swap for the current player
+      operationId: postMove
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveRequest'
+      responses:
+        '200':
+          description: Submission accepted or rejected with reason
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveResponse'
+        '409':
+          description: Round already resolved or duplicate submission
+  /api/match/{matchId}/rounds/{roundNumber}/summary:
+    get:
+      summary: Retrieve the scoring summary for a completed round
+      operationId: getRoundSummary
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: roundNumber
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+      responses:
+        '200':
+          description: Round summary payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoundSummary'
+        '404':
+          description: Round not found or not yet completed
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 24
+          pattern: '^[A-Za-z0-9_]+$'
+    LoginResponse:
+      type: object
+      required: [player]
+      properties:
+        player:
+          $ref: '#/components/schemas/LobbyPlayer'
+        sessionToken:
+          type: string
+    LobbyPlayer:
+      type: object
+      required: [id, username, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        status:
+          type: string
+          enum: [available, matchmaking, in_match]
+        lastSeenAt:
+          type: string
+          format: date-time
+    InviteRequest:
+      type: object
+      required: [recipientId]
+      properties:
+        recipientId:
+          type: string
+          format: uuid
+    InviteResponse:
+      type: object
+      required: [inviteId, expiresAt]
+      properties:
+        inviteId:
+          type: string
+          format: uuid
+        expiresAt:
+          type: string
+          format: date-time
+    InviteDecisionRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, declined]
+    InviteDecisionResponse:
+      type: object
+      required: [inviteId, status]
+      properties:
+        inviteId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted, declined, expired]
+        matchId:
+          type: string
+          format: uuid
+          nullable: true
+    MatchStartResponse:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [matched, queued]
+        matchId:
+          type: string
+          format: uuid
+          nullable: true
+        estimatedWaitSeconds:
+          type: integer
+          nullable: true
+    MatchState:
+      type: object
+      required: [matchId, board, currentRound, timers, scores]
+      properties:
+        matchId:
+          type: string
+          format: uuid
+        board:
+          $ref: '#/components/schemas/BoardGrid'
+        currentRound:
+          type: integer
+          minimum: 1
+        state:
+          type: string
+          enum: [pending, collecting, resolving, completed]
+        timers:
+          type: object
+          required: [playerA, playerB]
+          properties:
+            playerA:
+              $ref: '#/components/schemas/TimerState'
+            playerB:
+              $ref: '#/components/schemas/TimerState'
+        scores:
+          $ref: '#/components/schemas/ScoreState'
+        lastSummary:
+          $ref: '#/components/schemas/RoundSummary'
+          nullable: true
+    TimerState:
+      type: object
+      required: [playerId, remainingMs, status]
+      properties:
+        playerId:
+          type: string
+          format: uuid
+        remainingMs:
+          type: integer
+        status:
+          type: string
+          enum: [running, paused, expired]
+    ScoreState:
+      type: object
+      required: [playerA, playerB]
+      properties:
+        playerA:
+          type: integer
+        playerB:
+          type: integer
+    MoveRequest:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          $ref: '#/components/schemas/Coordinate'
+        to:
+          $ref: '#/components/schemas/Coordinate'
+    MoveResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, rejected_invalid, ignored_same_move]
+        rejectionReason:
+          type: string
+          nullable: true
+        roundState:
+          type: string
+          enum: [collecting, resolving, completed]
+    RoundSummary:
+      type: object
+      required: [roundNumber, words, deltas]
+      properties:
+        roundNumber:
+          type: integer
+        words:
+          type: array
+          items:
+            $ref: '#/components/schemas/WordScore'
+        deltas:
+          type: object
+          required: [playerA, playerB]
+          properties:
+            playerA:
+              type: integer
+            playerB:
+              type: integer
+        totals:
+          $ref: '#/components/schemas/ScoreState'
+        highlights:
+          type: array
+          items:
+            $ref: '#/components/schemas/WordHighlight'
+    WordScore:
+      type: object
+      required: [playerId, word, totalPoints]
+      properties:
+        playerId:
+          type: string
+          format: uuid
+        word:
+          type: string
+        length:
+          type: integer
+        lettersPoints:
+          type: integer
+        bonusPoints:
+          type: integer
+        totalPoints:
+          type: integer
+    WordHighlight:
+      type: object
+      required: [coordinates]
+      properties:
+        coordinates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coordinate'
+    Coordinate:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: integer
+          minimum: 0
+          maximum: 9
+        y:
+          type: integer
+          minimum: 0
+          maximum: 9
+    BoardGrid:
+      type: array
+      minItems: 10
+      maxItems: 10
+      items:
+        type: array
+        minItems: 10
+        maxItems: 10
+        items:
+          type: string
+          minLength: 1
+          maxLength: 1
+          pattern: '^[A-Za-zÁÐÉÍÓÚÝÞÆÖ]$'
