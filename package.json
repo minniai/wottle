@@ -24,6 +24,7 @@
     "typecheck": "tsc --pretty --noEmit",
     "test": "vitest --passWithNoTests",
     "guard:no-service-role": "tsx scripts/guards/no-service-role-in-client.ts",
+    "supabase:migrate": "supabase migration up",
     "supabase:seed": "tsx scripts/supabase/seed.ts",
     "supabase:reset": "tsx scripts/supabase/reset.ts",
     "supabase:verify": "tsx scripts/supabase/verify.ts",

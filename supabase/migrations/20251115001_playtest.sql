@@ -1,12 +1,13 @@
 -- Playtest schema additions for two-player milestone
 create extension if not exists pgcrypto;
+create extension if not exists citext;
 
 create table if not exists public.players (
   id uuid primary key default gen_random_uuid(),
   username citext not null unique,
-  display_name text not null,
+  display_name text not null default '',
   avatar_url text,
-  status text not null check (status in ('available','matchmaking','in_match','offline')),
+  status text not null default 'available' check (status in ('available','matchmaking','in_match','offline')),
   last_seen_at timestamptz not null default now(),
   elo_rating integer,
   created_at timestamptz not null default now(),
