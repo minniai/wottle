@@ -20,6 +20,7 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
   const lastEventAt = useLobbyPresenceStore((state) => state.lastEventAt);
   const connect = useLobbyPresenceStore((state) => state.connect);
   const disconnect = useLobbyPresenceStore((state) => state.disconnect);
+  const setInitialPlayers = useLobbyPresenceStore((state) => state.setInitialPlayers);
 
   useEffect(() => {
     void connect({ self, initialPlayers });
@@ -27,6 +28,41 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
       disconnect();
     };
   }, [connect, disconnect, self, initialPlayers]);
+
+  useEffect(() => {
+    if (status === "ready" && connectionMode === "realtime") {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function refreshSnapshot() {
+      try {
+        const response = await fetch("/api/lobby/players", {
+          cache: "no-store",
+          headers: {
+            accept: "application/json",
+          },
+        });
+        if (!response.ok || cancelled) {
+          return;
+        }
+        const payload = (await response.json()) as { players?: PlayerIdentity[] };
+        if (!cancelled && Array.isArray(payload.players)) {
+          setInitialPlayers(payload.players);
+        }
+      } catch {
+        // allow realtime channel to recover
+      }
+    }
+
+    refreshSnapshot();
+    const interval = setInterval(refreshSnapshot, 2_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [status, connectionMode, setInitialPlayers]);
 
   const statusLabel = buildStatusLabel(status, connectionMode, lastEventAt);
 

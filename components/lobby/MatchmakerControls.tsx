@@ -140,7 +140,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
 
   const handleStartQueue = () => {
     startQueue(async () => {
-      setQueueStatus("Looking for an opponent…");
+      setQueueStatus("looking for an opponent…");
       const result = await startQueueAction();
       if (result.status === "matched" && result.matchId) {
         handleMatchReady(result.matchId);
