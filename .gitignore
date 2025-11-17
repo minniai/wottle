@@ -74,6 +74,7 @@ lerna-debug.log*
 
 # Testing
 coverage/
+test-results/
 *.lcov
 .nyc_output
 
