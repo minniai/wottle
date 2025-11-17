@@ -79,16 +79,19 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
       const subscription = subscribeToLobbyPresence<PlayerIdentity>(
         client,
         {
-          onSync: (payload) => {
-            set({
-              players: applyLobbyEvent(get().players, {
-                type: "sync",
-                players: payload,
-              }),
+          onSync: (payload, source) => {
+            set((state) => ({
+              players:
+                source === "poller"
+                  ? applyLobbyEvent(state.players, {
+                      type: "sync",
+                      players: payload,
+                    })
+                  : mergeRealtimePlayers(state.players, payload),
               status: "ready",
-              connectionMode: "realtime",
+              connectionMode: source === "poller" ? "polling" : "realtime",
               lastEventAt: Date.now(),
-            });
+            }));
           },
           onJoin: (player) => {
             set({
@@ -123,6 +126,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         {
           key: self.id,
           poller: fetchPollingSnapshot,
+          pollIntervalMs: 500,
         }
       );
 
@@ -185,6 +189,22 @@ export function applyLobbyEvent(
     default:
       return players;
   }
+}
+
+function mergeRealtimePlayers(
+  current: PlayerIdentity[],
+  incoming: PlayerIdentity[]
+): PlayerIdentity[] {
+  if (incoming.length === 0) {
+    return current;
+  }
+
+  let result = current;
+  for (const player of incoming) {
+    result = upsert(result, player);
+  }
+
+  return normalizePlayers(result);
 }
 
 function normalizePlayers(players: PlayerIdentity[]): PlayerIdentity[] {
