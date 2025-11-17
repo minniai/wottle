@@ -5,7 +5,7 @@ import { create } from "zustand";
 import { subscribeToLobbyPresence } from "../realtime/presenceChannel";
 import type { PresenceSubscription } from "../realtime/presenceChannel";
 import { getBrowserSupabaseClient } from "../supabase/browser";
-import type { PlayerIdentity } from "../types/match";
+import type { LobbyStatus, PlayerIdentity } from "../types/match";
 
 export type LobbyPresenceEvent =
   | { type: "sync"; players: PlayerIdentity[] }
@@ -30,10 +30,13 @@ interface LobbyPresenceState {
   connect: (options: ConnectOptions) => Promise<void>;
   disconnect: () => void;
   setInitialPlayers: (players: PlayerIdentity[]) => void;
+  updateSelfStatus: (status: LobbyStatus) => void;
 }
 
 let activeSubscription: PresenceSubscription | null = null;
 let trackedPlayerId: string | null = null;
+let trackedPlayer: PlayerIdentity | null = null;
+let trackedConnectionId: string | null = null;
 
 export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   players: [],
@@ -59,6 +62,8 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         error: null,
       });
       trackedPlayerId = null;
+      trackedPlayer = null;
+      trackedConnectionId = null;
       return;
     }
 
@@ -132,10 +137,12 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
 
       activeSubscription = subscription;
       trackedPlayerId = self.id;
+      trackedConnectionId = createConnectionId();
+      trackedPlayer = self;
 
-      subscription.channel.track({
+      subscription.updatePresence({
         ...self,
-        connectionId: createConnectionId(),
+        connectionId: trackedConnectionId,
         lastSeenAt: new Date().toISOString(),
       });
 
@@ -166,10 +173,36 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
       connectionMode: "realtime",
     });
     trackedPlayerId = null;
+    trackedPlayer = null;
+    trackedConnectionId = null;
   },
   setInitialPlayers(players) {
     set({
       players: normalizePlayers(players),
+      lastEventAt: Date.now(),
+    });
+  },
+  updateSelfStatus(status) {
+    if (!trackedPlayerId || !trackedPlayer || !activeSubscription || !trackedConnectionId) {
+      return;
+    }
+
+    trackedPlayer = {
+      ...trackedPlayer,
+      status,
+      lastSeenAt: new Date().toISOString(),
+    };
+
+    activeSubscription.updatePresence({
+      ...trackedPlayer,
+      connectionId: trackedConnectionId,
+    });
+
+    set({
+      players: applyLobbyEvent(get().players, {
+        type: "join",
+        player: trackedPlayer,
+      }),
       lastEventAt: Date.now(),
     });
   },

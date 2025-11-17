@@ -10,6 +10,7 @@ export interface PresenceCallbacks<TState extends object = Record<string, unknow
 export interface PresenceSubscription {
   channel: RealtimeChannel;
   stopPolling: () => void;
+  updatePresence: (payload: Record<string, unknown>) => void;
 }
 
 interface PresenceOptions<TPollState extends object> {
@@ -32,6 +33,12 @@ export function subscribeToLobbyPresence<
       },
     },
   });
+  let trackedPayload: Record<string, unknown> | null = null;
+
+  function pushPresence(payload: Record<string, unknown>) {
+    trackedPayload = payload;
+    channel.track(payload);
+  }
 
   channel
     .on("presence", { event: "sync" }, () => {
@@ -77,6 +84,16 @@ export function subscribeToLobbyPresence<
         clearInterval(pollHandle);
       }
       channel.unsubscribe();
+    },
+    updatePresence(payload) {
+      const merged =
+        trackedPayload === null
+          ? payload
+          : {
+              ...trackedPayload,
+              ...payload,
+            };
+      pushPresence(merged);
     },
   };
 }

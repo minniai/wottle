@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import type { PlayerIdentity } from "../../lib/types/match";
 import { LobbyCard } from "./LobbyCard";
+import { MatchmakerControls } from "./MatchmakerControls";
 import { useLobbyPresenceStore } from "../../lib/matchmaking/presenceStore";
 
 interface LobbyListProps {
@@ -43,6 +44,10 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
           {statusLabel}
         </span>
       </header>
+
+      <div className="mt-6">
+        <MatchmakerControls self={self} />
+      </div>
 
       {players.length === 0 ? (
         <p className="mt-6 text-xs text-white/60">Waiting for testers to join the lobby…</p>

@@ -33,6 +33,11 @@ interface MatchBootstrapInput {
   roundLimit?: number;
 }
 
+export interface ActiveMatchSummary {
+  id: string;
+  state: "pending" | "in_progress";
+}
+
 function mapPlayer(row: any): PlayerIdentity {
   return {
     id: row.id,
@@ -145,6 +150,33 @@ export async function bootstrapMatchRecord(
   }
 
   return data.id;
+}
+
+export async function findActiveMatchForPlayer(
+  client: AnyClient,
+  playerId: string
+): Promise<ActiveMatchSummary | null> {
+  const { data, error } = await client
+    .from("matches")
+    .select("id,state,created_at")
+    .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`)
+    .in("state", ["pending", "in_progress"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to check active match: ${error.message}`);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    id: data.id as string,
+    state: data.state as "pending" | "in_progress",
+  };
 }
 
 export async function recordScoreSnapshot(

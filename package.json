@@ -51,6 +51,7 @@
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@vitest/ui": "^4.0.10",
     "artillery": "^2.0.26",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
