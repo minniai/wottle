@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import { sendInviteAction, respondInviteAction } from "../../app/actions/matchmaking/sendInvite";
@@ -40,6 +47,15 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [incomingInvite, setIncomingInvite] = useState<PendingInvite | null>(null);
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+  const pendingNavigationRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingNavigationRef.current) {
+        clearTimeout(pendingNavigationRef.current);
+      }
+    };
+  }, []);
 
   const inviteTargets = useMemo(
     () =>
@@ -60,7 +76,12 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
       setIncomingInvite(null);
       setShowInviteModal(false);
       setToast({ tone: "success", message: "Match found. Loading…" });
-      void router.push(`/match/${matchId}`);
+      if (pendingNavigationRef.current) {
+        clearTimeout(pendingNavigationRef.current);
+      }
+      pendingNavigationRef.current = setTimeout(() => {
+        router.push(`/match/${matchId}`);
+      }, 300);
     },
     [activeMatchId, router, updateSelfStatus]
   );
@@ -128,7 +149,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
 
       if (result.status === "queued") {
         updateSelfStatus("matchmaking");
-        setQueueStatus("Looking… we’ll notify you when a match is ready.");
+        setQueueStatus("looking… we’ll notify you when a match is ready.");
         return;
       }
 
