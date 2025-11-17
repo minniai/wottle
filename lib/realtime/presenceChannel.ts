@@ -3,7 +3,7 @@ import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 export interface PresenceCallbacks<TState extends object = Record<string, unknown>> {
   onJoin?: (payload: TState) => void;
   onLeave?: (payload: TState) => void;
-  onSync?: (payload: TState[]) => void;
+  onSync?: (payload: TState[], source: "realtime" | "poller") => void;
   onError?: (error: unknown) => void;
 }
 
@@ -36,7 +36,7 @@ export function subscribeToLobbyPresence<
   channel
     .on("presence", { event: "sync" }, () => {
       const state = channel.presenceState<TState>();
-      callbacks.onSync?.(flattenPresence(state));
+      callbacks.onSync?.(flattenPresence(state), "realtime");
     })
     .on("presence", { event: "join" }, ({ newPresences }) => {
       newPresences.forEach((presence) =>
@@ -61,7 +61,7 @@ export function subscribeToLobbyPresence<
     const poller = async () => {
       try {
         const result = await options.poller!();
-        callbacks.onSync?.(result);
+        callbacks.onSync?.(result, "poller");
       } catch (error) {
         callbacks.onError?.(error);
       }
