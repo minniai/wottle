@@ -126,6 +126,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         {
           key: self.id,
           poller: fetchPollingSnapshot,
+          pollIntervalMs: 500,
         }
       );
 
