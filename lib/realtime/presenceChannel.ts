@@ -34,10 +34,17 @@ export function subscribeToLobbyPresence<
     },
   });
   let trackedPayload: Record<string, unknown> | null = null;
+  let pendingPayload: Record<string, unknown> | null = null;
+  let isSubscribed = false;
 
   function pushPresence(payload: Record<string, unknown>) {
     trackedPayload = payload;
-    channel.track(payload);
+    if (isSubscribed) {
+      channel.track(payload);
+      pendingPayload = null;
+    } else {
+      pendingPayload = payload;
+    }
   }
 
   channel
@@ -56,7 +63,15 @@ export function subscribeToLobbyPresence<
       );
     })
     .subscribe((status) => {
-      if (status === "CHANNEL_ERROR") {
+      if (status === "SUBSCRIBED") {
+        isSubscribed = true;
+        if (pendingPayload) {
+          channel.track(pendingPayload);
+          pendingPayload = null;
+        } else if (trackedPayload) {
+          channel.track(trackedPayload);
+        }
+      } else if (status === "CHANNEL_ERROR") {
         callbacks.onError?.(new Error("Realtime channel error (lobby-presence)"));
       }
     });

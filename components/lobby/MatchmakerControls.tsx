@@ -128,7 +128,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
 
       if (result.status === "queued") {
         updateSelfStatus("matchmaking");
-        setQueueStatus("Searching… we’ll notify you when a match is ready.");
+        setQueueStatus("Looking… we’ll notify you when a match is ready.");
         return;
       }
 
