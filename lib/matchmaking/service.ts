@@ -126,6 +126,23 @@ export async function clearLobbyPresence(
   }
 }
 
+export async function expireLobbyPresence(
+  client: AnyClient,
+  playerId: string
+): Promise<void> {
+  const { error } = await client
+    .from("lobby_presence")
+    .update({
+      expires_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("player_id", playerId);
+
+  if (error) {
+    throw new Error(`Failed to expire lobby presence: ${error.message}`);
+  }
+}
+
 export async function bootstrapMatchRecord(
   client: AnyClient,
   input: MatchBootstrapInput

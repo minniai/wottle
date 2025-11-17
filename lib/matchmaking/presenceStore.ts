@@ -167,6 +167,18 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   },
   disconnect() {
     disconnectActiveSubscription();
+    
+    // Clean up presence record from database
+    // Use keepalive to ensure request completes even if page is unloading
+    if (trackedPlayerId) {
+      fetch("/api/lobby/presence", {
+        method: "DELETE",
+        keepalive: true,
+      }).catch((error) => {
+        console.warn("Failed to clean up presence on disconnect", error);
+      });
+    }
+    
     set({
       status: "idle",
       reconnecting: false,

@@ -156,6 +156,7 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
         )
       `
     )
+    .gt("expires_at", new Date().toISOString())
     .order("updated_at", { ascending: false });
 
   if (error) {
