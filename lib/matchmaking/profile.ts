@@ -3,6 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
+import { listCachedPresence, rememberPresence } from "./presenceCache";
 import { upsertLobbyPresence, upsertPlayerIdentity } from "./service";
 import type { LobbyStatus, PlayerIdentity } from "../types/match";
 import { getServiceRoleClient } from "../supabase/server";
@@ -77,6 +78,7 @@ export async function performUsernameLogin(usernameInput: string): Promise<Login
   });
 
   await createPresenceRecord(supabase, player.id);
+  rememberPresence(player);
 
   return {
     player,
@@ -178,7 +180,9 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
       eloRating: playerRow.elo_rating,
     }));
 
-  return sortPlayers(dedupePlayers(players));
+  const cachedPlayers = listCachedPresence();
+
+  return sortPlayers(dedupePlayers([...players, ...cachedPlayers]));
 }
 
 function encodeSession(session: LobbySession): string {
