@@ -287,6 +287,13 @@ export async function startAutoQueue(
   client: AnyClient,
   params: StartQueueParams
 ): Promise<QueueResult> {
+  // First, mark ourselves as matchmaking
+  await setPlayerStatus(client, params.playerId, "matchmaking");
+  await updatePresenceMode(client, params.playerId, {
+    mode: "auto",
+    inviteToken: null,
+  });
+
   const candidates = await fetchQueueCandidates(client, params.playerId);
   const opponent = selectQueueOpponent(
     candidates.map((candidate) => ({
@@ -298,26 +305,38 @@ export async function startAutoQueue(
   );
 
   if (!opponent) {
-    await setPlayerStatus(client, params.playerId, "matchmaking");
-    await updatePresenceMode(client, params.playerId, {
-      mode: "auto",
-      inviteToken: null,
-    });
     return {
       status: "queued",
       estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS,
     };
   }
 
+  // Atomically claim the opponent by updating their status with a condition
+  // This prevents race conditions when two players try to match simultaneously
+  const { count } = await client
+    .from("players")
+    .update({ status: "in_match" })
+    .eq("id", opponent.id)
+    .eq("status", "matchmaking"); // Only update if still in matchmaking
+
+  // If we couldn't claim the opponent (someone else got them first), stay in queue
+  if (!count || count === 0) {
+    return {
+      status: "queued",
+      estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS,
+    };
+  }
+
+  // Successfully claimed opponent, now create the match
   const matchId = await bootstrapMatchRecord(client, {
     boardSeed: randomUUID(),
     playerAId: params.playerId,
     playerBId: opponent.id,
   });
 
+  // Update our own status and presence
   await Promise.all([
     setPlayerStatus(client, params.playerId, "in_match"),
-    setPlayerStatus(client, opponent.id, "in_match"),
     updatePresenceMode(client, params.playerId, {
       mode: "auto",
       inviteToken: null,

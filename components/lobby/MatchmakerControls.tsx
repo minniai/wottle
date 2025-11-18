@@ -37,6 +37,7 @@ interface PendingInvite {
 export function MatchmakerControls({ self }: MatchmakerControlsProps) {
   const router = useRouter();
   const players = useLobbyPresenceStore((state) => state.players);
+  const presenceStatus = useLobbyPresenceStore((state) => state.status);
   const updateSelfStatus = useLobbyPresenceStore((state) => state.updateSelfStatus);
   const [isQueueing, startQueue] = useTransition();
   const [isInviting, startInvite] = useTransition();
@@ -244,7 +245,8 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
             className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50"
             data-testid="matchmaker-invite-button"
             onClick={() => setShowInviteModal(true)}
-            disabled={isInviting}
+            disabled={isInviting || presenceStatus !== "ready"}
+            title={presenceStatus !== "ready" ? "Connecting to lobby..." : undefined}
           >
             {isInviting ? "Sending…" : "Invite Player"}
           </button>
