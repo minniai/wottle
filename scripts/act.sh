@@ -61,15 +61,19 @@ elif [ -f .secrets.example ]; then
 fi
 
 # Allow skipping token check for local development
-ACT_ARGS=("$@")
+# Use array to build additional arguments
+declare -a ACT_EXTRA_ARGS=()
+
 if [ "${ACT_SKIP_TOKEN_CHECK:-}" = "1" ]; then
   echo "✓ Skipping Supabase access token check (ACT_SKIP_TOKEN_CHECK=1)" >&2
-  ACT_ARGS+=(--env "QUICKSTART_SKIP_TOKEN_CHECK=1")
+  ACT_EXTRA_ARGS+=(--env "QUICKSTART_SKIP_TOKEN_CHECK=1")
 fi
 
 echo "" >&2
 
-exec act "${ACT_ARGS[@]}" \
+# Execute act with original args plus any extra args
+# Use ${arr[@]+"${arr[@]}"} pattern to handle empty arrays with set -u
+exec act "$@" ${ACT_EXTRA_ARGS[@]+"${ACT_EXTRA_ARGS[@]}"} \
   --container-daemon-socket "$DOCKER_SOCK" \
   --artifact-server-path "$ARTIFACT_DIR"
 

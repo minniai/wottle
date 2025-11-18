@@ -29,6 +29,9 @@ export ACT_SKIP_TOKEN_CHECK=1
 # Always run from project root
 cd /path/to/wottle
 
+# List all available jobs (doesn't run anything)
+bash scripts/act.sh -l
+
 # Run Playwright tests (most common)
 export ACT_SKIP_TOKEN_CHECK=1
 bash scripts/act.sh -j playwright --matrix suite:baseline
@@ -38,6 +41,8 @@ bash scripts/act.sh -j lint
 bash scripts/act.sh -j typecheck
 bash scripts/act.sh -j test
 ```
+
+**Note**: Running `bash scripts/act.sh` without parameters will attempt to run ALL jobs sequentially, which takes a long time. Always use `-j` to run specific jobs.
 
 ## If Something Goes Wrong
 
