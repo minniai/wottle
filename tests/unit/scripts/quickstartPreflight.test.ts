@@ -9,16 +9,22 @@ const FAILURE = (message: string) =>
 describe("runPreflight", () => {
   const baseEnv = { ...process.env };
   delete baseEnv.SUPABASE_ACCESS_TOKEN;
+  delete baseEnv.QUICKSTART_SKIP_TOKEN_CHECK;
 
   beforeEach(() => {
     process.env = { ...baseEnv };
     delete process.env.SUPABASE_ACCESS_TOKEN;
+    delete process.env.QUICKSTART_SKIP_TOKEN_CHECK;
   });
 
   test("fails when Docker is unavailable", async () => {
     await expect(
       runPreflight({
-        env: { SUPABASE_ACCESS_TOKEN: "token", NODE_ENV: "test" },
+        env: { 
+          SUPABASE_ACCESS_TOKEN: "token", 
+          NODE_ENV: "test",
+          QUICKSTART_SKIP_TOKEN_CHECK: "",
+        },
         run: (command) => {
           if (command === "docker") {
             return FAILURE("docker unavailable");
@@ -32,7 +38,11 @@ describe("runPreflight", () => {
   test("fails when Supabase CLI is missing", async () => {
     await expect(
       runPreflight({
-        env: { SUPABASE_ACCESS_TOKEN: "token", NODE_ENV: "test" },
+        env: { 
+          SUPABASE_ACCESS_TOKEN: "token", 
+          NODE_ENV: "test",
+          QUICKSTART_SKIP_TOKEN_CHECK: "",
+        },
         run: (command) => {
           if (command === "supabase") {
             return FAILURE("not found");
@@ -46,7 +56,10 @@ describe("runPreflight", () => {
   test("fails when Supabase access token is missing", async () => {
     await expect(
       runPreflight({
-        env: { NODE_ENV: "test" },
+        env: { 
+          NODE_ENV: "test",
+          QUICKSTART_SKIP_TOKEN_CHECK: "",
+        },
         run: () => SUCCESS,
       })
     ).rejects.toThrow(/SUPABASE_ACCESS_TOKEN/i);
@@ -54,7 +67,11 @@ describe("runPreflight", () => {
 
   test("passes when all checks succeed", async () => {
     const result = await runPreflight({
-      env: { SUPABASE_ACCESS_TOKEN: "token", NODE_ENV: "test" },
+      env: { 
+        SUPABASE_ACCESS_TOKEN: "token", 
+        NODE_ENV: "test",
+        QUICKSTART_SKIP_TOKEN_CHECK: "",
+      },
       run: () => SUCCESS,
     });
 

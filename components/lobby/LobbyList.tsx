@@ -24,8 +24,16 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
 
   useEffect(() => {
     void connect({ self, initialPlayers });
+    
+    // Also cleanup on page unload (e.g., when browser context closes)
+    const handleBeforeUnload = () => {
+      disconnect();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       disconnect();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [connect, disconnect, self, initialPlayers]);
 

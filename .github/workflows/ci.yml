@@ -150,6 +150,7 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
+      PLAYTEST_PRESENCE_TTL_SECONDS: "3"
     steps:
       - name: Install Docker CLI (for act compatibility)
         # Only needed when running with act using node:lts platform

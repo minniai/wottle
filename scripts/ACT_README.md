@@ -5,6 +5,7 @@ This guide explains how to run GitHub Actions workflows locally using [act](http
 ## Prerequisites
 
 1. **Install act**:
+
    ```bash
    # macOS
    brew install act
@@ -22,16 +23,20 @@ This guide explains how to run GitHub Actions workflows locally using [act](http
 
 4. **Supabase Access Token** (Optional for jobs that need Supabase):
    - **Option A**: Create a `.secrets` file (recommended):
+
      ```bash
      cp .secrets.example .secrets
      # Edit .secrets and add your Supabase access token
      ```
-     Get your token from: https://supabase.com/dashboard/account/tokens
-   
+
+     Get your token from: <https://supabase.com/dashboard/account/tokens>
+
    - **Option B**: Skip token check for local development (limited functionality):
+
      ```bash
      export ACT_SKIP_TOKEN_CHECK=1
      ```
+
      This allows quickstart to run without cloud authentication
 
 ## Usage
@@ -88,7 +93,8 @@ bash scripts/act.sh
 ### Issue: `Missing SUPABASE_ACCESS_TOKEN environment variable`
 
 **Symptom**: Error during "Start Supabase stack via quickstart" step:
-```
+
+```json
 {"event":"supabase.preflight.failure","timestamp":"...","message":"Missing SUPABASE_ACCESS_TOKEN environment variable for Supabase login"}
 ```
 
@@ -97,6 +103,7 @@ bash scripts/act.sh
 **Solutions**:
 
 1. **Option A - Add Supabase token** (recommended for full functionality):
+
    ```bash
    # Create secrets file from example
    cp .secrets.example .secrets
@@ -110,6 +117,7 @@ bash scripts/act.sh
    ```
 
 2. **Option B - Skip token check** (for local-only testing):
+
    ```bash
    # Set environment variable
    export ACT_SKIP_TOKEN_CHECK=1
@@ -117,19 +125,21 @@ bash scripts/act.sh
    # Run act
    bash scripts/act.sh -j playwright --matrix suite:baseline
    ```
-   
+
    **Note**: This runs Supabase in local-only mode without cloud authentication. Some features may be limited.
 
 ### Issue: `.env.local not found`
 
 **Symptom**: Error during "Start Next.js server" step:
-```
+
+```txt
 ERROR: .env.local not found! Server will fail without Supabase credentials
 ```
 
 **Cause**: The quickstart step didn't create `.env.local`, or it's being created in the wrong directory.
 
 **Debug steps**:
+
 1. Check the "Start Supabase stack via quickstart" step output
 2. Look for "Working directory:" line to see where quickstart ran
 3. Check if quickstart completed successfully (look for `supabase.quickstart.success` event)
@@ -137,24 +147,28 @@ ERROR: .env.local not found! Server will fail without Supabase credentials
 **Solutions**:
 
 1. **Ensure Docker is running**:
+
    ```bash
    docker ps
    # Should show running containers, not error
    ```
 
 2. **Run quickstart manually first** to verify it works:
+
    ```bash
    pnpm quickstart
    ls -la .env.local  # Should exist
    ```
 
 3. **Check Docker socket is accessible**:
+
    ```bash
    # macOS/Linux
    ls -l /var/run/docker.sock
    ```
 
 4. **Run act with verbose output**:
+
    ```bash
    bash scripts/act.sh -j quickstart --verbose
    ```
@@ -166,8 +180,9 @@ ERROR: .env.local not found! Server will fail without Supabase credentials
 **Solutions**:
 
 1. **macOS**: Ensure Docker Desktop is running
-   
+
 2. **Linux**: Ensure Docker daemon is running
+
    ```bash
    sudo systemctl start docker
    sudo systemctl enable docker
@@ -176,6 +191,7 @@ ERROR: .env.local not found! Server will fail without Supabase credentials
 3. **WSL2 (Windows)**: Ensure Docker Desktop is configured for WSL2 integration
 
 4. **Custom Docker socket**: Set `DOCKER_HOST` environment variable
+
    ```bash
    export DOCKER_HOST=unix:///path/to/docker.sock
    bash scripts/act.sh -j test
@@ -203,6 +219,7 @@ sudo mv supabase /usr/local/bin/
 **Cause**: act's workspace mounting might not be configured properly
 
 **Solution**: Ensure you're running from the project root:
+
 ```bash
 cd /path/to/wottle
 pwd  # Should show project root
@@ -222,32 +239,38 @@ The `scripts/act.sh` helper does the following:
 ## Debugging Tips
 
 ### View workflow files
+
 ```bash
 cat .github/workflows/ci.yml
 ```
 
 ### List available jobs
+
 ```bash
 act -l
 ```
 
 ### Dry run (don't execute, just show what would run)
+
 ```bash
 act -n
 ```
 
 ### Run with verbose output
+
 ```bash
 bash scripts/act.sh -j test --verbose
 ```
 
 ### Run with specific event
+
 ```bash
 act push  # Trigger on push event
 act pull_request  # Trigger on PR event
 ```
 
 ### Check logs from a specific container
+
 ```bash
 docker ps  # Find container ID
 docker logs <container-id>
@@ -292,7 +315,6 @@ act -j quickstart --secret SUPABASE_ACCESS_TOKEN=your_token
 
 ## Further Help
 
-- Act documentation: https://github.com/nektos/act
-- Act troubleshooting: https://github.com/nektos/act/issues
+- Act documentation: <https://github.com/nektos/act>
+- Act troubleshooting: <https://github.com/nektos/act/issues>
 - Wottle project issues: Report in project repository
-
