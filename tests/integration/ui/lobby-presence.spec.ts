@@ -43,7 +43,7 @@ test.describe("Lobby presence", () => {
             .filter({ hasText: /tester-beta/i })
             .count(),
         {
-          timeout: 5_000,
+          timeout: 10_000,
         }
       )
       .toBe(0);

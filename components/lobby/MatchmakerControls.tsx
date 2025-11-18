@@ -245,8 +245,14 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
             className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50"
             data-testid="matchmaker-invite-button"
             onClick={() => setShowInviteModal(true)}
-            disabled={isInviting || presenceStatus !== "ready"}
-            title={presenceStatus !== "ready" ? "Connecting to lobby..." : undefined}
+            disabled={isInviting || presenceStatus !== "ready" || inviteTargets.length === 0}
+            title={
+              presenceStatus !== "ready"
+                ? "Connecting to lobby..."
+                : inviteTargets.length === 0
+                ? "No players available to invite"
+                : undefined
+            }
           >
             {isInviting ? "Sending…" : "Invite Player"}
           </button>

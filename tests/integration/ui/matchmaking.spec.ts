@@ -72,6 +72,12 @@ test.describe("Matchmaking flows", () => {
       await loginAndAwaitMatchmaker(pageA, "invite-alfa");
       await loginAndAwaitMatchmaker(pageB, "invite-bravo");
 
+      // Wait for Player A to see Player B in their presence list
+      const listA = pageA.getByTestId("lobby-presence-list");
+      await expect(
+        listA.getByTestId("lobby-card").filter({ hasText: /invite-bravo/i })
+      ).toBeVisible({ timeout: 10_000 });
+
       await pageA.getByTestId("matchmaker-invite-button").click();
       const modal = pageA.getByTestId("matchmaker-invite-modal");
       await expect(modal).toBeVisible();

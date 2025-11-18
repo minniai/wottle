@@ -130,14 +130,10 @@ export async function expireLobbyPresence(
   client: AnyClient,
   playerId: string
 ): Promise<void> {
-  // Set expires_at to 1 second in the past to ensure it's filtered out immediately
-  const expiredTime = new Date(Date.now() - 1_000);
+  // Delete the record immediately for faster propagation
   const { error } = await client
     .from("lobby_presence")
-    .update({
-      expires_at: expiredTime.toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .delete()
     .eq("player_id", playerId);
 
   if (error) {
