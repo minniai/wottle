@@ -1,33 +1,34 @@
 # Wottle Constitution
+
 <!-- Sync Impact Report:
   Version: 1.3.0 → 1.4.0 (MINOR: new principle added)
   Created: 2025-01-08
   Last Amended: 2025-11-05
-  
+
   Principles Added (v1.0.0):
   - I. Server-Authoritative Game Logic (NON-NEGOTIABLE)
   - II. Real-Time Performance Standards
   - III. Type-Safe End-to-End
   - IV. Progressive Enhancement & Mobile-First
   - V. Observability & Resilience
-  
+
   Principles Added (v1.1.0):
   - VI. Clean Code Principles (Uncle Bob)
-  
+
   Principles Added (v1.2.0):
   - VII. Test Driven Development (TDD) (NON-NEGOTIABLE)
-  
+
   Principles Added (v1.3.0):
   - VIII. External Context Providers (Context7)
-  
+
   Principles Added (v1.4.0):
   - IX. Commit Message Standards
-  
+
   Sections Added:
   - Technology Stack Standards
   - Code Organization & Patterns
   - Development Workflow
-  
+
   Templates Requiring Updates:
   - ✅ updated: .specify/templates/plan-template.md - added Constitution Check for external context providers
   - ✅ updated: .specify/templates/spec-template.md - no changes required
@@ -214,7 +215,7 @@ external libraries and assets. Clear provenance builds trust and aids maintenanc
 Commit messages MUST follow a concise, consistent structure to keep history readable and automate
 tooling.
 
-- Subject line MUST be a short, single-line summary (<60 characters), imperative mood, no trailing period
+- Subject line MUST be a short, single-line summary (<80 characters), imperative mood, no trailing period
 - Use Conventional Commits format: `type(scope): subject`
 - Separate body from subject with a single blank line
 - Body SHOULD explain the what and why, not the how; wrap at ~72 characters
