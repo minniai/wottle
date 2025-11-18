@@ -1,6 +1,11 @@
 # Remaining Playwright Test Failures
 
-## Status: 3/11 tests failing (8 passing)
+## Status: 2/11 tests failing, 2 skipped (9 passing)
+
+### Update (2025-11-18):
+- **Swap flow tests** now **skipped** - tests were written for old architecture where board was on home page
+- Home page `/` is now the lobby (Phase 3), board only exists at `/match/[matchId]`
+- Tests need rewrite to login → create/join match → test swaps
 
 The following tests have known failures that require deeper investigation:
 
@@ -25,7 +30,25 @@ The following tests have known failures that require deeper investigation:
 - OR: Add explicit wait/retry logic in the test
 - OR: Reduce polling interval for tests (currently 500ms)
 
-## 2. Auto Queue Status Display (`matchmaking.spec.ts`)
+## 2. Swap Flow Tests (`swap-flow.spec.ts`) - SKIPPED
+
+**Status**: Tests temporarily skipped with `.skip()`  
+**Error**: Board tiles not found at `/`
+
+**Root Cause**: Architecture changed in Phase 3:
+- OLD: Board was at `/` (home page)
+- NEW: Board only exists at `/match/[matchId]` (inside matches)
+- Tests still expect board at `/`
+
+**Solution**: Rewrite tests to:
+1. Login to lobby
+2. Create or join a match
+3. Navigate to match page
+4. Then test swap functionality
+
+**Why Skipped**: Better to skip outdated tests than have them fail due to architectural changes.
+
+## 3. Auto Queue Status Display (`matchmaking.spec.ts`) - FIXED (now instant)
 
 **Error**: `matchmaker-queue-status` element not found  
 **Expected**: Element showing "looking" status  
@@ -47,7 +70,7 @@ The following tests have known failures that require deeper investigation:
 - OR: Add artificial delay in matchmaking logic (bad for UX)
 - OR: Change test to just verify that both players end up in the same match (skip status check)
 
-## 3. Direct Invite Flow (`matchmaking.spec.ts`)
+## 4. Direct Invite Flow (`matchmaking.spec.ts`)
 
 **Error**: Test times out after 120 seconds  
 **Expected**: Invite modal shows `invite-bravo` in the player list  
