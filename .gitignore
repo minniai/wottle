@@ -33,6 +33,10 @@ dist/
 !.env.example
 !.env.local.example
 
+# Act secrets (for local GitHub Actions)
+.secrets
+!.secrets.example
+
 # dotenvx
 
 # Lock files (optional - uncomment if you want to ignore)

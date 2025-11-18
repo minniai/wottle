@@ -67,5 +67,25 @@ describe("runPreflight", () => {
       ])
     );
   });
+
+  test("passes when token check is skipped", async () => {
+    const result = await runPreflight({
+      env: { QUICKSTART_SKIP_TOKEN_CHECK: "1", NODE_ENV: "test" },
+      run: () => SUCCESS,
+    });
+
+    expect(result.status).toBe("pass");
+    expect(result.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "docker", status: "pass" }),
+        expect.objectContaining({ name: "supabaseCli", status: "pass" }),
+        expect.objectContaining({
+          name: "supabaseAccessToken",
+          status: "pass",
+          detail: "skipped for local development",
+        }),
+      ])
+    );
+  });
 });
 
