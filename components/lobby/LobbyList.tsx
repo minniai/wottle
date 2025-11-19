@@ -25,15 +25,31 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
   useEffect(() => {
     void connect({ self, initialPlayers });
     
+    // Track if this is a real unmount or just React StrictMode
+    let isRealUnmount = false;
+    const unmountTimer = setTimeout(() => {
+      isRealUnmount = true;
+    }, 100); // If we stay unmounted for >100ms, it's real
+    
     // Also cleanup on page unload (e.g., when browser context closes)
     const handleBeforeUnload = () => {
+      clearTimeout(unmountTimer);
       disconnect();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     
     return () => {
-      disconnect();
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Delay disconnect to avoid React StrictMode double-mount issues
+      // In production builds, StrictMode is disabled so this won't affect real behavior
+      setTimeout(() => {
+        if (isRealUnmount) {
+          disconnect();
+        }
+      }, 150);
+      
+      clearTimeout(unmountTimer);
     };
   }, [connect, disconnect, self, initialPlayers]);
 
