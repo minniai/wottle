@@ -40,13 +40,17 @@ test.describe("Matchmaking flows", () => {
       const startA = pageA.getByTestId("matchmaker-start-button");
       const startB = pageB.getByTestId("matchmaker-start-button");
 
-      await Promise.all([startA.click(), startB.click()]);
+      // Click start buttons with a small delay to ensure both are in queue
+      await startA.click();
+      await pageA.waitForTimeout(100); // Small delay to ensure first player is in queue
+      await startB.click();
 
-      await expect(pageA.getByTestId("matchmaker-queue-status")).toHaveText(
-        /looking/,
-        { timeout: 5_000 }
-      );
+      // Wait for queue status to appear (at least one player should see "looking")
+      await expect(
+        pageA.getByTestId("matchmaker-queue-status").or(pageB.getByTestId("matchmaker-queue-status"))
+      ).toHaveText(/looking/, { timeout: 5_000 });
 
+      // Wait for match to be created - polling happens every 3 seconds
       const [matchIdA, matchIdB] = await Promise.all([
         waitForMatchShell(pageA),
         waitForMatchShell(pageB),

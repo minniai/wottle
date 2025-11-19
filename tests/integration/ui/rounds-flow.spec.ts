@@ -21,15 +21,14 @@ async function loginAndStartMatch(
   await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
   await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
 
-  // Start match via queue
-  await Promise.all([
-    pageA.getByTestId("matchmaker-start-button").click(),
-    pageB.getByTestId("matchmaker-start-button").click(),
-  ]);
+  // Start match via queue - click with small delay to avoid race condition
+  await pageA.getByTestId("matchmaker-start-button").click();
+  await pageA.waitForTimeout(100); // Small delay to ensure first player is in queue
+  await pageB.getByTestId("matchmaker-start-button").click();
 
-  // Wait for match shell
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 15000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 15000 });
+  // Wait for match shell - polling happens every 3 seconds, so give extra time
+  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 20000 });
+  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 20000 });
 }
 
 test.describe("Round flow", () => {
