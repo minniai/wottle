@@ -102,7 +102,7 @@ Upon finishing 10 rounds (or hitting an end condition), both players see the fin
 - **FR-004**: Match creation MUST ensure exactly two distinct, available players and assign them a shared match identifier, board seed, and initial timers before entering round 1.
 - **FR-005**: Each match MUST enforce exactly 10 rounds per player unless a timeout/disconnect end condition triggers earlier; rounds cannot start until the prior round is resolved.
 - **FR-006**: During each round, clients MUST allow precisely one swap submission per player, hide the move until both submissions are received, and reject late swaps once round resolution begins.
-- **FR-007**: Server MUST validate swaps (coordinates in bounds, tiles movable, dictionary checks enabled per PRD §2) and compute word scoring, freezing claimed tiles according to PRD §2.1.
+- **FR-007**: Server MUST validate swaps (coordinates in bounds, tiles movable, dictionary checks enabled per PRD §2) and compute word scoring, freezing claimed tiles according to PRD §2.1. Dictionary word validation MUST complete in <50ms server-side (constitution SLA II.2) to maintain overall move submission <200ms p95 target.
 - **FR-008**: After every round, both clients MUST see a scoring panel that includes per-player round points, cumulative totals, and deltas versus the previous round.
 - **FR-009**: Round summaries MUST list every new word scored that round with letter sequence, length, base points, combo bonuses, and attribution to the scoring player.
 - **FR-010**: UI MUST highlight (or otherwise surface) scored word tiles for at least 3 seconds after each round so playtesters can visually confirm outcomes.
@@ -135,7 +135,7 @@ Upon finishing 10 rounds (or hitting an end condition), both players see the fin
 ### Performance Requirements (if applicable)
 
 - **PERF-001**: Move submission to server acknowledgment MUST remain <200 ms p95 (constitution SLA) so players can progress through rounds without perceived lag.
-- **PERF-002**: Round resolution broadcast (both swaps resolved, scoreboard + word list delivered) MUST complete <400 ms p95 after the second swap is received.
+- **PERF-002**: Round resolution broadcast (both swaps resolved, scoreboard + word list delivered) MUST complete <400 ms p95 after the second swap is received. The realtime broadcast portion (delivering payload to subscribed clients) MUST complete <100ms p95 per constitution SLA II.4; the <400ms target includes scoring computation time which may take 200-300ms for complex board states.
 - **PERF-003**: Lobby and match presence updates MUST propagate to subscribed clients within 2 seconds p95 to avoid stale opponent status during matchmaking.
 
 ## Assumptions

@@ -97,6 +97,8 @@ lib/
 ├── matchmaking/             # pairing heuristics, invitation helpers
 ├── realtime/                # channel subscriptions, reconnect helpers
 └── scoring/                 # word scoring utilities, summary builders
+    ├── roundSummary.ts      # aggregates word scores per round, computes deltas
+    └── highlights.ts        # extracts tile coordinates for word highlighting
 
 scripts/
 └── supabase/                # migrations, policies, seeding, quickstart, match log tooling

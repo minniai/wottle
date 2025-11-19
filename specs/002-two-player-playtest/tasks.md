@@ -62,6 +62,7 @@
 - [x] T026 [US2] Update presence broadcast to mark players “matchmaking”/“in_match” (`lib/realtime/presenceChannel.ts`)
 - [x] T027 [US2] [P] Add contract tests for invite + queue endpoints (`tests/contract/post-invite.contract.test.ts`, `tests/contract/post-match-start.contract.test.ts`)
 - [x] T028 [US2] [P] Add Vitest unit tests for invite expirations + queue arbitration (`tests/unit/lib/matchmaking/inviteService.test.ts`)
+- [ ] T028a [US2] [P] Add Artillery perf test asserting lobby presence broadcast <2s p95 (PERF-003) (`tests/perf/lobby-presence.yml`)
 
 ---
 
@@ -79,6 +80,7 @@
 - [ ] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`
 - [ ] T036 [US3] [P] Add unit tests for `roundEngine` transitions + conflict rules (`tests/unit/lib/match/roundEngine.test.ts`)
 - [ ] T037 [US3] [P] Add contract tests covering move submission accept/reject cases (`tests/contract/post-move.contract.test.ts`)
+- [ ] T037a [US3] [P] Add contract test validating SC-004: dual-session scoring identity (both clients receive identical round summary payloads) (`tests/contract/get-round-summary.contract.test.ts` - dual-session assertion)
 - [ ] T038 [US3] [P] Extend observability perf tests (Artillery) to assert submission RTT <200 ms (`tests/perf/round-resolution.yml`)
 
 ---
