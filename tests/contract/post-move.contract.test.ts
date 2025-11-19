@@ -11,7 +11,10 @@ import { submitMove } from "../../app/actions/match/submitMove";
 
 describe("POST /api/match/[matchId]/move", () => {
     it("should return 200 on success", async () => {
-        (submitMove as any).mockResolvedValue({ success: true });
+        (submitMove as any).mockResolvedValue({
+            status: "accepted",
+            grid: Array(10).fill(Array(10).fill("A")),
+        });
 
         const req = new NextRequest("http://localhost/api/match/123/move", {
             method: "POST",
@@ -23,7 +26,8 @@ describe("POST /api/match/[matchId]/move", () => {
 
         expect(res.status).toBe(200);
         const json = await res.json();
-        expect(json.success).toBe(true);
+        expect(json.status).toBe("accepted");
+        expect(json.grid).toBeDefined();
     });
 
     it("should return 400 on invalid body", async () => {

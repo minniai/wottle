@@ -1,56 +1,170 @@
 import { getServiceRoleClient } from "../supabase/server";
 import { resolveConflicts } from "./conflictResolver";
-import { MatchState, MoveSubmission } from "@/lib/types/match";
+import { MoveSubmission } from "@/lib/types/match";
+import { applySwap, type BoardGrid } from "../game-engine/board";
+import { boardGridSchema } from "../types/board";
+import type { MoveRequest } from "../types/board";
 
 export async function advanceRound(matchId: string) {
     const supabase = getServiceRoleClient();
 
-    // 1. Fetch current match state and submissions
+    // Use a transaction to ensure atomicity
+    // Note: Supabase client doesn't have explicit transactions in JS, so we'll use row-level locking via SELECT FOR UPDATE pattern
+    // For now, we'll rely on unique constraints and optimistic updates
+
+    // 1. Fetch current match state
     const { data: match, error: matchError } = await supabase
         .from("matches")
-        .select("*")
+        .select("current_round, state, player_a_id, player_b_id, board_seed")
         .eq("id", matchId)
         .single();
 
     if (matchError || !match) throw new Error("Match not found");
 
+    if (match.state !== "in_progress") {
+        return { status: "not_advancing", reason: "Match is not in progress" };
+    }
+
     const currentRound = match.current_round;
 
+    // 2. Get current round record
+    const { data: round, error: roundError } = await supabase
+        .from("rounds")
+        .select("id, state, board_snapshot_before")
+        .eq("match_id", matchId)
+        .eq("round_number", currentRound)
+        .single();
+
+    if (roundError || !round) throw new Error("Round not found");
+
+    // 3. Check round state - only process if still collecting
+    if (round.state !== "collecting") {
+        return { status: "not_advancing", reason: `Round is in ${round.state} state` };
+    }
+
+    // 4. Fetch submissions for this round
     const { data: submissions, error: subError } = await supabase
         .from("move_submissions")
         .select("*")
-        .eq("match_id", matchId)
-        .eq("round_number", currentRound);
+        .eq("round_id", round.id)
+        .eq("status", "pending");
 
     if (subError) throw new Error("Failed to fetch submissions");
 
-    // 2. Check if we have submissions from all active players
-    // For 2-player playtest, we expect 2 submissions.
-    // In a real scenario, we'd check against the player list.
+    // 5. Check if we have submissions from all players (2 for playtest)
     if (submissions.length < 2) {
-        return { status: "waiting" };
+        return { status: "waiting", received: submissions.length };
     }
 
-    // 3. Resolve conflicts
-    const { acceptedMoves, rejectedMoves } = resolveConflicts(submissions);
+    // 6. Resolve conflicts (first-come-first-served for overlapping tiles)
+    // Map database fields to MoveSubmission type (database has submitted_at, not created_at)
+    const mappedSubmissions: MoveSubmission[] = submissions.map((sub: any) => ({
+        id: sub.id,
+        match_id: matchId,
+        player_id: sub.player_id,
+        round_number: currentRound,
+        from_x: sub.from_x,
+        from_y: sub.from_y,
+        to_x: sub.to_x,
+        to_y: sub.to_y,
+        created_at: sub.submitted_at || sub.created_at || new Date().toISOString(),
+    }));
+    const { acceptedMoves, rejectedMoves } = resolveConflicts(mappedSubmissions);
 
-    // 4. Apply moves to board (logic to be added, for now just advancing round)
-    // We would update the board_state here.
+    // 7. Parse current board state
+    let currentBoard: BoardGrid;
+    try {
+        currentBoard = boardGridSchema.parse(round.board_snapshot_before);
+    } catch {
+        throw new Error("Invalid board state");
+    }
 
-    // 5. Score the round (logic to be added)
+    // 8. Apply all accepted moves sequentially
+    let boardAfter = currentBoard;
+    for (const move of acceptedMoves) {
+        const moveRequest: MoveRequest = {
+            from: { x: move.from_x, y: move.from_y },
+            to: { x: move.to_x, y: move.to_y },
+        };
+        try {
+            boardAfter = applySwap(boardAfter, moveRequest);
+        } catch (error) {
+            // If swap fails, mark this move as rejected
+            const rejected = acceptedMoves.splice(acceptedMoves.indexOf(move), 1);
+            rejectedMoves.push(...rejected);
+            console.error("Failed to apply move:", move, error);
+        }
+    }
 
-    // 6. Advance to next round
+    // 9. Update round state to resolving
+    const { error: updateRoundError } = await supabase
+        .from("rounds")
+        .update({
+            state: "resolving",
+            board_snapshot_after: boardAfter,
+            resolution_started_at: new Date().toISOString(),
+        })
+        .eq("id", round.id);
+
+    if (updateRoundError) throw new Error("Failed to update round state");
+
+    // 10. Update submission statuses
+    for (const move of acceptedMoves) {
+        await supabase
+            .from("move_submissions")
+            .update({ status: "accepted" })
+            .eq("id", move.id);
+    }
+
+    for (const move of rejectedMoves) {
+        await supabase
+            .from("move_submissions")
+            .update({
+                status: "rejected_invalid",
+                rejection_reason: "Tile conflict with earlier submission",
+            })
+            .eq("id", move.id);
+    }
+
+    // 11. Mark round as completed
+    await supabase
+        .from("rounds")
+        .update({
+            state: "completed",
+            completed_at: new Date().toISOString(),
+        })
+        .eq("id", round.id);
+
+    // 12. Advance to next round
     const nextRound = currentRound + 1;
     const isGameOver = nextRound > 10;
 
+    // 13. Create next round if not game over
+    if (!isGameOver) {
+        const { error: nextRoundError } = await supabase
+            .from("rounds")
+            .insert({
+                match_id: matchId,
+                round_number: nextRound,
+                state: "collecting",
+                board_snapshot_before: boardAfter, // New round starts with board after previous round
+            });
+
+        if (nextRoundError) {
+            console.error("Failed to create next round:", nextRoundError);
+            // Continue anyway - we'll update match state
+        }
+    }
+
+    // 14. Update match state
     const updatePayload: any = {
         current_round: nextRound,
         updated_at: new Date().toISOString(),
     };
 
     if (isGameOver) {
-        updatePayload.status = "completed";
-        updatePayload.ended_at = new Date().toISOString();
+        updatePayload.state = "completed";
+        // TODO: Calculate winner based on scores (to be implemented with scoring engine)
     }
 
     const { error: updateError } = await supabase
@@ -60,7 +174,17 @@ export async function advanceRound(matchId: string) {
 
     if (updateError) throw new Error("Failed to update match");
 
-    // 7. Notify players via Realtime (handled by Postgres changes or separate broadcast)
+    // 15. Publish round summary (scores will be computed when word-finder is integrated)
+    // For now, this will publish an empty summary if no word scores exist
+    try {
+        const { publishRoundSummary } = await import("@/app/actions/match/publishRoundSummary");
+        await publishRoundSummary(matchId, currentRound).catch((e: unknown) => {
+            console.error("Failed to publish round summary:", e);
+            // Continue anyway - round is already advanced
+        });
+    } catch (e) {
+        console.error("Failed to load publishRoundSummary:", e);
+    }
 
-    return { status: "advanced", nextRound, isGameOver };
+    return { status: "advanced", nextRound, isGameOver, acceptedMoves: acceptedMoves.length, rejectedMoves: rejectedMoves.length };
 }

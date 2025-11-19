@@ -1,5 +1,8 @@
 import { boardGridSchema, coordinateSchema, type BoardGrid, type Coordinate, type MoveRequest } from "../types/board";
 
+// Re-export types for convenience
+export type { BoardGrid, Coordinate, MoveRequest };
+
 export function cloneGrid(grid: BoardGrid): BoardGrid {
   return grid.map((row) => [...row]) as BoardGrid;
 }
