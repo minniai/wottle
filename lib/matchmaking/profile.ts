@@ -23,8 +23,9 @@ type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
 const SESSION_COOKIE_NAME = "wottle-playtest-session";
 const SESSION_TTL_SECONDS = 4 * 60 * 60;
+// Increased from 30s to 5 minutes for more reliable presence tracking in CI
 const PRESENCE_TTL_SECONDS = Number(
-  process.env.PLAYTEST_PRESENCE_TTL_SECONDS ?? "30"
+  process.env.PLAYTEST_PRESENCE_TTL_SECONDS ?? "300"
 );
 
 const usernameSchema = z

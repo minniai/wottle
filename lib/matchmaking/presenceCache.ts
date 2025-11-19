@@ -5,8 +5,9 @@ interface CachedPresence {
   expiresAt: number;
 }
 
+// Increased from 30s to 5 minutes to match DB presence TTL
 const CACHE_TTL_MS = Number(
-  process.env.PLAYTEST_PRESENCE_CACHE_TTL_MS ?? 30_000
+  process.env.PLAYTEST_PRESENCE_CACHE_TTL_MS ?? 300_000
 );
 
 const CACHE_SYMBOL = Symbol.for("wottle.presenceCache");
