@@ -19,8 +19,40 @@ test.describe("Lobby presence", () => {
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
 
+    // Capture console logs for debugging
+    pageA.on('console', msg => console.log('[PageA]', msg.text()));
+    pageB.on('console', msg => console.log('[PageB]', msg.text()));
+
     await loginAs(pageA, "tester-alpha");
+    
+    // Debug: Check API endpoint directly from Player A's context
+    const apiResponseA = await pageA.evaluate(async () => {
+      const res = await fetch('/api/lobby/players', { cache: 'no-store' });
+      return { status: res.status, data: await res.json() };
+    });
+    console.log('[DEBUG] Player A sees via API:', JSON.stringify(apiResponseA));
+    
     await loginAs(pageB, "tester-beta");
+    
+    // Debug: Check API endpoint directly from Player B's context  
+    const apiResponseB = await pageB.evaluate(async () => {
+      const res = await fetch('/api/lobby/players', { cache: 'no-store' });
+      return { status: res.status, data: await res.json() };
+    });
+    console.log('[DEBUG] Player B sees via API:', JSON.stringify(apiResponseB));
+    
+    // Debug: Check presence store state
+    const storeStateB = await pageB.evaluate(() => {
+      // @ts-ignore
+      const store = window.useLobbyPresenceStore?.getState();
+      return store ? {
+        players: store.players?.map((p: any) => ({ id: p.id, username: p.username })),
+        status: store.status,
+        connectionMode: store.connectionMode,
+        error: store.error,
+      } : { error: 'Store not found' };
+    });
+    console.log('[DEBUG] Player B store state:', JSON.stringify(storeStateB));
 
     const listA = pageA.getByTestId("lobby-presence-list");
     const listB = pageB.getByTestId("lobby-presence-list");
