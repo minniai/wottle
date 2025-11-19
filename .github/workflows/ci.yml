@@ -150,6 +150,7 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
+      # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
     steps:
       - name: Install Docker CLI (for act compatibility)
         # Only needed when running with act using node:lts platform
@@ -187,7 +188,20 @@ jobs:
         run: pnpm exec playwright install --with-deps
       - name: Start Supabase stack via quickstart
         run: |
+          echo "Working directory: $(pwd)"
           pnpm quickstart 2>&1 | tee quickstart-playwright.ndjson
+          # Verify .env.local was created immediately after quickstart
+          if [ ! -f .env.local ]; then
+            echo "ERROR: .env.local was not created by quickstart!"
+            echo "Working directory: $(pwd)"
+            echo "Files in current directory:"
+            ls -la | head -30
+            echo "Searching for .env.local in parent directories:"
+            find . -maxdepth 3 -name ".env.local" -type f 2>/dev/null || true
+            exit 1
+          fi
+          echo "✓ .env.local created successfully"
+          echo "File size: $(wc -c < .env.local) bytes"
       - name: Build Next.js app
         run: pnpm build
       - name: Start Next.js server
@@ -389,7 +403,20 @@ jobs:
         run: pnpm install --frozen-lockfile false
       - name: Start Supabase stack via quickstart
         run: |
+          echo "Working directory: $(pwd)"
           pnpm quickstart 2>&1 | tee quickstart-perf.ndjson
+          # Verify .env.local was created immediately after quickstart
+          if [ ! -f .env.local ]; then
+            echo "ERROR: .env.local was not created by quickstart!"
+            echo "Working directory: $(pwd)"
+            echo "Files in current directory:"
+            ls -la | head -30
+            echo "Searching for .env.local in parent directories:"
+            find . -maxdepth 3 -name ".env.local" -type f 2>/dev/null || true
+            exit 1
+          fi
+          echo "✓ .env.local created successfully"
+          echo "File size: $(wc -c < .env.local) bytes"
       - name: Build Next.js app
         run: pnpm build
       - name: Start Next.js server
@@ -398,6 +425,8 @@ jobs:
           if [ ! -f .env.local ]; then
             echo "ERROR: .env.local not found! Server will fail without Supabase credentials"
             echo "Expected .env.local to be created by quickstart step"
+            echo "Working directory: $(pwd)"
+            ls -la | head -30
             exit 1
           fi
           # Load environment variables

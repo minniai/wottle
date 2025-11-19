@@ -72,7 +72,34 @@ PRE_PRECHECK_MS="$(now_ms)"
 "$PNPM_BIN" tsx scripts/supabase/preflight.ts
 
 SUPABASE_START_BEGIN_MS="$(now_ms)"
-"$SUPABASE_BIN" start >/dev/null
+
+# Retry supabase start with exponential backoff
+# Sometimes containers exist but aren't ready yet
+MAX_RETRIES=5
+RETRY_COUNT=0
+START_SUCCESS=false
+
+while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+  if "$SUPABASE_BIN" start >/dev/null 2>&1; then
+    START_SUCCESS=true
+    break
+  fi
+  
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; then
+    WAIT_SECONDS=$((2 ** RETRY_COUNT))  # Exponential backoff: 2, 4, 8, 16 seconds
+    echo "Supabase start attempt $RETRY_COUNT failed, waiting ${WAIT_SECONDS}s before retry..." >&2
+    sleep $WAIT_SECONDS
+  fi
+done
+
+if [[ "$START_SUCCESS" != "true" ]]; then
+  echo "Supabase start failed after $MAX_RETRIES attempts. Trying to stop and restart..." >&2
+  "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
+  sleep 2
+  "$SUPABASE_BIN" start >/dev/null
+fi
+
 SUPABASE_START_END_MS="$(now_ms)"
 
 STATUS_JSON="$(mktemp)"
@@ -145,11 +172,11 @@ fi
 
 update_env_var "$ENV_FILE" "NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL"
 update_env_var "$ENV_FILE" "SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_SERVICE_ROLE_KEY"
-update_env_var "$ENV_FILE" "SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
+update_env_var "$ENV_FILE" "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
 
 export NEXT_PUBLIC_SUPABASE_URL="$SUPABASE_URL"
 export SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
-export SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+export NEXT_PUBLIC_SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 export BOARD_MATCH_ID="$MATCH_ID"
 
 MIGRATE_BEGIN_MS="$(now_ms)"

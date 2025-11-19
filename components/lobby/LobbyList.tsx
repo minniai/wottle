@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import type { PlayerIdentity } from "../../lib/types/match";
 import { LobbyCard } from "./LobbyCard";
+import { MatchmakerControls } from "./MatchmakerControls";
 import { useLobbyPresenceStore } from "../../lib/matchmaking/presenceStore";
 
 interface LobbyListProps {
@@ -19,13 +20,76 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
   const lastEventAt = useLobbyPresenceStore((state) => state.lastEventAt);
   const connect = useLobbyPresenceStore((state) => state.connect);
   const disconnect = useLobbyPresenceStore((state) => state.disconnect);
+  const setInitialPlayers = useLobbyPresenceStore((state) => state.setInitialPlayers);
 
+  // Use a ref to track disconnect timer across remounts
+  const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
+    // Cancel any pending disconnect from previous mount
+    if (disconnectTimerRef.current) {
+      clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = null;
+    }
+    
     void connect({ self, initialPlayers });
-    return () => {
+    
+    // Also cleanup on page unload (e.g., when browser context closes)
+    const handleBeforeUnload = () => {
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
       disconnect();
     };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Delay disconnect to avoid React StrictMode double-mount issues
+      // If component remounts quickly, the timer will be cleared above
+      disconnectTimerRef.current = setTimeout(() => {
+        disconnect();
+        disconnectTimerRef.current = null;
+      }, 250);
+    };
   }, [connect, disconnect, self, initialPlayers]);
+
+  useEffect(() => {
+    if (status === "ready" && connectionMode === "realtime") {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function refreshSnapshot() {
+      try {
+        const response = await fetch("/api/lobby/players", {
+          cache: "no-store",
+          headers: {
+            accept: "application/json",
+          },
+        });
+        if (!response.ok || cancelled) {
+          return;
+        }
+        const payload = (await response.json()) as { players?: PlayerIdentity[] };
+        if (!cancelled && Array.isArray(payload.players)) {
+          setInitialPlayers(payload.players);
+        }
+      } catch {
+        // allow realtime channel to recover
+      }
+    }
+
+    refreshSnapshot();
+    const interval = setInterval(refreshSnapshot, 2_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [status, connectionMode, setInitialPlayers]);
 
   const statusLabel = buildStatusLabel(status, connectionMode, lastEventAt);
 
@@ -43,6 +107,10 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
           {statusLabel}
         </span>
       </header>
+
+      <div className="mt-6">
+        <MatchmakerControls self={self} />
+      </div>
 
       {players.length === 0 ? (
         <p className="mt-6 text-xs text-white/60">Waiting for testers to join the lobby…</p>

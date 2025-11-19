@@ -53,15 +53,15 @@
 **Goal**: Available testers can auto-queue or send direct invites, then transition into a shared match view.
 **Independent Test**: Integration flow clicks “Start Game” in two browsers, verifies invite acceptance generates shared match ID + round 1 view.
 
-- [ ] T020 [US2] [TDD-RED] Expand Playwright spec (`tests/integration/ui/matchmaking.spec.ts`) covering auto queue + invite accept
-- [ ] T021 [US2] Implement invite creation + expiration logic (`lib/matchmaking/inviteService.ts`, `scripts/supabase/edge/inviteTimeout.ts`)
-- [ ] T022 [US2] Create Server Action + REST handler for invitations (`app/actions/matchmaking/sendInvite.ts`, `app/api/lobby/invite/route.ts`)
-- [ ] T023 [US2] Implement auto-matchmaking queue handler + pairing logic (`app/actions/matchmaking/startQueue.ts`)
-- [ ] T024 [US2] Build lobby UI affordances (Start button, invite modal, toast states) in `components/lobby/MatchmakerControls.tsx`
-- [ ] T025 [US2] Add match bootstrap route + loading screen (`app/match/[matchId]/loading.tsx`, `components/match/MatchShell.tsx`)
-- [ ] T026 [US2] Update presence broadcast to mark players “matchmaking”/“in_match” (`lib/realtime/presenceChannel.ts`)
-- [ ] T027 [US2] [P] Add contract tests for invite + queue endpoints (`tests/contract/post-invite.contract.test.ts`, `tests/contract/post-match-start.contract.test.ts`)
-- [ ] T028 [US2] [P] Add Vitest unit tests for invite expirations + queue arbitration (`tests/unit/lib/matchmaking/inviteService.test.ts`)
+- [x] T020 [US2] [TDD-RED] Expand Playwright spec (`tests/integration/ui/matchmaking.spec.ts`) covering auto queue + invite accept
+- [x] T021 [US2] Implement invite creation + expiration logic (`lib/matchmaking/inviteService.ts`, `scripts/supabase/edge/inviteTimeout.ts`)
+- [x] T022 [US2] Create Server Action + REST handler for invitations (`app/actions/matchmaking/sendInvite.ts`, `app/api/lobby/invite/route.ts`)
+- [x] T023 [US2] Implement auto-matchmaking queue handler + pairing logic (`app/actions/matchmaking/startQueue.ts`)
+- [x] T024 [US2] Build lobby UI affordances (Start button, invite modal, toast states) in `components/lobby/MatchmakerControls.tsx`
+- [x] T025 [US2] Add match bootstrap route + loading screen (`app/match/[matchId]/loading.tsx`, `components/match/MatchShell.tsx`)
+- [x] T026 [US2] Update presence broadcast to mark players “matchmaking”/“in_match” (`lib/realtime/presenceChannel.ts`)
+- [x] T027 [US2] [P] Add contract tests for invite + queue endpoints (`tests/contract/post-invite.contract.test.ts`, `tests/contract/post-match-start.contract.test.ts`)
+- [x] T028 [US2] [P] Add Vitest unit tests for invite expirations + queue arbitration (`tests/unit/lib/matchmaking/inviteService.test.ts`)
 
 ---
 

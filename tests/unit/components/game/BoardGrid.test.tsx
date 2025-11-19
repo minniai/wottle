@@ -20,7 +20,7 @@ describe("BoardGrid component", () => {
   test(`renders a ${BOARD_SIZE}x${BOARD_SIZE} grid with accessible roles`, () => {
     const grid = createGrid();
 
-    render(<BoardGrid grid={grid} />);
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
 
     const gridElement = screen.getByRole("grid", { name: /board grid/i });
     expect(gridElement).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("BoardGrid component", () => {
   test("annotates each row and cell with coordinate metadata", () => {
     const grid = createGrid();
 
-    render(<BoardGrid grid={grid} />);
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
 
     const rows = screen.getAllByRole("row");
     rows.forEach((row, rowIndex) => {

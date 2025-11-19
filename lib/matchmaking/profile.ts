@@ -23,8 +23,9 @@ type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
 const SESSION_COOKIE_NAME = "wottle-playtest-session";
 const SESSION_TTL_SECONDS = 4 * 60 * 60;
+// Increased from 30s to 5 minutes for more reliable presence tracking in CI
 const PRESENCE_TTL_SECONDS = Number(
-  process.env.PLAYTEST_PRESENCE_TTL_SECONDS ?? "30"
+  process.env.PLAYTEST_PRESENCE_TTL_SECONDS ?? "300"
 );
 
 const usernameSchema = z
@@ -61,6 +62,8 @@ export class LoginValidationError extends Error {
 }
 
 export async function performUsernameLogin(usernameInput: string): Promise<LoginResult> {
+  console.log("[performUsernameLogin] Starting login for:", usernameInput);
+  
   const parsed = usernameSchema.safeParse(usernameInput);
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message ?? "Invalid username.";
@@ -71,14 +74,42 @@ export async function performUsernameLogin(usernameInput: string): Promise<Login
   const displayName = formatDisplayName(parsed.data);
   const supabase = getServiceRoleClient();
 
+  console.log("[performUsernameLogin] Creating player identity...");
   const player = await upsertPlayerIdentity(supabase, {
     username: normalizedUsername,
     displayName,
     status: "available",
   });
+  console.log("[performUsernameLogin] Player created:", player.id);
 
-  await createPresenceRecord(supabase, player.id);
+  console.log("[performUsernameLogin] Creating presence record...");
+  const presence = await createPresenceRecord(supabase, player.id);
+  console.log("[performUsernameLogin] Presence created:", {
+    playerId: presence.playerId,
+    expiresAt: presence.expiresAt,
+    mode: presence.mode,
+  });
+
+  // Verify presence record was actually persisted
+  const { data: verification, error: verifyError } = await supabase
+    .from("lobby_presence")
+    .select("*")
+    .eq("player_id", player.id)
+    .single();
+  
+  if (verifyError) {
+    console.error("[performUsernameLogin] Failed to verify presence record:", verifyError);
+    throw new Error(`Presence verification failed: ${verifyError.message}`);
+  }
+  
+  console.log("[performUsernameLogin] Presence verified in database:", {
+    playerId: verification.player_id,
+    expiresAt: verification.expires_at,
+    isExpired: new Date(verification.expires_at) <= new Date(),
+  });
+
   rememberPresence(player);
+  console.log("[performUsernameLogin] Player added to server cache");
 
   return {
     player,
@@ -156,6 +187,7 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
         )
       `
     )
+    .gt("expires_at", new Date().toISOString())
     .order("updated_at", { ascending: false });
 
   if (error) {

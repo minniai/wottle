@@ -120,3 +120,14 @@ export function buildMoveSignature(vector: MoveVector): string {
   return `${from}->${to}`;
 }
 
+export interface MoveSubmission {
+  id?: string;
+  match_id: string;
+  player_id: string;
+  round_number: number;
+  from_x: number;
+  from_y: number;
+  to_x: number;
+  to_y: number;
+  created_at: string;
+}

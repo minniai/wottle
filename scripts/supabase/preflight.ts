@@ -71,10 +71,16 @@ export async function runPreflight(options: PreflightOptions = {}): Promise<Pref
     throw new Error(`Supabase CLI prerequisite failed: ${message}`);
   }
 
-  if (!env.SUPABASE_ACCESS_TOKEN || env.SUPABASE_ACCESS_TOKEN.trim().length === 0) {
-    throw new Error("Missing SUPABASE_ACCESS_TOKEN environment variable for Supabase login");
+  const skipTokenCheck = env.QUICKSTART_SKIP_TOKEN_CHECK === "1";
+  
+  if (skipTokenCheck) {
+    checks.push({ ...TOKEN_CHECK, detail: "skipped for local development" });
+  } else {
+    if (!env.SUPABASE_ACCESS_TOKEN || env.SUPABASE_ACCESS_TOKEN.trim().length === 0) {
+      throw new Error("Missing SUPABASE_ACCESS_TOKEN environment variable for Supabase login");
+    }
+    checks.push(TOKEN_CHECK);
   }
-  checks.push(TOKEN_CHECK);
 
   return {
     status: "pass",

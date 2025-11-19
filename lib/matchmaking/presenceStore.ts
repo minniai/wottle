@@ -3,9 +3,14 @@
 import { create } from "zustand";
 
 import { subscribeToLobbyPresence } from "../realtime/presenceChannel";
+import { subscribeToLobbyPresencePollingOnly } from "../realtime/presenceChannel.polling";
 import type { PresenceSubscription } from "../realtime/presenceChannel";
 import { getBrowserSupabaseClient } from "../supabase/browser";
-import type { PlayerIdentity } from "../types/match";
+import type { LobbyStatus, PlayerIdentity } from "../types/match";
+
+// Feature flag: disable Realtime and use polling only
+const USE_POLLING_ONLY = typeof process !== "undefined" && 
+  process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true";
 
 export type LobbyPresenceEvent =
   | { type: "sync"; players: PlayerIdentity[] }
@@ -30,10 +35,13 @@ interface LobbyPresenceState {
   connect: (options: ConnectOptions) => Promise<void>;
   disconnect: () => void;
   setInitialPlayers: (players: PlayerIdentity[]) => void;
+  updateSelfStatus: (status: LobbyStatus) => void;
 }
 
 let activeSubscription: PresenceSubscription | null = null;
 let trackedPlayerId: string | null = null;
+let trackedPlayer: PlayerIdentity | null = null;
+let trackedConnectionId: string | null = null;
 
 export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   players: [],
@@ -43,7 +51,14 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   reconnecting: false,
   lastEventAt: null,
   async connect({ self, initialPlayers }) {
+    console.log("[presenceStore] connect() called", {
+      hasSelf: Boolean(self),
+      hasInitialPlayers: Boolean(initialPlayers),
+      initialPlayersCount: initialPlayers?.length,
+    });
+
     if (initialPlayers) {
+      console.log("[presenceStore] Setting initial players:", initialPlayers.map(p => p.username));
       set({
         players: normalizePlayers(initialPlayers),
         lastEventAt: Date.now(),
@@ -51,6 +66,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
     }
 
     if (!self) {
+      console.log("[presenceStore] No self provided, disconnecting");
       disconnectActiveSubscription();
       set({
         status: "idle",
@@ -59,13 +75,17 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         error: null,
       });
       trackedPlayerId = null;
+      trackedPlayer = null;
+      trackedConnectionId = null;
       return;
     }
 
     if (trackedPlayerId === self.id && get().status === "ready") {
+      console.log("[presenceStore] Already connected for this player, skipping");
       return;
     }
 
+    console.log("[presenceStore] Starting connection for player:", self.username);
     set({
       status: "connecting",
       reconnecting: Boolean(activeSubscription),
@@ -76,22 +96,59 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
 
     try {
       const client = getBrowserSupabaseClient();
-      const subscription = subscribeToLobbyPresence<PlayerIdentity>(
+      
+      // Choose implementation based on feature flag
+      const subscribeFunction = USE_POLLING_ONLY 
+        ? subscribeToLobbyPresencePollingOnly 
+        : subscribeToLobbyPresence;
+      
+      console.log("[presenceStore] Using", USE_POLLING_ONLY ? "polling-only" : "realtime", "mode");
+      
+      const subscription = subscribeFunction<PlayerIdentity>(
         client,
         {
           onSync: (payload, source) => {
-            set((state) => ({
-              players:
-                source === "poller"
-                  ? applyLobbyEvent(state.players, {
-                      type: "sync",
-                      players: payload,
-                    })
-                  : mergeRealtimePlayers(state.players, payload),
-              status: "ready",
-              connectionMode: source === "poller" ? "polling" : "realtime",
-              lastEventAt: Date.now(),
-            }));
+            set((state) => {
+              // If Realtime sync has fewer players than we already have, it might be incomplete
+              // Merge with existing players instead of replacing
+              const currentPlayerCount = state.players.length;
+              const newPlayerCount = payload.length;
+              
+              let finalPlayers = payload;
+              
+              // If Realtime sync has fewer players and we have existing players, merge them
+              if (source === "realtime" && newPlayerCount < currentPlayerCount && currentPlayerCount > 0) {
+                console.log(`[presenceStore] Realtime sync has ${newPlayerCount} players but we have ${currentPlayerCount}, merging...`);
+                // Merge: keep existing players, add/update with Realtime data
+                const existingPlayerIds = new Set(state.players.map(p => p.id));
+                const newPlayerIds = new Set(payload.map((p: PlayerIdentity) => p.id));
+                
+                // Start with existing players
+                const merged = [...state.players];
+                
+                // Update existing players with Realtime data
+                payload.forEach((newPlayer: PlayerIdentity) => {
+                  const index = merged.findIndex(p => p.id === newPlayer.id);
+                  if (index >= 0) {
+                    merged[index] = newPlayer; // Update
+                  } else {
+                    merged.push(newPlayer); // Add new
+                  }
+                });
+                
+                finalPlayers = merged;
+              }
+              
+              return {
+                players: applyLobbyEvent(state.players, {
+                  type: "sync",
+                  players: finalPlayers,
+                }),
+                status: "ready",
+                connectionMode: source === "poller" ? "polling" : "realtime",
+                lastEventAt: Date.now(),
+              };
+            });
           },
           onJoin: (player) => {
             set({
@@ -132,10 +189,12 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
 
       activeSubscription = subscription;
       trackedPlayerId = self.id;
+      trackedConnectionId = createConnectionId();
+      trackedPlayer = self;
 
-      subscription.channel.track({
+      subscription.updatePresence({
         ...self,
-        connectionId: createConnectionId(),
+        connectionId: trackedConnectionId,
         lastSeenAt: new Date().toISOString(),
       });
 
@@ -159,13 +218,31 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
     }
   },
   disconnect() {
+    console.log("[presenceStore] disconnect() called, trackedPlayerId:", trackedPlayerId);
     disconnectActiveSubscription();
+
+    // Clean up presence record from database
+    // Use keepalive to ensure request completes even if page is unloading
+    if (trackedPlayerId) {
+      console.log("[presenceStore] Sending DELETE request to /api/lobby/presence");
+      fetch("/api/lobby/presence", {
+        method: "DELETE",
+        keepalive: true,
+      }).then(() => {
+        console.log("[presenceStore] DELETE request completed successfully");
+      }).catch((error) => {
+        console.warn("Failed to clean up presence on disconnect", error);
+      });
+    }
+
     set({
       status: "idle",
       reconnecting: false,
       connectionMode: "realtime",
     });
     trackedPlayerId = null;
+    trackedPlayer = null;
+    trackedConnectionId = null;
   },
   setInitialPlayers(players) {
     set({
@@ -173,7 +250,36 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
       lastEventAt: Date.now(),
     });
   },
+  updateSelfStatus(status) {
+    if (!trackedPlayerId || !trackedPlayer || !activeSubscription || !trackedConnectionId) {
+      return;
+    }
+
+    trackedPlayer = {
+      ...trackedPlayer,
+      status,
+      lastSeenAt: new Date().toISOString(),
+    };
+
+    activeSubscription.updatePresence({
+      ...trackedPlayer,
+      connectionId: trackedConnectionId,
+    });
+
+    set({
+      players: applyLobbyEvent(get().players, {
+        type: "join",
+        player: trackedPlayer,
+      }),
+      lastEventAt: Date.now(),
+    });
+  },
 }));
+
+// Expose store to window for testing
+if (typeof window !== "undefined") {
+  (window as any).useLobbyPresenceStore = useLobbyPresenceStore;
+}
 
 export function applyLobbyEvent(
   players: PlayerIdentity[],
@@ -189,22 +295,6 @@ export function applyLobbyEvent(
     default:
       return players;
   }
-}
-
-function mergeRealtimePlayers(
-  current: PlayerIdentity[],
-  incoming: PlayerIdentity[]
-): PlayerIdentity[] {
-  if (incoming.length === 0) {
-    return current;
-  }
-
-  let result = current;
-  for (const player of incoming) {
-    result = upsert(result, player);
-  }
-
-  return normalizePlayers(result);
 }
 
 function normalizePlayers(players: PlayerIdentity[]): PlayerIdentity[] {
@@ -237,6 +327,7 @@ function upsert(
 }
 
 async function fetchPollingSnapshot(): Promise<PlayerIdentity[]> {
+  console.log("[presenceStore] Polling /api/lobby/players...");
   const response = await fetch("/api/lobby/players", {
     headers: {
       accept: "application/json",
@@ -245,11 +336,14 @@ async function fetchPollingSnapshot(): Promise<PlayerIdentity[]> {
   });
 
   if (!response.ok) {
+    console.error("[presenceStore] Polling failed with status:", response.status);
     throw new Error(`Snapshot request failed with status ${response.status}`);
   }
 
   const payload = (await response.json()) as { players?: PlayerIdentity[] };
-  return payload.players ?? [];
+  const players = payload.players ?? [];
+  console.log("[presenceStore] Polling returned", players.length, "players:", players.map(p => p.username));
+  return players;
 }
 
 function disconnectActiveSubscription() {

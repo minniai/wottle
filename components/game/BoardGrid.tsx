@@ -16,6 +16,7 @@ import type {
 
 interface BoardGridProps {
   grid: BoardGridType;
+  matchId: string;
   className?: string;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
@@ -32,13 +33,18 @@ type SelectedTile = {
 
 const BASE_CLASS = "board-grid";
 
-async function submitSwapRequest(move: MoveRequest): Promise<MoveResult> {
-  const response = await fetch("/api/swap", {
+async function submitSwapRequest(matchId: string, move: MoveRequest): Promise<MoveResult> {
+  const response = await fetch(`/api/match/${matchId}/move`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(move),
+    body: JSON.stringify({
+      fromX: move.from.x,
+      fromY: move.from.y,
+      toX: move.to.x,
+      toY: move.to.y,
+    }),
   });
 
   if (response.status === 200) {
@@ -60,6 +66,7 @@ async function submitSwapRequest(move: MoveRequest): Promise<MoveResult> {
 
 export function BoardGrid({
   grid,
+  matchId,
   className,
   onSwapComplete,
   onSwapError,
@@ -99,9 +106,15 @@ export function BoardGrid({
       };
 
       try {
-        const result = await submitSwapRequest(moveRequest);
+        const result = await submitSwapRequest(matchId, moveRequest);
 
-        setCurrentGrid(result.grid);
+        // Optimistic update or wait for server?
+        // For now, we rely on the result or parent update.
+        // If result has grid, use it.
+        if (result.grid) {
+          setCurrentGrid(result.grid);
+        }
+
         onSwapComplete?.({ move: moveRequest, result });
       } catch (error) {
         setCurrentGrid(previousGrid);
@@ -112,8 +125,8 @@ export function BoardGrid({
 
         const normalizedMessage =
           /network/i.test(message) || /failed to fetch/i.test(message)
-          ? "Network error while submitting swap. Please try again."
-          : message;
+            ? "Network error while submitting swap. Please try again."
+            : message;
 
         onSwapError?.({
           move: moveRequest,
@@ -124,7 +137,7 @@ export function BoardGrid({
         setIsSubmitting(false);
       }
     },
-    [currentGrid, onSwapComplete, onSwapError]
+    [currentGrid, matchId, onSwapComplete, onSwapError]
   );
 
   const handleTileClick = useCallback(
@@ -137,6 +150,12 @@ export function BoardGrid({
 
       if (!selected) {
         setSelected(coordinate);
+        return;
+      }
+
+      // If clicking the same tile, deselect
+      if (selected.x === coordinate.x && selected.y === coordinate.y) {
+        setSelected(null);
         return;
       }
 
@@ -187,10 +206,10 @@ export function BoardGrid({
                   role="gridcell"
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
-                  className={`board-grid__cell${
-                    isSelected ? " board-grid__cell--selected" : ""
-                  }`}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""
+                    }`}
                   data-testid="board-tile"
+                  data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}
                   data-row={rowIndex}
                   data-selected={isSelected ? "true" : undefined}
@@ -209,6 +228,8 @@ export function BoardGrid({
           </div>
         ))}
       </div>
+      {/* Temporary submit button for testing flow if needed, but grid click handles it */}
+      <button data-testid="submit-move-button" className="sr-only">Submit</button>
     </div>
   );
 }
