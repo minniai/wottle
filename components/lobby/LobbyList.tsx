@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import type { PlayerIdentity } from "../../lib/types/match";
 import { LobbyCard } from "./LobbyCard";
@@ -22,18 +22,24 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
   const disconnect = useLobbyPresenceStore((state) => state.disconnect);
   const setInitialPlayers = useLobbyPresenceStore((state) => state.setInitialPlayers);
 
+  // Use a ref to track disconnect timer across remounts
+  const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
-    void connect({ self, initialPlayers });
+    // Cancel any pending disconnect from previous mount
+    if (disconnectTimerRef.current) {
+      clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = null;
+    }
     
-    // Track if this is a real unmount or just React StrictMode
-    let isRealUnmount = false;
-    const unmountTimer = setTimeout(() => {
-      isRealUnmount = true;
-    }, 100); // If we stay unmounted for >100ms, it's real
+    void connect({ self, initialPlayers });
     
     // Also cleanup on page unload (e.g., when browser context closes)
     const handleBeforeUnload = () => {
-      clearTimeout(unmountTimer);
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
       disconnect();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -42,14 +48,11 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       
       // Delay disconnect to avoid React StrictMode double-mount issues
-      // In production builds, StrictMode is disabled so this won't affect real behavior
-      setTimeout(() => {
-        if (isRealUnmount) {
-          disconnect();
-        }
-      }, 150);
-      
-      clearTimeout(unmountTimer);
+      // If component remounts quickly, the timer will be cleared above
+      disconnectTimerRef.current = setTimeout(() => {
+        disconnect();
+        disconnectTimerRef.current = null;
+      }, 250);
     };
   }, [connect, disconnect, self, initialPlayers]);
 

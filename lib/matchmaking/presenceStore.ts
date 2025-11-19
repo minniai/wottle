@@ -108,15 +108,47 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         client,
         {
           onSync: (payload, source) => {
-            set((state) => ({
-              players: applyLobbyEvent(state.players, {
-                type: "sync",
-                players: payload,
-              }),
-              status: "ready",
-              connectionMode: source === "poller" ? "polling" : "realtime",
-              lastEventAt: Date.now(),
-            }));
+            set((state) => {
+              // If Realtime sync has fewer players than we already have, it might be incomplete
+              // Merge with existing players instead of replacing
+              const currentPlayerCount = state.players.length;
+              const newPlayerCount = payload.length;
+              
+              let finalPlayers = payload;
+              
+              // If Realtime sync has fewer players and we have existing players, merge them
+              if (source === "realtime" && newPlayerCount < currentPlayerCount && currentPlayerCount > 0) {
+                console.log(`[presenceStore] Realtime sync has ${newPlayerCount} players but we have ${currentPlayerCount}, merging...`);
+                // Merge: keep existing players, add/update with Realtime data
+                const existingPlayerIds = new Set(state.players.map(p => p.id));
+                const newPlayerIds = new Set(payload.map((p: PlayerIdentity) => p.id));
+                
+                // Start with existing players
+                const merged = [...state.players];
+                
+                // Update existing players with Realtime data
+                payload.forEach((newPlayer: PlayerIdentity) => {
+                  const index = merged.findIndex(p => p.id === newPlayer.id);
+                  if (index >= 0) {
+                    merged[index] = newPlayer; // Update
+                  } else {
+                    merged.push(newPlayer); // Add new
+                  }
+                });
+                
+                finalPlayers = merged;
+              }
+              
+              return {
+                players: applyLobbyEvent(state.players, {
+                  type: "sync",
+                  players: finalPlayers,
+                }),
+                status: "ready",
+                connectionMode: source === "poller" ? "polling" : "realtime",
+                lastEventAt: Date.now(),
+              };
+            });
           },
           onJoin: (player) => {
             set({
