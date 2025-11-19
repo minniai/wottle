@@ -16,6 +16,7 @@ import { BOARD_SIZE } from "../../lib/constants/board";
 
 interface BoardExperienceProps {
   initialGrid: BoardGridType;
+  matchId: string;
 }
 
 type SwapCompletePayload = {
@@ -43,7 +44,7 @@ function formatCoordinate({ x, y }: { x: number; y: number }): string {
   return `row ${y + 1}, column ${x + 1}`;
 }
 
-export function BoardExperience({ initialGrid }: BoardExperienceProps) {
+export function BoardExperience({ initialGrid, matchId }: BoardExperienceProps) {
   const [grid, setGrid] = useState<BoardGridType>(initialGrid);
   const [feedback, setFeedback] = useState<MoveFeedbackDetails | null>(null);
 
@@ -96,6 +97,7 @@ export function BoardExperience({ initialGrid }: BoardExperienceProps) {
     <div className="space-y-4">
       <BoardGrid
         grid={grid}
+        matchId={matchId}
         onSwapComplete={handleSwapComplete}
         onSwapError={handleSwapError}
       />

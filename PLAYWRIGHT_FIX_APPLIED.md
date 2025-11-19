@@ -1,89 +1,211 @@
-# Playwright Test Fixes Applied
+# Playwright Fix Applied - Status Report
 
-## Changes Made
+## ✅ What Was Fixed
 
-### Test Fixes (Immediate Actions)
+### Migration Applied Successfully
 
-#### 1. Lobby Presence Test - Increased cleanup timeout
-**File**: `tests/integration/ui/lobby-presence.spec.ts`
-**Change**: Increased poll timeout from 5s to 10s
-```typescript
-// Before
-timeout: 5_000
+The migration `20251119001_enable_realtime.sql` has been applied to the database:
 
-// After  
-timeout: 10_000
+```bash
+Applying migration 20251119001_enable_realtime.sql...
 ```
-**Rationale**: Accounts for real-world latency in presence cleanup propagation (keepalive fetch → DB update → poller fetch → UI update)
 
-#### 2. Direct Invite Test - Wait for player visibility
-**File**: `tests/integration/ui/matchmaking.spec.ts`
-**Change**: Added explicit wait for target player in presence list before opening invite modal
-```typescript
-// Wait for Player A to see Player B in their presence list
-const listA = pageA.getByTestId("lobby-presence-list");
-await expect(
-  listA.getByTestId("lobby-card").filter({ hasText: /invite-bravo/i })
-).toBeVisible({ timeout: 10_000 });
+### Database Configuration Verified
 
-await pageA.getByTestId("matchmaker-invite-button").click();
+All tables are now properly configured for Realtime:
+
+#### Publication Status ✅
 ```
-**Rationale**: Ensures presence list is fully synced before interacting with invite modal
-
-### Production Code Improvements
-
-#### 3. Faster presence cleanup
-**File**: `lib/matchmaking/service.ts`
-**Change**: Changed `expireLobbyPresence()` to DELETE instead of UPDATE
-```typescript
-// Before: Set expires_at to past date
-const expiredTime = new Date(Date.now() - 1_000);
-await client
-  .from("lobby_presence")
-  .update({ expires_at: expiredTime.toISOString() })
-  .eq("player_id", playerId);
-
-// After: Delete immediately
-await client
-  .from("lobby_presence")
-  .delete()
-  .eq("player_id", playerId);
+schemaname | tablename     
+-----------+-------------------
+public     | lobby_presence
+public     | match_invitations
+public     | matches
+public     | move_submissions
+public     | rounds
 ```
-**Rationale**: More immediate effect, simpler logic, no timing issues with `expires_at` filtering
 
-#### 4. Improved invite button UX
-**File**: `components/lobby/MatchmakerControls.tsx`
-**Change**: Disable invite button when no players available
+#### Replica Identity Status ✅
+```
+tablename          | identity_type 
+-------------------+---------------
+lobby_presence     | full
+match_invitations  | full
+matches            | full
+move_submissions   | full
+rounds             | full
+```
+
+**Conclusion**: The database is correctly configured for Realtime.
+
+## ⚠️ Current Test Status
+
+### Test Result
+The `lobby-presence.spec.ts` test is still failing, BUT at a **different point** than before:
+
+**Before Fix**:
+- Failed at initial visibility check (line 28)
+- Players couldn't see each other at all
+
+**After Fix**:
+- Passes the initial visibility check ✅
+- Fails at the cleanup/leave detection (line 48)
+- Test progresses further, indicating some improvement
+
+### Error Message
+```
+Error: expect(received).toBe(expected)
+Expected: 0 (player should disappear)
+Received: 1 (player still visible)
+Timeout: 15000ms
+```
+
+### Page State Shows
+The error context still shows Realtime error messages:
+- "Realtime disconnected"
+- "Realtime channel error (lobby-presence)"
+
+## 🔍 Analysis
+
+The database configuration is correct, but the application is still showing Realtime errors. This suggests:
+
+### Possible Causes
+
+1. **Application Not Using Correct Credentials**
+   - The Supabase client might be using cached or incorrect keys
+   - Environment variables might not be loaded properly during tests
+
+2. **Realtime Service Not Receiving Connections**
+   - No connection attempts in Realtime logs
+   - Suggests clients aren't reaching the Realtime service
+
+3. **Test Environment Issue**
+   - Playwright might be blocking WebSocket connections
+   - Or running with wrong environment variables
+
+4. **Application Code Issue**
+   - The presence channel subscription might have additional requirements
+   - Or there's an error in the connection logic
+
+## 🛠️ Next Steps
+
+### Step 1: Check Environment Variables
+
+```bash
+# Verify the test environment has correct Supabase URLs
+cat .env.local | grep SUPABASE
+
+# Should show:
+# NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+```
+
+### Step 2: Check Supabase Client Initialization
+
+Review `lib/supabase/browser.ts` to ensure it's using the correct URL and key.
+
+### Step 3: Add Debug Logging
+
+Temporarily add logging to see what's happening:
+
 ```typescript
-disabled={isInviting || presenceStatus !== "ready" || inviteTargets.length === 0}
-title={
-  presenceStatus !== "ready"
-    ? "Connecting to lobby..."
-    : inviteTargets.length === 0
-    ? "No players available to invite"
-    : undefined
+// In presenceChannel.ts
+channel.subscribe((status) => {
+  console.log('[DEBUG] Channel status:', status);
+  console.log('[DEBUG] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+  // ... rest of code
+});
+```
+
+### Step 4: Restart Everything
+
+```bash
+# Stop Supabase
+supabase stop
+
+# Start fresh
+supabase start
+
+# Reset database (already done)
+supabase db reset
+
+# Run test again
+pnpm playwright test tests/integration/ui/lobby-presence.spec.ts
+```
+
+### Step 5: Check WebSocket Connection
+
+Add a test to verify WebSocket connectivity:
+
+```typescript
+// tests/helpers/realtime-check.ts
+export async function testRealtimeConnection(page: Page) {
+  return page.evaluate(async () => {
+    const client = window.supabase;
+    const channel = client.channel('test-connection');
+    
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve('TIMEOUT'), 5000);
+      
+      channel.subscribe((status) => {
+        clearTimeout(timeout);
+        resolve(status);
+      });
+    });
+  });
 }
 ```
-**Rationale**: Prevents confusing empty modal, provides clear user feedback
 
-## Expected Test Results
+## 📊 Progress Made
 
-After these changes:
-- ✅ `lobby-presence.spec.ts` should PASS (increased timeout + faster cleanup)
-- ✅ `matchmaking.spec.ts` (auto queue) should PASS (existing atomic claim fix)
-- ✅ `matchmaking.spec.ts` (direct invite) should PASS (explicit wait + improved button)
-- ⏭️ 8 tests remain skipped (board tests need Phase 3 rewrite)
+✅ Database migration applied
+✅ All tables in realtime publication
+✅ All tables have full replica identity
+✅ Test progresses further than before
+❌ Application still can't connect to Realtime
+❌ Tests still failing
 
-**Expected**: 3/3 active tests passing, 8 skipped
+## 🎯 Expected vs Actual
 
-## Root Cause Summary
+### Expected After Fix
+- Realtime channel connects successfully
+- Players see each other instantly
+- Cleanup propagates in real-time
+- All 4 tests pass
 
-Both test failures were **timing issues**, not functional bugs:
+### Actual After Fix
+- Database is configured correctly
+- Application shows Realtime errors
+- Tests fail at cleanup stage
+- Need to investigate application-level issues
 
-1. **Lobby presence cleanup**: Multi-step async cleanup (fetch → DB → poller → UI) raced against 5s test timeout
-2. **Direct invite modal**: Presence sync completing after modal opened, leaving invite list empty
+## 📝 Summary
 
-## Technical Details
+The database-level fix has been successfully applied and verified. However, there appears to be an application-level issue preventing the Realtime client from connecting to the service. This could be:
 
-See `PLAYWRIGHT_TEST_ANALYSIS.md` for comprehensive root cause analysis and alternative solutions considered.
+1. Environment configuration issue
+2. Client initialization issue
+3. Network/WebSocket connectivity issue in test environment
+4. Missing configuration in the Supabase client setup
 
+**Recommendation**: Focus investigation on the Supabase client initialization and test environment configuration rather than the database, since the database is now correctly configured.
+
+## Files Modified
+
+- ✅ `supabase/migrations/20251119001_enable_realtime.sql` - Created
+- ✅ `scripts/supabase/verify-realtime.sh` - Created
+- ✅ Database reset and migration applied
+
+## Next Investigation
+
+Priority tasks:
+1. Verify environment variables in test environment
+2. Check Supabase client initialization
+3. Add debug logging to track connection attempts
+4. Verify WebSocket connectivity in Playwright
+5. Check for any RLS policies blocking realtime
+
+---
+
+**Status**: Database fixed ✅, Application investigation needed 🔍
+**Last Updated**: 2025-11-19 11:12 AM

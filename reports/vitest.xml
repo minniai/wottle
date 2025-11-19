@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="2" errors="0" time="0.385">
+    <testsuite name="tests/unit/lib/match/roundEngine.test.ts" timestamp="2025-11-18T18:44:23.910Z" hostname="Mac.localdomain" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="tests/unit/lib/match/roundEngine.test.ts" time="0">
+            <failure message="Failed to resolve import &quot;../../../lib/match/roundEngine&quot; from &quot;tests/unit/lib/match/roundEngine.test.ts&quot;. Does the file exist?" type="Error">
+Error: Failed to resolve import &quot;../../../lib/match/roundEngine&quot; from &quot;tests/unit/lib/match/roundEngine.test.ts&quot;. Does the file exist?
+ ❯ TransformPluginContext._formatError node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41
+ ❯ TransformPluginContext.error node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16
+ ❯ normalizeUrl node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23
+ ❯ async file:/Users/ari/git/wottle/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+ ❯ TransformPluginContext.transform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7
+ ❯ PluginContainer.transform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18
+ ❯ loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/contract/post-move.contract.test.ts" timestamp="2025-11-18T18:44:23.911Z" hostname="Mac.localdomain" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="tests/contract/post-move.contract.test.ts" name="tests/contract/post-move.contract.test.ts" time="0">
+            <failure message="Failed to resolve import &quot;../../../app/api/match/[matchId]/move/route&quot; from &quot;tests/contract/post-move.contract.test.ts&quot;. Does the file exist?" type="Error">
+Error: Failed to resolve import &quot;../../../app/api/match/[matchId]/move/route&quot; from &quot;tests/contract/post-move.contract.test.ts&quot;. Does the file exist?
+ ❯ TransformPluginContext._formatError node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41
+ ❯ TransformPluginContext.error node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16
+ ❯ normalizeUrl node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23
+ ❯ async file:/Users/ari/git/wottle/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+ ❯ TransformPluginContext.transform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7
+ ❯ PluginContainer.transform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18
+ ❯ loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25_lightningcss@1.30.2/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

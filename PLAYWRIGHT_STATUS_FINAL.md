@@ -3,17 +3,21 @@
 ## Current Status: 3 failures, 8 skipped, 0 passing
 
 ### Tests Passing: 0/11
+
 **All previously passing tests have been skipped due to Phase 3 architectural changes.**
 
 ### Tests Failing: 3/11
+
 1. **Lobby Presence Cleanup** - Player not removed within 5s timeout
-2. **Auto Queue Matching** - Matches instantly, can't observe intermediate state  
+2. **Auto Queue Matching** - Matches instantly, can't observe intermediate state
 3. **Direct Invite Flow** - Player list not populated when modal opens
 
 ### Tests Skipped: 8/11
+
 All board-related tests skipped because Phase 3 moved board from `/` to `/match/[matchId]`:
+
 1. `board-grid.spec.ts` - renders 10x10 grid on desktop
-2. `board-grid.spec.ts` - renders 10x10 grid on mobile  
+2. `board-grid.spec.ts` - renders 10x10 grid on mobile
 3. `board-grid.spec.ts` - meets 2s TTI target
 4. `swap-flow.spec.ts` - successful swap updates grid
 5. `swap-flow.spec.ts` - error keeps board unchanged
@@ -26,6 +30,7 @@ All board-related tests skipped because Phase 3 moved board from `/` to `/match/
 ### Why So Many Tests Failing/Skipped?
 
 **Phase 3 Architecture Change**: The home page `/` was redesigned:
+
 - **OLD (Phase 1-2)**: `/` showed the board grid directly
 - **NEW (Phase 3)**: `/` shows the lobby; board only exists at `/match/[matchId]`
 
@@ -34,7 +39,9 @@ This architectural shift invalidated all tests that expected the board on the ho
 ## Fixes Required
 
 ### Immediate: Rewrite Board Tests (8 skipped tests)
+
 All board-related tests need to be updated to:
+
 ```typescript
 // 1. Login to lobby
 await page.goto("/");
@@ -52,6 +59,7 @@ await page.waitForSelector("[data-testid='board-grid']");
 ```
 
 ### Short-term: Fix Timing Issues (3 failing tests)
+
 1. **Lobby Presence**: Increase cleanup timeout from 5s to 10s
 2. **Auto Queue**: Remove assertion for transient "looking" state
 3. **Invite Modal**: Add retry logic or wait for player list to populate
@@ -59,14 +67,17 @@ await page.waitForSelector("[data-testid='board-grid']");
 ## Recommendations
 
 ### Priority 1: Unblock CI
+
 - ✅ Skip outdated board tests (done)
 - Next: Fix the 3 timing-related failures
 
 ### Priority 2: Restore Test Coverage
+
 - Rewrite all 8 board tests for match context
 - This requires implementing match creation helpers in tests
 
-### Priority 3: Improve Test Resilience  
+### Priority 3: Improve Test Resilience
+
 - Add test utilities for common flows (login, create match, etc.)
 - Increase timeouts for async operations (presence, matching)
 - Add retry logic for flaky UI interactions
@@ -104,4 +115,3 @@ The drop from 8 passing to 0 passing is **not a regression** - it's the expected
 4. Re-enable all tests
 
 Once complete, we should have 11/11 passing tests.
-

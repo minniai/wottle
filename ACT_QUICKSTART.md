@@ -47,6 +47,7 @@ bash scripts/act.sh -j test
 ## If Something Goes Wrong
 
 ### "Missing SUPABASE_ACCESS_TOKEN"
+
 ```bash
 # Solution: Set the skip flag
 export ACT_SKIP_TOKEN_CHECK=1
@@ -54,6 +55,7 @@ bash scripts/act.sh -j playwright --matrix suite:baseline
 ```
 
 ### "Docker socket not found"
+
 ```bash
 # Ensure Docker is running
 docker ps
@@ -61,6 +63,7 @@ docker ps
 ```
 
 ### ".env.local not found"
+
 ```bash
 # This means quickstart failed - check the quickstart output
 # Most likely cause: forgot to set ACT_SKIP_TOKEN_CHECK=1
@@ -77,8 +80,8 @@ bash scripts/act.sh -j playwright --matrix suite:baseline
 ## Full Documentation
 
 See `scripts/ACT_README.md` for:
+
 - Detailed troubleshooting
 - All available commands
 - Environment variables
 - Advanced usage
-

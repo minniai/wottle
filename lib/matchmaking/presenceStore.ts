@@ -3,9 +3,14 @@
 import { create } from "zustand";
 
 import { subscribeToLobbyPresence } from "../realtime/presenceChannel";
+import { subscribeToLobbyPresencePollingOnly } from "../realtime/presenceChannel.polling";
 import type { PresenceSubscription } from "../realtime/presenceChannel";
 import { getBrowserSupabaseClient } from "../supabase/browser";
 import type { LobbyStatus, PlayerIdentity } from "../types/match";
+
+// Feature flag: disable Realtime and use polling only
+const USE_POLLING_ONLY = typeof process !== "undefined" && 
+  process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true";
 
 export type LobbyPresenceEvent =
   | { type: "sync"; players: PlayerIdentity[] }
@@ -46,7 +51,14 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   reconnecting: false,
   lastEventAt: null,
   async connect({ self, initialPlayers }) {
+    console.log("[presenceStore] connect() called", {
+      hasSelf: Boolean(self),
+      hasInitialPlayers: Boolean(initialPlayers),
+      initialPlayersCount: initialPlayers?.length,
+    });
+
     if (initialPlayers) {
+      console.log("[presenceStore] Setting initial players:", initialPlayers.map(p => p.username));
       set({
         players: normalizePlayers(initialPlayers),
         lastEventAt: Date.now(),
@@ -54,6 +66,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
     }
 
     if (!self) {
+      console.log("[presenceStore] No self provided, disconnecting");
       disconnectActiveSubscription();
       set({
         status: "idle",
@@ -68,9 +81,11 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
     }
 
     if (trackedPlayerId === self.id && get().status === "ready") {
+      console.log("[presenceStore] Already connected for this player, skipping");
       return;
     }
 
+    console.log("[presenceStore] Starting connection for player:", self.username);
     set({
       status: "connecting",
       reconnecting: Boolean(activeSubscription),
@@ -81,7 +96,15 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
 
     try {
       const client = getBrowserSupabaseClient();
-      const subscription = subscribeToLobbyPresence<PlayerIdentity>(
+      
+      // Choose implementation based on feature flag
+      const subscribeFunction = USE_POLLING_ONLY 
+        ? subscribeToLobbyPresencePollingOnly 
+        : subscribeToLobbyPresence;
+      
+      console.log("[presenceStore] Using", USE_POLLING_ONLY ? "polling-only" : "realtime", "mode");
+      
+      const subscription = subscribeFunction<PlayerIdentity>(
         client,
         {
           onSync: (payload, source) => {
@@ -163,19 +186,23 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
     }
   },
   disconnect() {
+    console.log("[presenceStore] disconnect() called, trackedPlayerId:", trackedPlayerId);
     disconnectActiveSubscription();
-    
+
     // Clean up presence record from database
     // Use keepalive to ensure request completes even if page is unloading
     if (trackedPlayerId) {
+      console.log("[presenceStore] Sending DELETE request to /api/lobby/presence");
       fetch("/api/lobby/presence", {
         method: "DELETE",
         keepalive: true,
+      }).then(() => {
+        console.log("[presenceStore] DELETE request completed successfully");
       }).catch((error) => {
         console.warn("Failed to clean up presence on disconnect", error);
       });
     }
-    
+
     set({
       status: "idle",
       reconnecting: false,
@@ -216,6 +243,11 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
     });
   },
 }));
+
+// Expose store to window for testing
+if (typeof window !== "undefined") {
+  (window as any).useLobbyPresenceStore = useLobbyPresenceStore;
+}
 
 export function applyLobbyEvent(
   players: PlayerIdentity[],
@@ -263,6 +295,7 @@ function upsert(
 }
 
 async function fetchPollingSnapshot(): Promise<PlayerIdentity[]> {
+  console.log("[presenceStore] Polling /api/lobby/players...");
   const response = await fetch("/api/lobby/players", {
     headers: {
       accept: "application/json",
@@ -271,11 +304,14 @@ async function fetchPollingSnapshot(): Promise<PlayerIdentity[]> {
   });
 
   if (!response.ok) {
+    console.error("[presenceStore] Polling failed with status:", response.status);
     throw new Error(`Snapshot request failed with status ${response.status}`);
   }
 
   const payload = (await response.json()) as { players?: PlayerIdentity[] };
-  return payload.players ?? [];
+  const players = payload.players ?? [];
+  console.log("[presenceStore] Polling returned", players.length, "players:", players.map(p => p.username));
+  return players;
 }
 
 function disconnectActiveSubscription() {

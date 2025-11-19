@@ -83,7 +83,7 @@ function BoardSection({ boardResult }: { boardResult: BoardResult }) {
               </dd>
             </div>
           </dl>
-          <BoardExperience initialGrid={boardResult.board.grid} />
+          <BoardExperience initialGrid={boardResult.board.grid} matchId={boardResult.board.boardId} />
         </div>
       ) : (
         <div className="mt-6 text-xs text-white/60">Loading board data…</div>

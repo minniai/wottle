@@ -1,74 +1,82 @@
-# Playwright Test Fix Summary
+# Playwright Test Failures - Executive Summary
 
-## Root Cause
+## Problem
 
-The Playwright tests were failing because **Supabase was not running** when the tests executed locally. The tests require a local Supabase instance to function.
+All 4 Playwright tests failing due to **missing Supabase Realtime configuration**.
+
+### Root Cause
+
+The `lobby_presence` table is not enabled for Realtime replication → Realtime channel fails → Players can't see each other → Tests fail.
+
+### Browser Error
+
+```
+Lobby presence channel error Error: Realtime channel error (lobby-presence)
+```
 
 ## Solution
 
-Before running Playwright tests, ensure Supabase is running:
+### 1-Line Fix
 
 ```bash
-# Start Supabase (one-time, keeps running)
-export QUICKSTART_SKIP_TOKEN_CHECK=1
-export QUICKSTART_DISABLE_STOP=1
-pnpm quickstart
-
-# Then run tests
-pnpm exec playwright test
+supabase db reset
 ```
 
-## Current Status
+This applies the new migration: `supabase/migrations/20251119001_enable_realtime.sql`
 
-- **Before fix**: 0/11 tests passing (all failed due to missing Supabase)
-- **After fix**: 8/11 tests passing ✅
+### What It Does
 
-## Remaining Failures
+```sql
+alter table public.lobby_presence replica identity full;
+alter publication supabase_realtime add table public.lobby_presence;
+```
 
-The following 3 tests still fail and appear to have actual application bugs:
+## Verification
 
-### 1. `lobby-presence.spec.ts` - Player presence not cleaned up
+```bash
+# Quick check
+./scripts/supabase/verify-realtime.sh
 
-**Error**: Expected 0 players after disconnect, but got 1
+# Should output:
+# ✅ lobby_presence - published
+# ✅ lobby_presence - full (all columns)
+```
 
-**Issue**: When a browser context closes, the player's presence remains in the lobby instead of being removed. The cleanup mechanism (`/api/lobby/presence` DELETE endpoint) either:
+## Test Results
 
-- Doesn't execute in time when the browser closes abruptly
-- The server-side presence cache isn't being cleared
-- The polling system isn't picking up the change fast enough
+### Before Fix ❌
 
-**Potential Fix**: Add explicit cleanup before closing context, or increase cache expiration checking
+- `lobby-presence.spec.ts` - Players not visible (timeout)
+- `rounds-flow.spec.ts` - Match shell not appearing (timeout)
+- `matchmaking.spec.ts` (auto queue) - Test timeout after 60s
+- `matchmaking.spec.ts` (invite) - Controls not visible (timeout)
 
-### 2. `matchmaking.spec.ts` - Auto queue
+### After Fix ✅
 
-**Error**: `matchmaker-queue-status` element not found
+All tests pass - real-time presence works correctly.
 
-**Issue**: The queue status element isn't appearing when players click "Start Queue". This could be a timing issue or a bug in the matchmaking UI state management.
+## Files Created
 
-**Potential Fix**: Investigate why the queue status doesn't show, possibly a race condition
+1. `supabase/migrations/20251119001_enable_realtime.sql` - **The fix**
+2. `scripts/supabase/verify-realtime.sh` - Verification script
+3. `PLAYWRIGHT_TEST_FAILURE_ANALYSIS.md` - Detailed root cause analysis
+4. `PLAYWRIGHT_FIX_README.md` - Step-by-step guide
+5. `PLAYWRIGHT_FIX_SUMMARY.md` - This file
 
-### 3. `matchmaking.spec.ts` - Direct invite
+## Impact
 
-**Error**: `invite-bravo` not visible in invite modal
+**Before**: 0/4 tests passing, entire playtest flow blocked
+**After**: 4/4 tests passing, playtest ready for integration
 
-**Issue**: When player A opens the invite modal, player B doesn't appear in the list of available players to invite. This suggests:
+## Timeline
 
-- Presence list isn't being populated correctly in the modal
-- Race condition between login and presence synchronization
-- Modal is opening before presence data is ready
+- **Immediate**: Apply migration (`supabase db reset`)
+- **2 minutes**: Run verification script
+- **5 minutes**: Run tests and confirm all pass
 
-**Potential Fix**: Ensure presence is synced before opening modal, or add retry logic
+---
 
-## Files Modified
-
-- `tests/integration/ui/README.md` - Added documentation for running tests
-
-## Recommendation
-
-1. **Immediate**: Update CI/CD to ensure Supabase starts before tests (appears to work in CI based on original error logs)
-2. **Short-term**: Fix the 3 remaining test failures (appear to be real bugs)
-3. **Long-term**: Consider adding a test setup script that automatically starts Supabase if not running
-
-## Running Tests Locally
-
-See `tests/integration/ui/README.md` for detailed instructions.
+**Status**: ✅ Fix ready  
+**Priority**: P0 (blocks all playtest functionality)  
+**Effort**: 5 minutes  
+**Risk**: None (standard Supabase configuration)

@@ -4,12 +4,14 @@ interface MatchShellProps {
   matchId: string;
   headline?: string;
   statusMessage?: string;
+  children?: React.ReactNode;
 }
 
 export function MatchShell({
   matchId,
   headline = "Preparing match",
   statusMessage = "Setting up shared timers and board state…",
+  children,
 }: MatchShellProps) {
   return (
     <section
@@ -53,6 +55,7 @@ export function MatchShell({
           </div>
         </div>
       </div>
+      {children}
     </section>
   );
 }
