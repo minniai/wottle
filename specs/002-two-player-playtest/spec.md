@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "Next milestone is to achive a playtest between two users. Two users need to be able to login, play game with the following use cases: Start a game, play 10 rounds, show scoring after each round, show words scored and complete the game."
 
+## Clarifications
+
+### Session 2025-01-16
+
+- Q: When a playtester submits a username that already exists in the system (case-insensitive match), what should happen? → A: Reuse existing profile (auto-login) - The system finds the existing player record and logs them in, showing their previous status/lobby state.
+- Q: Should the system enforce rate limiting, and if so, what limits should apply? → A: Rate limit both: 5 auth attempts/min per IP, 30 moves/min per player - Prevent abuse while allowing normal gameplay.
+- Q: When a player clicks "Start Game" (auto-pairing) but no other available player is in the lobby, what should happen? → A: Queue indefinitely with status update - Place player in matchmaking queue, show "Waiting for opponent..." status, allow manual cancel button.
+- Q: How should the rematch feature work after a match ends? → A: Rematch creates new match with same players - If both players click "Rematch" (or "Accept Rematch" after receiving request), system creates a new match with the same two players and new board seed.
+- Q: When a player disconnects during an active match, how long should the system wait before declaring them unrecoverable and finalizing the match? → A: 10 seconds (constitution aligned) - Matches constitution's ≤10s reconnection window; pauses timers during this period.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Authenticate and Enter Lobby (Priority: P1)
@@ -17,7 +27,7 @@ A prospective playtester enters a username, authenticates, and lands in the lobb
 
 **Acceptance Scenarios**:
 
-1. **Given** the landing page, **When** a tester submits a unique username, **Then** the system creates (or reuses) their profile and displays the lobby with their status marked “Available.”
+1. **Given** the landing page, **When** a tester submits a username, **Then** the system finds the existing player record if the username already exists (case-insensitive) and logs them in, or creates a new profile if the username is new, then displays the lobby with their status marked "Available."
 2. **Given** multiple authenticated testers, **When** one user joins or leaves, **Then** the lobby list updates for all connected clients within 2 seconds.
 
 ---
@@ -32,7 +42,7 @@ Two authenticated users create a head-to-head match via “Start Game” or dire
 
 **Acceptance Scenarios**:
 
-1. **Given** two “Available” users, **When** either presses “Start Game,” **Then** the system pairs them (or issues an invite) and both see a “Match Found” confirmation before the board loads.
+1. **Given** two "Available" users, **When** either presses "Start Game," **Then** the system pairs them immediately (or issues an invite) and both see a "Match Found" confirmation before the board loads. If no other available player exists, **Then** the system places the player in the matchmaking queue with a "Waiting for opponent..." status and provides a manual cancel option.
 2. **Given** a user receives an invite, **When** they accept, **Then** both clients receive the same match identifier and see the seeded 10×10 board plus round 1 instructions.
 
 ---
@@ -77,28 +87,30 @@ Upon finishing 10 rounds (or hitting an end condition), both players see the fin
 
 **Acceptance Scenarios**:
 
-1. **Given** both players finish all 10 rounds, **When** the match ends, **Then** the final summary clearly states winner/loser (or tie) with final scores and total words per player.
+1. **Given** both players finish all 10 rounds, **When** the match ends, **Then** the final summary clearly states winner/loser (or tie) with final scores and total words per player. **When** both players click "Rematch," **Then** the system creates a new match with a new match ID, new board seed, same players, and both are routed to round 1 of the new match.
 2. **Given** a player disconnects or times out before 10 rounds, **When** the end condition triggers, **Then** the system records the last completed round, awards remaining rounds per rules, and still presents a final summary citing the reason for early termination.
 
 ---
 
 ### Edge Cases
 
-- One player disconnects mid-round: their timer continues, and if it hits zero the opponent may keep playing remaining rounds solo until all swaps are exhausted.
+- One player disconnects mid-round: both players' timers pause, and the system waits up to 10 seconds for reconnection. If the disconnected player returns within 10 seconds, timers resume and gameplay continues. If they fail to return, the match is finalized with disconnect end condition, and remaining rounds are not played solo.
 - Simultaneous identical swaps: the earlier valid submission wins; the later submission is rejected with a neutral message and the player can resubmit within the same round if time remains.
 - Invitation conflicts: if a player accepts two invites nearly simultaneously, only the first accepted invite becomes a match; other invites auto-expire with a “player busy” notice.
 - Lobby desync: if a client loses lobby connection, the UI must show a reconnect banner instead of stale player statuses.
 - Resume after refresh: when a player refreshes mid-match, they rejoin the current round with the latest board, timer, and score state.
 - Word scoring disputes: if the server rejects a client-reported word (e.g., due to invalid dictionary entry), the UI surfaces the rejection reason in the round summary.
 - Tie scores after 10 rounds: declare a draw, highlight equal totals, and skip rematch prompts that assume a winner.
+- Rate limiting exceeded: if a player exceeds the 30 moves/min limit, subsequent move submissions are rejected with a "429 Too Many Requests" response until the rate limit window resets; if an IP exceeds 5 auth attempts/min, authentication requests are rejected with the same error code.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide username-only authentication (per PRD §3.1) that creates or reuses a player profile and establishes a secure session tied to that identity.
+- **FR-001**: System MUST provide username-only authentication (per PRD §3.1) that creates or reuses a player profile and establishes a secure session tied to that identity. When a username already exists (case-insensitive match), the system MUST automatically log in the existing profile rather than rejecting or creating a duplicate; usernames are unique and stored in lowercased form.
+- **FR-001a**: System MUST enforce rate limiting: authentication attempts limited to 5 per minute per IP address, and move submissions limited to 30 per minute per player. When rate limits are exceeded, the system MUST return appropriate error responses (429 Too Many Requests) without processing the request.
 - **FR-002**: Lobby MUST display all authenticated testers with real-time status (available, matchmaking, in-match) and update within 2 seconds of any status change.
-- **FR-003**: Users MUST be able to initiate matchmaking via “Start Game” (auto-pairing) or direct invite from the lobby list; invites must expire after 30 seconds if unanswered.
+- **FR-003**: Users MUST be able to initiate matchmaking via "Start Game" (auto-pairing) or direct invite from the lobby list; invites must expire after 30 seconds if unanswered. When "Start Game" is pressed with no available opponent, the system MUST place the player in a matchmaking queue, update their status to "matchmaking," display "Waiting for opponent..." in the UI, and provide a manual cancel button to exit the queue; the queue persists indefinitely until a match is found or manually cancelled.
 - **FR-004**: Match creation MUST ensure exactly two distinct, available players and assign them a shared match identifier, board seed, and initial timers before entering round 1.
 - **FR-005**: Each match MUST enforce exactly 10 rounds per player unless a timeout/disconnect end condition triggers earlier; rounds cannot start until the prior round is resolved.
 - **FR-006**: During each round, clients MUST allow precisely one swap submission per player, hide the move until both submissions are received, and reject late swaps once round resolution begins.
@@ -107,8 +119,8 @@ Upon finishing 10 rounds (or hitting an end condition), both players see the fin
 - **FR-009**: Round summaries MUST list every new word scored that round with letter sequence, length, base points, combo bonuses, and attribution to the scoring player.
 - **FR-010**: UI MUST highlight (or otherwise surface) scored word tiles for at least 3 seconds after each round so playtesters can visually confirm outcomes.
 - **FR-011**: Match timers MUST follow the 5+0 format (PRD §3.2) where submitting a swap pauses the player’s timer until the next round begins; timeouts prevent further submissions for that player.
-- **FR-012**: System MUST handle disconnects gracefully by marking the player “Reconnecting,” resuming state when they return, or finalizing the match if they fail to return before timer expiration.
-- **FR-013**: Final summary MUST present winner (or draw), final scores, total words scored, remaining time per player, and buttons for “Rematch” (if both consent) and “Return to Lobby.”
+- **FR-012**: System MUST handle disconnects gracefully by marking the player "Reconnecting," pausing both players' timers, and waiting up to 10 seconds (per constitution V) for reconnection. If the disconnected player returns within 10 seconds, their state MUST be restored and timers resumed. If they fail to return within 10 seconds, the match MUST be finalized with an appropriate end condition (disconnect) and remaining player declared winner (or match abandoned if both disconnect).
+- **FR-013**: Final summary MUST present winner (or draw), final scores, total words scored, remaining time per player, and buttons for "Rematch" and "Return to Lobby." When both players click "Rematch" (or one clicks "Rematch" and the other accepts the rematch request), the system MUST create a new match instance with a new match ID, new board seed, same two players, and reset all timers to the initial 5+0 state; each rematch generates a separate match record for audit purposes.
 - **FR-014**: Match logs MUST persist player IDs, board seed, per-round swaps, scoring events, and match outcome so QA can audit any playtest session after the fact.
 - **FR-015**: Observability MUST capture per-round latency (submission to scoreboard), authentication success/failure counts, and disconnect occurrences to inform playtest readiness.
 
