@@ -10,12 +10,19 @@ vi.mock("../../../../lib/supabase/server", () => ({
 describe("roundEngine", () => {
     let mockSupabase: any;
     let matchQueryChain: any;
+    let roundsQueryChain: any;
     let submissionsQueryChain: any;
     let updateQueryChain: any;
+    let submissionsUpdateChain: any;
 
     beforeEach(() => {
         // Create separate mock chains for different queries
         matchQueryChain = {
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn(),
+        };
+
+        roundsQueryChain = {
             eq: vi.fn().mockReturnThis(),
             single: vi.fn(),
         };
@@ -35,6 +42,11 @@ describe("roundEngine", () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
         };
 
+        // Chain for move_submissions updates
+        submissionsUpdateChain = {
+            eq: vi.fn().mockResolvedValue({ error: null }),
+        };
+
         mockSupabase = {
             from: vi.fn((table: string) => {
                 if (table === "matches") {
@@ -43,9 +55,17 @@ describe("roundEngine", () => {
                         update: vi.fn(() => updateQueryChain),
                     };
                 }
+                if (table === "rounds") {
+                    return {
+                        select: vi.fn(() => roundsQueryChain),
+                        update: vi.fn(() => updateQueryChain),
+                        insert: vi.fn().mockResolvedValue({ error: null }),
+                    };
+                }
                 if (table === "move_submissions") {
                     return {
                         select: vi.fn(() => submissionsQueryChain),
+                        update: vi.fn(() => submissionsUpdateChain),
                     };
                 }
                 return {};
@@ -58,7 +78,13 @@ describe("roundEngine", () => {
     it("should advance round when 2 submissions are present", async () => {
         // Mock match fetch
         matchQueryChain.single.mockResolvedValueOnce({
-            data: { id: "match-1", current_round: 1, status: "in_progress" },
+            data: { id: "match-1", current_round: 1, state: "in_progress" },
+            error: null,
+        });
+
+        // Mock round fetch
+        roundsQueryChain.single.mockResolvedValueOnce({
+            data: { id: "round-1", state: "collecting", board_snapshot_before: Array(10).fill(Array(10).fill("A")) },
             error: null,
         });
 
@@ -69,8 +95,8 @@ describe("roundEngine", () => {
             }
             return Promise.resolve({
                 data: [
-                    { player_id: "p1", from_x: 0, from_y: 0, to_x: 0, to_y: 1, created_at: "2023-01-01T10:00:00Z" },
-                    { player_id: "p2", from_x: 5, from_y: 5, to_x: 5, to_y: 6, created_at: "2023-01-01T10:00:01Z" },
+                    { id: "sub1", player_id: "p1", from_x: 0, from_y: 0, to_x: 0, to_y: 1, submitted_at: "2023-01-01T10:00:00Z" },
+                    { id: "sub2", player_id: "p2", from_x: 5, from_y: 5, to_x: 5, to_y: 6, submitted_at: "2023-01-01T10:00:01Z" },
                 ],
                 error: null,
             });
@@ -81,13 +107,20 @@ describe("roundEngine", () => {
         expect(result.status).toBe("advanced");
         expect(result.nextRound).toBe(2);
         expect(mockSupabase.from).toHaveBeenCalledWith("matches");
+        expect(mockSupabase.from).toHaveBeenCalledWith("rounds");
         expect(mockSupabase.from).toHaveBeenCalledWith("move_submissions");
     });
 
     it("should wait when less than 2 submissions", async () => {
         // Mock match fetch
         matchQueryChain.single.mockResolvedValueOnce({
-            data: { id: "match-1", current_round: 1, status: "in_progress" },
+            data: { id: "match-1", current_round: 1, state: "in_progress" },
+            error: null,
+        });
+
+        // Mock round fetch
+        roundsQueryChain.single.mockResolvedValueOnce({
+            data: { id: "round-1", state: "collecting", board_snapshot_before: Array(10).fill(Array(10).fill("A")) },
             error: null,
         });
 
@@ -98,7 +131,7 @@ describe("roundEngine", () => {
             }
             return Promise.resolve({
                 data: [
-                    { player_id: "p1", from_x: 0, from_y: 0, to_x: 0, to_y: 1 },
+                    { id: "sub1", player_id: "p1", from_x: 0, from_y: 0, to_x: 0, to_y: 1, submitted_at: "2023-01-01T10:00:00Z" },
                 ],
                 error: null,
             });

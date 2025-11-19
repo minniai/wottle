@@ -72,11 +72,11 @@
 **Independent Test**: Dual-browser scenario completes 10 rounds, verifying timers pause/resume correctly and late swaps rejected after resolution starts.
 
 - [ ] T029 [US3] [TDD-RED] Author Playwright spec for 10-round loop + timeout edge cases (`tests/integration/ui/rounds-flow.spec.ts`)
-- [ ] T030 [US3] Implement backend round state machine with transaction locks (`lib/match/roundEngine.ts`, `lib/match/conflictResolver.ts`)
-- [ ] T031 [US3] Add Server Action for submitting moves (`app/actions/match/submitMove.ts`) enforcing bounds + dictionary validation flags
-- [ ] T032 [US3] Create REST route `/api/match/[matchId]/move` for contract coverage (`app/api/match/[matchId]/move/route.ts`)
-- [ ] T033 [US3] Build match board interaction handlers (tile selection, submission, disabled states) in `components/game/BoardGrid.tsx`
-- [ ] T034 [US3] Implement timer HUD + pause/expire states (`components/game/TimerHud.tsx`, `lib/match/timerStore.ts`)
+- [x] T030 [US3] Implement backend round state machine with transaction locks (`lib/match/roundEngine.ts`, `lib/match/conflictResolver.ts`)
+- [x] T031 [US3] Add Server Action for submitting moves (`app/actions/match/submitMove.ts`) enforcing bounds + dictionary validation flags
+- [x] T032 [US3] Create REST route `/api/match/[matchId]/move` for contract coverage (`app/api/match/[matchId]/move/route.ts`)
+- [x] T033 [US3] Build match board interaction handlers (tile selection, submission, disabled states) in `components/game/BoardGrid.tsx`
+- [x] T034 [US3] Implement timer HUD + pause/expire states (`components/game/TimerHud.tsx`, `lib/match/timerStore.ts`)
 - [ ] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`
 - [ ] T036 [US3] [P] Add unit tests for `roundEngine` transitions + conflict rules (`tests/unit/lib/match/roundEngine.test.ts`)
 - [ ] T037 [US3] [P] Add contract tests covering move submission accept/reject cases (`tests/contract/post-move.contract.test.ts`)
@@ -91,10 +91,10 @@
 **Independent Test**: Scenario forms words each round and asserts scoreboard + highlight overlays match server data.
 
 - [ ] T039 [US4] [TDD-RED] Add Playwright spec verifying round summary panel and tile highlights (`tests/integration/ui/round-summary.spec.ts`)
-- [ ] T040 [US4] Implement scoring aggregator + word extraction utilities (`lib/scoring/roundSummary.ts`, `lib/scoring/highlights.ts`)
-- [ ] T041 [US4] Add Server Action that assembles `RoundSummary` payload + publishes via Realtime (`app/actions/match/publishRoundSummary.ts`)
-- [ ] T042 [US4] Build UI components for summary drawer + word list (`components/match/RoundSummaryPanel.tsx`, `components/match/WordHighlightOverlay.tsx`)
-- [ ] T043 [US4] Persist scoreboard snapshots + expose GET `/api/match/[matchId]/rounds/[round]/summary` (`app/api/match/[matchId]/rounds/[round]/summary/route.ts`)
+- [x] T040 [US4] Implement scoring aggregator + word extraction utilities (`lib/scoring/roundSummary.ts`, `lib/scoring/highlights.ts`)
+- [x] T041 [US4] Add Server Action that assembles `RoundSummary` payload + publishes via Realtime (`app/actions/match/publishRoundSummary.ts`)
+- [x] T042 [US4] Build UI components for summary drawer + word list (`components/match/RoundSummaryPanel.tsx`, `components/match/WordHighlightOverlay.tsx`)
+- [x] T043 [US4] Persist scoreboard snapshots + expose GET `/api/match/[matchId]/rounds/[round]/summary` (`app/api/match/[matchId]/rounds/[round]/summary/route.ts`)
 - [ ] T044 [US4] [P] Add Vitest tests for scoring calculations + highlight coordinates (`tests/unit/lib/scoring/roundSummary.test.ts`)
 - [ ] T045 [US4] [P] Add contract tests asserting round summary schema (`tests/contract/get-round-summary.contract.test.ts`)
 

@@ -4,6 +4,7 @@ import { readLobbySession } from "@/lib/matchmaking/profile";
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { TimerHud } from "@/components/game/TimerHud";
 import { redirect } from "next/navigation";
+import { generateBoard } from "@/scripts/supabase/generateBoard";
 
 interface MatchPageParams {
   matchId: string;
@@ -34,11 +35,32 @@ export default async function MatchPage({
     return <div>Match not found</div>;
   }
 
-  // Mock grid for now - in real implementation this comes from match state or separate table
-  // We need to fetch the board state. For MVP scaffold, let's assume a static or random grid if not persisted yet.
-  // Actually, the spec mentions "seeded 10x10 board".
-  // For this step, I will generate a dummy grid to unblock the UI integration.
-  const dummyGrid = Array(10).fill(Array(10).fill("A"));
+  // Fetch current round's board state
+  let currentBoard: string[][] | null = null;
+  
+  const { data: currentRound } = await supabase
+    .from("rounds")
+    .select("board_snapshot_before")
+    .eq("match_id", matchId)
+    .eq("round_number", match.current_round)
+    .maybeSingle();
+
+  if (currentRound?.board_snapshot_before) {
+    try {
+      currentBoard = currentRound.board_snapshot_before as string[][];
+    } catch {
+      // Failed to parse board snapshot, will generate new one
+      console.error("Failed to parse board snapshot");
+      currentBoard = null;
+    }
+  }
+
+  // If no round exists or parsing failed, generate board from match seed
+  if (!currentBoard) {
+    // Use board_seed or match ID as seed for deterministic board generation
+    const seed = match.board_seed || matchId;
+    currentBoard = generateBoard({ matchId: seed });
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 p-6 text-white">
@@ -55,7 +77,7 @@ export default async function MatchPage({
           />
 
           <BoardGrid
-            grid={dummyGrid}
+            grid={currentBoard}
             matchId={matchId}
           />
         </div>

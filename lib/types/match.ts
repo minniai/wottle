@@ -1,5 +1,8 @@
 import type { Coordinate } from "./board";
 
+// Re-export Coordinate for convenience
+export type { Coordinate };
+
 export type LobbyStatus = "available" | "matchmaking" | "in_match" | "offline";
 
 export interface PlayerIdentity {
