@@ -6,6 +6,7 @@ import { advanceRound } from "../../../lib/match/roundEngine";
 import { revalidatePath } from "next/cache";
 import type { BoardGrid, MoveResult } from "@/lib/types/board";
 import { boardGridSchema } from "@/lib/types/board";
+import { applySwap } from "@/lib/game-engine/board";
 
 export async function submitMove(
     matchId: string,
@@ -124,7 +125,22 @@ export async function submitMove(
         return { error: "Failed to submit move" };
     }
 
-    // 6. Trigger round advancement check (async - don't block response)
+    // 6. Apply swap to current board for optimistic UI feedback
+    // Note: The round's board_snapshot_before won't change until round resolves,
+    // but we return the swapped board so the user sees their move immediately
+    let swappedBoard: BoardGrid;
+    try {
+        swappedBoard = applySwap(currentBoard, {
+            from: { x: fromX, y: fromY },
+            to: { x: toX, y: toY },
+        });
+    } catch (e) {
+        // If swap fails (shouldn't happen after validation), return current board
+        console.error("Failed to apply swap for UI preview:", e);
+        swappedBoard = currentBoard;
+    }
+
+    // 7. Trigger round advancement check (async - don't block response)
     advanceRound(matchId).catch((e) => {
         console.error("Failed to advance round:", e);
     });
@@ -132,6 +148,6 @@ export async function submitMove(
     revalidatePath(`/match/${matchId}`);
     return {
         status: "accepted",
-        grid: currentBoard, // Return current board (move will be applied when round resolves)
+        grid: swappedBoard, // Return board with swap applied for immediate visual feedback
     };
 }

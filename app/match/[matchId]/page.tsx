@@ -35,6 +35,30 @@ export default async function MatchPage({
     return <div>Match not found</div>;
   }
 
+  // Initialize match if it's still pending (create round 1, set to in_progress)
+  if (match.state === "pending") {
+    const seed = match.board_seed || matchId;
+    const initialBoard = generateBoard({ matchId: seed });
+
+    // Create round 1
+    const { error: roundError } = await supabase
+      .from("rounds")
+      .upsert({
+        match_id: matchId,
+        round_number: 1,
+        state: "collecting",
+        board_snapshot_before: initialBoard,
+      }, { onConflict: "match_id,round_number" });
+
+    if (!roundError) {
+      // Set match to in_progress
+      await supabase
+        .from("matches")
+        .update({ state: "in_progress" })
+        .eq("id", matchId);
+    }
+  }
+
   // Fetch current round's board state
   let currentBoard: string[][] | null = null;
   
