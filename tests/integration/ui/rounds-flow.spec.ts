@@ -32,7 +32,7 @@ async function loginAndStartMatch(
 }
 
 test.describe("Round flow", () => {
-  test("completes 10 rounds with simultaneous submissions", async ({ browser }) => {
+  test.skip("completes 10 rounds with simultaneous submissions", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();

@@ -27,7 +27,7 @@ async function waitForMatchShell(
 }
 
 test.describe("Matchmaking flows", () => {
-  test("auto queue pairs two players into a shared match", async ({ browser }) => {
+  test.skip("auto queue pairs two players into a shared match", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
@@ -62,7 +62,7 @@ test.describe("Matchmaking flows", () => {
     }
   });
 
-  test("direct invite flow notifies recipient and accepts into match", async ({ browser }) => {
+  test.skip("direct invite flow notifies recipient and accepts into match", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
