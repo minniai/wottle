@@ -8,11 +8,19 @@ import { expect, test } from "@playwright/test";
  * with the Realtime service itself or with how the app uses it.
  */
 
+interface RealtimeTestResult {
+  success: boolean;
+  status: string;
+  logs: string[];
+  errors: string[];
+  presenceState?: Record<string, unknown>;
+}
+
 test.describe("Realtime Debug", () => {
   test("can connect to Supabase Realtime service", async ({ page }) => {
     await page.goto("/");
     
-    const result = await page.evaluate(async () => {
+    const result = await page.evaluate(async (): Promise<RealtimeTestResult> => {
       const logs: string[] = [];
       const errors: string[] = [];
       
@@ -48,7 +56,7 @@ test.describe("Realtime Debug", () => {
           const channel = client.channel("debug-test-channel");
           logs.push("Channel created");
           
-          channel.subscribe((status) => {
+          channel.subscribe((status: string) => {
             logs.push(`Status: ${status}`);
             
             if (status === "SUBSCRIBED") {
@@ -95,10 +103,10 @@ test.describe("Realtime Debug", () => {
     console.log("Success:", result.success);
     console.log("Status:", result.status);
     console.log("\nLogs:");
-    result.logs.forEach(log => console.log("  ", log));
+    result.logs.forEach((log: string) => console.log("  ", log));
     if (result.errors.length > 0) {
       console.log("\nErrors:");
-      result.errors.forEach(err => console.log("  ", err));
+      result.errors.forEach((err: string) => console.log("  ", err));
     }
     console.log("===================================");
     
@@ -109,7 +117,7 @@ test.describe("Realtime Debug", () => {
   test("can use Realtime Presence feature", async ({ page }) => {
     await page.goto("/");
     
-    const result = await page.evaluate(async () => {
+    const result = await page.evaluate(async (): Promise<RealtimeTestResult> => {
       const logs: string[] = [];
       const errors: string[] = [];
       
@@ -150,7 +158,7 @@ test.describe("Realtime Debug", () => {
               const state = channel.presenceState();
               logs.push(`Presence state: ${JSON.stringify(Object.keys(state))}`);
             })
-            .subscribe((status) => {
+            .subscribe((status: string) => {
               logs.push(`Status: ${status}`);
               
               if (status === "SUBSCRIBED") {
@@ -204,10 +212,10 @@ test.describe("Realtime Debug", () => {
     console.log("Success:", result.success);
     console.log("Status:", result.status);
     console.log("\nLogs:");
-    result.logs.forEach(log => console.log("  ", log));
+    result.logs.forEach((log: string) => console.log("  ", log));
     if (result.errors.length > 0) {
       console.log("\nErrors:");
-      result.errors.forEach(err => console.log("  ", err));
+      result.errors.forEach((err: string) => console.log("  ", err));
     }
     console.log("===========================================");
     
