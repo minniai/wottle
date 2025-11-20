@@ -29,6 +29,7 @@
     "supabase:reset": "tsx scripts/supabase/reset.ts",
     "supabase:verify": "tsx scripts/supabase/verify.ts",
     "supabase:policies": "tsx scripts/supabase/policies/check.ts",
+    "supabase:logs": "tsx scripts/supabase/log-export.ts",
     "quickstart": "make quickstart",
     "quickstart:feedback": "tsx scripts/supabase/quickstart-feedback.ts",
     "perf:swap": "artillery run --output artillery-swap.json tests/perf/swap.yml && tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json",

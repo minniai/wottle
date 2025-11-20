@@ -106,12 +106,12 @@
 **Goal**: Display final scoreboard, word history, timers used, and rematch/lobby controls once 10 rounds or an end condition triggers.
 **Independent Test**: Playwright flow finishes a match (both normal + timeout) and confirms final screen content plus rematch routing.
 
-- [ ] T046 [US5] [TDD-RED] Playwright spec for final summary + rematch prompt (`tests/integration/ui/final-summary.spec.ts`)
-- [ ] T047 [US5] Implement match completion Server Action (winner calculation, ended_reason) (`app/actions/match/completeMatch.ts`)
-- [ ] T048 [US5] Render final summary view (`app/match/[matchId]/summary/page.tsx`, `components/match/FinalSummary.tsx`) with word history + timers
-- [ ] T049 [US5] Add rematch + back-to-lobby flows (Server Action `app/actions/match/requestRematch.ts`, lobby redirect handling)
-- [ ] T050 [US5] Persist match logs & expose admin query for QA review (`lib/match/logWriter.ts`, `scripts/supabase/log-export.ts`)
-- [ ] T051 [US5] [P] Add unit tests for winner/draw calculation + rematch safeguards (`tests/unit/lib/match/resultCalculator.test.ts`)
+- [x] T046 [US5] [TDD-RED] Playwright spec for final summary + rematch prompt (`tests/integration/ui/final-summary.spec.ts`)
+- [x] T047 [US5] Implement match completion Server Action (winner calculation, ended_reason) (`app/actions/match/completeMatch.ts`)
+- [x] T048 [US5] Render final summary view (`app/match/[matchId]/summary/page.tsx`, `components/match/FinalSummary.tsx`) with word history + timers
+- [x] T049 [US5] Add rematch + back-to-lobby flows (Server Action `app/actions/match/requestRematch.ts`, lobby redirect handling)
+- [x] T050 [US5] Persist match logs & expose admin query for QA review (`lib/match/logWriter.ts`, `scripts/supabase/log-export.ts`)
+- [x] T051 [US5] [P] Add unit tests for winner/draw calculation + rematch safeguards (`tests/unit/lib/match/resultCalculator.test.ts`)
 
 ---
 

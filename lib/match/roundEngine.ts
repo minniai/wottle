@@ -5,6 +5,7 @@ import { applySwap, type BoardGrid } from "../game-engine/board";
 import { boardGridSchema } from "../types/board";
 import type { MoveRequest } from "../types/board";
 import { publishMatchState } from "./statePublisher";
+import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 
 export async function advanceRound(matchId: string) {
     const supabase = getServiceRoleClient();
@@ -165,7 +166,6 @@ export async function advanceRound(matchId: string) {
 
     if (isGameOver) {
         updatePayload.state = "completed";
-        // TODO: Calculate winner based on scores (to be implemented with scoring engine)
     }
 
     const { error: updateError } = await supabase
@@ -191,6 +191,14 @@ export async function advanceRound(matchId: string) {
         await publishMatchState(matchId);
     } catch (error) {
         console.error("[MatchState] Failed to broadcast match update:", error);
+    }
+
+    if (isGameOver) {
+        try {
+            await completeMatchInternal(matchId, "round_limit");
+        } catch (error) {
+            console.error("[MatchState] Failed to finalize match:", error);
+        }
     }
 
     return { status: "advanced", nextRound, isGameOver, acceptedMoves: acceptedMoves.length, rejectedMoves: rejectedMoves.length };

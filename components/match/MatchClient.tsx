@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { TimerHud } from "@/components/game/TimerHud";
@@ -25,6 +26,7 @@ export function MatchClient({
   matchId,
   pollIntervalMs = 3_000,
 }: MatchClientProps) {
+  const router = useRouter();
   const [matchState, setMatchState] = useState<MatchState>(initialState);
   const [summary, setSummary] = useState<RoundSummary | null>(
     initialState.lastSummary ?? null,
@@ -38,6 +40,12 @@ export function MatchClient({
   useEffect(() => {
     setMatchState(initialState);
   }, [initialState]);
+
+  useEffect(() => {
+    if (matchState.state === "completed") {
+      router.push(`/match/${matchId}/summary`);
+    }
+  }, [matchId, matchState.state, router]);
 
   useEffect(() => {
     if (usePolling) {

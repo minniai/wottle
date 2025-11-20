@@ -1,0 +1,255 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
+import { requestRematchAction } from "@/app/actions/match/requestRematch";
+import type { MatchEndedReason } from "@/lib/types/match";
+
+interface PlayerSummary {
+  id: string;
+  username: string;
+  displayName: string;
+  score: number;
+  timeRemainingMs: number;
+  timeUsedMs: number;
+}
+
+interface ScoreboardRow {
+  roundNumber: number;
+  playerAScore: number;
+  playerBScore: number;
+}
+
+interface WordHistoryRow {
+  roundNumber: number;
+  playerId: string;
+  word: string;
+  totalPoints: number;
+  lettersPoints: number;
+  bonusPoints: number;
+}
+
+export interface FinalSummaryProps {
+  matchId: string;
+  currentPlayerId: string;
+  winnerId: string | null;
+  endedReason: MatchEndedReason;
+  players: PlayerSummary[];
+  scoreboard: ScoreboardRow[];
+  wordHistory: WordHistoryRow[];
+}
+
+function formatDuration(ms: number) {
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function reasonLabel(reason: MatchEndedReason) {
+  switch (reason) {
+    case "round_limit":
+      return "10 rounds completed";
+    case "timeout":
+      return "Timeout";
+    case "disconnect":
+      return "Disconnected opponent";
+    case "forfeit":
+      return "Forfeit";
+    default:
+      return "Completed";
+  }
+}
+
+export function FinalSummary({
+  matchId,
+  currentPlayerId,
+  winnerId,
+  endedReason,
+  players,
+  scoreboard,
+  wordHistory,
+}: FinalSummaryProps) {
+  const router = useRouter();
+  const [isRematching, startRematch] = useTransition();
+  const [rematchError, setRematchError] = useState<string | null>(null);
+
+  const winner = useMemo(() => players.find((player) => player.id === winnerId), [
+    players,
+    winnerId,
+  ]);
+
+  const currentPlayer = players.find((player) => player.id === currentPlayerId);
+
+  const handleRematch = () => {
+    setRematchError(null);
+    startRematch(async () => {
+      try {
+        const result = await requestRematchAction(matchId);
+        router.push(`/match/${result.matchId}`);
+      } catch (error) {
+        setRematchError(
+          error instanceof Error ? error.message : "Unable to start rematch.",
+        );
+      }
+    });
+  };
+
+  return (
+    <section
+      className="w-full rounded-3xl border border-white/10 bg-slate-950/70 p-8 shadow-2xl shadow-slate-950/60"
+      data-testid="final-summary-view"
+    >
+      <header className="space-y-2">
+        <p className="text-sm uppercase tracking-[0.3em] text-emerald-200/80">
+          Match Complete
+        </p>
+        <h1 className="text-3xl font-bold text-white">Final Summary</h1>
+        <p
+          className="text-white/70"
+          data-testid="final-summary-ended-reason"
+        >
+          {reasonLabel(endedReason)}
+        </p>
+      </header>
+
+      {winner ? (
+        <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+          <p className="text-sm uppercase tracking-wide text-emerald-200/80">
+            Winner
+          </p>
+          <p className="text-2xl font-semibold text-white">{winner.displayName}</p>
+        </div>
+      ) : (
+        <div className="mt-6 rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4">
+          <p className="text-sm uppercase tracking-wide text-sky-200/80">
+            Draw
+          </p>
+          <p className="text-2xl font-semibold text-white">
+            Both players tied after the final round.
+          </p>
+        </div>
+      )}
+
+      <div
+        className="mt-6 grid gap-4 md:grid-cols-2"
+        data-testid="final-summary-scoreboard"
+      >
+        {players.map((player) => (
+          <div
+            key={player.id}
+            className={`rounded-2xl border p-4 ${
+              player.id === winnerId
+                ? "border-emerald-400/40 bg-emerald-500/5"
+                : "border-white/10 bg-white/5"
+            }`}
+          >
+            <p className="text-xs uppercase tracking-wide text-white/60">
+              {player.id === currentPlayerId ? "You" : player.displayName}
+            </p>
+            <p className="mt-2 text-4xl font-bold text-white">{player.score}</p>
+            <p className="mt-1 text-sm text-white/70">
+              Time used: {formatDuration(player.timeUsedMs)}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4"
+        data-testid="final-summary-timers"
+      >
+        <h2 className="text-lg font-semibold text-white">Per-round Scoreboard</h2>
+        <div className="mt-4 space-y-2">
+          {scoreboard.length === 0 && (
+            <p className="text-sm text-white/60">
+              No scoreboard snapshots recorded for this match.
+            </p>
+          )}
+          {scoreboard.map((row) => (
+            <div
+              key={row.roundNumber}
+              className="flex items-center justify-between rounded-xl bg-slate-900/60 px-4 py-2 text-sm text-white/80"
+            >
+              <span>Round {row.roundNumber}</span>
+              <span>
+                {row.playerAScore}–{row.playerBScore}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4"
+        data-testid="final-summary-word-history"
+      >
+        <h2 className="text-lg font-semibold text-white">Word History</h2>
+        {wordHistory.length === 0 ? (
+          <p className="mt-2 text-sm text-white/60">
+            No words were scored in this match.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {wordHistory.map((entry, index) => {
+              const player = players.find((p) => p.id === entry.playerId);
+              return (
+                <div
+                  key={`${entry.roundNumber}-${entry.word}-${index}`}
+                  className="rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Round {entry.roundNumber}</span>
+                    <span className="text-white/60">
+                      {entry.totalPoints} pts
+                    </span>
+                  </div>
+                  <p className="text-lg font-mono uppercase tracking-wide">
+                    {entry.word}
+                  </p>
+                  <p className="text-white/70">
+                    {player?.displayName ?? "Unknown"} ·{" "}
+                    {entry.lettersPoints} base + {entry.bonusPoints} bonus
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {rematchError && (
+        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+          {rematchError}
+        </p>
+      )}
+
+      <div className="mt-8 flex flex-wrap gap-3">
+        <button
+          type="button"
+          className="rounded-2xl bg-emerald-500 px-5 py-3 text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
+          onClick={handleRematch}
+          disabled={isRematching}
+          data-testid="final-summary-rematch"
+        >
+          {isRematching ? "Creating match…" : "Rematch"}
+        </button>
+        <button
+          type="button"
+          className="rounded-2xl border border-white/20 px-5 py-3 text-white transition hover:bg-white/10"
+          onClick={() => router.push("/")}
+          data-testid="final-summary-back-lobby"
+        >
+          Back to Lobby
+        </button>
+      </div>
+
+      {currentPlayer && (
+        <p className="mt-4 text-sm text-white/60">
+          Playing as <span className="font-semibold">{currentPlayer.displayName}</span>
+        </p>
+      )}
+    </section>
+  );
+}
+
