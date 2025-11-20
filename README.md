@@ -77,12 +77,15 @@ This spec focuses on enabling a two-player game loop.
 | ----------------------------------- | ------------------------------------------------------------------ | ------------------------------------ |
 | `NEXT_PUBLIC_SUPABASE_URL`          | Supabase REST URL used by the browser                              | `http://localhost:54321`             |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Public anon key for browser calls                                  | `anon-key-from-supabase-cli`         |
+| `SUPABASE_ANON_KEY`                 | Server-side anon key (used by quickstart + tests)                  | matches `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 | `SUPABASE_SERVICE_ROLE_KEY`         | Server-only key for Server Actions                                 | `service-role-key-from-supabase-cli` |
 | `SUPABASE_DB_PASSWORD`              | Optional Postgres password for CLI scripts                         | `postgres-password`                  |
 | `PLAYTEST_INVITE_EXPIRY_SECONDS`    | How long direct invites remain valid before expiring               | `30`                                 |
 | `PLAYTEST_MAX_CONCURRENT_MATCHES`   | Guardrail limiting simultaneous matches on a single Supabase stack | `20`                                 |
 | `NEXT_PUBLIC_ENABLE_PLAYTEST_LOBBY` | Set to `true` to surface lobby preview UI                          | _unset_ (false)                      |
 | `NEXT_PUBLIC_ENABLE_PLAYTEST_MATCH` | Set to `true` to surface match summary preview UI                  | _unset_ (false)                      |
+| `PLAYTEST_SESSION_SECURE`           | Force secure cookies (`true`/`false`); override for local Playwright | auto (`true` in production)          |
+| `RATE_LIMIT_DISABLED_SCOPES`        | Comma-separated list of scopes to bypass (e.g., `auth:login`)      | _unset_                              |
 
 Tweak the playtest-related values when simulating heavier loads; e.g., increase `PLAYTEST_MAX_CONCURRENT_MATCHES` when running soak tests on a beefier Supabase instance, or lower `PLAYTEST_INVITE_EXPIRY_SECONDS` to keep the lobby tidy during short feedback sessions.
 

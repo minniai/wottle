@@ -10,6 +10,15 @@ interface RateLimitEntry {
 type RateLimitStore = Map<string, RateLimitEntry>;
 
 const GLOBAL_STORE_KEY = "__wottleRateLimitStore__";
+const DISABLE_ALL_SCOPE_FLAG = normalizeBoolean(
+  process.env.RATE_LIMIT_DISABLE_ALL ?? process.env.RATE_LIMIT_BYPASS,
+);
+const DISABLED_SCOPES = new Set(
+  (process.env.RATE_LIMIT_DISABLED_SCOPES ?? "")
+    .split(",")
+    .map((scope) => scope.trim())
+    .filter(Boolean),
+);
 
 type GlobalWithStore = typeof globalThis & {
   [GLOBAL_STORE_KEY]?: RateLimitStore;
@@ -72,6 +81,13 @@ export function assertWithinRateLimit(
     throw new Error(
       `Invalid rate limit configuration for scope "${scope}". limit and windowMs must be positive.`,
     );
+  }
+
+  if (isRateLimitBypassed(scope)) {
+    return {
+      remaining: limit,
+      resetAt: Date.now() + windowMs,
+    };
   }
 
   const store = getStore();
@@ -137,5 +153,26 @@ export function resetRateLimitStoreForTests() {
   }
 
   getStore().clear();
+}
+
+function normalizeBoolean(value?: string | null): boolean | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "on", "yes"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "off", "no"].includes(normalized)) {
+    return false;
+  }
+  return undefined;
+}
+
+function isRateLimitBypassed(scope: string): boolean {
+  if (DISABLE_ALL_SCOPE_FLAG === true) {
+    return true;
+  }
+  return DISABLED_SCOPES.has(scope);
 }
 

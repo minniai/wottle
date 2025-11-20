@@ -172,6 +172,8 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
+      RATE_LIMIT_DISABLED_SCOPES: "auth:login"
+      PLAYTEST_SESSION_SECURE: "false"
       # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
     steps:
       - name: Install Docker CLI (for act compatibility)

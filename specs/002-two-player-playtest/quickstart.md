@@ -76,9 +76,12 @@ Copy `.env.example` → `.env.local` and set:
 |----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Local Supabase API URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Local anon key |
+| `SUPABASE_ANON_KEY` | Server-side anon key (mirrors `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role for server actions (never exposed client-side) |
 | `PLAYTEST_INVITE_EXPIRY_SECONDS` | Defaults to 30; adjust for testing |
 | `PLAYTEST_MAX_CONCURRENT_MATCHES` | Defaults to 20 |
+| `PLAYTEST_SESSION_SECURE` | `false` when running Playwright locally against http dev server |
+| `RATE_LIMIT_DISABLED_SCOPES` | `auth:login` when bypassing login throttles in automated tests |
 
 ## Troubleshooting
 
