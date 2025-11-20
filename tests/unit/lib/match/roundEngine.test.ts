@@ -7,6 +7,11 @@ vi.mock("../../../../lib/supabase/server", () => ({
     getServiceRoleClient: vi.fn(),
 }));
 
+// Mock publishRoundSummary to avoid database queries in unit tests
+vi.mock("@/app/actions/match/publishRoundSummary", () => ({
+    publishRoundSummary: vi.fn().mockResolvedValue({ error: "Not tested in unit tests" }),
+}));
+
 describe("roundEngine", () => {
     let mockSupabase: any;
     let matchQueryChain: any;
