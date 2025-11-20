@@ -1,5 +1,3 @@
-"use server";
-
 import type { ScoreTotals } from "@/lib/types/match";
 
 type MatchStateSummary = {

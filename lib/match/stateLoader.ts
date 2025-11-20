@@ -80,6 +80,35 @@ export async function loadMatchState(
     return null;
   }
 
+  if (match.state === "pending") {
+    const boardSeed = match.board_seed ?? match.id;
+    const initialBoard = generateBoard({ matchId: boardSeed });
+
+    await client
+      .from("rounds")
+      .upsert(
+        {
+          match_id: matchId,
+          round_number: 1,
+          state: "collecting",
+          board_snapshot_before: initialBoard,
+        },
+        { onConflict: "match_id,round_number" },
+      );
+
+    await client
+      .from("matches")
+      .update({
+        state: "in_progress",
+        current_round: 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", matchId);
+
+    match.state = "in_progress";
+    match.current_round = 1;
+  }
+
   const { data: round } = await client
     .from("rounds")
     .select("state, board_snapshot_before, board_snapshot_after")
