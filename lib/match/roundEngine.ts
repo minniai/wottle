@@ -4,6 +4,7 @@ import { MoveSubmission } from "@/lib/types/match";
 import { applySwap, type BoardGrid } from "../game-engine/board";
 import { boardGridSchema } from "../types/board";
 import type { MoveRequest } from "../types/board";
+import { publishMatchState } from "./statePublisher";
 
 export async function advanceRound(matchId: string) {
     const supabase = getServiceRoleClient();
@@ -184,6 +185,12 @@ export async function advanceRound(matchId: string) {
         });
     } catch (e) {
         console.error("Failed to load publishRoundSummary:", e);
+    }
+
+    try {
+        await publishMatchState(matchId);
+    } catch (error) {
+        console.error("[MatchState] Failed to broadcast match update:", error);
     }
 
     return { status: "advanced", nextRound, isGameOver, acceptedMoves: acceptedMoves.length, rejectedMoves: rejectedMoves.length };

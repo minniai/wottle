@@ -5,6 +5,11 @@ import {
   performUsernameLogin,
   persistLobbySession,
 } from "../../../../lib/matchmaking/profile";
+import {
+  RateLimitExceededError,
+  assertWithinRateLimit,
+  resolveClientIp,
+} from "@/lib/rate-limiting/middleware";
 
 const NO_CACHE_HEADERS = {
   "cache-control": "no-store",
@@ -34,6 +39,15 @@ export async function POST(request: Request) {
   }
 
   try {
+    assertWithinRateLimit({
+      identifier: resolveClientIp(request.headers),
+      scope: "auth:login",
+      limit: 5,
+      windowMs: 60_000,
+      errorMessage:
+        "Too many login attempts. Please wait up to one minute and try again.",
+    });
+
     const { player, sessionToken } = await performUsernameLogin(username);
     await persistLobbySession({ player, sessionToken });
 
@@ -42,6 +56,19 @@ export async function POST(request: Request) {
       { status: 200, headers: NO_CACHE_HEADERS }
     );
   } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return NextResponse.json(
+        { error: error.message },
+        {
+          status: 429,
+          headers: {
+            ...NO_CACHE_HEADERS,
+            "retry-after": error.retryAfterSeconds.toString(),
+          },
+        }
+      );
+    }
+
     if (error instanceof LoginValidationError) {
       return NextResponse.json(
         { error: error.message },

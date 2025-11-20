@@ -1,12 +1,14 @@
 "use server";
 
-import { getServiceRoleClient } from "../../../lib/supabase/server";
-import { readLobbySession } from "../../../lib/matchmaking/profile";
-import { advanceRound } from "../../../lib/match/roundEngine";
 import { revalidatePath } from "next/cache";
-import type { BoardGrid, MoveResult } from "@/lib/types/board";
-import { boardGridSchema } from "@/lib/types/board";
+
 import { applySwap } from "@/lib/game-engine/board";
+import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
+import { boardGridSchema } from "@/lib/types/board";
+import type { BoardGrid, MoveResult } from "@/lib/types/board";
+import { advanceRound } from "../../../lib/match/roundEngine";
+import { readLobbySession } from "../../../lib/matchmaking/profile";
+import { getServiceRoleClient } from "../../../lib/supabase/server";
 
 export async function submitMove(
     matchId: string,
@@ -21,6 +23,14 @@ export async function submitMove(
     }
     const user = session.player;
     const supabase = getServiceRoleClient();
+
+    assertWithinRateLimit({
+        identifier: user.id,
+        scope: "match:submit-move",
+        limit: 30,
+        windowMs: 60_000,
+        errorMessage: "Too many move submissions. Please slow down before trying again.",
+    });
 
     // 1. Get match to check round and validate player is in match
     const { data: match, error: matchError } = await supabase

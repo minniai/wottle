@@ -1,6 +1,7 @@
 import { submitMove } from "@/app/actions/match/submitMove";
-import { NextRequest, NextResponse } from "next/server";
+import { RateLimitExceededError } from "@/lib/rate-limiting/middleware";
 import type { MoveResult } from "@/lib/types/board";
+import { NextRequest, NextResponse } from "next/server";
 
 const NO_CACHE_HEADERS = {
     "Cache-Control": "no-store",
@@ -65,6 +66,19 @@ export async function POST(
         // Don't log rejected moves - they're expected business logic responses
         return NextResponse.json(moveResult, { status, headers: NO_CACHE_HEADERS });
     } catch (error) {
+        if (error instanceof RateLimitExceededError) {
+            return NextResponse.json(
+                { error: error.message },
+                {
+                    status: 429,
+                    headers: {
+                        ...NO_CACHE_HEADERS,
+                        "retry-after": error.retryAfterSeconds.toString(),
+                    },
+                }
+            );
+        }
+
         console.error("POST /api/match/[matchId]/move failed", error);
         return NextResponse.json(
             {

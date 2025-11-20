@@ -32,6 +32,8 @@
     "quickstart": "make quickstart",
     "quickstart:feedback": "tsx scripts/supabase/quickstart-feedback.ts",
     "perf:swap": "artillery run --output artillery-swap.json tests/perf/swap.yml && tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json",
+    "perf:lobby-presence": "SWAP_LATENCY_THRESHOLD_MS=2000 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-lobby-presence.json tests/perf/lobby-presence.yml && SWAP_LATENCY_THRESHOLD_MS=2000 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-lobby-presence.json",
+    "perf:round-resolution": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-round-resolution.json tests/perf/round-resolution.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-round-resolution.json",
     "act": "./scripts/act.sh"
   },
   "dependencies": {

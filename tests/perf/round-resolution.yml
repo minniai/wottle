@@ -1,0 +1,32 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 3
+      name: round-resolution-load
+  defaults:
+    headers:
+      "content-type": application/json
+      "cache-control": "no-store"
+    timeout: 20000
+  plugins:
+    expect: {}
+  ensure:
+    - label: move submission median under 200ms
+      expression: "median < 200"
+    - label: move submission p95 under 200ms
+      expression: "p95 < 200"
+
+scenarios:
+  - name: move submission request
+    flow:
+      - post:
+          url: "/api/match/test-match/move"
+          json:
+            fromX: 0
+            fromY: 0
+            toX: 1
+            toY: 1
+          expect:
+            - statusCode: 400
+

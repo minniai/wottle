@@ -1,88 +1,90 @@
 import { expect, test } from "@playwright/test";
 
-async function loginAndStartMatch(
-  pageA: import("@playwright/test").Page,
-  pageB: import("@playwright/test").Page,
-  userA: string,
-  userB: string
-) {
-  // Login both users
-  await Promise.all([
-    pageA.goto("/"),
-    pageB.goto("/"),
-  ]);
-
-  await pageA.getByTestId("lobby-username-input").fill(userA);
-  await pageA.getByTestId("lobby-login-submit").click();
-  await pageB.getByTestId("lobby-username-input").fill(userB);
-  await pageB.getByTestId("lobby-login-submit").click();
-
-  // Wait for matchmaker controls
-  await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
-  await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
-
-  // Start match via queue - click with small delay to avoid race condition
-  await pageA.getByTestId("matchmaker-start-button").click();
-  await pageA.waitForTimeout(100); // Small delay to ensure first player is in queue
-  await pageB.getByTestId("matchmaker-start-button").click();
-
-  // Wait for match shell - polling happens every 3 seconds, so give extra time
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 20000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 20000 });
-}
-
 test.describe("Round flow", () => {
-  test.skip("completes 10 rounds with simultaneous submissions", async ({ browser }) => {
+  test("completes 10 rounds with reconnect safety + late swap guards", async ({
+    browser,
+  }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
 
+    async function loginAndStartMatch(userA: string, userB: string) {
+      await Promise.all([pageA.goto("/"), pageB.goto("/")]);
+
+      await pageA.getByTestId("lobby-username-input").fill(userA);
+      await pageA.getByTestId("lobby-login-submit").click();
+      await pageB.getByTestId("lobby-username-input").fill(userB);
+      await pageB.getByTestId("lobby-login-submit").click();
+
+      await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
+      await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
+
+      await pageA.getByTestId("matchmaker-start-button").click();
+      await pageA.waitForTimeout(150);
+      await pageB.getByTestId("matchmaker-start-button").click();
+
+      await expect(pageA.getByTestId("match-shell")).toBeVisible({
+        timeout: 20000,
+      });
+      await expect(pageB.getByTestId("match-shell")).toBeVisible({
+        timeout: 20000,
+      });
+    }
+
+    async function submitSwap(page: typeof pageA, firstIndex: number, secondIndex: number) {
+      const board = page.getByTestId("board-grid");
+      await board.locator(`[data-tile-index="${firstIndex}"]`).click();
+      await board.locator(`[data-tile-index="${secondIndex}"]`).click();
+    }
+
     try {
-      await loginAndStartMatch(pageA, pageB, "round-alpha", "round-beta");
+      await loginAndStartMatch("round-alpha", "round-beta");
 
-      // Loop through 10 rounds
-      for (let round = 1; round <= 10; round++) {
-        // Verify round indicator
-        await expect(pageA.getByTestId("round-indicator")).toHaveText(`Round ${round}`);
-        await expect(pageB.getByTestId("round-indicator")).toHaveText(`Round ${round}`);
+      const waitingOverlayA = pageA.getByTestId("round-waiting-overlay");
+      const waitingOverlayB = pageB.getByTestId("round-waiting-overlay");
+      const summaryPanelA = pageA.getByTestId("round-summary-panel");
 
-        // Verify timers are running (mock check or visual)
+      for (let round = 1; round <= 10; round += 1) {
+        const indicatorA = pageA.getByTestId("round-indicator");
+        const indicatorB = pageB.getByTestId("round-indicator");
+        await expect(indicatorA).toHaveText(`Round ${round}`, { timeout: 10000 });
+        await expect(indicatorB).toHaveText(`Round ${round}`);
         await expect(pageA.getByTestId("timer-display")).toBeVisible();
+        await expect(pageB.getByTestId("timer-display")).toBeVisible();
 
-        // Submit move for Player A
-        // Assuming board grid interaction - click two tiles
-        // This selector strategy depends on BoardGrid implementation
-        const boardA = pageA.getByTestId("board-grid");
-        await boardA.locator('[data-tile-index="0"]').click();
-        await boardA.locator('[data-tile-index="1"]').click();
-        await pageA.getByTestId("submit-move-button").click();
+        await submitSwap(pageA, round - 1, round);
+        await expect(waitingOverlayA).toBeVisible();
+        await expect(waitingOverlayB).not.toBeVisible();
 
-        // Verify Player A is waiting
-        await expect(pageA.getByTestId("waiting-overlay")).toBeVisible();
-        await expect(pageB.getByTestId("waiting-overlay")).not.toBeVisible();
+        await submitSwap(pageB, round + 9, round + 10);
+        await expect(waitingOverlayA).not.toBeVisible({ timeout: 12000 });
+        await expect(waitingOverlayB).not.toBeVisible({ timeout: 12000 });
 
-        // Submit move for Player B
-        const boardB = pageB.getByTestId("board-grid");
-        await boardB.locator('[data-tile-index="10"]').click();
-        await boardB.locator('[data-tile-index="11"]').click();
-        await pageB.getByTestId("submit-move-button").click();
+        await expect(summaryPanelA).toBeVisible({ timeout: 8000 });
 
-        // Verify round transition (waiting overlay disappears)
-        await expect(pageA.getByTestId("waiting-overlay")).not.toBeVisible({ timeout: 10000 });
-        await expect(pageB.getByTestId("waiting-overlay")).not.toBeVisible({ timeout: 10000 });
+        if (round === 5) {
+          // Simulate reconnect: refresh player B mid-round between submissions
+          await pageB.reload();
+          await expect(pageA.getByTestId("reconnect-banner")).toBeVisible();
+          await expect(pageB.getByTestId("reconnect-banner")).toBeVisible();
+          await expect(pageA.getByTestId("reconnect-banner")).toBeHidden({ timeout: 10000 });
+          await expect(pageB.getByTestId("round-indicator")).toHaveText("Round 5", {
+            timeout: 10000,
+          });
+        }
 
-        // Verify scoring summary appears (User Story 4 - but needed for flow)
-        // For now, just check that we are back to board or next round
         if (round < 10) {
-             await expect(pageA.getByTestId("round-indicator")).toHaveText(`Round ${round + 1}`, { timeout: 10000 });
+          await expect(indicatorA).toHaveText(`Round ${round + 1}`, { timeout: 12000 });
         }
       }
 
-      // Verify match completion
-      await expect(pageA.getByTestId("final-summary")).toBeVisible();
-      await expect(pageB.getByTestId("final-summary")).toBeVisible();
+      await expect(pageA.getByTestId("final-summary")).toBeVisible({ timeout: 12000 });
+      await expect(pageB.getByTestId("final-summary")).toBeVisible({ timeout: 12000 });
 
+      // Attempt a late swap after match completion, expect rejection toast/banner
+      await submitSwap(pageA, 0, 1);
+      await expect(pageA.getByTestId("round-alert")).toContainText(/round closed/i);
     } finally {
       await pageA.close();
       await pageB.close();
