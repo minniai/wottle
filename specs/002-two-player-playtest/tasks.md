@@ -45,6 +45,7 @@
 - [x] T017 [US1] Integrate lobby list + login flow into `app/(lobby)/page.tsx`, including reconnect banner handling
 - [x] T018 [US1] [P] Add Vitest tests for presence store reducers (`tests/unit/lib/matchmaking/presenceStore.test.ts`)
 - [x] T019 [US1] [P] Add contract test for `/api/auth/login` happy/error paths (`tests/contract/post-login.contract.test.ts`)
+- [ ] T019a [US1] [P] Implement rate limiting middleware for authentication (5 attempts/min per IP) and move submissions (30 attempts/min per player) with 429 Too Many Requests responses (`lib/rate-limiting/middleware.ts`, `app/actions/auth/login.ts`, `app/actions/match/submitMove.ts`) [FR-001a]
 
 ---
 
@@ -77,7 +78,7 @@
 - [x] T032 [US3] Create REST route `/api/match/[matchId]/move` for contract coverage (`app/api/match/[matchId]/move/route.ts`)
 - [x] T033 [US3] Build match board interaction handlers (tile selection, submission, disabled states) in `components/game/BoardGrid.tsx`
 - [x] T034 [US3] Implement timer HUD + pause/expire states (`components/game/TimerHud.tsx`, `lib/match/timerStore.ts`)
-- [ ] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`
+- [ ] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`: detect WebSocket disconnection, mark player "Reconnecting," pause both players' timers (server-side), wait up to 10 seconds for reconnection, restore match state (board, current round, timer values) from database, resume timers if reconnected within window, finalize match with disconnect end condition if timeout exceeded [FR-012]
 - [ ] T036 [US3] [P] Add unit tests for `roundEngine` transitions + conflict rules (`tests/unit/lib/match/roundEngine.test.ts`)
 - [ ] T037 [US3] [P] Add contract tests covering move submission accept/reject cases (`tests/contract/post-move.contract.test.ts`)
 - [ ] T037a [US3] [P] Add contract test validating SC-004: dual-session scoring identity (both clients receive identical round summary payloads) (`tests/contract/get-round-summary.contract.test.ts` - dual-session assertion)
@@ -116,7 +117,7 @@
 
 ## Final Phase: Polish & Cross-Cutting Concerns
 
-- [ ] T052 Add accessibility review (focus traps for modals, aria-live for summaries) in `components/lobby` + `components/match`
+- [ ] T052 [NFR-001] Add accessibility review and implementation (focus traps for modals, aria-live regions for round summaries, keyboard navigation, color contrast validation, screen reader testing) in `components/lobby` + `components/match` to meet WCAG 2.1 Level AA standards
 - [ ] T053 Add analytics hooks to capture invite accept, round completion, match result events (`lib/observability/log.ts`)
 - [ ] T054 Update `specs/002-two-player-playtest/quickstart.md` with final CLI commands + troubleshooting uncovered during implementation
 - [ ] T055 Run full regression matrix (unit, integration, Playwright, perf) and upload artifacts (`.github/workflows/ci.yml`, `README.md#Testing`)
