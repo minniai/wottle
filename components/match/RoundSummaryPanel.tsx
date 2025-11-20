@@ -16,9 +16,41 @@ export function RoundSummaryPanel({
     onDismiss,
     autoDismissMs = 3000,
 }: RoundSummaryPanelProps) {
-    // Track summary ID to reset timer when summary changes
     const summaryIdRef = useRef<string | null>(null);
+    const panelRef = useRef<HTMLDivElement | null>(null);
+    const liveRegionRef = useRef<HTMLDivElement | null>(null);
     const currentSummaryId = summary ? `${summary.matchId}-${summary.roundNumber}` : null;
+    const words = summary?.words ?? [];
+    const firstPlayerId = words[0]?.playerId ?? null;
+    const playerAWords =
+        firstPlayerId !== null ? words.filter((word) => word.playerId === firstPlayerId) : [];
+    const playerBWords =
+        firstPlayerId !== null ? words.filter((word) => word.playerId !== firstPlayerId) : words;
+    const currentPlayerIsPlayerA =
+        firstPlayerId !== null ? firstPlayerId === currentPlayerId : true;
+    const currentPlayerWords = currentPlayerIsPlayerA ? playerAWords : playerBWords;
+    const opponentWords = currentPlayerIsPlayerA ? playerBWords : playerAWords;
+    const yourScore = summary
+        ? currentPlayerIsPlayerA
+            ? summary.totals.playerA
+            : summary.totals.playerB
+        : 0;
+    const yourDelta = summary
+        ? currentPlayerIsPlayerA
+            ? summary.deltas.playerA
+            : summary.deltas.playerB
+        : 0;
+    const opponentScore = summary
+        ? currentPlayerIsPlayerA
+            ? summary.totals.playerB
+            : summary.totals.playerA
+        : 0;
+    const opponentDelta = summary
+        ? currentPlayerIsPlayerA
+            ? summary.deltas.playerB
+            : summary.deltas.playerA
+        : 0;
+    const hasWords = words.length > 0;
 
     // Auto-dismiss timer
     useEffect(() => {
@@ -38,33 +70,49 @@ export function RoundSummaryPanel({
         return () => clearTimeout(timer);
     }, [summary, currentSummaryId, autoDismissMs, onDismiss]);
 
+    useEffect(() => {
+        if (!summary || typeof window === "undefined") {
+            return;
+        }
+        const frame = window.requestAnimationFrame(() => {
+            panelRef.current?.focus();
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [summary, summary?.matchId, summary?.roundNumber]);
+
+    useEffect(() => {
+        if (!summary || !liveRegionRef.current) {
+            return;
+        }
+        liveRegionRef.current.textContent = buildSummaryAnnouncement(
+            summary.roundNumber,
+            yourDelta,
+            opponentDelta,
+        );
+    }, [summary, yourDelta, opponentDelta]);
+
     if (!summary) {
         return null;
     }
 
-    // Group words by player
-    const playerAWords = summary.words.filter((w) => {
-        // For now, assume first word's playerId is playerA
-        // In a real implementation, we'd get this from match state
-        return summary.words.length > 0 && w.playerId === summary.words[0]?.playerId;
-    });
-    const playerBWords = summary.words.filter((w) => w.playerId !== playerAWords[0]?.playerId);
-
-    const currentPlayerWords =
-        playerAWords[0]?.playerId === currentPlayerId ? playerAWords : playerBWords;
-    const opponentWords =
-        playerAWords[0]?.playerId === currentPlayerId ? playerBWords : playerAWords;
-
-    const hasWords = summary.words.length > 0;
-
     return (
         <div
+            ref={panelRef}
             className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-2xl rounded-2xl border border-white/20 bg-slate-900/95 p-6 shadow-2xl shadow-slate-950/60 backdrop-blur-sm"
             data-testid="round-summary-panel"
             role="dialog"
             aria-modal="true"
             aria-labelledby="round-summary-title"
+            tabIndex={-1}
         >
+            <div
+                ref={liveRegionRef}
+                data-testid="round-summary-live-region"
+                className="sr-only"
+                aria-live="polite"
+                aria-atomic="true"
+                role="status"
+            />
             <div className="flex items-start justify-between mb-4">
                 <h2 id="round-summary-title" className="text-xl font-bold text-white">
                     Round {summary.roundNumber} Summary
@@ -89,27 +137,27 @@ export function RoundSummaryPanel({
             ) : (
                 <div className="space-y-6">
                     {/* Score Totals */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                    <div className="grid grid-cols-2 gap-4" role="group" aria-label="Score summary">
+                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4" aria-live="polite">
                             <p className="text-xs uppercase tracking-wide text-emerald-200/80 mb-1">
                                 Your Score
                             </p>
                             <p className="text-2xl font-bold text-emerald-200">
-                                {summary.totals.playerA}
+                                {yourScore}
                             </p>
                             <p className="text-sm text-emerald-300/80 mt-1">
-                                +{summary.deltas.playerA} this round
+                                {formatDeltaLabel(yourDelta)} this round
                             </p>
                         </div>
-                        <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-4">
+                        <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-4" aria-live="polite">
                             <p className="text-xs uppercase tracking-wide text-sky-200/80 mb-1">
                                 Opponent Score
                             </p>
                             <p className="text-2xl font-bold text-sky-200">
-                                {summary.totals.playerB}
+                                {opponentScore}
                             </p>
                             <p className="text-sm text-sky-300/80 mt-1">
-                                +{summary.deltas.playerB} this round
+                                {formatDeltaLabel(opponentDelta)} this round
                             </p>
                         </div>
                     </div>
@@ -172,4 +220,27 @@ function WordScoreRow({ wordScore, isOpponent = false }: { wordScore: WordScore;
         </div>
     );
 }
+
+function formatDeltaLabel(delta: number): string {
+    if (delta === 0) {
+        return "0";
+    }
+    const prefix = delta > 0 ? "+" : "-";
+    return `${prefix}${Math.abs(delta)}`;
+}
+
+function describeDelta(delta: number): string {
+    if (delta === 0) {
+        return "scored 0 points";
+    }
+    const verb = delta > 0 ? "gained" : "lost";
+    const magnitude = Math.abs(delta);
+    const noun = magnitude === 1 ? "point" : "points";
+    return `${verb} ${magnitude} ${noun}`;
+}
+
+function buildSummaryAnnouncement(roundNumber: number, playerDelta: number, opponentDelta: number): string {
+    return `Round ${roundNumber} complete. You ${describeDelta(playerDelta)}. Opponent ${describeDelta(opponentDelta)}.`;
+}
+
 

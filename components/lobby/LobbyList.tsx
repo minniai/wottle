@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import type { KeyboardEvent } from "react";
 
 import type { PlayerIdentity } from "../../lib/types/match";
 import { LobbyCard } from "./LobbyCard";
 import { MatchmakerControls } from "./MatchmakerControls";
 import { useLobbyPresenceStore } from "../../lib/matchmaking/presenceStore";
+import { getNextRovingIndex } from "@/lib/a11y/rovingFocus";
 
 interface LobbyListProps {
   self: PlayerIdentity;
@@ -24,6 +26,7 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
 
   // Use a ref to track disconnect timer across remounts
   const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   
   useEffect(() => {
     // Cancel any pending disconnect from previous mount
@@ -91,6 +94,53 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
     };
   }, [status, connectionMode, setInitialPlayers]);
 
+  useEffect(() => {
+    const knownIds = new Set(players.map((player) => player.id));
+    cardRefs.current.forEach((_, key) => {
+      if (!knownIds.has(key)) {
+        cardRefs.current.delete(key);
+      }
+    });
+  }, [players]);
+
+  const registerCardRef = useCallback((playerId: string, node: HTMLDivElement | null) => {
+    if (node) {
+      cardRefs.current.set(playerId, node);
+    } else {
+      cardRefs.current.delete(playerId);
+    }
+  }, []);
+
+  const handleCardKeyDown = useCallback(
+    (playerId: string, event: KeyboardEvent<HTMLDivElement>) => {
+      const interactiveKeys = [
+        "ArrowRight",
+        "ArrowLeft",
+        "ArrowUp",
+        "ArrowDown",
+        "Home",
+        "End",
+      ];
+      if (!interactiveKeys.includes(event.key)) {
+        return;
+      }
+
+      event.preventDefault();
+      const currentIndex = players.findIndex((player) => player.id === playerId);
+      if (currentIndex === -1 || players.length === 0) {
+        return;
+      }
+      const nextIndex = getNextRovingIndex(currentIndex, players.length, event.key);
+      const nextPlayerId = players[nextIndex]?.id;
+      if (!nextPlayerId) {
+        return;
+      }
+      const nextNode = cardRefs.current.get(nextPlayerId);
+      nextNode?.focus();
+    },
+    [players]
+  );
+
   const statusLabel = buildStatusLabel(status, connectionMode, lastEventAt);
 
   return (
@@ -103,7 +153,11 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
           <p className="text-base font-semibold text-white">Lobby Presence</p>
           <p className="text-xs text-white/60">Realtime testers currently online</p>
         </div>
-        <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white/70">
+        <span
+          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white/80"
+          role="status"
+          aria-live="polite"
+        >
           {statusLabel}
         </span>
       </header>
@@ -115,15 +169,32 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
       {players.length === 0 ? (
         <p className="mt-6 text-xs text-white/60">Waiting for testers to join the lobby…</p>
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {players.map((player) => (
-            <LobbyCard key={player.id} player={player} isSelf={player.id === self.id} />
-          ))}
+        <div className="mt-6 grid gap-4 md:grid-cols-2" role="list" aria-label="Online testers">
+          {players.map((player) => {
+            const accessibleLabel = `${player.displayName ?? player.username}${
+              player.id === self.id ? " (You)" : ""
+            }, status ${player.status.replace("_", " ")}`;
+            return (
+              <LobbyCard
+                key={player.id}
+                player={player}
+                isSelf={player.id === self.id}
+                tabIndex={0}
+                onKeyDown={(event) => handleCardKeyDown(player.id, event)}
+                ariaLabel={accessibleLabel}
+                ref={(node) => registerCardRef(player.id, node)}
+              />
+            );
+          })}
         </div>
       )}
 
       {connectionMode === "polling" && (
-        <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-100">
+        <div
+          className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-100"
+          role="status"
+          aria-live="assertive"
+        >
           <p className="font-semibold text-amber-200">Realtime disconnected</p>
           <p className="mt-1">
             Showing snapshot data every few seconds until the realtime channel reconnects.
@@ -132,7 +203,10 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
       )}
 
       {error && (
-        <div className="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-100">
+        <div
+          className="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-100"
+          role="alert"
+        >
           <p className="font-semibold text-rose-200">Presence unavailable</p>
           <p className="mt-1">{error}</p>
         </div>

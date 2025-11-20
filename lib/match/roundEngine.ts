@@ -6,9 +6,11 @@ import { boardGridSchema } from "../types/board";
 import type { MoveRequest } from "../types/board";
 import { publishMatchState } from "./statePublisher";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
+import { trackRoundCompleted } from "../observability/log";
 
 export async function advanceRound(matchId: string) {
     const supabase = getServiceRoleClient();
+    const roundStart = Date.now();
 
     // Use a transaction to ensure atomicity
     // Note: Supabase client doesn't have explicit transactions in JS, so we'll use row-level locking via SELECT FOR UPDATE pattern
@@ -200,6 +202,15 @@ export async function advanceRound(matchId: string) {
             console.error("[MatchState] Failed to finalize match:", error);
         }
     }
+
+    trackRoundCompleted({
+        matchId,
+        roundNumber: currentRound,
+        acceptedMoves: acceptedMoves.length,
+        rejectedMoves: rejectedMoves.length,
+        durationMs: Date.now() - roundStart,
+        isGameOver,
+    });
 
     return { status: "advanced", nextRound, isGameOver, acceptedMoves: acceptedMoves.length, rejectedMoves: rejectedMoves.length };
 }

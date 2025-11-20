@@ -8,6 +8,7 @@ import { writeMatchLog } from "@/lib/match/logWriter";
 import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import type { MatchEndedReason, ScoreTotals } from "@/lib/types/match";
+import { trackMatchResult } from "@/lib/observability/log";
 
 interface MatchRow {
   id: string;
@@ -134,6 +135,16 @@ export async function completeMatchInternal(
   });
 
   await publishMatchState(matchId);
+
+  trackMatchResult({
+    matchId,
+    winnerId: result.winnerId,
+    loserId: result.loserId,
+    endedReason: reason,
+    isDraw: result.isDraw,
+    scores,
+    totalRounds: match.round_limit,
+  });
 
   return {
     matchId,

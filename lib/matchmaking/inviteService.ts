@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { LobbyStatus, PlayerIdentity } from "../types/match";
 import { bootstrapMatchRecord } from "./service";
-import { logPlaytestError, logPlaytestInfo } from "../observability/log";
+import { logPlaytestError, logPlaytestInfo, trackInviteAccepted } from "../observability/log";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -232,10 +232,11 @@ export async function respondToInvite(
     }),
   ]);
 
-  logPlaytestInfo("matchmaking.invite.accepted", {
+  trackInviteAccepted({
     matchId,
     playerId: params.actorId,
-    metadata: { inviteId: invite.id },
+    inviteId: invite.id,
+    opponentId: invite.sender_id,
   });
 
   return { status: "accepted", matchId };

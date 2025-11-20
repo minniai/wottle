@@ -88,11 +88,15 @@ Tweak the playtest-related values when simulating heavier loads; e.g., increase 
 
 ## Scripts
 
-| Command                     | Description                                                                                             |
-| --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `pnpm quickstart`           | Runs Supabase preflight, starts Docker stack, applies migrations, seeds data, and updates `.env.local`. |
-| `pnpm dev`                  | Starts the Next.js app (requires `.env.local`).                                                         |
-| `pnpm test`                 | Executes unit tests.                                                                                    |
-| `pnpm exec playwright test` | Runs browser automation suite (CI job starts Supabase + server automatically).                          |
+| Command                           | Description                                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `pnpm quickstart`                 | Runs Supabase preflight, starts Docker stack, applies migrations, seeds data, and updates `.env.local`. |
+| `pnpm dev`                        | Starts the Next.js app (requires `.env.local`).                                                         |
+| `pnpm test:unit`                  | Executes the Vitest unit + contract suite in isolation.                                                 |
+| `pnpm test:integration`           | Executes integration/regression specs (Vitest, Supabase-backed doubles).                               |
+| `pnpm exec playwright test`       | Runs browser automation suite (CI job starts Supabase + server automatically).                          |
+| `pnpm perf:lobby-presence`        | Runs Artillery scenario to assert lobby broadcast <2s p95.                                              |
+| `pnpm perf:round-resolution`      | Runs Artillery scenario to assert round resolution RTT <200 ms p95.                                     |
+| `pnpm perf:swap`                  | Legacy swap latency perf test (used for regression metrics).                                            |
 
 See `specs/002-two-player-playtest/quickstart.md` for a detailed flow covering dual-browser playtests.
