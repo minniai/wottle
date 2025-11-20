@@ -48,23 +48,21 @@ export async function POST(
     }
 
     try {
-    const result = await submitMove(matchId, fromX, fromY, toX, toY);
+        const result = await submitMove(matchId, fromX, fromY, toX, toY);
 
         // If result has error property (not MoveResult), return error
         if ("error" in result && !("status" in result)) {
-            console.error(`Move submission failed for match ${matchId}:`, result.error);
+            // Don't log expected errors (400s) - only log unexpected errors (500s)
             return NextResponse.json(
                 { error: result.error },
                 { status: 400, headers: NO_CACHE_HEADERS }
             );
-    }
+        }
 
         // Otherwise, result is a MoveResult (either accepted or rejected)
         const moveResult = result as MoveResult;
         const status = moveResult.status === "accepted" ? 200 : 400;
-        if (moveResult.status === "rejected") {
-            console.log(`Move rejected for match ${matchId}:`, moveResult.error);
-        }
+        // Don't log rejected moves - they're expected business logic responses
         return NextResponse.json(moveResult, { status, headers: NO_CACHE_HEADERS });
     } catch (error) {
         console.error("POST /api/match/[matchId]/move failed", error);

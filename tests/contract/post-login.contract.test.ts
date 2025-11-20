@@ -68,6 +68,9 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 500 when the login helper throws", async () => {
+    // Suppress console.error to avoid noisy stack trace in test output
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    
     vi.mocked(performUsernameLogin).mockRejectedValue(new Error("supabase down"));
 
     const response = await POST(createRequest({ username: "tester" }));
@@ -75,6 +78,9 @@ describe("POST /api/auth/login", () => {
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toMatch(/supabase down/i);
+    
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
   });
 });
 
