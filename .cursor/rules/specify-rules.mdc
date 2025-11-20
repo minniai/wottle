@@ -2,6 +2,79 @@
 
 Auto-generated from all feature plans. Last updated: 2025-11-05
 
+## Speckit Workflow
+
+This project follows the **Speckit workflow** for feature development. All development work MUST adhere to the Speckit constitution and specifications.
+
+### Workflow Overview
+
+The Speckit workflow is a structured, spec-driven development process that ensures consistency, quality, and alignment with project principles. The workflow consists of the following phases:
+
+1. **Specification** (`/speckit.specify`): Define feature requirements in natural language
+2. **Clarification** (`/speckit.clarify`): Resolve ambiguities and answer questions about the spec
+3. **Planning** (`/speckit.plan`): Create implementation plans with technical context and design artifacts
+4. **Task Generation** (`/speckit.tasks`): Generate actionable, dependency-ordered tasks from design artifacts
+5. **Analysis** (`/speckit.analyze`): Validate consistency and quality across spec, plan, and tasks
+6. **Checklist** (`/speckit.checklist`): Create requirement checklists for validation
+7. **Implementation** (`/speckit.implement`): Execute tasks following TDD principles
+
+### Speckit Constitution
+
+**MANDATORY**: All development work MUST comply with the project constitution located at `.specify/memory/constitution.md`.
+
+The constitution defines:
+
+- **Core Principles**: Non-negotiable principles including Server-Authoritative Game Logic, Real-Time Performance Standards, Type-Safe End-to-End, TDD, and Clean Code
+- **Technology Stack Standards**: Mandatory stack requirements (Next.js 16, TypeScript 5.x, Supabase, etc.)
+- **Development Workflow**: Git flow, commit standards, and Constitution Compliance Gates
+- **Governance**: Rules for amendment process and principle supremacy
+
+**Before starting any feature work**, review the constitution to ensure all planned changes align with its principles. Constitution violations are automatically CRITICAL and require adjustment of plans or specifications—never dilution or silent ignoring of principles.
+
+### Specifications Structure
+
+Feature specifications are organized under the `specs/` directory with numbered branches:
+
+- Format: `###-feature-name` (e.g., `001-e2e-board-scaffold`, `002-two-player-playtest`)
+- Each spec includes: `spec.md`, `plan.md`, `tasks.md`, `data-model.md`, `contracts/`, `research.md`, `quickstart.md`, and `checklists/`
+
+When working on features:
+
+- Always start with `/speckit.specify` for new features
+- Reference existing specs in `specs/` for context and patterns
+- Follow the spec → plan → tasks → implement workflow
+- Update agent context using `.specify/scripts/bash/update-agent-context.sh` after planning phases
+
+### Speckit Commands
+
+Use the appropriate Speckit command at each stage:
+
+- `/speckit.specify "feature description"` - Create or update feature specification
+- `/speckit.clarify` - Resolve [NEEDS CLARIFICATION] markers in specs
+- `/speckit.plan` - Generate implementation plan with technical context
+- `/speckit.tasks` - Generate actionable tasks from design artifacts
+- `/speckit.analyze` - Validate cross-artifact consistency (read-only analysis)
+- `/speckit.checklist` - Create requirement checklists
+- `/speckit.constitution` - Update project constitution (governance process)
+- `/speckit.implement` - Execute implementation following TDD workflow
+
+### Constitution Compliance
+
+Before implementing any feature:
+
+1. **Phase 0 (Research)**: Verify planned changes align with Server-Authoritative principle
+2. **Phase 1 (Design)**: Validate performance impact; ensure <200ms RTT, <50ms validation
+3. **Phase 2 (Implementation)**: Real-time features must have fallback path
+4. **Phase 3 (Testing)**: Load test any performance-critical paths
+
+All code MUST follow:
+
+- **TDD workflow** (Red → Green → Refactor) with test commits before implementation
+- **Clean Code principles** (small functions, descriptive names, minimal parameters)
+- **Server-Authoritative game logic** (all state mutations server-side)
+- **Performance SLAs** (non-negotiable; violations require optimization before deployment)
+- **Type-Safe End-to-End** (explicit return types, shared types, Zod validation)
+
 ## Active Technologies
 
 - TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19 + `@supabase/supabase-js` (auth + Realtime), Supabase Auth helpers, Supabase Edge Functions (invites timeout cron), Zod, Zustand (client state), Tailwind CSS 4.x, Playwright test harness (002-two-player-playtest)
@@ -22,11 +95,165 @@ tests/
 
 ## Commands
 
-: Add commands for
+### Development
+
+- `pnpm dev` - Start Next.js development server (requires `.env.local` from quickstart)
+- `pnpm build` - Build production Next.js application
+- `pnpm start` - Start production Next.js server
+- `pnpm quickstart` - One-command setup: runs Supabase preflight, starts Docker stack, applies migrations, seeds data, and updates `.env.local`
+
+### Testing & Quality
+
+- `pnpm test` - Run unit tests with Vitest
+- `pnpm exec playwright test` - Run E2E browser automation suite (CI starts Supabase + server automatically)
+- `pnpm lint` - Run ESLint with zero warnings policy (Next.js config + project rules)
+- `pnpm typecheck` - TypeScript type checking (no emit)
+- `pnpm guard:no-service-role` - Verify service_role key is not exposed in client code
+- `pnpm perf:swap` - Run Artillery performance tests for swap endpoint and assert thresholds
+
+### Supabase Operations
+
+- `pnpm supabase:migrate` - Apply pending database migrations
+- `pnpm supabase:seed` - Seed database with test data (boards, sample players)
+- `pnpm supabase:reset` - Reset database (drops all data, reapplies migrations)
+- `pnpm supabase:verify` - Verify database schema, RLS policies, and observability hooks
+- `pnpm supabase:policies` - Check RLS policy coverage and compliance
+
+### CI/Local Testing
+
+- `pnpm act` or `./scripts/act.sh` - Run GitHub Actions workflows locally using act
+  - `bash scripts/act.sh -j lint` - Run lint job
+  - `bash scripts/act.sh -j playwright --matrix suite:baseline` - Run Playwright tests
+  - See `scripts/ACT_README.md` for full usage
+
+### Speckit Workflow Commands
+
+See the [Speckit Workflow](#speckit-workflow) section above for detailed command reference:
+
+- `/speckit.specify` - Create feature specifications
+- `/speckit.plan` - Generate implementation plans
+- `/speckit.tasks` - Generate actionable tasks
+- And other Speckit commands listed in the workflow section
 
 ## Code Style
 
-: Follow standard conventions
+All code MUST follow the project's code style standards, which are enforced by tooling and defined in the [Speckit Constitution](#speckit-constitution).
+
+### Formatting
+
+**Prettier** (enforced automatically):
+
+- Semicolons: Required (`semi: true`)
+- Quotes: Double quotes for strings (`singleQuote: false`)
+- Trailing commas: Always (`trailingComma: "all"`)
+- Print width: 90 characters
+- Tab width: 2 spaces
+- Tailwind CSS plugin: Automatically sorts Tailwind classes
+
+**Stylelint** (for CSS):
+
+- Extends `stylelint-config-tailwindcss`
+- Enforces Tailwind CSS class ordering
+
+### Linting
+
+**ESLint** (Next.js config + zero warnings policy):
+
+- Uses `eslint-config-next` as base
+- Maximum warnings: 0 (failing CI if any warnings)
+- Checks: `.ts`, `.tsx` files
+- Guards: `guard:no-service-role` script ensures service_role key never reaches client
+
+### TypeScript Standards
+
+- **Strict mode**: Enabled (via `tsconfig.json`)
+- **Type safety**: All Server Actions MUST have explicit return types (`Promise<ReturnType>`)
+- **Shared types**: Defined in `/lib/types/` for server-client consistency
+- **Validation**: All Server Action inputs validated with Zod schemas
+- **No `any`**: Avoid `any` type; use `unknown` or proper types
+
+### Clean Code Principles
+
+**MANDATORY**: All code MUST follow Clean Code principles (Constitution Principle VI):
+
+**Function Design**:
+
+- Functions MUST be small (<20 lines) and do one thing (Single Responsibility)
+- Function names MUST be verbs describing what they do
+- Parameters MUST be minimal (≤3; use objects for more)
+- Boolean parameters MUST be avoided (split into separate functions)
+- Command-Query Separation: Functions either do something OR answer something, not both
+
+**Naming Conventions**:
+
+- Names MUST be descriptive and reveal intent (avoid abbreviations)
+- Classes/modules: Nouns; methods: Verbs
+- Constants MUST be defined for all magic numbers/strings
+- Use domain vocabulary (game engine terms, not generic CS terms)
+- Variable names MUST be pronounceable and searchable
+
+**Code Structure**:
+
+- DRY principle (Don't Repeat Yourself)
+- Organized by feature/domain, not technical layers
+- Dependencies point inward (high-level doesn't depend on low-level)
+- Comments explain "why", not "what" (code is self-documenting)
+- Dead code MUST be removed; commented-out code is forbidden
+
+**Error Handling**:
+
+- Errors MUST be handled explicitly; never ignore exceptions
+- Error messages MUST be informative with context
+- Custom error classes for domain failures (e.g., `InvalidMoveError`)
+- Try-catch blocks MUST NOT be used for control flow
+
+**Code Quality**:
+
+- Cyclomatic complexity: <10 per function
+- Functions: ≤20 lines; Classes: ≤300 lines
+- Functions have no side effects unless explicitly named (e.g., `executeMove()`)
+- Functions MUST be easily testable in isolation
+
+### Test Driven Development (TDD)
+
+**MANDATORY**: All code changes MUST follow TDD cycle (Constitution Principle VII):
+
+1. **Red**: Write failing test FIRST (test describes desired behavior)
+2. **Green**: Write MINIMUM code to pass the test
+3. **Refactor**: Improve code quality while keeping tests green
+
+**Commit Strategy**:
+
+- Each passing test committed separately (frequent, atomic commits)
+- Commit format: `test(scope): [what the test verifies]` or `feat(scope): [feature] - add test for [behavior]`
+- NEVER commit failing tests (except experimental with `[WIP]` prefix)
+- NEVER commit production code without a corresponding passing test
+
+### File Organization
+
+- `/app/actions/` - Server Actions grouped by domain (match.ts, game.ts, matchmaking.ts)
+- `/lib/game-engine/` - Shared game logic (server/client compatible)
+- `/lib/types/` - Shared TypeScript types for server-client contracts
+- `/components/` - React components organized by feature (game/, lobby/, match/)
+- `/tests/` - Test suites (unit/, integration/, contract/, perf/)
+
+### Performance Standards
+
+- **Animated components**: MUST use Framer Motion or CSS transforms (GPU-accelerated)
+- **Critical paths**: Instrumented with `performance.mark()` for profiling
+- **Performance SLAs**: Non-negotiable (see Constitution Principle II)
+  - Move RTT: <200ms p95
+  - Word validation: <50ms server-side
+  - Realtime broadcast: <100ms p95
+
+### Git Conventions
+
+- **Branch naming**: `###-feature-name` (e.g., `001-matchmaking`, `002-two-player-playtest`)
+- **Commit messages**: Conventional Commits format (Constitution Principle IX)
+  - Format: `type(scope): subject` (<80 chars, imperative mood, no trailing period)
+  - Types: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`
+  - Body: Optional, explains what/why, wrap at ~72 chars
+  - Test commits: `test(scope): verify [behavior]` before implementation
 
 ## Recent Changes
 
