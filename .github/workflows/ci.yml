@@ -227,6 +227,9 @@ jobs:
           echo "✓ .env.local created successfully"
           echo "File size: $(wc -c < .env.local) bytes"
       - name: Build Next.js app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: pnpm build
       - name: Start Next.js server
         run: |

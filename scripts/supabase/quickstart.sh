@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SUPABASE_BIN="${SUPABASE_BIN:-supabase}"
 PNPM_BIN="${PNPM_BIN:-pnpm}"
 ENV_FILE="${QUICKSTART_ENV_FILE:-.env.local}"
+PROD_ENV_FILE="${QUICKSTART_PROD_ENV_FILE:-.env.production.local}"
 MATCH_ID="${QUICKSTART_MATCH_ID:-quickstart-$(node -p 'Date.now()')}"
 DISABLE_STOP="${QUICKSTART_DISABLE_STOP:-}"
 DRY_RUN="${QUICKSTART_DRY_RUN:-}"
@@ -170,10 +171,18 @@ if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
   exit 1
 fi
 
-update_env_var "$ENV_FILE" "NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL"
-update_env_var "$ENV_FILE" "SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_SERVICE_ROLE_KEY"
-update_env_var "$ENV_FILE" "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
-update_env_var "$ENV_FILE" "SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
+function sync_env_values() {
+  local target="$1"
+  update_env_var "$target" "NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL"
+  update_env_var "$target" "SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_SERVICE_ROLE_KEY"
+  update_env_var "$target" "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
+  update_env_var "$target" "SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
+}
+
+sync_env_values "$ENV_FILE"
+if [[ -n "$PROD_ENV_FILE" ]]; then
+  sync_env_values "$PROD_ENV_FILE"
+fi
 
 export NEXT_PUBLIC_SUPABASE_URL="$SUPABASE_URL"
 export SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"

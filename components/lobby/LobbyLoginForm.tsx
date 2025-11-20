@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { loginAction, type LoginActionState } from "../../app/actions/auth/login";
@@ -13,14 +12,7 @@ interface LobbyLoginFormProps {
 const INITIAL_STATE: LoginActionState = { status: "idle" };
 
 export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
-  const router = useRouter();
   const [state, formAction] = useActionState(loginAction, INITIAL_STATE);
-
-  useEffect(() => {
-    if (state.status === "success") {
-      router.refresh();
-    }
-  }, [state, router]);
 
   return (
     <form

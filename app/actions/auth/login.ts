@@ -3,6 +3,7 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import type { PlayerIdentity } from "../../../lib/types/match";
 import {
@@ -41,17 +42,12 @@ export async function loginAction(
         "Too many login attempts. Please wait up to one minute and try again.",
     });
 
-    console.log("loginAction invoked", username);
     const { player, sessionToken } = await performUsernameLogin(
       typeof username === "string" ? username : ""
     );
     await persistLobbySession({ player, sessionToken });
 
-    return {
-      status: "success",
-      player,
-      sessionToken,
-    };
+    redirect("/");
   } catch (error) {
     if (error instanceof RateLimitExceededError) {
       return {
