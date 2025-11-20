@@ -226,11 +226,18 @@ jobs:
           fi
           echo "✓ .env.local created successfully"
           echo "File size: $(wc -c < .env.local) bytes"
-      - name: Build Next.js app
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: pnpm build
+      - name: Load env & build Next.js app
+        run: |
+          if [ -f ".env.production.local" ]; then
+            set -a
+            . ./.env.production.local
+            set +a
+          elif [ -f ".env.local" ]; then
+            set -a
+            . ./.env.local
+            set +a
+          fi
+          pnpm build
       - name: Start Next.js server
         run: |
           # Verify .env.local exists and load environment variables
@@ -444,8 +451,18 @@ jobs:
           fi
           echo "✓ .env.local created successfully"
           echo "File size: $(wc -c < .env.local) bytes"
-      - name: Build Next.js app
-        run: pnpm build
+      - name: Load env & build Next.js app
+        run: |
+          if [ -f ".env.production.local" ]; then
+            set -a
+            . ./.env.production.local
+            set +a
+          elif [ -f ".env.local" ]; then
+            set -a
+            . ./.env.local
+            set +a
+          fi
+          pnpm build
       - name: Start Next.js server
         run: |
           # Verify .env.local exists and load environment variables
