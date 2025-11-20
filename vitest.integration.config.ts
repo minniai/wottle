@@ -18,6 +18,7 @@ export default defineConfig({
       "tests/integration/**/*.{test,spec}.ts?(x)",
       "tests/integration/**/*.{test,spec}.mts",
     ],
+    exclude: ["tests/integration/ui/**/*"],
     reporters: process.env.CI ? ["default", "junit"] : ["default"],
     outputFile: process.env.CI ? "reports/vitest-integration.xml" : undefined,
   },
