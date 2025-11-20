@@ -126,7 +126,7 @@ Upon finishing 10 rounds (or hitting an end condition), both players see the fin
 
 ### Non-Functional Requirements
 
-- **NFR-001**: UI MUST meet WCAG 2.1 Level AA minimum standards: (a) all interactive elements (buttons, tiles, modals) accessible via keyboard navigation; (b) focus traps in modals and match summary overlays; (c) aria-live regions for round summaries and match status updates; (d) sufficient color contrast (4.5:1 minimum for text, 3:1 for UI components); (e) screen reader announcements for score changes and word highlights.
+- **NFR-001**: UI MUST meet WCAG 2.1 Level A minimum standards: (a) all interactive elements (buttons, tiles, modals) accessible via keyboard navigation; (b) focus traps in modals and match summary overlays; (c) aria-live regions for round summaries and match status updates; (d) sufficient color contrast (4.5:1 minimum for text, 3:1 for UI components); (e) screen reader announcements for score changes and word highlights.
 
 ### Key Entities *(include if feature involves data)*
 
