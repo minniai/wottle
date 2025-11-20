@@ -12,6 +12,10 @@ const config = [
       "build",
       "coverage",
       ".supabase",
+      "supabase/.branches",
+      "supabase/.temp",
+      ".turbo",
+      ".vercel",
       "pnpm-lock.yaml",
       "**/*.log",
       "*.min.js"
@@ -20,3 +24,4 @@ const config = [
 ];
 
 export default config;
+
