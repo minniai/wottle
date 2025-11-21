@@ -304,7 +304,21 @@ export async function startAutoQueue(
     };
   }
 
-  // 2. Mark as matchmaking
+  // 2. Check if locked by opponent (prevent overwrite race condition)
+  const { data: player } = await client
+    .from("players")
+    .select("status")
+    .eq("id", params.playerId)
+    .single();
+
+  if (player?.status === "in_match") {
+    return {
+      status: "queued",
+      estimatedWaitSeconds: 1,
+    };
+  }
+
+  // 3. Mark as matchmaking
   await setPlayerStatus(client, params.playerId, "matchmaking");
   await updatePresenceMode(client, params.playerId, {
     mode: "auto",
