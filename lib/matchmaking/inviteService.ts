@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { LobbyStatus, PlayerIdentity } from "../types/match";
-import { bootstrapMatchRecord } from "./service";
+import { bootstrapMatchRecord, findActiveMatchForPlayer } from "./service";
 import { logPlaytestError, logPlaytestInfo, trackInviteAccepted } from "../observability/log";
 
 type AnyClient = SupabaseClient<any, any, any>;
@@ -288,7 +288,23 @@ export async function startAutoQueue(
   client: AnyClient,
   params: StartQueueParams
 ): Promise<QueueResult> {
-  // First, mark ourselves as matchmaking
+  // 1. Check if already in a match
+  const activeMatch = await findActiveMatchForPlayer(client, params.playerId);
+  if (activeMatch) {
+    // Ensure player status is consistent
+    await setPlayerStatus(client, params.playerId, "in_match");
+    await updatePresenceMode(client, params.playerId, {
+      mode: "auto",
+      inviteToken: null,
+    });
+
+    return {
+      status: "matched",
+      matchId: activeMatch.id,
+    };
+  }
+
+  // 2. Mark as matchmaking
   await setPlayerStatus(client, params.playerId, "matchmaking");
   await updatePresenceMode(client, params.playerId, {
     mode: "auto",
