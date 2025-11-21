@@ -105,6 +105,18 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
 
     async function pollMatchmakingState() {
       try {
+        // If we are currently in the queue, retry matchmaking
+        if (queueStatus) {
+          const queueResult = await startQueueAction();
+          if (cancelled) return;
+          
+          if (queueResult.status === "matched" && queueResult.matchId) {
+            handleMatchReady(queueResult.matchId);
+            return;
+          }
+          // If still queued or error, we continue polling other state
+        }
+
         const [inviteResponse, matchResponse] = await Promise.all([
           fetch("/api/lobby/invite", { cache: "no-store" }),
           fetch("/api/match/active", { cache: "no-store" }),
@@ -142,7 +154,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [handleMatchReady]);
+  }, [handleMatchReady, queueStatus]);
 
   useEffect(() => {
     if (!toast) {
