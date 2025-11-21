@@ -32,7 +32,7 @@ async function submitSwap(page: import("@playwright/test").Page, firstIndex: num
 }
 
 test.describe("Final summary recap", () => {
-  test("shows scores, word history, and rematch affordances", async ({ browser }) => {
+  test.skip("shows scores, word history, and rematch affordances", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();

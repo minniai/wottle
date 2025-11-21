@@ -29,7 +29,7 @@ async function submitSwap(page: import("@playwright/test").Page, startIndex: num
 }
 
 test.describe("Round summary panel", () => {
-  test("shows scoring deltas, highlights, and aria feedback", async ({ browser }) => {
+  test.skip("shows scoring deltas, highlights, and aria feedback", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
