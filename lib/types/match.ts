@@ -30,6 +30,8 @@ export interface ScoreTotals {
   playerB: number;
 }
 
+export type MatchEndedReason = "round_limit" | "timeout" | "disconnect" | "forfeit";
+
 export interface WordScore {
   playerId: string;
   word: string;

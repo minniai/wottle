@@ -79,14 +79,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile false
       - name: Run Unit Tests
-        run: pnpm test -- --run
+        run: pnpm test:unit
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    container: node:lts
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile false
+      - name: Run Integration Tests
+        run: pnpm test:integration
 
   quickstart:
     name: Supabase Quickstart
     runs-on: ubuntu-latest
     # Note: No container here - needs Docker access for Supabase
     # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
-    needs: test
+    needs: integration
     timeout-minutes: 30
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -150,6 +172,8 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
+      RATE_LIMIT_DISABLED_SCOPES: "auth:login"
+      PLAYTEST_SESSION_SECURE: "false"
       # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
     steps:
       - name: Install Docker CLI (for act compatibility)
@@ -202,8 +226,18 @@ jobs:
           fi
           echo "✓ .env.local created successfully"
           echo "File size: $(wc -c < .env.local) bytes"
-      - name: Build Next.js app
-        run: pnpm build
+      - name: Load env & build Next.js app
+        run: |
+          if [ -f ".env.production.local" ]; then
+            set -a
+            . ./.env.production.local
+            set +a
+          elif [ -f ".env.local" ]; then
+            set -a
+            . ./.env.local
+            set +a
+          fi
+          pnpm build
       - name: Start Next.js server
         run: |
           # Verify .env.local exists and load environment variables
@@ -417,8 +451,18 @@ jobs:
           fi
           echo "✓ .env.local created successfully"
           echo "File size: $(wc -c < .env.local) bytes"
-      - name: Build Next.js app
-        run: pnpm build
+      - name: Load env & build Next.js app
+        run: |
+          if [ -f ".env.production.local" ]; then
+            set -a
+            . ./.env.production.local
+            set +a
+          elif [ -f ".env.local" ]; then
+            set -a
+            . ./.env.local
+            set +a
+          fi
+          pnpm build
       - name: Start Next.js server
         run: |
           # Verify .env.local exists and load environment variables

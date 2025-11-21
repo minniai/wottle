@@ -4,8 +4,8 @@ import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { LobbyStatus, PlayerIdentity } from "../types/match";
-import { bootstrapMatchRecord } from "./service";
-import { logPlaytestError, logPlaytestInfo } from "../observability/log";
+import { bootstrapMatchRecord, findActiveMatchForPlayer } from "./service";
+import { logPlaytestError, logPlaytestInfo, trackInviteAccepted } from "../observability/log";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -232,10 +232,11 @@ export async function respondToInvite(
     }),
   ]);
 
-  logPlaytestInfo("matchmaking.invite.accepted", {
+  trackInviteAccepted({
     matchId,
     playerId: params.actorId,
-    metadata: { inviteId: invite.id },
+    inviteId: invite.id,
+    opponentId: invite.sender_id,
   });
 
   return { status: "accepted", matchId };
@@ -287,7 +288,37 @@ export async function startAutoQueue(
   client: AnyClient,
   params: StartQueueParams
 ): Promise<QueueResult> {
-  // First, mark ourselves as matchmaking
+  // 1. Check if already in a match
+  const activeMatch = await findActiveMatchForPlayer(client, params.playerId);
+  if (activeMatch) {
+    // Ensure player status is consistent
+    await setPlayerStatus(client, params.playerId, "in_match");
+    await updatePresenceMode(client, params.playerId, {
+      mode: "auto",
+      inviteToken: null,
+    });
+
+    return {
+      status: "matched",
+      matchId: activeMatch.id,
+    };
+  }
+
+  // 2. Check if locked by opponent (prevent overwrite race condition)
+  const { data: player } = await client
+    .from("players")
+    .select("status")
+    .eq("id", params.playerId)
+    .single();
+
+  if (player?.status === "in_match") {
+    return {
+      status: "queued",
+      estimatedWaitSeconds: 1,
+    };
+  }
+
+  // 3. Mark as matchmaking
   await setPlayerStatus(client, params.playerId, "matchmaking");
   await updatePresenceMode(client, params.playerId, {
     mode: "auto",

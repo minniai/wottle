@@ -132,7 +132,7 @@ export async function persistLobbySession(
   cookieStore.set(SESSION_COOKIE_NAME, encoded, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookies(),
     maxAge: SESSION_TTL_SECONDS,
     path: "/",
   });
@@ -256,6 +256,20 @@ function dedupePlayers(players: PlayerIdentity[]): PlayerIdentity[] {
 
 function sortPlayers(players: PlayerIdentity[]): PlayerIdentity[] {
   return [...players].sort((a, b) => a.username.localeCompare(b.username));
+}
+
+function shouldUseSecureCookies(): boolean {
+  const raw = process.env.PLAYTEST_SESSION_SECURE;
+  if (raw) {
+    const normalized = raw.trim().toLowerCase();
+    if (["1", "true", "on", "yes", "enabled"].includes(normalized)) {
+      return true;
+    }
+    if (["0", "false", "off", "no", "disabled"].includes(normalized)) {
+      return false;
+    }
+  }
+  return process.env.NODE_ENV === "production";
 }
 
 

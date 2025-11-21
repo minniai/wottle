@@ -4,9 +4,13 @@ import { MoveSubmission } from "@/lib/types/match";
 import { applySwap, type BoardGrid } from "../game-engine/board";
 import { boardGridSchema } from "../types/board";
 import type { MoveRequest } from "../types/board";
+import { publishMatchState } from "./statePublisher";
+import { completeMatchInternal } from "@/app/actions/match/completeMatch";
+import { trackRoundCompleted } from "../observability/log";
 
 export async function advanceRound(matchId: string) {
     const supabase = getServiceRoleClient();
+    const roundStart = Date.now();
 
     // Use a transaction to ensure atomicity
     // Note: Supabase client doesn't have explicit transactions in JS, so we'll use row-level locking via SELECT FOR UPDATE pattern
@@ -164,7 +168,6 @@ export async function advanceRound(matchId: string) {
 
     if (isGameOver) {
         updatePayload.state = "completed";
-        // TODO: Calculate winner based on scores (to be implemented with scoring engine)
     }
 
     const { error: updateError } = await supabase
@@ -185,6 +188,29 @@ export async function advanceRound(matchId: string) {
     } catch (e) {
         console.error("Failed to load publishRoundSummary:", e);
     }
+
+    try {
+        await publishMatchState(matchId);
+    } catch (error) {
+        console.error("[MatchState] Failed to broadcast match update:", error);
+    }
+
+    if (isGameOver) {
+        try {
+            await completeMatchInternal(matchId, "round_limit");
+        } catch (error) {
+            console.error("[MatchState] Failed to finalize match:", error);
+        }
+    }
+
+    trackRoundCompleted({
+        matchId,
+        roundNumber: currentRound,
+        acceptedMoves: acceptedMoves.length,
+        rejectedMoves: rejectedMoves.length,
+        durationMs: Date.now() - roundStart,
+        isGameOver,
+    });
 
     return { status: "advanced", nextRound, isGameOver, acceptedMoves: acceptedMoves.length, rejectedMoves: rejectedMoves.length };
 }

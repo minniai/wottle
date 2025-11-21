@@ -45,6 +45,7 @@
 - [x] T017 [US1] Integrate lobby list + login flow into `app/(lobby)/page.tsx`, including reconnect banner handling
 - [x] T018 [US1] [P] Add Vitest tests for presence store reducers (`tests/unit/lib/matchmaking/presenceStore.test.ts`)
 - [x] T019 [US1] [P] Add contract test for `/api/auth/login` happy/error paths (`tests/contract/post-login.contract.test.ts`)
+- [x] T019a [US1] [P] Implement rate limiting middleware for authentication (5 attempts/min per IP) and move submissions (30 attempts/min per player) with 429 Too Many Requests responses (`lib/rate-limiting/middleware.ts`, `app/actions/auth/login.ts`, `app/actions/match/submitMove.ts`) [FR-001a]
 
 ---
 
@@ -62,7 +63,7 @@
 - [x] T026 [US2] Update presence broadcast to mark players “matchmaking”/“in_match” (`lib/realtime/presenceChannel.ts`)
 - [x] T027 [US2] [P] Add contract tests for invite + queue endpoints (`tests/contract/post-invite.contract.test.ts`, `tests/contract/post-match-start.contract.test.ts`)
 - [x] T028 [US2] [P] Add Vitest unit tests for invite expirations + queue arbitration (`tests/unit/lib/matchmaking/inviteService.test.ts`)
-- [ ] T028a [US2] [P] Add Artillery perf test asserting lobby presence broadcast <2s p95 (PERF-003) (`tests/perf/lobby-presence.yml`)
+- [x] T028a [US2] [P] Add Artillery perf test asserting lobby presence broadcast <2s p95 (PERF-003) (`tests/perf/lobby-presence.yml`)
 
 ---
 
@@ -71,17 +72,17 @@
 **Goal**: Players submit simultaneous swaps each round; server enforces 10-round state machine, validates moves, and advances rounds.
 **Independent Test**: Dual-browser scenario completes 10 rounds, verifying timers pause/resume correctly and late swaps rejected after resolution starts.
 
-- [ ] T029 [US3] [TDD-RED] Author Playwright spec for 10-round loop + timeout edge cases (`tests/integration/ui/rounds-flow.spec.ts`)
+- [x] T029 [US3] [TDD-RED] Author Playwright spec for 10-round loop + timeout edge cases (`tests/integration/ui/rounds-flow.spec.ts`)
 - [x] T030 [US3] Implement backend round state machine with transaction locks (`lib/match/roundEngine.ts`, `lib/match/conflictResolver.ts`)
 - [x] T031 [US3] Add Server Action for submitting moves (`app/actions/match/submitMove.ts`) enforcing bounds + dictionary validation flags
 - [x] T032 [US3] Create REST route `/api/match/[matchId]/move` for contract coverage (`app/api/match/[matchId]/move/route.ts`)
 - [x] T033 [US3] Build match board interaction handlers (tile selection, submission, disabled states) in `components/game/BoardGrid.tsx`
 - [x] T034 [US3] Implement timer HUD + pause/expire states (`components/game/TimerHud.tsx`, `lib/match/timerStore.ts`)
-- [ ] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`
-- [ ] T036 [US3] [P] Add unit tests for `roundEngine` transitions + conflict rules (`tests/unit/lib/match/roundEngine.test.ts`)
-- [ ] T037 [US3] [P] Add contract tests covering move submission accept/reject cases (`tests/contract/post-move.contract.test.ts`)
-- [ ] T037a [US3] [P] Add contract test validating SC-004: dual-session scoring identity (both clients receive identical round summary payloads) (`tests/contract/get-round-summary.contract.test.ts` - dual-session assertion)
-- [ ] T038 [US3] [P] Extend observability perf tests (Artillery) to assert submission RTT <200 ms (`tests/perf/round-resolution.yml`)
+- [ ] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`: detect WebSocket disconnection, mark player "Reconnecting," pause both players' timers (server-side), wait up to 10 seconds for reconnection, restore match state (board, current round, timer values) from database, resume timers if reconnected within window, finalize match with disconnect end condition if timeout exceeded [FR-012]
+- [x] T036 [US3] [P] Add unit tests for `roundEngine` transitions + conflict rules (`tests/unit/lib/match/roundEngine.test.ts`)
+- [x] T037 [US3] [P] Add contract tests covering move submission accept/reject cases (`tests/contract/post-move.contract.test.ts`)
+- [x] T037a [US3] [P] Add contract test validating SC-004: dual-session scoring identity (both clients receive identical round summary payloads) (`tests/contract/get-round-summary.contract.test.ts` - dual-session assertion)
+- [x] T038 [US3] [P] Extend observability perf tests (Artillery) to assert submission RTT <200 ms (`tests/perf/round-resolution.yml`)
 
 ---
 
@@ -90,13 +91,13 @@
 **Goal**: After each round, both players see per-word scoring details, deltas, highlights, and cumulative totals.
 **Independent Test**: Scenario forms words each round and asserts scoreboard + highlight overlays match server data.
 
-- [ ] T039 [US4] [TDD-RED] Add Playwright spec verifying round summary panel and tile highlights (`tests/integration/ui/round-summary.spec.ts`)
+- [x] T039 [US4] [TDD-RED] Add Playwright spec verifying round summary panel and tile highlights (`tests/integration/ui/round-summary.spec.ts`)
 - [x] T040 [US4] Implement scoring aggregator + word extraction utilities (`lib/scoring/roundSummary.ts`, `lib/scoring/highlights.ts`)
 - [x] T041 [US4] Add Server Action that assembles `RoundSummary` payload + publishes via Realtime (`app/actions/match/publishRoundSummary.ts`)
 - [x] T042 [US4] Build UI components for summary drawer + word list (`components/match/RoundSummaryPanel.tsx`, `components/match/WordHighlightOverlay.tsx`)
 - [x] T043 [US4] Persist scoreboard snapshots + expose GET `/api/match/[matchId]/rounds/[round]/summary` (`app/api/match/[matchId]/rounds/[round]/summary/route.ts`)
-- [ ] T044 [US4] [P] Add Vitest tests for scoring calculations + highlight coordinates (`tests/unit/lib/scoring/roundSummary.test.ts`)
-- [ ] T045 [US4] [P] Add contract tests asserting round summary schema (`tests/contract/get-round-summary.contract.test.ts`)
+- [x] T044 [US4] [P] Add Vitest tests for scoring calculations + highlight coordinates (`tests/unit/lib/scoring/roundSummary.test.ts`)
+- [x] T045 [US4] [P] Add contract tests asserting round summary schema (`tests/contract/get-round-summary.contract.test.ts`)
 
 ---
 
@@ -105,21 +106,22 @@
 **Goal**: Display final scoreboard, word history, timers used, and rematch/lobby controls once 10 rounds or an end condition triggers.
 **Independent Test**: Playwright flow finishes a match (both normal + timeout) and confirms final screen content plus rematch routing.
 
-- [ ] T046 [US5] [TDD-RED] Playwright spec for final summary + rematch prompt (`tests/integration/ui/final-summary.spec.ts`)
-- [ ] T047 [US5] Implement match completion Server Action (winner calculation, ended_reason) (`app/actions/match/completeMatch.ts`)
-- [ ] T048 [US5] Render final summary view (`app/match/[matchId]/summary/page.tsx`, `components/match/FinalSummary.tsx`) with word history + timers
-- [ ] T049 [US5] Add rematch + back-to-lobby flows (Server Action `app/actions/match/requestRematch.ts`, lobby redirect handling)
-- [ ] T050 [US5] Persist match logs & expose admin query for QA review (`lib/match/logWriter.ts`, `scripts/supabase/log-export.ts`)
-- [ ] T051 [US5] [P] Add unit tests for winner/draw calculation + rematch safeguards (`tests/unit/lib/match/resultCalculator.test.ts`)
+- [x] T046 [US5] [TDD-RED] Playwright spec for final summary + rematch prompt (`tests/integration/ui/final-summary.spec.ts`)
+- [x] T047 [US5] Implement match completion Server Action (winner calculation, ended_reason) (`app/actions/match/completeMatch.ts`)
+- [x] T048 [US5] Render final summary view (`app/match/[matchId]/summary/page.tsx`, `components/match/FinalSummary.tsx`) with word history + timers
+- [x] T049 [US5] Add rematch + back-to-lobby flows (Server Action `app/actions/match/requestRematch.ts`, lobby redirect handling)
+- [x] T050 [US5] Persist match logs & expose admin query for QA review (`lib/match/logWriter.ts`, `scripts/supabase/log-export.ts`)
+- [x] T051 [US5] [P] Add unit tests for winner/draw calculation + rematch safeguards (`tests/unit/lib/match/resultCalculator.test.ts`)
 
 ---
 
 ## Final Phase: Polish & Cross-Cutting Concerns
 
-- [ ] T052 Add accessibility review (focus traps for modals, aria-live for summaries) in `components/lobby` + `components/match`
-- [ ] T053 Add analytics hooks to capture invite accept, round completion, match result events (`lib/observability/log.ts`)
-- [ ] T054 Update `specs/002-two-player-playtest/quickstart.md` with final CLI commands + troubleshooting uncovered during implementation
+- [x] T052 [NFR-001] Add accessibility review and implementation (focus traps for modals, aria-live regions for round summaries, keyboard navigation, color contrast validation, screen reader testing) in `components/lobby` + `components/match` to meet WCAG 2.1 Level A standards
+- [x] T053 Add analytics hooks to capture invite accept, round completion, match result events (`lib/observability/log.ts`)
+- [x] T054 Update `specs/002-two-player-playtest/quickstart.md` with final CLI commands + troubleshooting uncovered during implementation
 - [ ] T055 Run full regression matrix (unit, integration, Playwright, perf) and upload artifacts (`.github/workflows/ci.yml`, `README.md#Testing`)
+  - [ ] T055a Fix deferred Playwright failures: `final-summary.spec.ts`, `round-summary.spec.ts`, `rounds-flow.spec.ts` (Matchmaking race conditions requiring robust retry logic)
 
 ---
 

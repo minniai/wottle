@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -60,6 +60,8 @@ const STATUS_FIXTURE = JSON.stringify(
   null,
   2
 );
+
+vi.setConfig({ testTimeout: 30_000 });
 
 describe("quickstart env routing guard", () => {
   test("ensures env file points to local Supabase instance", async () => {

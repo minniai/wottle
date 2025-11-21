@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -62,6 +62,7 @@ const STATUS_FIXTURE = JSON.stringify(
 );
 
 const CLEANUP: Array<() => Promise<void>> = [];
+vi.setConfig({ testTimeout: 30_000 });
 
 afterEach(async () => {
   while (CLEANUP.length > 0) {

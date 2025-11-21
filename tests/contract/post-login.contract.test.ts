@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../lib/matchmaking/profile", async (importOriginal) => {
   const actual = (await importOriginal()) as typeof import("../../lib/matchmaking/profile");
@@ -12,6 +12,7 @@ vi.mock("../../lib/matchmaking/profile", async (importOriginal) => {
 import type { PlayerIdentity } from "../../lib/types/match";
 import { performUsernameLogin, persistLobbySession } from "../../lib/matchmaking/profile";
 import { POST } from "../../app/api/auth/login/route";
+import { resetRateLimitStoreForTests } from "../../lib/rate-limiting/middleware";
 
 function createRequest(body: unknown) {
   return new Request("http://localhost/api/auth/login", {
@@ -35,6 +36,11 @@ describe("POST /api/auth/login", () => {
   beforeEach(() => {
     vi.mocked(performUsernameLogin).mockReset();
     vi.mocked(persistLobbySession).mockReset();
+    resetRateLimitStoreForTests();
+  });
+
+  afterEach(() => {
+    resetRateLimitStoreForTests();
   });
 
   it("returns 200 with player payload when login succeeds", async () => {
@@ -81,6 +87,24 @@ describe("POST /api/auth/login", () => {
     
     // Restore console.error
     consoleErrorSpy.mockRestore();
+  });
+
+  it("returns 429 when rate limit is exceeded", async () => {
+    vi.mocked(performUsernameLogin).mockResolvedValue({
+      player,
+      sessionToken: "session-789",
+    });
+
+    for (let i = 0; i < 5; i += 1) {
+      const okResponse = await POST(createRequest({ username: `tester-${i}` }));
+      expect(okResponse.status).toBe(200);
+    }
+
+    const blockedResponse = await POST(createRequest({ username: "tester-blocked" }));
+
+    expect(blockedResponse.status).toBe(429);
+    const body = await blockedResponse.json();
+    expect(body.error).toMatch(/too many/i);
   });
 });
 

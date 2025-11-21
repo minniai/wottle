@@ -1,0 +1,26 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 4
+      name: lobby-presence-load
+  defaults:
+    headers:
+      "cache-control": "no-store"
+    timeout: 20000
+  plugins:
+    expect: {}
+  ensure:
+    - label: lobby presence p95 under 2s
+      expression: "p95 < 2000"
+    - label: lobby presence median under 1s
+      expression: "median < 1000"
+
+scenarios:
+  - name: lobby presence snapshot
+    flow:
+      - get:
+          url: "/api/lobby/players"
+          expect:
+            - statusCode: 200
+

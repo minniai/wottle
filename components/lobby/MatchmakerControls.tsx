@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -14,6 +15,7 @@ import { sendInviteAction, respondInviteAction } from "../../app/actions/matchma
 import { startQueueAction } from "../../app/actions/matchmaking/startQueue";
 import { useLobbyPresenceStore } from "../../lib/matchmaking/presenceStore";
 import type { PlayerIdentity } from "../../lib/types/match";
+import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 
 interface MatchmakerControlsProps {
   self: PlayerIdentity;
@@ -49,6 +51,17 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
   const [incomingInvite, setIncomingInvite] = useState<PendingInvite | null>(null);
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
   const pendingNavigationRef = useRef<NodeJS.Timeout | null>(null);
+  const inviteModalRef = useRef<HTMLDivElement | null>(null);
+  const inviteCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const inviteTitleId = useId();
+  const inviteDescriptionId = `${inviteTitleId}-description`;
+
+  useFocusTrap({
+    isActive: showInviteModal,
+    containerRef: inviteModalRef,
+    initialFocusRef: inviteCloseButtonRef,
+    onEscape: () => setShowInviteModal(false),
+  });
 
   useEffect(() => {
     return () => {
@@ -92,6 +105,18 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
 
     async function pollMatchmakingState() {
       try {
+        // If we are currently in the queue, retry matchmaking
+        if (queueStatus) {
+          const queueResult = await startQueueAction();
+          if (cancelled) return;
+          
+          if (queueResult.status === "matched" && queueResult.matchId) {
+            handleMatchReady(queueResult.matchId);
+            return;
+          }
+          // If still queued or error, we continue polling other state
+        }
+
         const [inviteResponse, matchResponse] = await Promise.all([
           fetch("/api/lobby/invite", { cache: "no-store" }),
           fetch("/api/match/active", { cache: "no-store" }),
@@ -129,7 +154,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [handleMatchReady]);
+  }, [handleMatchReady, queueStatus]);
 
   useEffect(() => {
     if (!toast) {
@@ -233,7 +258,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            className="rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/40 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
             data-testid="matchmaker-start-button"
             onClick={handleStartQueue}
             disabled={isQueueing}
@@ -242,7 +267,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50"
+            className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
             data-testid="matchmaker-invite-button"
             onClick={() => setShowInviteModal(true)}
             disabled={isInviting || presenceStatus !== "ready" || inviteTargets.length === 0}
@@ -263,6 +288,8 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
         <p
           className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
           data-testid="matchmaker-queue-status"
+          role="status"
+          aria-live="polite"
         >
           {queueStatus}
         </p>
@@ -272,6 +299,8 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
         <div
           className="mt-4 flex flex-col gap-3 rounded-xl border border-sky-400/30 bg-sky-500/10 p-4 text-sm text-white"
           data-testid="matchmaker-invite-banner"
+          role="status"
+          aria-live="assertive"
         >
           <p className="text-base font-semibold text-white">
             {incomingInvite.sender.displayName} wants to play
@@ -286,7 +315,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
           <div className="flex gap-3">
             <button
               type="button"
-              className="flex-1 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/30 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/30 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
               data-testid="matchmaker-invite-accept"
               onClick={() => handleRespondInvite("accepted")}
               disabled={isResponding}
@@ -295,7 +324,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
             </button>
             <button
               type="button"
-              className="flex-1 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/5 disabled:opacity-50"
+              className="flex-1 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/5 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
               data-testid="matchmaker-invite-decline"
               onClick={() => handleRespondInvite("declined")}
               disabled={isResponding}
@@ -314,28 +343,39 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
               : "border-rose-400/40 bg-rose-500/10 text-rose-100"
           }`}
           data-testid="matchmaker-toast"
+          role="status"
+          aria-live={toast.tone === "error" ? "assertive" : "polite"}
         >
           {toast.message}
         </div>
       )}
 
       {showInviteModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl shadow-slate-950/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+          <div
+            ref={inviteModalRef}
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl shadow-slate-950/60"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={inviteTitleId}
+            aria-describedby={inviteDescriptionId}
+            tabIndex={-1}
+          >
             <header className="flex items-center justify-between">
               <div>
-                <p className="text-lg font-semibold text-white">Invite a tester</p>
-                <p className="text-xs text-white/60">Select someone currently online.</p>
+                <p id={inviteTitleId} className="text-lg font-semibold text-white">
+                  Invite a tester
+                </p>
+                <p id={inviteDescriptionId} className="text-xs text-white/70">
+                  Select someone currently online.
+                </p>
               </div>
               <button
                 type="button"
-                className="text-white/60 hover:text-white"
+                className="text-white/60 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
                 onClick={() => setShowInviteModal(false)}
                 aria-label="Close invite modal"
+                ref={inviteCloseButtonRef}
               >
                 ×
               </button>
@@ -362,7 +402,7 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
                   </div>
                   <button
                     type="button"
-                    className="rounded-lg bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                    className="rounded-lg bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
                     onClick={() => handleSendInvite(player.id)}
                     disabled={isInviting}
                   >
