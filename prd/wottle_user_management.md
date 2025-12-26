@@ -97,7 +97,7 @@ export async function loginWithUsername(username: string) {
 
 **Performance Impact:**
 
-```
+```txt
 Supabase Auth Flow:
 Server Action → Supabase Auth (5ms) → RLS Check (2ms) → Query → Total: ~50ms
 
@@ -308,23 +308,23 @@ export async function finalizeMatch(matchId: string) {
 
 ### Supabase Auth
 
-| MAU | Supabase Tier | Monthly Cost |
-|-----|--------------|--------------|
-| 0-50k | Free | $0 |
-| 50k-100k | Pro | $25 |
-| 100k-500k | Pro | $25* |
-| 500k+ | Team | $599 |
+| MAU       | Supabase Tier | Monthly Cost |
+|-----------|---------------|--------------|
+| 0-50k     | Free          | $0           |
+| 50k-100k  | Pro           | $25          |
+| 100k-500k | Pro           | $25*         |
+| 500k+     | Team          | $599         |
 
 *Additional usage fees may apply for API requests
 
 ### Clerk
 
-| MAU | Clerk Plan | Monthly Cost |
-|-----|-----------|--------------|
-| 0-10k | Free | $0 |
-| 10k-50k | Pro | $25 + $80 = $105 |
-| 50k-100k | Pro | $25 + $180 = $205 |
-| 100k+ | Enterprise | Custom pricing |
+| MAU      | Clerk Plan | Monthly Cost      |
+|----------|------------|-------------------|
+| 0-10k    | Free       | $0                |
+| 10k-50k  | Pro        | $25 + $80 = $105  |
+| 50k-100k | Pro        | $25 + $180 = $205 |
+| 100k+    | Enterprise | Custom pricing    |
 
 **12-Month Savings (Supabase):** ~$960-1,440 at 10k-50k MAU
 
@@ -335,7 +335,7 @@ export async function finalizeMatch(matchId: string) {
 ### Supabase Auth Risks
 
 | Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
+| ---- | ---------- | ------ | ---------- |
 | Username enumeration | Medium | Low | Rate limiting + CAPTCHA |
 | Session hijacking | Low | High | HTTPS-only, secure cookies |
 | Scalability limits | Low | Medium | Supabase handles 100k+ concurrent users |
@@ -344,7 +344,7 @@ export async function finalizeMatch(matchId: string) {
 ### Clerk Risks
 
 | Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
+| ---- | ---------- | ------ | ---------- |
 | API latency | Medium | Medium | Cache auth state client-side |
 | Cost overrun | High | Medium | Monitor MAU closely |
 | Presence gap | High | High | Must build separate presence system |
