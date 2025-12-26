@@ -513,7 +513,7 @@ If edge runtime testing fails or performance targets not met:
 - All other operations remain as Server Actions
 - Monitor edge runtime support in Next.js updates
 
-3. **`generateBoard`** (`lib/game-engine/board.ts` - shared utility)
+1. **`generateBoard`** (`lib/game-engine/board.ts` - shared utility)
    - Input: `{ seed: number, languageId: string }`
    - Output: `LetterGrid (BOARD_SIZE×BOARD_SIZE array, default 10x10)`
    - Logic:
@@ -527,7 +527,7 @@ If edge runtime testing fails or performance targets not met:
    - Retry: Up to 3 attempts if validation fails
    - Shared: Used by both Server Actions and Edge Functions
 
-4. **`validateWords`** (`lib/game-engine/word-finder.ts` - shared utility)
+2. **`validateWords`** (`lib/game-engine/word-finder.ts` - shared utility)
    - Input: `{ board: LetterGrid, positions: Position[], direction: Direction }`
    - Output: `{ words: ValidWord[], score: number }`
    - Logic:
@@ -539,7 +539,7 @@ If edge runtime testing fails or performance targets not met:
    - Total: <10ms typically
    - Shared: Used by both Server Actions and Edge Functions
 
-5. **`enterMatchmaking`** (`app/actions/matchmaking.ts`)
+3. **`enterMatchmaking`** (`app/actions/matchmaking.ts`)
    - Input: `mode: 'ranked' | 'casual'`
    - Returns: `Promise<{ status: 'searching' | 'matched', matchId?: string }>`
    - Logic:
@@ -560,7 +560,7 @@ If edge runtime testing fails or performance targets not met:
 - Use Case: Player cancels matchmaking search
 - Performance: <50ms (simple DELETE query)
 
-6. **`sendChallenge`** (`app/actions/challenges.ts`)
+1. **`sendChallenge`** (`app/actions/challenges.ts`)
    - Input: `toUserId: string, mode: 'ranked' | 'casual' | 'challenge'`
    - Returns: `Promise<{ invitationId: string }>`
    - Logic:
@@ -568,7 +568,7 @@ If edge runtime testing fails or performance targets not met:
      2. Broadcast invitation via Realtime (handled by database trigger or Edge Function)
      3. Return invitation ID
 
-7. **`acceptChallenge`** (`app/actions/challenges.ts`)
+2. **`acceptChallenge`** (`app/actions/challenges.ts`)
    - Input: `invitationId: string`
    - Returns: `Promise<{ matchId: string }>`
    - Logic:
@@ -577,7 +577,7 @@ If edge runtime testing fails or performance targets not met:
      3. Update invitation status
      4. Return match ID
 
-8. **`resignMatch`** (`app/actions/game.ts`)
+3. **`resignMatch`** (`app/actions/game.ts`)
    - Input: `matchId: string`
    - Returns: `Promise<{ success: boolean; winnerId: string }>`
    - Logic:
@@ -587,7 +587,7 @@ If edge runtime testing fails or performance targets not met:
      4. Update Elo ratings (if ranked)
      5. Broadcast match end via Realtime
 
-9. **`getMatchState`** (`app/actions/match.ts`)
+4. **`getMatchState`** (`app/actions/match.ts`)
    - Used by: Server Components for initial match page load
    - Input: `matchId: string`
    - Returns: `Promise<MatchState>`
