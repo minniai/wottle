@@ -2,7 +2,7 @@
   "name": "wottle",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@10.26.2",
   "type": "module",
   "pnpm": {
     "peerDependencyRules": {
@@ -56,7 +56,7 @@
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@vitest/ui": "^4.0.16",
+    "@vitest/ui": "^1.6.1",
     "artillery": "^2.0.27",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.2",
