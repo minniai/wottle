@@ -49,6 +49,15 @@ export async function loginAction(
 
     redirect("/");
   } catch (error) {
+    // Re-throw redirect errors - Next.js handles these specially
+    if (
+      error instanceof Error &&
+      (error.message === "NEXT_REDIRECT" ||
+        (error as Error & { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))
+    ) {
+      throw error;
+    }
+
     if (error instanceof RateLimitExceededError) {
       return {
         status: "error",
