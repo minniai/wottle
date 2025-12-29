@@ -49,34 +49,14 @@ export async function loginAction(
 
     redirect("/");
   } catch (error) {
-    // Re-throw redirect errors - Next.js handles these specially
-    if (
-      error instanceof Error &&
-      (error.message === "NEXT_REDIRECT" ||
-        (error as Error & { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))
-    ) {
-      throw error;
-    }
-
-    if (error instanceof RateLimitExceededError) {
+    if (error instanceof RateLimitExceededError || error instanceof LoginValidationError) {
       return {
         status: "error",
         message: error.message,
       };
     }
-
-    if (error instanceof LoginValidationError) {
-      return {
-        status: "error",
-        message: error.message,
-      };
-    }
-
     console.error("loginAction failed", error);
-    return {
-      status: "error",
-      message: "Unable to log in right now. Please try again.",
-    };
+    throw error;
   }
 }
 
