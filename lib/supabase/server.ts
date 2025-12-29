@@ -18,21 +18,6 @@ function requireEnv(name: string): string {
   return value;
 }
 
-export function getServiceRoleClient(): SupabaseClient {
-  ensureServerContext();
-
-  if (!cachedClient) {
-    const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-
-    cachedClient = createClient(url, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-  }
-
-  return cachedClient;
-}
-
 export function createServiceRoleClient(): SupabaseClient {
   ensureServerContext();
 
@@ -42,4 +27,14 @@ export function createServiceRoleClient(): SupabaseClient {
   return createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+export function getServiceRoleClient(): SupabaseClient {
+  ensureServerContext();
+
+  if (!cachedClient) {
+    cachedClient = createServiceRoleClient();
+  }
+
+  return cachedClient;
 }
