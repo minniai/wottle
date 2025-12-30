@@ -53,6 +53,14 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
       // Delay disconnect to avoid React StrictMode double-mount issues
       // If component remounts quickly, the timer will be cleared above
       disconnectTimerRef.current = setTimeout(() => {
+        // Check if we're still on the lobby page before disconnecting
+        // This prevents disconnecting during redirects where the new page loads with the same user
+        const currentPath = window.location.pathname;
+        if (currentPath === "/" || currentPath.startsWith("/lobby")) {
+          // Still on lobby page, likely a redirect - don't disconnect
+          // The new page instance will handle the connection
+          return;
+        }
         disconnect();
         disconnectTimerRef.current = null;
       }, 250);
