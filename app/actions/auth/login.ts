@@ -46,19 +46,18 @@ export async function loginAction(
       typeof username === "string" ? username : ""
     );
     await persistLobbySession({ player, sessionToken });
-
     redirect("/");
   } catch (error) {
-    if (error instanceof RateLimitExceededError || error instanceof LoginValidationError) {
-      return {
-        status: "error",
-        message: error.message,
-      };
+    // Re-throw redirect errors - Next.js handles these specially
+    if (error instanceof Error && (error.message === "NEXT_REDIRECT" ||
+       (error as Error & { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))) {
+      throw error;
     }
-    console.error("loginAction failed", error);
-    throw error;
+
+    if (error instanceof RateLimitExceededError || error instanceof LoginValidationError || error instanceof Error) {
+      return { status: "error", message: error.message };
+    } else {
+      return { status: "error", message: "Unable to log in right now. Please try again." };
+    };
   }
 }
-
-
-
