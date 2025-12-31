@@ -354,12 +354,13 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
           <div
             ref={inviteModalRef}
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl shadow-slate-950/60"
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl shadow-slate-950/60"
             role="dialog"
             aria-modal="true"
             aria-labelledby={inviteTitleId}
             aria-describedby={inviteDescriptionId}
             tabIndex={-1}
+            style={{ backgroundColor: "rgb(2 6 23)" }}
           >
             <header className="flex items-center justify-between">
               <div>
@@ -386,15 +387,16 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
               data-testid="matchmaker-invite-modal"
             >
               {inviteTargets.length === 0 && (
-                <p className="rounded-xl border border-white/10 bg-slate-950/40 p-4 text-sm text-white/70">
+                <p className="rounded-xl border border-white/10 bg-slate-800 p-4 text-sm text-white/70" style={{ backgroundColor: "rgb(30 41 59)" }}>
                   No available testers right now. Try again once someone joins.
                 </p>
               )}
               {inviteTargets.map((player) => (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/80"
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800 p-4 text-sm text-white/80"
                   data-testid="invite-option"
+                  style={{ backgroundColor: "rgb(30 41 59)" }}
                 >
                   <div>
                     <p className="font-semibold text-white">{player.displayName}</p>
