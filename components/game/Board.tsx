@@ -14,7 +14,7 @@ import {
 } from "./MoveFeedback";
 import { BOARD_SIZE } from "../../lib/constants/board";
 
-interface BoardExperienceProps {
+interface BoardProps {
   initialGrid: BoardGridType;
   matchId: string;
 }
@@ -44,7 +44,7 @@ function formatCoordinate({ x, y }: { x: number; y: number }): string {
   return `row ${y + 1}, column ${x + 1}`;
 }
 
-export function BoardExperience({ initialGrid, matchId }: BoardExperienceProps) {
+export function Board({ initialGrid, matchId }: BoardProps) {
   const [grid, setGrid] = useState<BoardGridType>(initialGrid);
   const [feedback, setFeedback] = useState<MoveFeedbackDetails | null>(null);
 
