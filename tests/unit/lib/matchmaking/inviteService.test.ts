@@ -4,7 +4,7 @@ import {
   calculateInviteExpiry,
   isInviteExpired,
   selectQueueOpponent,
-} from "../../../../lib/matchmaking/inviteService";
+} from "@/lib/matchmaking/inviteService";
 
 describe("inviteService helpers", () => {
   it("calculates expiry timestamps using the provided TTL", () => {

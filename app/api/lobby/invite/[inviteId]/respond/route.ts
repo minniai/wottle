@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 import type { NextRequest } from "next/server";
 
-import { respondToInvite } from "../../../../../../lib/matchmaking/inviteService";
-import { readLobbySession } from "../../../../../../lib/matchmaking/profile";
-import { getServiceRoleClient } from "../../../../../../lib/supabase/server";
+import { respondToInvite } from "@/lib/matchmaking/inviteService";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = {
   "cache-control": "no-store",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getBoard } from "../../actions/getBoard";
+import { getBoard } from "@/app/actions/getBoard";
 
 export const revalidate = 0;
 

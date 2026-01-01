@@ -2,11 +2,11 @@
 
 import { create } from "zustand";
 
-import { subscribeToLobbyPresence } from "../realtime/presenceChannel";
-import { subscribeToLobbyPresencePollingOnly } from "../realtime/presenceChannel.polling";
-import type { PresenceSubscription } from "../realtime/presenceChannel";
-import { getBrowserSupabaseClient } from "../supabase/browser";
-import type { LobbyStatus, PlayerIdentity } from "../types/match";
+import { subscribeToLobbyPresence } from "@/lib/realtime/presenceChannel";
+import { subscribeToLobbyPresencePollingOnly } from "@/lib/realtime/presenceChannel.polling";
+import type { PresenceSubscription } from "@/lib/realtime/presenceChannel";
+import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
+import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 
 // Feature flag: disable Realtime and use polling only
 const USE_POLLING_ONLY = typeof process !== "undefined" && 

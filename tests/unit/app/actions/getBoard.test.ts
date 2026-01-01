@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import type { BoardGrid } from "../../../../lib/types/board";
-import { getBoard } from "../../../../app/actions/getBoard";
-import { PRIMARY_BOARD_ID } from "../../../../scripts/supabase/constants";
-import { getServiceRoleClient } from "../../../../lib/supabase/server";
-import { BOARD_SIZE } from "../../../../lib/constants/board";
+import type { BoardGrid } from "@/lib/types/board";
+import { getBoard } from "@/app/actions/getBoard";
+import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
+import { getServiceRoleClient } from "@/lib/supabase/server";
+import { BOARD_SIZE } from "@/lib/constants/board";
 
-vi.mock("../../../../lib/supabase/server", () => ({
+vi.mock("@/lib/supabase/server", () => ({
   getServiceRoleClient: vi.fn(),
 }));
 

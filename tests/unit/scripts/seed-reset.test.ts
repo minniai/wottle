@@ -2,7 +2,7 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(),
 }));
 let MOCK_GRID: string[][];
-vi.mock("../../../scripts/supabase/generateBoard", () => ({
+vi.mock("@/scripts/supabase/generateBoard", () => ({
   generateBoard: vi.fn(() => MOCK_GRID),
 }));
 
@@ -10,12 +10,12 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { PRIMARY_BOARD_ID } from "../../../scripts/supabase/constants";
-import { resetBoard } from "../../../scripts/supabase/reset";
-import { seedBoard } from "../../../scripts/supabase/seed";
-import * as seedModule from "../../../scripts/supabase/seed";
+import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
+import { resetBoard } from "@/scripts/supabase/reset";
+import { seedBoard } from "@/scripts/supabase/seed";
+import * as seedModule from "@/scripts/supabase/seed";
 import { createSupabaseClientStub } from "../../helpers/supabaseClientStub";
-import { BOARD_SIZE } from "../../../lib/constants/board";
+import { BOARD_SIZE } from "@/lib/constants/board";
 
 MOCK_GRID = Array.from({ length: BOARD_SIZE }, () =>
   Array.from({ length: BOARD_SIZE }, () => "A")

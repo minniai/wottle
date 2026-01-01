@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-import { POST } from "../../app/api/match/[matchId]/move/route";
-import { RateLimitExceededError } from "../../lib/rate-limiting/middleware";
+import { POST } from "@/app/api/match/[matchId]/move/route";
+import { RateLimitExceededError } from "@/lib/rate-limiting/middleware";
 
 // Mock submitMove action
-vi.mock("../../app/actions/match/submitMove", () => ({
+vi.mock("@/app/actions/match/submitMove", () => ({
     submitMove: vi.fn(),
 }));
 
-import { submitMove } from "../../app/actions/match/submitMove";
+import { submitMove } from "@/app/actions/match/submitMove";
 
 describe("POST /api/match/[matchId]/move", () => {
     it("should return 200 on success", async () => {

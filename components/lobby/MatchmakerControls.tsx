@@ -11,10 +11,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
-import { sendInviteAction, respondInviteAction } from "../../app/actions/matchmaking/sendInvite";
-import { startQueueAction } from "../../app/actions/matchmaking/startQueue";
-import { useLobbyPresenceStore } from "../../lib/matchmaking/presenceStore";
-import type { PlayerIdentity } from "../../lib/types/match";
+import { sendInviteAction, respondInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
+import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
+import type { PlayerIdentity } from "@/lib/types/match";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 
 interface MatchmakerControlsProps {

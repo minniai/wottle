@@ -1,4 +1,4 @@
-import { MatchShell } from "../../../components/match/MatchShell";
+import { MatchShell } from "@/components/match/MatchShell";
 
 export default function MatchLoading() {
   return (

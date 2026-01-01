@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import { MoveFeedback, type MoveFeedbackDetails } from "../../../../components/game/MoveFeedback";
+import { MoveFeedback, type MoveFeedbackDetails } from "@/components/game/MoveFeedback";
 
 describe("MoveFeedback component", () => {
   test("renders nothing when feedback is null", () => {

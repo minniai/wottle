@@ -5,8 +5,8 @@ import {
   nextRoundNumber,
   registerSubmission,
   shouldAdvanceRound,
-} from "../../../../lib/match/stateMachine";
-import type { RoundTracker } from "../../../../lib/types/match";
+} from "@/lib/match/stateMachine";
+import type { RoundTracker } from "@/lib/types/match";
 
 function createRound(roundNumber = 1): RoundTracker {
   return {

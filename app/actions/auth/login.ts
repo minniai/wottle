@@ -5,12 +5,12 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import type { PlayerIdentity } from "../../../lib/types/match";
+import type { PlayerIdentity } from "@/lib/types/match";
 import {
   LoginValidationError,
   performUsernameLogin,
   persistLobbySession,
-} from "../../../lib/matchmaking/profile";
+} from "@/lib/matchmaking/profile";
 import {
   RateLimitExceededError,
   assertWithinRateLimit,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { fetchLobbySnapshot } from "../../../../lib/matchmaking/profile";
+import { fetchLobbySnapshot } from "@/lib/matchmaking/profile";
 
 const NO_CACHE_HEADERS = {
   "cache-control": "no-store",

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { loginAction, type LoginActionState } from "../../app/actions/auth/login";
+import { loginAction, type LoginActionState } from "@/app/actions/auth/login";
 
 interface LobbyLoginFormProps {
   initialUsername?: string;

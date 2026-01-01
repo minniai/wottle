@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
 
-import type { PlayerIdentity } from "../../lib/types/match";
+import type { PlayerIdentity } from "@/lib/types/match";
 import { LobbyCard } from "./LobbyCard";
 import { MatchmakerControls } from "./MatchmakerControls";
-import { useLobbyPresenceStore } from "../../lib/matchmaking/presenceStore";
+import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { getNextRovingIndex } from "@/lib/a11y/rovingFocus";
 
 interface LobbyListProps {

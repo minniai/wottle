@@ -2,14 +2,14 @@
 
 import "server-only";
 
-import { readLobbySession } from "../../../lib/matchmaking/profile";
+import { readLobbySession } from "@/lib/matchmaking/profile";
 import {
   respondToInvite,
   sendDirectInvite,
   type RespondInviteResult,
   type SendDirectInviteResult,
-} from "../../../lib/matchmaking/inviteService";
-import { getServiceRoleClient } from "../../../lib/supabase/server";
+} from "@/lib/matchmaking/inviteService";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const DEFAULT_INVITE_TTL_SECONDS = Number(
   process.env.PLAYTEST_INVITE_EXPIRY_SECONDS ?? "30"

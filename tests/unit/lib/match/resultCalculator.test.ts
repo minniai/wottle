@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertRematchAllowed,
   determineMatchWinner,
-} from "../../../../lib/match/resultCalculator";
+} from "@/lib/match/resultCalculator";
 
 describe("resultCalculator", () => {
   describe("determineMatchWinner", () => {

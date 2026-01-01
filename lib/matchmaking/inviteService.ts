@@ -3,9 +3,9 @@ import "server-only";
 import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { LobbyStatus, PlayerIdentity } from "../types/match";
+import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 import { bootstrapMatchRecord, findActiveMatchForPlayer } from "./service";
-import { logPlaytestError, logPlaytestInfo, trackInviteAccepted } from "../observability/log";
+import { logPlaytestError, logPlaytestInfo, trackInviteAccepted } from "@/lib/observability/log";
 
 type AnyClient = SupabaseClient<any, any, any>;
 

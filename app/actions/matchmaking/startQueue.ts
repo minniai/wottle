@@ -2,12 +2,12 @@
 
 import "server-only";
 
-import { readLobbySession } from "../../../lib/matchmaking/profile";
+import { readLobbySession } from "@/lib/matchmaking/profile";
 import {
   startAutoQueue,
   type QueueResult,
-} from "../../../lib/matchmaking/inviteService";
-import { getServiceRoleClient } from "../../../lib/supabase/server";
+} from "@/lib/matchmaking/inviteService";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export interface QueueActionState {
   status: QueueResult["status"] | "error" | "unauthenticated";

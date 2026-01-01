@@ -12,7 +12,7 @@ import type {
   BoardGrid as BoardGridType,
   MoveRequest,
   MoveResult,
-} from "../../lib/types/board";
+} from "@/lib/types/board";
 
 interface BoardGridProps {
   grid: BoardGridType;

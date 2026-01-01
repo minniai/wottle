@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { BOARD_MAX_INDEX, BOARD_SIZE } from "../constants/board";
+import { BOARD_MAX_INDEX, BOARD_SIZE } from "@/lib/constants/board";
 
 export const coordinateSchema = z.object({
   x: z.number().int().min(0).max(BOARD_MAX_INDEX),

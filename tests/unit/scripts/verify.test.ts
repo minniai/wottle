@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { PRIMARY_BOARD_ID } from "../../../scripts/supabase/constants";
-import { verifySupabase } from "../../../scripts/supabase/verify";
+import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
+import { verifySupabase } from "@/scripts/supabase/verify";
 import { createSupabaseClientStub } from "../../helpers/supabaseClientStub";
 
 const createClientMock = vi.mocked(createClient);

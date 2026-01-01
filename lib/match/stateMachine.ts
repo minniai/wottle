@@ -1,5 +1,5 @@
-import type { PlayerSlot, RoundTracker, SubmissionRecord } from "../types/match";
-import { buildMoveSignature } from "../types/match";
+import type { PlayerSlot, RoundTracker, SubmissionRecord } from "@/lib/types/match";
+import { buildMoveSignature } from "@/lib/types/match";
 
 export interface SubmissionInput {
   round: RoundTracker;

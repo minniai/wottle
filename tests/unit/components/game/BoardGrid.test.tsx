@@ -1,12 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 
-import { BoardGrid } from "../../../../components/game/BoardGrid";
-import type { BoardGrid as BoardGridType } from "../../../../lib/types/board";
+import { BoardGrid } from "@/components/game/BoardGrid";
+import type { BoardGrid as BoardGridType } from "@/lib/types/board";
 import {
   BOARD_SIZE,
   BOARD_TILE_COUNT,
-} from "../../../../lib/constants/board";
+} from "@/lib/constants/board";
 
 function createGrid(): BoardGridType {
   return Array.from({ length: BOARD_SIZE }, (_, row) =>

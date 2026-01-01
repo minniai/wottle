@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { PlayerIdentity } from "../../../../lib/types/match";
-import { applyLobbyEvent } from "../../../../lib/matchmaking/presenceStore";
+import type { PlayerIdentity } from "@/lib/types/match";
+import { applyLobbyEvent } from "@/lib/matchmaking/presenceStore";
 
 const alpha: PlayerIdentity = {
   id: "player-alpha",

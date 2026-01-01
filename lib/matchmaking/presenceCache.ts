@@ -1,4 +1,4 @@
-import type { PlayerIdentity } from "../types/match";
+import type { PlayerIdentity } from "@/lib/types/match";
 
 interface CachedPresence {
   player: PlayerIdentity;

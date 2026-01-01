@@ -1,4 +1,4 @@
-import { boardGridSchema, coordinateSchema, type BoardGrid, type Coordinate, type MoveRequest } from "../types/board";
+import { boardGridSchema, coordinateSchema, type BoardGrid, type Coordinate, type MoveRequest } from "@/lib/types/board";
 
 // Re-export types for convenience
 export type { BoardGrid, Coordinate, MoveRequest };
