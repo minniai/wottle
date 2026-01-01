@@ -63,6 +63,7 @@ export interface MatchState {
   };
   scores: ScoreTotals;
   lastSummary?: RoundSummary | null;
+  disconnectedPlayerId?: string | null;
 }
 
 export type SubmissionStatus =
