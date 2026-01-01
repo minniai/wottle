@@ -19,7 +19,7 @@ export default async function LobbyPage() {
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
         {session ? (
-          <LobbyList self={session.player} initialPlayers={initialPlayers} />
+          <LobbyList currentPlayer={session.player} initialPlayers={initialPlayers} />
         ) : (
           <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/30 p-6 text-sm text-white/70">
             <p className="text-base font-semibold text-white">Lobby preview</p>

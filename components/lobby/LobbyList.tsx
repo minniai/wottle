@@ -10,11 +10,11 @@ import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { getNextRovingIndex } from "@/lib/a11y/rovingFocus";
 
 interface LobbyListProps {
-  self: PlayerIdentity;
+  currentPlayer: PlayerIdentity;
   initialPlayers: PlayerIdentity[];
 }
 
-export function LobbyList({ self, initialPlayers }: LobbyListProps) {
+export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
   const players = useLobbyPresenceStore((state) => state.players);
   const status = useLobbyPresenceStore((state) => state.status);
   const connectionMode = useLobbyPresenceStore((state) => state.connectionMode);
@@ -35,7 +35,7 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
       disconnectTimerRef.current = null;
     }
     
-    void connect({ self, initialPlayers });
+    void connect({ self: currentPlayer, initialPlayers });
     
     // Also cleanup on page unload (e.g., when browser context closes)
     const handleBeforeUnload = () => {
@@ -65,7 +65,7 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
         disconnectTimerRef.current = null;
       }, 250);
     };
-  }, [connect, disconnect, self, initialPlayers]);
+  }, [connect, disconnect, currentPlayer, initialPlayers]);
 
   useEffect(() => {
     if (status === "ready" && connectionMode === "realtime") {
@@ -171,7 +171,7 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
       </header>
 
       <div className="mt-6">
-        <MatchmakerControls self={self} />
+        <MatchmakerControls currentPlayer={currentPlayer} />
       </div>
 
       {players.length === 0 ? (
@@ -180,13 +180,13 @@ export function LobbyList({ self, initialPlayers }: LobbyListProps) {
         <div className="mt-6 grid gap-4 md:grid-cols-2" role="list" aria-label="Online testers">
           {players.map((player) => {
             const accessibleLabel = `${player.displayName ?? player.username}${
-              player.id === self.id ? " (You)" : ""
+              player.id === currentPlayer.id ? " (You)" : ""
             }, status ${player.status.replace("_", " ")}`;
             return (
               <LobbyCard
                 key={player.id}
                 player={player}
-                isSelf={player.id === self.id}
+                isSelf={player.id === currentPlayer.id}
                 tabIndex={0}
                 onKeyDown={(event) => handleCardKeyDown(player.id, event)}
                 ariaLabel={accessibleLabel}
