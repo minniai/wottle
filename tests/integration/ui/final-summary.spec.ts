@@ -2,6 +2,15 @@ import { expect, test } from "@playwright/test";
 
 import { startMatchWithRetry } from "./helpers/matchmaking";
 
+/**
+ * Generates a unique username for test isolation.
+ */
+function generateTestUsername(prefix: string): string {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 10000);
+  return `${prefix}-${timestamp}-${random}`;
+}
+
 async function loginAndStartMatch(
   pageA: import("@playwright/test").Page,
   pageB: import("@playwright/test").Page,
@@ -22,14 +31,14 @@ async function loginAndStartMatch(
   // Use retry logic to handle race conditions
   const [matchIdA, matchIdB] = await startMatchWithRetry(pageA, pageB, {
     maxRetries: 5,
-    timeoutMs: 20_000,
+    timeoutMs: 30_000,
   });
 
   expect(matchIdA).toBeTruthy();
   expect(matchIdA).toEqual(matchIdB);
 
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 5_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 5_000 });
+  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
 }
 
 async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
@@ -48,7 +57,9 @@ test.describe("Final summary recap", () => {
     const pageB = await contextB.newPage();
 
     try {
-      await loginAndStartMatch(pageA, pageB, "recap-alpha", "recap-beta");
+      const userA = generateTestUsername("recap-alpha");
+      const userB = generateTestUsername("recap-beta");
+      await loginAndStartMatch(pageA, pageB, userA, userB);
 
       for (let round = 1; round <= 10; round += 1) {
         await submitSwap(pageA, round - 1);

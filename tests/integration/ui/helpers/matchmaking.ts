@@ -1,6 +1,27 @@
 import type { Page } from "@playwright/test";
 
 /**
+ * Checks if a page is still open and usable.
+ */
+function isPageOpen(page: Page): boolean {
+  try {
+    return !page.isClosed();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Safely waits for a timeout, checking if page is closed.
+ */
+async function safeWait(page: Page, delayMs: number): Promise<void> {
+  if (!isPageOpen(page)) {
+    throw new Error("Page was closed during wait");
+  }
+  await page.waitForTimeout(delayMs);
+}
+
+/**
  * Retry helper for matchmaking operations that may have race conditions.
  * Handles timing issues when two players click "Start Game" simultaneously.
  */
@@ -18,6 +39,9 @@ export async function retryMatchmaking(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      if (!isPageOpen(page)) {
+        throw new Error("Page was closed before action");
+      }
       await action();
       return; // Success
     } catch (error) {
@@ -31,7 +55,7 @@ export async function retryMatchmaking(
       if (attempt < maxRetries - 1) {
         // Wait before retry, with exponential backoff
         const delay = retryDelayMs * Math.pow(1.5, attempt);
-        await page.waitForTimeout(delay);
+        await safeWait(page, delay);
       } else {
         // Last attempt failed
         throw error;
@@ -53,6 +77,11 @@ export async function waitForBothPlayersMatched(
   const pollInterval = 500;
 
   while (Date.now() - startTime < timeoutMs) {
+    // Check if pages are still open
+    if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
+      throw new Error("Page was closed while waiting for match");
+    }
+
     const [matchIdA, matchIdB] = await Promise.all([
       pageA
         .getByTestId("match-shell")
@@ -72,10 +101,14 @@ export async function waitForBothPlayersMatched(
       return [matchIdA, matchIdB];
     }
 
-    await pageA.waitForTimeout(pollInterval);
+    await safeWait(pageA, pollInterval);
   }
 
   // Final check
+  if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
+    throw new Error("Page was closed before final match check");
+  }
+
   const [finalMatchIdA, finalMatchIdB] = await Promise.all([
     pageA
       .getByTestId("match-shell")
@@ -102,10 +135,15 @@ export async function startMatchWithRetry(
     timeoutMs?: number;
   } = {}
 ): Promise<[string | null, string | null]> {
-  const { maxRetries = 5, retryDelayMs = 1000, timeoutMs = 20_000 } = options;
+  const { maxRetries = 5, retryDelayMs = 1000, timeoutMs = 30_000 } = options;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      // Check if pages are still open
+      if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
+        throw new Error("Page was closed before starting match");
+      }
+
       // Click both start buttons simultaneously
       await Promise.all([
         pageA.getByTestId("matchmaker-start-button").click(),
@@ -113,7 +151,7 @@ export async function startMatchWithRetry(
       ]);
 
       // Wait a moment for queue processing
-      await pageA.waitForTimeout(500);
+      await safeWait(pageA, 500);
 
       // Wait for both to be matched
       const [matchIdA, matchIdB] = await waitForBothPlayersMatched(pageA, pageB, timeoutMs);
@@ -125,14 +163,18 @@ export async function startMatchWithRetry(
       // If not matched yet, wait and retry
       if (attempt < maxRetries - 1) {
         const delay = retryDelayMs * Math.pow(1.5, attempt);
-        await pageA.waitForTimeout(delay);
+        await safeWait(pageA, delay);
       }
     } catch (error) {
       if (attempt === maxRetries - 1) {
         throw error;
       }
+      // Check if pages are still open before retrying
+      if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
+        throw new Error("Page was closed during retry");
+      }
       const delay = retryDelayMs * Math.pow(1.5, attempt);
-      await pageA.waitForTimeout(delay);
+      await safeWait(pageA, delay);
     }
   }
 

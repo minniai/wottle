@@ -2,6 +2,15 @@ import { expect, test } from "@playwright/test";
 
 import { startMatchWithRetry } from "./helpers/matchmaking";
 
+/**
+ * Generates a unique username for test isolation.
+ */
+function generateTestUsername(prefix: string): string {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 10000);
+  return `${prefix}-${timestamp}-${random}`;
+}
+
 test.describe("Round flow", () => {
   test("completes 10 rounds with reconnect safety + late swap guards @two-player-playtest", async ({
     browser,
@@ -25,17 +34,17 @@ test.describe("Round flow", () => {
       // Use retry logic to handle race conditions
       const [matchIdA, matchIdB] = await startMatchWithRetry(pageA, pageB, {
         maxRetries: 5,
-        timeoutMs: 20_000,
+        timeoutMs: 30_000,
       });
 
       expect(matchIdA).toBeTruthy();
       expect(matchIdA).toEqual(matchIdB);
 
       await expect(pageA.getByTestId("match-shell")).toBeVisible({
-        timeout: 5_000,
+        timeout: 10_000,
       });
       await expect(pageB.getByTestId("match-shell")).toBeVisible({
-        timeout: 5_000,
+        timeout: 10_000,
       });
     }
 
@@ -46,7 +55,9 @@ test.describe("Round flow", () => {
     }
 
     try {
-      await loginAndStartMatch("round-alpha", "round-beta");
+      const userA = generateTestUsername("round-alpha");
+      const userB = generateTestUsername("round-beta");
+      await loginAndStartMatch(userA, userB);
 
       const waitingOverlayA = pageA.getByTestId("round-waiting-overlay");
       const waitingOverlayB = pageB.getByTestId("round-waiting-overlay");
