@@ -18,7 +18,7 @@ import type { PlayerIdentity } from "@/lib/types/match";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 
 interface MatchmakerControlsProps {
-  self: PlayerIdentity;
+  currentPlayer: PlayerIdentity;
 }
 
 interface ToastState {
@@ -36,7 +36,7 @@ interface PendingInvite {
   expiresAt: string;
 }
 
-export function MatchmakerControls({ self }: MatchmakerControlsProps) {
+export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
   const router = useRouter();
   const players = useLobbyPresenceStore((state) => state.players);
   const presenceStatus = useLobbyPresenceStore((state) => state.status);
@@ -74,9 +74,9 @@ export function MatchmakerControls({ self }: MatchmakerControlsProps) {
   const inviteTargets = useMemo(
     () =>
       players.filter(
-        (player) => player.id !== self.id && player.status !== "in_match"
+        (player) => player.id !== currentPlayer.id && player.status !== "in_match"
       ),
-    [players, self.id]
+    [players, currentPlayer.id]
   );
 
   const handleMatchReady = useCallback(

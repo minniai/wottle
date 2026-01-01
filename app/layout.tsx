@@ -34,9 +34,8 @@ export default function RootLayout({
                   Playtest Mode
                 </span>
                 <span>
-                  Previewing {enabledExperiences.join(" & ")} experience
-                  {enabledExperiences.length > 1 ? "s" : ""}. Toggle via
-                  `NEXT_PUBLIC_ENABLE_PLAYTEST_*` env vars.
+                  Previewing {enabledExperiences.join(" & ")} experience {enabledExperiences.length > 1 ? "s" : ""}.
+                  Toggle via `NEXT_PUBLIC_ENABLE_PLAYTEST_*` env vars.
                 </span>
               </div>
             )}
