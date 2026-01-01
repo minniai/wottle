@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./styles/board.css";
-import { featureFlags, isPlaytestUiEnabled } from "../lib/constants/featureFlags";
+import { featureFlags, isPlaytestUiEnabled } from "@/lib/constants/featureFlags";
 
 export const metadata: Metadata = {
   title: "Wottle Board",

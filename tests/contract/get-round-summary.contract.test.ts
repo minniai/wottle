@@ -1,22 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-import { GET } from "../../app/api/match/[matchId]/rounds/[round]/summary/route";
+import { GET } from "@/app/api/match/[matchId]/rounds/[round]/summary/route";
 
-vi.mock("../../lib/matchmaking/profile", async (importOriginal) => {
-    const actual = (await importOriginal()) as typeof import("../../lib/matchmaking/profile");
+vi.mock("@/lib/matchmaking/profile", async (importOriginal) => {
+    const actual = (await importOriginal()) as typeof import("@/lib/matchmaking/profile");
     return {
         ...actual,
         readLobbySession: vi.fn(),
     };
 });
 
-vi.mock("../../lib/supabase/server", () => ({
+vi.mock("@/lib/supabase/server", () => ({
     getServiceRoleClient: vi.fn(),
 }));
 
-import { readLobbySession } from "../../lib/matchmaking/profile";
-import { getServiceRoleClient } from "../../lib/supabase/server";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const matchRow = {
     player_a_id: "player-a",

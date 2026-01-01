@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { startAutoQueue } from "../../../../lib/matchmaking/inviteService";
-import { readLobbySession } from "../../../../lib/matchmaking/profile";
-import { getServiceRoleClient } from "../../../../lib/supabase/server";
+import { startAutoQueue } from "@/lib/matchmaking/inviteService";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = {
   "cache-control": "no-store",

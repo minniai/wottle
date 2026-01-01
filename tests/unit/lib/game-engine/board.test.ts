@@ -6,9 +6,9 @@ import {
   cloneGrid,
   deserializeGrid,
   serializeGrid,
-} from "../../../../lib/game-engine/board";
-import { BASELINE_GRID } from "../../../../scripts/supabase/constants";
-import { BOARD_MAX_INDEX } from "../../../../lib/constants/board";
+} from "@/lib/game-engine/board";
+import { BASELINE_GRID } from "@/scripts/supabase/constants";
+import { BOARD_MAX_INDEX } from "@/lib/constants/board";
 
 function makeTestGrid(): string[][] {
   return BASELINE_GRID.map((row) => [...row]);

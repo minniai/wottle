@@ -1,4 +1,4 @@
-import { BOARD_SIZE } from "../../lib/constants/board";
+import { BOARD_SIZE } from "@/lib/constants/board";
 
 export const PRIMARY_BOARD_ID = "primary-board" as const;
 

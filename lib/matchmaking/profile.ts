@@ -5,8 +5,8 @@ import { z } from "zod";
 
 import { listCachedPresence, rememberPresence } from "./presenceCache";
 import { upsertLobbyPresence, upsertPlayerIdentity } from "./service";
-import type { LobbyStatus, PlayerIdentity } from "../types/match";
-import { getServiceRoleClient } from "../supabase/server";
+import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export interface LoginResult {
   player: PlayerIdentity;

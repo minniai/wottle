@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../app/actions/swapTiles", () => ({
+vi.mock("@/app/actions/swapTiles", () => ({
   swapTiles: vi.fn(),
 }));
 
-import type { MoveResult } from "../../lib/types/board";
-import { swapTiles } from "../../app/actions/swapTiles";
-import { POST } from "../../app/api/swap/route";
-import { BOARD_SIZE } from "../../lib/constants/board";
+import type { MoveResult } from "@/lib/types/board";
+import { swapTiles } from "@/app/actions/swapTiles";
+import { POST } from "@/app/api/swap/route";
+import { BOARD_SIZE } from "@/lib/constants/board";
 
 function createRequest(payload: unknown) {
   return new Request("http://localhost/api/swap", {

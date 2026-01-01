@@ -6,13 +6,13 @@ import type {
   BoardGrid as BoardGridType,
   MoveRequest,
   MoveResult,
-} from "../../lib/types/board";
+} from "@/lib/types/board";
 import { BoardGrid } from "./BoardGrid";
 import {
   MoveFeedback,
   type MoveFeedbackDetails,
 } from "./MoveFeedback";
-import { BOARD_SIZE } from "../../lib/constants/board";
+import { BOARD_SIZE } from "@/lib/constants/board";
 
 interface BoardProps {
   initialGrid: BoardGridType;

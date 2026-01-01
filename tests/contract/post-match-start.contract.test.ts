@@ -1,25 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../lib/matchmaking/profile", async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof import("../../lib/matchmaking/profile");
+vi.mock("@/lib/matchmaking/profile", async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import("@/lib/matchmaking/profile");
   return {
     ...actual,
     readLobbySession: vi.fn(),
   };
 });
 
-vi.mock("../../lib/matchmaking/inviteService", () => ({
+vi.mock("@/lib/matchmaking/inviteService", () => ({
   startAutoQueue: vi.fn(),
 }));
 
-vi.mock("../../lib/supabase/server", () => ({
+vi.mock("@/lib/supabase/server", () => ({
   getServiceRoleClient: vi.fn(() => ({})),
 }));
 
-import { readLobbySession } from "../../lib/matchmaking/profile";
-import { startAutoQueue } from "../../lib/matchmaking/inviteService";
-import { getServiceRoleClient } from "../../lib/supabase/server";
-import { POST } from "../../app/api/match/start/route";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { startAutoQueue } from "@/lib/matchmaking/inviteService";
+import { getServiceRoleClient } from "@/lib/supabase/server";
+import { POST } from "@/app/api/match/start/route";
 
 const session = {
   token: "session-token",

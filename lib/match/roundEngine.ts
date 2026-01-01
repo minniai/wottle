@@ -1,12 +1,12 @@
-import { getServiceRoleClient } from "../supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 import { resolveConflicts } from "./conflictResolver";
 import { MoveSubmission } from "@/lib/types/match";
-import { applySwap, type BoardGrid } from "../game-engine/board";
-import { boardGridSchema } from "../types/board";
-import type { MoveRequest } from "../types/board";
+import { applySwap, type BoardGrid } from "@/lib/game-engine/board";
+import { boardGridSchema } from "@/lib/types/board";
+import type { MoveRequest } from "@/lib/types/board";
 import { publishMatchState } from "./statePublisher";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
-import { trackRoundCompleted } from "../observability/log";
+import { trackRoundCompleted } from "@/lib/observability/log";
 
 export async function advanceRound(matchId: string) {
     const supabase = getServiceRoleClient();

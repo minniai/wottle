@@ -3,7 +3,7 @@
 import { forwardRef } from "react";
 import type { KeyboardEventHandler } from "react";
 
-import type { PlayerIdentity } from "../../lib/types/match";
+import type { PlayerIdentity } from "@/lib/types/match";
 
 interface LobbyCardProps {
   player: PlayerIdentity;

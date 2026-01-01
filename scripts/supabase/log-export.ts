@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { createServiceRoleClient } from "../../lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 async function exportLogs(matchId: string) {
   const supabase = createServiceRoleClient();

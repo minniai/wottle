@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { forgetPresence } from "../../../../lib/matchmaking/presenceCache";
-import { readLobbySession } from "../../../../lib/matchmaking/profile";
-import { expireLobbyPresence } from "../../../../lib/matchmaking/service";
-import { getServiceRoleClient } from "../../../../lib/supabase/server";
+import { forgetPresence } from "@/lib/matchmaking/presenceCache";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { expireLobbyPresence } from "@/lib/matchmaking/service";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export async function DELETE() {
   console.log("[DELETE /api/lobby/presence] Request received");

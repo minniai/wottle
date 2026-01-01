@@ -1,7 +1,6 @@
-import { LobbyList } from "../../components/lobby/LobbyList";
-import { LobbyLoginForm } from "../../components/lobby/LobbyLoginForm";
-import { fetchLobbySnapshot, readLobbySession } from "../../lib/matchmaking/profile";
-import type { PlayerIdentity } from "../../lib/types/match";
+import { LobbyList } from "@/components/lobby/LobbyList";
+import { LobbyLoginForm } from "@/components/lobby/LobbyLoginForm";
+import { fetchLobbySnapshot, readLobbySession } from "@/lib/matchmaking/profile";
 
 export default async function LobbyPage() {
   const session = await readLobbySession();
@@ -35,5 +34,3 @@ export default async function LobbyPage() {
     </main>
   );
 }
-
-

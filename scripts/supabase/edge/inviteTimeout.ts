@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-import { expireStaleInvites } from "../../../lib/matchmaking/inviteService";
+import { expireStaleInvites } from "@/lib/matchmaking/inviteService";
 
 function requireEnv(name: string): string {
   const value = process.env[name];

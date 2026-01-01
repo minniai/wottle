@@ -6,7 +6,7 @@ import type {
   MatchState,
   PlayerIdentity,
   ScoreTotals,
-} from "../types/match";
+} from "@/lib/types/match";
 
 type AnyClient = SupabaseClient<any, any, any>;
 

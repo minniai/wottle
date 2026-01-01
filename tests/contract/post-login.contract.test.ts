@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../lib/matchmaking/profile", async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof import("../../lib/matchmaking/profile");
+vi.mock("@/lib/matchmaking/profile", async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import("@/lib/matchmaking/profile");
   return {
     ...actual,
     performUsernameLogin: vi.fn(),
@@ -9,10 +9,10 @@ vi.mock("../../lib/matchmaking/profile", async (importOriginal) => {
   };
 });
 
-import type { PlayerIdentity } from "../../lib/types/match";
-import { performUsernameLogin, persistLobbySession } from "../../lib/matchmaking/profile";
-import { POST } from "../../app/api/auth/login/route";
-import { resetRateLimitStoreForTests } from "../../lib/rate-limiting/middleware";
+import type { PlayerIdentity } from "@/lib/types/match";
+import { performUsernameLogin, persistLobbySession } from "@/lib/matchmaking/profile";
+import { POST } from "@/app/api/auth/login/route";
+import { resetRateLimitStoreForTests } from "@/lib/rate-limiting/middleware";
 
 function createRequest(body: unknown) {
   return new Request("http://localhost/api/auth/login", {

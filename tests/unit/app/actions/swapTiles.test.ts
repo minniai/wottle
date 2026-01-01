@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MoveRequest } from "../../../../lib/types/board";
-import { swapTiles } from "../../../../app/actions/swapTiles";
-import { PRIMARY_BOARD_ID } from "../../../../scripts/supabase/constants";
-import { getServiceRoleClient } from "../../../../lib/supabase/server";
-import { createPerfTimer } from "../../../../lib/observability/perf";
-import { BOARD_SIZE } from "../../../../lib/constants/board";
+import type { MoveRequest } from "@/lib/types/board";
+import { swapTiles } from "@/app/actions/swapTiles";
+import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
+import { getServiceRoleClient } from "@/lib/supabase/server";
+import { createPerfTimer } from "@/lib/observability/perf";
+import { BOARD_SIZE } from "@/lib/constants/board";
 
-vi.mock("../../../../lib/supabase/server", () => ({
+vi.mock("@/lib/supabase/server", () => ({
   getServiceRoleClient: vi.fn(),
 }));
 
-vi.mock("../../../../lib/observability/perf", () => ({
+vi.mock("@/lib/observability/perf", () => ({
   createPerfTimer: vi.fn(),
 }));
 

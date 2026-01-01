@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { aggregateRoundSummary, calculateWordScore } from "../../../../lib/scoring/roundSummary";
-import type { WordScore } from "../../../../lib/types/match";
+import { aggregateRoundSummary, calculateWordScore } from "@/lib/scoring/roundSummary";
+import type { WordScore } from "@/lib/types/match";
 
 describe("roundSummary scoring utilities", () => {
   it("calculates letter and bonus points for a word", () => {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
 
-import { runPreflight } from "../../../scripts/supabase/preflight";
+import { runPreflight } from "@/scripts/supabase/preflight";
 
 const SUCCESS = Promise.resolve({ stdout: "", stderr: "" });
 const FAILURE = (message: string) =>

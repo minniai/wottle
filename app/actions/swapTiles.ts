@@ -4,25 +4,25 @@ import "server-only";
 
 import { ZodError } from "zod";
 
-import { getServiceRoleClient } from "../../lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 import {
   boardGridSchema,
   moveRequestSchema,
   type BoardGrid,
   type MoveRequest,
   type MoveResult,
-} from "../../lib/types/board";
-import { applySwap } from "../../lib/game-engine/board";
+} from "@/lib/types/board";
+import { applySwap } from "@/lib/game-engine/board";
 import {
   persistAcceptedSwap,
   persistRejectedSwap,
-} from "../../lib/game-engine/mutations";
-import { PRIMARY_BOARD_ID } from "../../scripts/supabase/constants";
-import { createPerfTimer } from "../../lib/observability/perf";
+} from "@/lib/game-engine/mutations";
+import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
+import { createPerfTimer } from "@/lib/observability/perf";
 import {
   BOARD_DIMENSIONS_LABEL,
   BOARD_MAX_INDEX,
-} from "../../lib/constants/board";
+} from "@/lib/constants/board";
 
 interface BoardRow {
   id: string;

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { readLobbySession } from "../../../../lib/matchmaking/profile";
-import { findActiveMatchForPlayer } from "../../../../lib/matchmaking/service";
-import { getServiceRoleClient } from "../../../../lib/supabase/server";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { findActiveMatchForPlayer } from "@/lib/matchmaking/service";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = {
   "cache-control": "no-store",

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { BoardGrid, MoveRequest } from "../types/board";
+import type { BoardGrid, MoveRequest } from "@/lib/types/board";
 
 type AnySupabaseClient = SupabaseClient<any, any, any, any, any>;
 

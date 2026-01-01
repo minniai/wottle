@@ -4,7 +4,7 @@ import {
   LoginValidationError,
   performUsernameLogin,
   persistLobbySession,
-} from "../../../../lib/matchmaking/profile";
+} from "@/lib/matchmaking/profile";
 import {
   RateLimitExceededError,
   assertWithinRateLimit,

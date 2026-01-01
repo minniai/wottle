@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { generateBoard, getLetterWeights } from "../../../scripts/supabase/generateBoard";
+import { generateBoard, getLetterWeights } from "@/scripts/supabase/generateBoard";
 
 describe("quickstart board generation guard", () => {
   test("each board contains every Icelandic letter", () => {

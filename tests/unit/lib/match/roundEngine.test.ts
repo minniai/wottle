@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { advanceRound } from "../../../../lib/match/roundEngine";
-import { getServiceRoleClient } from "../../../../lib/supabase/server";
+import { advanceRound } from "@/lib/match/roundEngine";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
-vi.mock("../../../../lib/supabase/server", () => ({
+vi.mock("@/lib/supabase/server", () => ({
     getServiceRoleClient: vi.fn(),
 }));
 

@@ -4,8 +4,8 @@ import {
   ICELANDIC_LETTER_WEIGHTS,
   generateBoard,
   getLetterWeights,
-} from "../../../../scripts/supabase/generateBoard";
-import { BOARD_SIZE } from "../../../../lib/constants/board";
+} from "@/scripts/supabase/generateBoard";
+import { BOARD_SIZE } from "@/lib/constants/board";
 
 const LETTERS = Object.keys(ICELANDIC_LETTER_WEIGHTS);
 

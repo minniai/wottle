@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { swapTiles } from "../../actions/swapTiles";
-import type { MoveRequest } from "../../../lib/types/board";
+import { swapTiles } from "@/app/actions/swapTiles";
+import type { MoveRequest } from "@/lib/types/board";
 
 export const runtime = "edge";
 export const revalidate = 0;

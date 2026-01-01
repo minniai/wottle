@@ -6,9 +6,9 @@ import { applySwap } from "@/lib/game-engine/board";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { boardGridSchema } from "@/lib/types/board";
 import type { BoardGrid, MoveResult } from "@/lib/types/board";
-import { advanceRound } from "../../../lib/match/roundEngine";
-import { readLobbySession } from "../../../lib/matchmaking/profile";
-import { getServiceRoleClient } from "../../../lib/supabase/server";
+import { advanceRound } from "@/lib/match/roundEngine";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export async function submitMove(
     matchId: string,

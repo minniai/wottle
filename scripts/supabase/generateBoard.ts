@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   BOARD_SIZE,
   BOARD_TILE_COUNT,
-} from "../../lib/constants/board";
+} from "@/lib/constants/board";
 
 export const ICELANDIC_LETTER_WEIGHTS: Record<string, number> = {
   A: 9,

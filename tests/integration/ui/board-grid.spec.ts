@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 import {
   BOARD_DIMENSIONS_LABEL,
   BOARD_TILE_COUNT,
-} from "../../../lib/constants/board";
+} from "@/lib/constants/board";
 
 const BOARD_GRID_SELECTOR = '[data-testid="board-grid"]';
 const BOARD_TILE_SELECTOR = '[data-testid="board-tile"]';

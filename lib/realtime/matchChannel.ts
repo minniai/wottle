@@ -1,6 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
-import type { MatchState, RoundSummary } from "../types/match";
+import type { MatchState, RoundSummary } from "@/lib/types/match";
 
 export interface MatchChannelCallbacks {
   onState?: (snapshot: MatchState) => void;

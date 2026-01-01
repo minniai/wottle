@@ -4,9 +4,9 @@ import "server-only";
 
 import { unstable_noStore as noStore } from "next/cache";
 
-import { getServiceRoleClient } from "../../lib/supabase/server";
-import { boardGridSchema, type BoardGrid } from "../../lib/types/board";
-import { PRIMARY_BOARD_ID } from "../../scripts/supabase/constants";
+import { getServiceRoleClient } from "@/lib/supabase/server";
+import { boardGridSchema, type BoardGrid } from "@/lib/types/board";
+import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
 
 type BoardRow = {
   id: string;

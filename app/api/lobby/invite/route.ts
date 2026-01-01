@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import {
   listPendingInvites,
   sendDirectInvite,
-} from "../../../../lib/matchmaking/inviteService";
-import { readLobbySession } from "../../../../lib/matchmaking/profile";
-import { getServiceRoleClient } from "../../../../lib/supabase/server";
+} from "@/lib/matchmaking/inviteService";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const TTL_SECONDS = Number(process.env.PLAYTEST_INVITE_EXPIRY_SECONDS ?? "30");
 const NO_CACHE_HEADERS = {
