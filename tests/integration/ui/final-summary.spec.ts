@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { startMatchWithRetry } from "./helpers/matchmaking";
+
 async function loginAndStartMatch(
   pageA: import("@playwright/test").Page,
   pageB: import("@playwright/test").Page,
@@ -17,12 +19,17 @@ async function loginAndStartMatch(
   await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
   await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
 
-  await pageA.getByTestId("matchmaker-start-button").click();
-  await pageA.waitForTimeout(150);
-  await pageB.getByTestId("matchmaker-start-button").click();
+  // Use retry logic to handle race conditions
+  const [matchIdA, matchIdB] = await startMatchWithRetry(pageA, pageB, {
+    maxRetries: 5,
+    timeoutMs: 20_000,
+  });
 
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
+  expect(matchIdA).toBeTruthy();
+  expect(matchIdA).toEqual(matchIdB);
+
+  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 5_000 });
+  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 5_000 });
 }
 
 async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
@@ -32,7 +39,9 @@ async function submitSwap(page: import("@playwright/test").Page, firstIndex: num
 }
 
 test.describe("Final summary recap", () => {
-  test.skip("shows scores, word history, and rematch affordances", async ({ browser }) => {
+  test("shows scores, word history, and rematch affordances @two-player-playtest", async ({
+    browser,
+  }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();

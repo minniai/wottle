@@ -102,4 +102,56 @@ Tweak the playtest-related values when simulating heavier loads; e.g., increase 
 | `pnpm perf:round-resolution`      | Runs Artillery scenario to assert round resolution RTT <200 ms p95.                                     |
 | `pnpm perf:swap`                  | Legacy swap latency perf test (used for regression metrics).                                            |
 
+## Testing
+
+The project follows Test-Driven Development (TDD) principles. All code changes must have corresponding tests.
+
+### Test Suites
+
+- **Unit Tests** (`tests/unit/`): Vitest-based tests for domain logic, utilities, and components
+- **Integration Tests** (`tests/integration/`): Vitest tests for API endpoints and server actions
+- **Contract Tests** (`tests/contract/`): OpenAPI-backed tests for REST endpoints
+- **E2E Tests** (`tests/integration/ui/`): Playwright browser automation for full user flows
+- **Performance Tests** (`tests/perf/`): Artillery.io load tests for latency SLAs
+
+### Running Tests
+
+**Local Development:**
+```bash
+# Unit tests only
+pnpm test:unit
+
+# Integration tests (requires Supabase running)
+pnpm test:integration
+
+# Playwright E2E tests (requires Supabase + Next.js server)
+pnpm exec playwright test
+
+# Performance tests (requires Supabase + Next.js server)
+pnpm perf:swap
+pnpm perf:lobby-presence
+pnpm perf:round-resolution
+```
+
+**CI Pipeline:**
+The CI workflow (`.github/workflows/ci.yml`) runs a full regression matrix:
+1. **Lint**: ESLint with zero warnings policy
+2. **Typecheck**: TypeScript compilation check
+3. **Unit Tests**: Vitest unit + contract suite
+4. **Integration Tests**: Vitest integration suite
+5. **Quickstart**: Supabase stack validation
+6. **Playwright**: Dual-session E2E tests (baseline + playtest suites)
+7. **Performance Gate**: Artillery latency assertions
+
+### Test Helpers
+
+Playwright tests use retry helpers (`tests/integration/ui/helpers/matchmaking.ts`) to handle race conditions in matchmaking operations. These helpers implement exponential backoff and polling to ensure reliable test execution when two players click "Start Game" simultaneously.
+
+### Test Artifacts
+
+CI uploads test artifacts:
+- `quickstart-log.ndjson`: Supabase startup logs
+- `quickstart-playwright-{suite}-log.ndjson`: Playwright test execution logs
+- `perf-artifacts`: Artillery performance reports and server logs
+
 See `specs/002-two-player-playtest/quickstart.md` for a detailed flow covering dual-browser playtests.

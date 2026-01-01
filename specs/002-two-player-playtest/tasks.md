@@ -127,8 +127,8 @@
 - [x] T052 [NFR-001] Add accessibility review and implementation (focus traps for modals, aria-live regions for round summaries, keyboard navigation, color contrast validation, screen reader testing) in `components/lobby` + `components/match` to meet WCAG 2.1 Level A standards
 - [x] T053 Add analytics hooks to capture invite accept, round completion, match result events (`lib/observability/log.ts`)
 - [x] T054 Update `specs/002-two-player-playtest/quickstart.md` with final CLI commands + troubleshooting uncovered during implementation
-- [ ] T055 Run full regression matrix (unit, integration, Playwright, perf) and upload artifacts (`.github/workflows/ci.yml`, `README.md#Testing`)
-  - [ ] T055a Fix deferred Playwright failures: `final-summary.spec.ts`, `round-summary.spec.ts`, `rounds-flow.spec.ts` (Matchmaking race conditions requiring robust retry logic)
+- [x] T055 Run full regression matrix (unit, integration, Playwright, perf) and upload artifacts (`.github/workflows/ci.yml`, `README.md#Testing`)
+  - [x] T055a Fix deferred Playwright failures: `final-summary.spec.ts`, `round-summary.spec.ts`, `rounds-flow.spec.ts` (Matchmaking race conditions requiring robust retry logic)
 
 ---
 
