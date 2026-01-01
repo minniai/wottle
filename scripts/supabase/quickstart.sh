@@ -70,35 +70,54 @@ trap on_error ERR
 cd "$ROOT_DIR"
 
 PRE_PRECHECK_MS="$(now_ms)"
-"$PNPM_BIN" tsx scripts/supabase/preflight.ts
+
+# Check if Supabase is already running BEFORE preflight
+# This allows quickstart to work even if Docker socket isn't accessible in act
+if "$SUPABASE_BIN" status >/dev/null 2>&1; then
+  echo "Supabase is already running, skipping Docker check in preflight..." >&2
+  # Skip Docker check since Supabase is already running
+  QUICKSTART_SKIP_DOCKER_CHECK=1 "$PNPM_BIN" tsx scripts/supabase/preflight.ts
+else
+  # Normal preflight with Docker check
+  "$PNPM_BIN" tsx scripts/supabase/preflight.ts
+fi
 
 SUPABASE_START_BEGIN_MS="$(now_ms)"
 
-# Retry supabase start with exponential backoff
-# Sometimes containers exist but aren't ready yet
-MAX_RETRIES=5
-RETRY_COUNT=0
-START_SUCCESS=false
+# Check if Supabase is already running (useful when Docker socket mount fails in act)
+if "$SUPABASE_BIN" status >/dev/null 2>&1; then
+  echo "Supabase is already running, skipping start..." >&2
+  START_SUCCESS=true
+else
+  # Retry supabase start with exponential backoff
+  # Sometimes containers exist but aren't ready yet
+  MAX_RETRIES=5
+  RETRY_COUNT=0
+  START_SUCCESS=false
 
-while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-  if "$SUPABASE_BIN" start >/dev/null 2>&1; then
-    START_SUCCESS=true
-    break
-  fi
-  
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; then
-    WAIT_SECONDS=$((2 ** RETRY_COUNT))  # Exponential backoff: 2, 4, 8, 16 seconds
-    echo "Supabase start attempt $RETRY_COUNT failed, waiting ${WAIT_SECONDS}s before retry..." >&2
-    sleep $WAIT_SECONDS
-  fi
-done
+  while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+    if "$SUPABASE_BIN" start >/dev/null 2>&1; then
+      START_SUCCESS=true
+      break
+    fi
+    
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; then
+      WAIT_SECONDS=$((2 ** RETRY_COUNT))  # Exponential backoff: 2, 4, 8, 16 seconds
+      echo "Supabase start attempt $RETRY_COUNT failed, waiting ${WAIT_SECONDS}s before retry..." >&2
+      sleep $WAIT_SECONDS
+    fi
+  done
 
-if [[ "$START_SUCCESS" != "true" ]]; then
-  echo "Supabase start failed after $MAX_RETRIES attempts. Trying to stop and restart..." >&2
-  "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
-  sleep 2
-  "$SUPABASE_BIN" start >/dev/null
+  if [[ "$START_SUCCESS" != "true" ]]; then
+    echo "Supabase start failed after $MAX_RETRIES attempts. Trying to stop and restart..." >&2
+    "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
+    sleep 2
+    "$SUPABASE_BIN" start >/dev/null || {
+      emit_json "supabase.quickstart.error" "message" "Supabase start failed. Ensure Docker is running and accessible. If using act, ensure Docker socket is mounted with --container-daemon-socket"
+      exit 1
+    }
+  fi
 fi
 
 SUPABASE_START_END_MS="$(now_ms)"

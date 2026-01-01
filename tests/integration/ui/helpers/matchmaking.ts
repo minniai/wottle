@@ -135,26 +135,51 @@ export async function startMatchWithRetry(
     timeoutMs?: number;
   } = {}
 ): Promise<[string | null, string | null]> {
-  const { maxRetries = 5, retryDelayMs = 1000, timeoutMs = 30_000 } = options;
+  const { maxRetries = 3, retryDelayMs = 1000, timeoutMs = 15_000 } = options;
+  const startTime = Date.now();
+  const overallTimeout = 60_000; // Don't retry for more than 60s total
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      // Check if we're approaching overall timeout
+      const elapsed = Date.now() - startTime;
+      if (elapsed > overallTimeout) {
+        throw new Error(
+          `Matchmaking exceeded overall timeout of ${overallTimeout}ms after ${attempt} attempts`
+        );
+      }
+
       // Check if pages are still open
       if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
-        throw new Error("Page was closed before starting match");
+        throw new Error("Page was closed before starting match (likely due to test timeout)");
       }
 
       // Click both start buttons simultaneously
       await Promise.all([
-        pageA.getByTestId("matchmaker-start-button").click(),
-        pageB.getByTestId("matchmaker-start-button").click(),
+        pageA.getByTestId("matchmaker-start-button").click().catch((e) => {
+          if (!isPageOpen(pageA)) {
+            throw new Error("Page A was closed during button click");
+          }
+          throw e;
+        }),
+        pageB.getByTestId("matchmaker-start-button").click().catch((e) => {
+          if (!isPageOpen(pageB)) {
+            throw new Error("Page B was closed during button click");
+          }
+          throw e;
+        }),
       ]);
 
       // Wait a moment for queue processing
       await safeWait(pageA, 500);
 
-      // Wait for both to be matched
-      const [matchIdA, matchIdB] = await waitForBothPlayersMatched(pageA, pageB, timeoutMs);
+      // Wait for both to be matched (with reduced timeout per attempt)
+      const remainingTime = Math.min(timeoutMs, overallTimeout - (Date.now() - startTime));
+      if (remainingTime < 1000) {
+        throw new Error("Not enough time remaining for matchmaking");
+      }
+
+      const [matchIdA, matchIdB] = await waitForBothPlayersMatched(pageA, pageB, remainingTime);
 
       if (matchIdA && matchIdB && matchIdA === matchIdB) {
         return [matchIdA, matchIdB];
@@ -162,23 +187,56 @@ export async function startMatchWithRetry(
 
       // If not matched yet, wait and retry
       if (attempt < maxRetries - 1) {
-        const delay = retryDelayMs * Math.pow(1.5, attempt);
-        await safeWait(pageA, delay);
+        const delay = Math.min(
+          retryDelayMs * Math.pow(1.5, attempt),
+          overallTimeout - (Date.now() - startTime) - 2000 // Leave 2s buffer
+        );
+        if (delay > 0) {
+          await safeWait(pageA, delay);
+        }
       }
     } catch (error) {
+      // If pages are closed, it's likely due to test timeout - provide helpful error
+      if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
+        const elapsed = Date.now() - startTime;
+        throw new Error(
+          `Pages were closed during matchmaking (likely test timeout). Elapsed: ${elapsed}ms, Attempt: ${attempt + 1}/${maxRetries}. Original error: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
       if (attempt === maxRetries - 1) {
         throw error;
       }
-      // Check if pages are still open before retrying
-      if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
-        throw new Error("Page was closed during retry");
+
+      // Check remaining time before retrying
+      const elapsed = Date.now() - startTime;
+      const remainingTime = overallTimeout - elapsed;
+      if (remainingTime < 2000) {
+        throw new Error(
+          `Not enough time for retry. Elapsed: ${elapsed}ms, Remaining: ${remainingTime}ms`
+        );
       }
-      const delay = retryDelayMs * Math.pow(1.5, attempt);
-      await safeWait(pageA, delay);
+
+      const delay = Math.min(
+        retryDelayMs * Math.pow(1.5, attempt),
+        remainingTime - 1000 // Leave 1s buffer
+      );
+      if (delay > 0) {
+        await safeWait(pageA, delay);
+      }
     }
   }
 
-  // Final attempt
-  const [finalMatchIdA, finalMatchIdB] = await waitForBothPlayersMatched(pageA, pageB, timeoutMs);
+  // Final attempt with remaining time
+  const remainingTime = Math.min(timeoutMs, overallTimeout - (Date.now() - startTime));
+  if (remainingTime < 1000) {
+    throw new Error("Not enough time for final matchmaking attempt");
+  }
+
+  const [finalMatchIdA, finalMatchIdB] = await waitForBothPlayersMatched(
+    pageA,
+    pageB,
+    remainingTime
+  );
   return [finalMatchIdA, finalMatchIdB];
 }

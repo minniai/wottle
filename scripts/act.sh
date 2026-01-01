@@ -69,6 +69,12 @@ if [ "${ACT_SKIP_TOKEN_CHECK:-}" = "1" ]; then
   ACT_EXTRA_ARGS+=(--env "QUICKSTART_SKIP_TOKEN_CHECK=1")
 fi
 
+# Allow skipping Docker check for local development (useful when Docker socket mount fails)
+if [ "${ACT_SKIP_DOCKER_CHECK:-}" = "1" ]; then
+  echo "✓ Skipping Docker prerequisite check (ACT_SKIP_DOCKER_CHECK=1)" >&2
+  ACT_EXTRA_ARGS+=(--env "QUICKSTART_SKIP_DOCKER_CHECK=1")
+fi
+
 echo "" >&2
 
 # Execute act with original args plus any extra args

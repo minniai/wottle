@@ -64,7 +64,7 @@ This document outlines the technical architecture for Wottle, a real-time 2-play
 
 ### 2.1 High-Level Architecture
 
-```
+```txt
 ┌────────────────────────────────────────────────────────────────┐
 │                         Client Layer                           │
 │  ┌──────────────┐                          ┌──────────────┐    │
@@ -150,7 +150,7 @@ This document outlines the technical architecture for Wottle, a real-time 2-play
 
 **Move Execution Flow:**
 
-```
+```txt
 Player 1 Client                  Server Actions                  Player 2 Client
                                   (Vercel/Next.js)
       │                                  │                              │
@@ -195,7 +195,7 @@ Player 1 Client                  Server Actions                  Player 2 Client
 
 ### 3.2 Directory Structure
 
-```
+```txt
 /app
   /actions                 # Server Actions (type-safe server functions)
     match.ts               # createMatch, getMatchState
@@ -440,14 +440,14 @@ const shakeInvalidSwap = () => {
 
 **Architecture Split Summary:**
 
-| Operation Type | Implementation | Rationale |
-|----------------|----------------|-----------|
-| Initial data loading | Server Actions + Server Components | Zero loading state, SEO-friendly, type-safe |
-| User-initiated actions (create match, resignation) | Server Actions (Node.js) | Type safety, better DX, acceptable latency |
-| Performance-critical (move execution) | Server Actions (Edge Runtime) | Type safety + <200ms RTT via edge runtime |
-| Matchmaking, challenges | Server Actions (Node.js) | Low-frequency, not latency-sensitive |
-| WebSocket event handlers | Edge Functions | Cannot be triggered by Server Actions |
-| Scheduled cron jobs | Edge Functions | Server Actions are request-triggered only |
+| Operation Type                                     | Implementation                     | Rationale                                   |
+|----------------------------------------------------|------------------------------------|---------------------------------------------|
+| Initial data loading                               | Server Actions + Server Components | Zero loading state, SEO-friendly, type-safe |
+| User-initiated actions (create match, resignation) | Server Actions (Node.js)           | Type safety, better DX, acceptable latency  |
+| Performance-critical (move execution)              | Server Actions (Edge Runtime)      | Type safety + <200ms RTT via edge runtime   |
+| Matchmaking, challenges                            | Server Actions (Node.js)           | Low-frequency, not latency-sensitive        |
+| WebSocket event handlers                           | Edge Functions                     | Cannot be triggered by Server Actions       |
+| Scheduled cron jobs                                | Edge Functions                     | Server Actions are request-triggered only   |
 
 ### 4.2 Server Actions Structure
 

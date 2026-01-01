@@ -32,9 +32,10 @@ test.describe("Round flow", () => {
       await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
 
       // Use retry logic to handle race conditions
+      // Reduced retries and timeout to avoid hitting test timeout
       const [matchIdA, matchIdB] = await startMatchWithRetry(pageA, pageB, {
-        maxRetries: 5,
-        timeoutMs: 30_000,
+        maxRetries: 3,
+        timeoutMs: 15_000,
       });
 
       expect(matchIdA).toBeTruthy();

@@ -54,7 +54,10 @@ export async function runPreflight(options: PreflightOptions = {}): Promise<Pref
         error instanceof Error && error.message
           ? error.message
           : "Docker daemon is not reachable";
-      throw new Error(`Docker prerequisite failed: ${message}`);
+      const hint = process.env.ACT
+        ? " (Hint: If running with act, try setting ACT_SKIP_DOCKER_CHECK=1)"
+        : " (Hint: Set QUICKSTART_SKIP_DOCKER_CHECK=1 to skip this check)";
+      throw new Error(`Docker prerequisite failed: ${message}${hint}`);
     }
   } else {
     checks.push(DOCKER_CHECK);
