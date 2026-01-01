@@ -1,15 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { startMatchWithRetry } from "./helpers/matchmaking";
-
-/**
- * Generates a unique username for test isolation.
- */
-function generateTestUsername(prefix: string): string {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000);
-  return `${prefix}-${timestamp}-${random}`;
-}
+import {
+  generateTestUsername,
+  startMatchWithDirectInvite,
+} from "./helpers/matchmaking";
 
 async function loginAndStartMatch(
   pageA: import("@playwright/test").Page,
@@ -28,11 +22,9 @@ async function loginAndStartMatch(
   await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
   await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
 
-  // Use retry logic to handle race conditions
-  // Reduced retries and timeout to avoid hitting test timeout
-  const [matchIdA, matchIdB] = await startMatchWithRetry(pageA, pageB, {
-    maxRetries: 3,
-    timeoutMs: 15_000,
+  // Use direct invite for reliable matchmaking (avoids queue race conditions)
+  const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
+    timeoutMs: 30_000,
   });
 
   expect(matchIdA).toBeTruthy();
@@ -85,4 +77,3 @@ test.describe("Final summary recap", () => {
     }
   });
 });
-

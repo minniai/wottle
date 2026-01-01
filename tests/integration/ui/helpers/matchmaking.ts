@@ -1,9 +1,18 @@
 import type { Page } from "@playwright/test";
 
 /**
+ * Generates a unique username for test isolation.
+ */
+export function generateTestUsername(prefix: string): string {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 10000);
+  return `${prefix}-${timestamp}-${random}`;
+}
+
+/**
  * Checks if a page is still open and usable.
  */
-function isPageOpen(page: Page): boolean {
+export function isPageOpen(page: Page): boolean {
   try {
     return !page.isClosed();
   } catch {
@@ -22,46 +31,101 @@ async function safeWait(page: Page, delayMs: number): Promise<void> {
 }
 
 /**
- * Retry helper for matchmaking operations that may have race conditions.
- * Handles timing issues when two players click "Start Game" simultaneously.
+ * Direct invite matchmaking - more reliable than queue-based.
+ * Player A invites Player B, Player B accepts.
+ * This guarantees both players match with each other.
  */
-export async function retryMatchmaking(
-  page: Page,
-  action: () => Promise<void>,
+export async function startMatchWithDirectInvite(
+  pageA: Page,
+  pageB: Page,
   options: {
-    maxRetries?: number;
-    retryDelayMs?: number;
     timeoutMs?: number;
   } = {}
-): Promise<void> {
-  const { maxRetries = 5, retryDelayMs = 1000, timeoutMs = 20_000 } = options;
+): Promise<[string | null, string | null]> {
+  const { timeoutMs = 30_000 } = options;
   const startTime = Date.now();
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      if (!isPageOpen(page)) {
-        throw new Error("Page was closed before action");
-      }
-      await action();
-      return; // Success
-    } catch (error) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed >= timeoutMs) {
-        throw new Error(
-          `Matchmaking operation timed out after ${timeoutMs}ms: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
+  // Wait for both players to see each other in the lobby
+  await waitForPlayersVisible(pageA, pageB, timeoutMs);
 
-      if (attempt < maxRetries - 1) {
-        // Wait before retry, with exponential backoff
-        const delay = retryDelayMs * Math.pow(1.5, attempt);
-        await safeWait(page, delay);
-      } else {
-        // Last attempt failed
-        throw error;
-      }
-    }
+  // Player A opens invite modal and invites Player B
+  const elapsed1 = Date.now() - startTime;
+  if (elapsed1 > timeoutMs) {
+    throw new Error(`Timeout waiting for players to be visible: ${elapsed1}ms`);
   }
+
+  await pageA.getByTestId("matchmaker-invite-button").click();
+  
+  // Wait for invite modal to appear
+  await pageA.getByTestId("matchmaker-invite-modal").waitFor({ 
+    state: "visible", 
+    timeout: Math.min(5000, timeoutMs - (Date.now() - startTime)) 
+  });
+
+  // Find Player B in the invite list and click invite
+  // We need to find the correct player - look for one that's NOT player A
+  const inviteOptions = pageA.getByTestId("invite-option");
+  const count = await inviteOptions.count();
+  
+  if (count === 0) {
+    throw new Error("No players available to invite");
+  }
+
+  // Click the first invite option (should be Player B)
+  await inviteOptions.first().getByRole("button", { name: "Invite" }).click();
+
+  // Wait for Player B to see the incoming invite
+  const remainingTime1 = timeoutMs - (Date.now() - startTime);
+  await pageB.getByTestId("matchmaker-invite-banner").waitFor({ 
+    state: "visible", 
+    timeout: Math.min(10000, remainingTime1) 
+  });
+
+  // Player B accepts the invite
+  await pageB.getByTestId("matchmaker-invite-accept").click();
+
+  // Wait for both players to see the match shell
+  const remainingTime2 = timeoutMs - (Date.now() - startTime);
+  const [matchIdA, matchIdB] = await waitForBothPlayersMatched(
+    pageA, 
+    pageB, 
+    Math.max(remainingTime2, 5000)
+  );
+
+  return [matchIdA, matchIdB];
+}
+
+/**
+ * Wait for both players to be visible in each other's lobby view.
+ */
+async function waitForPlayersVisible(
+  pageA: Page,
+  pageB: Page,
+  timeoutMs: number
+): Promise<void> {
+  const startTime = Date.now();
+  const pollInterval = 500;
+
+  while (Date.now() - startTime < timeoutMs) {
+    if (!isPageOpen(pageA) || !isPageOpen(pageB)) {
+      throw new Error("Page was closed while waiting for players to be visible");
+    }
+
+    // Check if invite button is enabled on page A (indicates players are visible)
+    const inviteButtonA = pageA.getByTestId("matchmaker-invite-button");
+    const isEnabledA = await inviteButtonA.isEnabled().catch(() => false);
+    
+    const inviteButtonB = pageB.getByTestId("matchmaker-invite-button");
+    const isEnabledB = await inviteButtonB.isEnabled().catch(() => false);
+
+    if (isEnabledA && isEnabledB) {
+      return;
+    }
+
+    await safeWait(pageA, pollInterval);
+  }
+
+  throw new Error(`Timeout waiting for players to be visible after ${timeoutMs}ms`);
 }
 
 /**
@@ -124,7 +188,9 @@ export async function waitForBothPlayersMatched(
 }
 
 /**
- * Clicks "Start Game" for both players with retry logic to handle race conditions.
+ * Queue-based matchmaking with retry logic.
+ * Less reliable than direct invite, but kept for compatibility.
+ * @deprecated Use startMatchWithDirectInvite for more reliable tests
  */
 export async function startMatchWithRetry(
   pageA: Page,

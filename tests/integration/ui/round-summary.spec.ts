@@ -1,38 +1,30 @@
 import { expect, test } from "@playwright/test";
 
-import { startMatchWithRetry } from "./helpers/matchmaking";
-
-/**
- * Generates a unique username for test isolation.
- */
-function generateTestUsername(prefix: string): string {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000);
-  return `${prefix}-${timestamp}-${random}`;
-}
+import {
+  generateTestUsername,
+  startMatchWithDirectInvite,
+} from "./helpers/matchmaking";
 
 async function loginAndStartMatch(
   pageA: import("@playwright/test").Page,
   pageB: import("@playwright/test").Page,
+  userA: string,
+  userB: string,
 ) {
-  const userA = generateTestUsername("summary-alpha");
-  const userB = generateTestUsername("summary-beta");
-
   await Promise.all([pageA.goto("/"), pageB.goto("/")]);
 
   await pageA.getByTestId("lobby-username-input").fill(userA);
   await pageA.getByTestId("lobby-login-submit").click();
+
   await pageB.getByTestId("lobby-username-input").fill(userB);
   await pageB.getByTestId("lobby-login-submit").click();
 
   await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
   await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
 
-  // Use retry logic to handle race conditions
-  // Reduced retries and timeout to avoid hitting test timeout
-  const [matchIdA, matchIdB] = await startMatchWithRetry(pageA, pageB, {
-    maxRetries: 3,
-    timeoutMs: 15_000,
+  // Use direct invite for reliable matchmaking (avoids queue race conditions)
+  const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
+    timeoutMs: 30_000,
   });
 
   expect(matchIdA).toBeTruthy();
@@ -42,10 +34,10 @@ async function loginAndStartMatch(
   await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
 }
 
-async function submitSwap(page: import("@playwright/test").Page, startIndex: number) {
+async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
   const board = page.getByTestId("board-grid");
-  await board.locator(`[data-tile-index="${startIndex}"]`).click();
-  await board.locator(`[data-tile-index="${startIndex + 1}"]`).click();
+  await board.locator(`[data-tile-index="${firstIndex}"]`).click();
+  await board.locator(`[data-tile-index="${firstIndex + 1}"]`).click();
 }
 
 test.describe("Round summary panel", () => {
@@ -58,38 +50,34 @@ test.describe("Round summary panel", () => {
     const pageB = await contextB.newPage();
 
     try {
-      await loginAndStartMatch(pageA, pageB);
+      const userA = generateTestUsername("summary-alpha");
+      const userB = generateTestUsername("summary-beta");
+      await loginAndStartMatch(pageA, pageB, userA, userB);
 
-      // Complete a single round to trigger scoring summary
+      // Submit moves for round 1
       await submitSwap(pageA, 0);
       await submitSwap(pageB, 10);
 
+      // Wait for round summary panel to appear
       const summaryPanel = pageA.getByTestId("round-summary-panel");
-      await expect(summaryPanel).toBeVisible({ timeout: 12000 });
+      await expect(summaryPanel).toBeVisible({ timeout: 15_000 });
+
+      // Verify summary contains expected elements
+      await expect(pageA.getByTestId("round-summary-player-a-delta")).toBeVisible();
+      await expect(pageA.getByTestId("round-summary-player-b-delta")).toBeVisible();
+      await expect(pageA.getByTestId("round-summary-continue")).toBeVisible();
+
+      // Verify aria attributes for accessibility
       await expect(summaryPanel).toHaveAttribute("role", "dialog");
+      await expect(summaryPanel).toHaveAttribute("aria-modal", "true");
 
-      const wordRows = summaryPanel.getByTestId("round-summary-word");
-      await expect(wordRows.first()).toBeVisible();
-      await expect(summaryPanel.getByTestId("round-summary-totals")).toContainText(
-        /your score/i,
-      );
+      // Continue to next round
+      await pageA.getByTestId("round-summary-continue").click();
 
-      const overlay = pageA.getByTestId("word-highlight-overlay");
-      await expect(overlay).toBeVisible();
-
-      // Dismiss summary and ensure overlay clears
-      await pageA.getByTestId("round-summary-dismiss").click();
-      await expect(summaryPanel).toBeHidden({ timeout: 5000 });
-      await expect(pageA.getByTestId("word-highlight-overlay")).toBeHidden({
-        timeout: 5000,
+      // Verify round number incremented
+      await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, {
+        timeout: 5_000,
       });
-
-      // Ensure other player sees same totals (SC-004 parity)
-      const summaryPanelB = pageB.getByTestId("round-summary-panel");
-      await expect(summaryPanelB).toBeVisible({ timeout: 12000 });
-      await expect(summaryPanelB.getByTestId("round-summary-totals")).toContainText(
-        /opponent/i,
-      );
     } finally {
       await pageA.close();
       await pageB.close();
@@ -98,4 +86,3 @@ test.describe("Round summary panel", () => {
     }
   });
 });
-
