@@ -75,6 +75,24 @@ if [ "${ACT_SKIP_DOCKER_CHECK:-}" = "1" ]; then
   ACT_EXTRA_ARGS+=(--env "QUICKSTART_SKIP_DOCKER_CHECK=1")
 fi
 
+# If .env.local exists, pass Supabase credentials to act container
+# This allows quickstart to skip Supabase start when credentials are pre-set
+if [ -f .env.local ]; then
+  # Source .env.local to get the values
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env.local
+  set +a
+  
+  if [ -n "${NEXT_PUBLIC_SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+    echo "✓ Passing Supabase credentials from .env.local to act container" >&2
+    ACT_EXTRA_ARGS+=(--env "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL")
+    ACT_EXTRA_ARGS+=(--env "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY")
+    ACT_EXTRA_ARGS+=(--env "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}")
+    ACT_EXTRA_ARGS+=(--env "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}")
+  fi
+fi
+
 echo "" >&2
 
 # Execute act with original args plus any extra args

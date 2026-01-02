@@ -39,14 +39,28 @@ This guide explains how to run GitHub Actions workflows locally using [act](http
 
      This allows quickstart to run without cloud authentication
 
-5. **Docker Socket Access** (if Docker check fails in act):
-   - If you see "Docker prerequisite failed" errors when running act, you can skip the Docker check:
+5. **Start Supabase before running act** (Recommended):
+
+   The act container cannot reliably access Docker on your host machine. To work around this:
+
+   ```bash
+   # Step 1: Start Supabase on your host machine first
+   pnpm quickstart
+
+   # Step 2: Run act (credentials from .env.local are automatically passed)
+   pnpm act -j playwright --matrix suite:baseline
+   ```
+
+   The helper script automatically detects `.env.local` and passes the Supabase credentials to the act container, allowing quickstart to skip the Supabase start step.
+
+6. **Docker Socket Access** (if Docker check fails in act):
+   - If you see "Docker prerequisite failed" errors when running act, this is expected because Docker socket mounting doesn't work reliably in act
+   - The recommended solution is step 5 above (start Supabase on host first)
+   - As a fallback, you can skip the Docker check explicitly:
 
      ```bash
      export ACT_SKIP_DOCKER_CHECK=1
      ```
-
-     **Note**: This should only be used if Docker socket mounting isn't working. The helper script (`scripts/act.sh`) should automatically mount the Docker socket, but if it fails, this provides a workaround.
 
 ## Usage
 
