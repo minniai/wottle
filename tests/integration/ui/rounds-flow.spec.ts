@@ -15,10 +15,13 @@ async function loginPlayer(
   // Click submit - the Server Action will set a cookie and redirect
   await page.getByTestId("lobby-login-submit").click();
 
-  // Wait for network to settle (form submission + redirect)
-  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  // Wait for the login form to disappear (indicates Server Action completed)
+  // The form will be replaced by the lobby list after redirect
+  await expect(page.getByTestId("lobby-login-form")).not.toBeVisible({
+    timeout: 15_000,
+  });
 
-  // Wait for lobby list to appear (indicates login completed and page re-rendered)
+  // Wait for lobby list to appear (indicates page re-rendered with session)
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 15_000,
   });
