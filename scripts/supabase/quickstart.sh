@@ -70,43 +70,72 @@ trap on_error ERR
 cd "$ROOT_DIR"
 
 PRE_PRECHECK_MS="$(now_ms)"
-"$PNPM_BIN" tsx scripts/supabase/preflight.ts
+
+# Check if Supabase credentials are pre-set (useful when running inside act with host Supabase)
+# If all three are set, skip Supabase start entirely and just write .env.local
+if [[ -n "${NEXT_PUBLIC_SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" && -n "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ]]; then
+  echo "Using pre-set Supabase credentials from environment..." >&2
+  SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
+  SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-}}"
+  # Skip to env file creation
+  SKIP_SUPABASE_START=true
+  # Also skip preflight since we already have credentials
+  emit_json "supabase.preflight.skipped" "reason" "credentials pre-set"
+else
+  SKIP_SUPABASE_START=false
+  # Run preflight (Docker check auto-skipped when ACT=true)
+  "$PNPM_BIN" tsx scripts/supabase/preflight.ts
+fi
 
 SUPABASE_START_BEGIN_MS="$(now_ms)"
 
-# Retry supabase start with exponential backoff
-# Sometimes containers exist but aren't ready yet
-MAX_RETRIES=5
-RETRY_COUNT=0
-START_SUCCESS=false
+if [[ "$SKIP_SUPABASE_START" == "true" ]]; then
+  echo "Skipping Supabase start (using pre-set credentials)..." >&2
+else
+  # Check if Supabase is already running (useful when Docker socket mount fails in act)
+  if "$SUPABASE_BIN" status >/dev/null 2>&1; then
+    echo "Supabase is already running, skipping start..." >&2
+  else
+    # Retry supabase start with exponential backoff
+    # Sometimes containers exist but aren't ready yet
+    MAX_RETRIES=5
+    RETRY_COUNT=0
+    START_SUCCESS=false
 
-while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-  if "$SUPABASE_BIN" start >/dev/null 2>&1; then
-    START_SUCCESS=true
-    break
-  fi
-  
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; then
-    WAIT_SECONDS=$((2 ** RETRY_COUNT))  # Exponential backoff: 2, 4, 8, 16 seconds
-    echo "Supabase start attempt $RETRY_COUNT failed, waiting ${WAIT_SECONDS}s before retry..." >&2
-    sleep $WAIT_SECONDS
-  fi
-done
+    while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+      if "$SUPABASE_BIN" start >/dev/null 2>&1; then
+        START_SUCCESS=true
+        break
+      fi
+      
+      RETRY_COUNT=$((RETRY_COUNT + 1))
+      if [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; then
+        WAIT_SECONDS=$((2 ** RETRY_COUNT))  # Exponential backoff: 2, 4, 8, 16 seconds
+        echo "Supabase start attempt $RETRY_COUNT failed, waiting ${WAIT_SECONDS}s before retry..." >&2
+        sleep $WAIT_SECONDS
+      fi
+    done
 
-if [[ "$START_SUCCESS" != "true" ]]; then
-  echo "Supabase start failed after $MAX_RETRIES attempts. Trying to stop and restart..." >&2
-  "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
-  sleep 2
-  "$SUPABASE_BIN" start >/dev/null
+    if [[ "$START_SUCCESS" != "true" ]]; then
+      echo "Supabase start failed after $MAX_RETRIES attempts. Trying to stop and restart..." >&2
+      "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
+      sleep 2
+      "$SUPABASE_BIN" start >/dev/null || {
+        emit_json "supabase.quickstart.error" "message" "Supabase start failed. Ensure Docker is running and accessible. If using act, run 'pnpm quickstart' on host first, then use --env-file .env.local"
+        exit 1
+      }
+    fi
+  fi
 fi
 
 SUPABASE_START_END_MS="$(now_ms)"
 
-STATUS_JSON="$(mktemp)"
-"$SUPABASE_BIN" status --output json | tr -d '\n' >"$STATUS_JSON"
+# Only fetch credentials from supabase status if not pre-set
+if [[ "$SKIP_SUPABASE_START" != "true" ]]; then
+  STATUS_JSON="$(mktemp)"
+  "$SUPABASE_BIN" status --output json | tr -d '\n' >"$STATUS_JSON"
 
-SUPABASE_URL="$(node - "$STATUS_JSON" <<'NODE'
+  SUPABASE_URL="$(node - "$STATUS_JSON" <<'NODE'
 const fs = require('fs');
 const statusPath = process.argv.at(-1);
 const raw = fs.readFileSync(statusPath, 'utf8');
@@ -126,7 +155,7 @@ process.stdout.write(apiUrl);
 NODE
 )"
 
-SUPABASE_ANON_KEY="$(node - "$STATUS_JSON" <<'NODE'
+  SUPABASE_ANON_KEY="$(node - "$STATUS_JSON" <<'NODE'
 const fs = require('fs');
 const statusPath = process.argv.at(-1);
 const raw = fs.readFileSync(statusPath, 'utf8');
@@ -146,7 +175,7 @@ process.stdout.write(anon);
 NODE
 )"
 
-SUPABASE_SERVICE_ROLE_KEY="$(node - "$STATUS_JSON" <<'NODE'
+  SUPABASE_SERVICE_ROLE_KEY="$(node - "$STATUS_JSON" <<'NODE'
 const fs = require('fs');
 const statusPath = process.argv.at(-1);
 const raw = fs.readFileSync(statusPath, 'utf8');
@@ -166,8 +195,17 @@ process.stdout.write(key);
 NODE
 )"
 
+  rm -f "$STATUS_JSON"
+
+  if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
+    emit_json "supabase.quickstart.error" "message" "Supabase status did not return credentials"
+    exit 1
+  fi
+fi
+
+# Validate credentials are set (either pre-set or from supabase status)
 if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
-  emit_json "supabase.quickstart.error" "message" "Supabase status did not return credentials"
+  emit_json "supabase.quickstart.error" "message" "Missing Supabase credentials"
   exit 1
 fi
 
@@ -191,19 +229,20 @@ export SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 export BOARD_MATCH_ID="$MATCH_ID"
 
 MIGRATE_BEGIN_MS="$(now_ms)"
-if [[ -z "$DRY_RUN" ]]; then
+# Skip migration/seed when using pre-set credentials (assume already done on host)
+if [[ -z "$DRY_RUN" && "$SKIP_SUPABASE_START" != "true" ]]; then
   "$PNPM_BIN" supabase:migrate >/dev/null
 fi
 MIGRATE_END_MS="$(now_ms)"
 
 SEED_BEGIN_MS="$(now_ms)"
-if [[ -z "$DRY_RUN" ]]; then
+if [[ -z "$DRY_RUN" && "$SKIP_SUPABASE_START" != "true" ]]; then
   "$PNPM_BIN" tsx scripts/supabase/seed.ts >/dev/null
   "$PNPM_BIN" tsx scripts/supabase/verify.ts >/dev/null
 fi
 SEED_END_MS="$(now_ms)"
 
-if [[ -z "$DISABLE_STOP" ]]; then
+if [[ -z "$DISABLE_STOP" && "$SKIP_SUPABASE_START" != "true" ]]; then
   "$SUPABASE_BIN" stop >/dev/null || true
 fi
 
@@ -213,7 +252,6 @@ emit_json \
   "migrationDurationMs" "$((MIGRATE_END_MS - MIGRATE_BEGIN_MS))" \
   "seedDurationMs" "$((SEED_END_MS - SEED_BEGIN_MS))" \
   "supabaseUrl" "$SUPABASE_URL" \
-  "matchId" "$MATCH_ID"
-
-rm -f "$STATUS_JSON"
+  "matchId" "$MATCH_ID" \
+  "skippedSupabaseStart" "$SKIP_SUPABASE_START"
 

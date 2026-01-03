@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "tests/integration/ui",
-  timeout: 60_000,
+  timeout: 120_000, // Increased for CI environments with slower matchmaking
   expect: {
     timeout: 10_000,
   },

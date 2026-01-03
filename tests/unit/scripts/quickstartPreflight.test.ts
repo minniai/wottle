@@ -10,11 +10,13 @@ describe("runPreflight", () => {
   const baseEnv = { ...process.env };
   delete baseEnv.SUPABASE_ACCESS_TOKEN;
   delete baseEnv.QUICKSTART_SKIP_TOKEN_CHECK;
+  delete baseEnv.ACT; // Ensure ACT is not set from act container
 
   beforeEach(() => {
     process.env = { ...baseEnv };
     delete process.env.SUPABASE_ACCESS_TOKEN;
     delete process.env.QUICKSTART_SKIP_TOKEN_CHECK;
+    delete process.env.ACT;
   });
 
   test("fails when Docker is unavailable", async () => {
@@ -24,6 +26,7 @@ describe("runPreflight", () => {
           SUPABASE_ACCESS_TOKEN: "token", 
           NODE_ENV: "test",
           QUICKSTART_SKIP_TOKEN_CHECK: "",
+          ACT: undefined, // Explicitly unset ACT to test Docker failure
         },
         run: (command) => {
           if (command === "docker") {
@@ -33,6 +36,33 @@ describe("runPreflight", () => {
         },
       })
     ).rejects.toThrow(/docker/i);
+  });
+
+  test("skips Docker check when running inside act container", async () => {
+    const result = await runPreflight({
+      env: { 
+        SUPABASE_ACCESS_TOKEN: "token", 
+        NODE_ENV: "test",
+        ACT: "true", // Simulate running inside act
+      },
+      run: (command) => {
+        if (command === "docker") {
+          return FAILURE("docker unavailable"); // Docker would fail
+        }
+        return SUCCESS;
+      },
+    });
+
+    expect(result.status).toBe("pass");
+    expect(result.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ 
+          name: "docker", 
+          status: "pass",
+          detail: "running inside act container",
+        }),
+      ])
+    );
   });
 
   test("fails when Supabase CLI is missing", async () => {

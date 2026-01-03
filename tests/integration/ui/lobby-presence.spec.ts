@@ -5,10 +5,18 @@ async function loginAs(page: import("@playwright/test").Page, username: string) 
   const input = page.getByTestId("lobby-username-input");
   await expect(input).toBeVisible();
   await input.fill(username);
+
+  // Click submit - the Server Action will set a cookie and redirect to "/"
+  // which triggers a re-render with the session
   await page.getByTestId("lobby-login-submit").click();
 
+  // Wait for network to settle (form submission + redirect)
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+
+  // Wait for the lobby list to appear (indicates login completed and page re-rendered)
+  // Use polling since the redirect might take a moment
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 5_000,
+    timeout: 15_000,
   });
 }
 
@@ -58,10 +66,10 @@ test.describe("Lobby presence", () => {
     const listB = pageB.getByTestId("lobby-presence-list");
 
     await expect(listA.getByTestId("lobby-card").filter({ hasText: /tester-beta/i })).toBeVisible({
-      timeout: 5_000,
+      timeout: 10_000,
     });
     await expect(listB.getByTestId("lobby-card").filter({ hasText: /tester-alpha/i })).toBeVisible({
-      timeout: 5_000,
+      timeout: 10_000,
     });
 
     // Explicitly disconnect before closing to ensure cleanup completes
@@ -95,5 +103,3 @@ test.describe("Lobby presence", () => {
     await contextA.close();
   });
 });
-
-

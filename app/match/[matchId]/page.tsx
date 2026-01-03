@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { MatchClient } from "@/components/match/MatchClient";
+import { handlePlayerReconnect } from "@/app/actions/match/handleDisconnect";
 import { loadMatchState } from "@/lib/match/stateLoader";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
@@ -22,6 +23,15 @@ export default async function MatchPage({
   }
 
   const supabase = getServiceRoleClient();
+  
+  // Attempt to handle reconnection if player was previously disconnected
+  try {
+    await handlePlayerReconnect(matchId, session.player.id);
+  } catch (error) {
+    // Log but don't fail - reconnection handling is best-effort
+    console.warn("[MatchPage] Reconnection handling failed:", error);
+  }
+
   const matchState = await loadMatchState(supabase, matchId);
 
   if (!matchState) {

@@ -16,6 +16,17 @@ config:
       expression: "median < 200"
     - label: move submission p95 under 200ms
       expression: "p95 < 200"
+    # PERF-002: Round resolution broadcast (both swaps resolved, scoreboard + word list delivered)
+    # MUST complete <400ms p95 after the second swap is received.
+    # The realtime broadcast portion MUST complete <100ms p95 per constitution SLA II.4;
+    # the <400ms target includes scoring computation time (200-300ms) + realtime broadcast (<100ms p95)
+    # Note: This requires dual-client coordination to measure end-to-end broadcast latency.
+    # For now, we assert move submission RTT <200ms; full broadcast latency testing requires
+    # Playwright dual-session scenarios or dedicated broadcast latency measurement.
+    - label: round broadcast latency p95 under 400ms (PERF-002)
+      expression: "p95 < 400"
+      # TODO: Enhance with dual-client scenario to measure actual broadcast latency
+      # from second swap received to both clients receiving round summary payload
 
 scenarios:
   - name: move submission request

@@ -84,6 +84,11 @@ describe("supabase quickstart script", () => {
       cwd: REPO_ROOT,
       env: {
         ...process.env,
+        // Clear any pre-set Supabase credentials to ensure the stub is used
+        NEXT_PUBLIC_SUPABASE_URL: "",
+        SUPABASE_SERVICE_ROLE_KEY: "",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
+        SUPABASE_ANON_KEY: "",
         SUPABASE_BIN: binaryPath,
         SUPABASE_ACCESS_TOKEN: "token",
         QUICKSTART_MATCH_ID: "test-match",

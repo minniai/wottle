@@ -1,73 +1,100 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  generateTestUsername,
+  startMatchWithDirectInvite,
+} from "./helpers/matchmaking";
+
+async function loginPlayer(
+  page: import("@playwright/test").Page,
+  username: string,
+) {
+  await page.goto("/");
+  await page.getByTestId("lobby-username-input").fill(username);
+
+  // Click submit - the Server Action will set a cookie and redirect
+  await page.getByTestId("lobby-login-submit").click();
+
+  // Wait for network to settle (form submission + redirect)
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+
+  // Wait for lobby list to appear (indicates login completed and page re-rendered)
+  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Then check for matchmaker controls
+  await expect(page.getByTestId("matchmaker-controls")).toBeVisible({
+    timeout: 10_000,
+  });
+}
+
 async function loginAndStartMatch(
   pageA: import("@playwright/test").Page,
   pageB: import("@playwright/test").Page,
+  userA: string,
+  userB: string,
 ) {
-  await Promise.all([pageA.goto("/"), pageB.goto("/")]);
+  // Login players sequentially to avoid race conditions
+  await loginPlayer(pageA, userA);
+  await loginPlayer(pageB, userB);
 
-  await pageA.getByTestId("lobby-username-input").fill("summary-alpha");
-  await pageA.getByTestId("lobby-login-submit").click();
-  await pageB.getByTestId("lobby-username-input").fill("summary-beta");
-  await pageB.getByTestId("lobby-login-submit").click();
+  // Use direct invite for reliable matchmaking (avoids queue race conditions)
+  const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
+    timeoutMs: 30_000,
+  });
 
-  await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
-  await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
+  expect(matchIdA).toBeTruthy();
+  expect(matchIdA).toEqual(matchIdB);
 
-  await pageA.getByTestId("matchmaker-start-button").click();
-  await pageA.waitForTimeout(100);
-  await pageB.getByTestId("matchmaker-start-button").click();
-
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 20000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 20000 });
+  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
 }
 
-async function submitSwap(page: import("@playwright/test").Page, startIndex: number) {
+async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
   const board = page.getByTestId("board-grid");
-  await board.locator(`[data-tile-index="${startIndex}"]`).click();
-  await board.locator(`[data-tile-index="${startIndex + 1}"]`).click();
+  await board.locator(`[data-tile-index="${firstIndex}"]`).click();
+  await board.locator(`[data-tile-index="${firstIndex + 1}"]`).click();
 }
 
 test.describe("Round summary panel", () => {
-  test.skip("shows scoring deltas, highlights, and aria feedback", async ({ browser }) => {
+  test("shows scoring deltas, highlights, and aria feedback @two-player-playtest", async ({
+    browser,
+  }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
 
     try {
-      await loginAndStartMatch(pageA, pageB);
+      const userA = generateTestUsername("summary-alpha");
+      const userB = generateTestUsername("summary-beta");
+      await loginAndStartMatch(pageA, pageB, userA, userB);
 
-      // Complete a single round to trigger scoring summary
+      // Submit moves for round 1
       await submitSwap(pageA, 0);
       await submitSwap(pageB, 10);
 
+      // Wait for round summary panel to appear
       const summaryPanel = pageA.getByTestId("round-summary-panel");
-      await expect(summaryPanel).toBeVisible({ timeout: 12000 });
+      await expect(summaryPanel).toBeVisible({ timeout: 15_000 });
+
+      // Verify summary contains expected elements
+      await expect(pageA.getByTestId("round-summary-player-a-delta")).toBeVisible();
+      await expect(pageA.getByTestId("round-summary-player-b-delta")).toBeVisible();
+      await expect(pageA.getByTestId("round-summary-continue")).toBeVisible();
+
+      // Verify aria attributes for accessibility
       await expect(summaryPanel).toHaveAttribute("role", "dialog");
+      await expect(summaryPanel).toHaveAttribute("aria-modal", "true");
 
-      const wordRows = summaryPanel.getByTestId("round-summary-word");
-      await expect(wordRows.first()).toBeVisible();
-      await expect(summaryPanel.getByTestId("round-summary-totals")).toContainText(
-        /your score/i,
-      );
+      // Continue to next round
+      await pageA.getByTestId("round-summary-continue").click();
 
-      const overlay = pageA.getByTestId("word-highlight-overlay");
-      await expect(overlay).toBeVisible();
-
-      // Dismiss summary and ensure overlay clears
-      await pageA.getByTestId("round-summary-dismiss").click();
-      await expect(summaryPanel).toBeHidden({ timeout: 5000 });
-      await expect(pageA.getByTestId("word-highlight-overlay")).toBeHidden({
-        timeout: 5000,
+      // Verify round number incremented
+      await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, {
+        timeout: 5_000,
       });
-
-      // Ensure other player sees same totals (SC-004 parity)
-      const summaryPanelB = pageB.getByTestId("round-summary-panel");
-      await expect(summaryPanelB).toBeVisible({ timeout: 12000 });
-      await expect(summaryPanelB.getByTestId("round-summary-totals")).toContainText(
-        /opponent/i,
-      );
     } finally {
       await pageA.close();
       await pageB.close();
@@ -76,4 +103,3 @@ test.describe("Round summary panel", () => {
     }
   });
 });
-

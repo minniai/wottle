@@ -1,28 +1,54 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  generateTestUsername,
+  startMatchWithDirectInvite,
+} from "./helpers/matchmaking";
+
+async function loginPlayer(
+  page: import("@playwright/test").Page,
+  username: string,
+) {
+  await page.goto("/");
+  await page.getByTestId("lobby-username-input").fill(username);
+
+  // Click submit - the Server Action will set a cookie and redirect
+  await page.getByTestId("lobby-login-submit").click();
+
+  // Wait for network to settle (form submission + redirect)
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+
+  // Wait for lobby list to appear (indicates login completed and page re-rendered)
+  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Then check for matchmaker controls
+  await expect(page.getByTestId("matchmaker-controls")).toBeVisible({
+    timeout: 10_000,
+  });
+}
+
 async function loginAndStartMatch(
   pageA: import("@playwright/test").Page,
   pageB: import("@playwright/test").Page,
   userA: string,
   userB: string,
 ) {
-  await Promise.all([pageA.goto("/"), pageB.goto("/")]);
+  // Login players sequentially to avoid race conditions
+  await loginPlayer(pageA, userA);
+  await loginPlayer(pageB, userB);
 
-  await pageA.getByTestId("lobby-username-input").fill(userA);
-  await pageA.getByTestId("lobby-login-submit").click();
+  // Use direct invite for reliable matchmaking (avoids queue race conditions)
+  const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
+    timeoutMs: 30_000,
+  });
 
-  await pageB.getByTestId("lobby-username-input").fill(userB);
-  await pageB.getByTestId("lobby-login-submit").click();
+  expect(matchIdA).toBeTruthy();
+  expect(matchIdA).toEqual(matchIdB);
 
-  await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
-  await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
-
-  await pageA.getByTestId("matchmaker-start-button").click();
-  await pageA.waitForTimeout(150);
-  await pageB.getByTestId("matchmaker-start-button").click();
-
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
+  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
 }
 
 async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
@@ -32,14 +58,18 @@ async function submitSwap(page: import("@playwright/test").Page, firstIndex: num
 }
 
 test.describe("Final summary recap", () => {
-  test.skip("shows scores, word history, and rematch affordances", async ({ browser }) => {
+  test("shows scores, word history, and rematch affordances @two-player-playtest", async ({
+    browser,
+  }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
 
     try {
-      await loginAndStartMatch(pageA, pageB, "recap-alpha", "recap-beta");
+      const userA = generateTestUsername("recap-alpha");
+      const userB = generateTestUsername("recap-beta");
+      await loginAndStartMatch(pageA, pageB, userA, userB);
 
       for (let round = 1; round <= 10; round += 1) {
         await submitSwap(pageA, round - 1);
@@ -64,4 +94,3 @@ test.describe("Final summary recap", () => {
     }
   });
 });
-

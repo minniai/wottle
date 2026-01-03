@@ -43,7 +43,9 @@ export async function runPreflight(options: PreflightOptions = {}): Promise<Pref
 
   const dockerCommand = env.DOCKER_BIN ?? "docker";
   const supabaseCommand = env.SUPABASE_BIN ?? "supabase";
-  const skipDocker = env.QUICKSTART_SKIP_DOCKER_CHECK === "1";
+  // Auto-skip Docker check when running inside act container (ACT=true is set by act)
+  const isInsideAct = env.ACT === "true";
+  const skipDocker = env.QUICKSTART_SKIP_DOCKER_CHECK === "1" || isInsideAct;
 
   if (!skipDocker) {
     try {
@@ -54,10 +56,12 @@ export async function runPreflight(options: PreflightOptions = {}): Promise<Pref
         error instanceof Error && error.message
           ? error.message
           : "Docker daemon is not reachable";
-      throw new Error(`Docker prerequisite failed: ${message}`);
+      const hint = " (Hint: Set QUICKSTART_SKIP_DOCKER_CHECK=1 to skip this check)";
+      throw new Error(`Docker prerequisite failed: ${message}${hint}`);
     }
   } else {
-    checks.push(DOCKER_CHECK);
+    const reason = isInsideAct ? "running inside act container" : "explicitly skipped";
+    checks.push({ ...DOCKER_CHECK, detail: reason });
   }
 
   try {

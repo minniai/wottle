@@ -78,11 +78,18 @@
 - [x] T032 [US3] Create REST route `/api/match/[matchId]/move` for contract coverage (`app/api/match/[matchId]/move/route.ts`)
 - [x] T033 [US3] Build match board interaction handlers (tile selection, submission, disabled states) in `components/game/BoardGrid.tsx`
 - [x] T034 [US3] Implement timer HUD + pause/expire states (`components/game/TimerHud.tsx`, `lib/match/timerStore.ts`)
-- [ ] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`: detect WebSocket disconnection, mark player "Reconnecting," pause both players' timers (server-side), wait up to 10 seconds for reconnection, restore match state (board, current round, timer values) from database, resume timers if reconnected within window, finalize match with disconnect end condition if timeout exceeded [FR-012]
+- [x] T035 [US3] Add reconnect flow restoring match + round state in `app/match/[matchId]/page.tsx`: detect WebSocket disconnection, mark player "Reconnecting," pause both players' timers (server-side), wait up to 10 seconds for reconnection, restore match state (board, current round, timer values) from database, resume timers if reconnected within window, finalize match with disconnect end condition if timeout exceeded [FR-012]
+  - [x] T035a [US3] [TDD-RED] Add Playwright spec for disconnect/reconnect scenarios: verify timer pause on disconnect, state restoration within 10s window, match finalization after timeout (`tests/integration/ui/reconnect-flow.spec.ts`)
+  - [x] T035b [US3] Implement client-side disconnect detection and "Reconnecting" UI state in `components/match/MatchClient.tsx`
+  - [x] T035c [US3] Add server-side timer pause logic in `app/actions/match/handleDisconnect.ts` when disconnect detected
+  - [x] T035d [US3] Implement state restoration from database on reconnection in `app/match/[matchId]/page.tsx`
+  - [x] T035e [US3] Add match finalization with disconnect end condition after 10s timeout in `app/actions/match/handleDisconnect.ts` and `app/actions/match/completeMatch.ts`
+  - [x] T035f [US3] [P] Add unit tests for timer pause/resume logic (`tests/unit/lib/match/timerStore.test.ts`)
 - [x] T036 [US3] [P] Add unit tests for `roundEngine` transitions + conflict rules (`tests/unit/lib/match/roundEngine.test.ts`)
 - [x] T037 [US3] [P] Add contract tests covering move submission accept/reject cases (`tests/contract/post-move.contract.test.ts`)
 - [x] T037a [US3] [P] Add contract test validating SC-004: dual-session scoring identity (both clients receive identical round summary payloads) (`tests/contract/get-round-summary.contract.test.ts` - dual-session assertion)
 - [x] T038 [US3] [P] Extend observability perf tests (Artillery) to assert submission RTT <200 ms (`tests/perf/round-resolution.yml`)
+- [x] T038a [US3] [P] Add explicit performance assertion for round broadcast latency <400ms p95 (PERF-002) in `tests/perf/round-resolution.yml`: measure time from second swap received to both clients receiving round summary payload, assert p95 <400ms including scoring computation (200-300ms) + realtime broadcast (<100ms p95 per constitution SLA II.4)
 
 ---
 
@@ -120,8 +127,8 @@
 - [x] T052 [NFR-001] Add accessibility review and implementation (focus traps for modals, aria-live regions for round summaries, keyboard navigation, color contrast validation, screen reader testing) in `components/lobby` + `components/match` to meet WCAG 2.1 Level A standards
 - [x] T053 Add analytics hooks to capture invite accept, round completion, match result events (`lib/observability/log.ts`)
 - [x] T054 Update `specs/002-two-player-playtest/quickstart.md` with final CLI commands + troubleshooting uncovered during implementation
-- [ ] T055 Run full regression matrix (unit, integration, Playwright, perf) and upload artifacts (`.github/workflows/ci.yml`, `README.md#Testing`)
-  - [ ] T055a Fix deferred Playwright failures: `final-summary.spec.ts`, `round-summary.spec.ts`, `rounds-flow.spec.ts` (Matchmaking race conditions requiring robust retry logic)
+- [x] T055 Run full regression matrix (unit, integration, Playwright, perf) and upload artifacts (`.github/workflows/ci.yml`, `README.md#Testing`)
+  - [x] T055a Fix deferred Playwright failures: `final-summary.spec.ts`, `round-summary.spec.ts`, `rounds-flow.spec.ts` (Matchmaking race conditions requiring robust retry logic)
 
 ---
 

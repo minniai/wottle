@@ -9,6 +9,7 @@ import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
 import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
+import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
 import { MatchShell } from "./MatchShell";
 
 interface MatchClientProps {
@@ -36,6 +37,8 @@ export function MatchClient({
     process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true";
   const [usePolling, setUsePolling] = useState(realtimeDisabled);
   const [pollError, setPollError] = useState<string | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     setMatchState(initialState);
@@ -55,6 +58,17 @@ export function MatchClient({
     const client = getBrowserSupabaseClient();
     const channel = subscribeToMatchChannel(client, matchId, {
       onState: (snapshot) => {
+        // Check if snapshot indicates a disconnected player
+        if (snapshot.disconnectedPlayerId) {
+          setDisconnectedPlayerId(snapshot.disconnectedPlayerId);
+          setIsReconnecting(snapshot.disconnectedPlayerId !== currentPlayerId);
+        } else {
+          // Player reconnected
+          if (disconnectedPlayerId && snapshot.disconnectedPlayerId === null) {
+            setIsReconnecting(false);
+            setDisconnectedPlayerId(null);
+          }
+        }
         setMatchState((prev) => ({
           ...prev,
           ...snapshot,
@@ -71,14 +85,32 @@ export function MatchClient({
       },
       onError: (error) => {
         console.error("[Realtime] Match channel error, enabling polling fallback", error);
+        setIsReconnecting(true);
         setUsePolling(true);
       },
+    });
+
+    // Detect channel disconnection
+    channel.on("system", {}, async (payload) => {
+      if (payload.status === "CLOSED" || payload.status === "CHANNEL_ERROR") {
+        console.warn("[Realtime] Channel closed, marking as reconnecting");
+        setIsReconnecting(true);
+        setDisconnectedPlayerId(currentPlayerId);
+        setUsePolling(true);
+        
+        // Notify server about disconnect
+        try {
+          await handlePlayerDisconnect(matchId, currentPlayerId);
+        } catch (error) {
+          console.error("[MatchClient] Failed to notify server of disconnect:", error);
+        }
+      }
     });
 
     return () => {
       channel.unsubscribe();
     };
-  }, [matchId, usePolling]);
+  }, [matchId, usePolling, currentPlayerId, disconnectedPlayerId]);
 
   useEffect(() => {
     if (!usePolling) {
@@ -142,10 +174,21 @@ export function MatchClient({
 
   return (
     <MatchShell matchId={matchId} headline={headline} statusMessage="Live">
-      {usePolling && (
+      {isReconnecting && (
         <div
           className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200"
           data-testid="reconnect-banner"
+        >
+          {disconnectedPlayerId === currentPlayerId
+            ? "Reconnecting... Please wait."
+            : "Opponent disconnected. Waiting for reconnection..."}
+        </div>
+      )}
+
+      {usePolling && !isReconnecting && (
+        <div
+          className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200"
+          data-testid="polling-fallback-banner"
         >
           Realtime connection lost. Falling back to polling updates.
         </div>

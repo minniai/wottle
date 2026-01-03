@@ -39,6 +39,29 @@ This guide explains how to run GitHub Actions workflows locally using [act](http
 
      This allows quickstart to run without cloud authentication
 
+5. **Start Supabase before running act** (Recommended):
+
+   The act container cannot reliably access Docker on your host machine. To work around this:
+
+   ```bash
+   # Step 1: Start Supabase on your host machine first
+   pnpm quickstart
+
+   # Step 2: Run act (credentials from .env.local are automatically passed)
+   pnpm act -j playwright --matrix suite:baseline
+   ```
+
+   The helper script automatically detects `.env.local` and passes the Supabase credentials to the act container, allowing quickstart to skip the Supabase start step.
+
+6. **Docker Socket Access** (if Docker check fails in act):
+   - If you see "Docker prerequisite failed" errors when running act, this is expected because Docker socket mounting doesn't work reliably in act
+   - The recommended solution is step 5 above (start Supabase on host first)
+   - As a fallback, you can skip the Docker check explicitly:
+
+     ```bash
+     export ACT_SKIP_DOCKER_CHECK=1
+     ```
+
 ## Usage
 
 ### Run specific jobs
@@ -73,8 +96,9 @@ bash scripts/act.sh -j perf-gate
 ### Quick start for local testing (without Supabase token)
 
 ```bash
-# Set environment variable to skip token check
+# Set environment variables to skip checks
 export ACT_SKIP_TOKEN_CHECK=1
+export ACT_SKIP_DOCKER_CHECK=1  # Only if Docker socket mount fails
 
 # Run the tests
 bash scripts/act.sh -j playwright --matrix suite:baseline
@@ -136,38 +160,54 @@ bash scripts/act.sh
 ERROR: .env.local not found! Server will fail without Supabase credentials
 ```
 
-**Cause**: The quickstart step didn't create `.env.local`, or it's being created in the wrong directory.
+**Cause**: The quickstart step failed before creating `.env.local`, usually because:
+- Docker check failed in preflight (Docker socket not accessible in act container)
+- Supabase start failed (Docker not accessible)
 
 **Debug steps**:
 
 1. Check the "Start Supabase stack via quickstart" step output
 2. Look for "Working directory:" line to see where quickstart ran
 3. Check if quickstart completed successfully (look for `supabase.quickstart.success` event)
+4. Look for Docker-related errors in the preflight step
 
 **Solutions**:
 
-1. **Ensure Docker is running**:
+1. **Skip Docker check and use existing Supabase** (if Supabase is already running):
+
+   ```bash
+   # Start Supabase manually first (outside of act)
+   pnpm quickstart
+   
+   # Then run act with Docker check skipped
+   export ACT_SKIP_DOCKER_CHECK=1
+   pnpm act -j playwright --matrix suite:baseline
+   ```
+
+   The quickstart script will detect that Supabase is already running and skip the start step, allowing `.env.local` to be created.
+
+2. **Ensure Docker is running on host**:
 
    ```bash
    docker ps
    # Should show running containers, not error
    ```
 
-2. **Run quickstart manually first** to verify it works:
+3. **Run quickstart manually first** to verify it works:
 
    ```bash
    pnpm quickstart
    ls -la .env.local  # Should exist
    ```
 
-3. **Check Docker socket is accessible**:
+4. **Check Docker socket is accessible**:
 
    ```bash
    # macOS/Linux
    ls -l /var/run/docker.sock
    ```
 
-4. **Run act with verbose output**:
+5. **Run act with verbose output**:
 
    ```bash
    bash scripts/act.sh -j quickstart --verbose
