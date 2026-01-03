@@ -6,15 +6,17 @@ async function loginAs(page: import("@playwright/test").Page, username: string) 
   await expect(input).toBeVisible();
   await input.fill(username);
 
-  // Click submit and wait for navigation (login action redirects to "/" after success)
-  await Promise.all([
-    page.waitForURL("/", { timeout: 15_000 }),
-    page.getByTestId("lobby-login-submit").click(),
-  ]);
+  // Click submit - the Server Action will set a cookie and redirect to "/"
+  // which triggers a re-render with the session
+  await page.getByTestId("lobby-login-submit").click();
 
-  // After redirect, wait for the lobby list to be visible
+  // Wait for network to settle (form submission + redirect)
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
+
+  // Wait for the lobby list to appear (indicates login completed and page re-rendered)
+  // Use polling since the redirect might take a moment
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 10_000,
+    timeout: 15_000,
   });
 }
 

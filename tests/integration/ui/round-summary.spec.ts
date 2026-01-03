@@ -12,12 +12,11 @@ async function loginPlayer(
   await page.goto("/");
   await page.getByTestId("lobby-username-input").fill(username);
 
-  // Click submit and wait for navigation (login action redirects to "/" after success)
-  // We need to wait for the page to reload/re-render with the session
-  await Promise.all([
-    page.waitForResponse((res) => res.url().includes("/") && res.status() === 200),
-    page.getByTestId("lobby-login-submit").click(),
-  ]);
+  // Click submit - the Server Action will set a cookie and redirect
+  await page.getByTestId("lobby-login-submit").click();
+
+  // Wait for network to settle (form submission + redirect)
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
 
   // Wait for lobby list to appear (indicates login completed and page re-rendered)
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
