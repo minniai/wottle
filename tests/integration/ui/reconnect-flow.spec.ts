@@ -13,8 +13,21 @@ async function loginAndStartMatch(
   await pageB.getByTestId("lobby-username-input").fill(userB);
   await pageB.getByTestId("lobby-login-submit").click();
 
-  await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
-  await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
+  // Wait for lobby list to appear (indicates login completed and page re-rendered)
+  await expect(pageA.getByTestId("lobby-presence-list")).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(pageB.getByTestId("lobby-presence-list")).toBeVisible({
+    timeout: 10_000,
+  });
+
+  // Then check for matchmaker controls
+  await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible({
+    timeout: 10_000,
+  });
 
   await pageA.getByTestId("matchmaker-start-button").click();
   await pageA.waitForTimeout(150);

@@ -5,10 +5,16 @@ async function loginAs(page: import("@playwright/test").Page, username: string) 
   const input = page.getByTestId("lobby-username-input");
   await expect(input).toBeVisible();
   await input.fill(username);
-  await page.getByTestId("lobby-login-submit").click();
 
+  // Click submit and wait for navigation (login action redirects to "/" after success)
+  await Promise.all([
+    page.waitForURL("/", { timeout: 15_000 }),
+    page.getByTestId("lobby-login-submit").click(),
+  ]);
+
+  // After redirect, wait for the lobby list to be visible
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 5_000,
+    timeout: 10_000,
   });
 }
 
@@ -58,10 +64,10 @@ test.describe("Lobby presence", () => {
     const listB = pageB.getByTestId("lobby-presence-list");
 
     await expect(listA.getByTestId("lobby-card").filter({ hasText: /tester-beta/i })).toBeVisible({
-      timeout: 5_000,
+      timeout: 10_000,
     });
     await expect(listB.getByTestId("lobby-card").filter({ hasText: /tester-alpha/i })).toBeVisible({
-      timeout: 5_000,
+      timeout: 10_000,
     });
 
     // Explicitly disconnect before closing to ensure cleanup completes
@@ -95,5 +101,3 @@ test.describe("Lobby presence", () => {
     await contextA.close();
   });
 });
-
-

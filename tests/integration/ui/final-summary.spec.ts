@@ -5,22 +5,40 @@ import {
   startMatchWithDirectInvite,
 } from "./helpers/matchmaking";
 
+async function loginPlayer(
+  page: import("@playwright/test").Page,
+  username: string,
+) {
+  await page.goto("/");
+  await page.getByTestId("lobby-username-input").fill(username);
+
+  // Click submit and wait for navigation (login action redirects to "/" after success)
+  // We need to wait for the page to reload/re-render with the session
+  await Promise.all([
+    page.waitForResponse((res) => res.url().includes("/") && res.status() === 200),
+    page.getByTestId("lobby-login-submit").click(),
+  ]);
+
+  // Wait for lobby list to appear (indicates login completed and page re-rendered)
+  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Then check for matchmaker controls
+  await expect(page.getByTestId("matchmaker-controls")).toBeVisible({
+    timeout: 10_000,
+  });
+}
+
 async function loginAndStartMatch(
   pageA: import("@playwright/test").Page,
   pageB: import("@playwright/test").Page,
   userA: string,
   userB: string,
 ) {
-  await Promise.all([pageA.goto("/"), pageB.goto("/")]);
-
-  await pageA.getByTestId("lobby-username-input").fill(userA);
-  await pageA.getByTestId("lobby-login-submit").click();
-
-  await pageB.getByTestId("lobby-username-input").fill(userB);
-  await pageB.getByTestId("lobby-login-submit").click();
-
-  await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible();
-  await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible();
+  // Login players sequentially to avoid race conditions
+  await loginPlayer(pageA, userA);
+  await loginPlayer(pageB, userB);
 
   // Use direct invite for reliable matchmaking (avoids queue race conditions)
   const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {

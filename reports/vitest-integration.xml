@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="5" failures="0" errors="0" time="2.434">
+    <testsuite name="tests/integration/quickstart/board-generation.spec.ts" timestamp="2026-01-03T17:29:56.486Z" hostname="Mac.localdomain" tests="2" failures="0" errors="0" skipped="0" time="0.003">
+        <testcase classname="tests/integration/quickstart/board-generation.spec.ts" name="quickstart board generation guard &gt; each board contains every Icelandic letter" time="0.002">
+        </testcase>
+        <testcase classname="tests/integration/quickstart/board-generation.spec.ts" name="quickstart board generation guard &gt; weighted sampling favours common letters across boards" time="0.001">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/quickstart/local-routing.spec.ts" timestamp="2026-01-03T17:29:56.487Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="1.838">
+        <testcase classname="tests/integration/quickstart/local-routing.spec.ts" name="quickstart env routing guard &gt; ensures env file points to local Supabase instance" time="1.838">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/quickstart/quickstart.spec.ts" timestamp="2026-01-03T17:29:56.487Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="2.243">
+        <testcase classname="tests/integration/quickstart/quickstart.spec.ts" name="supabase quickstart script &gt; runs the automation and reports healthy status" time="2.242">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/verify/verify-timing.spec.ts" timestamp="2026-01-03T17:29:56.487Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="0.002">
+        <testcase classname="tests/integration/verify/verify-timing.spec.ts" name="verifySupabase instrumentation &gt; reports healthy status within 10s" time="0.002">
+        </testcase>
+    </testsuite>
+</testsuites>
