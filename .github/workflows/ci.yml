@@ -165,16 +165,19 @@ jobs:
     needs: quickstart
     strategy:
       fail-fast: false
+      max-parallel: 1 # avoid port collisions when starting Next.js on 3000
       matrix:
         suite:
           - baseline
           - playtest
     timeout-minutes: 45
     env:
+      APP_PORT: 3100
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
       RATE_LIMIT_DISABLED_SCOPES: "auth:login"
       PLAYTEST_SESSION_SECURE: "false"
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3100
       # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
     steps:
       - name: Install Docker CLI (for act compatibility)
@@ -253,7 +256,7 @@ jobs:
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port 3000" < /dev/null > next.log 2>&1 &
+          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3100}" < /dev/null > next.log 2>&1 &
           SERVER_PID=$!
           echo $SERVER_PID > .next-pid
           echo "Started server with PID: $SERVER_PID"
@@ -318,7 +321,7 @@ jobs:
           echo ""
           echo "=== Testing server connection ==="
           # Try multiple methods to test connectivity
-          for url in http://127.0.0.1:3000 http://localhost:3000 http://0.0.0.0:3000; do
+          for url in "http://127.0.0.1:${APP_PORT:-3100}" "http://localhost:${APP_PORT:-3100}" "http://0.0.0.0:${APP_PORT:-3100}"; do
             echo "Testing $url..."
             if command -v curl &> /dev/null; then
               if curl -f -s -o /dev/null --max-time 2 "$url" 2>&1; then
@@ -340,7 +343,7 @@ jobs:
           done
           echo ""
           echo "=== Using wait-on to verify server ==="
-          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || {
+          pnpm exec wait-on "http://127.0.0.1:${APP_PORT:-3100}" --timeout 60000 --interval 1000 || {
             echo "=== wait-on failed ==="
             echo "=== Full server log ==="
             cat next.log

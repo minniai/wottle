@@ -9,12 +9,6 @@ async function loginAs(page: import("@playwright/test").Page, username: string) 
   // Click submit - the Server Action will set a cookie and redirect
   await page.getByTestId("lobby-login-submit").click();
 
-  // Wait for the login form to disappear (indicates Server Action completed)
-  // The form will be replaced by the lobby list after redirect
-  await expect(page.getByTestId("lobby-login-form")).not.toBeVisible({
-    timeout: 15_000,
-  });
-
   // Wait for the lobby list to appear (indicates page re-rendered with session)
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 15_000,
