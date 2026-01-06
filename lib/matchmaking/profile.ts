@@ -260,16 +260,33 @@ function sortPlayers(players: PlayerIdentity[]): PlayerIdentity[] {
 
 function shouldUseSecureCookies(): boolean {
   const raw = process.env.PLAYTEST_SESSION_SECURE;
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  console.log("[shouldUseSecureCookies] Env Check:", { 
+    PLAYTEST_SESSION_SECURE: raw, 
+    NODE_ENV: process.env.NODE_ENV
+  });
+
   if (raw) {
     const normalized = raw.trim().toLowerCase();
     if (["1", "true", "on", "yes", "enabled"].includes(normalized)) {
+      console.log("[shouldUseSecureCookies] Explicitly enabled via env");
       return true;
     }
     if (["0", "false", "off", "no", "disabled"].includes(normalized)) {
+      console.log("[shouldUseSecureCookies] Explicitly disabled via env");
       return false;
     }
   }
-  return process.env.NODE_ENV === "production";
+  
+  if (process.env.CI === "true" || process.env.CI === "1") {
+    console.log("[shouldUseSecureCookies] Explicitly disabled in CI environment");
+    return false;
+  }
+  
+  const result = isProduction;
+  console.log(`[shouldUseSecureCookies] Fallback to NODE_ENV: ${isProduction} -> ${result}`);
+  return result;
 }
 
 
