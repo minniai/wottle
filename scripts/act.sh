@@ -97,7 +97,11 @@ echo "" >&2
 
 # Execute act with original args plus any extra args
 # Use ${arr[@]+"${arr[@]}"} pattern to handle empty arrays with set -u
+# Enforce --concurrent-jobs 1 to avoid port collisions in matrix jobs
+# Use --pid=host to allow cleanup scripts to see and kill ghost processes on the host
 exec act "$@" ${ACT_EXTRA_ARGS[@]+"${ACT_EXTRA_ARGS[@]}"} \
   --container-daemon-socket "$DOCKER_SOCK" \
-  --artifact-server-path "$ARTIFACT_DIR"
+  --artifact-server-path "$ARTIFACT_DIR" \
+  --concurrent-jobs 1 \
+  --container-options "--pid=host"
 

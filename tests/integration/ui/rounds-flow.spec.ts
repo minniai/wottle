@@ -15,9 +15,14 @@ async function loginPlayer(
   // Click submit - the Server Action will set a cookie and redirect
   await page.getByTestId("lobby-login-submit").click();
 
+  // Allow the Server Action redirect + cookie to settle, then hard-reload so
+  // the server-rendered page picks up the new session.
+  await page.waitForLoadState("networkidle");
+  await page.reload({ waitUntil: "networkidle" });
+
   // Wait for lobby list to appear (indicates page re-rendered with session)
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 15_000,
+    timeout: 20_000,
   });
 
   // Then check for matchmaker controls

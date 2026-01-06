@@ -121,12 +121,16 @@ jobs:
           if command -v docker &> /dev/null; then
             echo "Docker CLI already available"
             docker --version
+            # Ensure lsof is available on the host/runner if possible
+            if ! command -v lsof &> /dev/null && command -v apt-get &> /dev/null; then
+              apt-get update && apt-get install -y lsof
+            fi
           else
-            # Install Docker CLI for Debian-based images (node:lts)
+            # Install Docker CLI and lsof for Debian-based images (node:lts)
             # Try apt-get first (faster), fallback to official installer
-            (apt-get update && apt-get install -y docker.io) || \
-            (curl -fsSL https://get.docker.com | sh) || \
-            (echo "Error: Could not install Docker CLI" && exit 1)
+            (apt-get update && apt-get install -y docker.io lsof) || \
+            (curl -fsSL https://get.docker.com | sh && apt-get install -y lsof) || \
+            (echo "Error: Could not install prerequisites" && exit 1)
             docker --version
           fi
       - name: Checkout
@@ -176,6 +180,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
       RATE_LIMIT_DISABLED_SCOPES: "auth:login"
+      RATE_LIMIT_DISABLE_ALL: "1"
       PLAYTEST_SESSION_SECURE: "false"
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3100
       # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
@@ -187,12 +192,16 @@ jobs:
           if command -v docker &> /dev/null; then
             echo "Docker CLI already available"
             docker --version
+            # Ensure lsof is available on the host/runner if possible
+            if ! command -v lsof &> /dev/null && command -v apt-get &> /dev/null; then
+              apt-get update && apt-get install -y lsof
+            fi
           else
-            # Install Docker CLI for Debian-based images (node:lts)
+            # Install Docker CLI and lsof for Debian-based images (node:lts)
             # Try apt-get first (faster), fallback to official installer
-            (apt-get update && apt-get install -y docker.io) || \
-            (curl -fsSL https://get.docker.com | sh) || \
-            (echo "Error: Could not install Docker CLI" && exit 1)
+            (apt-get update && apt-get install -y docker.io lsof) || \
+            (curl -fsSL https://get.docker.com | sh && apt-get install -y lsof) || \
+            (echo "Error: Could not install prerequisites" && exit 1)
             docker --version
           fi
       - name: Checkout
@@ -244,6 +253,15 @@ jobs:
           pnpm build
       - name: Start Next.js server
         run: |
+          # Ensure the port is free before starting
+          echo "Checking for processes on port ${APP_PORT:-3100}..."
+          if command -v lsof &> /dev/null; then
+            lsof -ti :${APP_PORT:-3100} | xargs kill -9 2>/dev/null || true
+          fi
+          # Fallback to pkill with broader patterns
+          pkill -9 -f "next.*start.*${APP_PORT:-3100}" 2>/dev/null || true
+          pkill -9 -f "pnpm.*start.*${APP_PORT:-3100}" 2>/dev/null || true
+
           # Verify .env.local exists and load environment variables
           if [ ! -f .env.local ]; then
             echo "ERROR: .env.local not found! Server will fail without Supabase credentials"
@@ -256,7 +274,8 @@ jobs:
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3100}" < /dev/null > next.log 2>&1 &
+          # Explicitly pass CI and PLAYTEST_SESSION_SECURE to ensure strict env propagation
+          setsid bash -c "CI=${CI} PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE} exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3100}" < /dev/null > next.log 2>&1 &
           SERVER_PID=$!
           echo $SERVER_PID > .next-pid
           echo "Started server with PID: $SERVER_PID"
@@ -371,20 +390,36 @@ jobs:
       - name: Stop Next.js server
         if: always()
         run: |
+          # Dump logs if we are in a failure state or for debugging
+          if [ -f next.log ]; then
+            echo "=== Next.js Server Log Summary ==="
+            echo "--> Secure Cookie Logic:"
+            grep "shouldUseSecureCookies" next.log || echo "No secure cookie logs found"
+            echo "--> Errors:"
+            grep -i "error" next.log | grep -v "React Router" || echo "No errors found"
+            echo "--> Last 100 lines:"
+            tail -n 100 next.log
+            echo "==========================="
+          else
+             echo "next.log not found"
+          fi
+
           if [ -f .next-pid ]; then
             PID=$(cat .next-pid)
             echo "Stopping server process $PID"
             kill $PID 2>/dev/null || true
-            # Also try to kill the Node process if we tracked it
-            if [ -f .next-node-pid ]; then
-              NODE_PID=$(cat .next-node-pid)
-              kill $NODE_PID 2>/dev/null || true
-              rm .next-node-pid
-            fi
-            # Kill any remaining next/node processes
-            pkill -f "next.*start" 2>/dev/null || true
             rm .next-pid
           fi
+          if [ -f .next-node-pid ]; then
+            NODE_PID=$(cat .next-node-pid)
+            kill $NODE_PID 2>/dev/null || true
+            rm .next-node-pid
+          fi
+          # Targeted kill of any remaining server on this port
+          if command -v lsof &> /dev/null; then
+            lsof -ti :${APP_PORT:-3100} | xargs kill -9 2>/dev/null || true
+          fi
+          pkill -f "next.*start.*${APP_PORT:-3100}" 2>/dev/null || true
       - name: Stop Supabase stack
         if: always()
         run: supabase stop || true
