@@ -176,13 +176,13 @@ jobs:
           - playtest
     timeout-minutes: 45
     env:
-      APP_PORT: 3100
+      APP_PORT: 3000
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
       RATE_LIMIT_DISABLED_SCOPES: "auth:login"
       RATE_LIMIT_DISABLE_ALL: "1"
       PLAYTEST_SESSION_SECURE: "false"
-      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3100
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
       # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
     steps:
       - name: Install Docker CLI (for act compatibility)
@@ -254,14 +254,13 @@ jobs:
       - name: Start Next.js server
         run: |
           # Ensure the port is free before starting
-          echo "Checking for processes on port ${APP_PORT:-3100}..."
+          echo "Checking for processes on port ${APP_PORT:-3000}..."
           if command -v lsof &> /dev/null; then
-            lsof -ti :${APP_PORT:-3100} | xargs kill -9 2>/dev/null || true
+            lsof -ti :${APP_PORT:-3000} | xargs kill -9 2>/dev/null || true
           fi
           # Fallback to pkill with broader patterns
-          pkill -9 -f "next.*start.*${APP_PORT:-3100}" 2>/dev/null || true
-          pkill -9 -f "pnpm.*start.*${APP_PORT:-3100}" 2>/dev/null || true
-
+          pkill -9 -f "next.*start.*${APP_PORT:-3000}" 2>/dev/null || true
+          pkill -9 -f "pnpm.*start.*${APP_PORT:-3000}" 2>/dev/null || true
           # Verify .env.local exists and load environment variables
           if [ ! -f .env.local ]; then
             echo "ERROR: .env.local not found! Server will fail without Supabase credentials"
@@ -275,13 +274,17 @@ jobs:
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
           # Explicitly pass CI and PLAYTEST_SESSION_SECURE to ensure strict env propagation
-          setsid bash -c "CI=${CI} PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE} exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3100}" < /dev/null > next.log 2>&1 &
+          setsid bash -c "CI=${CI} PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE} exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > next.log 2>&1 &
           SERVER_PID=$!
           echo $SERVER_PID > .next-pid
           echo "Started server with PID: $SERVER_PID"
           # Wait for server to initialize
           sleep 5
           # Check process state - must check state, not just kill -0 (which works on zombies)
+          echo "**** ps -al "
+          ps -al
+          echo "**** ps -o state= -p $SERVER_PID "
+          ps -o state= -p $SERVER_PID
           PROC_STATE=$(ps -o state= -p $SERVER_PID 2>/dev/null | tr -d ' ' || echo "")
           if [ -z "$PROC_STATE" ]; then
             echo "ERROR: Server process $SERVER_PID not found"
@@ -307,6 +310,7 @@ jobs:
               exit 1
             fi
           fi
+          ps -al
       - name: Ensure Supabase bootstrap is running
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -340,7 +344,7 @@ jobs:
           echo ""
           echo "=== Testing server connection ==="
           # Try multiple methods to test connectivity
-          for url in "http://127.0.0.1:${APP_PORT:-3100}" "http://localhost:${APP_PORT:-3100}" "http://0.0.0.0:${APP_PORT:-3100}"; do
+          for url in "http://127.0.0.1:${APP_PORT:-3000}" "http://localhost:${APP_PORT:-3000}" "http://0.0.0.0:${APP_PORT:-3000}"; do
             echo "Testing $url..."
             if command -v curl &> /dev/null; then
               if curl -f -s -o /dev/null --max-time 2 "$url" 2>&1; then
@@ -362,7 +366,7 @@ jobs:
           done
           echo ""
           echo "=== Using wait-on to verify server ==="
-          pnpm exec wait-on "http://127.0.0.1:${APP_PORT:-3100}" --timeout 60000 --interval 1000 || {
+          pnpm exec wait-on "http://127.0.0.1:${APP_PORT:-3000}" --timeout 60000 --interval 1000 || {
             echo "=== wait-on failed ==="
             echo "=== Full server log ==="
             cat next.log
@@ -417,9 +421,9 @@ jobs:
           fi
           # Targeted kill of any remaining server on this port
           if command -v lsof &> /dev/null; then
-            lsof -ti :${APP_PORT:-3100} | xargs kill -9 2>/dev/null || true
+            lsof -ti :${APP_PORT:-3000} | xargs kill -9 2>/dev/null || true
           fi
-          pkill -f "next.*start.*${APP_PORT:-3100}" 2>/dev/null || true
+          pkill -f "next.*start.*${APP_PORT:-3000}" 2>/dev/null || true
       - name: Stop Supabase stack
         if: always()
         run: supabase stop || true
@@ -439,6 +443,7 @@ jobs:
     needs: playwright
     timeout-minutes: 45
     env:
+      APP_PORT: 3000
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
     steps:
@@ -518,7 +523,7 @@ jobs:
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port 3000" < /dev/null > perf-next.log 2>&1 &
+          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > perf-next.log 2>&1 &
           SERVER_PID=$!
           echo $SERVER_PID > .perf-next-pid
           echo "Started server with PID: $SERVER_PID"
@@ -526,6 +531,7 @@ jobs:
           sleep 5
           # Check process state - must check state, not just kill -0 (which works on zombies)
           PROC_STATE=$(ps -o state= -p $SERVER_PID 2>/dev/null | tr -d ' ' || echo "")
+          echo "Server process state: $PROC_STATE"
           if [ -z "$PROC_STATE" ]; then
             echo "ERROR: Server process $SERVER_PID not found"
             echo "=== Server log ==="
@@ -583,7 +589,7 @@ jobs:
           echo ""
           echo "=== Testing server connection ==="
           # Try multiple methods to test connectivity
-          for url in http://127.0.0.1:3000 http://localhost:3000 http://0.0.0.0:3000; do
+          for url in "http://127.0.0.1:${APP_PORT:-3000}" "http://localhost:${APP_PORT:-3000}" "http://0.0.0.0:${APP_PORT:-3000}"; do
             echo "Testing $url..."
             if command -v curl &> /dev/null; then
               if curl -f -s -o /dev/null --max-time 2 "$url" 2>&1; then
@@ -605,7 +611,7 @@ jobs:
           done
           echo ""
           echo "=== Using wait-on to verify server ==="
-          pnpm exec wait-on http://127.0.0.1:3000 --timeout 60000 --interval 1000 || {
+          pnpm exec wait-on "http://127.0.0.1:${APP_PORT:-3000}" --timeout 60000 --interval 1000 || {
             echo "=== wait-on failed ==="
             echo "=== Full server log ==="
             cat perf-next.log
@@ -618,7 +624,7 @@ jobs:
           }
           echo "✓ Server is ready!"
       - name: Run Artillery scenario
-        run: pnpm exec artillery run --output artillery-swap.json tests/perf/swap.yml
+        run: pnpm exec artillery run --target "http://127.0.0.1:${APP_PORT:-3000}" --output artillery-swap.json tests/perf/swap.yml
       - name: Assert swap latency thresholds
         run: pnpm exec tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json
       - name: Stop Next.js server

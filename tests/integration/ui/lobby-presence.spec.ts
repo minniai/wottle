@@ -4,7 +4,7 @@ async function loginAs(page: import("@playwright/test").Page, username: string) 
   // Debug: Log all responses to check for Set-Cookie on login
   page.on('response', async (response) => {
     const url = response.url();
-    if (url.includes('/api/auth/login') || url.endsWith(':3100/')) {
+    if (url.includes('/api/auth/login') || url.endsWith(':3000/')) {
       const headers = await response.allHeaders();
       console.log(`[DEBUG_NET] Response from ${url}: Status ${response.status()}`);
       if (headers['set-cookie']) {
