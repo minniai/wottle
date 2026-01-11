@@ -48,16 +48,10 @@ export async function loginAction(
     console.log(`[LOGIN_DEBUG] performUsernameLogin success. Player: ${player.id}, Token: ${sessionToken.slice(0, 10)}...`);
     
     await persistLobbySession({ player, sessionToken });
-    console.log(`[LOGIN_DEBUG] persistLobbySession complete. Redirecting...`);
+    console.log(`[LOGIN_DEBUG] persistLobbySession complete. Returning success.`);
     
-    redirect("/");
+    return { status: "success", player, sessionToken };
   } catch (error) {
-    // Re-throw redirect errors - Next.js handles these specially
-    if (error instanceof Error && (error.message === "NEXT_REDIRECT" ||
-       (error as Error & { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))) {
-      throw error;
-    }
-
     console.error(`[LOGIN_DEBUG] Error during login:`, error);
 
     if (error instanceof RateLimitExceededError || error instanceof LoginValidationError || error instanceof Error) {
