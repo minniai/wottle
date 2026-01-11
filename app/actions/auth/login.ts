@@ -2,6 +2,7 @@
 
 import "server-only";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -48,7 +49,9 @@ export async function loginAction(
     console.log(`[LOGIN_DEBUG] performUsernameLogin success. Player: ${player.id}, Token: ${sessionToken.slice(0, 10)}...`);
     
     await persistLobbySession({ player, sessionToken });
-    console.log(`[LOGIN_DEBUG] persistLobbySession complete. Returning success.`);
+    console.log(`[LOGIN_DEBUG] persistLobbySession complete. Revalidating / and returning success.`);
+
+    revalidatePath("/");
     
     return { status: "success", player, sessionToken };
   } catch (error) {

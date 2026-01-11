@@ -18,7 +18,8 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
 
   useEffect(() => {
     if (state.status === "success") {
-      router.push("/");
+      router.refresh();
+      // Short delay to ensure refresh starts before any potential navigation (though we are already on /)
     }
   }, [state.status, router]);
 
