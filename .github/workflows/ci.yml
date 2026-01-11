@@ -255,7 +255,6 @@ jobs:
         run: |
           # Ensure the port is free before starting
           echo "Checking for processes on port ${APP_PORT:-3000}..."
-          # Attempt to install psmisc for fuser if missing (best effort)
           # Attempt to install psmisc for fuser if missing (best effort, no sudo)
           if ! command -v fuser &> /dev/null && command -v apt-get &> /dev/null; then
             echo "Installing psmisc (fuser)..."
@@ -323,7 +322,9 @@ jobs:
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
           ps -al
-          setsid bash -c "echo \$\$ > .next-pid; CI=${CI} PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE} exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > next.log 2>&1 &
+          echo "Starting server with CI=${CI} and PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}"
+          # We need to explicitly export these into the setsid environment
+          setsid bash -c "export CI=${CI}; export PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}; echo \$\$ > .next-pid; exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > next.log 2>&1 &
           # Wait for server to initialize
           sleep 5
           # Check process state
