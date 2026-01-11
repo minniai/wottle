@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 
 import { loginAction, type LoginActionState } from "@/app/actions/auth/login";
@@ -13,6 +14,13 @@ const INITIAL_STATE: LoginActionState = { status: "idle" };
 
 export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
   const [state, formAction] = useActionState(loginAction, INITIAL_STATE);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state.status === "success") {
+      router.push("/");
+    }
+  }, [state.status, router]);
 
   return (
     <form
