@@ -12,7 +12,7 @@ env:
   NEXT_TELEMETRY_DISABLED: 1
   HUSKY: 0
   CI: true
-  PNPM_VERSION: 10.26.2
+  PNPM_VERSION: 10.28.0
 
 jobs:
   lint:
@@ -255,12 +255,61 @@ jobs:
         run: |
           # Ensure the port is free before starting
           echo "Checking for processes on port ${APP_PORT:-3000}..."
-          if command -v lsof &> /dev/null; then
-            lsof -ti :${APP_PORT:-3000} | xargs kill -9 2>/dev/null || true
+          # Attempt to install psmisc for fuser if missing (best effort)
+          # Attempt to install psmisc for fuser if missing (best effort, no sudo)
+          if ! command -v fuser &> /dev/null && command -v apt-get &> /dev/null; then
+            echo "Installing psmisc (fuser)..."
+            (apt-get update && apt-get install -y psmisc) || true
           fi
-          # Fallback to pkill with broader patterns
-          pkill -9 -f "next.*start.*${APP_PORT:-3000}" 2>/dev/null || true
-          pkill -9 -f "pnpm.*start.*${APP_PORT:-3000}" 2>/dev/null || true
+
+          for i in {1..10}; do
+            # 1. Try lsof
+            if command -v lsof >/dev/null 2>&1; then
+              PIDS=$(lsof -ti :${APP_PORT:-3000} 2>/dev/null || true)
+              if [ -n "$PIDS" ]; then
+                echo "Found with lsof: $PIDS. Killing..."
+                echo "$PIDS" | xargs kill -9 || true
+              fi
+            fi
+            
+            # 2. Try fuser (more robust)
+            if command -v fuser >/dev/null 2>&1; then
+              fuser -k -n tcp ${APP_PORT:-3000} >/dev/null 2>&1 || true
+            fi
+            
+            # 3. Try ss (fallback if lsof/fuser missing but ss present - confirmed in logs)
+            if command -v ss >/dev/null 2>&1; then
+               # ss output format: ... users:(("node",pid=123,fd=4)) ...
+               PIDS=$(ss -lptn "sport = :${APP_PORT:-3000}" | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true)
+               if [ -n "$PIDS" ]; then
+                 echo "Found with ss: $PIDS. Killing..."
+                 echo "$PIDS" | xargs kill -9 || true
+               fi
+            fi
+
+            # 3. Check if port is clear
+            if ! curl -s --connect-timeout 1 http://127.0.0.1:${APP_PORT:-3000} >/dev/null 2>&1; then
+               echo "Port ${APP_PORT:-3000} is free."
+               break
+            fi
+
+            echo "Port ${APP_PORT:-3000} is still accessible (phantom process). Waiting..."
+            
+            # Debugging phantom process on last attempt
+            if [ "$i" -eq 10 ]; then
+               echo "=== NETWORK DEBUG INFO ==="
+               echo "Active Listeners (ss):"
+               ss -lptn || true
+               echo "Active Listeners (netstat):"
+               netstat -tulpn || true
+               echo "Curl Headers:"
+               curl -v --connect-timeout 2 http://127.0.0.1:${APP_PORT:-3000} || true
+               echo "=========================="
+               echo "ERROR: Unable to clear port ${APP_PORT:-3000}. Exiting to avoid EADDRINUSE."
+               exit 1
+            fi
+            sleep 2
+          done
           # Verify .env.local exists and load environment variables
           if [ ! -f .env.local ]; then
             echo "ERROR: .env.local not found! Server will fail without Supabase credentials"
@@ -273,18 +322,19 @@ jobs:
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          # Explicitly pass CI and PLAYTEST_SESSION_SECURE to ensure strict env propagation
-          setsid bash -c "CI=${CI} PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE} exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > next.log 2>&1 &
-          SERVER_PID=$!
-          echo $SERVER_PID > .next-pid
-          echo "Started server with PID: $SERVER_PID"
+          ps -al
+          setsid bash -c "echo \$\$ > .next-pid; CI=${CI} PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE} exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > next.log 2>&1 &
           # Wait for server to initialize
           sleep 5
-          # Check process state - must check state, not just kill -0 (which works on zombies)
-          echo "**** ps -al "
-          ps -al
-          echo "**** ps -o state= -p $SERVER_PID "
-          ps -o state= -p $SERVER_PID
+          # Check process state
+          if [ ! -f .next-pid ]; then
+            echo "ERROR: .next-pid file not created"
+            ps -al
+            exit 1
+          fi
+          SERVER_PID=$(cat .next-pid)
+          echo "Started server with PID: $SERVER_PID"
+
           PROC_STATE=$(ps -o state= -p $SERVER_PID 2>/dev/null | tr -d ' ' || echo "")
           if [ -z "$PROC_STATE" ]; then
             echo "ERROR: Server process $SERVER_PID not found"
@@ -310,7 +360,6 @@ jobs:
               exit 1
             fi
           fi
-          ps -al
       - name: Ensure Supabase bootstrap is running
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -325,7 +374,8 @@ jobs:
           echo "Checking server logs..."
           tail -30 next.log || true
           echo ""
-          echo "=== Checking if server process is still running ==="
+          cat .next-pid || true
+          echo ""
           if [ -f .next-pid ]; then
             PID=$(cat .next-pid)
             if kill -0 $PID 2>/dev/null; then
@@ -517,19 +567,80 @@ jobs:
             ls -la | head -30
             exit 1
           fi
+          # Ensure the port is free before starting
+          echo "Checking for processes on port ${APP_PORT:-3000}..."
+          # Attempt to install psmisc for fuser if missing (best effort)
+          # Attempt to install psmisc for fuser if missing (best effort, no sudo)
+          if ! command -v fuser &> /dev/null && command -v apt-get &> /dev/null; then
+            echo "Installing psmisc (fuser)..."
+            (apt-get update && apt-get install -y psmisc) || true
+          fi
+
+          for i in {1..10}; do
+            # 1. Try lsof
+            if command -v lsof >/dev/null 2>&1; then
+              PIDS=$(lsof -ti :${APP_PORT:-3000} 2>/dev/null || true)
+              if [ -n "$PIDS" ]; then
+                echo "Found with lsof: $PIDS. Killing..."
+                echo "$PIDS" | xargs kill -9 || true
+              fi
+            fi
+            
+            # 2. Try fuser (more robust)
+            if command -v fuser >/dev/null 2>&1; then
+              fuser -k -n tcp ${APP_PORT:-3000} >/dev/null 2>&1 || true
+            fi
+            
+            # 3. Try ss (fallback if lsof/fuser missing but ss present)
+            if command -v ss >/dev/null 2>&1; then
+               # ss output format: ... users:(("node",pid=123,fd=4)) ...
+               PIDS=$(ss -lptn "sport = :${APP_PORT:-3000}" | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true)
+               if [ -n "$PIDS" ]; then
+                 echo "Found with ss: $PIDS. Killing..."
+                 echo "$PIDS" | xargs kill -9 || true
+               fi
+            fi
+
+            # 3. Check if port is clear
+            if ! curl -s --connect-timeout 1 http://127.0.0.1:${APP_PORT:-3000} >/dev/null 2>&1; then
+               echo "Port ${APP_PORT:-3000} is free."
+               break
+            fi
+
+            echo "Port ${APP_PORT:-3000} is still accessible (phantom process). Waiting..."
+            
+            # Debugging phantom process on last attempt
+            if [ "$i" -eq 10 ]; then
+               echo "=== NETWORK DEBUG INFO ==="
+               echo "Active Listeners (ss):"
+               ss -lptn || true
+               echo "Active Listeners (netstat):"
+               netstat -tulpn || true
+               echo "Curl Headers:"
+               curl -v --connect-timeout 2 http://127.0.0.1:${APP_PORT:-3000} || true
+               echo "=========================="
+               echo "ERROR: Unable to clear port ${APP_PORT:-3000}. Exiting to avoid EADDRINUSE."
+               exit 1
+            fi
+            sleep 2
+          done
           # Load environment variables
           set -a
           source .env.local
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          setsid bash -c "exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > perf-next.log 2>&1 &
-          SERVER_PID=$!
-          echo $SERVER_PID > .perf-next-pid
-          echo "Started server with PID: $SERVER_PID"
+          setsid bash -c "echo \$\$ > .perf-next-pid; exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > perf-next.log 2>&1 &
           # Wait for server to initialize
           sleep 5
-          # Check process state - must check state, not just kill -0 (which works on zombies)
+          # Check process state
+          if [ ! -f .perf-next-pid ]; then
+            echo "ERROR: .perf-next-pid file not created"
+            exit 1
+          fi
+          SERVER_PID=$(cat .perf-next-pid)
+          echo "Started server with PID: $SERVER_PID"
+
           PROC_STATE=$(ps -o state= -p $SERVER_PID 2>/dev/null | tr -d ' ' || echo "")
           echo "Server process state: $PROC_STATE"
           if [ -z "$PROC_STATE" ]; then
