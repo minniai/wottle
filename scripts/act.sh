@@ -98,10 +98,14 @@ echo "" >&2
 # Execute act with original args plus any extra args
 # Use ${arr[@]+"${arr[@]}"} pattern to handle empty arrays with set -u
 # Enforce --concurrent-jobs 1 to avoid port collisions in matrix jobs
-# Use --pid=host to allow cleanup scripts to see and kill ghost processes on the host
+# Container options:
+#   --pid=host: Allow cleanup scripts to see and kill ghost processes on the host
+#   --network host: Share host network so localhost reaches Supabase containers
+#     (Supabase containers run on host via Docker socket, so act container needs
+#     host networking to reach them at localhost:54321)
 exec act "$@" ${ACT_EXTRA_ARGS[@]+"${ACT_EXTRA_ARGS[@]}"} \
   --container-daemon-socket "$DOCKER_SOCK" \
   --artifact-server-path "$ARTIFACT_DIR" \
   --concurrent-jobs 1 \
-  --container-options "--pid=host"
+  --container-options "--pid=host --network host"
 
