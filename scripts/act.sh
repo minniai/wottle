@@ -86,18 +86,7 @@ if [ -f .env.local ]; then
 
     if [ -n "${NEXT_PUBLIC_SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
         echo "✓ Passing Supabase credentials from .env.local to act container" >&2
-
-        # For act/Docker, we need to access the host's network for Supabase
-        # If the URL points to localhost/127.0.0.1, rewrite it to host.docker.internal
-        SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
-        if [[ "$SUPABASE_URL" == *"127.0.0.1"* ]] || [[ "$SUPABASE_URL" == *"localhost"* ]]; then
-            # Replace 127.0.0.1 or localhost with host.docker.internal
-            SUPABASE_URL="${SUPABASE_URL/127.0.0.1/host.docker.internal}"
-            SUPABASE_URL="${SUPABASE_URL/localhost/host.docker.internal}"
-            echo "  ℹ Rewriting Supabase URL to $SUPABASE_URL for container access" >&2
-        fi
-
-        ACT_EXTRA_ARGS+=(--env "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL")
+        ACT_EXTRA_ARGS+=(--env "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL")
         ACT_EXTRA_ARGS+=(--env "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY")
         ACT_EXTRA_ARGS+=(--env "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}")
         ACT_EXTRA_ARGS+=(--env "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}")
@@ -109,13 +98,8 @@ echo "" >&2
 # Execute act with original args plus any extra args
 # Use ${arr[@]+"${arr[@]}"} pattern to handle empty arrays with set -u
 # Enforce --concurrent-jobs 1 to avoid port collisions in matrix jobs
-# Container options:
-#   --pid=host: Allow cleanup scripts to see and kill ghost processes on the host
-#   --network host: Share host network so localhost reaches Supabase containers
-#     (Supabase containers run on host via Docker socket, so act container needs
-#     host networking to reach them at localhost:54321)
+# Use --network=host to share the host's network namespace (allows container to access 127.0.0.1 services)
 # Use --pid=host to allow cleanup scripts to see and kill ghost processes on the host
-# Use --add-host to allow containers to resolve host.docker.internal to the host IP
 exec act "$@" ${ACT_EXTRA_ARGS[@]+"${ACT_EXTRA_ARGS[@]}"} \
     --container-daemon-socket "$DOCKER_SOCK" \
     --artifact-server-path "$ARTIFACT_DIR" \
