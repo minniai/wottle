@@ -321,7 +321,6 @@ jobs:
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          ps -al
           echo "Starting server with CI=${CI} and PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}"
           echo "Supabase URL (.env.local): ${NEXT_PUBLIC_SUPABASE_URL:-NOT_SET}"
           echo "Supabase URL override (ACT_SUPABASE_URL_OVERRIDE): ${ACT_SUPABASE_URL_OVERRIDE:-NOT_SET}"
@@ -342,7 +341,6 @@ jobs:
           # Check process state
           if [ ! -f .next-pid ]; then
             echo "ERROR: .next-pid file not created"
-            ps -al
             exit 1
           fi
           SERVER_PID=$(cat .next-pid)
