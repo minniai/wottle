@@ -641,7 +641,7 @@ jobs:
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          setsid bash -c "echo \$\$ > .perf-next-pid; exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > perf-next.log 2>&1 &
+          setsid bash -c "[ -n \"\${ACT_SUPABASE_URL_OVERRIDE}\" ] && export NEXT_PUBLIC_SUPABASE_URL=\"\${ACT_SUPABASE_URL_OVERRIDE}\"; echo \$\$ > .perf-next-pid; exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > perf-next.log 2>&1 &
           # Wait for server to initialize
           sleep 5
           # Check process state
