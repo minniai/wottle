@@ -75,9 +75,16 @@ if [ "${ACT_SKIP_DOCKER_CHECK:-}" = "1" ]; then
     ACT_EXTRA_ARGS+=(--env "QUICKSTART_SKIP_DOCKER_CHECK=1")
 fi
 
-# If .env.local exists, pass Supabase credentials to act container
-# This allows quickstart to skip Supabase start when credentials are pre-set
-if [ -f .env.local ]; then
+# By default, we do NOT pass .env.local credentials to act.
+# This forces quickstart inside act to start its own Supabase instance,
+# which is more reliable because:
+# 1. If we pass credentials, quickstart skips starting Supabase
+# 2. But those credentials point to localhost:54321 on the HOST
+# 3. We can't guarantee Supabase is running on the host
+#
+# To use a pre-running Supabase (faster iteration), set ACT_USE_HOST_SUPABASE=1
+# and ensure Supabase is running: `supabase start && ACT_USE_HOST_SUPABASE=1 bash scripts/act.sh ...`
+if [ "${ACT_USE_HOST_SUPABASE:-}" = "1" ] && [ -f .env.local ]; then
     # Source .env.local to get the values
     set -a
     # shellcheck disable=SC1091
@@ -85,8 +92,9 @@ if [ -f .env.local ]; then
     set +a
 
     if [ -n "${NEXT_PUBLIC_SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-        echo "✓ Passing Supabase credentials from .env.local to act container" >&2
-        
+        echo "✓ ACT_USE_HOST_SUPABASE=1: Passing Supabase credentials from .env.local to act container" >&2
+        echo "  Make sure Supabase is running on the host: supabase status" >&2
+
         # For act/Docker, we need to access the host's network for Supabase
         # If the URL points to localhost/127.0.0.1, rewrite it to host.docker.internal
         SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
@@ -101,7 +109,7 @@ if [ -f .env.local ]; then
         ACT_EXTRA_ARGS+=(--env "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL")
         # Also pass it as an override to ensure it survives .env.local sourcing in CI
         ACT_EXTRA_ARGS+=(--env "ACT_SUPABASE_URL_OVERRIDE=$SUPABASE_URL")
-        
+
         ACT_EXTRA_ARGS+=(--env "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY")
         ACT_EXTRA_ARGS+=(--env "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}")
         ACT_EXTRA_ARGS+=(--env "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}")
@@ -113,10 +121,14 @@ echo "" >&2
 # Execute act with original args plus any extra args
 # Use ${arr[@]+"${arr[@]}"} pattern to handle empty arrays with set -u
 # Enforce --concurrent-jobs 1 to avoid port collisions in matrix jobs
-# Use --pid=host to allow cleanup scripts to see and kill ghost processes on the host
-# Use --add-host to allow containers to resolve host.docker.internal to the host IP
+# Container options:
+#   --pid=host: Allow cleanup scripts to see and kill ghost processes on the host
+#   --add-host: Allow containers to resolve host.docker.internal to the host IP
+#   --env-file /dev/null: Disable act's default .env loading. The repo's .env has
+#     placeholder Supabase values that would cause quickstart to skip starting Supabase.
 exec act "$@" ${ACT_EXTRA_ARGS[@]+"${ACT_EXTRA_ARGS[@]}"} \
     --container-daemon-socket "$DOCKER_SOCK" \
     --artifact-server-path "$ARTIFACT_DIR" \
     --concurrent-jobs 1 \
-    --container-options "--pid=host --add-host=host.docker.internal:host-gateway"
+    --container-options "--pid=host --add-host=host.docker.internal:host-gateway" \
+    --env-file /dev/null

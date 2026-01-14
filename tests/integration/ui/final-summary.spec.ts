@@ -44,8 +44,10 @@ async function loginAndStartMatch(
   await loginPlayer(pageB, userB);
 
   // Use direct invite for reliable matchmaking (avoids queue race conditions)
+  // Pass playerBUsername for test isolation when running in parallel
   const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
     timeoutMs: 30_000,
+    playerBUsername: userB,
   });
 
   expect(matchIdA).toBeTruthy();

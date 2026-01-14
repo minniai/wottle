@@ -2,11 +2,17 @@ import type { Page } from "@playwright/test";
 
 /**
  * Generates a unique username for test isolation.
+ * Max 24 characters to comply with the username validation rules.
  */
 export function generateTestUsername(prefix: string): string {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000);
-  return `${prefix}-${timestamp}-${random}`;
+  // Use last 6 digits of timestamp + 4 digit random = 10 chars for uniqueness
+  // This allows prefix up to ~13 chars (13 + 1 dash + 10 = 24)
+  const shortTimestamp = (Date.now() % 1_000_000).toString().padStart(6, "0");
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+  // Truncate prefix if needed to fit within 24 char limit
+  const maxPrefixLength = 24 - 1 - 6 - 4; // 13 chars
+  const truncatedPrefix = prefix.slice(0, maxPrefixLength);
+  return `${truncatedPrefix}-${shortTimestamp}${random}`;
 }
 
 /**
@@ -40,39 +46,78 @@ export async function startMatchWithDirectInvite(
   pageB: Page,
   options: {
     timeoutMs?: number;
+    playerBUsername?: string;
   } = {}
 ): Promise<[string | null, string | null]> {
-  const { timeoutMs = 30_000 } = options;
+  const { timeoutMs = 30_000, playerBUsername } = options;
   const startTime = Date.now();
 
   // Wait for both players to see each other in the lobby
-  await waitForPlayersVisible(pageA, pageB, timeoutMs);
-
-  // Player A opens invite modal and invites Player B
-  const elapsed1 = Date.now() - startTime;
-  if (elapsed1 > timeoutMs) {
-    throw new Error(`Timeout waiting for players to be visible: ${elapsed1}ms`);
-  }
-
-  await pageA.getByTestId("matchmaker-invite-button").click();
-  
-  // Wait for invite modal to appear
-  await pageA.getByTestId("matchmaker-invite-modal").waitFor({ 
-    state: "visible", 
-    timeout: Math.min(5000, timeoutMs - (Date.now() - startTime)) 
+  // Pass the specific username so we wait for the correct player (important for parallel tests)
+  await waitForPlayersVisible(pageA, pageB, timeoutMs, {
+    playerBUsername,
   });
 
-  // Find Player B in the invite list and click invite
-  // We need to find the correct player - look for one that's NOT player A
-  const inviteOptions = pageA.getByTestId("invite-option");
-  const count = await inviteOptions.count();
+  // Player A opens invite modal and invites Player B
+  // Retry loop to handle modal refresh timing
+  const maxRetries = 5;
+  let invited = false;
   
-  if (count === 0) {
-    throw new Error("No players available to invite");
-  }
+  for (let attempt = 1; attempt <= maxRetries && !invited; attempt++) {
+    const elapsed = Date.now() - startTime;
+    if (elapsed > timeoutMs) {
+      throw new Error(`Timeout waiting for invite modal: ${elapsed}ms after ${attempt} attempts`);
+    }
 
-  // Click the first invite option (should be Player B)
-  await inviteOptions.first().getByRole("button", { name: "Invite" }).click();
+    await pageA.getByTestId("matchmaker-invite-button").click();
+    
+    // Wait for invite modal to appear
+    await pageA.getByTestId("matchmaker-invite-modal").waitFor({ 
+      state: "visible", 
+      timeout: Math.min(5000, timeoutMs - (Date.now() - startTime)) 
+    });
+
+    // Find Player B in the invite list and click invite
+    if (playerBUsername) {
+      // Find the specific player by username (handles parallel test isolation)
+      const targetOption = pageA.getByTestId("invite-option").filter({
+        hasText: `@${playerBUsername}`,
+      });
+      
+      // Wait for the specific player to appear in the list
+      // Use longer timeout since modal content might take a moment to populate
+      const remainingTimeForOption = Math.min(8000, timeoutMs - (Date.now() - startTime));
+      try {
+        await targetOption.waitFor({
+          state: "visible",
+          timeout: remainingTimeForOption,
+        });
+        
+        await targetOption.getByRole("button", { name: "Invite" }).click();
+        invited = true;
+      } catch (e) {
+        // Player not found in modal, close and retry
+        if (attempt < maxRetries) {
+          // Close modal by pressing Escape or clicking outside
+          await pageA.keyboard.press("Escape");
+          await pageA.waitForTimeout(500);
+        } else {
+          throw e; // Last attempt, re-throw the error
+        }
+      }
+    } else {
+      // Fallback: click first option (legacy behavior, may have issues with parallel tests)
+      const inviteOptions = pageA.getByTestId("invite-option");
+      const count = await inviteOptions.count();
+      
+      if (count === 0) {
+        throw new Error("No players available to invite");
+      }
+
+      await inviteOptions.first().getByRole("button", { name: "Invite" }).click();
+      invited = true;
+    }
+  }
 
   // Wait for Player B to see the incoming invite
   const remainingTime1 = timeoutMs - (Date.now() - startTime);
@@ -97,11 +142,13 @@ export async function startMatchWithDirectInvite(
 
 /**
  * Wait for both players to be visible in each other's lobby view.
+ * If specific usernames are provided, wait for those specific players to appear.
  */
 async function waitForPlayersVisible(
   pageA: Page,
   pageB: Page,
-  timeoutMs: number
+  timeoutMs: number,
+  options?: { playerAUsername?: string; playerBUsername?: string }
 ): Promise<void> {
   const startTime = Date.now();
   const pollInterval = 500;
@@ -111,18 +158,42 @@ async function waitForPlayersVisible(
       throw new Error("Page was closed while waiting for players to be visible");
     }
 
-    // Check if invite button is enabled on page A (indicates players are visible)
+    // Check if invite buttons are enabled on both pages
     const inviteButtonA = pageA.getByTestId("matchmaker-invite-button");
     const isEnabledA = await inviteButtonA.isEnabled().catch(() => false);
     
     const inviteButtonB = pageB.getByTestId("matchmaker-invite-button");
     const isEnabledB = await inviteButtonB.isEnabled().catch(() => false);
 
-    if (isEnabledA && isEnabledB) {
-      return;
+    if (!isEnabledA || !isEnabledB) {
+      await safeWait(pageA, pollInterval);
+      continue;
     }
 
-    await safeWait(pageA, pollInterval);
+    // If specific usernames are provided, verify they are actually in the lobby list
+    if (options?.playerBUsername) {
+      // Check if Player B is visible in the lobby list on Page A
+      const lobbyListA = pageA.getByTestId("lobby-presence-list");
+      const playerBVisibleOnA = await lobbyListA.getByText(`@${options.playerBUsername}`).isVisible().catch(() => false);
+      
+      if (!playerBVisibleOnA) {
+        await safeWait(pageA, pollInterval);
+        continue;
+      }
+    }
+
+    if (options?.playerAUsername) {
+      // Check if Player A is visible in the lobby list on Page B
+      const lobbyListB = pageB.getByTestId("lobby-presence-list");
+      const playerAVisibleOnB = await lobbyListB.getByText(`@${options.playerAUsername}`).isVisible().catch(() => false);
+      
+      if (!playerAVisibleOnB) {
+        await safeWait(pageA, pollInterval);
+        continue;
+      }
+    }
+
+    return;
   }
 
   throw new Error(`Timeout waiting for players to be visible after ${timeoutMs}ms`);
