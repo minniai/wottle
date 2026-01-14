@@ -323,13 +323,15 @@ jobs:
           # Use setsid to create a new session and prevent zombie processes
           ps -al
           echo "Starting server with CI=${CI} and PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}"
-          echo "Supabase URL: ${NEXT_PUBLIC_SUPABASE_URL:-NOT_SET}"
+          echo "Supabase URL (.env.local): ${NEXT_PUBLIC_SUPABASE_URL:-NOT_SET}"
+          echo "Supabase URL override (ACT_SUPABASE_URL_OVERRIDE): ${ACT_SUPABASE_URL_OVERRIDE:-NOT_SET}"
           echo "Service Role Key present: ${SUPABASE_SERVICE_ROLE_KEY:+yes}"
           # Export all required env vars explicitly - setsid/bash -c may not inherit them in act/Docker
           # Supabase vars are loaded from .env.local, CI vars from workflow env
+          # Override Supabase URL if ACT_SUPABASE_URL_OVERRIDE is set (for act/Docker networking)
           setsid bash -c "export CI=${CI}; \
             export PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}; \
-            export NEXT_PUBLIC_SUPABASE_URL='${NEXT_PUBLIC_SUPABASE_URL}'; \
+            [ -n \"\${ACT_SUPABASE_URL_OVERRIDE}\" ] && export NEXT_PUBLIC_SUPABASE_URL=\"\${ACT_SUPABASE_URL_OVERRIDE}\" || export NEXT_PUBLIC_SUPABASE_URL='${NEXT_PUBLIC_SUPABASE_URL}'; \
             export NEXT_PUBLIC_SUPABASE_ANON_KEY='${NEXT_PUBLIC_SUPABASE_ANON_KEY}'; \
             export SUPABASE_ANON_KEY='${SUPABASE_ANON_KEY}'; \
             export SUPABASE_SERVICE_ROLE_KEY='${SUPABASE_SERVICE_ROLE_KEY}'; \
