@@ -59,6 +59,38 @@ fs.writeFileSync(path, lines.join('\n') + '\n', 'utf8');
 NODE
 }
 
+function start_supabase_with_retry() {
+  # Retry supabase start with exponential backoff
+  # Sometimes containers exist but aren't ready yet
+  local max_retries="${1:-1}"
+  local retry_count=0
+  local start_success=false
+
+  while [[ $retry_count -lt $max_retries ]]; do
+    if "$SUPABASE_BIN" start >/dev/null 2>&1; then
+      start_success=true
+      break
+    fi
+
+    retry_count=$((retry_count + 1))
+    if [[ $retry_count -lt $max_retries ]]; then
+      local wait_seconds=$((2 ** retry_count)) # Exponential backoff: 2, 4, 8, 16 seconds
+      echo "Supabase start attempt $retry_count failed, waiting ${wait_seconds}s before retry..." >&2
+      sleep "$wait_seconds"
+    fi
+  done
+
+  if [[ "$start_success" != "true" ]]; then
+    echo "Supabase start failed after $max_retries attempts. Trying to stop and restart..." >&2
+    "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
+    sleep 2
+    "$SUPABASE_BIN" start >/dev/null || {
+      emit_json "supabase.quickstart.error" "message" "Supabase start failed. Ensure Docker is running and accessible. If using act, run 'pnpm quickstart' on host first, then use --env-file .env.local"
+      exit 1
+    }
+  fi
+}
+
 function on_error() {
   local exit_code=$?
   emit_json "supabase.quickstart.error" "exitCode" "$exit_code" "message" "${BASH_COMMAND:-quickstart failed}"
@@ -96,35 +128,7 @@ else
   if "$SUPABASE_BIN" status >/dev/null 2>&1; then
     echo "Supabase is already running, skipping start..." >&2
   else
-    # Retry supabase start with exponential backoff
-    # Sometimes containers exist but aren't ready yet
-    MAX_RETRIES=5
-    RETRY_COUNT=0
-    START_SUCCESS=false
-
-    while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-      if "$SUPABASE_BIN" start >/dev/null 2>&1; then
-        START_SUCCESS=true
-        break
-      fi
-      
-      RETRY_COUNT=$((RETRY_COUNT + 1))
-      if [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; then
-        WAIT_SECONDS=$((2 ** RETRY_COUNT))  # Exponential backoff: 2, 4, 8, 16 seconds
-        echo "Supabase start attempt $RETRY_COUNT failed, waiting ${WAIT_SECONDS}s before retry..." >&2
-        sleep $WAIT_SECONDS
-      fi
-    done
-
-    if [[ "$START_SUCCESS" != "true" ]]; then
-      echo "Supabase start failed after $MAX_RETRIES attempts. Trying to stop and restart..." >&2
-      "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
-      sleep 2
-      "$SUPABASE_BIN" start >/dev/null || {
-        emit_json "supabase.quickstart.error" "message" "Supabase start failed. Ensure Docker is running and accessible. If using act, run 'pnpm quickstart' on host first, then use --env-file .env.local"
-        exit 1
-      }
-    fi
+    start_supabase_with_retry 5
   fi
 fi
 
