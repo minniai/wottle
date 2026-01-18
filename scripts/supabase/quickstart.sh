@@ -59,6 +59,14 @@ fs.writeFileSync(path, lines.join('\n') + '\n', 'utf8');
 NODE
 }
 
+function sync_env_values() {
+  local target="$1"
+  update_env_var "$target" "NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL"
+  update_env_var "$target" "SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_SERVICE_ROLE_KEY"
+  update_env_var "$target" "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
+  update_env_var "$target" "SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
+}
+
 function start_supabase_with_retry() {
   # Retry supabase start with exponential backoff
   # Sometimes containers exist but aren't ready yet
@@ -71,13 +79,10 @@ function start_supabase_with_retry() {
       start_success=true
       break
     fi
-
     retry_count=$((retry_count + 1))
-    if [[ $retry_count -lt $max_retries ]]; then
-      local wait_seconds=$((2 ** retry_count)) # Exponential backoff: 2, 4, 8, 16 seconds
-      echo "Supabase start attempt $retry_count failed, waiting ${wait_seconds}s before retry..." >&2
-      sleep "$wait_seconds"
-    fi
+    local wait_seconds=$((2 ** retry_count)) # Exponential backoff: 2, 4, 8, 16 seconds
+    echo "Supabase start attempt $retry_count failed, waiting ${wait_seconds}s before retry..." >&2
+    sleep "$wait_seconds"
   done
 
   if [[ "$start_success" != "true" ]]; then
@@ -128,7 +133,7 @@ else
   if "$SUPABASE_BIN" status >/dev/null 2>&1; then
     echo "Supabase is already running, skipping start..." >&2
   else
-    start_supabase_with_retry 5
+    start_supabase_with_retry 3
   fi
 fi
 
@@ -212,14 +217,6 @@ if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
   emit_json "supabase.quickstart.error" "message" "Missing Supabase credentials"
   exit 1
 fi
-
-function sync_env_values() {
-  local target="$1"
-  update_env_var "$target" "NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL"
-  update_env_var "$target" "SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_SERVICE_ROLE_KEY"
-  update_env_var "$target" "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
-  update_env_var "$target" "SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"
-}
 
 sync_env_values "$ENV_FILE"
 if [[ -n "$PROD_ENV_FILE" ]]; then
