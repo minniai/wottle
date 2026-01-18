@@ -126,6 +126,7 @@ echo "" >&2
 #   --add-host: Allow containers to resolve host.docker.internal to the host IP
 #   --env-file /dev/null: Disable act's default .env loading. The repo's .env has
 #     placeholder Supabase values that would cause quickstart to skip starting Supabase.
+
 exec act "$@" ${ACT_EXTRA_ARGS[@]+"${ACT_EXTRA_ARGS[@]}"} \
     --container-daemon-socket "$DOCKER_SOCK" \
     --artifact-server-path "$ARTIFACT_DIR" \
