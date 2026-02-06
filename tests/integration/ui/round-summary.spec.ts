@@ -94,8 +94,9 @@ test.describe("Round summary panel", () => {
       await expect(summaryPanel).toHaveAttribute("role", "dialog");
       await expect(summaryPanel).toHaveAttribute("aria-modal", "true");
 
-      // Continue to next round
-      await pageA.getByTestId("round-summary-continue").click();
+      // The panel is position:fixed at the bottom, which Playwright
+      // may report as "outside viewport". Use JS click to bypass.
+      await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
 
       // Verify round number incremented
       await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, {

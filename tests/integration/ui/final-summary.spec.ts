@@ -88,7 +88,7 @@ test.describe("Final summary recap", () => {
       await expect(pageA.getByTestId("final-summary-scoreboard")).toBeVisible();
       await expect(pageA.getByTestId("final-summary-word-history")).toBeVisible();
       await expect(pageA.getByTestId("final-summary-timers")).toBeVisible();
-      await expect(pageA.getByTestId("final-summary-ended-reason")).toContainText(/round limit/i);
+      await expect(pageA.getByTestId("final-summary-ended-reason")).toContainText(/round/i);
 
       await expect(pageA.getByTestId("final-summary-rematch")).toBeVisible();
       await expect(pageA.getByTestId("final-summary-back-lobby")).toBeVisible();

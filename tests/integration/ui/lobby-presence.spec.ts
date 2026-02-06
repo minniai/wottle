@@ -23,8 +23,7 @@ async function loginAs(page: import("@playwright/test").Page, username: string) 
   // Click submit - the Server Action will set a cookie and redirect
   await page.getByTestId("lobby-login-submit").click();
 
-  // Allow the Server Action redirect + cookie to settle
-  await page.waitForLoadState("networkidle");
+  // Avoid networkidle: lobby polling prevents the page from going idle.
 
   console.log(`[DEBUG] Login reload for ${username}. Current URL: ${page.url()}`);
   

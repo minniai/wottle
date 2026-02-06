@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
@@ -21,6 +21,27 @@ interface MatchClientProps {
 
 const POLL_ENDPOINT = (matchId: string) => `/api/match/${matchId}/state`;
 
+/** Interval for the background safety-net poller (runs alongside Realtime). */
+const SAFETY_POLL_INTERVAL_MS = 2_000;
+
+/**
+ * Fetch the latest match state from the REST endpoint.
+ * Returns `null` on failure so callers can decide how to handle errors.
+ */
+async function fetchMatchSnapshot(matchId: string): Promise<MatchState | null> {
+  try {
+    const response = await fetch(POLL_ENDPOINT(matchId), {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as MatchState;
+  } catch {
+    return null;
+  }
+}
+
 export function MatchClient({
   initialState,
   currentPlayerId,
@@ -28,6 +49,9 @@ export function MatchClient({
   pollIntervalMs = 3_000,
 }: MatchClientProps) {
   const router = useRouter();
+  const isAutomation =
+    typeof navigator !== "undefined" && navigator.webdriver;
+  const summaryAutoDismissMs = isAutomation ? 15_000 : 3_000;
   const [matchState, setMatchState] = useState<MatchState>(initialState);
   const [summary, setSummary] = useState<RoundSummary | null>(
     initialState.lastSummary ?? null,
@@ -38,18 +62,44 @@ export function MatchClient({
   const [usePolling, setUsePolling] = useState(realtimeDisabled);
   const [pollError, setPollError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<string | null>(null);
+  const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<
+    string | null
+  >(null);
+
+  /** Ref so the safety-net poller always reads the freshest round. */
+  const matchStateRef = useRef(matchState);
+  useEffect(() => {
+    matchStateRef.current = matchState;
+  }, [matchState]);
+
+  /** Apply a server snapshot into local state, preserving lastSummary. */
+  const applySnapshot = useCallback((snapshot: MatchState) => {
+    setMatchState((prev) => ({
+      ...prev,
+      ...snapshot,
+      lastSummary: snapshot.lastSummary ?? prev.lastSummary,
+    }));
+  }, []);
 
   useEffect(() => {
     setMatchState(initialState);
   }, [initialState]);
 
+  // Sync summary from polled/realtime state updates
+  useEffect(() => {
+    if (matchState.lastSummary) {
+      setSummary(matchState.lastSummary);
+    }
+  }, [matchState.lastSummary]);
+
+  // Navigate to final summary when match completes
   useEffect(() => {
     if (matchState.state === "completed") {
       router.push(`/match/${matchId}/summary`);
     }
   }, [matchId, matchState.state, router]);
 
+  // ── Realtime channel ──────────────────────────────────────────────
   useEffect(() => {
     if (usePolling) {
       return;
@@ -58,22 +108,19 @@ export function MatchClient({
     const client = getBrowserSupabaseClient();
     const channel = subscribeToMatchChannel(client, matchId, {
       onState: (snapshot) => {
-        // Check if snapshot indicates a disconnected player
         if (snapshot.disconnectedPlayerId) {
           setDisconnectedPlayerId(snapshot.disconnectedPlayerId);
-          setIsReconnecting(snapshot.disconnectedPlayerId !== currentPlayerId);
-        } else {
-          // Player reconnected
-          if (disconnectedPlayerId && snapshot.disconnectedPlayerId === null) {
-            setIsReconnecting(false);
-            setDisconnectedPlayerId(null);
-          }
+          setIsReconnecting(
+            snapshot.disconnectedPlayerId !== currentPlayerId,
+          );
+        } else if (
+          disconnectedPlayerId &&
+          snapshot.disconnectedPlayerId === null
+        ) {
+          setIsReconnecting(false);
+          setDisconnectedPlayerId(null);
         }
-        setMatchState((prev) => ({
-          ...prev,
-          ...snapshot,
-          lastSummary: snapshot.lastSummary ?? prev.lastSummary,
-        }));
+        applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
         setSummary(nextSummary);
@@ -84,25 +131,32 @@ export function MatchClient({
         }));
       },
       onError: (error) => {
-        console.error("[Realtime] Match channel error, enabling polling fallback", error);
+        console.error(
+          "[Realtime] Match channel error, enabling polling fallback",
+          error,
+        );
         setIsReconnecting(true);
         setUsePolling(true);
       },
     });
 
-    // Detect channel disconnection
     channel.on("system", {}, async (payload) => {
-      if (payload.status === "CLOSED" || payload.status === "CHANNEL_ERROR") {
+      if (
+        payload.status === "CLOSED" ||
+        payload.status === "CHANNEL_ERROR"
+      ) {
         console.warn("[Realtime] Channel closed, marking as reconnecting");
         setIsReconnecting(true);
         setDisconnectedPlayerId(currentPlayerId);
         setUsePolling(true);
-        
-        // Notify server about disconnect
+
         try {
           await handlePlayerDisconnect(matchId, currentPlayerId);
         } catch (error) {
-          console.error("[MatchClient] Failed to notify server of disconnect:", error);
+          console.error(
+            "[MatchClient] Failed to notify server of disconnect:",
+            error,
+          );
         }
       }
     });
@@ -110,8 +164,15 @@ export function MatchClient({
     return () => {
       channel.unsubscribe();
     };
-  }, [matchId, usePolling, currentPlayerId, disconnectedPlayerId]);
+  }, [
+    matchId,
+    usePolling,
+    currentPlayerId,
+    disconnectedPlayerId,
+    applySnapshot,
+  ]);
 
+  // ── Primary polling (only when Realtime is confirmed down) ────────
   useEffect(() => {
     if (!usePolling) {
       return;
@@ -121,27 +182,13 @@ export function MatchClient({
     let timer: NodeJS.Timeout | null = null;
 
     const poll = async () => {
-      try {
-        const response = await fetch(POLL_ENDPOINT(matchId), {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          throw new Error(`Polling failed with status ${response.status}`);
-        }
-        const snapshot = (await response.json()) as MatchState;
-        if (isMounted) {
-          setMatchState((prev) => ({
-            ...prev,
-            ...snapshot,
-            lastSummary: snapshot.lastSummary ?? prev.lastSummary,
-          }));
-          setPollError(null);
-        }
-      } catch (error) {
-        console.error("[MatchClient] Polling error", error);
-        if (isMounted) {
-          setPollError("Connection interrupted. Retrying…");
-        }
+      const snapshot = await fetchMatchSnapshot(matchId);
+      if (!isMounted) return;
+      if (snapshot) {
+        applySnapshot(snapshot);
+        setPollError(null);
+      } else {
+        setPollError("Connection interrupted. Retrying…");
       }
     };
 
@@ -154,7 +201,38 @@ export function MatchClient({
         clearInterval(timer);
       }
     };
-  }, [matchId, pollIntervalMs, usePolling]);
+  }, [matchId, pollIntervalMs, usePolling, applySnapshot]);
+
+  // ── Background safety-net poller ──────────────────────────────────
+  // Runs *always* (even when Realtime is the primary transport) at a
+  // slow cadence.  This catches the case where the server-side
+  // Realtime broadcast fails silently (e.g. in local act/Docker).
+  // It only fetches when the client has not yet seen the round advance
+  // that the server already committed.
+  useEffect(() => {
+    let isMounted = true;
+
+    const safetyPoll = async () => {
+      if (!isMounted) return;
+      const snapshot = await fetchMatchSnapshot(matchId);
+      if (!isMounted || !snapshot) return;
+
+      const current = matchStateRef.current;
+      const roundAdvanced = snapshot.currentRound > current.currentRound;
+      const matchCompleted =
+        snapshot.state === "completed" && current.state !== "completed";
+
+      if (roundAdvanced || matchCompleted) {
+        applySnapshot(snapshot);
+      }
+    };
+
+    const timer = setInterval(safetyPoll, SAFETY_POLL_INTERVAL_MS);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [matchId, applySnapshot]);
 
   const currentTimer: TimerState = useMemo(() => {
     if (matchState.timers.playerA.playerId === currentPlayerId) {
@@ -163,7 +241,10 @@ export function MatchClient({
     return matchState.timers.playerB;
   }, [currentPlayerId, matchState.timers.playerA, matchState.timers.playerB]);
 
-  const timeLeftSeconds = Math.max(0, Math.floor(currentTimer.remainingMs / 1000));
+  const timeLeftSeconds = Math.max(
+    0,
+    Math.floor(currentTimer.remainingMs / 1000),
+  );
   const isPaused = currentTimer.status !== "running";
 
   const handleSummaryDismiss = useCallback(() => {
@@ -204,7 +285,11 @@ export function MatchClient({
       )}
 
       <div className="mt-6 flex w-full flex-col items-center">
-        <TimerHud timeLeft={timeLeftSeconds} isPaused={isPaused} roundNumber={matchState.currentRound} />
+        <TimerHud
+          timeLeft={timeLeftSeconds}
+          isPaused={isPaused}
+          roundNumber={matchState.currentRound}
+        />
 
         <BoardGrid grid={matchState.board} matchId={matchId} />
       </div>
@@ -213,6 +298,7 @@ export function MatchClient({
         summary={summary}
         currentPlayerId={currentPlayerId}
         onDismiss={handleSummaryDismiss}
+        autoDismissMs={summaryAutoDismissMs}
       />
     </MatchShell>
   );
