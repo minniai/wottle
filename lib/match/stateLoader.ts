@@ -1,7 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { boardGridSchema } from "@/lib/types/board";
-import type { MatchPhase, MatchState, ScoreTotals } from "@/lib/types/match";
+import type { Coordinate } from "@/lib/types/board";
+import { aggregateRoundSummary } from "@/lib/scoring/roundSummary";
+import type {
+  MatchPhase,
+  MatchState,
+  RoundSummary,
+  ScoreTotals,
+  WordScore,
+} from "@/lib/types/match";
 import { generateBoard } from "@/scripts/supabase/generateBoard";
 
 type AnyClient = SupabaseClient<any, any, any>;
@@ -48,6 +56,97 @@ function ensureBoardSnapshot(
   }
 
   return generateBoard({ matchId: boardSeed ?? matchId });
+}
+
+async function fetchCompletedRound(
+  client: AnyClient,
+  matchId: string,
+  roundNumber: number,
+) {
+  const { data } = await client
+    .from("rounds")
+    .select("id,state")
+    .eq("match_id", matchId)
+    .eq("round_number", roundNumber)
+    .maybeSingle();
+
+  if (!data || data.state !== "completed") {
+    return null;
+  }
+
+  return data;
+}
+
+async function fetchWordEntries(client: AnyClient, matchId: string, roundId: string) {
+  const { data, error } = await client
+    .from("word_score_entries")
+    .select("*")
+    .eq("match_id", matchId)
+    .eq("round_id", roundId);
+
+  if (error) {
+    console.warn("[MatchState] Failed to load word scores:", error.message);
+    return null;
+  }
+
+  return data ?? [];
+}
+
+async function fetchPreviousTotals(
+  client: AnyClient,
+  matchId: string,
+  roundNumber: number,
+): Promise<ScoreTotals> {
+  const { data } = await client
+    .from("scoreboard_snapshots")
+    .select("player_a_score,player_b_score")
+    .eq("match_id", matchId)
+    .eq("round_number", roundNumber - 1)
+    .maybeSingle();
+
+  return data
+    ? {
+        playerA: data.player_a_score ?? 0,
+        playerB: data.player_b_score ?? 0,
+      }
+    : { playerA: 0, playerB: 0 };
+}
+
+function mapWordScores(entries: any[]): WordScore[] {
+  return entries.map((entry) => ({
+    playerId: entry.player_id as string,
+    word: entry.word as string,
+    length: entry.length as number,
+    lettersPoints: entry.letters_points as number,
+    bonusPoints: entry.bonus_points as number,
+    totalPoints: entry.total_points as number,
+    coordinates: entry.tiles as Coordinate[],
+  }));
+}
+
+async function loadLatestRoundSummary(
+  client: AnyClient,
+  matchId: string,
+  currentRound: number,
+): Promise<RoundSummary | null> {
+  const summaryRound = currentRound - 1;
+  if (summaryRound < 1) {
+    return null;
+  }
+
+  const round = await fetchCompletedRound(client, matchId, summaryRound);
+  if (!round) {
+    return null;
+  }
+
+  const wordEntries = await fetchWordEntries(client, matchId, round.id);
+  if (!wordEntries) {
+    return null;
+  }
+
+  const previousTotals = await fetchPreviousTotals(client, matchId, summaryRound);
+  const wordScores = mapWordScores(wordEntries);
+  return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals);
 }
 
 export async function loadMatchState(
@@ -133,6 +232,7 @@ export async function loadMatchState(
 
   const board = ensureBoardSnapshot(match.id, match.board_seed, round ?? null);
   const effectiveState = mapState(round?.state ?? null, match.state);
+  const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round);
 
   return {
     matchId: match.id,
@@ -152,7 +252,7 @@ export async function loadMatchState(
       },
     },
     scores,
-    lastSummary: null,
+    lastSummary,
   };
 }
 
