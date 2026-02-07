@@ -1,0 +1,225 @@
+{
+  "main": {
+    "id": "30b5d43aeacd26ee",
+    "type": "split",
+    "children": [
+      {
+        "id": "df96a605ae718665",
+        "type": "tabs",
+        "dimension": 68.68231046931407,
+        "children": [
+          {
+            "id": "9f6733cff6020af1",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "specs/001-e2e-board-scaffold/data-model.md",
+                "mode": "source",
+                "source": true
+              },
+              "icon": "lucide-file",
+              "title": "data-model"
+            }
+          }
+        ]
+      },
+      {
+        "id": "8746d429105ceb73",
+        "type": "tabs",
+        "dimension": 31.31768953068592,
+        "children": [
+          {
+            "id": "544f0a854b073579",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8da34760d0b45757",
+    "type": "split",
+    "children": [
+      {
+        "id": "c7bc39749caaa3a4",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3c85bd92045a0367",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "699310dad3088035",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "2a8f4651f88ca5eb",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "f20314367f8234cc",
+    "type": "split",
+    "children": [
+      {
+        "id": "cc84fec60069abc9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2f84a1488a614617",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "specs/001-e2e-board-scaffold/data-model.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for data-model"
+            }
+          },
+          {
+            "id": "8f1f437eecc86af9",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Welcome.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Welcome"
+            }
+          },
+          {
+            "id": "a0c77426169eca8c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "4b72d6f20f16f75d",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "4ca52c4004cf224e",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Welcome.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Welcome"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "9f6733cff6020af1",
+  "lastOpenFiles": [
+    "CLAUDE.md",
+    "GEMINI.md",
+    "README.md",
+    "scripts/ACT_README.md",
+    "2026-02-07.md",
+    "app/actions/README.md",
+    "Welcome.md",
+    "Untitled 1.canvas",
+    "Untitled.canvas",
+    "specs/001-e2e-board-scaffold/research.md",
+    "specs/001-e2e-board-scaffold/readme.md",
+    "specs/001-e2e-board-scaffold/plan.md",
+    "specs/001-e2e-board-scaffold/data-model.md",
+    "prd/wottle_user_management.md",
+    "specs/001-e2e-board-scaffold/checklists/requirements.md",
+    "prd/wottle_technical_architecture.md",
+    "prd/wottle_prd.md",
+    "prd/wottle_ideation.md",
+    "specs/001-e2e-board-scaffold/quickstart.md"
+  ]
+}
