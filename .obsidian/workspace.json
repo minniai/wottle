@@ -6,7 +6,7 @@
       {
         "id": "df96a605ae718665",
         "type": "tabs",
-        "dimension": 68.68231046931407,
+        "dimension": 58.23412698412699,
         "children": [
           {
             "id": "9f6733cff6020af1",
@@ -14,12 +14,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "specs/001-e2e-board-scaffold/data-model.md",
-                "mode": "source",
+                "file": "prd/wottle_technical_architecture.md",
+                "mode": "preview",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "data-model"
+              "title": "wottle_technical_architecture"
             }
           }
         ]
@@ -27,7 +27,7 @@
       {
         "id": "8746d429105ceb73",
         "type": "tabs",
-        "dimension": 31.31768953068592,
+        "dimension": 41.76587301587302,
         "children": [
           {
             "id": "544f0a854b073579",
@@ -112,7 +112,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "specs/001-e2e-board-scaffold/data-model.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -122,7 +121,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for data-model"
+              "title": "Backlinks"
             }
           },
           {
@@ -200,8 +199,14 @@
       "bases:Create new base": false
     }
   },
-  "active": "9f6733cff6020af1",
+  "active": "544f0a854b073579",
   "lastOpenFiles": [
+    "specs/002-two-player-playtest/checklists/requirements.md",
+    "prd/wottle_technical_architecture.md",
+    "prd/wottle_prd.md",
+    "prd/wottle_ideation.md",
+    "specs/001-e2e-board-scaffold/quickstart.md",
+    "specs/001-e2e-board-scaffold/data-model.md",
     "CLAUDE.md",
     "GEMINI.md",
     "README.md",
@@ -214,12 +219,7 @@
     "specs/001-e2e-board-scaffold/research.md",
     "specs/001-e2e-board-scaffold/readme.md",
     "specs/001-e2e-board-scaffold/plan.md",
-    "specs/001-e2e-board-scaffold/data-model.md",
     "prd/wottle_user_management.md",
-    "specs/001-e2e-board-scaffold/checklists/requirements.md",
-    "prd/wottle_technical_architecture.md",
-    "prd/wottle_prd.md",
-    "prd/wottle_ideation.md",
-    "specs/001-e2e-board-scaffold/quickstart.md"
+    "specs/001-e2e-board-scaffold/checklists/requirements.md"
   ]
 }

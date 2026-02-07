@@ -16,10 +16,23 @@ async function loginPlayer(
   // and the form component calls router.refresh() on success.
   await page.getByTestId("lobby-login-submit").click();
 
-  // Wait for the lobby list to appear after router.refresh() re-renders.
-  // Do NOT use page.reload(): it unmounts React, triggering the presence
-  // store's disconnect() which sends DELETE /api/lobby/presence and
-  // permanently removes this player from the database.
+  // Wait for the Server Action to complete and cookie to settle
+  await page.waitForTimeout(1500);
+
+  // Check if router.refresh() re-rendered the page with the session.
+  // If not (e.g. Client Router Cache in production), fall back to goto("/")
+  // which loads the page fresh. Unlike page.reload(), goto("/") creates a
+  // brand-new JS context so the Zustand store has no trackedPlayerId and
+  // disconnect() won't send a DELETE.
+  const lobbyVisible = await page
+    .getByTestId("lobby-presence-list")
+    .isVisible()
+    .catch(() => false);
+
+  if (!lobbyVisible) {
+    await page.goto("/");
+  }
+
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 20_000,
   });
