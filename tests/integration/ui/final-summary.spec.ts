@@ -12,17 +12,14 @@ async function loginPlayer(
   await page.goto("/");
   await page.getByTestId("lobby-username-input").fill(username);
 
-  // Click submit - the Server Action will set a cookie and redirect
+  // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
+  // and the form component calls router.refresh() on success.
   await page.getByTestId("lobby-login-submit").click();
 
-  // Wait for the action to complete and cookie to settle
-  await page.waitForTimeout(1000);
-
-  // Force a reload to ensure the server-rendered page picks up the session
-  // This bypasses potential Client Router Cache issues in the test environment
-  await page.reload();
-
-  // Wait for lobby list to appear (indicates page re-rendered with session)
+  // Wait for the lobby list to appear after router.refresh() re-renders.
+  // Do NOT use page.reload(): it unmounts React, triggering the presence
+  // store's disconnect() which sends DELETE /api/lobby/presence and
+  // permanently removes this player from the database.
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 20_000,
   });
