@@ -1,55 +1,19 @@
 import { expect, test } from "@playwright/test";
 
 async function loginAs(page: import("@playwright/test").Page, username: string) {
-  // Debug: Log all responses to check for Set-Cookie on login
-  page.on('response', async (response) => {
-    const url = response.url();
-    if (url.includes('/api/auth/login') || url.endsWith(':3000/')) {
-      const headers = await response.allHeaders();
-      console.log(`[DEBUG_NET] Response from ${url}: Status ${response.status()}`);
-      if (headers['set-cookie']) {
-        console.log(`[DEBUG_NET] Set-Cookie: ${headers['set-cookie']}`);
-      } else {
-        console.log(`[DEBUG_NET] No Set-Cookie header found.`);
-      }
-    }
-  });
-
   await page.goto("/");
   const input = page.getByTestId("lobby-username-input");
   await expect(input).toBeVisible();
   await input.fill(username);
 
-  // Click submit - the Server Action will set a cookie and redirect
+  // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
+  // and the form component calls router.refresh() on success.
   await page.getByTestId("lobby-login-submit").click();
 
-  // Avoid networkidle: lobby polling prevents the page from going idle.
-
-  console.log(`[DEBUG] Login reload for ${username}. Current URL: ${page.url()}`);
-  
-  // Debug: Check if we have the session cookie
-  const cookies = await page.context().cookies();
-  const sessionCookie = cookies.find(c => c.name.includes("session") || c.name.includes("auth"));
-  console.log(`[DEBUG] Cookies present: ${cookies.map(c => c.name).join(", ")}`);
-  console.log(`[DEBUG] Session cookie found: ${!!sessionCookie}`);
-
-  // Debug: Check if login input is still visible
-  const inputVisible = await page.getByTestId("lobby-username-input").isVisible();
-  console.log(`[DEBUG] Login input visible before reload: ${inputVisible}`);
-
-  await page.reload({ waitUntil: "networkidle" });
-  
-  console.log(`[DEBUG] Post-reload URL: ${page.url()}`);
-  const postReloadInputVisible = await page.getByTestId("lobby-username-input").isVisible();
-  console.log(`[DEBUG] Login input visible after reload: ${postReloadInputVisible}`);
-  
-  if (postReloadInputVisible) {
-     console.log(`[DEBUG] Still on login screen. Dumping body text snippet:`);
-     const bodyText = await page.evaluate(() => document.body.innerText.substring(0, 500));
-     console.log(bodyText);
-  }
-
-  // Wait for the lobby list to appear (indicates page re-rendered with session)
+  // Wait for the lobby list to appear after router.refresh() re-renders the page.
+  // Do NOT use page.reload() here: it unmounts React, which triggers the
+  // presence store's disconnect() cleanup and sends DELETE /api/lobby/presence,
+  // permanently removing this player from the database.
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 20_000,
   });
