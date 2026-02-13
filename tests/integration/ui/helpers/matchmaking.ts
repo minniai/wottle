@@ -58,9 +58,13 @@ export async function startMatchWithDirectInvite(
     playerBUsername,
   });
 
+  // Stabilization wait: give presence store time to settle before opening invite modal
+  // (Realtime/poller can overwrite briefly; modal reads from same store)
+  await safeWait(pageA, 2500);
+
   // Player A opens invite modal and invites Player B
   // Retry loop to handle modal refresh timing
-  const maxRetries = 5;
+  const maxRetries = 8;
   let invited = false;
   
   for (let attempt = 1; attempt <= maxRetries && !invited; attempt++) {
@@ -72,9 +76,10 @@ export async function startMatchWithDirectInvite(
     await pageA.getByTestId("matchmaker-invite-button").click();
     
     // Wait for invite modal to appear
+    const remainingForModal = Math.max(1000, Math.min(5000, timeoutMs - (Date.now() - startTime)));
     await pageA.getByTestId("matchmaker-invite-modal").waitFor({ 
       state: "visible", 
-      timeout: Math.min(5000, timeoutMs - (Date.now() - startTime)) 
+      timeout: remainingForModal,
     });
 
     // Find Player B in the invite list and click invite
@@ -86,7 +91,7 @@ export async function startMatchWithDirectInvite(
       
       // Wait for the specific player to appear in the list
       // Use longer timeout since modal content might take a moment to populate
-      const remainingTimeForOption = Math.min(8000, timeoutMs - (Date.now() - startTime));
+      const remainingTimeForOption = Math.max(1000, Math.min(8000, timeoutMs - (Date.now() - startTime)));
       try {
         await targetOption.waitFor({
           state: "visible",
@@ -98,9 +103,18 @@ export async function startMatchWithDirectInvite(
       } catch (e) {
         // Player not found in modal, close and retry
         if (attempt < maxRetries) {
-          // Close modal by pressing Escape or clicking outside
-          await pageA.keyboard.press("Escape");
-          await pageA.waitForTimeout(500);
+          if (!isPageOpen(pageA)) {
+            throw new Error(
+              "Page was closed during invite modal retry (likely test timeout)"
+            );
+          }
+          // Close modal via button (preferred) or Escape
+          const closeBtn = pageA.getByRole("button", { name: "Close invite modal" });
+          const closed = await closeBtn.click({ timeout: 2000 }).then(() => true).catch(() => false);
+          if (!closed) {
+            await pageA.keyboard.press("Escape");
+          }
+          await pageA.waitForTimeout(2000);
         } else {
           throw e; // Last attempt, re-throw the error
         }
@@ -120,17 +134,17 @@ export async function startMatchWithDirectInvite(
   }
 
   // Wait for Player B to see the incoming invite
-  const remainingTime1 = timeoutMs - (Date.now() - startTime);
+  const remainingTime1 = Math.max(5000, Math.min(10000, timeoutMs - (Date.now() - startTime)));
   await pageB.getByTestId("matchmaker-invite-banner").waitFor({ 
     state: "visible", 
-    timeout: Math.min(10000, remainingTime1) 
+    timeout: remainingTime1,
   });
 
   // Player B accepts the invite
   await pageB.getByTestId("matchmaker-invite-accept").click();
 
   // Wait for both players to see the match shell
-  const remainingTime2 = timeoutMs - (Date.now() - startTime);
+  const remainingTime2 = Math.max(5000, timeoutMs - (Date.now() - startTime));
   const [matchIdA, matchIdB] = await waitForBothPlayersMatched(
     pageA, 
     pageB, 

@@ -57,7 +57,7 @@ async function loginAndStartMatch(
   // Pass playerBUsername for test isolation when running in parallel
   // Use a generous timeout for CI where presence propagation is slower
   const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
-    timeoutMs: 60_000,
+    timeoutMs: 120_000,
     playerBUsername: userB,
   });
 

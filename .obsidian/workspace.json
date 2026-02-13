@@ -4,30 +4,8 @@
     "type": "split",
     "children": [
       {
-        "id": "df96a605ae718665",
-        "type": "tabs",
-        "dimension": 58.23412698412699,
-        "children": [
-          {
-            "id": "9f6733cff6020af1",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "prd/wottle_technical_architecture.md",
-                "mode": "preview",
-                "source": true
-              },
-              "icon": "lucide-file",
-              "title": "wottle_technical_architecture"
-            }
-          }
-        ]
-      },
-      {
         "id": "8746d429105ceb73",
         "type": "tabs",
-        "dimension": 41.76587301587302,
         "children": [
           {
             "id": "544f0a854b073579",
@@ -201,25 +179,27 @@
   },
   "active": "544f0a854b073579",
   "lastOpenFiles": [
-    "specs/002-two-player-playtest/checklists/requirements.md",
+    "Clippings/Thread by @tomcrawshaw01.md",
+    "scripts/ACT_README.md",
+    "Clippings",
+    "prd/wottle_user_management.md",
     "prd/wottle_technical_architecture.md",
     "prd/wottle_prd.md",
     "prd/wottle_ideation.md",
+    "app/actions/README.md",
+    "specs/002-two-player-playtest/checklists/requirements.md",
     "specs/001-e2e-board-scaffold/quickstart.md",
     "specs/001-e2e-board-scaffold/data-model.md",
     "CLAUDE.md",
     "GEMINI.md",
     "README.md",
-    "scripts/ACT_README.md",
     "2026-02-07.md",
-    "app/actions/README.md",
     "Welcome.md",
     "Untitled 1.canvas",
     "Untitled.canvas",
     "specs/001-e2e-board-scaffold/research.md",
     "specs/001-e2e-board-scaffold/readme.md",
     "specs/001-e2e-board-scaffold/plan.md",
-    "prd/wottle_user_management.md",
     "specs/001-e2e-board-scaffold/checklists/requirements.md"
   ]
 }

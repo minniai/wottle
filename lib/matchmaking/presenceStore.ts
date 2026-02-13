@@ -109,20 +109,19 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         {
           onSync: (payload, source) => {
             set((state) => {
-              // If Realtime sync has fewer players than we already have, it might be incomplete
-              // Merge with existing players instead of replacing
-              const currentPlayerCount = state.players.length;
-              const newPlayerCount = payload.length;
-              
+              // If sync would lose any current player, merge instead of replacing
+              // (avoids wiping on stale API/poller or same-count-but-different-players)
+              const payloadIds = new Set(payload.map((p: PlayerIdentity) => p.id));
+              const wouldLosePlayer = state.players.some((p) => !payloadIds.has(p.id));
+              const fewerPlayers = payload.length < state.players.length;
+
               let finalPlayers = payload;
-              
-              // If Realtime sync has fewer players and we have existing players, merge them
-              if (source === "realtime" && newPlayerCount < currentPlayerCount && currentPlayerCount > 0) {
-                console.log(`[presenceStore] Realtime sync has ${newPlayerCount} players but we have ${currentPlayerCount}, merging...`);
-                // Merge: keep existing players, add/update with Realtime data
-                const existingPlayerIds = new Set(state.players.map(p => p.id));
-                const newPlayerIds = new Set(payload.map((p: PlayerIdentity) => p.id));
-                
+
+              if ((fewerPlayers || wouldLosePlayer) && state.players.length > 0) {
+                console.log(
+                  `[presenceStore] Sync (${source}) would lose players (fewer=${fewerPlayers}, wouldLose=${wouldLosePlayer}), merging...`
+                );
+                // Merge: keep existing players, add/update with incoming data
                 // Start with existing players
                 const merged = [...state.players];
                 
