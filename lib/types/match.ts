@@ -137,3 +137,50 @@ export interface MoveSubmission {
   to_y: number;
   created_at: string;
 }
+
+// ─── Frozen Tile Types (003-word-engine-scoring) ──────────────────────
+
+export type FrozenTileOwner = "player_a" | "player_b" | "both";
+
+export interface FrozenTile {
+  owner: FrozenTileOwner;
+}
+
+/** Keys are "x,y" coordinate strings. Values indicate ownership. */
+export type FrozenTileMap = Record<string, FrozenTile>;
+
+// ─── Scoring Breakdown Types (003-word-engine-scoring) ────────────────
+
+/** Detailed scoring breakdown for a single word in a round. */
+export interface WordScoreBreakdown {
+  /** The word text (lowercase) */
+  word: string;
+  /** Number of letters */
+  length: number;
+  /** Sum of LETTER_SCORING_VALUES_IS for each character */
+  lettersPoints: number;
+  /** Length bonus: (word_length - 2) * 5 */
+  lengthBonus: number;
+  /** lettersPoints + lengthBonus (0 if duplicate) */
+  totalPoints: number;
+  /** True if word was scored by this player in a prior round */
+  isDuplicate: boolean;
+  /** Ordered tile coordinates */
+  tiles: Coordinate[];
+  /** Player who formed this word */
+  playerId: string;
+}
+
+/** Complete scoring result for a round. */
+export interface RoundScoreResult {
+  /** Per-word breakdowns for Player A */
+  playerAWords: WordScoreBreakdown[];
+  /** Per-word breakdowns for Player B */
+  playerBWords: WordScoreBreakdown[];
+  /** Combo bonuses per player */
+  comboBonus: { playerA: number; playerB: number };
+  /** Score deltas for this round */
+  deltas: ScoreTotals;
+  /** Updated frozen tile map (merged with existing) */
+  newFrozenTiles: FrozenTileMap;
+}
