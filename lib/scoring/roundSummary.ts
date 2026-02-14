@@ -1,6 +1,6 @@
 import type { WordScore, RoundSummary, ScoreTotals } from "@/lib/types/match";
 import type { Coordinate } from "@/lib/types/board";
-import { LETTER_SCORING_VALUES_IS } from "@/prd/wordlist/letter_scoring_values_is";
+import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
 
 /**
  * Calculate points for a single word based on letters and bonuses.

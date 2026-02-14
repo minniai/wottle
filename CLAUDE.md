@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Wottle is a local-first board game prototype built with Next.js, TypeScript, and Supabase. Currently focused on the two-player playtest milestone (`002-two-player-playtest`) enabling login, matchmaking, and 10-round gameplay.
+Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap tiles on a 10x10 board to form Icelandic words, with chess-clock tension and spatial tile-freezing strategy.
+
+**Current State**: Spec `002-two-player-playtest` infrastructure is complete (login, lobby, matchmaking, round engine, realtime). The **core word-finding and scoring engine is a placeholder** — this is the critical next milestone. See `docs/project-analysis-2026-02-14.md` for full gap analysis.
 
 ## Essential Commands
 
@@ -82,7 +84,9 @@ Before implementing any feature:
 2. Check existing specs in `specs/` for patterns
 3. Use appropriate Speckit command for the phase
 
-**Active Spec**: `specs/002-two-player-playtest/` (In Progress - Phase 5: Submit Rounds & Resolve Moves)
+**Completed Spec**: `specs/002-two-player-playtest/` (All 52 tasks marked complete — infrastructure milestone done)
+
+**Next Spec Needed**: `003-word-engine-scoring` — Word-finder, scoring formula, frozen tiles (see Next Steps below)
 
 ## Architecture
 
@@ -96,12 +100,18 @@ Before implementing any feature:
   - `/app/(lobby)` - Lobby page
   - `/app/match/[matchId]` - Match page with dynamic routing
 - `/lib` - Business logic and utilities
-  - `/lib/game-engine` - **Board mechanics** (mutations, swaps, validation)
+  - `/lib/game-engine` - **Board mechanics** (mutations, swaps, validation) — missing word-finder
   - `/lib/match` - **Match orchestration** (round engine, state machine, conflict resolution)
   - `/lib/matchmaking` - Lobby presence, invites, player profiles
+  - `/lib/scoring` - **Scoring** (roundSummary, highlights) — stub implementation
   - `/lib/realtime` - Supabase Realtime with polling fallback
   - `/lib/supabase` - Client factories (server vs browser, with safety guards)
+  - `/lib/rate-limiting` - Scoped rate limiting middleware
+  - `/lib/a11y` - Focus trap, roving focus utilities
+  - `/lib/observability` - Structured logging, performance marks
   - `/lib/types` - Shared TypeScript types
+- `/docs` - PRD, analysis, wordlists
+  - `/docs/wordlist` - Icelandic word list + letter scoring values (unused at runtime)
 - `/components` - React Client Components
   - `/components/game` - Board, BoardGrid, TimerHud
   - `/components/match` - MatchClient, RoundSummaryPanel
@@ -190,6 +200,39 @@ const { data, error } = await supabase.from("table").select("*").single(); // or
 Common operations: `upsert()`, `select()`, `update()`, `insert()`, `delete()`
 
 RLS policies enforced on all tables: players, lobby_presence, matches, rounds, move_submissions, word_scores, match_logs
+
+## Project Status & Known Issues
+
+### Current Test Health
+
+- **25 test files passing**, **3 failing** (broken import path)
+- 111 individual tests pass
+- Broken: `roundEngine.test.ts`, `roundSummary.test.ts`, `get-round-summary.contract.test.ts`
+- Root cause: `lib/scoring/roundSummary.ts` imports from `@/prd/wordlist/letter_scoring_values_is` but alias `@/prd` is not configured — actual path is `@/docs/wordlist/letter_scoring_values_is`
+
+### Implementation Status by Area
+
+| Area              | Status              | Notes                                                                  |
+| ----------------- | ------------------- | ---------------------------------------------------------------------- |
+| Auth & Lobby      | Complete            | Login, presence, realtime, polling fallback                            |
+| Matchmaking       | Complete            | Direct invites, auto-queue, match bootstrap                            |
+| Round Engine      | Complete            | State machine, conflict resolution, 10-round cycle                     |
+| Realtime          | Complete            | WebSocket channels + HTTP polling fallback                             |
+| Reconnection      | Complete            | 10s window, timer pause, state restoration                             |
+| Rate Limiting     | Complete            | 5/min auth, 30/min moves, 429 responses                               |
+| Accessibility     | Complete            | Focus traps, aria-live, keyboard nav, WCAG 2.1 A                      |
+| Observability     | Complete            | Structured logs, perf marks, analytics hooks                           |
+| **Word Finding**  | **Not Implemented** | No Trie, no 8-directional scanner, no delta detection                  |
+| **Scoring**       | **Stub**            | `computeWordScoresForRound()` returns `[]`, formula doesn't match PRD  |
+| **Frozen Tiles**  | **Not Implemented** | No freeze tracking, no swap validation, no visual overlay              |
+| Server Timer      | Partial             | Client-side display exists, server-authoritative enforcement incomplete |
+
+### Critical Gaps (PRD vs Reality)
+
+1. **Word-Finder Engine**: The core gameplay loop (swap → find words → score → freeze) has no word-finding implementation. The 683k-entry Icelandic wordlist at `docs/wordlist/word_list_is.txt` is present but unused at runtime.
+2. **Scoring Formula**: Current implementation uses simplified bonuses that don't match the PRD formula (`(word_length - 2) * 5` for length, plus multi-word combo bonuses).
+3. **Frozen Tiles**: The PRD's tile-freezing territory mechanic (claimed words freeze tiles, 40% opacity overlay, >=24 unfrozen safeguard) is not implemented.
+4. **Broken import**: `lib/scoring/roundSummary.ts` line 3 references `@/prd/wordlist/...` which should be `@/docs/wordlist/...`.
 
 ## Code Standards
 
@@ -387,3 +430,44 @@ Playtest configuration:
 5. Refactor while keeping tests green
 6. Run performance tests to validate SLAs
 7. Update types in `/lib/types` if needed
+
+## Next Steps (Recommended Priority Order)
+
+### P0 — Fix Broken Tests (Immediate)
+
+1. Fix import path in `lib/scoring/roundSummary.ts`: change `@/prd/wordlist/...` to `@/docs/wordlist/...`
+2. Verify all 28 test files pass
+
+### P0 — Core Gameplay: Spec 003 Word Engine & Scoring (Blocks Playtesting)
+
+Use `/speckit.specify` to create `specs/003-word-engine-scoring/`. Scope:
+
+1. **Trie Dictionary**: Build in-memory Trie from `docs/wordlist/word_list_is.txt` for O(1) lookups
+2. **8-Directional Board Scanner**: Find all valid words (3+ letters) in horizontal, vertical, diagonal directions
+3. **Delta Detection**: Identify newly formed words after a swap (not pre-existing)
+4. **PRD-Compliant Scoring**: Length bonus `(word_length - 2) * 5`, multi-word combo bonuses
+5. **Unique Word Tracking**: Each word scores only once per player per match
+6. **Frozen Tiles**: Claimed words freeze tiles; frozen tiles can't be swapped; visual overlay
+7. **Integration**: Wire into `computeWordScoresForRound()` replacing the placeholder
+8. **Performance**: <50ms word validation per PRD SLA
+
+### P1 — Server-Authoritative Timer
+
+- Store clock state server-side (currently client-only display)
+- Pause on swap submission, resume on next round
+- Enforce time expiration preventing further moves
+- Clock sync to prevent client drift
+
+### P2 — Quality & Polish
+
+- Clean up legacy endpoints (`api/board`, `api/swap`, `actions/getBoard`, `actions/swapTiles`)
+- Board generation enhancement (seeded words, anti-clustering)
+- Production config (`next.config.js` security headers, `.nvmrc`, `engines` field)
+- Re-establish conventional commit discipline (add commitlint hook)
+
+### P3 — Production Readiness
+
+- Vercel deployment configuration
+- Supabase Cloud project setup
+- Sentry error tracking + APM
+- Mobile responsiveness validation
