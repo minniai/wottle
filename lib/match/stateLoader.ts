@@ -164,7 +164,8 @@ export async function loadMatchState(
         player_a_id,
         player_b_id,
         player_a_timer_ms,
-        player_b_timer_ms
+        player_b_timer_ms,
+        frozen_tiles
       `,
     )
     .eq("id", matchId)
@@ -253,6 +254,7 @@ export async function loadMatchState(
     },
     scores,
     lastSummary,
+    frozenTiles: (match as any).frozen_tiles ?? {},
   };
 }
 

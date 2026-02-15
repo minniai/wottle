@@ -13,11 +13,16 @@ import type {
   MoveRequest,
   MoveResult,
 } from "@/lib/types/board";
+import type { FrozenTileMap } from "@/lib/types/match";
 
 interface BoardGridProps {
   grid: BoardGridType;
   matchId: string;
   className?: string;
+  /** Frozen tile map for visual overlays. Keys are "x,y" strings. */
+  frozenTiles?: FrozenTileMap;
+  /** Current player's slot for determining own vs opponent frozen tiles. */
+  playerSlot?: "player_a" | "player_b";
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -64,10 +69,19 @@ async function submitSwapRequest(matchId: string, move: MoveRequest): Promise<Mo
   );
 }
 
+/** Player color constants for frozen tile overlays. */
+const FROZEN_COLORS = {
+  player_a: "rgba(59, 130, 246, 0.4)", // blue at 40% opacity
+  player_b: "rgba(239, 68, 68, 0.4)",  // red at 40% opacity
+  both: "linear-gradient(135deg, rgba(59, 130, 246, 0.4) 50%, rgba(239, 68, 68, 0.4) 50%)",
+};
+
 export function BoardGrid({
   grid,
   matchId,
   className,
+  frozenTiles = {},
+  playerSlot,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
@@ -199,6 +213,17 @@ export function BoardGrid({
               const isSelected =
                 selected?.x === colIndex && selected?.y === rowIndex;
 
+              const tileKey = `${colIndex},${rowIndex}`;
+              const frozenEntry = frozenTiles[tileKey];
+              const isTileFrozen = !!frozenEntry;
+              const frozenOwner = frozenEntry?.owner;
+
+              const frozenStyle: CSSProperties | undefined = isTileFrozen
+                ? frozenOwner === "both"
+                  ? { background: FROZEN_COLORS.both }
+                  : { backgroundColor: FROZEN_COLORS[frozenOwner ?? "player_a"] }
+                : undefined;
+
               return (
                 <button
                   key={`cell-${rowIndex}-${colIndex}`}
@@ -206,21 +231,24 @@ export function BoardGrid({
                   role="gridcell"
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""
-                    }`}
+                  aria-disabled={isTileFrozen || undefined}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}
                   data-row={rowIndex}
                   data-selected={isSelected ? "true" : undefined}
+                  data-frozen={isTileFrozen ? frozenOwner : undefined}
                   disabled={isSubmitting}
                   onClick={() => handleTileClick(rowIndex, colIndex)}
+                  style={frozenStyle}
                 >
                   <span className="board-grid__tile" aria-hidden="true">
                     {letter}
                   </span>
                   <span className="sr-only">
                     Row {rowIndex + 1}, column {colIndex + 1}, letter {letter}
+                    {isTileFrozen ? `, frozen by ${frozenOwner}` : ""}
                   </span>
                 </button>
               );

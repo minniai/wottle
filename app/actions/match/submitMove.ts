@@ -35,7 +35,7 @@ export async function submitMove(
     // 1. Get match to check round and validate player is in match
     const { data: match, error: matchError } = await supabase
         .from("matches")
-        .select("current_round, state, player_a_id, player_b_id")
+        .select("current_round, state, player_a_id, player_b_id, frozen_tiles")
         .eq("id", matchId)
         .single();
 
@@ -91,6 +91,27 @@ export async function submitMove(
             status: "rejected",
             grid: currentBoard,
             error: "Cannot swap a tile with itself",
+        };
+    }
+
+    // 3b. Check frozen tiles — reject if either coordinate is frozen (FR-014)
+    const frozenTiles = (match.frozen_tiles ?? {}) as Record<string, { owner: string }>;
+    const fromKey = `${fromX},${fromY}`;
+    const toKey = `${toX},${toY}`;
+
+    if (fromKey in frozenTiles) {
+        return {
+            status: "rejected",
+            grid: currentBoard,
+            error: `Tile at (${fromX},${fromY}) is frozen and cannot be swapped`,
+        };
+    }
+
+    if (toKey in frozenTiles) {
+        return {
+            status: "rejected",
+            grid: currentBoard,
+            error: `Tile at (${toX},${toY}) is frozen and cannot be swapped`,
         };
     }
 

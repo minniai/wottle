@@ -9,6 +9,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/app/actions/match/publishRoundSummary", () => ({
     publishRoundSummary: vi.fn().mockResolvedValue({ ok: true }),
+    computeWordScoresForRound: vi.fn().mockResolvedValue([]),
 }));
 
 type SubmissionRow = {

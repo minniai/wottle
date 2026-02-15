@@ -8,8 +8,8 @@
 ```text
 matches (1) ──── (*) rounds (1) ──── (*) word_score_entries
    │                    │                        │
-   │ frozen_tiles       │ board_snapshot_before   │ tiles (JSONB coords)
-   │ (JSONB)            │ board_snapshot_after     │
+   │ frozen_tiles       │ board_snapshot_before  │ tiles (JSONB coords)
+   │ (JSONB)            │ board_snapshot_after   │
    │                    │                        │
    └──── (*) scoreboard_snapshots                │
                                                  │

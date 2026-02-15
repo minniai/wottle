@@ -15,6 +15,7 @@ import {
   calculateLengthBonus,
   calculateComboBonus,
 } from "./scorer";
+import { freezeTiles } from "./frozenTiles";
 
 /**
  * Score a list of attributed words using the PRD formula.
@@ -137,6 +138,14 @@ export async function processRoundScoring(params: {
     params.playerAId,
   );
 
+  // Freeze tiles from scored words
+  const freezeResult = freezeTiles({
+    scoredWords: breakdowns,
+    existingFrozenTiles: params.frozenTiles,
+    playerAId: params.playerAId,
+    playerBId: params.playerBId,
+  });
+
   const durationMs = performance.now() - start;
 
   return {
@@ -144,7 +153,7 @@ export async function processRoundScoring(params: {
     playerBWords,
     comboBonus,
     deltas,
-    newFrozenTiles: params.frozenTiles,
+    newFrozenTiles: freezeResult.updatedFrozenTiles,
     durationMs,
   };
 }
