@@ -105,27 +105,78 @@ export async function publishRoundSummary(
 }
 
 /**
- * Helper function to compute word scores from board state and player moves.
- * This would be called by roundEngine after applying moves.
- * 
- * TODO: Full implementation requires word-finder and dictionary validation.
- * For now, this is a placeholder that can be extended.
+ * Compute word scores from board state and player moves using the word engine.
+ * Called by roundEngine after applying moves.
+ *
+ * Pipeline: processRoundScoring → persist to word_score_entries → return WordScore[]
  */
 export async function computeWordScoresForRound(
     matchId: string,
     roundId: string,
     boardBefore: BoardGrid,
     boardAfter: BoardGrid,
-    acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number }>
+    acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number }>,
+    playerAId: string,
+    playerBId: string,
+    frozenTiles: Record<string, { owner: string }> = {},
 ): Promise<WordScore[]> {
-    // This is a placeholder implementation
-    // Full implementation would:
-    // 1. Find all words formed in boardAfter that weren't in boardBefore
-    // 2. Validate against dictionary (Trie)
-    // 3. Calculate scores for each word
-    // 4. Store in word_score_entries table
-    
-    // For now, return empty array - scoring will be implemented when word-finder is ready
-    return [];
+    const { processRoundScoring } = await import("@/lib/game-engine/wordEngine");
+
+    const result = await processRoundScoring({
+        matchId,
+        roundId,
+        boardBefore,
+        boardAfter,
+        acceptedMoves: acceptedMoves.map((m) => ({
+            playerId: m.player_id,
+            fromX: m.from_x,
+            fromY: m.from_y,
+            toX: m.to_x,
+            toY: m.to_y,
+        })),
+        frozenTiles: frozenTiles as import("@/lib/types/match").FrozenTileMap,
+        playerAId,
+        playerBId,
+    });
+
+    const allBreakdowns = [...result.playerAWords, ...result.playerBWords];
+
+    if (allBreakdowns.length === 0) {
+        return [];
+    }
+
+    // Persist word scores to word_score_entries table
+    const supabase = getServiceRoleClient();
+    const entries = allBreakdowns.map((bd) => ({
+        match_id: matchId,
+        round_id: roundId,
+        player_id: bd.playerId,
+        word: bd.word,
+        length: bd.length,
+        letters_points: bd.lettersPoints,
+        bonus_points: bd.lengthBonus,
+        total_points: bd.totalPoints,
+        tiles: bd.tiles,
+        is_duplicate: bd.isDuplicate,
+    }));
+
+    const { error: insertError } = await supabase
+        .from("word_score_entries")
+        .insert(entries);
+
+    if (insertError) {
+        console.error("Failed to persist word scores:", insertError);
+    }
+
+    // Convert to WordScore[] format for the round summary pipeline
+    return allBreakdowns.map((bd) => ({
+        playerId: bd.playerId,
+        word: bd.word,
+        length: bd.length,
+        lettersPoints: bd.lettersPoints,
+        bonusPoints: bd.lengthBonus,
+        totalPoints: bd.totalPoints,
+        coordinates: bd.tiles,
+    }));
 }
 

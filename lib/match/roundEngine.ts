@@ -100,6 +100,25 @@ export async function advanceRound(matchId: string) {
         }
     }
 
+    // 8b. Compute word scores from the board delta
+    try {
+        const { computeWordScoresForRound } = await import(
+            "@/app/actions/match/publishRoundSummary"
+        );
+        await computeWordScoresForRound(
+            matchId,
+            round.id,
+            currentBoard,
+            boardAfter,
+            acceptedMoves,
+            match.player_a_id,
+            match.player_b_id,
+        );
+    } catch (e) {
+        console.error("[WordEngine] Failed to compute word scores:", e);
+        // Continue — round advancement should not be blocked by scoring errors
+    }
+
     // 9. Update round state to resolving
     const { error: updateRoundError } = await supabase
         .from("rounds")
