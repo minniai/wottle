@@ -17,13 +17,8 @@ export function calculateWordScore(word: string, coordinates: Coordinate[]): Omi
         lettersPoints += value;
     }
 
-    // Calculate length bonus (simplified: 0 for <4, +1 per letter for 4+, +2 per letter for 6+)
-    let bonusPoints = 0;
-    if (length >= 6) {
-        bonusPoints = (length - 5) * 2;
-    } else if (length >= 4) {
-        bonusPoints = length - 3;
-    }
+    // PRD-compliant length bonus: (word_length - 2) * 5
+    const bonusPoints = (length - 2) * 5;
 
     const totalPoints = lettersPoints + bonusPoints;
 

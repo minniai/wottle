@@ -183,4 +183,6 @@ export interface RoundScoreResult {
   deltas: ScoreTotals;
   /** Updated frozen tile map (merged with existing) */
   newFrozenTiles: FrozenTileMap;
+  /** Total pipeline duration in milliseconds */
+  durationMs: number;
 }
