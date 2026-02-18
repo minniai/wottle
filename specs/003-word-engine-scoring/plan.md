@@ -81,7 +81,7 @@ lib/types/
 app/actions/
 ├── match/
 │   └── publishRoundSummary.ts  # [MODIFY] Implement computeWordScoresForRound()
-└── swapTiles.ts                # [MODIFY] Add frozen tile swap validation
+└── match/submitMove.ts         # [MODIFY] Add frozen tile swap validation
 
 components/
 ├── game/

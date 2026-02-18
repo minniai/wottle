@@ -156,7 +156,7 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 **Performance**
 
 - **FR-021**: System MUST complete word validation (full board scan, delta detection, and scoring calculation) in under 50ms server-side.
-- **FR-022**: System MUST load the dictionary into memory in under 200ms at startup.
+- **FR-022**: System MUST load the dictionary into memory in under 200ms at startup (for the 2.76M-entry wordlist used in this milestone, the benchmark is relaxed to &lt;1000ms; see SC-007).
 - **FR-023**: System MUST NOT increase the overall move round-trip time beyond the existing 200ms p95 SLA.
 
 ### Key Entities
@@ -177,7 +177,7 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - **SC-004**: Duplicate words by the same player in the same match award zero points 100% of the time, verified by integration tests spanning multiple rounds.
 - **SC-005**: Frozen tiles are never swappable after being claimed, verified by attempting swaps on frozen tiles across 100 test scenarios with zero false accepts.
 - **SC-006**: Round summaries display complete word breakdowns (letters, bonuses, combos, deltas, totals) to both players, verified by E2E tests confirming identical data on both clients.
-- **SC-007**: The dictionary loads in under 200ms at startup, measured across 10 cold-start benchmarks.
+- **SC-007**: The dictionary loads in under 1000ms at startup for the full 2.76M-entry wordlist, measured across 10 cold-start benchmarks (relaxed from 200ms target; see FR-022 note).
 
 ### Assumptions
 

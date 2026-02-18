@@ -55,7 +55,7 @@ The word engine plugs into the existing round resolution flow. Key integration p
 | `app/actions/match/publishRoundSummary.ts` | Wire engine into `computeWordScoresForRound()` | MODIFY |
 | `lib/match/roundEngine.ts` | Pass frozen tiles to scoring pipeline | MODIFY |
 | `lib/scoring/roundSummary.ts` | Fix scoring formula to PRD | MODIFY |
-| `app/actions/swapTiles.ts` | Validate frozen tiles before swap | MODIFY |
+| `app/actions/match/submitMove.ts` | Validate frozen tiles before swap | MODIFY |
 | `components/game/BoardGrid.tsx` | Frozen tile overlay | MODIFY |
 
 ## Test Workflow

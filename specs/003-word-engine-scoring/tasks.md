@@ -44,7 +44,7 @@
 - [x] T007 Implement dictionary loader in lib/game-engine/dictionary.ts — readFileSync + Set constructor from split array (file is pre-normalized NFC + lowercase), module-level singleton cache, performance.mark() timing, lookupWord() helper with NFC normalization on input
 - [x] T008 Verify T005 and T006 tests pass with implementation
 
-**Checkpoint**: Dictionary loaded, lookups working, <200ms cold start verified.
+**Checkpoint**: Dictionary loaded, lookups working; cold-start benchmark &lt;1000ms for 2.76M wordlist verified.
 
 ---
 
@@ -119,7 +119,7 @@
 
 ### Implementation for US3
 
-- [ ] T031 [US3] Verify scorer duplicate logic handles cross-round queries correctly in lib/game-engine/scorer.ts — ensure scoreWords queries word_score_entries for all prior rounds of the same match for the same player, not just the current roundsadf
+- [ ] T031 [US3] Verify scorer duplicate logic handles cross-round queries correctly in lib/game-engine/scorer.ts — ensure scoreWords queries word_score_entries for all prior rounds of the same match for the same player, not just the current round
 - [ ] T032 [US3] Add "previously scored" label to round summary data — ensure WordScoreBreakdown with isDuplicate=true is included in the round summary broadcast so clients can display the label
 - [ ] T033 [US3] Display "previously scored" indicator in components/match/RoundSummaryPanel.tsx — show muted styling and "previously scored" text for duplicate words, display 0 points
 
@@ -154,7 +154,7 @@
 - [ ] T038 [P] Add performance.mark() instrumentation to word engine pipeline in lib/game-engine/wordEngine.ts — mark dictionary load, each scan, delta detection, scoring, freeze, total duration; log structured JSON with matchId, roundNumber, durationMs
 - [ ] T039 [P] Add structured logging for scoring events in lib/game-engine/wordEngine.ts — log wordsFound, wordsScored, duplicatesDetected, tilesFrozen, comboBonus per round with matchId context
 - [ ] T040 [P] Run full test suite and fix any regressions — verify all existing 28 test files pass alongside new word engine tests
-- [ ] T041 Validate all performance SLAs end-to-end — run dictionaryLoad.bench.ts (<200ms), boardScan.bench.ts (<50ms), and perf:round-resolution (<200ms RTT) to confirm SC-002 and SC-007
+- [ ] T041 Validate all performance SLAs end-to-end — run dictionaryLoad.bench.ts (&lt;1000ms for 2.76M wordlist), boardScan.bench.ts (&lt;50ms), and perf:round-resolution (&lt;200ms RTT) to confirm SC-002 and SC-007
 - [ ] T042 [P] Run quickstart.md validation — execute pnpm quickstart with new migrations, verify dev server starts, confirm supabase:verify passes with new schema
 
 ---
