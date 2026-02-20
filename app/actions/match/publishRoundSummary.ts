@@ -168,6 +168,19 @@ export async function computeWordScoresForRound(
         console.error("Failed to persist word scores:", insertError);
     }
 
+    // Persist updated frozen tiles to the matches table
+    const { error: freezeError } = await supabase
+        .from("matches")
+        .update({
+            frozen_tiles: result.newFrozenTiles,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", matchId);
+
+    if (freezeError) {
+        console.error("Failed to persist frozen tiles:", freezeError);
+    }
+
     // Convert to WordScore[] format for the round summary pipeline
     return allBreakdowns.map((bd) => ({
         playerId: bd.playerId,

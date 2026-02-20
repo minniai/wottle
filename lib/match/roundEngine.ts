@@ -19,7 +19,7 @@ export async function advanceRound(matchId: string) {
     // 1. Fetch current match state
     const { data: match, error: matchError } = await supabase
         .from("matches")
-        .select("current_round, state, player_a_id, player_b_id, board_seed")
+        .select("current_round, state, player_a_id, player_b_id, board_seed, frozen_tiles")
         .eq("id", matchId)
         .single();
 
@@ -113,6 +113,7 @@ export async function advanceRound(matchId: string) {
             acceptedMoves,
             match.player_a_id,
             match.player_b_id,
+            match.frozen_tiles ?? {},
         );
     } catch (e) {
         console.error("[WordEngine] Failed to compute word scores:", e);

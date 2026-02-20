@@ -61,6 +61,7 @@ export function MatchClient({
     process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true";
   const [usePolling, setUsePolling] = useState(realtimeDisabled);
   const [pollError, setPollError] = useState<string | null>(null);
+  const [swapError, setSwapError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<
     string | null
@@ -251,6 +252,17 @@ export function MatchClient({
     setSummary(null);
   }, []);
 
+  const playerSlot: "player_a" | "player_b" =
+    matchState.timers.playerA.playerId === currentPlayerId ? "player_a" : "player_b";
+
+  const handleSwapComplete = useCallback(() => {
+    setSwapError(null);
+  }, []);
+
+  const handleSwapError = useCallback((message: string) => {
+    setSwapError(message);
+  }, []);
+
   const headline = `Match: ${matchId.slice(0, 8)}`;
 
   return (
@@ -275,12 +287,12 @@ export function MatchClient({
         </div>
       )}
 
-      {pollError && (
+      {(pollError || swapError) && (
         <div
           className="mt-2 rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm text-red-200"
           data-testid="round-alert"
         >
-          {pollError}
+          {swapError ?? pollError}
         </div>
       )}
 
@@ -291,7 +303,14 @@ export function MatchClient({
           roundNumber={matchState.currentRound}
         />
 
-        <BoardGrid grid={matchState.board} matchId={matchId} />
+        <BoardGrid
+          grid={matchState.board}
+          matchId={matchId}
+          frozenTiles={matchState.frozenTiles ?? {}}
+          playerSlot={playerSlot}
+          onSwapComplete={handleSwapComplete}
+          onSwapError={({ message }) => handleSwapError(message)}
+        />
       </div>
 
       <RoundSummaryPanel

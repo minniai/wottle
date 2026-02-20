@@ -64,6 +64,8 @@ export interface MatchState {
   scores: ScoreTotals;
   lastSummary?: RoundSummary | null;
   disconnectedPlayerId?: string | null;
+  /** Frozen tile map for visual rendering and swap validation */
+  frozenTiles?: FrozenTileMap;
 }
 
 export type SubmissionStatus =
