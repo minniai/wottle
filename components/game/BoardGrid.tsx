@@ -57,7 +57,8 @@ async function submitSwapRequest(matchId: string, move: MoveRequest): Promise<Mo
   }
 
   if (response.status === 400) {
-    return (await response.json()) as MoveResult;
+    const body = (await response.json()) as { error?: string; status?: string };
+    throw new Error(body.error ?? "Swap was rejected");
   }
 
   const payload = (await response.json().catch(() => ({}))) as {
