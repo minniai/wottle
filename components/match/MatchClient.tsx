@@ -308,6 +308,8 @@ export function MatchClient({
           matchId={matchId}
           frozenTiles={matchState.frozenTiles ?? {}}
           playerSlot={playerSlot}
+          scoredTileHighlights={summary?.highlights ?? []}
+          highlightDurationMs={3000}
           onSwapComplete={handleSwapComplete}
           onSwapError={({ message }) => handleSwapError(message)}
         />

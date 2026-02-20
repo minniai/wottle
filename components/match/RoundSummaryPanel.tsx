@@ -50,6 +50,16 @@ export function RoundSummaryPanel({
             ? summary.deltas.playerB
             : summary.deltas.playerA
         : 0;
+    const yourComboBonus = summary?.comboBonus
+        ? currentPlayerIsPlayerA
+            ? summary.comboBonus.playerA
+            : summary.comboBonus.playerB
+        : 0;
+    const opponentComboBonus = summary?.comboBonus
+        ? currentPlayerIsPlayerA
+            ? summary.comboBonus.playerB
+            : summary.comboBonus.playerA
+        : 0;
     const hasWords = words.length > 0;
 
     // Auto-dismiss timer
@@ -176,6 +186,15 @@ export function RoundSummaryPanel({
                                     <WordScoreRow key={`${word.word}-${idx}`} wordScore={word} />
                                 ))}
                             </div>
+                            {yourComboBonus > 0 && (
+                                <p
+                                    className="mt-2 text-sm text-emerald-300/90"
+                                    data-testid="round-summary-combo-bonus"
+                                >
+                                    {currentPlayerWords.filter((w) => !w.isDuplicate).length}-word
+                                    combo bonus: +{yourComboBonus}
+                                </p>
+                            )}
                         </div>
                     )}
 
@@ -193,6 +212,12 @@ export function RoundSummaryPanel({
                                     />
                                 ))}
                             </div>
+                            {opponentComboBonus > 0 && (
+                                <p className="mt-2 text-sm text-sky-300/80">
+                                    {opponentWords.filter((w) => !w.isDuplicate).length}-word combo
+                                    bonus: +{opponentComboBonus}
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

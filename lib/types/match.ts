@@ -50,6 +50,8 @@ export interface RoundSummary {
   words: WordScore[];
   deltas: ScoreTotals;
   totals: ScoreTotals;
+  /** Combo bonus per player (included in deltas). Shown in UI for transparency. */
+  comboBonus?: ScoreTotals;
   highlights: Coordinate[][];
   resolvedAt: string;
 }
