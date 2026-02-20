@@ -68,10 +68,26 @@ async function loginAndStartMatch(
   await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
 }
 
-async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
+/**
+ * Submits a swap by clicking two adjacent unfrozen tiles.
+ * Uses the first horizontal pair (n, n+1) where neither tile is frozen.
+ * Words can span many tiles, so fixed indices fail when earlier rounds freeze them.
+ */
+async function submitSwap(page: import("@playwright/test").Page): Promise<void> {
   const board = page.getByTestId("board-grid");
-  await board.locator(`[data-tile-index="${firstIndex}"]`).click();
-  await board.locator(`[data-tile-index="${firstIndex + 1}"]`).click();
+  for (let n = 0; n < 99; n += 1) {
+    if (n % 10 === 9) continue;
+    const tileA = board.locator(`[data-tile-index="${n}"]`);
+    const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
+    const frozenA = await tileA.getAttribute("data-frozen");
+    const frozenB = await tileB.getAttribute("data-frozen");
+    if (!frozenA && !frozenB) {
+      await tileA.click();
+      await tileB.click();
+      return;
+    }
+  }
+  throw new Error("No unfrozen adjacent tile pair found");
 }
 
 test.describe("Round flow", () => {
@@ -88,16 +104,17 @@ test.describe("Round flow", () => {
       const userB = generateTestUsername("flow-beta");
       await loginAndStartMatch(pageA, pageB, userA, userB);
 
-      // Complete all 10 rounds
+      // Complete all 10 rounds (pick unfrozen tile pairs dynamically)
       for (let round = 1; round <= 10; round += 1) {
-        // Submit swaps for both players
-        await submitSwap(pageA, (round - 1) % 20);
-        await submitSwap(pageB, ((round - 1) % 20) + 10);
+        await submitSwap(pageA);
+        await submitSwap(pageB);
 
         if (round < 10) {
-          // Wait for round summary and continue
+          // Wait for round summary panel (Realtime or polling may be slow in CI/Docker)
+          const summaryPanel = pageA.getByTestId("round-summary-panel");
+          await expect(summaryPanel).toBeVisible({ timeout: 25_000 });
           const continueBtn = pageA.getByTestId("round-summary-continue");
-          await expect(continueBtn).toBeVisible({ timeout: 15_000 });
+          await expect(continueBtn).toBeVisible({ timeout: 5_000 });
           // The panel is position:fixed at the bottom, which Playwright
           // may report as "outside viewport". Use JS click to bypass.
           await continueBtn.dispatchEvent("click");
@@ -110,9 +127,9 @@ test.describe("Round flow", () => {
         }
       }
 
-      // After round 10, should see final summary
+      // After round 10, should see final summary (navigation + render can be slow in CI/Docker)
       const summaryView = pageA.getByTestId("final-summary-view");
-      await expect(summaryView).toBeVisible({ timeout: 20_000 });
+      await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
       // Verify match ended properly
       await expect(pageA.getByTestId("final-summary-ended-reason")).toContainText(
