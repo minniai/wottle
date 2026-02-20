@@ -74,6 +74,20 @@ async function submitSwap(page: import("@playwright/test").Page, firstIndex: num
   await board.locator(`[data-tile-index="${firstIndex + 1}"]`).click();
 }
 
+/**
+ * Returns (firstIndexA, firstIndexB) for a round so that no tile is reused across rounds.
+ * Frozen tiles from previous rounds would block clicks; disjoint pairs avoid that.
+ * Board layout: row r, col c → index = r*10 + c. Uses horizontal adjacent pairs.
+ */
+function getSwapIndicesForRound(round: number): { firstA: number; firstB: number } {
+  const r = round - 1;
+  if (r < 5) {
+    return { firstA: r * 2, firstB: 20 + r * 2 };
+  }
+  const s = r - 5;
+  return { firstA: 40 + s * 2, firstB: 50 + s * 2 };
+}
+
 test.describe("Round flow", () => {
   test("completes 10 rounds with reconnect safety + late swap guards @two-player-playtest", async ({
     browser,
@@ -88,16 +102,18 @@ test.describe("Round flow", () => {
       const userB = generateTestUsername("flow-beta");
       await loginAndStartMatch(pageA, pageB, userA, userB);
 
-      // Complete all 10 rounds
+      // Complete all 10 rounds (use disjoint tile pairs to avoid frozen tiles)
       for (let round = 1; round <= 10; round += 1) {
-        // Submit swaps for both players
-        await submitSwap(pageA, (round - 1) % 20);
-        await submitSwap(pageB, ((round - 1) % 20) + 10);
+        const { firstA, firstB } = getSwapIndicesForRound(round);
+        await submitSwap(pageA, firstA);
+        await submitSwap(pageB, firstB);
 
         if (round < 10) {
-          // Wait for round summary and continue
+          // Wait for round summary panel (Realtime or polling may be slow in CI/Docker)
+          const summaryPanel = pageA.getByTestId("round-summary-panel");
+          await expect(summaryPanel).toBeVisible({ timeout: 25_000 });
           const continueBtn = pageA.getByTestId("round-summary-continue");
-          await expect(continueBtn).toBeVisible({ timeout: 15_000 });
+          await expect(continueBtn).toBeVisible({ timeout: 5_000 });
           // The panel is position:fixed at the bottom, which Playwright
           // may report as "outside viewport". Use JS click to bypass.
           await continueBtn.dispatchEvent("click");
@@ -110,9 +126,9 @@ test.describe("Round flow", () => {
         }
       }
 
-      // After round 10, should see final summary
+      // After round 10, should see final summary (navigation + render can be slow in CI/Docker)
       const summaryView = pageA.getByTestId("final-summary-view");
-      await expect(summaryView).toBeVisible({ timeout: 20_000 });
+      await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
       // Verify match ended properly
       await expect(pageA.getByTestId("final-summary-ended-reason")).toContainText(

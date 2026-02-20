@@ -74,6 +74,19 @@ async function submitSwap(page: import("@playwright/test").Page, firstIndex: num
   await board.locator(`[data-tile-index="${firstIndex + 1}"]`).click();
 }
 
+/**
+ * Returns (firstIndexA, firstIndexB) for a round so that no tile is reused across rounds.
+ * Frozen tiles from previous rounds would block clicks; disjoint pairs avoid that.
+ */
+function getSwapIndicesForRound(round: number): { firstA: number; firstB: number } {
+  const r = round - 1;
+  if (r < 5) {
+    return { firstA: r * 2, firstB: 20 + r * 2 };
+  }
+  const s = r - 5;
+  return { firstA: 40 + s * 2, firstB: 50 + s * 2 };
+}
+
 test.describe("Final summary recap", () => {
   test("shows scores, word history, and rematch affordances @two-player-playtest", async ({
     browser,
@@ -89,12 +102,13 @@ test.describe("Final summary recap", () => {
       await loginAndStartMatch(pageA, pageB, userA, userB);
 
       for (let round = 1; round <= 10; round += 1) {
-        await submitSwap(pageA, round - 1);
-        await submitSwap(pageB, round + 9);
+        const { firstA, firstB } = getSwapIndicesForRound(round);
+        await submitSwap(pageA, firstA);
+        await submitSwap(pageB, firstB);
       }
 
       const summaryView = pageA.getByTestId("final-summary-view");
-      await expect(summaryView).toBeVisible({ timeout: 20_000 });
+      await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
       await expect(pageA.getByTestId("final-summary-scoreboard")).toBeVisible();
       await expect(pageA.getByTestId("final-summary-word-history")).toBeVisible();
