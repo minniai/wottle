@@ -68,23 +68,26 @@ async function loginAndStartMatch(
   await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
 }
 
-async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
-  const board = page.getByTestId("board-grid");
-  await board.locator(`[data-tile-index="${firstIndex}"]`).click();
-  await board.locator(`[data-tile-index="${firstIndex + 1}"]`).click();
-}
-
 /**
- * Returns (firstIndexA, firstIndexB) for a round so that no tile is reused across rounds.
- * Frozen tiles from previous rounds would block clicks; disjoint pairs avoid that.
+ * Submits a swap by clicking two adjacent unfrozen tiles.
+ * Uses the first horizontal pair (n, n+1) where neither tile is frozen.
+ * Words can span many tiles, so fixed indices fail when earlier rounds freeze them.
  */
-function getSwapIndicesForRound(round: number): { firstA: number; firstB: number } {
-  const r = round - 1;
-  if (r < 5) {
-    return { firstA: r * 2, firstB: 20 + r * 2 };
+async function submitSwap(page: import("@playwright/test").Page): Promise<void> {
+  const board = page.getByTestId("board-grid");
+  for (let n = 0; n < 99; n += 1) {
+    if (n % 10 === 9) continue;
+    const tileA = board.locator(`[data-tile-index="${n}"]`);
+    const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
+    const frozenA = await tileA.getAttribute("data-frozen");
+    const frozenB = await tileB.getAttribute("data-frozen");
+    if (!frozenA && !frozenB) {
+      await tileA.click();
+      await tileB.click();
+      return;
+    }
   }
-  const s = r - 5;
-  return { firstA: 40 + s * 2, firstB: 50 + s * 2 };
+  throw new Error("No unfrozen adjacent tile pair found");
 }
 
 test.describe("Final summary recap", () => {
@@ -102,9 +105,17 @@ test.describe("Final summary recap", () => {
       await loginAndStartMatch(pageA, pageB, userA, userB);
 
       for (let round = 1; round <= 10; round += 1) {
-        const { firstA, firstB } = getSwapIndicesForRound(round);
-        await submitSwap(pageA, firstA);
-        await submitSwap(pageB, firstB);
+        await submitSwap(pageA);
+        await submitSwap(pageB);
+        if (round < 10) {
+          const summaryPanel = pageA.getByTestId("round-summary-panel");
+          await expect(summaryPanel).toBeVisible({ timeout: 25_000 });
+          await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
+          await expect(pageA.getByTestId("round-indicator")).toContainText(
+            new RegExp(`round ${round + 1}`, "i"),
+            { timeout: 5_000 }
+          );
+        }
       }
 
       const summaryView = pageA.getByTestId("final-summary-view");

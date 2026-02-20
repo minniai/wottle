@@ -68,10 +68,25 @@ async function loginAndStartMatch(
   await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
 }
 
-async function submitSwap(page: import("@playwright/test").Page, firstIndex: number) {
+/**
+ * Submits a swap by clicking two adjacent unfrozen tiles.
+ * Uses the first horizontal pair where neither tile is frozen.
+ */
+async function submitSwap(page: import("@playwright/test").Page): Promise<void> {
   const board = page.getByTestId("board-grid");
-  await board.locator(`[data-tile-index="${firstIndex}"]`).click();
-  await board.locator(`[data-tile-index="${firstIndex + 1}"]`).click();
+  for (let n = 0; n < 99; n += 1) {
+    if (n % 10 === 9) continue;
+    const tileA = board.locator(`[data-tile-index="${n}"]`);
+    const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
+    const frozenA = await tileA.getAttribute("data-frozen");
+    const frozenB = await tileB.getAttribute("data-frozen");
+    if (!frozenA && !frozenB) {
+      await tileA.click();
+      await tileB.click();
+      return;
+    }
+  }
+  throw new Error("No unfrozen adjacent tile pair found");
 }
 
 test.describe("Round summary panel", () => {
@@ -89,8 +104,8 @@ test.describe("Round summary panel", () => {
       await loginAndStartMatch(pageA, pageB, userA, userB);
 
       // Submit moves for round 1
-      await submitSwap(pageA, 0);
-      await submitSwap(pageB, 10);
+      await submitSwap(pageA);
+      await submitSwap(pageB);
 
       // Wait for round summary panel to appear
       const summaryPanel = pageA.getByTestId("round-summary-panel");
