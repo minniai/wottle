@@ -1,0 +1,300 @@
+{
+  "feature": "003-word-engine-scoring",
+  "repo": "minniai/wottle",
+  "issues": [
+    {
+      "id": "T001",
+      "phase": "Phase 1: Setup",
+      "title": "T001: Fix broken import path in lib/scoring/roundSummary.ts",
+      "body": "**Phase 1: Setup (Shared Infrastructure)**\n\nFix broken import path in `lib/scoring/roundSummary.ts` — change `@/prd/wordlist/letter_scoring_values_is` to `@/docs/wordlist/letter_scoring_values_is` and verify existing tests pass.\n\n**Checkpoint**: Types defined, schema migrated, existing tests green.",
+      "labels": ["word-engine", "phase-1-setup"]
+    },
+    {
+      "id": "T002",
+      "phase": "Phase 1: Setup",
+      "title": "T002 [P] Add Direction, BoardWord, ScanResult types to lib/types/board.ts",
+      "body": "**Phase 1: Setup**\n\nAdd Direction, BoardWord, and ScanResult types to `lib/types/board.ts` per data-model.md type definitions.\n\n**Checkpoint**: Types defined, schema migrated, existing tests green.",
+      "labels": ["word-engine", "phase-1-setup"]
+    },
+    {
+      "id": "T003",
+      "phase": "Phase 1: Setup",
+      "title": "T003 [P] Add FrozenTileOwner, FrozenTile, FrozenTileMap, WordScoreBreakdown, RoundScoreResult to lib/types/match.ts",
+      "body": "**Phase 1: Setup**\n\nAdd FrozenTileOwner, FrozenTile, FrozenTileMap, WordScoreBreakdown, and RoundScoreResult types to `lib/types/match.ts` per data-model.md type definitions.\n\n**Checkpoint**: Types defined, schema migrated, existing tests green.",
+      "labels": ["word-engine", "phase-1-setup"]
+    },
+    {
+      "id": "T004",
+      "phase": "Phase 1: Setup",
+      "title": "T004 [P] Create migration 20260214001_frozen_tiles.sql",
+      "body": "**Phase 1: Setup**\n\nCreate database migration `supabase/migrations/20260214001_frozen_tiles.sql` — add `frozen_tiles jsonb NOT NULL DEFAULT '{}'` column to matches table and `is_duplicate boolean NOT NULL DEFAULT false` column to word_score_entries table, with column comments.\n\n**Checkpoint**: Types defined, schema migrated, existing tests green.",
+      "labels": ["word-engine", "phase-1-setup"]
+    },
+    {
+      "id": "T005",
+      "phase": "Phase 2: Dictionary",
+      "title": "T005 Write failing tests for dictionary in tests/unit/dictionary.test.ts",
+      "body": "**Phase 2: Foundational (Dictionary)**\n\nWrite failing tests for dictionary in `tests/unit/dictionary.test.ts` — cover: loads >2M entries, returns Set, NFC-normalizes entries, lowercases entries, lookupWord returns true for known Icelandic words (e.g. \"hestur\", \"búr\"), lookupWord returns false for invalid strings, case-insensitive matching, treats Icelandic chars (ð, þ, æ) as distinct from ASCII, singleton caching returns same instance on second call.\n\n**Checkpoint**: Dictionary loaded, lookups working, <200ms cold start verified.",
+      "labels": ["word-engine", "phase-2-dictionary", "tdd"]
+    },
+    {
+      "id": "T006",
+      "phase": "Phase 2: Dictionary",
+      "title": "T006 Write failing performance benchmark tests/perf/dictionaryLoad.bench.ts",
+      "body": "**Phase 2: Foundational (Dictionary)**\n\nWrite failing performance benchmark in `tests/perf/dictionaryLoad.bench.ts` — assert cold-start load completes in <1000ms across 5 runs (FR-022 adjusted for 2.76M entries; original 200ms budget was for ~18k entries).\n\n**Checkpoint**: Dictionary loaded, lookups working, <200ms cold start verified.",
+      "labels": ["word-engine", "phase-2-dictionary", "performance"]
+    },
+    {
+      "id": "T007",
+      "phase": "Phase 2: Dictionary",
+      "title": "T007 Implement dictionary loader in lib/game-engine/dictionary.ts",
+      "body": "**Phase 2: Foundational (Dictionary)**\n\nImplement dictionary loader in `lib/game-engine/dictionary.ts` — readFileSync + Set constructor from split array (file is pre-normalized NFC + lowercase), module-level singleton cache, performance.mark() timing, lookupWord() helper with NFC normalization on input.\n\n**Checkpoint**: Dictionary loaded, lookups working, <200ms cold start verified.",
+      "labels": ["word-engine", "phase-2-dictionary"]
+    },
+    {
+      "id": "T008",
+      "phase": "Phase 2: Dictionary",
+      "title": "T008 Verify T005 and T006 tests pass with dictionary implementation",
+      "body": "**Phase 2: Foundational (Dictionary)**\n\nVerify T005 and T006 tests pass with implementation.\n\n**Checkpoint**: Dictionary loaded, lookups working, <200ms cold start verified.",
+      "labels": ["word-engine", "phase-2-dictionary"]
+    },
+    {
+      "id": "T009",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T009 [P] [US1] Write failing tests for board scanner in tests/unit/boardScanner.test.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nWrite failing tests for board scanner in `tests/unit/boardScanner.test.ts` — cover: finds horizontal word L→R, finds horizontal word R→L, finds vertical word T→D, finds vertical word D→T, finds diagonal word down-right, down-left, up-right, up-left, minimum 3-letter words only, no wrapping around board edges (FR-005), returns BoardWord with correct text/direction/start/length/tiles, returns empty for board with no valid words, handles Icelandic characters correctly, does not find words with gaps in sequence.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1", "tdd"]
+    },
+    {
+      "id": "T010",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T010 [P] [US1] Write failing tests for delta detector in tests/unit/deltaDetector.test.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nWrite failing tests for delta detector in `tests/unit/deltaDetector.test.ts` — cover: detects new word formed by swap, ignores pre-existing words on board_before, attributes word to Player A when formed by Player A's swap, attributes word to Player B when formed by Player B's swap, handles words destroyed by Player B's swap (not scored), handles no new words (returns empty), handles both players forming words in same round.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1", "tdd"]
+    },
+    {
+      "id": "T011",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T011 [P] [US1] Write failing tests for scorer in tests/unit/scorer.test.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nWrite failing tests for scorer in `tests/unit/scorer.test.ts` — cover: calculateLetterPoints sums LETTER_SCORING_VALUES_IS correctly for \"BÚR\" (B=4+Ú=7+R=1=12), calculateLetterPoints handles all 32 Icelandic letters, calculateLengthBonus returns (length-2)*5 for lengths 3-10, calculateComboBonus returns 0/2/5/7/8/9 for 1/2/3/4/5/6 words, scoreWords returns WordScoreBreakdown with correct fields, duplicate words score 0 total points (FR-010), duplicates excluded from combo count.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1", "tdd"]
+    },
+    {
+      "id": "T012",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T012 [P] [US1] Write failing tests for word engine facade in tests/unit/wordEngine.test.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nWrite failing tests for word engine facade in `tests/unit/wordEngine.test.ts` — cover: processRoundScoring returns RoundScoreResult with breakdowns/comboBonus/deltas/durationMs, pipeline completes under 50ms for a 10×10 board (FR-021), empty round (no new words) returns zero deltas.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1", "tdd"]
+    },
+    {
+      "id": "T013",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T013 [US1] Implement board scanner in lib/game-engine/boardScanner.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nImplement board scanner in `lib/game-engine/boardScanner.ts` — scanBoard(board, dictionary) using 4 canonical directions with forward+reverse reading per research.md R2 algorithm, return ScanResult with BoardWord array and durationMs.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1"]
+    },
+    {
+      "id": "T014",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T014 [US1] Implement delta detector in lib/game-engine/deltaDetector.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nImplement delta detector in `lib/game-engine/deltaDetector.ts` — three-scan approach per research.md R7: scan board_before, scan intermediate (after first player's swap), scan board_after; attribute words using set differences; filter per-player by frozen tile ownership (FR-006a).\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1"]
+    },
+    {
+      "id": "T015",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T015 [US1] Implement PRD-compliant scorer in lib/game-engine/scorer.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nImplement PRD-compliant scorer in `lib/game-engine/scorer.ts` — calculateLetterPoints (sum LETTER_SCORING_VALUES_IS), calculateLengthBonus ((length-2)*5), calculateComboBonus (1→0, 2→2, 3→5, 4+→7+(n-4)), scoreWords checks word_score_entries for duplicates per match+player, marks isDuplicate, zeros totalPoints for duplicates, excludes duplicates from combo count.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1"]
+    },
+    {
+      "id": "T016",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T016 [US1] Implement word engine facade in lib/game-engine/wordEngine.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nImplement word engine facade in `lib/game-engine/wordEngine.ts` — processRoundScoring orchestrates: loadDictionary → scanBoard (3 scans) → detectNewWords → scoreWords → compute deltas → return RoundScoreResult with performance.mark() timing.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1"]
+    },
+    {
+      "id": "T017",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T017 [US1] Update calculateWordScore in lib/scoring/roundSummary.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nUpdate calculateWordScore in `lib/scoring/roundSummary.ts` — replace broken length bonus formula with PRD-compliant (word_length-2)*5 for all word lengths ≥3.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1"]
+    },
+    {
+      "id": "T018",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T018 [US1] Implement computeWordScoresForRound() in app/actions/match/publishRoundSummary.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nImplement computeWordScoresForRound() in `app/actions/match/publishRoundSummary.ts` — call processRoundScoring from wordEngine, persist WordScoreBreakdown entries to word_score_entries table (including is_duplicate flag), return WordScore[] array compatible with existing aggregateRoundSummary.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1"]
+    },
+    {
+      "id": "T019",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T019 [US1] Wire word engine into advanceRound() in lib/match/roundEngine.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nWire word engine into advanceRound() in `lib/match/roundEngine.ts` — after applying swaps and storing board_snapshot_after, call computeWordScoresForRound with boardBefore, boardAfter, acceptedMoves, and frozen_tiles from match row; pass player IDs from match record.\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1"]
+    },
+    {
+      "id": "T020",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T020 [US1] Write integration test in tests/integration/roundScoring.test.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nWrite integration test in `tests/integration/roundScoring.test.ts` — test full round resolution flow: create match → create round → submit moves that form a known word → call advanceRound → verify word_score_entries contains correct records → verify scoreboard_snapshot updated with correct deltas and totals. (Deferred to integration testing phase; requires running Supabase.)\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1", "integration"]
+    },
+    {
+      "id": "T021",
+      "phase": "Phase 3: US1 MVP",
+      "title": "T021 [US1] Write board scan performance benchmark tests/perf/boardScan.bench.ts",
+      "body": "**Phase 3: User Story 1 — Words Are Found and Scored (MVP)**\n\nWrite board scan performance benchmark in `tests/perf/boardScan.bench.ts` — assert full pipeline (scan + delta + score) completes in <50ms p95 across 1,000 test boards (FR-021, SC-002). Deferred to Polish phase (performance validation).\n\n**Checkpoint**: Words found, scored, persisted, and displayed in round summary. MVP functional.",
+      "labels": ["word-engine", "phase-3-us1", "us1", "performance"]
+    },
+    {
+      "id": "T022",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T022 [P] [US2] Write failing tests for frozen tile manager in tests/unit/frozenTiles.test.ts",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles Create Strategic Territory**\n\nWrite failing tests for frozen tile manager in `tests/unit/frozenTiles.test.ts` — cover: freezeTiles adds all tile coordinates to map, isFrozen returns true for frozen coordinate and false for unfrozen, isFrozenByOpponent correctly identifies opponent-owned tiles, dual ownership when both players claim same tile (owner becomes \"both\"), 24-unfrozen minimum enforced (76 max frozen), partial freeze uses reading order (row first then column) per clarification, toFrozenKey produces \"x,y\" format, freezeTiles merges with existing frozen tiles without removing any.\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2", "tdd"]
+    },
+    {
+      "id": "T023",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T023 [US2] Implement frozen tile manager in lib/game-engine/frozenTiles.ts",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles**\n\nImplement frozen tile manager in `lib/game-engine/frozenTiles.ts` — freezeTiles (compute new tiles to freeze, enforce 24-minimum with reading-order priority, merge ownership), isFrozen, isFrozenByOpponent, toFrozenKey per FrozenTileManagerContract.\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2"]
+    },
+    {
+      "id": "T024",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T024 [US2] Integrate freeze step into word engine pipeline in lib/game-engine/wordEngine.ts",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles**\n\nIntegrate freeze step into word engine pipeline in `lib/game-engine/wordEngine.ts` — after scoring, call freezeTiles with scored words and existing frozen map, include updatedFrozenTiles and newlyFrozenTiles in RoundScoreResult.\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2"]
+    },
+    {
+      "id": "T025",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T025 [US2] Persist frozen tiles after round resolution",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles**\n\nPersist frozen tiles after round resolution — in `app/actions/match/publishRoundSummary.ts` or `lib/match/roundEngine.ts`, UPDATE matches SET frozen_tiles = updatedFrozenTiles after scoring completes.\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2"]
+    },
+    {
+      "id": "T026",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T026 [US2] Add frozen tile swap validation in app/actions/match/submitMove.ts",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles**\n\nAdd frozen tile swap validation in `app/actions/match/submitMove.ts` — before processing swap, load frozen_tiles from match, check isFrozen for both from and to coordinates, reject with \"tile is frozen\" error message if either is frozen (FR-014).\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2"]
+    },
+    {
+      "id": "T027",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T027 [US2] Load frozen tiles into match state in lib/match/stateLoader.ts",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles**\n\nLoad frozen tiles into match state in `lib/match/stateLoader.ts` — include frozen_tiles from matches row in MatchState, add frozenTiles field to MatchState type if not present.\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2"]
+    },
+    {
+      "id": "T028",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T028 [US2] Add frozen tile overlay to board in components/game/BoardGrid.tsx",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles**\n\nAdd frozen tile overlay to board in `components/game/BoardGrid.tsx` — render 40% opacity colored overlay on frozen tiles matching owner color (player A / player B), dual-color gradient pattern for \"both\" ownership (FR-017).\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2", "ui"]
+    },
+    {
+      "id": "T029",
+      "phase": "Phase 4: US2 Frozen Tiles",
+      "title": "T029 [US2] Write integration test for frozen tile swap rejection",
+      "body": "**Phase 4: User Story 2 — Frozen Tiles**\n\nWrite integration test for frozen tile swap rejection — create match → score a word → attempt swap on frozen tile → verify rejection with frozen error message (SC-005). Deferred to integration phase (requires running Supabase).\n\n**Checkpoint**: Frozen tiles tracked, swaps rejected, visual overlay rendered.",
+      "labels": ["word-engine", "phase-4-us2", "us2", "integration"]
+    },
+    {
+      "id": "T030",
+      "phase": "Phase 5: US3 Unique Word Tracking",
+      "title": "T030 [P] [US3] Write failing integration tests for duplicate tracking",
+      "body": "**Phase 5: User Story 3 — Unique Word Tracking**\n\nWrite failing integration tests for duplicate tracking in `tests/integration/roundScoring.test.ts` (extend) — cover: same player forms same word in two different rounds → second scores 0 with is_duplicate=true, different player forms same word → full points awarded (per-player tracking), combo bonus excludes duplicate words in mixed round (1 new + 1 duplicate = combo for 1 word = +0).\n\n**Checkpoint**: Duplicate words tracked across rounds, UI shows \"previously scored\" label.",
+      "labels": ["word-engine", "phase-5-us3", "us3", "tdd"]
+    },
+    {
+      "id": "T031",
+      "phase": "Phase 5: US3 Unique Word Tracking",
+      "title": "T031 [US3] Verify scorer duplicate logic handles cross-round queries in lib/game-engine/scorer.ts",
+      "body": "**Phase 5: User Story 3 — Unique Word Tracking**\n\nVerify scorer duplicate logic handles cross-round queries correctly in `lib/game-engine/scorer.ts` — ensure scoreWords queries word_score_entries for all prior rounds of the same match for the same player, not just the current round.\n\n**Checkpoint**: Duplicate words tracked across rounds, UI shows \"previously scored\" label.",
+      "labels": ["word-engine", "phase-5-us3", "us3"]
+    },
+    {
+      "id": "T032",
+      "phase": "Phase 5: US3 Unique Word Tracking",
+      "title": "T032 [US3] Add \"previously scored\" label to round summary data",
+      "body": "**Phase 5: User Story 3 — Unique Word Tracking**\n\nAdd \"previously scored\" label to round summary data — ensure WordScoreBreakdown with isDuplicate=true is included in the round summary broadcast so clients can display the label.\n\n**Checkpoint**: Duplicate words tracked across rounds, UI shows \"previously scored\" label.",
+      "labels": ["word-engine", "phase-5-us3", "us3"]
+    },
+    {
+      "id": "T033",
+      "phase": "Phase 5: US3 Unique Word Tracking",
+      "title": "T033 [US3] Display \"previously scored\" indicator in RoundSummaryPanel.tsx",
+      "body": "**Phase 5: User Story 3 — Unique Word Tracking**\n\nDisplay \"previously scored\" indicator in `components/match/RoundSummaryPanel.tsx` — show muted styling and \"previously scored\" text for duplicate words, display 0 points.\n\n**Checkpoint**: Duplicate words tracked across rounds, UI shows \"previously scored\" label.",
+      "labels": ["word-engine", "phase-5-us3", "us3", "ui"]
+    },
+    {
+      "id": "T034",
+      "phase": "Phase 6: US4 Round Summary",
+      "title": "T034 [P] [US4] Write failing tests for enhanced round summary display",
+      "body": "**Phase 6: User Story 4 — Round Summary Shows Word Breakdown**\n\nWrite failing tests for enhanced round summary display — verify RoundSummaryPanel renders per-word letter breakdown, length bonus, combo bonus, round delta, and cumulative totals for both players.\n\n**Checkpoint**: Full scoring transparency with letter breakdowns, combo bonuses, deltas, totals, and tile highlights.",
+      "labels": ["word-engine", "phase-6-us4", "us4", "tdd"]
+    },
+    {
+      "id": "T035",
+      "phase": "Phase 6: US4 Round Summary",
+      "title": "T035 [US4] Enhance RoundSummaryPanel with per-word breakdown",
+      "body": "**Phase 6: User Story 4 — Round Summary**\n\nEnhance RoundSummaryPanel in `components/match/RoundSummaryPanel.tsx` — display each scored word with per-letter point values, length bonus, word total, multi-word combo bonus line, per-player round delta (\"+25\"), and cumulative total (\"65\").\n\n**Checkpoint**: Full scoring transparency with letter breakdowns, combo bonuses, deltas, totals, and tile highlights.",
+      "labels": ["word-engine", "phase-6-us4", "us4", "ui"]
+    },
+    {
+      "id": "T036",
+      "phase": "Phase 6: US4 Round Summary",
+      "title": "T036 [US4] Add scored tile highlight animation in BoardGrid.tsx",
+      "body": "**Phase 6: User Story 4 — Round Summary**\n\nAdd scored tile highlight animation in `components/game/BoardGrid.tsx` — highlight tiles of each scored word for at least 3 seconds after round summary displays (FR-020), use CSS transforms for GPU-accelerated animation, fade out after duration.\n\n**Checkpoint**: Full scoring transparency with letter breakdowns, combo bonuses, deltas, totals, and tile highlights.",
+      "labels": ["word-engine", "phase-6-us4", "us4", "ui"]
+    },
+    {
+      "id": "T037",
+      "phase": "Phase 6: US4 Round Summary",
+      "title": "T037 [US4] Include complete scoring data in round summary broadcast",
+      "body": "**Phase 6: User Story 4 — Round Summary**\n\nInclude complete scoring data in round summary broadcast — ensure publishRoundSummary includes WordScoreBreakdown with lettersPoints, lengthBonus, totalPoints per word plus comboBonus and deltas in the Realtime broadcast payload (FR-019).\n\n**Checkpoint**: Full scoring transparency with letter breakdowns, combo bonuses, deltas, totals, and tile highlights.",
+      "labels": ["word-engine", "phase-6-us4", "us4"]
+    },
+    {
+      "id": "T038",
+      "phase": "Phase 7: Polish",
+      "title": "T038 [P] Add performance.mark() instrumentation to word engine pipeline",
+      "body": "**Phase 7: Polish & Cross-Cutting Concerns**\n\nAdd performance.mark() instrumentation to word engine pipeline in `lib/game-engine/wordEngine.ts` — mark dictionary load, each scan, delta detection, scoring, freeze, total duration; log structured JSON with matchId, roundNumber, durationMs.",
+      "labels": ["word-engine", "phase-7-polish", "observability"]
+    },
+    {
+      "id": "T039",
+      "phase": "Phase 7: Polish",
+      "title": "T039 [P] Add structured logging for scoring events",
+      "body": "**Phase 7: Polish & Cross-Cutting Concerns**\n\nAdd structured logging for scoring events in `lib/game-engine/wordEngine.ts` — log wordsFound, wordsScored, duplicatesDetected, tilesFrozen, comboBonus per round with matchId context.",
+      "labels": ["word-engine", "phase-7-polish", "observability"]
+    },
+    {
+      "id": "T040",
+      "phase": "Phase 7: Polish",
+      "title": "T040 [P] Run full test suite and fix any regressions",
+      "body": "**Phase 7: Polish & Cross-Cutting Concerns**\n\nRun full test suite and fix any regressions — verify all existing 28 test files pass alongside new word engine tests.",
+      "labels": ["word-engine", "phase-7-polish"]
+    },
+    {
+      "id": "T041",
+      "phase": "Phase 7: Polish",
+      "title": "T041 Validate all performance SLAs end-to-end",
+      "body": "**Phase 7: Polish & Cross-Cutting Concerns**\n\nValidate all performance SLAs end-to-end — run dictionaryLoad.bench.ts (<200ms), boardScan.bench.ts (<50ms), and perf:round-resolution (<200ms RTT) to confirm SC-002 and SC-007.",
+      "labels": ["word-engine", "phase-7-polish", "performance"]
+    },
+    {
+      "id": "T042",
+      "phase": "Phase 7: Polish",
+      "title": "T042 [P] Run quickstart.md validation",
+      "body": "**Phase 7: Polish & Cross-Cutting Concerns**\n\nRun quickstart.md validation — execute pnpm quickstart with new migrations, verify dev server starts, confirm supabase:verify passes with new schema.",
+      "labels": ["word-engine", "phase-7-polish"]
+    }
+  ]
+}

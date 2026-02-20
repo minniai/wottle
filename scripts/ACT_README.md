@@ -21,13 +21,24 @@ This guide explains how to run GitHub Actions workflows locally using [act](http
 
 3. **Run from project root** - Always execute act from the repository root directory
 
-4. **Supabase Access Token** (Optional for jobs that need Supabase):
-   - **Option A**: Create a `.secrets` file (recommended):
+4. **GitHub token** (required for act to clone actions):
+   - act runs workflow steps in Docker and must clone actions (e.g. `pnpm/action-setup`, `actions/checkout`) from GitHub. Without a token you may see:
+
+     ```text
+     authentication required: Invalid username or token. Password authentication is not supported for Git operations.
+     ```
+
+   - Add a Personal Access Token to your `.secrets` file:
 
      ```bash
      cp .secrets.example .secrets
-     # Edit .secrets and add your Supabase access token
+     # Edit .secrets and set GITHUB_TOKEN=ghp_xxxx...
      ```
+
+     Create a token at: <https://github.com/settings/tokens/new> (no scope needed for public actions; use **repo** if the workflow needs private repo access).
+
+5. **Supabase Access Token** (Optional for jobs that need Supabase):
+   - **Option A**: Add to the same `.secrets` file:
 
      Get your token from: <https://supabase.com/dashboard/account/tokens>
 
@@ -39,7 +50,7 @@ This guide explains how to run GitHub Actions workflows locally using [act](http
 
      This allows quickstart to run without cloud authentication
 
-5. **Start Supabase before running act** (Recommended):
+6. **Start Supabase before running act** (Recommended):
 
    The act container cannot reliably access Docker on your host machine. To work around this:
 
@@ -53,7 +64,7 @@ This guide explains how to run GitHub Actions workflows locally using [act](http
 
    The helper script automatically detects `.env.local` and passes the Supabase credentials to the act container, allowing quickstart to skip the Supabase start step.
 
-6. **Docker Socket Access** (if Docker check fails in act):
+7. **Docker Socket Access** (if Docker check fails in act):
    - If you see "Docker prerequisite failed" errors when running act, this is expected because Docker socket mounting doesn't work reliably in act
    - The recommended solution is step 5 above (start Supabase on host first)
    - As a fallback, you can skip the Docker check explicitly:
@@ -113,6 +124,21 @@ bash scripts/act.sh
 **Note**: Running all jobs sequentially can take a very long time. It's better to run specific jobs.
 
 ## Common Issues
+
+### Issue: `authentication required: Invalid username or token. Password authentication is not supported for Git operations`
+
+**Symptom**: act fails when cloning `pnpm/action-setup` or other actions with the above error.
+
+**Cause**: The workflow runner inside Docker needs a GitHub token to clone actions from GitHub. Act does not provide one by default.
+
+**Solution**: Add a GitHub Personal Access Token to your `.secrets` file:
+
+```bash
+# Create or edit .secrets (copy from .secrets.example if needed)
+echo "GITHUB_TOKEN=ghp_YOUR_TOKEN_HERE" >> .secrets
+```
+
+Create a token at <https://github.com/settings/tokens/new>. For public repos and actions, no scope is required; for private repos use the **repo** scope. Then run act again; it will read `.secrets` and pass `GITHUB_TOKEN` into the job.
 
 ### Issue: `Missing SUPABASE_ACCESS_TOKEN environment variable`
 

@@ -4,12 +4,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
 
 import type {
   BoardGrid as BoardGridType,
+  Coordinate,
   MoveRequest,
   MoveResult,
 } from "@/lib/types/board";
@@ -23,6 +25,10 @@ interface BoardGridProps {
   frozenTiles?: FrozenTileMap;
   /** Current player's slot for determining own vs opponent frozen tiles. */
   playerSlot?: "player_a" | "player_b";
+  /** Tile coordinates of scored words for highlight animation (FR-020). Shown for highlightDurationMs. */
+  scoredTileHighlights?: Coordinate[][];
+  /** Duration to show scored tile highlights in ms. Default 3000. */
+  highlightDurationMs?: number;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -70,6 +76,9 @@ async function submitSwapRequest(matchId: string, move: MoveRequest): Promise<Mo
   );
 }
 
+/** Stable empty array for default prop to avoid useEffect re-run loops. */
+const EMPTY_HIGHLIGHTS: Coordinate[][] = [];
+
 /** Player color constants for frozen tile overlays. */
 const FROZEN_COLORS = {
   player_a: "rgba(59, 130, 246, 0.4)", // blue at 40% opacity
@@ -77,18 +86,35 @@ const FROZEN_COLORS = {
   both: "linear-gradient(135deg, rgba(59, 130, 246, 0.4) 50%, rgba(239, 68, 68, 0.4) 50%)",
 };
 
+function isTileInHighlights(
+  colIndex: number,
+  rowIndex: number,
+  highlights: Coordinate[][],
+): boolean {
+  for (const wordCoords of highlights) {
+    for (const c of wordCoords) {
+      if (c.x === colIndex && c.y === rowIndex) return true;
+    }
+  }
+  return false;
+}
+
 export function BoardGrid({
   grid,
   matchId,
   className,
   frozenTiles = {},
   playerSlot,
+  scoredTileHighlights = EMPTY_HIGHLIGHTS,
+  highlightDurationMs = 3000,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
+  const highlightsKeyRef = useRef<string>("");
 
   useEffect(() => {
     if (
@@ -102,6 +128,24 @@ export function BoardGrid({
   useEffect(() => {
     setCurrentGrid(grid);
   }, [grid]);
+
+  useEffect(() => {
+    if (!scoredTileHighlights?.length) {
+      setActiveHighlights([]);
+      return;
+    }
+    const key = scoredTileHighlights
+      .map((h) => h.map((c) => `${c.x},${c.y}`).join("|"))
+      .join(";");
+    if (highlightsKeyRef.current === key) return;
+    highlightsKeyRef.current = key;
+    setActiveHighlights(scoredTileHighlights);
+    const t = setTimeout(() => {
+      setActiveHighlights([]);
+      highlightsKeyRef.current = "";
+    }, highlightDurationMs);
+    return () => clearTimeout(t);
+  }, [scoredTileHighlights, highlightDurationMs]);
 
   const rowCount = currentGrid.length;
   const colCount = currentGrid[0]?.length ?? 0;
@@ -218,6 +262,7 @@ export function BoardGrid({
               const frozenEntry = frozenTiles[tileKey];
               const isTileFrozen = !!frozenEntry;
               const frozenOwner = frozenEntry?.owner;
+              const isScoredHighlight = activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
 
               const frozenStyle: CSSProperties | undefined = isTileFrozen
                 ? frozenOwner === "both"
@@ -233,7 +278,7 @@ export function BoardGrid({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}`}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? " board-grid__cell--scored" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}

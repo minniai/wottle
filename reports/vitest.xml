@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="133" failures="0" errors="0" time="1.872">
-    <testsuite name="tests/unit/scripts/quickstartPreflight.test.ts" timestamp="2026-02-14T23:24:59.309Z" hostname="fell.local" tests="6" failures="0" errors="0" skipped="0" time="0.003">
+<testsuites name="vitest tests" tests="184" failures="0" errors="0" time="2.2">
+    <testsuite name="tests/unit/scripts/quickstartPreflight.test.ts" timestamp="2026-02-18T20:52:12.192Z" hostname="Mac.localdomain" tests="6" failures="0" errors="0" skipped="0" time="0.002">
         <testcase classname="tests/unit/scripts/quickstartPreflight.test.ts" name="runPreflight &gt; fails when Docker is unavailable" time="0.001">
         </testcase>
         <testcase classname="tests/unit/scripts/quickstartPreflight.test.ts" name="runPreflight &gt; skips Docker check when running inside act container" time="0">
@@ -14,7 +14,7 @@
         <testcase classname="tests/unit/scripts/quickstartPreflight.test.ts" name="runPreflight &gt; passes when token check is skipped" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/scripts/seed-reset.test.ts" timestamp="2026-02-14T23:24:59.310Z" hostname="fell.local" tests="5" failures="0" errors="0" skipped="0" time="0.005">
+    <testsuite name="tests/unit/scripts/seed-reset.test.ts" timestamp="2026-02-18T20:52:12.192Z" hostname="Mac.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.004">
         <testcase classname="tests/unit/scripts/seed-reset.test.ts" name="seedBoard &gt; fails fast when Supabase URL env var is missing" time="0.001">
         </testcase>
         <testcase classname="tests/unit/scripts/seed-reset.test.ts" name="seedBoard &gt; inserts the baseline grid when the board does not yet exist" time="0.002">
@@ -23,19 +23,19 @@
         </testcase>
         <testcase classname="tests/unit/scripts/seed-reset.test.ts" name="resetBoard &gt; rehydrates Supabase by delegating to seedBoard when the board is missing" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/scripts/seed-reset.test.ts" name="resetBoard &gt; resets the existing board grid and clears associated moves" time="0.001">
+        <testcase classname="tests/unit/scripts/seed-reset.test.ts" name="resetBoard &gt; resets the existing board grid and clears associated moves" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/scripts/verify.test.ts" timestamp="2026-02-14T23:24:59.311Z" hostname="fell.local" tests="3" failures="0" errors="0" skipped="0" time="0.003">
-        <testcase classname="tests/unit/scripts/verify.test.ts" name="verifySupabase instrumentation &gt; reports healthy status with duration when probe succeeds" time="0.001">
+    <testsuite name="tests/unit/scripts/verify.test.ts" timestamp="2026-02-18T20:52:12.193Z" hostname="Mac.localdomain" tests="3" failures="0" errors="0" skipped="0" time="0.015">
+        <testcase classname="tests/unit/scripts/verify.test.ts" name="verifySupabase instrumentation &gt; reports healthy status with duration when probe succeeds" time="0.012">
         </testcase>
-        <testcase classname="tests/unit/scripts/verify.test.ts" name="verifySupabase instrumentation &gt; reports error status and message when probe fails" time="0.001">
+        <testcase classname="tests/unit/scripts/verify.test.ts" name="verifySupabase instrumentation &gt; reports error status and message when probe fails" time="0">
         </testcase>
         <testcase classname="tests/unit/scripts/verify.test.ts" name="verifySupabase instrumentation &gt; runs the default probe with structured Supabase query" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/app/actions/getBoard.test.ts" timestamp="2026-02-14T23:24:59.311Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.005">
-        <testcase classname="tests/unit/app/actions/getBoard.test.ts" name="getBoard server action &gt; returns the board grid from Supabase" time="0.003">
+    <testsuite name="tests/unit/app/actions/getBoard.test.ts" timestamp="2026-02-18T20:52:12.193Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.004">
+        <testcase classname="tests/unit/app/actions/getBoard.test.ts" name="getBoard server action &gt; returns the board grid from Supabase" time="0.002">
         </testcase>
         <testcase classname="tests/unit/app/actions/getBoard.test.ts" name="getBoard server action &gt; throws when Supabase returns an error" time="0">
         </testcase>
@@ -44,42 +44,42 @@
         <testcase classname="tests/unit/app/actions/getBoard.test.ts" name="getBoard server action &gt; validates the grid shape before returning" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/app/actions/swapTiles.test.ts" timestamp="2026-02-14T23:24:59.311Z" hostname="fell.local" tests="5" failures="0" errors="0" skipped="0" time="0.007">
-        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; applies a swap, updates the board, and records the move" time="0.005">
+    <testsuite name="tests/unit/app/actions/swapTiles.test.ts" timestamp="2026-02-18T20:52:12.193Z" hostname="Mac.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.007">
+        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; applies a swap, updates the board, and records the move" time="0.003">
         </testcase>
-        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; rejects invalid swaps without mutating the board" time="0">
+        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; rejects invalid swaps without mutating the board" time="0.001">
         </testcase>
         <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; rejects out-of-range coordinates gracefully" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; throws when the board row cannot be loaded" time="0.001">
+        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; throws when the board row cannot be loaded" time="0">
         </testcase>
-        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; throws when the board update fails" time="0">
-        </testcase>
-    </testsuite>
-    <testsuite name="tests/unit/components/game/BoardGrid.test.tsx" timestamp="2026-02-14T23:24:59.311Z" hostname="fell.local" tests="2" failures="0" errors="0" skipped="0" time="0.191">
-        <testcase classname="tests/unit/components/game/BoardGrid.test.tsx" name="BoardGrid component &gt; renders a 10x10 grid with accessible roles" time="0.13">
-        </testcase>
-        <testcase classname="tests/unit/components/game/BoardGrid.test.tsx" name="BoardGrid component &gt; annotates each row and cell with coordinate metadata" time="0.06">
+        <testcase classname="tests/unit/app/actions/swapTiles.test.ts" name="swapTiles server action &gt; throws when the board update fails" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/components/game/MoveFeedback.test.tsx" timestamp="2026-02-14T23:24:59.312Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.086">
-        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; renders nothing when feedback is null" time="0.012">
-        </testcase>
-        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; renders success feedback with polite live region" time="0.012">
-        </testcase>
-        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; focuses the toast when feedback changes" time="0.016">
-        </testcase>
-        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; calls onDismiss when the dismiss button is activated" time="0.046">
-        </testcase>
-    </testsuite>
-    <testsuite name="tests/unit/components/match/RoundSummaryPanel.accessibility.test.tsx" timestamp="2026-02-14T23:24:59.312Z" hostname="fell.local" tests="2" failures="0" errors="0" skipped="0" time="0.075">
-        <testcase classname="tests/unit/components/match/RoundSummaryPanel.accessibility.test.tsx" name="RoundSummaryPanel accessibility &gt; announces new summaries via the live region" time="0.016">
+    <testsuite name="tests/unit/components/match/RoundSummaryPanel.accessibility.test.tsx" timestamp="2026-02-18T20:52:12.193Z" hostname="Mac.localdomain" tests="2" failures="0" errors="0" skipped="0" time="0.072">
+        <testcase classname="tests/unit/components/match/RoundSummaryPanel.accessibility.test.tsx" name="RoundSummaryPanel accessibility &gt; announces new summaries via the live region" time="0.014">
         </testcase>
         <testcase classname="tests/unit/components/match/RoundSummaryPanel.accessibility.test.tsx" name="RoundSummaryPanel accessibility &gt; moves focus to the panel whenever the summary changes" time="0.058">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/a11y/rovingFocus.test.ts" timestamp="2026-02-14T23:24:59.312Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.001">
-        <testcase classname="tests/unit/lib/a11y/rovingFocus.test.ts" name="getNextRovingIndex &gt; wraps to the next or previous index for arrow keys" time="0.001">
+    <testsuite name="tests/unit/components/game/BoardGrid.test.tsx" timestamp="2026-02-18T20:52:12.193Z" hostname="Mac.localdomain" tests="2" failures="0" errors="0" skipped="0" time="0.195">
+        <testcase classname="tests/unit/components/game/BoardGrid.test.tsx" name="BoardGrid component &gt; renders a 10x10 grid with accessible roles" time="0.132">
+        </testcase>
+        <testcase classname="tests/unit/components/game/BoardGrid.test.tsx" name="BoardGrid component &gt; annotates each row and cell with coordinate metadata" time="0.062">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/components/game/MoveFeedback.test.tsx" timestamp="2026-02-18T20:52:12.193Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.103">
+        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; renders nothing when feedback is null" time="0.012">
+        </testcase>
+        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; renders success feedback with polite live region" time="0.015">
+        </testcase>
+        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; focuses the toast when feedback changes" time="0.017">
+        </testcase>
+        <testcase classname="tests/unit/components/game/MoveFeedback.test.tsx" name="MoveFeedback component &gt; calls onDismiss when the dismiss button is activated" time="0.058">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/lib/a11y/rovingFocus.test.ts" timestamp="2026-02-18T20:52:12.194Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.001">
+        <testcase classname="tests/unit/lib/a11y/rovingFocus.test.ts" name="getNextRovingIndex &gt; wraps to the next or previous index for arrow keys" time="0">
         </testcase>
         <testcase classname="tests/unit/lib/a11y/rovingFocus.test.ts" name="getNextRovingIndex &gt; treats ArrowDown like ArrowRight and ArrowUp like ArrowLeft" time="0">
         </testcase>
@@ -88,32 +88,32 @@
         <testcase classname="tests/unit/lib/a11y/rovingFocus.test.ts" name="getNextRovingIndex &gt; returns the current index for unsupported keys or empty lists" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/a11y/useFocusTrap.test.tsx" timestamp="2026-02-14T23:24:59.312Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.028">
-        <testcase classname="tests/unit/lib/a11y/useFocusTrap.test.tsx" name="useFocusTrap &gt; focuses the first focusable element when activated" time="0.02">
+    <testsuite name="tests/unit/lib/a11y/useFocusTrap.test.tsx" timestamp="2026-02-18T20:52:12.194Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.045">
+        <testcase classname="tests/unit/lib/a11y/useFocusTrap.test.tsx" name="useFocusTrap &gt; focuses the first focusable element when activated" time="0.034">
         </testcase>
-        <testcase classname="tests/unit/lib/a11y/useFocusTrap.test.tsx" name="useFocusTrap &gt; wraps focus when tabbing forward and backward" time="0.003">
+        <testcase classname="tests/unit/lib/a11y/useFocusTrap.test.tsx" name="useFocusTrap &gt; wraps focus when tabbing forward and backward" time="0.004">
         </testcase>
         <testcase classname="tests/unit/lib/a11y/useFocusTrap.test.tsx" name="useFocusTrap &gt; invokes the escape handler when pressing Escape" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/lib/a11y/useFocusTrap.test.tsx" name="useFocusTrap &gt; restores focus to the previously focused element when deactivated" time="0.003">
+        <testcase classname="tests/unit/lib/a11y/useFocusTrap.test.tsx" name="useFocusTrap &gt; restores focus to the previously focused element when deactivated" time="0.005">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/game-engine/board.test.ts" timestamp="2026-02-14T23:24:59.312Z" hostname="fell.local" tests="6" failures="0" errors="0" skipped="0" time="0.004">
+    <testsuite name="tests/unit/lib/game-engine/board.test.ts" timestamp="2026-02-18T20:52:12.194Z" hostname="Mac.localdomain" tests="6" failures="0" errors="0" skipped="0" time="0.003">
         <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; cloneGrid returns a deep copy of the provided board grid" time="0.001">
         </testcase>
         <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; applySwap returns a new grid with swapped coordinates without mutating the input" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; applySwap rejects swaps that keep the same coordinate" time="0">
+        <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; applySwap rejects swaps that keep the same coordinate" time="0.001">
         </testcase>
         <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; assertCoordinate enforces in-bounds coordinates" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; serializeGrid and deserializeGrid perform a lossless round trip" time="0.001">
+        <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; serializeGrid and deserializeGrid perform a lossless round trip" time="0">
         </testcase>
         <testcase classname="tests/unit/lib/game-engine/board.test.ts" name="board utilities &gt; deserializeGrid rejects malformed input" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/game-engine/boardGenerator.test.ts" timestamp="2026-02-14T23:24:59.313Z" hostname="fell.local" tests="5" failures="0" errors="0" skipped="0" time="0.005">
-        <testcase classname="tests/unit/lib/game-engine/boardGenerator.test.ts" name="generateBoard &gt; produces a 10x10 grid populated with letters" time="0.002">
+    <testsuite name="tests/unit/lib/game-engine/boardGenerator.test.ts" timestamp="2026-02-18T20:52:12.195Z" hostname="Mac.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.009">
+        <testcase classname="tests/unit/lib/game-engine/boardGenerator.test.ts" name="generateBoard &gt; produces a 10x10 grid populated with letters" time="0.007">
         </testcase>
         <testcase classname="tests/unit/lib/game-engine/boardGenerator.test.ts" name="generateBoard &gt; includes every alphabet character at least once" time="0">
         </testcase>
@@ -124,10 +124,46 @@
         <testcase classname="tests/unit/lib/game-engine/boardGenerator.test.ts" name="generateBoard &gt; respects weighting priority across large samples" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/game-engine/dictionary.test.ts" timestamp="2026-02-14T23:24:59.313Z" hostname="fell.local" tests="14" failures="0" errors="0" skipped="0" time="1.157">
-        <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; loadDictionary &gt; should load more than 2 million entries from the word list" time="1.119">
+    <testsuite name="tests/unit/lib/game-engine/boardScanner.test.ts" timestamp="2026-02-18T20:52:12.195Z" hostname="Mac.localdomain" tests="11" failures="0" errors="0" skipped="0" time="1.31">
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should find a horizontal word left-to-right" time="0.046">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should find a horizontal word right-to-left (reversed)" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should find a vertical word top-to-down" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should find a diagonal word down-right" time="0.002">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should find a diagonal word down-left" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should only find words with minimum 3 letters" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should not find words that wrap around board edges" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should return BoardWord with correct fields" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should return empty for board with no valid words" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should handle Icelandic characters correctly" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/boardScanner.test.ts" name="boardScanner &gt; should return scan duration in milliseconds" time="0.001">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/lib/game-engine/deltaDetector.test.ts" timestamp="2026-02-18T20:52:12.196Z" hostname="Mac.localdomain" tests="5" failures="0" errors="0" skipped="0" time="1.345">
+        <testcase classname="tests/unit/lib/game-engine/deltaDetector.test.ts" name="deltaDetector &gt; should detect a new word formed by Player A&apos;s swap" time="0.051">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/deltaDetector.test.ts" name="deltaDetector &gt; should ignore pre-existing words on board_before" time="0.004">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/deltaDetector.test.ts" name="deltaDetector &gt; should return empty when no new words are formed" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/deltaDetector.test.ts" name="deltaDetector &gt; should attribute words to Player B when formed by Player B&apos;s swap" time="0.002">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/deltaDetector.test.ts" name="deltaDetector &gt; should handle both players forming words in same round" time="0.003">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/lib/game-engine/dictionary.test.ts" timestamp="2026-02-18T20:52:12.196Z" hostname="Mac.localdomain" tests="14" failures="0" errors="0" skipped="0" time="1.487">
+        <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; loadDictionary &gt; should load more than 2 million entries from the word list" time="1.449">
             <system-out>
-{&quot;level&quot;:&quot;info&quot;,&quot;event&quot;:&quot;dictionary.loaded&quot;,&quot;entries&quot;:2759422,&quot;durationMs&quot;:1118}
+{&quot;level&quot;:&quot;info&quot;,&quot;event&quot;:&quot;dictionary.loaded&quot;,&quot;entries&quot;:2759422,&quot;durationMs&quot;:1448}
 
             </system-out>
         </testcase>
@@ -135,7 +171,7 @@
         </testcase>
         <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; loadDictionary &gt; should NFC-normalize entries so composed and decomposed forms match" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; loadDictionary &gt; should lowercase all entries" time="0.006">
+        <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; loadDictionary &gt; should lowercase all entries" time="0.007">
         </testcase>
         <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; loadDictionary &gt; should return the same cached instance on subsequent calls" time="0">
         </testcase>
@@ -155,42 +191,118 @@
         </testcase>
         <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; lookupWord &gt; should treat Icelandic char æ as distinct from ae" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; lookupWord &gt; should NFC-normalize the input before lookup" time="0">
+        <testcase classname="tests/unit/lib/game-engine/dictionary.test.ts" name="dictionary &gt; lookupWord &gt; should NFC-normalize the input before lookup" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/match/resultCalculator.test.ts" timestamp="2026-02-14T23:24:59.314Z" hostname="fell.local" tests="6" failures="0" errors="0" skipped="0" time="0.003">
-        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; determineMatchWinner &gt; returns player A when their score is higher" time="0.001">
+    <testsuite name="tests/unit/lib/game-engine/frozenTiles.test.ts" timestamp="2026-02-18T20:52:12.197Z" hostname="Mac.localdomain" tests="15" failures="0" errors="0" skipped="0" time="0.003">
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; toFrozenKey &gt; should produce &apos;x,y&apos; format" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; determineMatchWinner &gt; returns player B when their score is higher" time="0.001">
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; isFrozen &gt; should return true for a frozen coordinate" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; isFrozen &gt; should return false for an unfrozen coordinate" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; isFrozen &gt; should return true for tiles owned by &apos;both&apos;" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; isFrozenByOpponent &gt; should return true when tile is owned by the opponent" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; isFrozenByOpponent &gt; should return false when tile is owned by the same player" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; isFrozenByOpponent &gt; should return false when tile is owned by &apos;both&apos;" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; isFrozenByOpponent &gt; should return false when tile is not frozen at all" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; freezeTiles &gt; should add all tile coordinates from scored words to the map" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; freezeTiles &gt; should set dual ownership when both players claim same tile" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; freezeTiles &gt; should upgrade existing single ownership to &apos;both&apos; when opponent claims same tile" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; freezeTiles &gt; should enforce 24-unfrozen minimum (76 max frozen)" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; freezeTiles &gt; should freeze in reading order (row first, then column) when partial" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; freezeTiles &gt; should merge with existing frozen tiles without removing any" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/frozenTiles.test.ts" name="frozenTiles &gt; freezeTiles &gt; should skip duplicate words when freezing" time="0">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/lib/game-engine/scorer.test.ts" timestamp="2026-02-18T20:52:12.198Z" hostname="Mac.localdomain" tests="13" failures="0" errors="0" skipped="0" time="0.003">
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateLetterPoints &gt; should sum letter values correctly for &apos;BÚR&apos; (B=4 + Ú=7 + R=1 = 12)" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateLetterPoints &gt; should sum letter values correctly for &apos;HESTUR&apos;" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateLetterPoints &gt; should sum letter values correctly for &apos;LAND&apos;" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateLetterPoints &gt; should handle all 32 Icelandic letters" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateLetterPoints &gt; should handle uppercase input by converting to uppercase for lookup" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateLengthBonus &gt; should return (length - 2) * 5 for all valid lengths" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateComboBonus &gt; should return 0 for 1 word" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateComboBonus &gt; should return 2 for 2 words" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateComboBonus &gt; should return 5 for 3 words" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateComboBonus &gt; should return 7 for 4 words" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateComboBonus &gt; should return 8 for 5 words (7 + (5-4))" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateComboBonus &gt; should return 9 for 6 words (7 + (6-4))" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/scorer.test.ts" name="scorer &gt; calculateComboBonus &gt; should return 0 for 0 words" time="0">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/lib/game-engine/wordEngine.test.ts" timestamp="2026-02-18T20:52:12.199Z" hostname="Mac.localdomain" tests="7" failures="0" errors="0" skipped="0" time="1.332">
+        <testcase classname="tests/unit/lib/game-engine/wordEngine.test.ts" name="wordEngine &gt; should return RoundScoreResult with all required fields" time="0.048">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/wordEngine.test.ts" name="wordEngine &gt; should score &apos;hestur&apos; with correct letter points and length bonus" time="0.003">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/wordEngine.test.ts" name="wordEngine &gt; should return zero deltas when no new words are formed" time="0.001">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/wordEngine.test.ts" name="wordEngine &gt; should include score deltas accounting for all scored words" time="0.003">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/wordEngine.test.ts" name="wordEngine &gt; duplicate word tracking (US3) &gt; same player forms same word in two rounds - second marked isDuplicate and 0 points" time="0.002">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/wordEngine.test.ts" name="wordEngine &gt; duplicate word tracking (US3) &gt; different player forms same word - full points awarded (per-player tracking)" time="0.002">
+        </testcase>
+        <testcase classname="tests/unit/lib/game-engine/wordEngine.test.ts" name="wordEngine &gt; duplicate word tracking (US3) &gt; combo bonus excludes duplicate words (duplicate words score 0, not counted for combo)" time="0.003">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/lib/match/resultCalculator.test.ts" timestamp="2026-02-18T20:52:12.199Z" hostname="Mac.localdomain" tests="6" failures="0" errors="0" skipped="0" time="0.004">
+        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; determineMatchWinner &gt; returns player A when their score is higher" time="0.002">
+        </testcase>
+        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; determineMatchWinner &gt; returns player B when their score is higher" time="0">
         </testcase>
         <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; determineMatchWinner &gt; returns draw when scores match" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; assertRematchAllowed &gt; allows rematch when match completed and player participated" time="0">
+        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; assertRematchAllowed &gt; allows rematch when match completed and player participated" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; assertRematchAllowed &gt; rejects when match still in progress" time="0">
+        <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; assertRematchAllowed &gt; rejects when match still in progress" time="0.001">
         </testcase>
         <testcase classname="tests/unit/lib/match/resultCalculator.test.ts" name="resultCalculator &gt; assertRematchAllowed &gt; rejects when requester was not part of the match" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/match/roundEngine.test.ts" timestamp="2026-02-14T23:24:59.314Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.006">
-        <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="roundEngine.advanceRound &gt; advances to the next round when submissions from both players exist" time="0.005">
+    <testsuite name="tests/unit/lib/match/roundEngine.test.ts" timestamp="2026-02-18T20:52:12.199Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.007">
+        <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="roundEngine.advanceRound &gt; advances to the next round when submissions from both players exist" time="0.006">
             <system-out>
-{&quot;level&quot;:&quot;info&quot;,&quot;event&quot;:&quot;round.completed&quot;,&quot;timestamp&quot;:&quot;2026-02-14T23:24:58.290Z&quot;,&quot;playtest&quot;:true,&quot;matchId&quot;:&quot;match-1&quot;,&quot;roundNumber&quot;:1,&quot;acceptedMoves&quot;:2,&quot;rejectedMoves&quot;:0,&quot;durationMs&quot;:1,&quot;isGameOver&quot;:false}
+{&quot;level&quot;:&quot;info&quot;,&quot;event&quot;:&quot;round.completed&quot;,&quot;timestamp&quot;:&quot;2026-02-18T20:52:10.849Z&quot;,&quot;playtest&quot;:true,&quot;matchId&quot;:&quot;match-1&quot;,&quot;roundNumber&quot;:1,&quot;acceptedMoves&quot;:2,&quot;rejectedMoves&quot;:0,&quot;durationMs&quot;:3,&quot;isGameOver&quot;:false}
 
             </system-out>
         </testcase>
-        <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="roundEngine.advanceRound &gt; marks conflicting submissions as rejected_invalid" time="0">
+        <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="roundEngine.advanceRound &gt; marks conflicting submissions as rejected_invalid" time="0.001">
             <system-out>
-{&quot;level&quot;:&quot;info&quot;,&quot;event&quot;:&quot;round.completed&quot;,&quot;timestamp&quot;:&quot;2026-02-14T23:24:58.292Z&quot;,&quot;playtest&quot;:true,&quot;matchId&quot;:&quot;match-1&quot;,&quot;roundNumber&quot;:1,&quot;acceptedMoves&quot;:1,&quot;rejectedMoves&quot;:1,&quot;durationMs&quot;:0,&quot;isGameOver&quot;:false}
+{&quot;level&quot;:&quot;info&quot;,&quot;event&quot;:&quot;round.completed&quot;,&quot;timestamp&quot;:&quot;2026-02-18T20:52:10.851Z&quot;,&quot;playtest&quot;:true,&quot;matchId&quot;:&quot;match-1&quot;,&quot;roundNumber&quot;:1,&quot;acceptedMoves&quot;:1,&quot;rejectedMoves&quot;:1,&quot;durationMs&quot;:0,&quot;isGameOver&quot;:false}
 
             </system-out>
         </testcase>
-        <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="roundEngine.advanceRound &gt; returns waiting when only one submission exists" time="0.001">
+        <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="roundEngine.advanceRound &gt; returns waiting when only one submission exists" time="0">
         </testcase>
         <testcase classname="tests/unit/lib/match/roundEngine.test.ts" name="roundEngine.advanceRound &gt; does not advance when match is not in progress" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/match/stateMachine.test.ts" timestamp="2026-02-14T23:24:59.314Z" hostname="fell.local" tests="5" failures="0" errors="0" skipped="0" time="0.001">
+    <testsuite name="tests/unit/lib/match/stateMachine.test.ts" timestamp="2026-02-18T20:52:12.200Z" hostname="Mac.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.001">
         <testcase classname="tests/unit/lib/match/stateMachine.test.ts" name="stateMachine.registerSubmission &gt; marks submission as accepted and transitions to resolving when both submitted" time="0.001">
         </testcase>
         <testcase classname="tests/unit/lib/match/stateMachine.test.ts" name="stateMachine.registerSubmission &gt; marks duplicate swap as ignored when signatures match" time="0">
@@ -202,12 +314,12 @@
         <testcase classname="tests/unit/lib/match/stateMachine.test.ts" name="round advancement helpers &gt; signals when round should advance" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/match/timerStore.test.ts" timestamp="2026-02-14T23:24:59.315Z" hostname="fell.local" tests="12" failures="0" errors="0" skipped="0" time="0.002">
-        <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should initialize with null timers" time="0">
+    <testsuite name="tests/unit/lib/match/timerStore.test.ts" timestamp="2026-02-18T20:52:12.200Z" hostname="Mac.localdomain" tests="12" failures="0" errors="0" skipped="0" time="0.002">
+        <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should initialize with null timers" time="0.001">
         </testcase>
         <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should set timers for both players" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should pause player A timer" time="0.001">
+        <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should pause player A timer" time="0">
         </testcase>
         <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should pause player B timer" time="0">
         </testcase>
@@ -219,7 +331,7 @@
         </testcase>
         <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should update timer by player ID" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should get player timer by ID" time="0">
+        <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should get player timer by ID" time="0.001">
         </testcase>
         <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should get pause status by player ID" time="0">
         </testcase>
@@ -228,69 +340,69 @@
         <testcase classname="tests/unit/lib/match/timerStore.test.ts" name="TimerStore &gt; should handle resume when timer is null" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/matchmaking/inviteService.test.ts" timestamp="2026-02-14T23:24:59.315Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.001">
-        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; calculates expiry timestamps using the provided TTL" time="0">
+    <testsuite name="tests/unit/lib/scoring/roundSummary.test.ts" timestamp="2026-02-18T20:52:12.201Z" hostname="Mac.localdomain" tests="2" failures="0" errors="0" skipped="0" time="0.001">
+        <testcase classname="tests/unit/lib/scoring/roundSummary.test.ts" name="roundSummary scoring utilities &gt; calculates letter and bonus points for a word" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; detects expired invites based on creation time" time="0">
-        </testcase>
-        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; prefers the oldest waiting opponent in queue arbitration" time="0.001">
-        </testcase>
-        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; returns null when no valid opponents are found" time="0">
+        <testcase classname="tests/unit/lib/scoring/roundSummary.test.ts" name="roundSummary scoring utilities &gt; aggregates round summary totals and highlights" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/matchmaking/presenceStore.test.ts" timestamp="2026-02-14T23:24:59.315Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.008">
-        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; replaces players on sync while deduplicating and sorting" time="0.007">
+    <testsuite name="tests/unit/lib/supabase/server.test.ts" timestamp="2026-02-18T20:52:12.201Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.041">
+        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; getServiceRoleClient caches the Supabase client instance" time="0.034">
         </testcase>
-        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; adds or replaces a player on join" time="0">
+        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; getServiceRoleClient throws when invoked in a browser context" time="0.003">
         </testcase>
-        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; removes a player on leave events" time="0">
+        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; createServiceRoleClient returns a fresh client on each call" time="0.002">
         </testcase>
-        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; keeps collection unchanged when leave target missing" time="0.001">
+        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; both factories fail fast when required env vars are missing" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/rate-limiting/middleware.test.ts" timestamp="2026-02-14T23:24:59.316Z" hostname="fell.local" tests="5" failures="0" errors="0" skipped="0" time="0.004">
-        <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; throws RateLimitExceededError after the configured limit is reached" time="0.002">
+    <testsuite name="tests/unit/lib/rate-limiting/middleware.test.ts" timestamp="2026-02-18T20:52:12.201Z" hostname="Mac.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.002">
+        <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; throws RateLimitExceededError after the configured limit is reached" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; resets counters after the window elapses" time="0">
+        <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; resets counters after the window elapses" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; tracks each identifier independently" time="0.001">
+        <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; tracks each identifier independently" time="0">
         </testcase>
         <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; derives IP address from headers" time="0">
         </testcase>
         <testcase classname="tests/unit/lib/rate-limiting/middleware.test.ts" name="rate-limiting middleware &gt; falls back to &apos;unknown&apos; when no headers match" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/unit/lib/supabase/server.test.ts" timestamp="2026-02-14T23:24:59.316Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.024">
-        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; getServiceRoleClient caches the Supabase client instance" time="0.017">
+    <testsuite name="tests/unit/lib/matchmaking/inviteService.test.ts" timestamp="2026-02-18T20:52:12.201Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.001">
+        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; calculates expiry timestamps using the provided TTL" time="0.001">
         </testcase>
-        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; getServiceRoleClient throws when invoked in a browser context" time="0.003">
+        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; detects expired invites based on creation time" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; createServiceRoleClient returns a fresh client on each call" time="0.002">
+        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; prefers the oldest waiting opponent in queue arbitration" time="0">
         </testcase>
-        <testcase classname="tests/unit/lib/supabase/server.test.ts" name="server-side Supabase client factories &gt; both factories fail fast when required env vars are missing" time="0.002">
-        </testcase>
-    </testsuite>
-    <testsuite name="tests/unit/lib/scoring/roundSummary.test.ts" timestamp="2026-02-14T23:24:59.316Z" hostname="fell.local" tests="2" failures="0" errors="0" skipped="0" time="0.001">
-        <testcase classname="tests/unit/lib/scoring/roundSummary.test.ts" name="roundSummary scoring utilities &gt; calculates letter and bonus points for a word" time="0.001">
-        </testcase>
-        <testcase classname="tests/unit/lib/scoring/roundSummary.test.ts" name="roundSummary scoring utilities &gt; aggregates round summary totals and highlights" time="0">
+        <testcase classname="tests/unit/lib/matchmaking/inviteService.test.ts" name="inviteService helpers &gt; returns null when no valid opponents are found" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/contract/get-active-match.contract.test.ts" timestamp="2026-02-14T23:24:59.316Z" hostname="fell.local" tests="3" failures="0" errors="0" skipped="0" time="0.006">
-        <testcase classname="tests/contract/get-active-match.contract.test.ts" name="GET /api/match/active &gt; returns the active match summary when one exists" time="0.004">
+    <testsuite name="tests/unit/lib/matchmaking/presenceStore.test.ts" timestamp="2026-02-18T20:52:12.202Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.007">
+        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; replaces players on sync while deduplicating and sorting" time="0.007">
+        </testcase>
+        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; adds or replaces a player on join" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; removes a player on leave events" time="0">
+        </testcase>
+        <testcase classname="tests/unit/lib/matchmaking/presenceStore.test.ts" name="applyLobbyEvent &gt; keeps collection unchanged when leave target missing" time="0">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/contract/get-active-match.contract.test.ts" timestamp="2026-02-18T20:52:12.202Z" hostname="Mac.localdomain" tests="3" failures="0" errors="0" skipped="0" time="0.005">
+        <testcase classname="tests/contract/get-active-match.contract.test.ts" name="GET /api/match/active &gt; returns the active match summary when one exists" time="0.003">
         </testcase>
         <testcase classname="tests/contract/get-active-match.contract.test.ts" name="GET /api/match/active &gt; returns null match when the user is not authenticated" time="0.001">
         </testcase>
         <testcase classname="tests/contract/get-active-match.contract.test.ts" name="GET /api/match/active &gt; returns 500 when the lookup fails" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/contract/get-round-summary.contract.test.ts" timestamp="2026-02-14T23:24:59.316Z" hostname="fell.local" tests="2" failures="0" errors="0" skipped="0" time="0.012">
-        <testcase classname="tests/contract/get-round-summary.contract.test.ts" name="GET /api/match/[matchId]/rounds/[round]/summary &gt; returns identical summaries for both players (SC-004)" time="0.01">
+    <testsuite name="tests/contract/get-round-summary.contract.test.ts" timestamp="2026-02-18T20:52:12.202Z" hostname="Mac.localdomain" tests="2" failures="0" errors="0" skipped="0" time="0.014">
+        <testcase classname="tests/contract/get-round-summary.contract.test.ts" name="GET /api/match/[matchId]/rounds/[round]/summary &gt; returns identical summaries for both players (SC-004)" time="0.013">
         </testcase>
-        <testcase classname="tests/contract/get-round-summary.contract.test.ts" name="GET /api/match/[matchId]/rounds/[round]/summary &gt; conforms to round summary schema (matchId, words, deltas, highlights)" time="0.002">
+        <testcase classname="tests/contract/get-round-summary.contract.test.ts" name="GET /api/match/[matchId]/rounds/[round]/summary &gt; conforms to round summary schema (matchId, words, deltas, highlights)" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/contract/post-invite.contract.test.ts" timestamp="2026-02-14T23:24:59.317Z" hostname="fell.local" tests="3" failures="0" errors="0" skipped="0" time="0.006">
+    <testsuite name="tests/contract/post-invite.contract.test.ts" timestamp="2026-02-18T20:52:12.202Z" hostname="Mac.localdomain" tests="3" failures="0" errors="0" skipped="0" time="0.006">
         <testcase classname="tests/contract/post-invite.contract.test.ts" name="POST /api/lobby/invite &gt; returns 200 when the invite service succeeds" time="0.005">
         </testcase>
         <testcase classname="tests/contract/post-invite.contract.test.ts" name="POST /api/lobby/invite &gt; returns 401 when the user is not authenticated" time="0.001">
@@ -298,40 +410,40 @@
         <testcase classname="tests/contract/post-invite.contract.test.ts" name="POST /api/lobby/invite &gt; returns 400 when the payload is missing a recipient" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/contract/post-login.contract.test.ts" timestamp="2026-02-14T23:24:59.317Z" hostname="fell.local" tests="4" failures="0" errors="0" skipped="0" time="0.007">
+    <testsuite name="tests/contract/post-login.contract.test.ts" timestamp="2026-02-18T20:52:12.202Z" hostname="Mac.localdomain" tests="4" failures="0" errors="0" skipped="0" time="0.008">
         <testcase classname="tests/contract/post-login.contract.test.ts" name="POST /api/auth/login &gt; returns 200 with player payload when login succeeds" time="0.004">
         </testcase>
         <testcase classname="tests/contract/post-login.contract.test.ts" name="POST /api/auth/login &gt; returns 400 when username is missing" time="0.001">
         </testcase>
         <testcase classname="tests/contract/post-login.contract.test.ts" name="POST /api/auth/login &gt; returns 500 when the login helper throws" time="0">
         </testcase>
-        <testcase classname="tests/contract/post-login.contract.test.ts" name="POST /api/auth/login &gt; returns 429 when rate limit is exceeded" time="0.001">
+        <testcase classname="tests/contract/post-login.contract.test.ts" name="POST /api/auth/login &gt; returns 429 when rate limit is exceeded" time="0.002">
         </testcase>
     </testsuite>
-    <testsuite name="tests/contract/post-match-start.contract.test.ts" timestamp="2026-02-14T23:24:59.317Z" hostname="fell.local" tests="3" failures="0" errors="0" skipped="0" time="0.005">
-        <testcase classname="tests/contract/post-match-start.contract.test.ts" name="POST /api/match/start &gt; returns queue result when matchmaking succeeds" time="0.005">
+    <testsuite name="tests/contract/post-match-start.contract.test.ts" timestamp="2026-02-18T20:52:12.203Z" hostname="Mac.localdomain" tests="3" failures="0" errors="0" skipped="0" time="0.007">
+        <testcase classname="tests/contract/post-match-start.contract.test.ts" name="POST /api/match/start &gt; returns queue result when matchmaking succeeds" time="0.006">
         </testcase>
-        <testcase classname="tests/contract/post-match-start.contract.test.ts" name="POST /api/match/start &gt; returns 401 when no lobby session is present" time="0">
+        <testcase classname="tests/contract/post-match-start.contract.test.ts" name="POST /api/match/start &gt; returns 401 when no lobby session is present" time="0.001">
         </testcase>
         <testcase classname="tests/contract/post-match-start.contract.test.ts" name="POST /api/match/start &gt; returns 500 when the queue helper throws" time="0">
         </testcase>
     </testsuite>
-    <testsuite name="tests/contract/post-move.contract.test.ts" timestamp="2026-02-14T23:24:59.317Z" hostname="fell.local" tests="5" failures="0" errors="0" skipped="0" time="0.01">
-        <testcase classname="tests/contract/post-move.contract.test.ts" name="POST /api/match/[matchId]/move &gt; should return 200 on success" time="0.006">
+    <testsuite name="tests/contract/post-move.contract.test.ts" timestamp="2026-02-18T20:52:12.203Z" hostname="Mac.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.008">
+        <testcase classname="tests/contract/post-move.contract.test.ts" name="POST /api/match/[matchId]/move &gt; should return 200 on success" time="0.004">
         </testcase>
         <testcase classname="tests/contract/post-move.contract.test.ts" name="POST /api/match/[matchId]/move &gt; should return 400 on invalid body" time="0.001">
         </testcase>
-        <testcase classname="tests/contract/post-move.contract.test.ts" name="POST /api/match/[matchId]/move &gt; should return 400 on action error" time="0.001">
+        <testcase classname="tests/contract/post-move.contract.test.ts" name="POST /api/match/[matchId]/move &gt; should return 400 on action error" time="0">
         </testcase>
         <testcase classname="tests/contract/post-move.contract.test.ts" name="POST /api/match/[matchId]/move &gt; should return 400 when move result is rejected" time="0.001">
         </testcase>
         <testcase classname="tests/contract/post-move.contract.test.ts" name="POST /api/match/[matchId]/move &gt; should return 429 when the rate limiter blocks requests" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/contract/post-swap.contract.test.ts" timestamp="2026-02-14T23:24:59.317Z" hostname="fell.local" tests="3" failures="0" errors="0" skipped="0" time="0.005">
-        <testcase classname="tests/contract/post-swap.contract.test.ts" name="POST /api/swap &gt; returns 200 with the move result when the swap succeeds" time="0.004">
+    <testsuite name="tests/contract/post-swap.contract.test.ts" timestamp="2026-02-18T20:52:12.203Z" hostname="Mac.localdomain" tests="3" failures="0" errors="0" skipped="0" time="0.009">
+        <testcase classname="tests/contract/post-swap.contract.test.ts" name="POST /api/swap &gt; returns 200 with the move result when the swap succeeds" time="0.006">
         </testcase>
-        <testcase classname="tests/contract/post-swap.contract.test.ts" name="POST /api/swap &gt; returns 400 when the server action rejects the swap" time="0">
+        <testcase classname="tests/contract/post-swap.contract.test.ts" name="POST /api/swap &gt; returns 400 when the server action rejects the swap" time="0.001">
         </testcase>
         <testcase classname="tests/contract/post-swap.contract.test.ts" name="POST /api/swap &gt; returns 500 when the swap action throws" time="0.001">
         </testcase>

@@ -1,21 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="5" failures="0" errors="0" time="2.434">
-    <testsuite name="tests/integration/quickstart/board-generation.spec.ts" timestamp="2026-01-03T17:29:56.486Z" hostname="Mac.localdomain" tests="2" failures="0" errors="0" skipped="0" time="0.003">
-        <testcase classname="tests/integration/quickstart/board-generation.spec.ts" name="quickstart board generation guard &gt; each board contains every Icelandic letter" time="0.002">
+<testsuites name="vitest tests" tests="8" failures="0" errors="0" time="2.628">
+    <testsuite name="tests/integration/roundScoring.test.ts" timestamp="2026-02-18T20:51:55.364Z" hostname="Mac.localdomain" tests="3" failures="0" errors="0" skipped="0" time="0.934">
+        <testcase classname="tests/integration/roundScoring.test.ts" name="round scoring duplicate tracking (US3) &gt; same player forms same word in two rounds - second scores 0 with isDuplicate" time="0.929">
+            <system-out>
+{&quot;level&quot;:&quot;info&quot;,&quot;event&quot;:&quot;dictionary.loaded&quot;,&quot;entries&quot;:2759422,&quot;durationMs&quot;:785}
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/integration/roundScoring.test.ts" name="round scoring duplicate tracking (US3) &gt; different player forms same word - full points awarded (per-player tracking)" time="0.002">
+        </testcase>
+        <testcase classname="tests/integration/roundScoring.test.ts" name="round scoring duplicate tracking (US3) &gt; combo bonus excludes duplicate words in mixed round" time="0.003">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/quickstart/board-generation.spec.ts" timestamp="2026-02-18T20:51:55.365Z" hostname="Mac.localdomain" tests="2" failures="0" errors="0" skipped="0" time="0.004">
+        <testcase classname="tests/integration/quickstart/board-generation.spec.ts" name="quickstart board generation guard &gt; each board contains every Icelandic letter" time="0.001">
         </testcase>
         <testcase classname="tests/integration/quickstart/board-generation.spec.ts" name="quickstart board generation guard &gt; weighted sampling favours common letters across boards" time="0.001">
         </testcase>
     </testsuite>
-    <testsuite name="tests/integration/quickstart/local-routing.spec.ts" timestamp="2026-01-03T17:29:56.487Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="1.838">
-        <testcase classname="tests/integration/quickstart/local-routing.spec.ts" name="quickstart env routing guard &gt; ensures env file points to local Supabase instance" time="1.838">
+    <testsuite name="tests/integration/quickstart/local-routing.spec.ts" timestamp="2026-02-18T20:51:55.365Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="1.989">
+        <testcase classname="tests/integration/quickstart/local-routing.spec.ts" name="quickstart env routing guard &gt; ensures env file points to local Supabase instance" time="1.989">
         </testcase>
     </testsuite>
-    <testsuite name="tests/integration/quickstart/quickstart.spec.ts" timestamp="2026-01-03T17:29:56.487Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="2.243">
-        <testcase classname="tests/integration/quickstart/quickstart.spec.ts" name="supabase quickstart script &gt; runs the automation and reports healthy status" time="2.242">
+    <testsuite name="tests/integration/quickstart/quickstart.spec.ts" timestamp="2026-02-18T20:51:55.366Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="2.234">
+        <testcase classname="tests/integration/quickstart/quickstart.spec.ts" name="supabase quickstart script &gt; runs the automation and reports healthy status" time="2.234">
         </testcase>
     </testsuite>
-    <testsuite name="tests/integration/verify/verify-timing.spec.ts" timestamp="2026-01-03T17:29:56.487Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="0.002">
-        <testcase classname="tests/integration/verify/verify-timing.spec.ts" name="verifySupabase instrumentation &gt; reports healthy status within 10s" time="0.002">
+    <testsuite name="tests/integration/verify/verify-timing.spec.ts" timestamp="2026-02-18T20:51:55.366Z" hostname="Mac.localdomain" tests="1" failures="0" errors="0" skipped="0" time="0.003">
+        <testcase classname="tests/integration/verify/verify-timing.spec.ts" name="verifySupabase instrumentation &gt; reports healthy status within 10s" time="0.003">
         </testcase>
     </testsuite>
 </testsuites>

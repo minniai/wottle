@@ -96,7 +96,7 @@
 - [x] T023 [US2] Implement frozen tile manager in lib/game-engine/frozenTiles.ts — freezeTiles (compute new tiles to freeze, enforce 24-minimum with reading-order priority, merge ownership), isFrozen, isFrozenByOpponent, toFrozenKey per FrozenTileManagerContract
 - [x] T024 [US2] Integrate freeze step into word engine pipeline in lib/game-engine/wordEngine.ts — after scoring, call freezeTiles with scored words and existing frozen map, include updatedFrozenTiles and newlyFrozenTiles in RoundScoreResult
 - [x] T025 [US2] Persist frozen tiles after round resolution — in app/actions/match/publishRoundSummary.ts or lib/match/roundEngine.ts, UPDATE matches SET frozen_tiles = updatedFrozenTiles after scoring completes
-- [x] T026 [US2] Add frozen tile swap validation in app/actions/match/submitMove.ts — before processing swap, load frozen_tiles from match, check both from and to coordinates, reject with "tile is frozen" error (FR-014) — before processing swap, load frozen_tiles from match, check isFrozen for both from and to coordinates, reject with "tile is frozen" error message if either is frozen (FR-014)
+- [x] T026 [US2] Add frozen tile swap validation in app/actions/match/submitMove.ts — before processing swap, load frozen_tiles from match, check both from and to coordinates, reject with "tile is frozen" error (FR-014) — before processing swap, load frozen_tiles from match, check isFrozen for both fro;m and to coordinates, reject with "tile is frozen" error message if either is frozen (FR-014)
 - [x] T027 [US2] Load frozen tiles into match state in lib/match/stateLoader.ts — include frozen_tiles from matches row in MatchState, add frozenTiles field to MatchState type if not present
 - [x] T028 [US2] Add frozen tile overlay to board in components/game/BoardGrid.tsx — render 40% opacity colored overlay on frozen tiles matching owner color (player A / player B), dual-color gradient pattern for "both" ownership (FR-017)
 - [x] T029 [US2] Write integration test for frozen tile swap rejection — deferred to integration phase (requires running Supabase) — create match → score a word → attempt swap on frozen tile → verify rejection with frozen error message (SC-005)
@@ -115,13 +115,13 @@
 
 ### Tests for US3
 
-- [ ] T030 [P] [US3] Write failing integration tests for duplicate tracking in tests/integration/roundScoring.test.ts (extend) — cover: same player forms same word in two different rounds → second scores 0 with is_duplicate=true, different player forms same word → full points awarded (per-player tracking), combo bonus excludes duplicate words in mixed round (1 new + 1 duplicate = combo for 1 word = +0)
+- [x] T030 [P] [US3] Write failing integration tests for duplicate tracking in tests/integration/roundScoring.test.ts (extend) — cover: same player forms same word in two different rounds → second scores 0 with is_duplicate=true, different player forms same word → full points awarded (per-player tracking), combo bonus excludes duplicate words in mixed round (1 new + 1 duplicate = combo for 1 word = +0)
 
 ### Implementation for US3
 
-- [ ] T031 [US3] Verify scorer duplicate logic handles cross-round queries correctly in lib/game-engine/scorer.ts — ensure scoreWords queries word_score_entries for all prior rounds of the same match for the same player, not just the current round
-- [ ] T032 [US3] Add "previously scored" label to round summary data — ensure WordScoreBreakdown with isDuplicate=true is included in the round summary broadcast so clients can display the label
-- [ ] T033 [US3] Display "previously scored" indicator in components/match/RoundSummaryPanel.tsx — show muted styling and "previously scored" text for duplicate words, display 0 points
+- [x] T031 [US3] Verify scorer duplicate logic handles cross-round queries correctly in lib/game-engine/scorer.ts — ensure scoreWords queries word_score_entries for all prior rounds of the same match for the same player, not just the current round
+- [x] T032 [US3] Add "previously scored" label to round summary data — ensure WordScoreBreakdown with isDuplicate=true is included in the round summary broadcast so clients can display the label
+- [x] T033 [US3] Display "previously scored" indicator in components/match/RoundSummaryPanel.tsx — show muted styling and "previously scored" text for duplicate words, display 0 points
 
 **Checkpoint**: Duplicate words tracked across rounds, UI shows "previously scored" label.
 
@@ -135,13 +135,13 @@
 
 ### Tests for US4
 
-- [ ] T034 [P] [US4] Write failing tests for enhanced round summary display — verify RoundSummaryPanel renders per-word letter breakdown, length bonus, combo bonus, round delta, and cumulative totals for both players
+- [x] T034 [P] [US4] Write failing tests for enhanced round summary display — verify RoundSummaryPanel renders per-word letter breakdown, length bonus, combo bonus, round delta, and cumulative totals for both players
 
 ### Implementation for US4
 
-- [ ] T035 [US4] Enhance RoundSummaryPanel in components/match/RoundSummaryPanel.tsx — display each scored word with per-letter point values, length bonus, word total, multi-word combo bonus line, per-player round delta ("+25"), and cumulative total ("65")
-- [ ] T036 [US4] Add scored tile highlight animation in components/game/BoardGrid.tsx — highlight tiles of each scored word for at least 3 seconds after round summary displays (FR-020), use CSS transforms for GPU-accelerated animation, fade out after duration
-- [ ] T037 [US4] Include complete scoring data in round summary broadcast — ensure publishRoundSummary includes WordScoreBreakdown with lettersPoints, lengthBonus, totalPoints per word plus comboBonus and deltas in the Realtime broadcast payload (FR-019)
+- [x] T035 [US4] Enhance RoundSummaryPanel in components/match/RoundSummaryPanel.tsx — display each scored word with per-letter point values, length bonus, word total, multi-word combo bonus line, per-player round delta ("+25"), and cumulative total ("65")
+- [x] T036 [US4] Add scored tile highlight animation in components/game/BoardGrid.tsx — highlight tiles of each scored word for at least 3 seconds after round summary displays (FR-020), use CSS transforms for GPU-accelerated animation, fade out after duration
+- [x] T037 [US4] Include complete scoring data in round summary broadcast — ensure publishRoundSummary includes WordScoreBreakdown with lettersPoints, lengthBonus, totalPoints per word plus comboBonus and deltas in the Realtime broadcast payload (FR-019)
 
 **Checkpoint**: Full scoring transparency with letter breakdowns, combo bonuses, deltas, totals, and tile highlights.
 
