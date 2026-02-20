@@ -1,6 +1,7 @@
 import { describe, expect, test, beforeAll } from "vitest";
 
 import { processRoundScoring } from "@/lib/game-engine/wordEngine";
+import { calculateComboBonus } from "@/lib/game-engine/scorer";
 import { loadDictionary } from "@/lib/game-engine/dictionary";
 import type { BoardGrid } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
@@ -147,5 +148,87 @@ describe("wordEngine", () => {
     // plus any other subwords that happen to be valid
     expect(result.deltas.playerA).toBeGreaterThanOrEqual(29);
     expect(result.deltas.playerB).toBe(0);
+  });
+
+  describe("duplicate word tracking (US3)", () => {
+    test("same player forms same word in two rounds - second marked isDuplicate and 0 points", async () => {
+      const { boardBefore, boardAfter } = makeHesturSetup();
+      const priorScoredWordsByPlayer: Record<string, Set<string>> = {
+        [PLAYER_A]: new Set(["hestur"]),
+      };
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: "round-2",
+        boardBefore,
+        boardAfter,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+        priorScoredWordsByPlayer,
+      });
+
+      const hestur = result.playerAWords.find((w) => w.word === "hestur");
+      expect(hestur).toBeDefined();
+      expect(hestur!.isDuplicate).toBe(true);
+      expect(hestur!.totalPoints).toBe(0);
+    });
+
+    test("different player forms same word - full points awarded (per-player tracking)", async () => {
+      const { boardBefore, boardAfter } = makeHesturSetup();
+      const priorScoredWordsByPlayer: Record<string, Set<string>> = {
+        [PLAYER_A]: new Set(["hestur"]),
+      };
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore,
+        boardAfter,
+        acceptedMoves: [
+          { playerId: PLAYER_B, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+        priorScoredWordsByPlayer,
+      });
+
+      const hesturB = result.playerBWords.find((w) => w.word === "hestur");
+      expect(hesturB).toBeDefined();
+      expect(hesturB!.isDuplicate).toBe(false);
+      expect(hesturB!.totalPoints).toBeGreaterThan(0);
+    });
+
+    test("combo bonus excludes duplicate words (duplicate words score 0, not counted for combo)", async () => {
+      const { boardBefore, boardAfter } = makeHesturSetup();
+      const priorScoredWordsByPlayer: Record<string, Set<string>> = {
+        [PLAYER_A]: new Set(["hestur"]),
+      };
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore,
+        boardAfter,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+        priorScoredWordsByPlayer,
+      });
+
+      const hestur = result.playerAWords.find((w) => w.word === "hestur");
+      expect(hestur).toBeDefined();
+      expect(hestur!.isDuplicate).toBe(true);
+      expect(hestur!.totalPoints).toBe(0);
+      const newCount = result.playerAWords.filter((w) => !w.isDuplicate).length;
+      expect(result.comboBonus.playerA).toBe(calculateComboBonus(newCount));
+    });
   });
 });

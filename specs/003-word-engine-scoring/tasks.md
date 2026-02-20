@@ -115,13 +115,13 @@
 
 ### Tests for US3
 
-- [ ] T030 [P] [US3] Write failing integration tests for duplicate tracking in tests/integration/roundScoring.test.ts (extend) — cover: same player forms same word in two different rounds → second scores 0 with is_duplicate=true, different player forms same word → full points awarded (per-player tracking), combo bonus excludes duplicate words in mixed round (1 new + 1 duplicate = combo for 1 word = +0)
+- [x] T030 [P] [US3] Write failing integration tests for duplicate tracking in tests/integration/roundScoring.test.ts (extend) — cover: same player forms same word in two different rounds → second scores 0 with is_duplicate=true, different player forms same word → full points awarded (per-player tracking), combo bonus excludes duplicate words in mixed round (1 new + 1 duplicate = combo for 1 word = +0)
 
 ### Implementation for US3
 
-- [ ] T031 [US3] Verify scorer duplicate logic handles cross-round queries correctly in lib/game-engine/scorer.ts — ensure scoreWords queries word_score_entries for all prior rounds of the same match for the same player, not just the current round
-- [ ] T032 [US3] Add "previously scored" label to round summary data — ensure WordScoreBreakdown with isDuplicate=true is included in the round summary broadcast so clients can display the label
-- [ ] T033 [US3] Display "previously scored" indicator in components/match/RoundSummaryPanel.tsx — show muted styling and "previously scored" text for duplicate words, display 0 points
+- [x] T031 [US3] Verify scorer duplicate logic handles cross-round queries correctly in lib/game-engine/scorer.ts — ensure scoreWords queries word_score_entries for all prior rounds of the same match for the same player, not just the current round
+- [x] T032 [US3] Add "previously scored" label to round summary data — ensure WordScoreBreakdown with isDuplicate=true is included in the round summary broadcast so clients can display the label
+- [x] T033 [US3] Display "previously scored" indicator in components/match/RoundSummaryPanel.tsx — show muted styling and "previously scored" text for duplicate words, display 0 points
 
 **Checkpoint**: Duplicate words tracked across rounds, UI shows "previously scored" label.
 

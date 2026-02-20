@@ -215,24 +215,32 @@ export function RoundSummaryPanel({
 }
 
 function WordScoreRow({ wordScore, isOpponent = false }: { wordScore: WordScore; isOpponent?: boolean }) {
+    const isDuplicate = wordScore.isDuplicate === true;
+    const baseClasses = isOpponent
+        ? "border-white/10 bg-white/5 text-white/80"
+        : "border-emerald-500/30 bg-emerald-500/10 text-white";
+    const duplicateClasses = "border-white/10 bg-white/5 text-white/60 opacity-75";
+
     return (
         <div
-            className={`rounded-lg border p-3 ${
-                isOpponent
-                    ? "border-white/10 bg-white/5 text-white/80"
-                    : "border-emerald-500/30 bg-emerald-500/10 text-white"
-            }`}
+            className={`rounded-lg border p-3 ${isDuplicate ? duplicateClasses : baseClasses}`}
+            data-testid={isDuplicate ? "word-previously-scored" : undefined}
         >
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <span className="font-mono text-lg font-bold">{wordScore.word.toUpperCase()}</span>
                     <span className="text-xs text-white/60">({wordScore.length} letters)</span>
+                    {isDuplicate && (
+                        <span className="text-xs italic text-white/70">— previously scored</span>
+                    )}
                 </div>
                 <div className="text-right">
-                    <p className="font-bold text-lg">+{wordScore.totalPoints}</p>
-                    <p className="text-xs text-white/60">
-                        {wordScore.lettersPoints} + {wordScore.bonusPoints} bonus
-                    </p>
+                    <p className="font-bold text-lg">{isDuplicate ? "0" : `+${wordScore.totalPoints}`}</p>
+                    {!isDuplicate && (
+                        <p className="text-xs text-white/60">
+                            {wordScore.lettersPoints} + {wordScore.bonusPoints} bonus
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

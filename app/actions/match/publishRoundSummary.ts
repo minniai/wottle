@@ -64,6 +64,7 @@ export async function publishRoundSummary(
         bonusPoints: entry.bonus_points,
         totalPoints: entry.total_points,
         coordinates: entry.tiles as Coordinate[],
+        isDuplicate: entry.is_duplicate ?? false,
     }));
 
     // 5. Aggregate round summary
@@ -105,10 +106,35 @@ export async function publishRoundSummary(
 }
 
 /**
+ * Build a map of player ID → set of words already scored in prior rounds for this match.
+ * Used to mark duplicates so the same word scores only once per player per match.
+ */
+async function getPriorScoredWordsByPlayer(
+    supabase: ReturnType<typeof getServiceRoleClient>,
+    matchId: string,
+    currentRoundId: string,
+): Promise<Record<string, Set<string>>> {
+    const { data: priorEntries } = await supabase
+        .from("word_score_entries")
+        .select("player_id, word")
+        .eq("match_id", matchId)
+        .neq("round_id", currentRoundId);
+
+    const byPlayer: Record<string, Set<string>> = {};
+    for (const row of priorEntries ?? []) {
+        const pid = row.player_id as string;
+        const word = (row.word as string).toLowerCase();
+        if (!byPlayer[pid]) byPlayer[pid] = new Set();
+        byPlayer[pid].add(word);
+    }
+    return byPlayer;
+}
+
+/**
  * Compute word scores from board state and player moves using the word engine.
  * Called by roundEngine after applying moves.
  *
- * Pipeline: processRoundScoring → persist to word_score_entries → return WordScore[]
+ * Pipeline: getPriorScoredWords → processRoundScoring → persist to word_score_entries → return WordScore[]
  */
 export async function computeWordScoresForRound(
     matchId: string,
@@ -120,6 +146,13 @@ export async function computeWordScoresForRound(
     playerBId: string,
     frozenTiles: Record<string, { owner: string }> = {},
 ): Promise<WordScore[]> {
+    const supabase = getServiceRoleClient();
+    const priorScoredWordsByPlayer = await getPriorScoredWordsByPlayer(
+        supabase,
+        matchId,
+        roundId,
+    );
+
     const { processRoundScoring } = await import("@/lib/game-engine/wordEngine");
 
     const result = await processRoundScoring({
@@ -137,6 +170,7 @@ export async function computeWordScoresForRound(
         frozenTiles: frozenTiles as import("@/lib/types/match").FrozenTileMap,
         playerAId,
         playerBId,
+        priorScoredWordsByPlayer,
     });
 
     const allBreakdowns = [...result.playerAWords, ...result.playerBWords];
@@ -146,7 +180,6 @@ export async function computeWordScoresForRound(
     }
 
     // Persist word scores to word_score_entries table
-    const supabase = getServiceRoleClient();
     const entries = allBreakdowns.map((bd) => ({
         match_id: matchId,
         round_id: roundId,
@@ -190,6 +223,7 @@ export async function computeWordScoresForRound(
         bonusPoints: bd.lengthBonus,
         totalPoints: bd.totalPoints,
         coordinates: bd.tiles,
+        isDuplicate: bd.isDuplicate,
     }));
 }
 

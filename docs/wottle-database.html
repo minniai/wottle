@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wottle Database Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: 1fr auto;
+    height: 100vh;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────────── */
+  .sidebar {
+    grid-row: 1 / 3;
+    background: #161822;
+    border-right: 1px solid #2d3148;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .sidebar h1 { font-size: 16px; font-weight: 700; color: #f1f5f9; margin-bottom: 2px; }
+  .sidebar .subtitle { font-size: 11px; color: #64748b; margin-bottom: 14px; }
+  .section-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #475569; margin: 14px 0 6px;
+  }
+
+  /* Presets */
+  .preset-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .preset-btn {
+    font-size: 11px; padding: 4px 10px; border-radius: 6px;
+    border: 1px solid #334155; background: #1e2235; color: #94a3b8; cursor: pointer;
+  }
+  .preset-btn:hover { border-color: #4f6fff; color: #c7d2fe; }
+  .preset-btn.active { background: #3b49df; border-color: #5b6bff; color: #fff; }
+
+  /* Table cards */
+  .table-card {
+    background: #1e2235; border: 1.5px solid #2d3148; border-radius: 8px;
+    padding: 8px 10px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
+  }
+  .table-card:hover { border-color: #4f6fff; }
+  .table-card.selected { border-color: #818cf8; background: #252b45; }
+  .table-card .tc-header { display: flex; align-items: center; gap: 6px; }
+  .table-card .tc-icon {
+    width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+  }
+  .table-card .tc-name { font-size: 12px; font-weight: 600; color: #f1f5f9; }
+  .table-card .tc-count { font-size: 10px; color: #64748b; margin-left: auto; }
+  .table-card .tc-desc { font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.3; }
+  .table-card .tc-badge {
+    display: inline-block; font-size: 8px; padding: 1px 5px; border-radius: 3px;
+    margin-top: 4px; font-weight: 600;
+  }
+  .badge-realtime { background: #3b1764; color: #c084fc; }
+  .badge-rls { background: #1e3a3a; color: #5eead4; }
+
+  /* View toggles */
+  .view-toggles { display: flex; gap: 4px; margin-bottom: 10px; }
+  .view-btn {
+    flex: 1; font-size: 11px; padding: 5px 8px; border-radius: 6px;
+    border: 1px solid #334155; background: #1e2235; color: #94a3b8;
+    cursor: pointer; text-align: center;
+  }
+  .view-btn:hover { border-color: #4f6fff; }
+  .view-btn.active { background: #3b49df; border-color: #5b6bff; color: #fff; }
+
+  /* Filter controls */
+  .filter-row {
+    display: flex; gap: 4px; align-items: center; margin-bottom: 4px;
+  }
+  .filter-row select, .filter-row input {
+    font-size: 11px; padding: 4px 6px; border-radius: 5px;
+    border: 1px solid #334155; background: #0f1117; color: #e2e8f0;
+    font-family: inherit;
+  }
+  .filter-row select { flex: 1; }
+  .filter-row input { flex: 1.5; }
+  .filter-row .remove-btn {
+    width: 22px; height: 22px; border-radius: 4px;
+    border: 1px solid #334155; background: #1e2235; color: #64748b;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .filter-row .remove-btn:hover { border-color: #ef4444; color: #ef4444; }
+  .add-filter-btn {
+    font-size: 11px; padding: 4px 10px; border-radius: 5px;
+    border: 1px solid #334155; background: #1e2235; color: #94a3b8;
+    cursor: pointer; margin-top: 4px;
+  }
+  .add-filter-btn:hover { border-color: #4f6fff; color: #c7d2fe; }
+
+  /* Ordering */
+  .order-row { display: flex; gap: 4px; align-items: center; margin-bottom: 4px; }
+  .order-row select {
+    font-size: 11px; padding: 4px 6px; border-radius: 5px;
+    border: 1px solid #334155; background: #0f1117; color: #e2e8f0; flex: 1;
+  }
+  .dir-btn {
+    font-size: 11px; padding: 4px 8px; border-radius: 5px;
+    border: 1px solid #334155; background: #1e2235; color: #94a3b8; cursor: pointer;
+    min-width: 46px; text-align: center;
+  }
+  .dir-btn:hover { border-color: #4f6fff; }
+
+  /* Limit slider */
+  .limit-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .limit-row input[type=range] {
+    flex: 1; accent-color: #818cf8; height: 4px;
+  }
+  .limit-val { font-size: 12px; color: #a5b4fc; font-weight: 600; min-width: 30px; text-align: right; }
+
+  /* ── Main area ───────────────────────────────────────────────── */
+  .main-area {
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* Tabs bar */
+  .tab-bar {
+    display: flex; background: #161822; border-bottom: 1px solid #2d3148;
+    padding: 0 12px; flex-shrink: 0;
+  }
+  .tab {
+    font-size: 12px; padding: 8px 16px; color: #64748b; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+  }
+  .tab:hover { color: #94a3b8; }
+  .tab.active { color: #f1f5f9; border-bottom-color: #818cf8; }
+
+  /* Content panels */
+  .content-panel {
+    flex: 1; overflow: auto; padding: 16px; display: none;
+  }
+  .content-panel.visible { display: block; }
+
+  /* SQL preview */
+  .sql-preview {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px; line-height: 1.7; padding: 16px 20px;
+    background: #0c0e14; border: 1px solid #2d3148; border-radius: 10px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .sql-preview .kw { color: #c084fc; font-weight: 600; }
+  .sql-preview .tbl { color: #67e8f9; }
+  .sql-preview .col { color: #a5b4fc; }
+  .sql-preview .str { color: #86efac; }
+  .sql-preview .num { color: #fcd34d; }
+  .sql-preview .op { color: #f9a8d4; }
+  .sql-preview .comment { color: #475569; font-style: italic; }
+
+  /* ER Diagram */
+  .er-canvas { width: 100%; height: 100%; }
+  .er-canvas svg { width: 100%; height: 100%; }
+
+  /* Schema view */
+  .schema-table {
+    background: #1e2235; border: 1px solid #2d3148; border-radius: 10px;
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .schema-table-header {
+    padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #2d3148;
+  }
+  .schema-table-header .st-icon {
+    width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  }
+  .schema-table-header .st-name {
+    font-size: 14px; font-weight: 700; color: #f1f5f9;
+  }
+  .schema-table-header .st-desc {
+    font-size: 11px; color: #64748b; margin-left: auto;
+  }
+  .schema-col-row {
+    display: grid; grid-template-columns: 26px 1fr 1fr 1.2fr;
+    padding: 5px 14px; border-bottom: 1px solid #1a1d2e; font-size: 11px;
+    align-items: center;
+  }
+  .schema-col-row:last-child { border-bottom: none; }
+  .schema-col-row.header-row {
+    font-weight: 600; color: #475569; text-transform: uppercase;
+    font-size: 9px; letter-spacing: 0.06em; padding: 6px 14px;
+    background: #161822;
+  }
+  .col-icon { text-align: center; font-size: 10px; }
+  .col-icon.pk { color: #fbbf24; }
+  .col-icon.fk { color: #38bdf8; }
+  .col-icon.idx { color: #a78bfa; }
+  .col-name {
+    font-family: 'SF Mono', 'Fira Code', monospace; color: #e2e8f0;
+  }
+  .col-type {
+    font-family: 'SF Mono', 'Fira Code', monospace; color: #67e8f9; font-size: 10px;
+  }
+  .col-info { color: #64748b; font-size: 10px; }
+  .col-constraint {
+    display: inline-block; font-size: 8px; padding: 1px 4px; border-radius: 3px;
+    margin-left: 4px; font-weight: 600;
+  }
+  .c-pk { background: #422006; color: #fbbf24; }
+  .c-fk { background: #0c2a3e; color: #38bdf8; }
+  .c-nn { background: #1e293b; color: #94a3b8; }
+  .c-uq { background: #1e1b4b; color: #a78bfa; }
+  .c-ck { background: #1a2e1a; color: #86efac; }
+  .c-def { background: #1e293b; color: #64748b; }
+
+  /* Stats view */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #1e2235; border: 1px solid #2d3148; border-radius: 10px;
+    padding: 14px;
+  }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #f1f5f9; }
+  .stat-card .stat-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .migration-timeline {
+    background: #1e2235; border: 1px solid #2d3148; border-radius: 10px;
+    padding: 14px;
+  }
+  .migration-item {
+    display: flex; gap: 12px; padding: 8px 0;
+    border-bottom: 1px solid #1a1d2e; font-size: 12px;
+  }
+  .migration-item:last-child { border-bottom: none; }
+  .migration-date { color: #64748b; min-width: 90px; font-family: monospace; font-size: 11px; }
+  .migration-name { color: #e2e8f0; flex: 1; }
+  .migration-dot {
+    width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0;
+  }
+
+  /* ── Prompt bar ──────────────────────────────────────────────── */
+  .prompt-area {
+    background: #161822; border-top: 1px solid #2d3148;
+    padding: 10px 16px; display: flex; gap: 12px; align-items: flex-start; flex-shrink: 0;
+  }
+  .prompt-text {
+    flex: 1; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; color: #94a3b8; line-height: 1.5;
+    max-height: 80px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .copy-btn {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid #334155;
+    background: #1e2235; color: #94a3b8; font-size: 12px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .copy-btn:hover { border-color: #4f6fff; color: #e2e8f0; }
+  .copy-btn.copied { background: #065f46; border-color: #10b981; color: #6ee7b7; }
+
+  /* Zoom controls for ER diagram */
+  .er-zoom {
+    position: absolute; top: 12px; right: 12px;
+    display: flex; gap: 4px; z-index: 10;
+  }
+  .er-zoom button {
+    width: 30px; height: 30px; border-radius: 6px;
+    border: 1px solid #334155; background: #1e2235; color: #94a3b8;
+    font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .er-zoom button:hover { border-color: #4f6fff; color: #e2e8f0; }
+
+  /* Highlight toggles */
+  .hl-toggles { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .hl-chip {
+    font-size: 10px; padding: 3px 8px; border-radius: 4px;
+    border: 1px solid #334155; background: #1e2235; color: #94a3b8;
+    cursor: pointer;
+  }
+  .hl-chip:hover { border-color: #4f6fff; }
+  .hl-chip.on { background: #252b45; border-color: #818cf8; color: #c7d2fe; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="sidebar">
+    <h1>Wottle Database</h1>
+    <div class="subtitle">Supabase / PostgreSQL schema explorer</div>
+
+    <div class="section-label">Presets</div>
+    <div class="preset-group" id="presets"></div>
+
+    <div class="section-label">Tables</div>
+    <div id="table-cards"></div>
+
+    <div class="section-label">Columns</div>
+    <div class="hl-toggles" id="col-chips"></div>
+
+    <div class="section-label">Filters</div>
+    <div id="filter-rows"></div>
+    <button class="add-filter-btn" onclick="addFilter()">+ Add Filter</button>
+
+    <div class="section-label">Order By</div>
+    <div class="order-row">
+      <select id="order-col" onchange="updateAll()"></select>
+      <button class="dir-btn" id="order-dir" onclick="toggleDir()">ASC</button>
+    </div>
+
+    <div class="section-label">Limit</div>
+    <div class="limit-row">
+      <input type="range" id="limit-slider" min="1" max="500" value="50" oninput="updateAll()">
+      <span class="limit-val" id="limit-val">50</span>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="tab-bar">
+      <div class="tab active" data-tab="query" onclick="switchTab('query')">SQL Query</div>
+      <div class="tab" data-tab="er" onclick="switchTab('er')">ER Diagram</div>
+      <div class="tab" data-tab="schema" onclick="switchTab('schema')">Full Schema</div>
+      <div class="tab" data-tab="stats" onclick="switchTab('stats')">Overview</div>
+    </div>
+
+    <div class="content-panel visible" id="panel-query">
+      <div class="sql-preview" id="sql-output"></div>
+    </div>
+
+    <div class="content-panel" id="panel-er" style="position:relative;padding:0">
+      <div class="er-zoom">
+        <button onclick="erZoomIn()">+</button>
+        <button onclick="erZoomOut()">&minus;</button>
+        <button onclick="erZoomReset()" style="font-size:11px">Fit</button>
+      </div>
+      <div class="er-canvas" id="er-canvas"></div>
+    </div>
+
+    <div class="content-panel" id="panel-schema"></div>
+    <div class="content-panel" id="panel-stats"></div>
+
+    <div class="prompt-area">
+      <div class="prompt-text" id="prompt-output"></div>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Schema Data ─────────────────────────────────────────────────────────
+
+const TABLES = {
+  players: {
+    desc: 'User accounts for the playtest lobby',
+    color: '#3b82f6',
+    domain: 'identity',
+    realtime: false,
+    rls: true,
+    columns: [
+      { name: 'id',           type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: 'Primary key' },
+      { name: 'username',     type: 'citext',       pk: false, nn: true, unique: true, info: 'Unique, case-insensitive, 3-24 chars' },
+      { name: 'display_name', type: 'text',         pk: false, nn: true, default: "''", info: '' },
+      { name: 'avatar_url',   type: 'text',         pk: false, nn: false, info: 'Optional profile image URL' },
+      { name: 'status',       type: 'text',         pk: false, nn: true, default: "'available'", check: "in ('available','matchmaking','in_match','offline')", info: 'Lobby state enum' },
+      { name: 'last_seen_at', type: 'timestamptz',  pk: false, nn: true, default: 'now()', info: '' },
+      { name: 'elo_rating',   type: 'integer',      pk: false, nn: false, info: 'Future ranking (nullable for now)' },
+      { name: 'created_at',   type: 'timestamptz',  pk: false, nn: true, default: 'now()', info: '' },
+      { name: 'updated_at',   type: 'timestamptz',  pk: false, nn: true, default: 'now()', info: '' },
+    ],
+  },
+  lobby_presence: {
+    desc: 'Ephemeral lobby state, 5-min TTL',
+    color: '#06b6d4',
+    domain: 'lobby',
+    realtime: true,
+    rls: true,
+    columns: [
+      { name: 'player_id',     type: 'uuid',        pk: true,  nn: true, fk: 'players.id', info: 'PK + FK to players' },
+      { name: 'connection_id', type: 'uuid',         pk: false, nn: true, info: 'Unique per browser session' },
+      { name: 'mode',          type: 'text',         pk: false, nn: true, check: "in ('auto','direct_invite')", info: 'Matchmaking mode' },
+      { name: 'invite_token',  type: 'uuid',         pk: false, nn: false, info: 'For direct invite flow' },
+      { name: 'expires_at',    type: 'timestamptz',  pk: false, nn: true, indexed: true, info: 'TTL expiration' },
+      { name: 'updated_at',    type: 'timestamptz',  pk: false, nn: true, default: 'now()', info: '' },
+    ],
+  },
+  matches: {
+    desc: 'Game sessions between two players',
+    color: '#f59e0b',
+    domain: 'match',
+    realtime: true,
+    rls: true,
+    columns: [
+      { name: 'id',              type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'board_seed',      type: 'uuid',        pk: false, nn: true, info: 'Deterministic board generation seed' },
+      { name: 'round_limit',     type: 'smallint',    pk: false, nn: true, default: '10', check: 'between 1 and 20', info: 'Max rounds' },
+      { name: 'state',           type: 'text',        pk: false, nn: true, check: "in ('pending','in_progress','completed','abandoned')", info: 'Match lifecycle phase' },
+      { name: 'current_round',   type: 'smallint',    pk: false, nn: true, default: '1', info: 'Active round number' },
+      { name: 'player_a_id',     type: 'uuid',        pk: false, nn: true, fk: 'players.id', indexed: true, info: 'First player' },
+      { name: 'player_b_id',     type: 'uuid',        pk: false, nn: true, fk: 'players.id', indexed: true, info: 'Second player' },
+      { name: 'player_a_timer_ms', type: 'integer',   pk: false, nn: true, default: '300000', info: '5 min chess clock' },
+      { name: 'player_b_timer_ms', type: 'integer',   pk: false, nn: true, default: '300000', info: '5 min chess clock' },
+      { name: 'frozen_tiles',    type: 'jsonb',       pk: false, nn: true, default: "'{}'", info: 'Map of "x,y" -> {owner}' },
+      { name: 'winner_id',       type: 'uuid',        pk: false, nn: false, fk: 'players.id', info: 'Null until match ends' },
+      { name: 'ended_reason',    type: 'text',        pk: false, nn: false, check: "in ('round_limit','timeout','disconnect','forfeit','draw')", info: '' },
+      { name: 'created_at',      type: 'timestamptz', pk: false, nn: true, default: 'now()', info: '' },
+      { name: 'updated_at',      type: 'timestamptz', pk: false, nn: true, default: 'now()', info: '' },
+    ],
+  },
+  rounds: {
+    desc: 'Per-round state with board snapshots',
+    color: '#10b981',
+    domain: 'match',
+    realtime: true,
+    rls: true,
+    columns: [
+      { name: 'id',                    type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'match_id',              type: 'uuid',        pk: false, nn: true, fk: 'matches.id', info: 'Parent match' },
+      { name: 'round_number',          type: 'smallint',    pk: false, nn: true, info: '1-indexed' },
+      { name: 'state',                 type: 'text',        pk: false, nn: true, check: "in ('collecting','resolving','completed')", info: 'Round lifecycle' },
+      { name: 'board_snapshot_before',  type: 'jsonb',      pk: false, nn: true, info: '10x10 grid before swaps' },
+      { name: 'board_snapshot_after',   type: 'jsonb',      pk: false, nn: false, info: '10x10 grid after swaps (null while collecting)' },
+      { name: 'resolution_started_at', type: 'timestamptz', pk: false, nn: false, info: '' },
+      { name: 'completed_at',          type: 'timestamptz', pk: false, nn: false, info: '' },
+    ],
+    unique: ['match_id, round_number'],
+  },
+  move_submissions: {
+    desc: 'Player swap actions per round',
+    color: '#a855f7',
+    domain: 'match',
+    realtime: true,
+    rls: true,
+    columns: [
+      { name: 'id',               type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'round_id',         type: 'uuid',        pk: false, nn: true, fk: 'rounds.id', info: 'Parent round' },
+      { name: 'player_id',        type: 'uuid',        pk: false, nn: true, fk: 'players.id', info: 'Submitting player' },
+      { name: 'from_x',           type: 'smallint',    pk: false, nn: true, check: 'between 0 and 9', info: 'Source tile X' },
+      { name: 'from_y',           type: 'smallint',    pk: false, nn: true, check: 'between 0 and 9', info: 'Source tile Y' },
+      { name: 'to_x',             type: 'smallint',    pk: false, nn: true, check: 'between 0 and 9', info: 'Target tile X' },
+      { name: 'to_y',             type: 'smallint',    pk: false, nn: true, check: 'between 0 and 9', info: 'Target tile Y' },
+      { name: 'submitted_at',     type: 'timestamptz', pk: false, nn: true, default: 'now()', info: 'Timestamp for conflict resolution ordering' },
+      { name: 'status',           type: 'text',        pk: false, nn: true, check: "in ('pending','accepted','rejected_invalid','ignored_same_move','timeout')", info: 'Resolution outcome' },
+      { name: 'rejection_reason', type: 'text',        pk: false, nn: false, info: 'Why move was rejected' },
+    ],
+    unique: ['round_id, player_id'],
+  },
+  word_score_entries: {
+    desc: 'Per-word scoring breakdown',
+    color: '#ec4899',
+    domain: 'scoring',
+    realtime: false,
+    rls: true,
+    columns: [
+      { name: 'id',             type: 'uuid',     pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'match_id',       type: 'uuid',     pk: false, nn: true, fk: 'matches.id', info: '' },
+      { name: 'round_id',       type: 'uuid',     pk: false, nn: true, fk: 'rounds.id', info: '' },
+      { name: 'player_id',      type: 'uuid',     pk: false, nn: true, fk: 'players.id', info: 'Player who formed the word' },
+      { name: 'word',           type: 'text',     pk: false, nn: true, info: 'The found word (lowercase)' },
+      { name: 'length',         type: 'smallint', pk: false, nn: true, info: 'Character count' },
+      { name: 'letters_points', type: 'smallint', pk: false, nn: true, info: 'Sum of letter values' },
+      { name: 'bonus_points',   type: 'smallint', pk: false, nn: true, default: '0', info: 'Length bonus: (len-2)*5' },
+      { name: 'total_points',   type: 'smallint', pk: false, nn: true, info: 'letters + bonus (0 if dup)' },
+      { name: 'tiles',          type: 'jsonb',    pk: false, nn: true, info: 'Array of {x,y} coordinates' },
+      { name: 'is_duplicate',   type: 'boolean',  pk: false, nn: true, default: 'false', info: 'Already scored by same player' },
+    ],
+  },
+  scoreboard_snapshots: {
+    desc: 'Cumulative score after each round',
+    color: '#f97316',
+    domain: 'scoring',
+    realtime: false,
+    rls: true,
+    columns: [
+      { name: 'id',              type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'match_id',        type: 'uuid',        pk: false, nn: true, fk: 'matches.id', info: '' },
+      { name: 'round_number',    type: 'smallint',    pk: false, nn: true, info: '' },
+      { name: 'player_a_score',  type: 'integer',     pk: false, nn: true, info: 'Cumulative' },
+      { name: 'player_b_score',  type: 'integer',     pk: false, nn: true, info: 'Cumulative' },
+      { name: 'player_a_delta',  type: 'integer',     pk: false, nn: true, info: 'Points this round' },
+      { name: 'player_b_delta',  type: 'integer',     pk: false, nn: true, info: 'Points this round' },
+      { name: 'generated_at',    type: 'timestamptz', pk: false, nn: true, default: 'now()', info: '' },
+    ],
+    unique: ['match_id, round_number'],
+  },
+  match_invitations: {
+    desc: 'Direct invite records',
+    color: '#06b6d4',
+    domain: 'lobby',
+    realtime: true,
+    rls: true,
+    columns: [
+      { name: 'id',            type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'sender_id',     type: 'uuid',        pk: false, nn: true, fk: 'players.id', info: '' },
+      { name: 'recipient_id',  type: 'uuid',        pk: false, nn: true, fk: 'players.id', info: '' },
+      { name: 'status',        type: 'text',        pk: false, nn: true, check: "in ('pending','accepted','declined','expired')", info: '' },
+      { name: 'match_id',      type: 'uuid',        pk: false, nn: false, fk: 'matches.id', info: 'Set when accepted' },
+      { name: 'created_at',    type: 'timestamptz', pk: false, nn: true, default: 'now()', info: '' },
+      { name: 'responded_at',  type: 'timestamptz', pk: false, nn: false, info: '' },
+    ],
+  },
+  match_logs: {
+    desc: 'Observability event log per match',
+    color: '#6b7280',
+    domain: 'observability',
+    realtime: false,
+    rls: true,
+    columns: [
+      { name: 'id',         type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'match_id',   type: 'uuid',        pk: false, nn: true, fk: 'matches.id', indexed: true, info: '' },
+      { name: 'event_type', type: 'text',        pk: false, nn: true, info: 'e.g. round_completed, move_rejected' },
+      { name: 'payload',    type: 'jsonb',       pk: false, nn: true, info: 'Arbitrary event data' },
+      { name: 'created_at', type: 'timestamptz', pk: false, nn: true, default: 'now()', info: '' },
+    ],
+  },
+  boards: {
+    desc: 'Legacy singleton board (spec 001)',
+    color: '#4b5563',
+    domain: 'legacy',
+    realtime: false,
+    rls: true,
+    columns: [
+      { name: 'id',         type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'board_id',   type: 'text',        pk: false, nn: true, unique: true, default: "'primary-board'", check: "= 'primary-board'", info: 'Singleton constraint' },
+      { name: 'grid',       type: 'jsonb',       pk: false, nn: true, check: 'board_grid_is_square(grid)', info: '10x10 letter grid' },
+      { name: 'created_at', type: 'timestamptz', pk: false, nn: true, default: 'now()', info: '' },
+      { name: 'updated_at', type: 'timestamptz', pk: false, nn: true, default: 'now()', info: 'Auto-updated via trigger' },
+    ],
+  },
+  moves: {
+    desc: 'Legacy move log (spec 001)',
+    color: '#4b5563',
+    domain: 'legacy',
+    realtime: false,
+    rls: true,
+    columns: [
+      { name: 'id',         type: 'uuid',        pk: true,  nn: true, default: 'gen_random_uuid()', info: '' },
+      { name: 'board_id',   type: 'uuid',        pk: false, nn: true, fk: 'boards.id', indexed: true, info: '' },
+      { name: 'from_x',     type: 'smallint',    pk: false, nn: true, check: 'in_bounds', info: '' },
+      { name: 'from_y',     type: 'smallint',    pk: false, nn: true, check: 'in_bounds', info: '' },
+      { name: 'to_x',       type: 'smallint',    pk: false, nn: true, check: 'in_bounds', info: '' },
+      { name: 'to_y',       type: 'smallint',    pk: false, nn: true, check: 'in_bounds', info: '' },
+      { name: 'result',     type: 'text',        pk: false, nn: true, check: "in ('accepted','rejected')", info: '' },
+      { name: 'error',      type: 'text',        pk: false, nn: false, info: '' },
+      { name: 'applied_at', type: 'timestamptz', pk: false, nn: true, default: 'now()', info: '' },
+    ],
+  },
+};
+
+const FOREIGN_KEYS = [
+  { from: 'lobby_presence',    fromCol: 'player_id',    to: 'players',  toCol: 'id', type: '1:1' },
+  { from: 'matches',           fromCol: 'player_a_id',  to: 'players',  toCol: 'id', type: 'N:1' },
+  { from: 'matches',           fromCol: 'player_b_id',  to: 'players',  toCol: 'id', type: 'N:1' },
+  { from: 'matches',           fromCol: 'winner_id',    to: 'players',  toCol: 'id', type: 'N:1' },
+  { from: 'rounds',            fromCol: 'match_id',     to: 'matches',  toCol: 'id', type: 'N:1' },
+  { from: 'move_submissions',  fromCol: 'round_id',     to: 'rounds',   toCol: 'id', type: 'N:1' },
+  { from: 'move_submissions',  fromCol: 'player_id',    to: 'players',  toCol: 'id', type: 'N:1' },
+  { from: 'word_score_entries', fromCol: 'match_id',    to: 'matches',  toCol: 'id', type: 'N:1' },
+  { from: 'word_score_entries', fromCol: 'round_id',    to: 'rounds',   toCol: 'id', type: 'N:1' },
+  { from: 'word_score_entries', fromCol: 'player_id',   to: 'players',  toCol: 'id', type: 'N:1' },
+  { from: 'scoreboard_snapshots', fromCol: 'match_id',  to: 'matches',  toCol: 'id', type: 'N:1' },
+  { from: 'match_invitations', fromCol: 'sender_id',    to: 'players',  toCol: 'id', type: 'N:1' },
+  { from: 'match_invitations', fromCol: 'recipient_id', to: 'players',  toCol: 'id', type: 'N:1' },
+  { from: 'match_invitations', fromCol: 'match_id',     to: 'matches',  toCol: 'id', type: 'N:1' },
+  { from: 'match_logs',        fromCol: 'match_id',     to: 'matches',  toCol: 'id', type: 'N:1' },
+  { from: 'moves',             fromCol: 'board_id',     to: 'boards',   toCol: 'id', type: 'N:1' },
+];
+
+const PRESETS = {
+  'All Tables': { tables: Object.keys(TABLES) },
+  'Match Flow': { tables: ['players', 'matches', 'rounds', 'move_submissions'] },
+  'Scoring': { tables: ['matches', 'rounds', 'word_score_entries', 'scoreboard_snapshots'] },
+  'Lobby': { tables: ['players', 'lobby_presence', 'match_invitations'] },
+  'Legacy': { tables: ['boards', 'moves'] },
+};
+
+const DOMAINS = { identity: '#3b82f6', lobby: '#06b6d4', match: '#f59e0b', scoring: '#ec4899', observability: '#6b7280', legacy: '#4b5563' };
+
+// ── State ───────────────────────────────────────────────────────────────
+
+const state = {
+  selectedTable: 'matches',
+  selectedCols: [],
+  filters: [],
+  orderCol: '',
+  orderDir: 'ASC',
+  limit: 50,
+  activePreset: 'All Tables',
+  visibleTables: Object.keys(TABLES),
+  activeTab: 'query',
+  erZoom: 1, erPanX: 0, erPanY: 0,
+};
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+
+function getTable() { return TABLES[state.selectedTable]; }
+function getCols() { return getTable()?.columns || []; }
+
+// ── Rendering ───────────────────────────────────────────────────────────
+
+function renderPresets() {
+  const el = document.getElementById('presets');
+  el.innerHTML = '';
+  Object.keys(PRESETS).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (state.activePreset === name ? ' active' : '');
+    btn.textContent = name;
+    btn.onclick = () => {
+      state.activePreset = name;
+      state.visibleTables = [...PRESETS[name].tables];
+      if (!state.visibleTables.includes(state.selectedTable)) {
+        state.selectedTable = state.visibleTables[0];
+        state.selectedCols = [];
+        state.filters = [];
+      }
+      renderAll();
+    };
+    el.appendChild(btn);
+  });
+}
+
+function renderTableCards() {
+  const el = document.getElementById('table-cards');
+  el.innerHTML = '';
+  state.visibleTables.forEach(name => {
+    const t = TABLES[name];
+    const card = document.createElement('div');
+    card.className = 'table-card' + (state.selectedTable === name ? ' selected' : '');
+    let badges = '';
+    if (t.realtime) badges += '<span class="tc-badge badge-realtime">REALTIME</span> ';
+    if (t.rls) badges += '<span class="tc-badge badge-rls">RLS</span>';
+    card.innerHTML = `
+      <div class="tc-header">
+        <span class="tc-icon" style="background:${t.color}"></span>
+        <span class="tc-name">${name}</span>
+        <span class="tc-count">${t.columns.length} cols</span>
+      </div>
+      <div class="tc-desc">${t.desc}</div>
+      ${badges ? '<div>' + badges + '</div>' : ''}
+    `;
+    card.onclick = () => {
+      state.selectedTable = name;
+      state.selectedCols = [];
+      state.filters = [];
+      renderAll();
+    };
+    el.appendChild(card);
+  });
+}
+
+function renderColChips() {
+  const el = document.getElementById('col-chips');
+  el.innerHTML = '';
+  getCols().forEach(col => {
+    const chip = document.createElement('span');
+    const on = state.selectedCols.length === 0 || state.selectedCols.includes(col.name);
+    chip.className = 'hl-chip' + (on ? ' on' : '');
+    chip.textContent = col.name;
+    chip.onclick = () => {
+      if (state.selectedCols.length === 0) {
+        state.selectedCols = [col.name];
+      } else if (state.selectedCols.includes(col.name)) {
+        state.selectedCols = state.selectedCols.filter(c => c !== col.name);
+        if (state.selectedCols.length === 0) state.selectedCols = [];
+      } else {
+        state.selectedCols.push(col.name);
+      }
+      updateAll();
+    };
+    el.appendChild(chip);
+  });
+}
+
+function renderFilters() {
+  const el = document.getElementById('filter-rows');
+  el.innerHTML = '';
+  const cols = getCols();
+  state.filters.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'filter-row';
+    const colSel = document.createElement('select');
+    cols.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name; opt.textContent = c.name;
+      if (c.name === f.col) opt.selected = true;
+      colSel.appendChild(opt);
+    });
+    colSel.onchange = () => { state.filters[i].col = colSel.value; updateAll(); };
+
+    const opSel = document.createElement('select');
+    ['=', '!=', '>', '<', '>=', '<=', 'IS NULL', 'IS NOT NULL', 'LIKE', 'IN'].forEach(op => {
+      const opt = document.createElement('option');
+      opt.value = op; opt.textContent = op;
+      if (op === f.op) opt.selected = true;
+      opSel.appendChild(opt);
+    });
+    opSel.onchange = () => { state.filters[i].op = opSel.value; updateAll(); };
+
+    const valInput = document.createElement('input');
+    valInput.type = 'text';
+    valInput.value = f.val;
+    valInput.placeholder = 'value';
+    valInput.oninput = () => { state.filters[i].val = valInput.value; updateAll(); };
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.innerHTML = '&times;';
+    removeBtn.onclick = () => { state.filters.splice(i, 1); renderFilters(); updateAll(); };
+
+    row.append(colSel, opSel, valInput, removeBtn);
+    el.appendChild(row);
+  });
+}
+
+function addFilter() {
+  const cols = getCols();
+  if (cols.length === 0) return;
+  state.filters.push({ col: cols[0].name, op: '=', val: '' });
+  renderFilters();
+  updateAll();
+}
+
+function renderOrderCol() {
+  const el = document.getElementById('order-col');
+  el.innerHTML = '<option value="">-- none --</option>';
+  getCols().forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name; opt.textContent = c.name;
+    if (c.name === state.orderCol) opt.selected = true;
+    el.appendChild(opt);
+  });
+}
+
+function toggleDir() {
+  state.orderDir = state.orderDir === 'ASC' ? 'DESC' : 'ASC';
+  document.getElementById('order-dir').textContent = state.orderDir;
+  updateAll();
+}
+
+// ── SQL Builder ─────────────────────────────────────────────────────────
+
+function buildSQL() {
+  const table = state.selectedTable;
+  const cols = state.selectedCols.length > 0 ? state.selectedCols : ['*'];
+  const limit = parseInt(document.getElementById('limit-slider').value);
+  state.limit = limit;
+  document.getElementById('limit-val').textContent = limit;
+  state.orderCol = document.getElementById('order-col').value;
+
+  let sql = `SELECT\n  ${cols.join(',\n  ')}\nFROM ${table}`;
+
+  // Auto-join if selecting from a table with FKs
+  const relatedJoins = FOREIGN_KEYS.filter(fk =>
+    fk.from === table && state.visibleTables.includes(fk.to)
+  );
+
+  // Add WHERE
+  const validFilters = state.filters.filter(f => {
+    if (f.op === 'IS NULL' || f.op === 'IS NOT NULL') return true;
+    return f.val.trim() !== '';
+  });
+  if (validFilters.length > 0) {
+    const clauses = validFilters.map(f => {
+      if (f.op === 'IS NULL' || f.op === 'IS NOT NULL') return `${f.col} ${f.op}`;
+      const val = isNaN(f.val) ? `'${f.val}'` : f.val;
+      return `${f.col} ${f.op} ${val}`;
+    });
+    sql += `\nWHERE\n  ${clauses.join('\n  AND ')}`;
+  }
+
+  if (state.orderCol) {
+    sql += `\nORDER BY ${state.orderCol} ${state.orderDir}`;
+  }
+
+  sql += `\nLIMIT ${limit};`;
+
+  return sql;
+}
+
+function highlightSQL(sql) {
+  return sql
+    .replace(/\b(SELECT|FROM|WHERE|AND|OR|JOIN|ON|LEFT|INNER|RIGHT|ORDER BY|GROUP BY|LIMIT|INSERT|UPDATE|DELETE|SET|VALUES|AS|IN|IS|NOT|NULL|LIKE|BETWEEN|CASCADE|DEFAULT|CHECK|REFERENCES|PRIMARY KEY|UNIQUE|FOREIGN KEY|CREATE TABLE|ALTER TABLE|ADD COLUMN|DROP|IF NOT EXISTS)\b/gi, '<span class="kw">$&</span>')
+    .replace(/\b(players|lobby_presence|matches|rounds|move_submissions|word_score_entries|scoreboard_snapshots|match_invitations|match_logs|boards|moves)\b/g, '<span class="tbl">$&</span>')
+    .replace(/'[^']*'/g, '<span class="str">$&</span>')
+    .replace(/\b\d+\b/g, '<span class="num">$&</span>')
+    .replace(/(--|\/\/).*/g, '<span class="comment">$&</span>');
+}
+
+function renderSQLPanel() {
+  const sql = buildSQL();
+  document.getElementById('sql-output').innerHTML = highlightSQL(sql);
+}
+
+// ── ER Diagram ──────────────────────────────────────────────────────────
+
+const ER_POSITIONS = {
+  players:              { x: 420, y: 30,  w: 160, h: 40 },
+  lobby_presence:       { x: 100, y: 30,  w: 160, h: 40 },
+  match_invitations:    { x: 100, y: 140, w: 170, h: 40 },
+  matches:              { x: 420, y: 180, w: 160, h: 40 },
+  rounds:               { x: 420, y: 320, w: 160, h: 40 },
+  move_submissions:     { x: 160, y: 320, w: 180, h: 40 },
+  word_score_entries:   { x: 420, y: 460, w: 190, h: 40 },
+  scoreboard_snapshots: { x: 700, y: 320, w: 200, h: 40 },
+  match_logs:           { x: 700, y: 180, w: 160, h: 40 },
+  boards:               { x: 750, y: 30,  w: 130, h: 40 },
+  moves:                { x: 750, y: 120, w: 130, h: 40 },
+};
+
+function renderERDiagram() {
+  const canvas = document.getElementById('er-canvas');
+  const W = canvas.clientWidth || 1000;
+  const H = canvas.clientHeight || 600;
+
+  let html = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  html += '<defs>';
+  html += '<marker id="er-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#475569"/></marker>';
+  html += '<marker id="er-arrow-hl" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#818cf8"/></marker>';
+  html += '</defs>';
+
+  const ox = (W - 960) / 2 + state.erPanX;
+  const oy = 20 + state.erPanY;
+  html += `<g transform="translate(${ox},${oy}) scale(${state.erZoom})">`;
+
+  // Draw FK connections
+  FOREIGN_KEYS.forEach(fk => {
+    const fromPos = ER_POSITIONS[fk.from];
+    const toPos = ER_POSITIONS[fk.to];
+    if (!fromPos || !toPos) return;
+    if (!state.visibleTables.includes(fk.from) || !state.visibleTables.includes(fk.to)) return;
+
+    const x1 = fromPos.x + fromPos.w / 2;
+    const y1 = fromPos.y + fromPos.h / 2;
+    const x2 = toPos.x + toPos.w / 2;
+    const y2 = toPos.y + toPos.h / 2;
+
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const sx = x1 + Math.cos(angle) * (fromPos.w / 2);
+    const sy = y1 + Math.sin(angle) * (fromPos.h / 2);
+    const ex = x2 - Math.cos(angle) * (toPos.w / 2 + 8);
+    const ey = y2 - Math.sin(angle) * (toPos.h / 2 + 8);
+
+    const isHighlighted = fk.from === state.selectedTable || fk.to === state.selectedTable;
+    const color = isHighlighted ? '#818cf8' : '#334155';
+    const marker = isHighlighted ? 'er-arrow-hl' : 'er-arrow';
+    const opacity = isHighlighted ? 0.9 : 0.4;
+
+    const mx = (sx + ex) / 2;
+    const my = (sy + ey) / 2;
+    const dx = ex - sx;
+    const dy = ey - sy;
+    const cx = mx - dy * 0.15;
+    const cy = my + dx * 0.15;
+
+    html += `<path d="M${sx},${sy} Q${cx},${cy} ${ex},${ey}" fill="none" stroke="${color}" stroke-width="${isHighlighted ? 2 : 1}" opacity="${opacity}" marker-end="url(#${marker})"/>`;
+
+    if (isHighlighted) {
+      const lx = (sx + cx + ex) / 3;
+      const ly = (sy + cy + ey) / 3 - 6;
+      html += `<text x="${lx}" y="${ly}" text-anchor="middle" fill="#818cf8" font-size="9" opacity="0.8">${fk.fromCol} → ${fk.toCol}</text>`;
+    }
+  });
+
+  // Draw table boxes
+  state.visibleTables.forEach(name => {
+    const t = TABLES[name];
+    const pos = ER_POSITIONS[name];
+    if (!pos) return;
+    const isSelected = state.selectedTable === name;
+    const stroke = isSelected ? '#818cf8' : t.color;
+    const sw = isSelected ? 2.5 : 1.5;
+    const fill = isSelected ? '#252b45' : '#1e2235';
+
+    html += `<g style="cursor:pointer" onclick="selectTableFromER('${name}')">`;
+    html += `<rect x="${pos.x}" y="${pos.y}" width="${pos.w}" height="${pos.h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    // Table icon stripe
+    html += `<rect x="${pos.x}" y="${pos.y}" width="6" height="${pos.h}" rx="3" fill="${t.color}" opacity="0.7"/>`;
+    html += `<text x="${pos.x + pos.w / 2 + 2}" y="${pos.y + 17}" text-anchor="middle" fill="#f1f5f9" font-size="12" font-weight="700">${name}</text>`;
+    html += `<text x="${pos.x + pos.w / 2 + 2}" y="${pos.y + 30}" text-anchor="middle" fill="#64748b" font-size="9">${t.columns.length} columns${t.realtime ? ' · RT' : ''}</text>`;
+
+    if (isSelected) {
+      // Show column list below
+      const cols = t.columns;
+      const colH = 14;
+      const boxH = cols.length * colH + 10;
+      html += `<rect x="${pos.x}" y="${pos.y + pos.h + 2}" width="${pos.w}" height="${boxH}" rx="6" fill="#161822" stroke="#2d3148" stroke-width="1"/>`;
+      cols.forEach((c, i) => {
+        const cy = pos.y + pos.h + 14 + i * colH;
+        const icon = c.pk ? '🔑' : (c.fk ? '🔗' : '');
+        html += `<text x="${pos.x + 8}" y="${cy}" fill="#94a3b8" font-size="9" font-family="'SF Mono',monospace">${icon} ${c.name}</text>`;
+        html += `<text x="${pos.x + pos.w - 8}" y="${cy}" text-anchor="end" fill="#475569" font-size="8" font-family="'SF Mono',monospace">${c.type}</text>`;
+      });
+    }
+
+    html += '</g>';
+  });
+
+  html += '</g></svg>';
+  canvas.innerHTML = html;
+}
+
+function selectTableFromER(name) {
+  state.selectedTable = name;
+  state.selectedCols = [];
+  state.filters = [];
+  renderAll();
+}
+
+function erZoomIn()    { state.erZoom = Math.min(state.erZoom * 1.2, 3); renderERDiagram(); }
+function erZoomOut()   { state.erZoom = Math.max(state.erZoom / 1.2, 0.4); renderERDiagram(); }
+function erZoomReset() { state.erZoom = 1; state.erPanX = 0; state.erPanY = 0; renderERDiagram(); }
+
+// ER pan
+let erPanning = false, erPSX = 0, erPSY = 0;
+document.getElementById('er-canvas')?.addEventListener('mousedown', e => {
+  if (e.target.closest('.er-zoom')) return;
+  erPanning = true; erPSX = e.clientX - state.erPanX; erPSY = e.clientY - state.erPanY;
+});
+document.addEventListener('mousemove', e => {
+  if (!erPanning) return;
+  state.erPanX = e.clientX - erPSX;
+  state.erPanY = e.clientY - erPSY;
+  renderERDiagram();
+});
+document.addEventListener('mouseup', () => erPanning = false);
+
+// ── Schema view ─────────────────────────────────────────────────────────
+
+function renderSchemaPanel() {
+  const el = document.getElementById('panel-schema');
+  let html = '';
+
+  state.visibleTables.forEach(name => {
+    const t = TABLES[name];
+    html += `<div class="schema-table">`;
+    html += `<div class="schema-table-header">
+      <span class="st-icon" style="background:${t.color}"></span>
+      <span class="st-name">${name}</span>
+      <span class="st-desc">${t.desc}</span>
+    </div>`;
+    html += `<div class="schema-col-row header-row">
+      <span></span><span>Column</span><span>Type</span><span>Constraints</span>
+    </div>`;
+    t.columns.forEach(c => {
+      let icon = '', iconClass = '';
+      if (c.pk) { icon = '🔑'; iconClass = 'pk'; }
+      else if (c.fk) { icon = '🔗'; iconClass = 'fk'; }
+      else if (c.indexed) { icon = '📇'; iconClass = 'idx'; }
+
+      let constraints = '';
+      if (c.pk) constraints += '<span class="col-constraint c-pk">PK</span>';
+      if (c.fk) constraints += `<span class="col-constraint c-fk">FK → ${c.fk}</span>`;
+      if (c.nn) constraints += '<span class="col-constraint c-nn">NOT NULL</span>';
+      if (c.unique) constraints += '<span class="col-constraint c-uq">UNIQUE</span>';
+      if (c.check) constraints += `<span class="col-constraint c-ck">CHECK ${c.check}</span>`;
+      if (c.default) constraints += `<span class="col-constraint c-def">DEFAULT ${c.default}</span>`;
+      if (c.info) constraints += ` <span style="color:#475569;font-size:9px">${c.info}</span>`;
+
+      html += `<div class="schema-col-row">
+        <span class="col-icon ${iconClass}">${icon}</span>
+        <span class="col-name">${c.name}</span>
+        <span class="col-type">${c.type}</span>
+        <span class="col-info">${constraints}</span>
+      </div>`;
+    });
+    if (t.unique) {
+      t.unique.forEach(u => {
+        html += `<div class="schema-col-row" style="background:#1a1d2e"><span></span><span colspan="3" style="grid-column:2/5;color:#a78bfa;font-size:10px">UNIQUE (${u})</span></div>`;
+      });
+    }
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// ── Stats / Overview ────────────────────────────────────────────────────
+
+function renderStatsPanel() {
+  const el = document.getElementById('panel-stats');
+  const allTables = Object.keys(TABLES);
+  const totalCols = allTables.reduce((sum, t) => sum + TABLES[t].columns.length, 0);
+  const rtTables = allTables.filter(t => TABLES[t].realtime).length;
+  const fkCount = FOREIGN_KEYS.length;
+  const jsonbCols = allTables.reduce((sum, t) => sum + TABLES[t].columns.filter(c => c.type === 'jsonb').length, 0);
+
+  let html = '<div class="stats-grid">';
+  const stats = [
+    { val: allTables.length, label: 'Tables' },
+    { val: totalCols, label: 'Total Columns' },
+    { val: fkCount, label: 'Foreign Keys' },
+    { val: rtTables, label: 'Realtime Tables' },
+    { val: jsonbCols, label: 'JSONB Columns' },
+    { val: allTables.filter(t => TABLES[t].rls).length, label: 'RLS Enabled' },
+  ];
+  stats.forEach(s => {
+    html += `<div class="stat-card"><div class="stat-value">${s.val}</div><div class="stat-label">${s.label}</div></div>`;
+  });
+  html += '</div>';
+
+  // Domain grouping
+  html += '<div class="section-label" style="margin:0 0 8px;color:#64748b">Tables by Domain</div>';
+  const domains = {};
+  allTables.forEach(t => {
+    const d = TABLES[t].domain;
+    if (!domains[d]) domains[d] = [];
+    domains[d].push(t);
+  });
+  html += '<div class="stats-grid">';
+  Object.entries(domains).forEach(([domain, tables]) => {
+    const color = DOMAINS[domain] || '#64748b';
+    html += `<div class="stat-card" style="border-left:3px solid ${color}">
+      <div class="stat-value" style="font-size:18px">${domain}</div>
+      <div class="stat-label">${tables.join(', ')}</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Migration timeline
+  html += '<div class="section-label" style="margin:16px 0 8px;color:#64748b">Migration Timeline</div>';
+  html += '<div class="migration-timeline">';
+  const migrations = [
+    { date: '2025-11-05', name: 'Init: boards + moves schema (spec 001)', color: '#4b5563',
+      tables: 'boards, moves' },
+    { date: '2025-11-15', name: 'Playtest: two-player infrastructure (spec 002)', color: '#f59e0b',
+      tables: 'players, lobby_presence, matches, rounds, move_submissions, match_invitations, word_score_entries, scoreboard_snapshots, match_logs' },
+    { date: '2025-11-19', name: 'Enable Supabase Realtime replication', color: '#ec4899',
+      tables: 'lobby_presence, matches, rounds, move_submissions, match_invitations' },
+    { date: '2026-02-14', name: 'Frozen tiles + duplicate word detection (spec 003)', color: '#10b981',
+      tables: 'matches.frozen_tiles, word_score_entries.is_duplicate' },
+  ];
+  migrations.forEach(m => {
+    html += `<div class="migration-item">
+      <span class="migration-dot" style="background:${m.color}"></span>
+      <span class="migration-date">${m.date}</span>
+      <div><div class="migration-name">${m.name}</div><div style="font-size:10px;color:#475569;margin-top:2px">${m.tables}</div></div>
+    </div>`;
+  });
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+// ── Tab switching ───────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById('panel-' + tab).classList.add('visible');
+  if (tab === 'er') renderERDiagram();
+  if (tab === 'schema') renderSchemaPanel();
+  if (tab === 'stats') renderStatsPanel();
+}
+
+// ── Prompt ───────────────────────────────────────────────────────────────
+
+function updatePrompt() {
+  const el = document.getElementById('prompt-output');
+  const table = state.selectedTable;
+  const t = TABLES[table];
+  const cols = state.selectedCols.length > 0 ? state.selectedCols : t.columns.map(c => c.name);
+
+  let parts = [];
+  parts.push(`Query the "${table}" table (${t.desc.toLowerCase()}) in the Wottle Supabase database.`);
+
+  if (state.selectedCols.length > 0) {
+    parts.push(`Select columns: ${state.selectedCols.join(', ')}.`);
+  }
+
+  const validFilters = state.filters.filter(f => f.val || f.op.includes('NULL'));
+  if (validFilters.length > 0) {
+    const filterDesc = validFilters.map(f => {
+      if (f.op.includes('NULL')) return `${f.col} ${f.op}`;
+      return `${f.col} ${f.op} ${f.val}`;
+    }).join(' AND ');
+    parts.push(`Filter where ${filterDesc}.`);
+  }
+
+  if (state.orderCol) {
+    parts.push(`Order by ${state.orderCol} ${state.orderDir}.`);
+  }
+
+  parts.push(`Limit to ${state.limit} rows.`);
+
+  // Schema context
+  const fks = FOREIGN_KEYS.filter(fk => fk.from === table);
+  if (fks.length > 0) {
+    parts.push(`\nRelationships: ${fks.map(fk => `${fk.fromCol} → ${fk.to}.${fk.toCol}`).join(', ')}.`);
+  }
+
+  const checks = t.columns.filter(c => c.check);
+  if (checks.length > 0) {
+    parts.push(`Constraints: ${checks.map(c => `${c.name} CHECK ${c.check}`).join('; ')}.`);
+  }
+
+  el.textContent = parts.join(' ');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-output').textContent;
+  navigator.clipboard.writeText(text);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 1500);
+}
+
+// ── Master render ───────────────────────────────────────────────────────
+
+function updateAll() {
+  renderSQLPanel();
+  updatePrompt();
+  if (state.activeTab === 'er') renderERDiagram();
+}
+
+function renderAll() {
+  renderPresets();
+  renderTableCards();
+  renderColChips();
+  renderFilters();
+  renderOrderCol();
+  renderSQLPanel();
+  renderSchemaPanel();
+  renderStatsPanel();
+  if (state.activeTab === 'er') renderERDiagram();
+  updatePrompt();
+}
+
+// ── Init ────────────────────────────────────────────────────────────────
+
+renderAll();
+window.addEventListener('resize', () => {
+  if (state.activeTab === 'er') renderERDiagram();
+});
+</script>
+</body>
+</html>

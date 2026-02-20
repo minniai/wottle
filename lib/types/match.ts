@@ -40,6 +40,8 @@ export interface WordScore {
   bonusPoints: number;
   totalPoints: number;
   coordinates: Coordinate[];
+  /** True if this word was already scored by this player in a prior round (0 points). */
+  isDuplicate?: boolean;
 }
 
 export interface RoundSummary {

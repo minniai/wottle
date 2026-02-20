@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wottle Architecture Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 1fr auto;
+    height: 100vh;
+  }
+  .sidebar {
+    grid-row: 1 / 3;
+    background: #161822;
+    border-right: 1px solid #2d3148;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .sidebar h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .sidebar .subtitle {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 16px;
+  }
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #475569;
+    margin: 16px 0 8px;
+  }
+  .preset-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .preset-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e2235;
+    color: #94a3b8
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { border-color: #4f6fff; color: #c7d2fe; }
+  .preset-btn.active { background: #3b49df; border-color: #5b6bff; color: #fff; }
+  .layer-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .layer-toggle input { display: none; }
+  .layer-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1.5px solid transparent;
+    flex-shrink: 0;
+  }
+  .layer-toggle input:checked + .layer-swatch { border-color: #fff; }
+  .layer-toggle input:not(:checked) ~ .layer-label { color: #475569; text-decoration: line-through; }
+  .layer-label { color: #cbd5e1; }
+  .conn-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .conn-toggle input { display: none; }
+  .conn-line {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .conn-toggle input:not(:checked) ~ .conn-label { color: #475569; text-decoration: line-through; }
+  .conn-label { color: #cbd5e1; }
+  .comments-section { margin-top: 12px; }
+  .comment-count {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 6px;
+  }
+  .comment-item {
+    background: #1e2235;
+    border: 1px solid #2d3148;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+  .comment-target {
+    font-weight: 600;
+    color: #a5b4fc;
+    margin-bottom: 2px;
+  }
+  .comment-file {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 10px;
+    color: #475569;
+    margin-bottom: 4px;
+  }
+  .comment-text { color: #94a3b8; line-height: 1.4; }
+  .comment-delete {
+    float: right;
+    background: none;
+    border: none;
+    color: #475569;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0 2px;
+    line-height: 1;
+  }
+  .comment-delete:hover { color: #ef4444; }
+  .canvas-area {
+    position: relative;
+    overflow: hidden;
+    background: #0f1117;
+  }
+  .canvas-area svg {
+    width: 100%;
+    height: 100%;
+  }
+  .zoom-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+  }
+  .zoom-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e2235;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .zoom-btn:hover { border-color: #4f6fff; color: #e2e8f0; }
+  .detail-panel {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: #161822ee;
+    backdrop-filter: blur(8px);
+    border: 1px solid #2d3148;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 12px;
+    max-height: 40%;
+    overflow-y: auto;
+    z-index: 10;
+    display: none;
+  }
+  .detail-panel.visible { display: block; }
+  .detail-panel h3 {
+    font-size: 14px;
+    color: #f1f5f9;
+    margin-bottom: 2px;
+  }
+  .detail-panel .detail-file {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 8px;
+  }
+  .detail-panel .detail-desc {
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .detail-panel .detail-deps {
+    font-size: 11px;
+    color: #64748b;
+  }
+  .detail-panel .detail-deps span {
+    color: #a5b4fc;
+    cursor: pointer;
+  }
+  .detail-panel .detail-deps span:hover { text-decoration: underline; }
+  .detail-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .detail-btn {
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e2235;
+    color: #94a3b8;
+    cursor: pointer;
+  }
+  .detail-btn:hover { border-color: #4f6fff; color: #e2e8f0; }
+  .detail-btn.primary {
+    background: #3b49df;
+    border-color: #5b6bff;
+    color: #fff;
+  }
+  .detail-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #475569;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .detail-close:hover { color: #e2e8f0; }
+  .prompt-area {
+    background: #161822;
+    border-top: 1px solid #2d3148;
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .prompt-text {
+    flex: 1;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.5;
+    max-height: 80px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+  .copy-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e2235;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover { border-color: #4f6fff; color: #e2e8f0; }
+  .copy-btn.copied { background: #065f46; border-color: #10b981; color: #6ee7b7; }
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000000aa;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: #1e2235;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    width: 400px;
+    max-width: 90vw;
+  }
+  .modal h3 { font-size: 15px; color: #f1f5f9; margin-bottom: 4px; }
+  .modal .modal-file {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+  .modal textarea {
+    width: 100%;
+    min-height: 80px;
+    background: #0f1117;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .modal textarea:focus { outline: none; border-color: #4f6fff; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .modal-btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e2235;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .modal-btn:hover { border-color: #4f6fff; color: #e2e8f0; }
+  .modal-btn.save { background: #3b49df; border-color: #5b6bff; color: #fff; }
+  /* Legend */
+  .legend {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: #161822dd;
+    border: 1px solid #2d3148;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 10px;
+    z-index: 5;
+  }
+  .legend-title { font-weight: 600; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: #94a3b8; }
+  .legend-line { height: 3px; width: 24px; border-radius: 2px; }
+  /* Status pill */
+  .status-pill {
+    display: inline-block;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+  .status-complete { background: #065f46; color: #6ee7b7; }
+  .status-partial { background: #78350f; color: #fcd34d; }
+  .status-stub { background: #7f1d1d; color: #fca5a5; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="sidebar">
+    <h1>Wottle Architecture</h1>
+    <div class="subtitle">Competitive 2-player Icelandic word duel</div>
+
+    <div class="section-label">Views</div>
+    <div class="preset-group" id="presets"></div>
+
+    <div class="section-label">Layers</div>
+    <div id="layer-toggles"></div>
+
+    <div class="section-label">Connections</div>
+    <div id="conn-toggles"></div>
+
+    <div class="comments-section">
+      <div class="section-label">Comments</div>
+      <div class="comment-count" id="comment-count">No comments yet</div>
+      <div id="comments-list"></div>
+    </div>
+  </div>
+
+  <div class="canvas-area" id="canvas-area">
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomOut()">&minus;</button>
+      <button class="zoom-btn" onclick="zoomReset()" style="font-size:11px">Fit</button>
+    </div>
+    <svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="detail-panel" id="detail-panel">
+      <button class="detail-close" onclick="closeDetail()">&times;</button>
+      <h3 id="detail-title"></h3>
+      <div class="detail-file" id="detail-file"></div>
+      <div class="detail-desc" id="detail-desc"></div>
+      <div class="detail-deps" id="detail-deps"></div>
+      <div class="detail-actions">
+        <button class="detail-btn primary" onclick="openCommentModal()">Add Comment</button>
+        <button class="detail-btn" onclick="closeDetail()">Close</button>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="prompt-area">
+    <div class="prompt-text" id="prompt-output">Click components to explore and add comments. Your feedback will appear here as an actionable prompt.</div>
+    <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- Comment modal -->
+<div class="modal-overlay" id="comment-modal">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <div class="modal-file" id="modal-file"></div>
+    <textarea id="modal-textarea" placeholder="Your feedback on this component..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeCommentModal()">Cancel</button>
+      <button class="modal-btn save" onclick="saveComment()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────────
+
+const LAYERS = {
+  client:   { label: 'Client / UI',         color: '#3b82f6', fill: '#1e3a5f', stroke: '#3b82f6' },
+  actions:  { label: 'Server Actions',       color: '#f59e0b', fill: '#3d2e0a', stroke: '#f59e0b' },
+  engine:   { label: 'Game Engine',          color: '#10b981', fill: '#0d3529', stroke: '#10b981' },
+  match:    { label: 'Match Orchestration',  color: '#a855f7', fill: '#2e1551', stroke: '#a855f7' },
+  realtime: { label: 'Realtime / Infra',     color: '#ec4899', fill: '#4a0e2a', stroke: '#ec4899' },
+  data:     { label: 'Data (Supabase)',      color: '#6b7280', fill: '#1f2127', stroke: '#4b5563' },
+};
+
+const CONN_TYPES = {
+  'data-flow':  { label: 'Data Flow',        color: '#3b82f6', dash: '' },
+  'fn-call':    { label: 'Function Call',     color: '#10b981', dash: '6,3' },
+  'event':      { label: 'Realtime Event',    color: '#ec4899', dash: '4,4' },
+  'import':     { label: 'Import / Depends',  color: '#4b5563', dash: '2,2' },
+};
+
+const nodes = [
+  // Client layer (y ~40-90)
+  { id: 'match-client',     label: 'MatchClient',         subtitle: 'components/match/MatchClient.tsx',     x: 460, y: 50,  w: 150, h: 48, layer: 'client',
+    desc: 'Top-level match component. Hydrates from server state, subscribes to Realtime channel, manages polling fallback, handles disconnection. Renders BoardGrid, TimerHud, and RoundSummaryPanel.',
+    status: 'complete' },
+  { id: 'board-grid',       label: 'BoardGrid',           subtitle: 'components/game/BoardGrid.tsx',        x: 240, y: 50,  w: 130, h: 48, layer: 'client',
+    desc: 'Renders the 10x10 tile grid with tap-to-swap interaction. Emits swap coordinates to submitMove server action. Handles frozen tile visual overlay (40% opacity).',
+    status: 'complete' },
+  { id: 'timer-hud',        label: 'TimerHud',            subtitle: 'components/game/TimerHud.tsx',         x: 680, y: 50,  w: 120, h: 48, layer: 'client',
+    desc: 'Chess-clock display showing remaining time and current round number. Client-side countdown; server-authoritative enforcement is still partial.',
+    status: 'partial' },
+  { id: 'round-summary',    label: 'RoundSummaryPanel',   subtitle: 'components/match/RoundSummaryPanel.tsx', x: 890, y: 50, w: 170, h: 48, layer: 'client',
+    desc: 'Displays scored words, deltas, and highlights after each round. Auto-dismisses after 3s (15s in automation). Includes word highlight overlay on the board.',
+    status: 'complete' },
+  { id: 'lobby-ui',         label: 'LobbyList',           subtitle: 'components/lobby/LobbyList.tsx',       x: 60,  y: 50,  w: 110, h: 48, layer: 'client',
+    desc: 'Lobby presence list showing available players. Supports direct invites and auto-queue matchmaking. Uses Realtime presence channel with polling fallback.',
+    status: 'complete' },
+
+  // Server Actions layer (y ~160-210)
+  { id: 'submit-move',      label: 'submitMove',          subtitle: 'app/actions/match/submitMove.ts',      x: 300, y: 170, w: 130, h: 48, layer: 'actions',
+    desc: 'Server Action: validates swap coordinates via Zod, checks rate limit (30/min per player), inserts move_submission row, triggers advanceRound if both players have submitted.',
+    status: 'complete' },
+  { id: 'publish-summary',  label: 'publishRoundSummary', subtitle: 'app/actions/match/publishRoundSummary.ts', x: 560, y: 170, w: 190, h: 48, layer: 'actions',
+    desc: 'Server Action: fetches word_score_entries for the round, computes cumulative totals, persists scoreboard snapshot, broadcasts round-summary event via Realtime.',
+    status: 'complete' },
+  { id: 'compute-scores',   label: 'computeWordScores',   subtitle: 'app/actions/match/publishRoundSummary.ts', x: 830, y: 170, w: 180, h: 48, layer: 'actions',
+    desc: 'Orchestration function: loads prior scored words from DB (for duplicate detection), calls processRoundScoring from word engine, persists results to word_score_entries table and updates frozen_tiles on matches row.',
+    status: 'complete' },
+  { id: 'login-action',     label: 'login',               subtitle: 'app/actions/auth/login.ts',            x: 80,  y: 170, w: 100, h: 48, layer: 'actions',
+    desc: 'Server Action: creates player record, sets wottle-playtest-session cookie (4hr TTL), validates username (3-24 chars). Rate limited: 5/min per IP.',
+    status: 'complete' },
+
+  // Game Engine layer (y ~290-340)
+  { id: 'word-engine',      label: 'wordEngine',          subtitle: 'lib/game-engine/wordEngine.ts',        x: 500, y: 290, w: 140, h: 48, layer: 'engine',
+    desc: 'Top-level scoring orchestrator. Pipeline: loadDictionary -> detectNewWords (3 board scans) -> scoreAttributedWords -> computeDeltas -> freezeTiles. Must complete in <50ms (FR-021). Returns RoundScoreResult with per-player word breakdowns, combo bonuses, deltas, and updated frozen tiles.',
+    status: 'complete' },
+  { id: 'dictionary',       label: 'dictionary',          subtitle: 'lib/game-engine/dictionary.ts',        x: 240, y: 290, w: 130, h: 48, layer: 'engine',
+    desc: 'Loads ~683K Icelandic word list into a Set for O(1) lookups. Sync file read, NFC-normalized, cached as module singleton. Cold start must be <200ms (FR-022). lookupWord() normalizes input before checking.',
+    status: 'complete' },
+  { id: 'board-scanner',    label: 'boardScanner',        subtitle: 'lib/game-engine/boardScanner.ts',      x: 240, y: 360, w: 140, h: 48, layer: 'engine',
+    desc: 'Scans 10x10 board in all 8 directions (4 canonical + reverse). Extracts all contiguous subsequences of length 3+ and checks against dictionary. Returns BoardWord[] with coordinates, direction, and normalized text.',
+    status: 'complete' },
+  { id: 'delta-detector',   label: 'deltaDetector',       subtitle: 'lib/game-engine/deltaDetector.ts',     x: 500, y: 360, w: 140, h: 48, layer: 'engine',
+    desc: 'Three-scan delta detection: (1) scan board_before -> baseline, (2) apply Player A swap -> scan -> intermediate, (3) scan board_after (both swaps). Player A words = intermediate \\ baseline. Player B words = final \\ intermediate \\ baseline. Filters words containing opponent-frozen tiles.',
+    status: 'complete' },
+  { id: 'scorer',           label: 'scorer',              subtitle: 'lib/game-engine/scorer.ts',            x: 720, y: 290, w: 110, h: 48, layer: 'engine',
+    desc: 'PRD-compliant scoring formulas. letterPoints: sum of LETTER_SCORING_VALUES_IS per character. lengthBonus: (len-2)*5. comboBonus: 1->0, 2->2, 3->5, 4+->7+(n-4). Duplicate words score 0.',
+    status: 'complete' },
+  { id: 'frozen-tiles',     label: 'frozenTiles',         subtitle: 'lib/game-engine/frozenTiles.ts',       x: 720, y: 360, w: 130, h: 48, layer: 'engine',
+    desc: 'Territory mechanic: scored word tiles get frozen. Ownership: player_a, player_b, or both. Enforces 24-unfrozen minimum (76 max frozen). Sorts candidates in reading order for deterministic partial freezes. isFrozenByOpponent() used for swap validation.',
+    status: 'complete' },
+  { id: 'board-ops',        label: 'board (applySwap)',   subtitle: 'lib/game-engine/board.ts',             x: 60,  y: 290, w: 150, h: 48, layer: 'engine',
+    desc: 'Immutable board operations: cloneGrid, applySwap (validates coordinates via Zod, prevents self-swap), serialize/deserialize. Board is BoardGrid = string[][] (10x10).',
+    status: 'complete' },
+
+  // Match Orchestration (y ~470-520)
+  { id: 'round-engine',     label: 'roundEngine',         subtitle: 'lib/match/roundEngine.ts',             x: 350, y: 480, w: 140, h: 48, layer: 'match',
+    desc: 'advanceRound(): the main round lifecycle. Fetches match + round + submissions -> resolveConflicts -> applySwap moves -> computeWordScoresForRound -> update round state (collecting -> resolving -> completed) -> create next round or complete match -> publish state + summary via Realtime. Tracks duration for observability.',
+    status: 'complete' },
+  { id: 'conflict-resolver', label: 'conflictResolver',   subtitle: 'lib/match/conflictResolver.ts',       x: 130, y: 480, w: 150, h: 48, layer: 'match',
+    desc: 'First-come-first-served conflict resolution. Sorts submissions by timestamp, locks tile coordinates. If two players swap overlapping tiles, earlier submission wins; later is rejected.',
+    status: 'complete' },
+  { id: 'state-machine',    label: 'stateMachine',        subtitle: 'lib/match/stateMachine.ts',            x: 570, y: 480, w: 140, h: 48, layer: 'match',
+    desc: 'Round state tracking: collecting -> resolving -> completed. registerSubmission() handles duplicate detection (same-move ignored), triggers phase transition to resolving when both players submit. nextRoundNumber() enforces 10-round limit.',
+    status: 'complete' },
+  { id: 'state-publisher',  label: 'statePublisher',      subtitle: 'lib/match/statePublisher.ts',          x: 780, y: 480, w: 140, h: 48, layer: 'match',
+    desc: 'Broadcasts full MatchState snapshot to match:{matchId} Realtime channel. Uses service role client to bypass RLS. Called after every round resolution.',
+    status: 'complete' },
+  { id: 'state-loader',     label: 'stateLoader',         subtitle: 'lib/match/stateLoader.ts',             x: 780, y: 550, w: 130, h: 48, layer: 'match',
+    desc: 'Server-side state hydration. Loads match, current round, timers, scores, and frozen tiles from Supabase. Returns full MatchState for SSR and Realtime broadcast.',
+    status: 'complete' },
+
+  // Realtime / Infra (y ~610-660)
+  { id: 'match-channel',    label: 'matchChannel',        subtitle: 'lib/realtime/matchChannel.ts',         x: 380, y: 620, w: 140, h: 48, layer: 'realtime',
+    desc: 'Client-side Realtime subscription. Listens for "state" and "round-summary" broadcast events on match:{matchId} channel. Provides onState, onSummary, onError callbacks. Falls back to polling on CHANNEL_ERROR.',
+    status: 'complete' },
+  { id: 'presence-channel', label: 'presenceChannel',     subtitle: 'lib/realtime/presenceChannel.ts',      x: 160, y: 620, w: 150, h: 48, layer: 'realtime',
+    desc: 'Lobby presence tracking via Realtime presence. Tracks online players with 5-min TTL. Polling fallback at 2s interval when WebSocket fails.',
+    status: 'complete' },
+  { id: 'supabase-server',  label: 'supabase/server',     subtitle: 'lib/supabase/server.ts',               x: 610, y: 620, w: 140, h: 48, layer: 'realtime',
+    desc: 'Service role Supabase client factory. Bypasses RLS for server-side operations. Runtime guard throws if accidentally imported in browser environment.',
+    status: 'complete' },
+  { id: 'supabase-browser', label: 'supabase/browser',    subtitle: 'lib/supabase/browser.ts',              x: 820, y: 620, w: 140, h: 48, layer: 'realtime',
+    desc: 'Browser anon-key Supabase client. Respects RLS policies. Used for Realtime subscriptions and any client-side queries.',
+    status: 'complete' },
+
+  // Data layer (y ~730-780)
+  { id: 'db-matches',       label: 'matches',             subtitle: 'supabase table',                       x: 140, y: 740, w: 110, h: 48, layer: 'data',
+    desc: 'Core match table: id, player_a_id, player_b_id, state (pending/in_progress/completed/abandoned), current_round, board_seed, frozen_tiles (JSONB), scores, created/updated timestamps. RLS: players can only read their own matches.',
+    status: 'complete' },
+  { id: 'db-rounds',        label: 'rounds',              subtitle: 'supabase table',                       x: 320, y: 740, w: 100, h: 48, layer: 'data',
+    desc: 'Round records: match_id, round_number, state (collecting/resolving/completed), board_snapshot_before, board_snapshot_after, resolution timestamps. One row per round per match.',
+    status: 'complete' },
+  { id: 'db-submissions',   label: 'move_submissions',    subtitle: 'supabase table',                       x: 490, y: 740, w: 150, h: 48, layer: 'data',
+    desc: 'Player move records: round_id, player_id, from_x/y, to_x/y, status (pending/accepted/rejected_invalid/ignored_same_move/timeout), submitted_at, rejection_reason.',
+    status: 'complete' },
+  { id: 'db-word-scores',   label: 'word_score_entries',  subtitle: 'supabase table',                       x: 700, y: 740, w: 160, h: 48, layer: 'data',
+    desc: 'Per-word scoring records: match_id, round_id, player_id, word, length, letters_points, bonus_points, total_points, tiles (JSONB coordinates), is_duplicate. Written by computeWordScoresForRound.',
+    status: 'complete' },
+  { id: 'db-scoreboard',    label: 'scoreboard_snapshots', subtitle: 'supabase table',                      x: 910, y: 740, w: 170, h: 48, layer: 'data',
+    desc: 'Cumulative score snapshots: match_id, round_number, player_a_score, player_b_score. One row per round, used to compute deltas for the round summary.',
+    status: 'complete' },
+];
+
+const connections = [
+  // Client -> Actions
+  { from: 'board-grid',      to: 'submit-move',      type: 'data-flow',  label: 'swap coords' },
+  { from: 'match-client',    to: 'submit-move',      type: 'fn-call',    label: '' },
+  { from: 'lobby-ui',        to: 'login-action',     type: 'fn-call',    label: '' },
+
+  // Actions -> Match
+  { from: 'submit-move',     to: 'round-engine',     type: 'fn-call',    label: 'advanceRound()' },
+  { from: 'round-engine',    to: 'conflict-resolver', type: 'fn-call',   label: 'resolveConflicts()' },
+  { from: 'round-engine',    to: 'compute-scores',   type: 'fn-call',    label: 'computeWordScoresForRound()' },
+  { from: 'round-engine',    to: 'publish-summary',  type: 'fn-call',    label: 'publishRoundSummary()' },
+  { from: 'round-engine',    to: 'state-publisher',  type: 'fn-call',    label: 'publishMatchState()' },
+
+  // Match -> Engine
+  { from: 'round-engine',    to: 'board-ops',        type: 'fn-call',    label: 'applySwap()' },
+  { from: 'compute-scores',  to: 'word-engine',      type: 'fn-call',    label: 'processRoundScoring()' },
+
+  // Word Engine internals
+  { from: 'word-engine',     to: 'dictionary',       type: 'import',     label: 'loadDictionary()' },
+  { from: 'word-engine',     to: 'delta-detector',   type: 'import',     label: 'detectNewWords()' },
+  { from: 'word-engine',     to: 'scorer',           type: 'import',     label: 'calculate*()' },
+  { from: 'word-engine',     to: 'frozen-tiles',     type: 'import',     label: 'freezeTiles()' },
+  { from: 'delta-detector',  to: 'board-scanner',    type: 'import',     label: 'scanBoard() x3' },
+  { from: 'delta-detector',  to: 'board-ops',        type: 'import',     label: 'applySwap()' },
+
+  // Realtime events
+  { from: 'state-publisher', to: 'match-channel',    type: 'event',      label: '"state" broadcast' },
+  { from: 'publish-summary', to: 'match-channel',    type: 'event',      label: '"round-summary"' },
+  { from: 'match-channel',   to: 'match-client',     type: 'event',      label: 'onState / onSummary' },
+
+  // Match -> Data
+  { from: 'round-engine',    to: 'db-matches',       type: 'data-flow',  label: 'update state' },
+  { from: 'round-engine',    to: 'db-rounds',        type: 'data-flow',  label: 'CRUD' },
+  { from: 'round-engine',    to: 'db-submissions',   type: 'data-flow',  label: 'status update' },
+  { from: 'compute-scores',  to: 'db-word-scores',   type: 'data-flow',  label: 'insert entries' },
+  { from: 'compute-scores',  to: 'db-matches',       type: 'data-flow',  label: 'frozen_tiles' },
+  { from: 'publish-summary', to: 'db-scoreboard',    type: 'data-flow',  label: 'snapshot' },
+  { from: 'state-loader',    to: 'db-matches',       type: 'data-flow',  label: 'read' },
+
+  // Infra deps
+  { from: 'match-client',    to: 'match-channel',    type: 'fn-call',    label: 'subscribe' },
+  { from: 'match-client',    to: 'supabase-browser',  type: 'import',    label: '' },
+  { from: 'state-publisher', to: 'supabase-server',  type: 'import',     label: '' },
+  { from: 'state-publisher', to: 'state-loader',     type: 'fn-call',    label: 'loadMatchState()' },
+  { from: 'state-machine',   to: 'round-engine',     type: 'import',     label: '' },
+];
+
+const PRESETS = {
+  'Full System': { layers: Object.keys(LAYERS), conns: Object.keys(CONN_TYPES) },
+  'Move Flow': {
+    layers: ['client', 'actions', 'engine', 'match', 'data'],
+    conns: ['data-flow', 'fn-call'],
+    highlight: ['board-grid', 'submit-move', 'round-engine', 'conflict-resolver', 'board-ops', 'compute-scores', 'word-engine', 'publish-summary', 'state-publisher']
+  },
+  'Word Engine': {
+    layers: ['engine', 'actions'],
+    conns: ['fn-call', 'import'],
+    highlight: ['word-engine', 'dictionary', 'board-scanner', 'delta-detector', 'scorer', 'frozen-tiles', 'compute-scores', 'board-ops']
+  },
+  'Realtime': {
+    layers: ['client', 'match', 'realtime'],
+    conns: ['event', 'fn-call', 'import'],
+    highlight: ['match-client', 'match-channel', 'state-publisher', 'supabase-server', 'supabase-browser', 'state-loader']
+  },
+  'Data Model': {
+    layers: ['data', 'actions', 'match'],
+    conns: ['data-flow'],
+    highlight: ['db-matches', 'db-rounds', 'db-submissions', 'db-word-scores', 'db-scoreboard']
+  },
+};
+
+// ── State ───────────────────────────────────────────────────────────────
+
+const state = {
+  layers: {},
+  conns: {},
+  comments: [],
+  selectedNode: null,
+  highlightedNodes: null,
+  activePreset: 'Full System',
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+};
+
+// Init all on
+Object.keys(LAYERS).forEach(k => state.layers[k] = true);
+Object.keys(CONN_TYPES).forEach(k => state.conns[k] = true);
+
+// ── Render controls ─────────────────────────────────────────────────────
+
+function renderPresets() {
+  const el = document.getElementById('presets');
+  el.innerHTML = '';
+  Object.keys(PRESETS).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (state.activePreset === name ? ' active' : '');
+    btn.textContent = name;
+    btn.onclick = () => applyPreset(name);
+    el.appendChild(btn);
+  });
+}
+
+function renderLayerToggles() {
+  const el = document.getElementById('layer-toggles');
+  el.innerHTML = '';
+  Object.entries(LAYERS).forEach(([key, cfg]) => {
+    const label = document.createElement('label');
+    label.className = 'layer-toggle';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = state.layers[key];
+    input.onchange = () => { state.layers[key] = input.checked; state.activePreset = null; renderPresets(); renderAll(); };
+    const swatch = document.createElement('span');
+    swatch.className = 'layer-swatch';
+    swatch.style.background = cfg.fill;
+    swatch.style.borderColor = input.checked ? cfg.stroke : 'transparent';
+    const lbl = document.createElement('span');
+    lbl.className = 'layer-label';
+    lbl.textContent = cfg.label;
+    label.append(input, swatch, lbl);
+    el.appendChild(label);
+  });
+}
+
+function renderConnToggles() {
+  const el = document.getElementById('conn-toggles');
+  el.innerHTML = '';
+  Object.entries(CONN_TYPES).forEach(([key, cfg]) => {
+    const label = document.createElement('label');
+    label.className = 'conn-toggle';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = state.conns[key];
+    input.onchange = () => { state.conns[key] = input.checked; state.activePreset = null; renderPresets(); renderAll(); };
+    const line = document.createElement('span');
+    line.className = 'conn-line';
+    line.style.background = cfg.color;
+    if (cfg.dash) line.style.background = `repeating-linear-gradient(90deg, ${cfg.color} 0, ${cfg.color} 3px, transparent 3px, transparent 5px)`;
+    const lbl = document.createElement('span');
+    lbl.className = 'conn-label';
+    lbl.textContent = cfg.label;
+    label.append(input, line, lbl);
+    el.appendChild(label);
+  });
+}
+
+function renderComments() {
+  const list = document.getElementById('comments-list');
+  const count = document.getElementById('comment-count');
+  list.innerHTML = '';
+  count.textContent = state.comments.length ? `${state.comments.length} comment${state.comments.length > 1 ? 's' : ''}` : 'No comments yet';
+  state.comments.forEach((c, i) => {
+    const item = document.createElement('div');
+    item.className = 'comment-item';
+    item.innerHTML = `
+      <button class="comment-delete" onclick="deleteComment(${i})">&times;</button>
+      <div class="comment-target">${c.targetLabel}</div>
+      <div class="comment-file">${c.targetFile}</div>
+      <div class="comment-text">${c.text}</div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ── SVG rendering ───────────────────────────────────────────────────────
+
+function renderAll() {
+  renderDiagram();
+  renderLegend();
+  updatePrompt();
+}
+
+function renderDiagram() {
+  const svg = document.getElementById('diagram');
+  const area = document.getElementById('canvas-area');
+  const W = area.clientWidth;
+  const H = area.clientHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  let html = '';
+
+  // Defs (arrowheads)
+  html += '<defs>';
+  Object.entries(CONN_TYPES).forEach(([key, cfg]) => {
+    html += `<marker id="arrow-${key}" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="${cfg.color}"/>
+    </marker>`;
+  });
+  html += '</defs>';
+
+  // Transform group
+  const ox = (W - 1100) / 2 + state.panX;
+  const oy = 10 + state.panY;
+  html += `<g transform="translate(${ox},${oy}) scale(${state.zoom})">`;
+
+  // Layer bands
+  const bands = [
+    { y: 25, h: 90, label: 'Client / UI', layer: 'client' },
+    { y: 145, h: 90, label: 'Server Actions', layer: 'actions' },
+    { y: 265, h: 165, label: 'Game Engine', layer: 'engine' },
+    { y: 455, h: 165, label: 'Match Orchestration', layer: 'match' },
+    { y: 595, h: 90, label: 'Realtime / Infra', layer: 'realtime' },
+    { y: 715, h: 90, label: 'Data (Supabase)', layer: 'data' },
+  ];
+
+  bands.forEach(b => {
+    if (!state.layers[b.layer]) return;
+    const layerCfg = LAYERS[b.layer];
+    html += `<rect x="-10" y="${b.y}" width="1120" height="${b.h}" rx="8" fill="${layerCfg.fill}" opacity="0.2"/>`;
+    html += `<text x="1100" y="${b.y + 16}" text-anchor="end" fill="${layerCfg.color}" font-size="10" opacity="0.5" font-weight="600">${b.label.toUpperCase()}</text>`;
+  });
+
+  // Connections
+  const visibleNodeIds = new Set(nodes.filter(n => state.layers[n.layer]).map(n => n.id));
+
+  connections.forEach(c => {
+    if (!state.conns[c.type]) return;
+    if (!visibleNodeIds.has(c.from) || !visibleNodeIds.has(c.to)) return;
+
+    const fromNode = nodes.find(n => n.id === c.from);
+    const toNode = nodes.find(n => n.id === c.to);
+    if (!fromNode || !toNode) return;
+
+    const cfg = CONN_TYPES[c.type];
+    const x1 = fromNode.x + fromNode.w / 2;
+    const y1 = fromNode.y + fromNode.h / 2;
+    const x2 = toNode.x + toNode.w / 2;
+    const y2 = toNode.y + toNode.h / 2;
+
+    // Clamp to node edges
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const sx = x1 + Math.cos(angle) * (fromNode.w / 2);
+    const sy = y1 + Math.sin(angle) * (fromNode.h / 2);
+    const ex = x2 - Math.cos(angle) * (toNode.w / 2 + 8);
+    const ey = y2 - Math.sin(angle) * (toNode.h / 2 + 8);
+
+    // Curved path
+    const mx = (sx + ex) / 2;
+    const my = (sy + ey) / 2;
+    const dx = ex - sx;
+    const dy = ey - sy;
+    const cx = mx - dy * 0.1;
+    const cy = my + dx * 0.1;
+
+    const opacity = state.highlightedNodes && !(state.highlightedNodes.has(c.from) && state.highlightedNodes.has(c.to)) ? 0.1 : 0.6;
+
+    html += `<path d="M${sx},${sy} Q${cx},${cy} ${ex},${ey}" fill="none" stroke="${cfg.color}" stroke-width="1.5" opacity="${opacity}" ${cfg.dash ? `stroke-dasharray="${cfg.dash}"` : ''} marker-end="url(#arrow-${c.type})"/>`;
+
+    if (c.label && opacity > 0.3) {
+      const lx = (sx + cx + ex) / 3;
+      const ly = (sy + cy + ey) / 3 - 5;
+      html += `<text x="${lx}" y="${ly}" fill="${cfg.color}" font-size="8" opacity="0.7" text-anchor="middle">${c.label}</text>`;
+    }
+  });
+
+  // Nodes
+  nodes.forEach(n => {
+    if (!state.layers[n.layer]) return;
+    const cfg = LAYERS[n.layer];
+    const hasComment = state.comments.some(c => c.target === n.id);
+    const isSelected = state.selectedNode === n.id;
+    const dimmed = state.highlightedNodes && !state.highlightedNodes.has(n.id);
+    const opacity = dimmed ? 0.15 : 1;
+
+    const strokeColor = hasComment ? '#fbbf24' : (isSelected ? '#fff' : cfg.stroke);
+    const strokeWidth = isSelected ? 2.5 : (hasComment ? 2 : 1.5);
+
+    html += `<g opacity="${opacity}" style="cursor:pointer" onclick="selectNode('${n.id}')">`;
+    html += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8" fill="${cfg.fill}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+
+    // Status indicator
+    const statusColors = { complete: '#10b981', partial: '#f59e0b', stub: '#ef4444' };
+    const sc = statusColors[n.status] || '#4b5563';
+    html += `<circle cx="${n.x + n.w - 10}" cy="${n.y + 10}" r="4" fill="${sc}"/>`;
+
+    // Label
+    html += `<text x="${n.x + n.w / 2}" y="${n.y + 22}" text-anchor="middle" fill="#f1f5f9" font-size="11" font-weight="600">${n.label}</text>`;
+    // Subtitle (truncated)
+    const shortSub = n.subtitle.length > 28 ? '...' + n.subtitle.slice(-25) : n.subtitle;
+    html += `<text x="${n.x + n.w / 2}" y="${n.y + 36}" text-anchor="middle" fill="#64748b" font-size="8" font-family="'SF Mono','Fira Code',monospace">${shortSub}</text>`;
+
+    // Comment indicator
+    if (hasComment) {
+      html += `<circle cx="${n.x + 10}" cy="${n.y + 10}" r="6" fill="#fbbf24"/>`;
+      html += `<text x="${n.x + 10}" y="${n.y + 13}" text-anchor="middle" fill="#000" font-size="8" font-weight="700">${state.comments.filter(c=>c.target===n.id).length}</text>`;
+    }
+
+    html += '</g>';
+  });
+
+  html += '</g>';
+  svg.innerHTML = html;
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  // Don't show legend if detail panel is open
+  if (state.selectedNode) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  let html = '<div class="legend-title">Status</div>';
+  html += '<div class="legend-item"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0"></span> Complete</div>';
+  html += '<div class="legend-item"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span> Partial</div>';
+  html += '<div class="legend-item"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0"></span> Stub / Not Impl</div>';
+  el.innerHTML = html;
+}
+
+// ── Interactions ─────────────────────────────────────────────────────────
+
+function selectNode(id) {
+  state.selectedNode = id;
+  const node = nodes.find(n => n.id === id);
+  if (!node) return;
+
+  document.getElementById('detail-title').textContent = node.label;
+  document.getElementById('detail-file').textContent = node.subtitle;
+  document.getElementById('detail-desc').textContent = node.desc;
+
+  // Show connections
+  const deps = connections
+    .filter(c => c.from === id || c.to === id)
+    .map(c => {
+      const otherId = c.from === id ? c.to : c.from;
+      const other = nodes.find(n => n.id === otherId);
+      const dir = c.from === id ? 'uses' : 'used by';
+      return `<span onclick="selectNode('${otherId}')">${other?.label || otherId}</span> (${dir}${c.label ? ': ' + c.label : ''})`;
+    });
+  document.getElementById('detail-deps').innerHTML = deps.length ? 'Connections: ' + deps.join(' · ') : '';
+
+  document.getElementById('detail-panel').classList.add('visible');
+  renderAll();
+}
+
+function closeDetail() {
+  state.selectedNode = null;
+  document.getElementById('detail-panel').classList.remove('visible');
+  renderAll();
+}
+
+function openCommentModal() {
+  if (!state.selectedNode) return;
+  const node = nodes.find(n => n.id === state.selectedNode);
+  document.getElementById('modal-title').textContent = node.label;
+  document.getElementById('modal-file').textContent = node.subtitle;
+  document.getElementById('modal-textarea').value = '';
+  document.getElementById('comment-modal').classList.add('visible');
+  setTimeout(() => document.getElementById('modal-textarea').focus(), 50);
+}
+
+function closeCommentModal() {
+  document.getElementById('comment-modal').classList.remove('visible');
+}
+
+function saveComment() {
+  const text = document.getElementById('modal-textarea').value.trim();
+  if (!text) return;
+  const node = nodes.find(n => n.id === state.selectedNode);
+  state.comments.push({
+    id: Date.now(),
+    target: node.id,
+    targetLabel: node.label,
+    targetFile: node.subtitle,
+    text,
+  });
+  closeCommentModal();
+  renderComments();
+  renderAll();
+}
+
+function deleteComment(idx) {
+  state.comments.splice(idx, 1);
+  renderComments();
+  renderAll();
+}
+
+function applyPreset(name) {
+  const preset = PRESETS[name];
+  state.activePreset = name;
+  Object.keys(LAYERS).forEach(k => state.layers[k] = preset.layers.includes(k));
+  Object.keys(CONN_TYPES).forEach(k => state.conns[k] = preset.conns.includes(k));
+  state.highlightedNodes = preset.highlight ? new Set(preset.highlight) : null;
+  renderPresets();
+  renderLayerToggles();
+  renderConnToggles();
+  renderAll();
+}
+
+// Zoom
+function zoomIn()  { state.zoom = Math.min(state.zoom * 1.2, 3); renderAll(); }
+function zoomOut() { state.zoom = Math.max(state.zoom / 1.2, 0.4); renderAll(); }
+function zoomReset() { state.zoom = 1; state.panX = 0; state.panY = 0; renderAll(); }
+
+// Pan with drag
+let isPanning = false, panStartX = 0, panStartY = 0;
+document.getElementById('canvas-area').addEventListener('mousedown', e => {
+  if (e.target.closest('.zoom-controls') || e.target.closest('.detail-panel') || e.target.closest('.legend')) return;
+  isPanning = true; panStartX = e.clientX - state.panX; panStartY = e.clientY - state.panY;
+});
+document.addEventListener('mousemove', e => {
+  if (!isPanning) return;
+  state.panX = e.clientX - panStartX;
+  state.panY = e.clientY - panStartY;
+  renderDiagram();
+});
+document.addEventListener('mouseup', () => isPanning = false);
+
+// Wheel zoom
+document.getElementById('canvas-area').addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.95 : 1.05;
+  state.zoom = Math.max(0.4, Math.min(3, state.zoom * delta));
+  renderAll();
+}, { passive: false });
+
+// ── Prompt ───────────────────────────────────────────────────────────────
+
+function updatePrompt() {
+  const el = document.getElementById('prompt-output');
+
+  if (state.comments.length === 0) {
+    const visLayers = Object.entries(state.layers).filter(([,v]) => v).map(([k]) => LAYERS[k].label);
+    el.textContent = `Viewing ${state.activePreset || 'custom'} (${visLayers.join(', ')}). Click a component to see details and add comments. Comments become an actionable prompt you can copy.`;
+    return;
+  }
+
+  let prompt = `This is the Wottle codebase architecture (competitive 2-player Icelandic word duel, Next.js + Supabase).\n\nFeedback on specific components:\n\n`;
+
+  state.comments.forEach(c => {
+    prompt += `**${c.targetLabel}** (${c.targetFile}):\n${c.text}\n\n`;
+  });
+
+  el.textContent = prompt.trim();
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-output').textContent;
+  navigator.clipboard.writeText(text);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 1500);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+
+renderPresets();
+renderLayerToggles();
+renderConnToggles();
+renderComments();
+renderAll();
+
+// Handle resize
+window.addEventListener('resize', renderAll);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('comment-modal').classList.contains('visible')) closeCommentModal();
+    else closeDetail();
+  }
+});
+</script>
+</body>
+</html>

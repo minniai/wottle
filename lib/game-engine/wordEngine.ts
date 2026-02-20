@@ -25,18 +25,20 @@ import { freezeTiles } from "./frozenTiles";
  *   lengthBonus = (length - 2) * 5
  *   total = base + lengthBonus (0 if duplicate)
  *
- * Duplicate detection is deferred — this function scores all
- * words as non-duplicate. The caller (processRoundScoring or
- * the integration layer) handles duplicate checking against
- * the word_score_entries table.
+ * When priorScoredWordsByPlayer is provided, words already scored
+ * by that player in a prior round are marked isDuplicate and get 0 points.
  */
 function scoreAttributedWords(
   words: AttributedWord[],
+  priorScoredWordsByPlayer?: Record<string, Set<string>>,
 ): WordScoreBreakdown[] {
   return words.map((word) => {
     const lettersPoints = calculateLetterPoints(word.text);
     const lengthBonus = calculateLengthBonus(word.length);
-    const totalPoints = lettersPoints + lengthBonus;
+    const normalizedWord = word.text.toLowerCase();
+    const playerSet = priorScoredWordsByPlayer?.[word.playerId];
+    const isDuplicate = playerSet?.has(normalizedWord) ?? false;
+    const totalPoints = isDuplicate ? 0 : lettersPoints + lengthBonus;
 
     return {
       word: word.text,
@@ -44,7 +46,7 @@ function scoreAttributedWords(
       lettersPoints,
       lengthBonus,
       totalPoints,
-      isDuplicate: false,
+      isDuplicate,
       tiles: word.tiles,
       playerId: word.playerId,
     };
@@ -87,6 +89,9 @@ function computeDeltas(
  *
  * @performance MUST complete in <50ms total (FR-021)
  */
+/** Per-player sets of words already scored in prior rounds (for duplicate detection). */
+export type PriorScoredWordsByPlayer = Record<string, Set<string>>;
+
 export async function processRoundScoring(params: {
   matchId: string;
   roundId: string;
@@ -96,6 +101,8 @@ export async function processRoundScoring(params: {
   frozenTiles: FrozenTileMap;
   playerAId: string;
   playerBId: string;
+  /** Words each player has already scored in prior rounds (match-wide). Used to mark duplicates. */
+  priorScoredWordsByPlayer?: PriorScoredWordsByPlayer;
 }): Promise<RoundScoreResult> {
   const start = performance.now();
 
@@ -111,7 +118,10 @@ export async function processRoundScoring(params: {
     playerBId: params.playerBId,
   });
 
-  const breakdowns = scoreAttributedWords(newWords);
+  const breakdowns = scoreAttributedWords(
+    newWords,
+    params.priorScoredWordsByPlayer,
+  );
 
   const playerAWords = breakdowns.filter(
     (b) => b.playerId === params.playerAId,
