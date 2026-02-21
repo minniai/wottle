@@ -1,0 +1,171 @@
+{
+  "aggregate": {
+    "counters": {
+      "vusers.created_by_name.move submission request": 180,
+      "vusers.created": 180,
+      "http.requests": 180,
+      "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 180,
+      "errors.ERR_GOT_REQUEST_ERROR": 180,
+      "vusers.failed": 180
+    },
+    "rates": {
+      "http.request_rate": 3
+    },
+    "firstCounterAt": 1771631716183,
+    "lastCounterAt": 1771631775850,
+    "firstMetricAt": 1771631716183,
+    "lastMetricAt": 1771631775850,
+    "period": 1771631770000,
+    "summaries": {},
+    "histograms": {}
+  },
+  "intermediate": [
+    {
+      "counters": {
+        "vusers.created_by_name.move submission request": 12,
+        "vusers.created": 12,
+        "http.requests": 12,
+        "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 12,
+        "errors.ERR_GOT_REQUEST_ERROR": 12,
+        "vusers.failed": 12
+      },
+      "rates": {
+        "http.request_rate": 3
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1771631716183,
+      "lastCounterAt": 1771631719850,
+      "firstMetricAt": 1771631716183,
+      "lastMetricAt": 1771631719850,
+      "period": "1771631710000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.move submission request": 30,
+        "vusers.created": 30,
+        "http.requests": 30,
+        "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 30,
+        "errors.ERR_GOT_REQUEST_ERROR": 30,
+        "vusers.failed": 30
+      },
+      "rates": {
+        "http.request_rate": 3
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1771631720182,
+      "lastCounterAt": 1771631729850,
+      "firstMetricAt": 1771631720182,
+      "lastMetricAt": 1771631729850,
+      "period": "1771631720000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.move submission request": 30,
+        "vusers.created": 30,
+        "http.requests": 30,
+        "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 30,
+        "errors.ERR_GOT_REQUEST_ERROR": 30,
+        "vusers.failed": 30
+      },
+      "rates": {
+        "http.request_rate": 3
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1771631730182,
+      "lastCounterAt": 1771631739850,
+      "firstMetricAt": 1771631730182,
+      "lastMetricAt": 1771631739850,
+      "period": "1771631730000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.move submission request": 30,
+        "vusers.created": 30,
+        "http.requests": 30,
+        "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 30,
+        "errors.ERR_GOT_REQUEST_ERROR": 30,
+        "vusers.failed": 30
+      },
+      "rates": {
+        "http.request_rate": 3
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1771631740182,
+      "lastCounterAt": 1771631749850,
+      "firstMetricAt": 1771631740182,
+      "lastMetricAt": 1771631749850,
+      "period": "1771631740000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.move submission request": 30,
+        "vusers.created": 30,
+        "http.requests": 30,
+        "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 30,
+        "errors.ERR_GOT_REQUEST_ERROR": 30,
+        "vusers.failed": 30
+      },
+      "rates": {
+        "http.request_rate": 3
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1771631750183,
+      "lastCounterAt": 1771631759851,
+      "firstMetricAt": 1771631750183,
+      "lastMetricAt": 1771631759851,
+      "period": "1771631750000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.move submission request": 30,
+        "vusers.created": 30,
+        "http.requests": 30,
+        "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 30,
+        "errors.ERR_GOT_REQUEST_ERROR": 30,
+        "vusers.failed": 30
+      },
+      "rates": {
+        "http.request_rate": 3
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1771631760183,
+      "lastCounterAt": 1771631769850,
+      "firstMetricAt": 1771631760183,
+      "lastMetricAt": 1771631769850,
+      "period": "1771631760000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.move submission request": 18,
+        "vusers.created": 18,
+        "http.requests": 18,
+        "plugins.metrics-by-endpoint./api/match/test-match/move.errors.ERR_GOT_REQUEST_ERROR": 18,
+        "errors.ERR_GOT_REQUEST_ERROR": 18,
+        "vusers.failed": 18
+      },
+      "rates": {
+        "http.request_rate": 3
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1771631770183,
+      "lastCounterAt": 1771631775850,
+      "firstMetricAt": 1771631770183,
+      "lastMetricAt": 1771631775850,
+      "period": "1771631770000",
+      "summaries": {},
+      "histograms": {}
+    }
+  ]
+}
