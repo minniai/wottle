@@ -4,6 +4,7 @@ import type {
   WordScoreBreakdown,
   RoundScoreResult,
 } from "@/lib/types/match";
+import { logPlaytestInfo } from "@/lib/observability/log";
 import { loadDictionary } from "./dictionary";
 import {
   detectNewWords,
@@ -95,6 +96,8 @@ export type PriorScoredWordsByPlayer = Record<string, Set<string>>;
 export async function processRoundScoring(params: {
   matchId: string;
   roundId: string;
+  /** Round number (1-based) for observability logging. */
+  roundNumber?: number;
   boardBefore: BoardGrid;
   boardAfter: BoardGrid;
   acceptedMoves: AcceptedMove[];
@@ -105,8 +108,12 @@ export async function processRoundScoring(params: {
   priorScoredWordsByPlayer?: PriorScoredWordsByPlayer;
 }): Promise<RoundScoreResult> {
   const start = performance.now();
+  const startMark = "word-engine:start";
+  const endMark = "word-engine:end";
+  performance.mark(startMark);
 
   const dictionary = await loadDictionary();
+  performance.mark("word-engine:dict-loaded");
 
   const newWords = detectNewWords({
     boardBefore: params.boardBefore,
@@ -117,6 +124,7 @@ export async function processRoundScoring(params: {
     playerAId: params.playerAId,
     playerBId: params.playerBId,
   });
+  performance.mark("word-engine:delta-done");
 
   const breakdowns = scoreAttributedWords(
     newWords,
@@ -129,6 +137,7 @@ export async function processRoundScoring(params: {
   const playerBWords = breakdowns.filter(
     (b) => b.playerId === params.playerBId,
   );
+  performance.mark("word-engine:scored");
 
   const playerANewCount = playerAWords.filter(
     (w) => !w.isDuplicate,
@@ -148,6 +157,7 @@ export async function processRoundScoring(params: {
     params.playerAId,
   );
 
+  performance.mark("word-engine:freeze-start");
   // Freeze tiles from scored words
   const freezeResult = freezeTiles({
     scoredWords: breakdowns,
@@ -155,8 +165,31 @@ export async function processRoundScoring(params: {
     playerAId: params.playerAId,
     playerBId: params.playerBId,
   });
+  performance.mark("word-engine:freeze-done");
+  performance.mark(endMark);
 
   const durationMs = performance.now() - start;
+  performance.measure("word-engine:total", startMark, endMark);
+
+  const wordsFound = newWords.length;
+  const wordsScored = breakdowns.filter((b) => !b.isDuplicate).length;
+  const duplicatesDetected = breakdowns.filter((b) => b.isDuplicate).length;
+  const tilesFrozen = Object.keys(freezeResult.updatedFrozenTiles).length;
+
+  logPlaytestInfo("word-engine.scoring", {
+    matchId: params.matchId,
+    roundNumber: params.roundNumber,
+    metadata: {
+      roundId: params.roundId,
+      durationMs: Math.round(durationMs),
+      wordsFound,
+      wordsScored,
+      duplicatesDetected,
+      tilesFrozen,
+      comboBonusA: comboBonus.playerA,
+      comboBonusB: comboBonus.playerB,
+    },
+  });
 
   return {
     playerAWords,

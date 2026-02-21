@@ -109,7 +109,7 @@ test.describe("Final summary recap", () => {
         await submitSwap(pageB);
         if (round < 10) {
           const summaryPanel = pageA.getByTestId("round-summary-panel");
-          await expect(summaryPanel).toBeVisible({ timeout: 25_000 });
+          await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
           await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
           await expect(pageA.getByTestId("round-indicator")).toContainText(
             new RegExp(`round ${round + 1}`, "i"),

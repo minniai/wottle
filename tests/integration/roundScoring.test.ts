@@ -83,6 +83,7 @@ describe("round scoring duplicate tracking (US3)", () => {
     const result = await computeWordScoresForRound(
       MATCH_ID,
       ROUND_2_ID,
+      2,
       boardBefore,
       boardAfter,
       [{ player_id: PLAYER_A, from_x: 0, from_y: 0, to_x: 1, to_y: 0 }],

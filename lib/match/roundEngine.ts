@@ -108,6 +108,7 @@ export async function advanceRound(matchId: string) {
         await computeWordScoresForRound(
             matchId,
             round.id,
+            currentRound,
             currentBoard,
             boardAfter,
             acceptedMoves,
