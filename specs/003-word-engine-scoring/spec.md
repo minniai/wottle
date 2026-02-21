@@ -111,6 +111,15 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - Q: FR-006 says "before and after the swap" but each round has two player swaps. What is the baseline for delta detection? → A: Compare the final board (after both swaps applied) against the pre-round board (before either swap). Both players' words measured against the same starting state.
 - Q: When the 24-unfrozen-tile minimum prevents full word freezing (FR-016), which tiles are prioritized? → A: Freeze tiles left-to-right in reading order (row first, then column). Deterministic and easy for players to reason about.
 - Q: When a player has no valid (non-frozen) swaps available, does the player pass or does the match end early? → A: Player auto-passes (scores 0 for that round), match continues normally through all 10 rounds.
+- Q: When only one player submits a move before timeout, does the word engine still run? → A: Yes. The non-submitting player is treated as having made a void move (a tile swapped with itself), leaving the board unchanged for their turn. The engine runs on the resulting single-swap board state and attributes any new words solely to the player who moved.
+- Q: When a player's swap is rejected during conflict resolution (e.g. both players target the same tile and only one wins), does delta detection still run? → A: Yes. Delta detection runs on whatever accepted moves were applied. The rejected player's move is treated the same as a void — the board reflects only the accepted swap(s).
+- Q: If a player disconnects mid-round, does round resolution (including scoring) still execute? → A: Yes. Disconnection does not halt the round. Resolution and scoring run to completion for all submitted moves. FR-006b applies — if the disconnected player had not yet submitted, their move is treated as a void.
+- Q: FR-017 references "the owning player's color" — where are player colors defined? → A: Colors are a player-level attribute assigned elsewhere in the system. "Owning player" is the player whose scored word caused a tile to freeze. The frozen tile inherits that player's assigned color. This spec does not define the colors themselves; it only requires that the overlay uses them.
+- Q: What happens if the board has zero valid words before any swaps? → A: The game proceeds normally. FR-006 delta detection finds all words present after swaps since the pre-round baseline is empty. Any words formed by player swaps score as normal.
+- Q: What happens if a previously scored word is destroyed by a swap? → A: The word un-scores — its points are removed from the player's cumulative total — and all tiles that belonged exclusively to that word become unfrozen and available for swapping again. At all times, every frozen (colored) tile on the board must be part of at least one valid, readable word. In practice this situation cannot arise under the current rules because all tiles of a scored word are frozen and therefore cannot be swapped; this requirement exists as a formal invariant guarantee.
+- Q: Is the combo bonus persisted or computed on-the-fly for display? → A: Persisted. The combo bonus for each player is stored as part of the round record so that scoring history is fully reproducible from stored data without recomputation.
+- Q: Should the system validate the dictionary word count at load time (e.g. reject a truncated file)? → A: No minimum word count threshold. The dictionary loads completely or not at all. Any load failure — including a truncated or partially read file — is a critical error per FR-001a and the game does not continue.
+- Q: What characters can appear on board tiles — is there a guarantee that only valid Icelandic letters appear? → A: Yes. The tile alphabet is the Icelandic alphabet. All board tiles are guaranteed to contain only valid Icelandic characters. This is a property of the game language (Icelandic for this MVP), not something the word engine needs to validate at runtime.
 - Q: The assumption about own-frozen-tile word formation impacts the scanner significantly. Should it be a formal FR? → A: Yes, promote to formal FR. Scanner MUST allow words through own frozen tiles and MUST exclude opponent's frozen tiles.
 
 ## Requirements _(mandatory)_
@@ -123,12 +132,16 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - **FR-002**: System MUST validate words using Unicode NFC normalization, treating Icelandic characters (ð, þ, æ, á, é, í, ó, ú, ý, ö) as distinct letters separate from their ASCII counterparts.
 - **FR-003**: System MUST recognize valid words as contiguous sequences of 3 or more letters in a single straight-line direction on the board.
 
+- **FR-001a**: System MUST handle dictionary load failures (file missing, file corrupt, or empty file) gracefully by preventing match creation and displaying a clear message to the user that the game cannot be played. This applies to all critical initialization errors that would make the game non-functional.
+
 **Board Scanning**
 
 - **FR-004**: System MUST scan the board in all 8 directions (horizontal L→R and R→L, vertical T→D and D→T, and all 4 diagonals) to find valid words.
 - **FR-005**: System MUST NOT recognize words that wrap around board edges.
 - **FR-006**: System MUST detect only **newly formed words** by comparing the final board state (after both players' swaps are applied) against the pre-round board state (before either swap). Pre-existing words that were already present before the round do not score.
 - **FR-006a**: When scanning for a player's words, the system MUST include that player's own frozen tiles as valid letters in word candidates, but MUST exclude tiles frozen by the opponent. A word candidate containing any opponent-frozen tile is not valid for that player.
+- **FR-006b**: The word engine MUST run against whatever accepted moves were applied in the round, regardless of how many. When a player's move is absent (timeout) or rejected (conflict resolution), it is treated as a void — the board is unchanged for that player's turn. Only players whose moves were accepted can score words that round.
+- **FR-006c**: Player disconnection MUST NOT halt round resolution or scoring. If a disconnected player had already submitted their move, it is included normally. If they had not, FR-006b applies (void move).
 
 **Scoring**
 
@@ -137,15 +150,16 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - **FR-009**: System MUST apply a multi-word combo bonus when a player scores multiple new words in a single round: 1 word = +0, 2 words = +2, 3 words = +5, 4+ words = +7 + (n-4).
 - **FR-010**: System MUST track which words each player has scored across the entire match and award zero points for any word a player has already scored in a previous round.
 - **FR-011**: System MUST persist each scored word with its letter points, bonus points, total points, tile coordinates, and player attribution.
-- **FR-012**: System MUST compute and store per-round score deltas and cumulative totals for both players after each round resolves.
+- **FR-012**: System MUST compute and store per-round score deltas, combo bonuses, and cumulative totals for both players after each round resolves. The combo bonus for each player MUST be persisted as part of the round record so that scoring history is fully reproducible from stored data.
 
 **Frozen Tiles**
 
 - **FR-013**: System MUST freeze all tiles belonging to newly scored words immediately after round resolution. Frozen tiles cannot be swapped by either player.
+- **FR-013a**: System MUST maintain the invariant that every frozen (colored) tile on the board is part of at least one valid, readable word at all times. If a scored word is ever destroyed, the system MUST un-score it (remove its points from the player's cumulative total) and unfreeze any tiles that belonged exclusively to that word, making them available for swapping again. Tiles shared with another still-valid scored word retain their frozen state.
 - **FR-014**: System MUST reject any swap attempt that involves a frozen tile, with a clear error message indicating the tile is frozen.
 - **FR-015**: System MUST track frozen tile ownership (which player's word caused the freeze) and support dual ownership when both players' words share a tile.
 - **FR-016**: System MUST enforce a minimum of 24 unfrozen tiles on the board at all times. If freezing all tiles of a scored word would violate this minimum, the system freezes tiles in reading order (row first, then column) up to the limit and notifies both players.
-- **FR-017**: System MUST display frozen tiles with a colored overlay at 40% opacity matching the owning player's color. Shared tiles MUST display a dual-color pattern.
+- **FR-017**: System MUST display frozen tiles with a colored overlay at 40% opacity derived from the owning player's assigned color — the player whose scored word caused the tile to freeze. Shared tiles (owned by both players) MUST display a dual-color pattern combining both players' colors. Player color assignment is an external dependency; this requirement only governs how those colors are applied to frozen tiles.
 
 **Integration**
 
@@ -187,3 +201,4 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - A migration will be needed to add frozen tile tracking to the rounds or matches table (frozen tile map per round).
 - The existing round engine, realtime broadcast, and round summary UI components will be extended, not replaced.
 - "Player's own frozen tiles may be part of a new word" (PRD 1.2) means: a player CAN form a new word that passes through their own frozen tiles, but CANNOT form words using the opponent's frozen tiles. (Formalized as FR-006a.)
+- All board tiles contain valid Icelandic letters. The tile alphabet is the Icelandic alphabet for this MVP. The word engine does not need to validate tile characters at runtime.
