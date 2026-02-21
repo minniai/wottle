@@ -110,9 +110,9 @@ test.describe("Round flow", () => {
         await submitSwap(pageB);
 
         if (round < 10) {
-          // Wait for round summary panel (Realtime or polling may be slow in CI/Docker)
+          // Wait for round summary panel (word engine + Realtime/polling can be slow in act/Docker)
           const summaryPanel = pageA.getByTestId("round-summary-panel");
-          await expect(summaryPanel).toBeVisible({ timeout: 25_000 });
+          await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
           const continueBtn = pageA.getByTestId("round-summary-continue");
           await expect(continueBtn).toBeVisible({ timeout: 5_000 });
           // The panel is position:fixed at the bottom, which Playwright

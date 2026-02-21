@@ -107,9 +107,9 @@ test.describe("Round summary panel", () => {
       await submitSwap(pageA);
       await submitSwap(pageB);
 
-      // Wait for round summary panel to appear
+      // Wait for round summary panel (word engine can add ~2s cold load in act/Docker)
       const summaryPanel = pageA.getByTestId("round-summary-panel");
-      await expect(summaryPanel).toBeVisible({ timeout: 15_000 });
+      await expect(summaryPanel).toBeVisible({ timeout: 35_000 });
 
       // Verify summary contains expected elements
       await expect(pageA.getByTestId("round-summary-player-a-delta")).toBeVisible();
