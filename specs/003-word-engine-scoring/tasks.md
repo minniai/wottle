@@ -151,11 +151,11 @@
 
 **Purpose**: Observability, performance validation, cleanup
 
-- [ ] T038 [P] Add performance.mark() instrumentation to word engine pipeline in lib/game-engine/wordEngine.ts — mark dictionary load, each scan, delta detection, scoring, freeze, total duration; log structured JSON with matchId, roundNumber, durationMs
-- [ ] T039 [P] Add structured logging for scoring events in lib/game-engine/wordEngine.ts — log wordsFound, wordsScored, duplicatesDetected, tilesFrozen, comboBonus per round with matchId context
-- [ ] T040 [P] Run full test suite and fix any regressions — verify all existing 28 test files pass alongside new word engine tests
-- [ ] T041 Validate all performance SLAs end-to-end — run dictionaryLoad.bench.ts (&lt;1000ms for 2.76M wordlist), boardScan.bench.ts (&lt;50ms), and perf:round-resolution (&lt;200ms RTT) to confirm SC-002 and SC-007
-- [ ] T042 [P] Run quickstart.md validation — execute pnpm quickstart with new migrations, verify dev server starts, confirm supabase:verify passes with new schema
+- [x] T038 [P] Add performance.mark() instrumentation to word engine pipeline in lib/game-engine/wordEngine.ts — mark dictionary load, each scan, delta detection, scoring, freeze, total duration; log structured JSON with matchId, roundNumber, durationMs
+- [x] T039 [P] Add structured logging for scoring events in lib/game-engine/wordEngine.ts — log wordsFound, wordsScored, duplicatesDetected, tilesFrozen, comboBonus per round with matchId context
+- [x] T040 [P] Run full test suite and fix any regressions — verify all existing 28 test files pass alongside new word engine tests
+- [x] T041 Validate all performance SLAs end-to-end — run dictionaryLoad.bench.ts (&lt;1000ms for 2.76M wordlist), boardScan.bench.ts (&lt;50ms), and perf:round-resolution (&lt;200ms RTT) to confirm SC-002 and SC-007
+- [x] T042 [P] Run quickstart.md validation — execute pnpm quickstart with new migrations, verify dev server starts, confirm supabase:verify passes with new schema
 
 ---
 

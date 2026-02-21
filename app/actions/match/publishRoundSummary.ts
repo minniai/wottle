@@ -139,6 +139,7 @@ async function getPriorScoredWordsByPlayer(
 export async function computeWordScoresForRound(
     matchId: string,
     roundId: string,
+    roundNumber: number,
     boardBefore: BoardGrid,
     boardAfter: BoardGrid,
     acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number }>,
@@ -158,6 +159,7 @@ export async function computeWordScoresForRound(
     const result = await processRoundScoring({
         matchId,
         roundId,
+        roundNumber,
         boardBefore,
         boardAfter,
         acceptedMoves: acceptedMoves.map((m) => ({
