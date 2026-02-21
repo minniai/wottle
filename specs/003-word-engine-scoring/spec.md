@@ -5,7 +5,7 @@
 **Status**: Draft
 **Input**: Implement the core word-finding engine, PRD-compliant scoring formula, unique word tracking, and frozen tile mechanics that transform Wottle from a tile-swapping prototype into a playable competitive word game.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Words Are Found and Scored After a Swap (Priority: P1)
 
@@ -17,10 +17,10 @@ When both players submit their swaps for a round and the round resolves, the sys
 
 **Acceptance Scenarios**:
 
-1. **Given** a board where swapping tiles at (2,3) and (5,3) forms the word "HESTUR" horizontally, **When** the round resolves after both players submit, **Then** the round summary for that player lists "HESTUR" with correct letter values summed, a length bonus of (6-2)*5 = 20, and the player's cumulative score increases by the total.
+1. **Given** a board where swapping tiles at (2,3) and (5,3) forms the word "HESTUR" horizontally, **When** the round resolves after both players submit, **Then** the round summary for that player lists "HESTUR" with correct letter values summed, a length bonus of (6-2)\*5 = 20, and the player's cumulative score increases by the total.
 2. **Given** a swap that forms two new words simultaneously (one horizontal, one vertical), **When** the round resolves, **Then** both words appear in the round summary with individual breakdowns plus a multi-word combo bonus of +2.
 3. **Given** a swap that does not create any new valid words, **When** the round resolves, **Then** the round summary shows zero new words and zero points for that player's turn.
-4. **Given** a swap that creates a 3-letter word "BÚR", **When** the round resolves, **Then** the word scores with letter points (B=4 + Ú=7 + R=1 = 12) plus length bonus (3-2)*5 = 5, totaling 17 points.
+4. **Given** a swap that creates a 3-letter word "BÚR", **When** the round resolves, **Then** the word scores with letter points (B=4 + Ú=7 + R=1 = 12) plus length bonus (3-2)\*5 = 5, totaling 17 points.
 
 ---
 
@@ -93,7 +93,7 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - What happens when a swap forms the same word in two different directions simultaneously (e.g., a palindrome)?
   - Both instances are detected but only one contributes to scoring per the unique-per-player rule. The second instance in the same round shows as already scored.
 - What happens when a swap creates a very long word (8+ letters)?
-  - Scored normally with the standard formula. Length bonus scales linearly: (length-2)*5.
+  - Scored normally with the standard formula. Length bonus scales linearly: (length-2)\*5.
 - What happens when a player's only available swap involves frozen tiles?
   - The swap is rejected. If no valid swaps exist (all adjacent unfrozen tiles exhausted), the player auto-passes that round with 0 points. The match continues normally through all 10 rounds.
 - What happens when both players form the same word at the same position in the same round?
@@ -113,7 +113,7 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - Q: When a player has no valid (non-frozen) swaps available, does the player pass or does the match end early? → A: Player auto-passes (scores 0 for that round), match continues normally through all 10 rounds.
 - Q: The assumption about own-frozen-tile word formation impacts the scanner significantly. Should it be a formal FR? → A: Yes, promote to formal FR. Scanner MUST allow words through own frozen tiles and MUST exclude opponent's frozen tiles.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -133,7 +133,7 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 **Scoring**
 
 - **FR-007**: System MUST calculate the base word score as the sum of individual letter point values for all letters in the word, using the Icelandic letter scoring table.
-- **FR-008**: System MUST apply a length bonus of (word_length - 2) * 5 points to every scored word.
+- **FR-008**: System MUST apply a length bonus of (word_length - 2) \* 5 points to every scored word.
 - **FR-009**: System MUST apply a multi-word combo bonus when a player scores multiple new words in a single round: 1 word = +0, 2 words = +2, 3 words = +5, 4+ words = +7 + (n-4).
 - **FR-010**: System MUST track which words each player has scored across the entire match and award zero points for any word a player has already scored in a previous round.
 - **FR-011**: System MUST persist each scored word with its letter points, bonus points, total points, tile coordinates, and player attribution.
@@ -167,13 +167,13 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - **FrozenTileMap**: A per-match record of which tiles are frozen and by which player(s). Updated after each round resolution. Used for swap validation and visual rendering.
 - **ScoreboardSnapshot**: A per-round materialized record of cumulative scores and deltas for both players. Used for fast retrieval of scoring history.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
 - **SC-001**: 100% of valid Icelandic words (3+ letters, contiguous, straight-line) on the board are detected by the scanner across all 8 directions, verified by automated tests with known board states.
 - **SC-002**: Word validation and scoring complete within 50ms server-side for a full 10x10 board scan, measured at p95 across 1,000 test rounds.
-- **SC-003**: Scoring formula matches the PRD exactly: letter values + (length-2)*5 length bonus + multi-word combo, verified by unit tests covering each bonus tier.
+- **SC-003**: Scoring formula matches the PRD exactly: letter values + (length-2)\*5 length bonus + multi-word combo, verified by unit tests covering each bonus tier.
 - **SC-004**: Duplicate words by the same player in the same match award zero points 100% of the time, verified by integration tests spanning multiple rounds.
 - **SC-005**: Frozen tiles are never swappable after being claimed, verified by attempting swaps on frozen tiles across 100 test scenarios with zero false accepts.
 - **SC-006**: Round summaries display complete word breakdowns (letters, bonuses, combos, deltas, totals) to both players, verified by E2E tests confirming identical data on both clients.
