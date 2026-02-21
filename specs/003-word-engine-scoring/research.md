@@ -21,13 +21,13 @@ Prefix pruning would reduce unnecessary lookups but isn't required given the sma
 
 ### Alternatives Considered
 
-| Option | Pros | Cons | Verdict |
-|--------|------|------|---------|
-| **Set\<string\>** | Simple, O(1) lookup, low implementation risk | No prefix pruning, ~300-400MB memory | **Selected** — meets SLAs with margin |
-| **Trie (Map children)** | Natural prefix pruning, elegant API | ~1-4GB memory in JS, complex build, slow load | Rejected — memory risk too high for 2.76M entries |
-| **Trie (array children)** | Fixed-size nodes, cache-friendly | 32-element arrays × millions of nodes → still >1GB | Rejected — same memory concern |
-| **DAWG (packed)** | Minimal memory (shares suffixes) | Complex to build, no off-the-shelf JS impl | Rejected — over-engineering for playtest |
-| **Pre-compiled binary Trie** | Fast load from binary, small memory | Custom binary format, two-step build process | Deferred — optimization path if Set too slow |
+| Option                       | Pros                                         | Cons                                               | Verdict                                           |
+| ---------------------------- | -------------------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
+| **Set\<string\>**            | Simple, O(1) lookup, low implementation risk | No prefix pruning, ~300-400MB memory               | **Selected** — meets SLAs with margin             |
+| **Trie (Map children)**      | Natural prefix pruning, elegant API          | ~1-4GB memory in JS, complex build, slow load      | Rejected — memory risk too high for 2.76M entries |
+| **Trie (array children)**    | Fixed-size nodes, cache-friendly             | 32-element arrays × millions of nodes → still >1GB | Rejected — same memory concern                    |
+| **DAWG (packed)**            | Minimal memory (shares suffixes)             | Complex to build, no off-the-shelf JS impl         | Rejected — over-engineering for playtest          |
+| **Pre-compiled binary Trie** | Fast load from binary, small memory          | Custom binary format, two-step build process       | Deferred — optimization path if Set too slow      |
 
 ### Performance Estimates
 
@@ -108,7 +108,7 @@ Using a composite key of `word_text + direction + start_coordinate` uniquely ide
 
 An optimization would scan only sequences that pass through the swapped tile positions. This reduces work but:
 
-- Misses words created by the *combination* of both players' swaps when tiles are non-adjacent
+- Misses words created by the _combination_ of both players' swaps when tiles are non-adjacent
 - Adds complexity to coordinate intersection logic
 - The full scan is already ~5ms, so optimization isn't needed
 
@@ -148,7 +148,7 @@ else bonus = (length - 5) * 2;
 
 ### PRD-Compliant Formula
 
-```
+```typescript
 base_score = sum(letter_values[char] for char in word)
 length_bonus = (word_length - 2) * 5
 combo_bonus = { 1: 0, 2: 2, 3: 5, 4+: 7 + (n - 4) }
@@ -158,20 +158,20 @@ round_score = sum(total_word_score for each new word) + combo_bonus
 
 ### Scoring Examples
 
-| Word | Letters | Letter Sum | Length Bonus | Word Total |
-|------|---------|-----------|--------------|------------|
-| BÚR (3) | B=4, Ú=7, R=1 | 12 | (3-2)×5 = 5 | 17 |
-| LAND (4) | L=1, A=1, N=1, D=3 | 6 | (4-2)×5 = 10 | 16 |
-| HESTUR (6) | H=3, E=2, S=1, T=1, U=1, R=1 | 9 | (6-2)×5 = 20 | 29 |
+| Word       | Letters                      | Letter Sum | Length Bonus | Word Total |
+| ---------- | ---------------------------- | ---------- | ------------ | ---------- |
+| BÚR (3)    | B=4, Ú=7, R=1                | 12         | (3-2)×5 = 5  | 17         |
+| LAND (4)   | L=1, A=1, N=1, D=3           | 6          | (4-2)×5 = 10 | 16         |
+| HESTUR (6) | H=3, E=2, S=1, T=1, U=1, R=1 | 9          | (6-2)×5 = 20 | 29         |
 
-| Combo | Words | Bonus |
-|-------|-------|-------|
-| 1 word | — | +0 |
-| 2 words | — | +2 |
-| 3 words | — | +5 |
-| 4 words | — | +7 |
-| 5 words | — | +8 |
-| 6 words | — | +9 |
+| Combo   | Words | Bonus |
+| ------- | ----- | ----- |
+| 1 word  | —     | +0    |
+| 2 words | —     | +2    |
+| 3 words | —     | +5    |
+| 4 words | —     | +7    |
+| 5 words | —     | +8    |
+| 6 words | —     | +9    |
 
 ### Duplicate Handling
 
@@ -245,11 +245,11 @@ let cachedDictionary: Set<string> | null = null;
 
 export async function loadDictionary(): Promise<Set<string>> {
   if (cachedDictionary) return cachedDictionary;
-  
+
   const words = new Set<string>();
   // Stream file, NFC-normalize, lowercase, add to Set
   // Log timing via performance.mark()
-  
+
   cachedDictionary = words;
   return words;
 }
@@ -257,13 +257,13 @@ export async function loadDictionary(): Promise<Set<string>> {
 
 ### Cold Start Budget
 
-| Operation | Estimated Time | Budget |
-|-----------|---------------|--------|
-| File open + stream setup | 1-2ms | — |
-| Read 2.76M lines | 50-80ms | — |
-| NFC normalize + lowercase | 30-50ms | — |
-| Set.add × 2.76M | 30-50ms | — |
-| **Total** | **110-180ms** | **200ms** |
+| Operation                 | Estimated Time | Budget    |
+| ------------------------- | -------------- | --------- |
+| File open + stream setup  | 1-2ms          | —         |
+| Read 2.76M lines          | 50-80ms        | —         |
+| NFC normalize + lowercase | 30-50ms        | —         |
+| Set.add × 2.76M           | 30-50ms        | —         |
+| **Total**                 | **110-180ms**  | **200ms** |
 
 ## R7: Word Attribution to Players
 
