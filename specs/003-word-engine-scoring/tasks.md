@@ -178,9 +178,9 @@ Phase 1 (Setup)
   │
   ▼
 Phase 2 (Dictionary) ─── BLOCKS ALL ───┐
-  │                                      │
-  ▼                                      │
-Phase 3 (US1: Scoring MVP) ◄────────────┘
+  │                                    │
+  ▼                                    │
+Phase 3 (US1: Scoring MVP) ◄───────────┘
   │
   ├──────────┬──────────┐
   ▼          ▼          ▼

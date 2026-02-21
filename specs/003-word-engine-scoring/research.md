@@ -12,6 +12,7 @@
 The dictionary (~2.76M entries) needs two operations: **exact match** ("is this a valid word?") and **prefix check** ("could this sequence start a valid word?"). A Trie provides both natively but has significant memory overhead for 2.76M entries in JavaScript (estimated 1-4GB due to per-node object overhead). A `Set<string>` provides O(1) exact match with lower memory (~300-400MB).
 
 For a 10×10 board, the total number of candidate sequences to check is bounded:
+
 - Per direction: at most 10 lines × 36 subsequences (lengths 3-10) = 360
 - 8 directions = ~2,880 lookups maximum per scan
 - At ~0.001ms per Set lookup, total scan: **~3ms** (well within 50ms SLA)
@@ -51,6 +52,7 @@ Prefix pruning would reduce unnecessary lookups but isn't required given the sma
 A 10×10 board has 100 cells. For each cell, we cast rays in 4 canonical directions (right, down, down-right diagonal, down-left diagonal). Each ray extracts all subsequences of length 3+ along that direction. The reverse directions (left, up, etc.) are handled by reading extracted sequences in reverse.
 
 This approach:
+
 - Processes each cell exactly once per direction
 - Naturally handles all 8 directions via forward + reverse reading
 - Produces a complete set of `BoardWord` candidates for dictionary validation
@@ -71,6 +73,7 @@ For each of 4 canonical directions (→, ↓, ↘, ↙):
 ### Frozen Tile Awareness (FR-006a)
 
 The scanner runs once on the full board (frozen and unfrozen tiles included). After scanning, word candidates are filtered per-player:
+
 - Player A's candidates: exclude any word containing tiles frozen by Player B
 - Player B's candidates: exclude any word containing tiles frozen by Player A
 - Tiles frozen by both players are valid for both
@@ -104,6 +107,7 @@ Using a composite key of `word_text + direction + start_coordinate` uniquely ide
 ### Why Not Swap-Locality Optimization?
 
 An optimization would scan only sequences that pass through the swapped tile positions. This reduces work but:
+
 - Misses words created by the *combination* of both players' swaps when tiles are non-adjacent
 - Adds complexity to coordinate intersection logic
 - The full scan is already ~5ms, so optimization isn't needed
@@ -111,6 +115,7 @@ An optimization would scan only sequences that pass through the swapped tile pos
 ### Word Attribution
 
 After delta detection produces the set of new words on the final board, each word must be attributed to the player whose swap created it:
+
 1. Scan intermediate board (after Player A's swap only) for words
 2. Words in intermediate scan but not in board_before → attributed to Player A
 3. Words in board_after but not in intermediate scan (and not in board_before) → attributed to Player B
@@ -121,6 +126,7 @@ This requires 3 scans total: board_before, board_after_A, board_after_AB. At ~5m
 ### Alternative: Per-move scanning
 
 Scan after each individual swap application:
+
 - Scan board_before → words_before
 - Apply Player A's swap → scan → words_after_A → new_words_A = diff
 - Apply Player B's swap → scan → words_after_AB → new_words_B = diff(words_after_AB, words_after_A) ∪ diff if not in words_before
@@ -170,6 +176,7 @@ round_score = sum(total_word_score for each new word) + combo_bonus
 ### Duplicate Handling
 
 Per FR-010, a word already scored by the same player in a previous round:
+
 - Is listed in the round summary with "previously scored" label
 - Awards 0 points (letter + length bonus zeroed)
 - Does NOT count toward the combo bonus word count
@@ -181,6 +188,7 @@ Per FR-010, a word already scored by the same player in a previous round:
 ### Rationale
 
 Frozen tiles are a match-level persistent state that grows monotonically (tiles only get added, never unfrozen). Storing on `matches` as JSONB:
+
 - Avoids a separate table and JOIN overhead
 - Naturally scoped to match lifecycle
 - Updated atomically with match state
@@ -270,10 +278,12 @@ After conflict resolution, moves are applied sequentially (Player A first if the
 3. **Apply Player B's swap** → final board → **scan** → `wordsAfterAB` (same as board_after)
 
 Attribution:
+
 - Player A's new words: `wordsAfterA \ wordsBefore`
 - Player B's new words: `wordsAfterAB \ wordsAfterA` (minus any also in wordsBefore)
 
 This correctly handles:
+
 - Words created by Player A's swap that survive Player B's swap
 - Words created by Player B's swap
 - Words destroyed by Player B's swap (don't score for anyone)

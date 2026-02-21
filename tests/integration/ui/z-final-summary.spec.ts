@@ -107,6 +107,11 @@ test.describe("Final summary recap", () => {
       for (let round = 1; round <= 10; round += 1) {
         await submitSwap(pageA);
         await submitSwap(pageB);
+        // Give advanceRound time to run (async after second submit). CI runners
+        // are slower; Realtime may fall back to polling. First round often has
+        // cold-start latency for word engine.
+        const settleMs = round === 1 ? 6_000 : 3_000;
+        await pageA.waitForTimeout(settleMs);
         if (round < 10) {
           const summaryPanel = pageA.getByTestId("round-summary-panel");
           await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
