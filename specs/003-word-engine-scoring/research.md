@@ -60,7 +60,7 @@ This approach:
 
 ### Algorithm
 
-```
+```txt
 For each of 4 canonical directions (→, ↓, ↘, ↙):
   For each starting position along the direction's origin edge:
     Extract the full line of characters

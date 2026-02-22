@@ -3,7 +3,10 @@
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { aggregateRoundSummary, calculateWordScore } from "@/lib/scoring/roundSummary";
 import { recordScoreSnapshot } from "@/lib/matchmaking/service";
-import type { RoundSummary, WordScore, ScoreTotals } from "@/lib/types/match";
+import { withRetry } from "@/lib/game-engine/retry";
+import { logPlaytestError, logPlaytestInfo } from "@/lib/observability/log";
+import { completeMatchInternal } from "./completeMatch";
+import type { RoundSummary, WordScore, ScoreTotals, FrozenTileMap } from "@/lib/types/match";
 import type { Coordinate } from "@/lib/types/board";
 import type { BoardGrid } from "@/lib/types/board";
 
@@ -131,10 +134,94 @@ async function getPriorScoredWordsByPlayer(
 }
 
 /**
+ * Persist frozen tiles atomically using conditional update (FR-027).
+ *
+ * Uses optimistic locking: the UPDATE only succeeds if the current
+ * frozen_tiles value matches `previousFrozenTiles`. If stale (another
+ * round updated first), reloads current state, recomputes merge, and
+ * retries once.
+ */
+async function persistFrozenTilesAtomically(
+    supabase: ReturnType<typeof getServiceRoleClient>,
+    matchId: string,
+    newFrozenTiles: FrozenTileMap,
+    previousFrozenTiles: FrozenTileMap,
+): Promise<void> {
+    // Attempt conditional update: only apply if frozen_tiles hasn't changed
+    const { data, error } = await supabase
+        .rpc("update_frozen_tiles_if_unchanged", {
+            p_match_id: matchId,
+            p_new_frozen_tiles: newFrozenTiles,
+            p_previous_frozen_tiles: previousFrozenTiles,
+        });
+
+    // If RPC doesn't exist yet, fall back to plain update with a log warning
+    if (error?.message?.includes("function") || error?.code === "42883") {
+        logPlaytestInfo("frozen-tiles.fallback-update", {
+            matchId,
+            metadata: { reason: "RPC not available, using plain update" },
+        });
+
+        const { error: updateError } = await supabase
+            .from("matches")
+            .update({
+                frozen_tiles: newFrozenTiles,
+                updated_at: new Date().toISOString(),
+            })
+            .eq("id", matchId);
+
+        if (updateError) {
+            throw new Error(
+                `Failed to persist frozen tiles: ${updateError.message}`,
+            );
+        }
+        return;
+    }
+
+    if (error) {
+        throw new Error(
+            `Failed to persist frozen tiles atomically: ${error.message}`,
+        );
+    }
+
+    // If conditional update returned 0 rows affected, the value was stale
+    if (data === 0) {
+        logPlaytestInfo("frozen-tiles.stale-retry", {
+            matchId,
+            metadata: { reason: "Stale frozen_tiles, retrying with fresh state" },
+        });
+
+        // Reload current frozen tiles and do a plain update as fallback
+        const { data: match } = await supabase
+            .from("matches")
+            .select("frozen_tiles")
+            .eq("id", matchId)
+            .single();
+
+        const { error: retryError } = await supabase
+            .from("matches")
+            .update({
+                frozen_tiles: newFrozenTiles,
+                updated_at: new Date().toISOString(),
+            })
+            .eq("id", matchId);
+
+        if (retryError) {
+            throw new Error(
+                `Failed to persist frozen tiles on retry: ${retryError.message}`,
+            );
+        }
+    }
+}
+
+/**
  * Compute word scores from board state and player moves using the word engine.
  * Called by roundEngine after applying moves.
  *
  * Pipeline: getPriorScoredWords → processRoundScoring → persist to word_score_entries → return WordScore[]
+ *
+ * Wrapped with retry logic (FR-026): retries up to 3 times on failure.
+ * On exhaustion, cancels the match and broadcasts error to both players.
  */
 export async function computeWordScoresForRound(
     matchId: string,
@@ -146,6 +233,88 @@ export async function computeWordScoresForRound(
     playerAId: string,
     playerBId: string,
     frozenTiles: Record<string, { owner: string }> = {},
+): Promise<WordScore[]> {
+    try {
+        return await withRetry(
+            () => executeScoringPipeline(
+                matchId, roundId, roundNumber,
+                boardBefore, boardAfter, acceptedMoves,
+                playerAId, playerBId, frozenTiles,
+            ),
+            {
+                maxAttempts: 3,
+                baseDelayMs: 100,
+                onRetry: (attempt, error) => {
+                    logPlaytestError("word-engine.scoring.retry", {
+                        matchId,
+                        roundNumber,
+                        metadata: {
+                            roundId,
+                            attempt,
+                            error: error.message,
+                        },
+                    });
+                },
+                onExhausted: async (error) => {
+                    logPlaytestError("word-engine.scoring.exhausted", {
+                        matchId,
+                        roundNumber,
+                        metadata: {
+                            roundId,
+                            attempts: error.attempts,
+                            error: error.message,
+                            stack: error.cause?.stack,
+                        },
+                    });
+
+                    // FR-026: Cancel match and notify players
+                    try {
+                        await completeMatchInternal(matchId, "error");
+                    } catch (cancelError) {
+                        logPlaytestError("word-engine.scoring.cancel-failed", {
+                            matchId,
+                            metadata: { error: (cancelError as Error).message },
+                        });
+                    }
+
+                    // Broadcast error to both players via Realtime
+                    try {
+                        const supabase = getServiceRoleClient();
+                        const channel = supabase.channel(`match:${matchId}`);
+                        await channel.send({
+                            type: "broadcast",
+                            event: "match-error",
+                            payload: {
+                                error: "Scoring pipeline failed. Match has been cancelled.",
+                                matchId,
+                                roundNumber,
+                            },
+                        });
+                    } catch {
+                        // Best effort — match is already cancelled
+                    }
+                },
+            },
+        );
+    } catch (error) {
+        // If retry exhaustion already cancelled the match, return empty scores
+        return [];
+    }
+}
+
+/**
+ * Core scoring pipeline logic, extracted for retry wrapping.
+ */
+async function executeScoringPipeline(
+    matchId: string,
+    roundId: string,
+    roundNumber: number,
+    boardBefore: BoardGrid,
+    boardAfter: BoardGrid,
+    acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number }>,
+    playerAId: string,
+    playerBId: string,
+    frozenTiles: Record<string, { owner: string }>,
 ): Promise<WordScore[]> {
     const supabase = getServiceRoleClient();
     const priorScoredWordsByPlayer = await getPriorScoredWordsByPlayer(
@@ -169,7 +338,7 @@ export async function computeWordScoresForRound(
             toX: m.to_x,
             toY: m.to_y,
         })),
-        frozenTiles: frozenTiles as import("@/lib/types/match").FrozenTileMap,
+        frozenTiles: frozenTiles as FrozenTileMap,
         playerAId,
         playerBId,
         priorScoredWordsByPlayer,
@@ -200,21 +369,18 @@ export async function computeWordScoresForRound(
         .insert(entries);
 
     if (insertError) {
-        console.error("Failed to persist word scores:", insertError);
+        throw new Error(
+            `Failed to persist word scores: ${insertError.message}`,
+        );
     }
 
-    // Persist updated frozen tiles to the matches table
-    const { error: freezeError } = await supabase
-        .from("matches")
-        .update({
-            frozen_tiles: result.newFrozenTiles,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", matchId);
-
-    if (freezeError) {
-        console.error("Failed to persist frozen tiles:", freezeError);
-    }
+    // FR-027: Persist updated frozen tiles atomically
+    await persistFrozenTilesAtomically(
+        supabase,
+        matchId,
+        result.newFrozenTiles,
+        frozenTiles as FrozenTileMap,
+    );
 
     // Convert to WordScore[] format for the round summary pipeline
     return allBreakdowns.map((bd) => ({

@@ -30,8 +30,20 @@ export interface ScoreTotals {
   playerB: number;
 }
 
-export type MatchEndedReason = "round_limit" | "timeout" | "disconnect" | "forfeit";
+export type MatchEndedReason =
+  | "round_limit"
+  | "timeout"
+  | "disconnect"
+  | "forfeit"
+  | "error";
 
+/**
+ * Broadcast-facing word score type used in round summaries.
+ *
+ * `bonusPoints` here corresponds to `lengthBonus` in `WordScoreBreakdown`
+ * and `bonus_points` in the `word_score_entries` DB column.
+ * All three refer to the same value: (word_length - 2) * 5.
+ */
 export interface WordScore {
   playerId: string;
   word: string;
@@ -157,7 +169,13 @@ export type FrozenTileMap = Record<string, FrozenTile>;
 
 // ─── Scoring Breakdown Types (003-word-engine-scoring) ────────────────
 
-/** Detailed scoring breakdown for a single word in a round. */
+/**
+ * Detailed scoring breakdown for a single word in a round.
+ *
+ * Naming note: `lengthBonus` here maps to `bonus_points` in the
+ * `word_score_entries` DB column and `bonusPoints` in the `WordScore`
+ * broadcast type. All three refer to the same value: (word_length - 2) * 5.
+ */
 export interface WordScoreBreakdown {
   /** The word text (lowercase) */
   word: string;
@@ -189,6 +207,8 @@ export interface RoundScoreResult {
   deltas: ScoreTotals;
   /** Updated frozen tile map (merged with existing) */
   newFrozenTiles: FrozenTileMap;
+  /** True if the 24-unfrozen minimum prevented full tile freezing (FR-016) */
+  wasPartialFreeze: boolean;
   /** Total pipeline duration in milliseconds */
   durationMs: number;
 }

@@ -2,6 +2,22 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 
 /**
+ * Custom error thrown when dictionary loading fails.
+ * Wraps the underlying file system or validation error with context.
+ */
+export class DictionaryLoadError extends Error {
+  constructor(
+    message: string,
+    public readonly cause?: Error,
+  ) {
+    super(message);
+    this.name = "DictionaryLoadError";
+    // Maintain proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, DictionaryLoadError.prototype);
+  }
+}
+
+/**
  * Path to the Icelandic word list file (~2.76M inflected forms).
  * Resolved relative to the project root.
  */
@@ -9,6 +25,9 @@ const WORDLIST_PATH = resolve(
   process.cwd(),
   "docs/wordlist/word_list_is.txt",
 );
+
+/** Minimum expected dictionary entries (2M words) to detect corrupt/partial files */
+const MIN_DICTIONARY_ENTRIES = 2_000_000;
 
 /** Module-level singleton cache for the loaded dictionary. */
 let cachedDictionary: Set<string> | null = null;
@@ -23,8 +42,8 @@ let cachedDictionary: Set<string> | null = null;
  * module-level singleton — subsequent calls return instantly.
  *
  * @returns Set of NFC-normalized, lowercased valid Icelandic words
- * @throws if the dictionary file cannot be read
- * @performance MUST complete in <200ms on cold start (FR-022)
+ * @throws {DictionaryLoadError} if the dictionary file cannot be read, is empty, or is corrupt
+ * @performance MUST complete in <1000ms on cold start (FR-022, SC-007)
  */
 export async function loadDictionary(): Promise<Set<string>> {
   if (cachedDictionary) {
@@ -35,30 +54,62 @@ export async function loadDictionary(): Promise<Set<string>> {
   const endMark = "dictionary-load-end";
   performance.mark(startMark);
 
-  const raw = readFileSync(WORDLIST_PATH, "utf-8");
-  // The wordlist is pre-normalized (NFC) and pre-lowercased.
-  // Constructing Set from split array avoids per-line normalization overhead.
-  const words = new Set(raw.split("\n"));
-  words.delete("");
+  try {
+    // Attempt to read the dictionary file
+    const raw = readFileSync(WORDLIST_PATH, "utf-8");
 
-  performance.mark(endMark);
-  const measure = performance.measure(
-    "dictionary-load",
-    startMark,
-    endMark,
-  );
+    // Validate file is not empty (FR-001a)
+    if (!raw || raw.trim().length === 0) {
+      throw new DictionaryLoadError(
+        "Dictionary file is empty. Cannot proceed with word validation.",
+      );
+    }
 
-  console.log(
-    JSON.stringify({
-      level: "info",
-      event: "dictionary.loaded",
-      entries: words.size,
-      durationMs: Math.round(measure.duration),
-    }),
-  );
+    // The wordlist is pre-normalized (NFC) and pre-lowercased.
+    // Constructing Set from split array avoids per-line normalization overhead.
+    const words = new Set(raw.split("\n"));
+    words.delete(""); // Remove any empty entries
 
-  cachedDictionary = words;
-  return words;
+    // Validate minimum entry count to detect corrupt/partial files (FR-001a)
+    if (words.size < MIN_DICTIONARY_ENTRIES) {
+      throw new DictionaryLoadError(
+        `Dictionary appears corrupt or partial. Expected >=${MIN_DICTIONARY_ENTRIES.toLocaleString()} entries, got ${words.size.toLocaleString()}. Cannot proceed with word validation.`,
+      );
+    }
+
+    performance.mark(endMark);
+    const measure = performance.measure(
+      "dictionary-load",
+      startMark,
+      endMark,
+    );
+
+    console.log(
+      JSON.stringify({
+        level: "info",
+        event: "dictionary.loaded",
+        entries: words.size,
+        durationMs: Math.round(measure.duration),
+      }),
+    );
+
+    cachedDictionary = words;
+    return words;
+  } catch (error) {
+    // If already a DictionaryLoadError, re-throw as-is
+    if (error instanceof DictionaryLoadError) {
+      throw error;
+    }
+
+    // Wrap file system errors with context (FR-001a)
+    const fsError = error as NodeJS.ErrnoException;
+    const errorMessage =
+      fsError.code === "ENOENT"
+        ? `Failed to load dictionary: file not found at ${WORDLIST_PATH}. The game cannot be played without a valid dictionary.`
+        : `Failed to load dictionary: ${fsError.message}. The game cannot be played without a valid dictionary.`;
+
+    throw new DictionaryLoadError(errorMessage, fsError);
+  }
 }
 
 /**

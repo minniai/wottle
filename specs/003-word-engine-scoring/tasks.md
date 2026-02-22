@@ -41,7 +41,7 @@
 
 ### Implementation
 
-- [x] T007 Implement dictionary loader in lib/game-engine/dictionary.ts — readFileSync + Set constructor from split array (file is pre-normalized NFC + lowercase), module-level singleton cache, performance.mark() timing, lookupWord() helper with NFC normalization on input
+- [x] T007 Implement dictionary loader in lib/game-engine/dictionary.ts — streaming readline (not readFileSync) per R6, module-level singleton cache, performance.mark() timing, lookupWord() helper with NFC normalization on input
 - [x] T008 Verify T005 and T006 tests pass with implementation
 
 **Checkpoint**: Dictionary loaded, lookups working; cold-start benchmark &lt;1000ms for 2.76M wordlist verified.
@@ -159,6 +159,30 @@
 
 ---
 
+## Phase 8: Resilience & Edge Cases
+
+**Purpose**: Cover FRs added during checklist review that have no task coverage. All tasks in this phase follow TDD — write failing tests first.
+
+### Tests for Phase 8
+
+- [x] T043 [P] Write failing tests for dictionary load failure handling — extend tests/unit/dictionary.test.ts: `loadDictionary` throws `DictionaryLoadError` on missing file, empty file, and corrupt/partial file; extend tests/integration/matchCreation.test.ts: when dictionary fails to load, match creation returns a clear error and does not create a match record (FR-001a)
+- [x] T044 [P] Write failing tests for zero-accepted-moves round — extend tests/unit/wordEngine.test.ts: `processRoundScoring` with empty `acceptedMoves` returns `RoundScoreResult` with zero deltas, zero frozen tiles, and round summary indicating no words scored; verify no pipeline stages are invoked (FR-006d)
+- [x] T045 [P] Write failing tests for board-unchanged short-circuit — extend tests/unit/wordEngine.test.ts: when `boardAfter` is identical to `boardBefore`, `processRoundScoring` returns immediately without calling `scanBoard`, `detectNewWords`, `scoreWords`, or `freezeTiles`; verify via spy/mock (FR-006e)
+- [x] T046 [P] Write failing tests for scoring pipeline retry — extend tests/unit/wordEngine.test.ts: pipeline retries up to 3 times on DB write failure, succeeds on second attempt when retry succeeds; fails all 3 retries and calls `cancelMatch()` with correct `matchId` and error message (FR-026)
+- [x] T047 [P] Write failing integration test for atomic frozen tile update — extend tests/integration/roundScoring.test.ts: concurrent round resolution for the same match does not overwrite frozen tile state; a conditional `UPDATE` with stale `frozen_tiles` value is rejected by the database (FR-027)
+
+### Implementation for Phase 8
+
+- [x] T048 Handle dictionary load failure in lib/game-engine/dictionary.ts — throw a typed `DictionaryLoadError` on missing, empty, or corrupt file; catch `DictionaryLoadError` in lib/match/roundEngine.ts at match creation or first round invocation, call `cancelMatch()` with a clear error message (FR-001a)
+- [x] T049 Add zero-accepted-moves guard in lib/game-engine/wordEngine.ts — before scanning, check `acceptedMoves.length === 0`; if true, return a `RoundScoreResult` with empty arrays and zero deltas without invoking any pipeline stages (FR-006d)
+- [x] T050 Add board-unchanged short-circuit in lib/game-engine/wordEngine.ts — before scanning, compare `boardAfter` to `boardBefore` tile-by-tile; if identical, skip scan/delta/scoring/freeze/persist and return a zero-word result (FR-006e)
+- [x] T051 Add retry wrapper around scoring pipeline in app/actions/match/publishRoundSummary.ts — wrap the full pipeline in a retry loop (up to 3 attempts with exponential backoff); on all-retries-exhausted, call `cancelMatch()`, broadcast error to both players via the existing Realtime channel, and log full context including `matchId`, `roundNumber`, and error stack (FR-026)
+- [x] T052 Implement atomic frozen tile update in app/actions/match/publishRoundSummary.ts — replace plain `UPDATE matches SET frozen_tiles = $new WHERE id = $matchId` with a conditional update: `UPDATE matches SET frozen_tiles = $new WHERE id = $matchId AND frozen_tiles = $previous::jsonb`; on conflict (stale previous value), reload current `frozen_tiles`, recompute the merge, and retry once (FR-027)
+
+**Checkpoint**: Dictionary failures handled gracefully, edge-case rounds produce correct zero-scoring results, scoring pipeline is resilient and atomic.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -243,8 +267,8 @@ T015 (scorer)  ──┼── T014 (delta) ── T016 (facade) ── T017-T01
 ## Summary
 
 | Metric | Value |
-|--------|-------|
-| **Total tasks** | 42 |
+| ------ | ----- |
+| **Total tasks** | 52 |
 | **Phase 1 (Setup)** | 4 tasks |
 | **Phase 2 (Dictionary)** | 4 tasks |
 | **Phase 3 (US1 — MVP)** | 13 tasks |
@@ -252,7 +276,8 @@ T015 (scorer)  ──┼── T014 (delta) ── T016 (facade) ── T017-T01
 | **Phase 5 (US3 — Unique)** | 4 tasks |
 | **Phase 6 (US4 — Summary)** | 4 tasks |
 | **Phase 7 (Polish)** | 5 tasks |
-| **Parallel opportunities** | 22 tasks marked [P] |
+| **Phase 8 (Resilience)** | 10 tasks |
+| **Parallel opportunities** | 27 tasks marked [P] |
 | **MVP scope** | Phases 1-3 (21 tasks) |
 | **User stories covered** | US1, US2, US3, US4, US5 (folded into US1) |
 

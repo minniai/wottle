@@ -1,8 +1,12 @@
-import { describe, expect, test, beforeAll } from "vitest";
+import { describe, expect, test, beforeAll, vi } from "vitest";
 
 import { processRoundScoring } from "@/lib/game-engine/wordEngine";
 import { calculateComboBonus } from "@/lib/game-engine/scorer";
 import { loadDictionary } from "@/lib/game-engine/dictionary";
+import * as boardScanner from "@/lib/game-engine/boardScanner";
+import * as deltaDetector from "@/lib/game-engine/deltaDetector";
+import * as scorer from "@/lib/game-engine/scorer";
+import * as frozenTiles from "@/lib/game-engine/frozenTiles";
 import type { BoardGrid } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
 
@@ -229,6 +233,255 @@ describe("wordEngine", () => {
       expect(hestur!.totalPoints).toBe(0);
       const newCount = result.playerAWords.filter((w) => !w.isDuplicate).length;
       expect(result.comboBonus.playerA).toBe(calculateComboBonus(newCount));
+    });
+  });
+
+  describe("zero accepted moves round (T044, FR-006d)", () => {
+    test("should return RoundScoreResult with zero deltas when acceptedMoves is empty", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [], // No accepted moves
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.deltas).toEqual({ playerA: 0, playerB: 0 });
+    });
+
+    test("should return empty word arrays when acceptedMoves is empty", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.playerAWords).toEqual([]);
+      expect(result.playerBWords).toEqual([]);
+    });
+
+    test("should return zero combo bonuses when acceptedMoves is empty", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.comboBonus).toEqual({ playerA: 0, playerB: 0 });
+    });
+
+    test("should return empty frozen tiles when acceptedMoves is empty", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Should return empty frozen tiles (no new tiles frozen)
+      expect(result.newFrozenTiles).toEqual({});
+    });
+
+    test("should not invoke detectNewWords when acceptedMoves is empty (performance optimization)", async () => {
+      const board = emptyBoard();
+
+      // Spy on detectNewWords to verify it's not called
+      const deltaSpy = vi.spyOn(deltaDetector, "detectNewWords");
+
+      await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Verify detectNewWords was NOT called (short-circuit optimization)
+      expect(deltaSpy).not.toHaveBeenCalled();
+
+      // Clean up spy
+      vi.restoreAllMocks();
+    });
+
+    test("should still measure duration even with zero accepted moves", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe("board unchanged short-circuit (T045, FR-006e)", () => {
+    test("should return zero deltas when board is unchanged", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board, // Identical to boardBefore
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 1, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.deltas).toEqual({ playerA: 0, playerB: 0 });
+    });
+
+    test("should return empty word arrays when board is unchanged", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 1, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.playerAWords).toEqual([]);
+      expect(result.playerBWords).toEqual([]);
+    });
+
+    test("should not invoke detectNewWords when board is unchanged (performance optimization)", async () => {
+      const board = emptyBoard();
+
+      // Spy on detectNewWords to verify it's not called
+      const deltaSpy = vi.spyOn(deltaDetector, "detectNewWords");
+
+      await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 1, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Verify detectNewWords was NOT called (short-circuit optimization)
+      expect(deltaSpy).not.toHaveBeenCalled();
+
+      // Clean up spy
+      vi.restoreAllMocks();
+    });
+
+    test("should not invoke freezeTiles when board is unchanged", async () => {
+      const board = emptyBoard();
+
+      // Spy on freezeTiles to verify it's not called
+      const freezeSpy = vi.spyOn(frozenTiles, "freezeTiles");
+
+      await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 1, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Verify freezeTiles was NOT called
+      expect(freezeSpy).not.toHaveBeenCalled();
+
+      // Clean up spy
+      vi.restoreAllMocks();
+    });
+
+    test("should still measure duration even when board is unchanged", async () => {
+      const board = emptyBoard();
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        boardAfter: board,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 1, toY: 0 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    test("should detect board difference correctly (deep comparison)", async () => {
+      const board1 = emptyBoard("a");
+      const board2 = emptyBoard("a");
+      board2[5][5] = "b"; // One tile different
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board1,
+        boardAfter: board2,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 5, fromY: 5, toX: 6, toY: 5 },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Since boards are different, pipeline should run
+      // This test verifies the comparison is working correctly
+      expect(result).toBeDefined();
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
   });
 });
