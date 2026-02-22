@@ -41,19 +41,19 @@ After a round resolves and new words are found, all tiles belonging to newly sco
 
 ---
 
-### User Story 3 - All Discovered Words Score (Priority: P1)
+### User Story 3 - Each Word Scores At Most Once Per Player Per Match (Priority: P1)
 
-Every word newly found on the board after a round resolves scores points, including the same word text found at a different board position. Word identity is determined by text + board position, not text alone. If the same word text appears at two different positions on the board, both instances are independent words and both score.
+Each unique word text scores points at most once per player per match. If a player forms a word they have already scored in a prior round, the word is recognized and shown with a "previously scored" label but awards 0 points for that player. Different players track word history independently — if Player B forms a word that Player A already scored, Player B receives full points. Combo bonuses count only non-duplicate (newly scored) words in that round.
 
-**Why this priority**: Scoring all discovered words regardless of prior occurrences rewards spatial play and board awareness. Finding the same word at a new position is a valid strategic achievement.
+**Why this priority**: Preventing repeat scoring stops a degenerate strategy where a player exploits the same high-value word indefinitely. It ensures both players must continually discover new words to accumulate points.
 
-**Independent Test**: Form a word in round 1, then form the same word text at a different board position in round 3. Verify both occurrences score full points.
+**Independent Test**: Score a word in round 1, then form the same word text again in round 3. Verify 0 points are awarded and a "previously scored" label appears in the round summary.
 
 **Acceptance Scenarios**:
 
-1. **Given** Player A scored "SKIP" at position (0,0)→(3,0) in round 2, **When** Player A forms "SKIP" again at position (5,5)→(8,5) in round 5, **Then** the round summary shows "SKIP" with full points for the new instance.
-2. **Given** Player A scored "SKIP" in round 2, **When** Player B forms "SKIP" at any position in round 4, **Then** Player B receives full points.
-3. **Given** Player A forms two new words in a round, both at new positions, **When** the round resolves, **Then** both words score normally and both count toward the multi-word combo bonus.
+1. **Given** Player A scored "SKIP" in round 2, **When** Player A forms "SKIP" again in round 5, **Then** the round summary shows "SKIP" with 0 points and a "previously scored" label.
+2. **Given** Player A scored "SKIP" in round 2, **When** Player B forms "SKIP" at any position in round 4, **Then** Player B receives full points (per-player tracking).
+3. **Given** Player A forms 1 new word and 1 previously-scored word in a round, **When** the round resolves, **Then** the combo bonus counts only 1 new word (= +0 bonus) and the duplicate shows "previously scored" with 0 points.
 
 ---
 
@@ -91,7 +91,7 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 ### Edge Cases
 
 - What happens when a swap forms the same word in two different directions simultaneously (e.g., a palindrome)?
-  - A palindrome covering the same set of tiles in both directions counts as a single word and scores once. Word identity for deduplication within a single round is determined by the canonical tile set (sorted coordinates), not by direction. If the same palindrome text appears at a completely different board location (different tiles), it is a distinct word and scores independently per FR-010.
+  - A palindrome covering the same set of tiles in both directions counts as a single word and scores once. Word identity for deduplication within a single round is determined by the canonical tile set (sorted coordinates), not by direction. If the same palindrome text appears at a completely different board location (different tiles) in a later round, it is subject to the normal duplicate rule (FR-010): if this player has already scored that palindrome text, the new instance awards 0 points.
 - What happens when a swap creates a very long word (8+ letters)?
   - Scored normally with the standard formula. Length bonus scales linearly: (length-2)*5.
 - What happens when a player's only available swap involves frozen tiles?
@@ -154,8 +154,8 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 
 - **FR-007**: System MUST calculate the base word score as the sum of individual letter point values for all letters in the word, using the Icelandic letter scoring table.
 - **FR-008**: System MUST apply a length bonus of (word_length - 2) * 5 points to every scored word.
-- **FR-009**: System MUST apply a multi-word combo bonus when a player scores multiple new words in a single round: 1 word = +0, 2 words = +2, 3 words = +5, 4+ words = +7 + (n-4). `n` counts all newly discovered words that round; there is no exclusion for previously seen word texts.
-- **FR-010**: System MUST award points for every newly discovered word regardless of whether the same word text has been scored before. Word identity is defined by text + canonical tile set (sorted tile coordinates). The same word text at a different set of tiles is a distinct word and scores independently. A palindrome that reads in two directions across the same tiles counts as one word and scores once.
+- **FR-009**: System MUST apply a multi-word combo bonus when a player scores multiple new words in a single round: 1 word = +0, 2 words = +2, 3 words = +5, 4+ words = +7 + (n-4). `n` counts only non-duplicate words (words that are new to this player this match and receive full points); previously-scored duplicate words do not contribute to the combo count.
+- **FR-010**: Each unique word text scores at most once per player per match. If a player discovers a word they have already scored in a prior round of the same match, the word is marked as a duplicate (`is_duplicate=true`), displayed with a "previously scored" label, and awards 0 points for that player. Different players' word histories are tracked independently. A palindrome that reads in two directions across the same tiles counts as one word and scores once.
 - **FR-011**: System MUST persist each scored word with its letter points, bonus points, total points, tile coordinates, and player attribution.
 - **FR-012**: System MUST compute and store per-round score deltas, combo bonuses, and cumulative totals for both players after each round resolves. The combo bonus for each player MUST be persisted as part of the round record so that scoring history is fully reproducible from stored data.
 
@@ -206,7 +206,7 @@ The system finds valid words in all 8 directions on the board: left-to-right, ri
 - **SC-001**: The scanner correctly detects valid words in all 8 directions (L→R, R→L, T→D, D→T, and all 4 diagonals), verified by automated tests with one known board state per direction. Exhaustive enumeration of all possible boards is not required.
 - **SC-002**: Word validation and scoring complete within 50ms server-side for a full 10x10 board scan, measured at p95 across 1,000 randomly generated test boards.
 - **SC-003**: Scoring formula matches the PRD exactly: letter values + (length-2)*5 length bonus + multi-word combo, verified by unit tests covering each bonus tier.
-- **SC-004**: The same word text found at a different board position scores independently and receives full points, verified by integration tests forming the same word text at two distinct positions across separate rounds. The same word text at the same position does not score a second time (it is pre-existing per FR-006 and not detected as new).
+- **SC-004**: The same word text formed a second time by the same player in a later round is recognized as a duplicate, awards 0 points, and displays a "previously scored" label — verified by integration tests. A different player forming the same word text always receives full points (per-player tracking), also verified by integration tests.
 - **SC-005**: Frozen tiles are never swappable after being claimed, verified by attempting swaps on frozen tiles across 100 randomly sampled board states with frozen words, with zero false accepts.
 - **SC-006**: Round summaries display complete word breakdowns (letters, bonuses, combos, deltas, totals) to both players, verified by E2E tests confirming that each player's summary is correct for that player's perspective.
 - **SC-007**: The dictionary loads in under 1000ms at startup for the full 2.76M-entry wordlist, measured across 10 cold-start benchmarks (relaxed from 200ms target; see FR-022 note).
