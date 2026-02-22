@@ -93,6 +93,40 @@ function computeDeltas(
 /** Per-player sets of words already scored in prior rounds (for duplicate detection). */
 export type PriorScoredWordsByPlayer = Record<string, Set<string>>;
 
+/**
+ * Helper function to check if two boards are identical (tile-by-tile comparison).
+ */
+function areBoardsIdentical(
+  board1: BoardGrid,
+  board2: BoardGrid,
+): boolean {
+  for (let y = 0; y < board1.length; y++) {
+    for (let x = 0; x < board1[y].length; x++) {
+      if (board1[y][x] !== board2[y][x]) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Create an empty RoundScoreResult for zero-word rounds.
+ */
+function emptyRoundScoreResult(
+  durationMs: number,
+  frozenTiles: FrozenTileMap,
+): RoundScoreResult {
+  return {
+    playerAWords: [],
+    playerBWords: [],
+    comboBonus: { playerA: 0, playerB: 0 },
+    deltas: { playerA: 0, playerB: 0 },
+    newFrozenTiles: frozenTiles,
+    durationMs,
+  };
+}
+
 export async function processRoundScoring(params: {
   matchId: string;
   roundId: string;
@@ -111,6 +145,48 @@ export async function processRoundScoring(params: {
   const startMark = "word-engine:start";
   const endMark = "word-engine:end";
   performance.mark(startMark);
+
+  // FR-006d: Zero-accepted-moves guard
+  // If no moves were accepted, skip the entire pipeline
+  if (params.acceptedMoves.length === 0) {
+    const durationMs = performance.now() - start;
+    logPlaytestInfo("word-engine.scoring", {
+      matchId: params.matchId,
+      roundNumber: params.roundNumber,
+      metadata: {
+        roundId: params.roundId,
+        durationMs: Math.round(durationMs),
+        wordsFound: 0,
+        wordsScored: 0,
+        duplicatesDetected: 0,
+        tilesFrozen: 0,
+        comboBonusA: 0,
+        comboBonusB: 0,
+      },
+    });
+    return emptyRoundScoreResult(durationMs, params.frozenTiles);
+  }
+
+  // FR-006e: Board-unchanged short-circuit
+  // If the board didn't change at all, skip the entire pipeline
+  if (areBoardsIdentical(params.boardBefore, params.boardAfter)) {
+    const durationMs = performance.now() - start;
+    logPlaytestInfo("word-engine.scoring", {
+      matchId: params.matchId,
+      roundNumber: params.roundNumber,
+      metadata: {
+        roundId: params.roundId,
+        durationMs: Math.round(durationMs),
+        wordsFound: 0,
+        wordsScored: 0,
+        duplicatesDetected: 0,
+        tilesFrozen: 0,
+        comboBonusA: 0,
+        comboBonusB: 0,
+      },
+    });
+    return emptyRoundScoreResult(durationMs, params.frozenTiles);
+  }
 
   const dictionary = await loadDictionary();
   performance.mark("word-engine:dict-loaded");
