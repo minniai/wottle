@@ -72,6 +72,7 @@ describe("round scoring duplicate tracking (US3)", () => {
 
     vi.mocked(getServiceRoleClient).mockReturnValue({
       from,
+      rpc: () => Promise.resolve({ data: 1, error: null }),
       channel: () => ({ send: () => "ok" }),
     } as never);
 
