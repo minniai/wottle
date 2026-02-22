@@ -234,17 +234,17 @@ export interface FrozenTileManagerContract {
 // ─── Word Engine Facade ───────────────────────────────────────────────
 
 export interface RoundScoreResult {
-  /** Per-word breakdowns for both players */
-  breakdowns: WordScoreBreakdown[];
+  /** Per-word breakdowns for Player A */
+  playerAWords: WordScoreBreakdown[];
+  /** Per-word breakdowns for Player B */
+  playerBWords: WordScoreBreakdown[];
   /** Combo bonuses per player */
-  comboBonus: ComboBonus;
-  /** Updated frozen tile map (existing + newly frozen this round) */
-  frozenTiles: FrozenTileMap;
-  /** Tiles newly frozen this round only */
-  newFrozenTiles: FrozenTileMap;
+  comboBonus: { playerA: number; playerB: number };
   /** Score deltas for this round */
   deltas: { playerA: number; playerB: number };
-  /** Was partial freeze applied (24-tile minimum) */
+  /** Updated frozen tile map (merged with existing) */
+  newFrozenTiles: FrozenTileMap;
+  /** True if the 24-unfrozen minimum prevented full tile freezing (FR-016) */
   wasPartialFreeze: boolean;
   /** Total pipeline duration in milliseconds */
   durationMs: number;

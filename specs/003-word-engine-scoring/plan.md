@@ -15,7 +15,7 @@ Implement the core word-finding engine, PRD-compliant scoring formula, unique wo
 **Testing**: Vitest (unit + integration), Playwright (E2E), Artillery (performance)
 **Target Platform**: Linux server (Vercel), modern browsers
 **Project Type**: Web application (Next.js monorepo)
-**Performance Goals**: Word validation <50ms server-side (p95), dictionary load <200ms, move RTT <200ms (p95), 60 FPS tile animations
+**Performance Goals**: Word validation <50ms server-side (p95), dictionary load <1000ms (FR-022, adjusted for 2.76M entries), move RTT <200ms (p95), 60 FPS tile animations
 **Constraints**: Dictionary server-side only (never exposed to client), all scoring server-authoritative, 10×10 board fixed size, Icelandic Unicode NFC normalization required
 **Scale/Scope**: Single concurrent match per server instance (playtest), ~2.76M dictionary entries, 10 rounds per match, up to 100 tiles per board
 
@@ -26,7 +26,7 @@ Implement the core word-finding engine, PRD-compliant scoring formula, unique wo
 | Principle | Status | Notes |
 |-----------|--------|-------|
 | I. Server-Authoritative (NON-NEG) | PASS | All word validation, scoring, and freeze logic execute server-side via Server Actions. Dictionary never sent to client. |
-| II. Real-Time Performance (NON-NEG) | PASS | FR-021 (<50ms validation), FR-022 (<200ms load), FR-023 (<200ms RTT) directly encode SLAs. Performance tests required. |
+| II. Real-Time Performance (NON-NEG) | PASS | FR-021 (<50ms validation), FR-022 (<1000ms dict load), FR-023 (<200ms RTT) directly encode SLAs. Performance tests required. |
 | III. Type-Safe End-to-End | PASS | New types in `lib/types/` for BoardWord, FrozenTileMap. Server Actions have explicit return types. Zod validation on inputs. |
 | IV. Progressive Enhancement | PASS | Frozen tile overlay uses CSS (GPU-accelerated). Scoring display degrades gracefully. No new mobile concerns. |
 | V. Observability & Resilience | PASS | Dictionary load time logged via `performance.mark()`. Scan duration instrumented. Structured logs for word scoring events. |
@@ -93,18 +93,21 @@ supabase/migrations/
 └── YYYYMMDD_frozen_tiles.sql   # [NEW] Add frozen_tiles JSONB column to matches
 
 tests/
-├── unit/
-│   ├── dictionary.test.ts      # [NEW] Dictionary load, lookup, normalization
-│   ├── boardScanner.test.ts    # [NEW] 8-direction scanning, edge wrapping
-│   ├── deltaDetector.test.ts   # [NEW] New word detection, pre-existing filtering
-│   ├── scorer.test.ts          # [NEW] PRD formula, combo bonuses, duplicate handling
-│   ├── frozenTiles.test.ts     # [NEW] Freeze, validate, ownership, 24-tile minimum
-│   └── wordEngine.test.ts      # [NEW] Full pipeline integration
+├── unit/lib/game-engine/
+│   ├── dictionary.test.ts        # [NEW] Dictionary load, lookup, normalization
+│   ├── dictionaryErrors.test.ts  # [NEW] DictionaryLoadError class (FR-001a)
+│   ├── boardScanner.test.ts      # [NEW] 8-direction scanning, edge wrapping
+│   ├── deltaDetector.test.ts     # [NEW] New word detection, pre-existing filtering
+│   ├── scorer.test.ts            # [NEW] PRD formula, combo bonuses, duplicate handling
+│   ├── frozenTiles.test.ts       # [NEW] Freeze, validate, ownership, 24-tile minimum
+│   ├── wordEngine.test.ts        # [NEW] Full pipeline integration
+│   ├── retry.test.ts             # [NEW] Retry wrapper, ScoringPipelineError (FR-026)
+│   └── atomicFrozenTiles.test.ts # [NEW] Atomic update contract (FR-027)
 ├── integration/
-│   └── roundScoring.test.ts    # [NEW] Round engine + scoring end-to-end
+│   └── roundScoring.test.ts      # [NEW] Round engine + scoring end-to-end
 └── perf/
-    ├── dictionaryLoad.bench.ts # [NEW] <200ms cold start benchmark
-    └── boardScan.bench.ts      # [NEW] <50ms scan benchmark
+    ├── dictionaryLoad.bench.ts   # [NEW] <1000ms cold start benchmark
+    └── boardScan.bench.ts        # [NEW] <50ms scan benchmark
 ```
 
 **Structure Decision**: Follows existing `lib/game-engine/` pattern established in spec 001. New modules are pure functions organized by domain responsibility. The `wordEngine.ts` facade coordinates the pipeline without leaking internal module dependencies.

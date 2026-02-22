@@ -123,6 +123,7 @@ function emptyRoundScoreResult(
     comboBonus: { playerA: 0, playerB: 0 },
     deltas: { playerA: 0, playerB: 0 },
     newFrozenTiles: frozenTiles,
+    wasPartialFreeze: false,
     durationMs,
   };
 }
@@ -246,6 +247,11 @@ export async function processRoundScoring(params: {
 
   const durationMs = performance.now() - start;
   performance.measure("word-engine:total", startMark, endMark);
+  const computeDurationMs = performance.measure(
+    "word-engine:compute",
+    "word-engine:dict-loaded",
+    "word-engine:scored",
+  ).duration;
 
   const wordsFound = newWords.length;
   const wordsScored = breakdowns.filter((b) => !b.isDuplicate).length;
@@ -258,12 +264,14 @@ export async function processRoundScoring(params: {
     metadata: {
       roundId: params.roundId,
       durationMs: Math.round(durationMs),
+      computeDurationMs: Math.round(computeDurationMs),
       wordsFound,
       wordsScored,
       duplicatesDetected,
       tilesFrozen,
       comboBonusA: comboBonus.playerA,
       comboBonusB: comboBonus.playerB,
+      wasPartialFreeze: freezeResult.wasPartialFreeze,
     },
   });
 
@@ -273,6 +281,7 @@ export async function processRoundScoring(params: {
     comboBonus,
     deltas,
     newFrozenTiles: freezeResult.updatedFrozenTiles,
+    wasPartialFreeze: freezeResult.wasPartialFreeze,
     durationMs,
   };
 }

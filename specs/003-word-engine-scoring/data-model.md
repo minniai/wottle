@@ -132,9 +132,14 @@ Existing table — no schema changes needed.
 | playerBDelta | `player_b_delta` | `integer` | Points earned this round by Player B |
 | generatedAt | `generated_at` | `timestamptz` | When the snapshot was created |
 
-### ComboBonus (Computed, Not Persisted)
+### ComboBonus (Persisted Indirectly via Round Delta)
 
-Calculated at scoring time. Not stored separately — folded into the round delta.
+Calculated at scoring time. The combo bonus value is included in each player's
+round delta (stored in `scoreboard_snapshots.player_a_delta` /
+`player_b_delta`), satisfying FR-012's persistence requirement. The bonus can
+also be recomputed from `word_score_entries` by counting non-duplicate words
+per player per round and applying the combo formula. No separate combo_bonus
+column is needed.
 
 | Word Count | Bonus |
 |-----------|-------|
@@ -252,5 +257,7 @@ export interface RoundScoreResult {
   comboBonus: { playerA: number; playerB: number };
   deltas: ScoreTotals;
   newFrozenTiles: FrozenTileMap;
+  wasPartialFreeze: boolean;
+  durationMs: number;
 }
 ```
