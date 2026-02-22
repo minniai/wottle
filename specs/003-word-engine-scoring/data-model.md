@@ -59,10 +59,10 @@ Stored in `word_score_entries` table. One row per scored word per player per rou
 | roundId | `round_id` | `uuid` | FK → rounds |
 | playerId | `player_id` | `uuid` | FK → players |
 | word | `word` | `text` | The word text (lowercase) |
-| length | `length` | `smallint` | Character count |
-| lettersPoints | `letters_points` | `smallint` | Sum of letter values |
-| bonusPoints | `bonus_points` | `smallint` | Length bonus: `(length - 2) * 5` |
-| totalPoints | `total_points` | `smallint` | `letters_points + bonus_points` (0 if duplicate) |
+| length | `length` | `integer` | Character count |
+| lettersPoints | `letters_points` | `integer` | Sum of letter values |
+| bonusPoints | `bonus_points` | `integer` | Length bonus: `(length - 2) * 5` |
+| totalPoints | `total_points` | `integer` | `letters_points + bonus_points` |
 | tiles | `tiles` | `jsonb` | `[{ x: number, y: number }, ...]` |
 | isDuplicate | `is_duplicate` | `boolean` | True if word was previously scored by this player |
 

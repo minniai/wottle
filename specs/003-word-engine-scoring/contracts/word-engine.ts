@@ -58,7 +58,7 @@ export type FrozenTileMap = Record<string, FrozenTile>;
  *
  * @returns Set of NFC-normalized, lowercased valid Icelandic words
  * @throws if the dictionary file cannot be read
- * @performance MUST complete in <200ms on cold start (FR-022)
+ * @performance MUST complete in <1000ms on cold start (FR-022, SC-007)
  *
  * Module: lib/game-engine/dictionary.ts
  */
@@ -72,6 +72,8 @@ export interface DictionaryContract {
 export interface ScanResult {
   /** All valid words found on the board */
   words: BoardWord[];
+  /** performance.now() timestamp when the scan completed */
+  scannedAt: number;
   /** Duration of the scan in milliseconds */
   durationMs: number;
 }
@@ -236,10 +238,10 @@ export interface RoundScoreResult {
   breakdowns: WordScoreBreakdown[];
   /** Combo bonuses per player */
   comboBonus: ComboBonus;
-  /** Updated frozen tile map */
+  /** Updated frozen tile map (existing + newly frozen this round) */
   frozenTiles: FrozenTileMap;
-  /** Tiles newly frozen this round */
-  newlyFrozenTiles: Coordinate[];
+  /** Tiles newly frozen this round only */
+  newFrozenTiles: FrozenTileMap;
   /** Score deltas for this round */
   deltas: { playerA: number; playerB: number };
   /** Was partial freeze applied (24-tile minimum) */

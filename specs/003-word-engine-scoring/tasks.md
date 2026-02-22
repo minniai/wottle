@@ -41,7 +41,7 @@
 
 ### Implementation
 
-- [x] T007 Implement dictionary loader in lib/game-engine/dictionary.ts — readFileSync + Set constructor from split array (file is pre-normalized NFC + lowercase), module-level singleton cache, performance.mark() timing, lookupWord() helper with NFC normalization on input
+- [x] T007 Implement dictionary loader in lib/game-engine/dictionary.ts — streaming readline (not readFileSync) per R6, module-level singleton cache, performance.mark() timing, lookupWord() helper with NFC normalization on input
 - [x] T008 Verify T005 and T006 tests pass with implementation
 
 **Checkpoint**: Dictionary loaded, lookups working; cold-start benchmark &lt;1000ms for 2.76M wordlist verified.
