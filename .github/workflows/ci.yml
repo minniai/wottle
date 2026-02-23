@@ -32,7 +32,7 @@ jobs:
           node-version: 20
           cache: "pnpm"
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile false
+        run: pnpm install --frozen-lockfile
       - name: Run ESLint
         run: pnpm lint
       - name: Guard service_role usage
@@ -56,7 +56,7 @@ jobs:
           node-version: 20
           cache: "pnpm"
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile false
+        run: pnpm install --frozen-lockfile
       - name: Typecheck
         run: pnpm typecheck
 
@@ -78,7 +78,7 @@ jobs:
           node-version: 20
           cache: "pnpm"
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile false
+        run: pnpm install --frozen-lockfile
       - name: Run Unit Tests
         run: pnpm test:unit
 
@@ -100,7 +100,7 @@ jobs:
           node-version: 20
           cache: "pnpm"
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile false
+        run: pnpm install --frozen-lockfile
       - name: Run Integration Tests
         run: pnpm test:integration
 
@@ -149,7 +149,7 @@ jobs:
         with:
           version: latest
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile false
+        run: pnpm install --frozen-lockfile
       - name: Run quickstart automation
         run: |
           pnpm quickstart 2>&1 | tee quickstart-log.ndjson
@@ -220,7 +220,7 @@ jobs:
         with:
           version: latest
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile false
+        run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps
       - name: Start Supabase stack via quickstart
@@ -539,7 +539,7 @@ jobs:
         with:
           version: latest
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile false
+        run: pnpm install --frozen-lockfile
       - name: Start Supabase stack via quickstart
         run: |
           echo "Working directory: $(pwd)"

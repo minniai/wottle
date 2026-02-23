@@ -29,7 +29,7 @@
 
 **⚠️ CRITICAL**: This change must pass CI before US1 work begins — it validates that all existing tests and jobs pass under strict lockfile enforcement.
 
-- [ ] T002 In `.github/workflows/ci.yml`, replace every occurrence of `pnpm install --frozen-lockfile false` with `pnpm install --frozen-lockfile` (remove the ` false` suffix) across all 7 jobs (`lint`, `typecheck`, `test`, `integration`, `quickstart`, `playwright`, `perf-gate`); push to the feature branch and confirm the pipeline passes (FR-004, SC-007 baseline)
+- [x] T002 In `.github/workflows/ci.yml`, replace every occurrence of `pnpm install --frozen-lockfile false` with `pnpm install --frozen-lockfile` (remove the ` false` suffix) across all 7 jobs (`lint`, `typecheck`, `test`, `integration`, `quickstart`, `playwright`, `perf-gate`); push to the feature branch and confirm the pipeline passes (FR-004, SC-007 baseline)
 
 **Checkpoint**: All jobs pass with strict lockfile enforcement. Foundation ready.
 
@@ -43,7 +43,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] In `.github/workflows/ci.yml`, add `cache: "pnpm"` to the `with:` block of every `actions/setup-node@v4` step across all 7 jobs (`lint`, `typecheck`, `test`, `integration`, `quickstart`, `playwright`, `perf-gate`) in `.github/workflows/ci.yml` (FR-001)
+- [x] T003 [US1] In `.github/workflows/ci.yml`, add `cache: "pnpm"` to the `with:` block of every `actions/setup-node@v4` step across all 7 jobs (`lint`, `typecheck`, `test`, `integration`, `quickstart`, `playwright`, `perf-gate`) in `.github/workflows/ci.yml` (FR-001) — **ALREADY PRESENT** (confirmed by T001 audit: lines 33, 57, 79, 101, 146, 217, 536)
 - [ ] T004 [P] [US1] In the `playwright` job in `.github/workflows/ci.yml`, add an `actions/cache@v4` step immediately before the `pnpm exec playwright install --with-deps` step with `path: ~/.cache/ms-playwright` and `key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}` (no `restore-keys`) (FR-002)
 - [ ] T005 [P] [US1] In `.github/workflows/ci.yml`, remove all `needs:` entries from the `lint` job; remove all `needs:` entries from the `typecheck` job; change the `test` job `needs:` from `[typecheck]` to `[lint, typecheck]` (FR-003)
 - [ ] T006 [US1] In the `playwright` job `strategy:` block in `.github/workflows/ci.yml`, delete the `max-parallel: 1` line (FR-005)
