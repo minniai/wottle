@@ -471,3 +471,10 @@ Use `/speckit.specify` to create `specs/003-word-engine-scoring/`. Scope:
 - Supabase Cloud project setup
 - Sentry error tracking + APM
 - Mobile responsiveness validation
+
+## Active Technologies
+- TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (no Framer Motion needed for this scope) (004-board-ui-animations)
+- N/A (reads existing MatchState from Supabase Realtime broadcasts; no new persistence) (004-board-ui-animations)
+
+## Recent Changes
+- 004-board-ui-animations: Added TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (no Framer Motion needed for this scope)
