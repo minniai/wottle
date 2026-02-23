@@ -19,7 +19,7 @@
 
 **Purpose**: Establish a clear pre-change baseline before touching the workflow file.
 
-- [ ] T001 Audit `.github/workflows/ci.yml` — record every job name, its `needs:` chain, every `pnpm install` call with flags, and both `pnpm build` invocations; confirm the 7-stage serial topology matches the documented pre-change baseline in plan.md (read-only, no changes)
+- [x] T001 Audit `.github/workflows/ci.yml` — record every job name, its `needs:` chain, every `pnpm install` call with flags, and both `pnpm build` invocations; confirm the 7-stage serial topology matches the documented pre-change baseline in plan.md (read-only, no changes)
 
 ---
 
