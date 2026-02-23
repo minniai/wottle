@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap tiles on a 10x10 board to form Icelandic words, with chess-clock tension and spatial tile-freezing strategy.
 
-**Current State**: Spec `002-two-player-playtest` infrastructure is complete (login, lobby, matchmaking, round engine, realtime). The **core word-finding and scoring engine is a placeholder** — this is the critical next milestone. See `docs/project-analysis-2026-02-14.md` for full gap analysis.
+**Current State**: Specs `002-two-player-playtest` (infrastructure) and `003-word-engine-scoring` (word finding, scoring, frozen tiles) are complete. Spec `004-board-ui-animations` is specified but not yet implemented (41 tasks pending). The core gameplay loop (swap → find words → score → freeze) is fully functional. See `docs/project-analysis-2026-02-14.md` for the original gap analysis.
 
 ## Essential Commands
 
@@ -84,9 +84,11 @@ Before implementing any feature:
 2. Check existing specs in `specs/` for patterns
 3. Use appropriate Speckit command for the phase
 
-**Completed Spec**: `specs/002-two-player-playtest/` (All 52 tasks marked complete — infrastructure milestone done)
+**Completed Specs**:
+- `specs/002-two-player-playtest/` (All 52 tasks complete — infrastructure milestone)
+- `specs/003-word-engine-scoring/` (All 52 tasks complete — word engine, scoring, frozen tiles)
 
-**Next Spec Needed**: `003-word-engine-scoring` — Word-finder, scoring formula, frozen tiles (see Next Steps below)
+**In Progress Spec**: `specs/004-board-ui-animations/` (0/41 tasks complete — board UI animations, scored tile highlights, CSS transforms)
 
 ## Architecture
 
@@ -100,22 +102,24 @@ Before implementing any feature:
   - `/app/(lobby)` - Lobby page
   - `/app/match/[matchId]` - Match page with dynamic routing
 - `/lib` - Business logic and utilities
-  - `/lib/game-engine` - **Board mechanics** (mutations, swaps, validation) — missing word-finder
+  - `/lib/game-engine` - **Board mechanics + Word Engine** (mutations, swaps, dictionary, board scanner, delta detection, scoring, frozen tiles)
   - `/lib/match` - **Match orchestration** (round engine, state machine, conflict resolution)
   - `/lib/matchmaking` - Lobby presence, invites, player profiles
-  - `/lib/scoring` - **Scoring** (roundSummary, highlights) — stub implementation
+  - `/lib/scoring` - **Scoring** (roundSummary, highlights) — wired to word engine
   - `/lib/realtime` - Supabase Realtime with polling fallback
   - `/lib/supabase` - Client factories (server vs browser, with safety guards)
   - `/lib/rate-limiting` - Scoped rate limiting middleware
   - `/lib/a11y` - Focus trap, roving focus utilities
   - `/lib/observability` - Structured logging, performance marks
   - `/lib/types` - Shared TypeScript types
+  - `/lib/constants` - Board dimensions, feature flags, app constants
 - `/docs` - PRD, analysis, wordlists
-  - `/docs/wordlist` - Icelandic word list + letter scoring values (unused at runtime)
+  - `/docs/wordlist` - Icelandic word list (~2.76M inflected forms, loaded at runtime) + letter scoring values
 - `/components` - React Client Components
-  - `/components/game` - Board, BoardGrid, TimerHud
-  - `/components/match` - MatchClient, RoundSummaryPanel
+  - `/components/game` - Board, BoardGrid, MoveFeedback, TimerHud
+  - `/components/match` - MatchClient, MatchShell, RoundSummaryPanel, FinalSummary, WordHighlightOverlay
   - `/components/lobby` - LobbyList, LobbyLoginForm, MatchmakerControls
+- `/app/styles` - Board CSS (GPU-accelerated animations, scored tile highlights)
 
 ### Key Architectural Patterns
 
@@ -149,8 +153,9 @@ Round Flow:
 2. Trigger - Both players submit or timeout → advanceRound()
 3. Resolving - Conflict resolution (first-come-first-served by timestamp)
 4. Apply moves - Sequential application to board (immutable operations)
-5. Publish summary - Broadcast round summary via Realtime
-6. Next round - Create new round with updated board OR complete match (10 rounds)
+5. Word engine - Scan board, detect new words, score, freeze tiles
+6. Publish summary - Broadcast round summary (words, scores, frozen tiles) via Realtime
+7. Next round - Create new round with updated board OR complete match (10 rounds)
 ```
 
 #### 5. Game State Management
@@ -183,8 +188,8 @@ MatchClient Flow:
 
 All types defined in `/lib/types/` with Zod schemas for runtime validation:
 
-- `Board`: Coordinate, BoardGrid, MoveRequest, MoveResult
-- `Match`: PlayerIdentity, MatchState, RoundSummary, MatchPhase, SubmissionRecord
+- `Board`: Coordinate, BoardGrid, MoveRequest, MoveResult, Direction, BoardWord, ScanResult
+- `Match`: PlayerIdentity, MatchState, RoundSummary, MatchPhase, SubmissionRecord, FrozenTile, FrozenTileMap, WordScoreBreakdown, RoundScoreResult
 - `Matchmaking`: LobbyPresence, InvitationRecord, LobbyStatus
 
 Validation happens at Server Action entry points with clear error messages.
@@ -205,34 +210,33 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Current Test Health
 
-- **25 test files passing**, **3 failing** (broken import path)
-- 111 individual tests pass
-- Broken: `roundEngine.test.ts`, `roundSummary.test.ts`, `get-round-summary.contract.test.ts`
-- Root cause: `lib/scoring/roundSummary.ts` imports from `@/prd/wordlist/letter_scoring_values_is` but alias `@/prd` is not configured — actual path is `@/docs/wordlist/letter_scoring_values_is`
+- **44 test files passing** (39 unit/contract + 5 integration), **zero failures**
+- **238 individual tests pass**
+- Lint and typecheck both pass cleanly
 
 ### Implementation Status by Area
 
-| Area              | Status              | Notes                                                                  |
-| ----------------- | ------------------- | ---------------------------------------------------------------------- |
-| Auth & Lobby      | Complete            | Login, presence, realtime, polling fallback                            |
-| Matchmaking       | Complete            | Direct invites, auto-queue, match bootstrap                            |
-| Round Engine      | Complete            | State machine, conflict resolution, 10-round cycle                     |
-| Realtime          | Complete            | WebSocket channels + HTTP polling fallback                             |
-| Reconnection      | Complete            | 10s window, timer pause, state restoration                             |
-| Rate Limiting     | Complete            | 5/min auth, 30/min moves, 429 responses                               |
-| Accessibility     | Complete            | Focus traps, aria-live, keyboard nav, WCAG 2.1 A                      |
-| Observability     | Complete            | Structured logs, perf marks, analytics hooks                           |
-| **Word Finding**  | **Not Implemented** | No Trie, no 8-directional scanner, no delta detection                  |
-| **Scoring**       | **Stub**            | `computeWordScoresForRound()` returns `[]`, formula doesn't match PRD  |
-| **Frozen Tiles**  | **Not Implemented** | No freeze tracking, no swap validation, no visual overlay              |
-| Server Timer      | Partial             | Client-side display exists, server-authoritative enforcement incomplete |
+| Area              | Status      | Notes                                                                           |
+| ----------------- | ----------- | ------------------------------------------------------------------------------- |
+| Auth & Lobby      | Complete    | Login, presence, realtime, polling fallback                                     |
+| Matchmaking       | Complete    | Direct invites, auto-queue, match bootstrap                                     |
+| Round Engine      | Complete    | State machine, conflict resolution, 10-round cycle                              |
+| Realtime          | Complete    | WebSocket channels + HTTP polling fallback                                      |
+| Reconnection      | Complete    | 10s window, timer pause, state restoration                                      |
+| Rate Limiting     | Complete    | 5/min auth, 30/min moves, 429 responses                                        |
+| Accessibility     | Complete    | Focus traps, aria-live, keyboard nav, WCAG 2.1 A                               |
+| Observability     | Complete    | Structured logs, perf marks, analytics hooks                                    |
+| Word Finding      | Complete    | Set-based dictionary (2.76M entries), 8-directional scanner, delta detection    |
+| Scoring           | Complete    | PRD-compliant formula, length bonus, combo bonuses, unique word tracking         |
+| Frozen Tiles      | Complete    | Freeze tracking, swap validation, visual overlay, >=24 unfrozen safeguard       |
+| Board Animations  | Spec Only   | Spec 004 defined (41 tasks), CSS scored-tile-highlight keyframe exists          |
+| Server Timer      | Partial     | Client-side display exists, server-authoritative enforcement incomplete          |
 
-### Critical Gaps (PRD vs Reality)
+### Remaining Gaps
 
-1. **Word-Finder Engine**: The core gameplay loop (swap → find words → score → freeze) has no word-finding implementation. The 683k-entry Icelandic wordlist at `docs/wordlist/word_list_is.txt` is present but unused at runtime.
-2. **Scoring Formula**: Current implementation uses simplified bonuses that don't match the PRD formula (`(word_length - 2) * 5` for length, plus multi-word combo bonuses).
-3. **Frozen Tiles**: The PRD's tile-freezing territory mechanic (claimed words freeze tiles, 40% opacity overlay, >=24 unfrozen safeguard) is not implemented.
-4. **Broken import**: `lib/scoring/roundSummary.ts` line 3 references `@/prd/wordlist/...` which should be `@/docs/wordlist/...`.
+1. **Board UI Animations**: Spec 004 defines comprehensive tile swap animations, scored tile effects, and combo celebrations — not yet implemented beyond a basic CSS keyframe.
+2. **Server-Authoritative Timer**: Clock state is client-only; server-side enforcement and drift prevention not yet built.
+3. **Legacy Endpoints**: `api/board`, `api/swap`, `actions/getBoard`, `actions/swapTiles` remain from early prototyping.
 
 ## Code Standards
 
@@ -274,7 +278,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 - Move RTT: <200ms p95
 - Word validation: <50ms server-side
 - Realtime broadcast: <100ms p95
-- Animated components: Use Framer Motion or CSS transforms (GPU-accelerated)
+- Animated components: CSS transforms + keyframes (GPU-accelerated, no Framer Motion)
 - Critical paths: Instrumented with `performance.mark()`
 
 ### Git Conventions
@@ -433,23 +437,15 @@ Playtest configuration:
 
 ## Next Steps (Recommended Priority Order)
 
-### P0 — Fix Broken Tests (Immediate)
+### P0 — Board UI Animations: Spec 004 (In Progress)
 
-1. Fix import path in `lib/scoring/roundSummary.ts`: change `@/prd/wordlist/...` to `@/docs/wordlist/...`
-2. Verify all 28 test files pass
+Use `/speckit.implement` to execute `specs/004-board-ui-animations/tasks.md` (41 tasks). Scope:
 
-### P0 — Core Gameplay: Spec 003 Word Engine & Scoring (Blocks Playtesting)
-
-Use `/speckit.specify` to create `specs/003-word-engine-scoring/`. Scope:
-
-1. **Trie Dictionary**: Build in-memory Trie from `docs/wordlist/word_list_is.txt` for O(1) lookups
-2. **8-Directional Board Scanner**: Find all valid words (3+ letters) in horizontal, vertical, diagonal directions
-3. **Delta Detection**: Identify newly formed words after a swap (not pre-existing)
-4. **PRD-Compliant Scoring**: Length bonus `(word_length - 2) * 5`, multi-word combo bonuses
-5. **Unique Word Tracking**: Each word scores only once per player per match
-6. **Frozen Tiles**: Claimed words freeze tiles; frozen tiles can't be swapped; visual overlay
-7. **Integration**: Wire into `computeWordScoresForRound()` replacing the placeholder
-8. **Performance**: <50ms word validation per PRD SLA
+1. **Tile Swap Animations**: CSS transform-based swap transitions (GPU-accelerated)
+2. **Scored Tile Highlights**: 3-second highlight animation on scored tiles (keyframe exists in `app/styles/board.css`)
+3. **Combo Celebrations**: Visual feedback for multi-word combos
+4. **Frozen Tile Overlays**: Enhanced visual treatment for frozen tiles
+5. **Performance**: All animations via CSS transforms/opacity (no layout thrashing)
 
 ### P1 — Server-Authoritative Timer
 
@@ -473,8 +469,32 @@ Use `/speckit.specify` to create `specs/003-word-engine-scoring/`. Scope:
 - Mobile responsiveness validation
 
 ## Active Technologies
-- TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (no Framer Motion needed for this scope) (004-board-ui-animations)
-- N/A (reads existing MatchState from Supabase Realtime broadcasts; no new persistence) (004-board-ui-animations)
 
-## Recent Changes
-- 004-board-ui-animations: Added TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (no Framer Motion needed for this scope)
+- TypeScript 5.x, React 19+, Next.js 16 (App Router)
+- Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)
+- Supabase (Postgres, Realtime, RLS)
+- Vitest + Playwright for testing
+- pnpm package manager
+
+## Word Engine Architecture (Spec 003)
+
+The word engine pipeline runs server-side during round resolution:
+
+```txt
+1. Dictionary loads on first use → Set of ~2.76M Icelandic inflected forms
+2. Board Scanner → 8-directional scan (H, V, 4 diagonals) for 3+ letter words
+3. Delta Detector → Compares pre-swap vs post-swap boards to find newly formed words
+4. Scorer → Per-word: base (letter values) + length bonus (word_length - 2) * 5
+5. Combo Bonus → Multi-word bonus per player per round
+6. Unique Word Tracking → Duplicate words (same player, prior rounds) score 0
+7. Frozen Tiles → Scored word tiles freeze; >=24 unfrozen safeguard (FR-016)
+8. Observability → Structured JSON logging of scoring metrics
+```
+
+Key files:
+- `/lib/game-engine/dictionary.ts` — Set-based dictionary with `DictionaryLoadError`
+- `/lib/game-engine/boardScanner.ts` — 8-directional board scanning
+- `/lib/game-engine/deltaDetector.ts` — Pre/post swap word diffing
+- `/lib/game-engine/scorer.ts` — Letter points, length bonus, combo bonus calculations
+- `/lib/game-engine/frozenTiles.ts` — Tile freezing with 24-unfrozen minimum
+- `/lib/game-engine/wordEngine.ts` — Orchestrates the full pipeline per round
