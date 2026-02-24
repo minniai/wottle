@@ -80,33 +80,13 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run Unit Tests
         run: pnpm test:unit
-
-  integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    container: node:lts
-    needs: test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
       - name: Run Integration Tests
         run: pnpm test:integration
 
   build:
     name: Build Next.js
     runs-on: ubuntu-latest
-    needs: integration
+    needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -146,7 +126,6 @@ jobs:
     runs-on: ubuntu-latest
     # Note: No container here - needs Docker access for Supabase
     # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
-    needs: integration
     timeout-minutes: 30
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
