@@ -42,7 +42,6 @@ jobs:
     name: Typecheck
     runs-on: ubuntu-latest
     container: node:lts
-    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,7 +63,7 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     container: node:lts
-    needs: typecheck
+    needs: [lint, typecheck]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -169,7 +168,6 @@ jobs:
     needs: quickstart
     strategy:
       fail-fast: false
-      max-parallel: 1 # avoid port collisions when starting Next.js on 3000
       matrix:
         suite:
           - baseline
@@ -221,6 +219,11 @@ jobs:
           version: latest
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps
       - name: Start Supabase stack via quickstart
