@@ -35,6 +35,15 @@ export function GameChrome({
         {playerName}
       </span>
 
+      {position === "opponent" && moveCounter != null && (
+        <span
+          className="text-sm font-bold text-white/70"
+          data-testid="round-indicator"
+        >
+          Round {moveCounter}
+        </span>
+      )}
+
       <span
         className="text-xl font-bold"
         style={{ color: playerColor }}

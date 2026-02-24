@@ -332,6 +332,7 @@ export function MatchClient({
         timerSeconds={opponentTimeLeft}
         isPaused={opponentTimer.status !== "running"}
         hasSubmitted={opponentTimer.status === "paused"}
+        moveCounter={matchState.currentRound}
         playerColor={getPlayerColors(opponentSlot).hex}
       />
 

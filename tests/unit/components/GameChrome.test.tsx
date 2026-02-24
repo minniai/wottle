@@ -36,6 +36,21 @@ describe("GameChrome", () => {
     expect(screen.queryByText("M5")).not.toBeInTheDocument();
   });
 
+  test("renders round indicator for opponent position", () => {
+    render(
+      <GameChrome {...baseProps} position="opponent" moveCounter={3} />,
+    );
+
+    const roundEl = screen.getByTestId("round-indicator");
+    expect(roundEl).toHaveTextContent("Round 3");
+  });
+
+  test("does not render round indicator for player position", () => {
+    render(<GameChrome {...baseProps} moveCounter={3} />);
+
+    expect(screen.queryByTestId("round-indicator")).not.toBeInTheDocument();
+  });
+
   test("timer text is green when hasSubmitted is false", () => {
     render(<GameChrome {...baseProps} hasSubmitted={false} />);
 
