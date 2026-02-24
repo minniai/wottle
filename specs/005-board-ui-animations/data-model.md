@@ -1,6 +1,6 @@
 # Data Model: Board UI and Animations
 
-**Feature**: 004-board-ui-animations
+**Feature**: 005-board-ui-animations
 **Date**: 2026-02-23
 
 ## Overview
