@@ -60,7 +60,7 @@ jobs:
         run: pnpm typecheck
 
   test:
-    name: Unit Tests
+    name: Unit + Integration Tests
     runs-on: ubuntu-latest
     container: node:lts
     needs: [lint, typecheck]
@@ -180,7 +180,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.75.0
       - name: Capture CLI version for Docker cache key
         id: supabase-version
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
@@ -270,7 +270,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.75.0
       - name: Capture CLI version for Docker cache key
         id: supabase-version
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
@@ -615,7 +615,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.75.0
       - name: Capture CLI version for Docker cache key
         id: supabase-version
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT

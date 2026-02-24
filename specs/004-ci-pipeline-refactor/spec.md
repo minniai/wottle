@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-ci-pipeline-refactor`
 **Created**: 2026-02-23
-**Status**: Draft
+**Status**: Complete
 **Input**: User description: "refactor the ci pipeline as proposed in the document docs/ci-pipeline-2026-02-26.md"
 
 ## Clarifications
