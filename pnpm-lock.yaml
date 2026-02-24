@@ -9,6 +9,7 @@ importers:
   .:
     dependencies:
       '@supabase/supabase-js':
+      
         specifier: ^2.90.1
         version: 2.90.1
       next:
