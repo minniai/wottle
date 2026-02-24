@@ -86,6 +86,10 @@ jobs:
   build:
     name: Build Next.js
     runs-on: ubuntu-latest
+    # container: node:lts keeps pnpm+Node behaviour identical to lint/typecheck/test.
+    # Without this, act runs the job directly in the platform image (no inner container)
+    # which causes pnpm install → next build to produce no .next/ output.
+    container: node:lts
     needs: test
     steps:
       - name: Checkout
@@ -110,6 +114,16 @@ jobs:
           # the real values are injected at runtime via .env.local in playwright/perf-gate.
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+      - name: Verify build output
+        run: |
+          echo "=== .next/ contents ==="
+          ls -la .next/ 2>/dev/null || { echo "ERROR: .next/ not found"; exit 1; }
+          if [ ! -f .next/BUILD_ID ]; then
+            echo "ERROR: .next/BUILD_ID missing — next build failed or wrote to wrong directory"
+            echo "Working dir: $(pwd) | GITHUB_WORKSPACE: ${GITHUB_WORKSPACE:-unset}"
+            exit 1
+          fi
+          echo "BUILD_ID: $(cat .next/BUILD_ID)"
       - name: Prune build artifact (remove incremental cache and trace)
         # act does not parse multiline YAML path: blocks — prune here instead
         run: rm -rf .next/cache .next/trace
