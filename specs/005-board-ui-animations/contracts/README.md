@@ -1,6 +1,6 @@
 # API Contracts: Board UI and Animations
 
-**Feature**: 004-board-ui-animations
+**Feature**: 005-board-ui-animations
 
 ## No New API Contracts
 
