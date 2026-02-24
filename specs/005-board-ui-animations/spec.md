@@ -1,6 +1,6 @@
 # Feature Specification: Board UI and Animations
 
-**Feature Branch**: `004-board-ui-animations`
+**Feature Branch**: `005-board-ui-animations`
 **Created**: 2026-02-23
 **Status**: Draft
 **Input**: Implement the PRD match layout (opponent bar, grid, player bar), responsive board sizing, frozen tile visual overlays, core interaction animations (swap, shake, word highlight), and game chrome (scores, move counter, timer state colors) to transform the match screen from a backend test harness into a playable game view.

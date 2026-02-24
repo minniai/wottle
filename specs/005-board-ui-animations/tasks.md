@@ -1,6 +1,6 @@
 # Tasks: Board UI and Animations
 
-**Input**: Design documents from `/specs/004-board-ui-animations/`
+**Input**: Design documents from `/specs/005-board-ui-animations/`
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md
 
 **Tests**: TDD is NON-NEGOTIABLE per constitution. Test tasks are included and MUST be written and fail before implementation.

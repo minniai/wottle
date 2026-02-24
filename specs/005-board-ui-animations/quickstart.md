@@ -1,6 +1,6 @@
 # Quickstart: Board UI and Animations
 
-**Feature**: 004-board-ui-animations
+**Feature**: 005-board-ui-animations
 **Date**: 2026-02-23
 
 ## Prerequisites
@@ -15,7 +15,7 @@ No additional setup required beyond the standard project setup. This feature mod
 
 ```bash
 # 1. Switch to feature branch
-git checkout 004-board-ui-animations
+git checkout 005-board-ui-animations
 
 # 2. Install dependencies (no new packages added)
 pnpm install
