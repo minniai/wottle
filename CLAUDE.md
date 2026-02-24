@@ -223,14 +223,14 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 | Round Engine      | Complete    | State machine, conflict resolution, 10-round cycle                              |
 | Realtime          | Complete    | WebSocket channels + HTTP polling fallback                                      |
 | Reconnection      | Complete    | 10s window, timer pause, state restoration                                      |
-| Rate Limiting     | Complete    | 5/min auth, 30/min moves, 429 responses                                        |
-| Accessibility     | Complete    | Focus traps, aria-live, keyboard nav, WCAG 2.1 A                               |
+| Rate Limiting     | Complete    | 5/min auth, 30/min moves, 429 responses                                         |
+| Accessibility     | Complete    | Focus traps, aria-live, keyboard nav, WCAG 2.1 A                                |
 | Observability     | Complete    | Structured logs, perf marks, analytics hooks                                    |
 | Word Finding      | Complete    | Set-based dictionary (2.76M entries), 8-directional scanner, delta detection    |
-| Scoring           | Complete    | PRD-compliant formula, length bonus, combo bonuses, unique word tracking         |
+| Scoring           | Complete    | PRD-compliant formula, length bonus, combo bonuses, unique word tracking        |
 | Frozen Tiles      | Complete    | Freeze tracking, swap validation, visual overlay, >=24 unfrozen safeguard       |
 | Board Animations  | Spec Only   | Spec 004 defined (41 tasks), CSS scored-tile-highlight keyframe exists          |
-| Server Timer      | Partial     | Client-side display exists, server-authoritative enforcement incomplete          |
+| Server Timer      | Partial     | Client-side display exists, server-authoritative enforcement incomplete         |
 
 ### Remaining Gaps
 
@@ -468,14 +468,6 @@ Use `/speckit.implement` to execute `specs/004-board-ui-animations/tasks.md` (41
 - Sentry error tracking + APM
 - Mobile responsiveness validation
 
-## Active Technologies
-
-- TypeScript 5.x, React 19+, Next.js 16 (App Router)
-- Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)
-- Supabase (Postgres, Realtime, RLS)
-- Vitest + Playwright for testing
-- pnpm package manager
-
 ## Word Engine Architecture (Spec 003)
 
 The word engine pipeline runs server-side during round resolution:
@@ -498,3 +490,19 @@ Key files:
 - `/lib/game-engine/scorer.ts` — Letter points, length bonus, combo bonus calculations
 - `/lib/game-engine/frozenTiles.ts` — Tile freezing with 24-unfrozen minimum
 - `/lib/game-engine/wordEngine.ts` — Orchestrates the full pipeline per round
+
+## Active Technologies
+
+- TypeScript 5.x, React 19+, Next.js 16 (App Router)
+- Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)
+- Supabase (Postgres, Realtime, RLS)
+- Vitest + Playwright for testing
+- pnpm package manager
+- YAML (GitHub Actions workflow syntax); TypeScript 5.x / Node.js 20 (project language — unchanged) + `actions/cache@v4`, `actions/upload-artifact@v4`, `actions/download-artifact@v4`, `supabase/setup-cli@v1`, `pnpm/action-setup@v4`, `actions/setup-node@v4` (004-ci-pipeline-refactor)
+- N/A for application data. GitHub ephemeral artifact storage used within runs (`retention-days: 1` for build artifact). `actions/cache@v4` used for pnpm store, Playwright browsers, and Docker image archive across runs. (004-ci-pipeline-refactor)
+- TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (no Framer Motion needed for this scope) (004-board-ui-animations)
+- N/A (reads existing MatchState from Supabase Realtime broadcasts; no new persistence) (004-board-ui-animations)
+
+## Recent Changes
+- 004-ci-pipeline-refactor: Added YAML (GitHub Actions workflow syntax); TypeScript 5.x / Node.js 20 (project language — unchanged) + `actions/cache@v4`, `actions/upload-artifact@v4`, `actions/download-artifact@v4`, `supabase/setup-cli@v1`, `pnpm/action-setup@v4`, `actions/setup-node@v4`
+- 005-board-ui-animations: Added TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (no Framer Motion needed for this scope)
