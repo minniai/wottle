@@ -36,6 +36,29 @@ describe("GameChrome", () => {
     expect(screen.queryByText("M5")).not.toBeInTheDocument();
   });
 
+  test("timer text is green when hasSubmitted is false", () => {
+    render(<GameChrome {...baseProps} hasSubmitted={false} />);
+
+    const timerEl = screen.getByText("3:00");
+    expect(timerEl).toHaveClass("text-emerald-400");
+    expect(timerEl).not.toHaveClass("text-slate-400");
+  });
+
+  test("timer text is neutral when hasSubmitted is true", () => {
+    render(<GameChrome {...baseProps} hasSubmitted={true} />);
+
+    const timerEl = screen.getByText("3:00");
+    expect(timerEl).toHaveClass("text-slate-400");
+    expect(timerEl).not.toHaveClass("text-emerald-400");
+  });
+
+  test("score displays with playerColor accent", () => {
+    render(<GameChrome {...baseProps} score={99} playerColor="#EF4444" />);
+
+    const scoreEl = screen.getByText("99");
+    expect(scoreEl).toHaveStyle({ color: "#EF4444" });
+  });
+
   test("maps playerSlot to correct position labels", () => {
     const { rerender } = render(
       <GameChrome {...baseProps} position="opponent" />,

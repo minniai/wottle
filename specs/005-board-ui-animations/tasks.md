@@ -84,14 +84,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T014 [P] [US3] Write failing test in `tests/unit/components/GameChrome.test.tsx` — test that score displays the numeric value from props; test that move counter renders "M3" when moveCounter=3; test that move counter is absent for position="opponent"; test that timer text is green (class or style) when `hasSubmitted=false` and neutral when `hasSubmitted=true`
-- [ ] T015 [P] [US3] Write failing test in `tests/unit/components/TimerHud.test.tsx` — test that TimerHud accepts `hasSubmitted` prop and applies green text color class when false, neutral color class when true (FR-014)
+- [x] T014 [P] [US3] Write failing test in `tests/unit/components/GameChrome.test.tsx` — test that score displays the numeric value from props; test that move counter renders "M3" when moveCounter=3; test that move counter is absent for position="opponent"; test that timer text is green (class or style) when `hasSubmitted=false` and neutral when `hasSubmitted=true`
+- [x] T015 [P] [US3] Write failing test in `tests/unit/components/TimerHud.test.tsx` — test that TimerHud accepts `hasSubmitted` prop and applies green text color class when false, neutral color class when true (FR-014)
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Add score and move counter data binding in `components/match/GameChrome.tsx` — render `score` as a prominent number (e.g., `text-2xl font-bold`). Render `moveCounter` as "M{n}" (e.g., `text-sm font-mono`). Use `playerColor` for score accent. Format timer via existing MM:SS logic or delegate to TimerHud sub-component
-- [ ] T017 [US3] Add timer state colors to `components/game/TimerHud.tsx` — accept new `hasSubmitted` boolean prop. When `hasSubmitted=false`, apply green text color (`text-emerald-400`). When `hasSubmitted=true`, apply neutral color (`text-slate-400`). Keep existing countdown and paused logic unchanged (FR-014)
-- [ ] T018 [US3] Wire submission status into GameChrome in `components/match/MatchClient.tsx` — derive `hasSubmitted` for each player from round submission state. If not directly available in MatchState, use timer `status === "paused"` as proxy (timer pauses on submission per existing logic). Pass to GameChrome → TimerHud
+- [x] T016 [US3] Add score and move counter data binding in `components/match/GameChrome.tsx` — render `score` as a prominent number (e.g., `text-2xl font-bold`). Render `moveCounter` as "M{n}" (e.g., `text-sm font-mono`). Use `playerColor` for score accent. Format timer via existing MM:SS logic or delegate to TimerHud sub-component
+- [x] T017 [US3] Add timer state colors to `components/game/TimerHud.tsx` — accept new `hasSubmitted` boolean prop. When `hasSubmitted=false`, apply green text color (`text-emerald-400`). When `hasSubmitted=true`, apply neutral color (`text-slate-400`). Keep existing countdown and paused logic unchanged (FR-014)
+- [x] T018 [US3] Wire submission status into GameChrome in `components/match/MatchClient.tsx` — derive `hasSubmitted` for each player from round submission state. If not directly available in MatchState, use timer `status === "paused"` as proxy (timer pauses on submission per existing logic). Pass to GameChrome → TimerHud
 
 **Checkpoint**: Opponent bar shows opponent score + timer. Player bar shows own score + timer + M{n}. Timer color changes on submission.
 

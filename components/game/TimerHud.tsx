@@ -6,9 +6,10 @@ interface TimerHudProps {
     timeLeft: number; // in seconds
     isPaused: boolean;
     roundNumber: number;
+    hasSubmitted?: boolean;
 }
 
-export function TimerHud({ timeLeft, isPaused, roundNumber }: TimerHudProps) {
+export function TimerHud({ timeLeft, isPaused, roundNumber, hasSubmitted = false }: TimerHudProps) {
     const [displayTime, setDisplayTime] = useState(timeLeft);
 
     useEffect(() => {
@@ -33,7 +34,7 @@ export function TimerHud({ timeLeft, isPaused, roundNumber }: TimerHudProps) {
             <div className="text-xl font-bold" data-testid="round-indicator">
                 Round {roundNumber}
             </div>
-            <div className="text-2xl font-mono" data-testid="timer-display">
+            <div className={`text-2xl font-mono ${!hasSubmitted ? "text-emerald-400" : "text-slate-400"}`} data-testid="timer-display">
                 {minutes}:{seconds.toString().padStart(2, "0")}
             </div>
             {isPaused && (
