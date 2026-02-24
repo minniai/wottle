@@ -15,6 +15,15 @@ const config: Config = {
           cell: "#1e293b",
           highlight: "#38bdf8",
         },
+        player: {
+          a: "#3B82F6",
+          b: "#EF4444",
+        },
+      },
+      transitionDuration: {
+        swap: "200ms",
+        shake: "350ms",
+        highlight: "700ms",
       },
     },
   },

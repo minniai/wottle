@@ -19,8 +19,8 @@
 
 **Purpose**: Create shared constants and configuration that multiple user stories depend on
 
-- [ ] T001 [P] Create centralized player color constants in `lib/constants/playerColors.ts` — export PLAYER_A_HEX (#3B82F6), PLAYER_A_OVERLAY (rgba 40%), PLAYER_A_HIGHLIGHT (rgba 60%), PLAYER_B_HEX (#EF4444), PLAYER_B_OVERLAY (rgba 40%), PLAYER_B_HIGHLIGHT (rgba 60%), BOTH_GRADIENT (linear-gradient 135deg split), and a `getPlayerColors(slot: PlayerSlot)` helper that returns the correct color set for a given player slot
-- [ ] T002 [P] Update `tailwind.config.ts` — add player color tokens under `colors.player` (player.a: #3B82F6, player.b: #EF4444) and animation duration tokens under `transitionDuration` (swap: 200ms, shake: 350ms, highlight: 700ms) so Tailwind classes like `bg-player-a` and `duration-swap` are available
+- [x] T001 [P] Create centralized player color constants in `lib/constants/playerColors.ts` — export PLAYER_A_HEX (#3B82F6), PLAYER_A_OVERLAY (rgba 40%), PLAYER_A_HIGHLIGHT (rgba 60%), PLAYER_B_HEX (#EF4444), PLAYER_B_OVERLAY (rgba 40%), PLAYER_B_HIGHLIGHT (rgba 60%), BOTH_GRADIENT (linear-gradient 135deg split), and a `getPlayerColors(slot: PlayerSlot)` helper that returns the correct color set for a given player slot
+- [x] T002 [P] Update `tailwind.config.ts` — add player color tokens under `colors.player` (player.a: #3B82F6, player.b: #EF4444) and animation duration tokens under `transitionDuration` (swap: 200ms, shake: 350ms, highlight: 700ms) so Tailwind classes like `bg-player-a` and `duration-swap` are available
 
 ---
 
