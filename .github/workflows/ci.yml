@@ -125,6 +125,11 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          # Placeholder values — no live Supabase instance at build time.
+          # NEXT_PUBLIC_* vars are inlined into the client bundle by Next.js;
+          # the real values are injected at runtime via .env.local in playwright/perf-gate.
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
       - name: Prune build artifact (remove incremental cache and trace)
         # act does not parse multiline YAML path: blocks — prune here instead
         run: rm -rf .next/cache .next/trace
