@@ -125,14 +125,14 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+      - name: Prune build artifact (remove incremental cache and trace)
+        # act does not parse multiline YAML path: blocks — prune here instead
+        run: rm -rf .next/cache .next/trace
       - name: Upload Next.js build artifact
         uses: actions/upload-artifact@v4
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            .next/
-            !.next/cache/
-            !.next/trace
+          path: .next/
           if-no-files-found: error
           retention-days: 1
 
