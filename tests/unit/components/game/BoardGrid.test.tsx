@@ -216,7 +216,7 @@ describe("BoardGrid swap animation (US5)", () => {
     expect(gridEl).not.toHaveAttribute("data-animating");
   });
 
-  test("swap animation uses transform property (not top/left)", () => {
+  test("swap animation uses FLIP transforms (not top/left)", () => {
     const grid = createGrid();
     render(<BoardGrid grid={grid} matchId="test-match-id" />);
 
@@ -225,9 +225,9 @@ describe("BoardGrid swap animation (US5)", () => {
     act(() => { fireEvent.click(tiles[0]); });
     act(() => { fireEvent.click(tiles[1]); });
 
-    // Tiles should have transform set (not top/left)
-    expect(tiles[0].style.transform).toContain("translate");
-    expect(tiles[1].style.transform).toContain("translate");
+    // FLIP: tiles get animating class (transform path, not top/left)
+    expect(tiles[0]).toHaveClass("board-grid__cell--animating");
+    expect(tiles[1]).toHaveClass("board-grid__cell--animating");
     expect(tiles[0].style.top).toBe("");
     expect(tiles[0].style.left).toBe("");
   });

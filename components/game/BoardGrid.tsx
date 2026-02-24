@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -216,25 +217,25 @@ function BoardGridActive({
   const handleSwap = useCallback(
     async (from: SelectedTile, to: SelectedTile) => {
       setIsSubmitting(true);
-      const previousGrid = currentGrid.map((row) => [...row]) as BoardGridType;
-      const moveRequest: MoveRequest = {
-        from,
-        to,
-      };
+      const moveRequest: MoveRequest = { from, to };
 
       try {
         const result = await submitSwapRequest(matchId, moveRequest);
 
-        // Optimistic update or wait for server?
-        // For now, we rely on the result or parent update.
-        // If result has grid, use it.
         if (result.grid) {
           setCurrentGrid(result.grid);
         }
 
         onSwapComplete?.({ move: moveRequest, result });
       } catch (error) {
-        setCurrentGrid(previousGrid);
+        // Reverse the optimistic swap on error
+        setCurrentGrid((prev) => {
+          const reverted = prev.map((row) => [...row]) as BoardGridType;
+          const temp = reverted[from.y][from.x];
+          reverted[from.y][from.x] = reverted[to.y][to.x];
+          reverted[to.y][to.x] = temp;
+          return reverted;
+        });
         const message =
           error instanceof Error
             ? error.message
@@ -248,7 +249,7 @@ function BoardGridActive({
         onSwapError?.({
           move: moveRequest,
           message: normalizedMessage,
-          grid: previousGrid,
+          grid: currentGrid,
         });
       } finally {
         setIsSubmitting(false);
@@ -256,6 +257,14 @@ function BoardGridActive({
     },
     [currentGrid, matchId, onSwapComplete, onSwapError]
   );
+
+  // FLIP animation state: stored position deltas from before the grid swap
+  const flipRef = useRef<{
+    from: SelectedTile;
+    to: SelectedTile;
+    dx: number;
+    dy: number;
+  } | null>(null);
 
   const animateSwap = useCallback(
     (from: SelectedTile, to: SelectedTile) => {
@@ -269,56 +278,86 @@ function BoardGridActive({
         return;
       }
 
+      // FIRST: measure positions before the swap
       const fromRect = fromEl.getBoundingClientRect();
       const toRect = toEl.getBoundingClientRect();
       const dx = toRect.left - fromRect.left;
       const dy = toRect.top - fromRect.top;
 
+      // Store FLIP data for useLayoutEffect
+      flipRef.current = { from, to, dx, dy };
+
+      // LAST: swap grid data immediately (optimistic local update)
+      setCurrentGrid((prev) => {
+        const next = prev.map((row) => [...row]) as BoardGridType;
+        const temp = next[from.y][from.x];
+        next[from.y][from.x] = next[to.y][to.x];
+        next[to.y][to.x] = temp;
+        return next;
+      });
       setIsAnimating(true);
-
-      fromEl.classList.add("board-grid__cell--animating");
-      toEl.classList.add("board-grid__cell--animating");
-      fromEl.style.transform = `translate(${dx}px, ${dy}px)`;
-      toEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
-
-      let cleaned = false;
-      const cleanup = () => {
-        if (cleaned) return;
-        cleaned = true;
-        fromEl.removeEventListener("transitionend", onTransitionEnd);
-
-        // Disable transitions before clearing transforms to prevent
-        // a reverse slide animation back to original positions.
-        fromEl.style.transition = "none";
-        toEl.style.transition = "none";
-        fromEl.style.transform = "";
-        toEl.style.transform = "";
-        fromEl.classList.remove("board-grid__cell--animating");
-        toEl.classList.remove("board-grid__cell--animating");
-
-        // Re-enable transitions after the browser paints the cleared state
-        requestAnimationFrame(() => {
-          fromEl.style.transition = "";
-          toEl.style.transition = "";
-        });
-
-        setIsAnimating(false);
-        void handleSwap(from, to);
-      };
-
-      // Only respond to the transform property finishing — not
-      // border-color or box-shadow which complete earlier.
-      const onTransitionEnd = (e: TransitionEvent) => {
-        if (e.propertyName === "transform") {
-          cleanup();
-        }
-      };
-      fromEl.addEventListener("transitionend", onTransitionEnd);
-      // Fallback if transitionend doesn't fire (e.g., reduced motion, dx=0)
-      setTimeout(cleanup, 300);
     },
     [handleSwap],
   );
+
+  // FLIP: INVERT + PLAY phases run after React commits the swapped grid
+  useLayoutEffect(() => {
+    const flip = flipRef.current;
+    if (!flip) return;
+    flipRef.current = null;
+
+    const { from, to, dx, dy } = flip;
+    // After grid swap, the tile that WAS at `from` is now at `to` and vice versa
+    const fromKey = `${from.x},${from.y}`;
+    const toKey = `${to.x},${to.y}`;
+    const elAtFrom = tileRefs.current.get(fromKey);
+    const elAtTo = tileRefs.current.get(toKey);
+
+    if (!elAtFrom || !elAtTo) {
+      setIsAnimating(false);
+      void handleSwap(from, to);
+      return;
+    }
+
+    // INVERT: apply inverse transforms so tiles visually appear at
+    // their OLD positions (before the swap)
+    elAtFrom.style.transition = "none";
+    elAtTo.style.transition = "none";
+    // elAtFrom now holds the letter that came FROM `to` — move it back
+    elAtFrom.style.transform = `translate(${dx}px, ${dy}px)`;
+    // elAtTo now holds the letter that came FROM `from` — move it back
+    elAtTo.style.transform = `translate(${-dx}px, ${-dy}px)`;
+    elAtFrom.classList.add("board-grid__cell--animating");
+    elAtTo.classList.add("board-grid__cell--animating");
+
+    // Force reflow so the browser registers the inverted position
+    void elAtFrom.offsetHeight;
+
+    // PLAY: remove transforms with transition enabled → CSS animates
+    // tiles from inverted (old) position to natural (new) position
+    elAtFrom.style.transition = "";
+    elAtTo.style.transition = "";
+    elAtFrom.style.transform = "";
+    elAtTo.style.transform = "";
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      elAtFrom.removeEventListener("transitionend", onEnd);
+      elAtFrom.classList.remove("board-grid__cell--animating");
+      elAtTo.classList.remove("board-grid__cell--animating");
+      setIsAnimating(false);
+      void handleSwap(from, to);
+    };
+
+    const onEnd = (e: TransitionEvent) => {
+      if (e.propertyName === "transform") cleanup();
+    };
+    elAtFrom.addEventListener("transitionend", onEnd);
+    // Fallback if transitionend doesn't fire (reduced motion, dx=0)
+    setTimeout(cleanup, 300);
+  }, [currentGrid, handleSwap]);
 
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
