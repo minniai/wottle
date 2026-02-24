@@ -19,8 +19,8 @@
 
 **Purpose**: Create shared constants and configuration that multiple user stories depend on
 
-- [ ] T001 [P] Create centralized player color constants in `lib/constants/playerColors.ts` — export PLAYER_A_HEX (#3B82F6), PLAYER_A_OVERLAY (rgba 40%), PLAYER_A_HIGHLIGHT (rgba 60%), PLAYER_B_HEX (#EF4444), PLAYER_B_OVERLAY (rgba 40%), PLAYER_B_HIGHLIGHT (rgba 60%), BOTH_GRADIENT (linear-gradient 135deg split), and a `getPlayerColors(slot: PlayerSlot)` helper that returns the correct color set for a given player slot
-- [ ] T002 [P] Update `tailwind.config.ts` — add player color tokens under `colors.player` (player.a: #3B82F6, player.b: #EF4444) and animation duration tokens under `transitionDuration` (swap: 200ms, shake: 350ms, highlight: 700ms) so Tailwind classes like `bg-player-a` and `duration-swap` are available
+- [x] T001 [P] Create centralized player color constants in `lib/constants/playerColors.ts` — export PLAYER_A_HEX (#3B82F6), PLAYER_A_OVERLAY (rgba 40%), PLAYER_A_HIGHLIGHT (rgba 60%), PLAYER_B_HEX (#EF4444), PLAYER_B_OVERLAY (rgba 40%), PLAYER_B_HIGHLIGHT (rgba 60%), BOTH_GRADIENT (linear-gradient 135deg split), and a `getPlayerColors(slot: PlayerSlot)` helper that returns the correct color set for a given player slot
+- [x] T002 [P] Update `tailwind.config.ts` — add player color tokens under `colors.player` (player.a: #3B82F6, player.b: #EF4444) and animation duration tokens under `transitionDuration` (swap: 200ms, shake: 350ms, highlight: 700ms) so Tailwind classes like `bg-player-a` and `duration-swap` are available
 
 ---
 
@@ -28,9 +28,9 @@
 
 **Purpose**: Refactor existing components to accept the new layout pattern. MUST complete before any user story work begins.
 
-- [ ] T003 Refactor `components/match/MatchShell.tsx` — accept a `loading` boolean prop. When `loading=true`, render a skeleton layout (gray header bars + 10x10 gray tile grid via `aria-hidden` divs reusing `.board-grid` CSS). When `loading=false`, render only `{children}`. Remove the always-visible "Board Loading" / "Players" placeholder sections. Keep `data-testid="match-shell"`
-- [ ] T004 Fix nested `<main>` tag in `app/match/[matchId]/page.tsx` — replace the inner `<main>` element with a `<div>` or `<section>` to avoid invalid HTML nesting with root layout's `<main>`. Preserve existing className and responsive constraints
-- [ ] T005 Add skeleton board rendering to `components/game/BoardGrid.tsx` — when `grid` prop is empty or undefined, render 100 inert gray `<div>` placeholder tiles (not `<button>`) using the same `.board-grid` CSS grid. Include `aria-hidden="true"` on the skeleton container. No layout shift when real data replaces skeleton (FR-017a)
+- [x] T003 Refactor `components/match/MatchShell.tsx` — accept a `loading` boolean prop. When `loading=true`, render a skeleton layout (gray header bars + 10x10 gray tile grid via `aria-hidden` divs reusing `.board-grid` CSS). When `loading=false`, render only `{children}`. Remove the always-visible "Board Loading" / "Players" placeholder sections. Keep `data-testid="match-shell"`
+- [x] T004 Fix nested `<main>` tag in `app/match/[matchId]/page.tsx` — replace the inner `<main>` element with a `<div>` or `<section>` to avoid invalid HTML nesting with root layout's `<main>`. Preserve existing className and responsive constraints
+- [x] T005 Add skeleton board rendering to `components/game/BoardGrid.tsx` — when `grid` prop is empty or undefined, render 100 inert gray `<div>` placeholder tiles (not `<button>`) using the same `.board-grid` CSS grid. Include `aria-hidden="true"` on the skeleton container. No layout shift when real data replaces skeleton (FR-017a)
 
 **Checkpoint**: MatchShell conditionally renders skeleton or content. Page has valid HTML structure. BoardGrid handles empty state.
 
@@ -44,14 +44,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Write failing test in `tests/unit/components/GameChrome.test.tsx` — test that GameChrome renders opponent bar with name, timer, and score; renders player bar with name, timer, score, and move counter M{n}; correctly maps playerSlot to opponent/player position; does not render move counter in opponent bar
-- [ ] T007 [P] [US1] Write failing test in `tests/unit/components/MatchClient.test.tsx` — test that MatchClient renders layout in order: GameChrome(opponent) → BoardGrid → GameChrome(player); no debug metadata (match ID, "Round limit", "Status") is rendered when `?debug` param is absent; debug metadata IS rendered when `?debug=1` is in URL
+- [x] T006 [P] [US1] Write failing test in `tests/unit/components/GameChrome.test.tsx` — test that GameChrome renders opponent bar with name, timer, and score; renders player bar with name, timer, score, and move counter M{n}; correctly maps playerSlot to opponent/player position; does not render move counter in opponent bar
+- [x] T007 [P] [US1] Write failing test in `tests/unit/components/MatchClient.test.tsx` — test that MatchClient renders layout in order: GameChrome(opponent) → BoardGrid → GameChrome(player); no debug metadata (match ID, "Round limit", "Status") is rendered when `?debug` param is absent; debug metadata IS rendered when `?debug=1` is in URL
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Create `components/match/GameChrome.tsx` — a client component that renders a horizontal bar with: player name/label, timer (using TimerHud or inline), cumulative score, and optional move counter M{n}. Accept props: `position` ("opponent" | "player"), `playerName`, `score`, `timerSeconds`, `isPaused`, `hasSubmitted`, `moveCounter?`, `playerColor`. Use `playerColor` for a subtle accent (border or score text color). Apply Tailwind responsive classes for mobile stacking (FR-004)
-- [ ] T009 [US1] Refactor `components/match/MatchClient.tsx` layout — replace current render structure with: `<GameChrome position="opponent" .../>` → `<BoardGrid .../>` → `<GameChrome position="player" .../>`. Derive opponent/player props from `matchState.scores`, `matchState.timers`, `matchState.currentRound`, `playerSlot`, and `currentPlayerId`. Remove the inline `<TimerHud>` usage above the board (timer is now inside GameChrome). Keep reconnect/polling/error banners and RoundSummaryPanel
-- [ ] T010 [US1] Implement debug metadata toggle in `components/match/MatchClient.tsx` — read `?debug=1` URL parameter via `useSearchParams()`. Only when present, render a collapsible section showing match ID, round number, status, player IDs. In production builds (check `process.env.NODE_ENV`), skip rendering the debug section entirely (FR-015, FR-016)
+- [x] T008 [US1] Create `components/match/GameChrome.tsx` — a client component that renders a horizontal bar with: player name/label, timer (using TimerHud or inline), cumulative score, and optional move counter M{n}. Accept props: `position` ("opponent" | "player"), `playerName`, `score`, `timerSeconds`, `isPaused`, `hasSubmitted`, `moveCounter?`, `playerColor`. Use `playerColor` for a subtle accent (border or score text color). Apply Tailwind responsive classes for mobile stacking (FR-004)
+- [x] T009 [US1] Refactor `components/match/MatchClient.tsx` layout — replace current render structure with: `<GameChrome position="opponent" .../>` → `<BoardGrid .../>` → `<GameChrome position="player" .../>`. Derive opponent/player props from `matchState.scores`, `matchState.timers`, `matchState.currentRound`, `playerSlot`, and `currentPlayerId`. Remove the inline `<TimerHud>` usage above the board (timer is now inside GameChrome). Keep reconnect/polling/error banners and RoundSummaryPanel
+- [x] T010 [US1] Implement debug metadata toggle in `components/match/MatchClient.tsx` — read `?debug=1` URL parameter via `useSearchParams()`. Only when present, render a collapsible section showing match ID, round number, status, player IDs. In production builds (check `process.env.NODE_ENV`), skip rendering the debug section entirely (FR-015, FR-016)
 
 **Checkpoint**: Match screen shows opponent bar → board → player bar. Debug metadata hidden by default, accessible via `?debug=1`. US1 acceptance scenarios satisfied.
 
@@ -65,12 +65,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [US2] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that BoardGrid container has CSS properties ensuring square aspect ratio; test that `--board-max` custom property is computed (or verify the responsive CSS classes are applied); test minimum tile size of 28px is enforced via CSS min-width
+- [x] T011 [US2] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that BoardGrid container has CSS properties ensuring square aspect ratio; test that `--board-max` custom property is computed (or verify the responsive CSS classes are applied); test minimum tile size of 28px is enforced via CSS min-width
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Update `app/styles/board.css` — replace `width: 95%` on `.board-grid` with viewport-responsive sizing: use CSS custom properties `--chrome-height` (sum of opponent bar + player bar + gaps, ~120px) and `--board-max: min(calc(100vh - var(--chrome-height) - 2rem), calc(100vw - 2rem))`. Set `width: var(--board-max); max-width: var(--board-max)` on the board container. Ensure `aspect-ratio: 1` on the grid wrapper. Add `min-width: 28px` on `.board-grid__cell` (FR-009). Keep existing gap/font clamp values but adjust breakpoints if needed
-- [ ] T013 [US2] Update mobile breakpoints in `app/styles/board.css` — at `@media (max-width: 768px)`, set `--chrome-height` to account for taller stacked bars. At `@media (max-width: 480px)`, enable `overflow-x: auto` only if board exceeds viewport (FR-009 fallback). Verify no horizontal scroll on 375px viewport when tiles are >= 28px
+- [x] T012 [US2] Update `app/styles/board.css` — replace `width: 95%` on `.board-grid` with viewport-responsive sizing: use CSS custom properties `--chrome-height` (sum of opponent bar + player bar + gaps, ~120px) and `--board-max: min(calc(100vh - var(--chrome-height) - 2rem), calc(100vw - 2rem))`. Set `width: var(--board-max); max-width: var(--board-max)` on the board container. Ensure `aspect-ratio: 1` on the grid wrapper. Add `min-width: 28px` on `.board-grid__cell` (FR-009). Keep existing gap/font clamp values but adjust breakpoints if needed
+- [x] T013 [US2] Update mobile breakpoints in `app/styles/board.css` — at `@media (max-width: 768px)`, set `--chrome-height` to account for taller stacked bars. At `@media (max-width: 480px)`, enable `overflow-x: auto` only if board exceeds viewport (FR-009 fallback). Verify no horizontal scroll on 375px viewport when tiles are >= 28px
 
 **Checkpoint**: Board fits viewport on all three reference viewports. Tiles remain square. No horizontal scroll on desktop/tablet. Mobile allows vertical scroll if needed.
 
@@ -84,14 +84,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T014 [P] [US3] Write failing test in `tests/unit/components/GameChrome.test.tsx` — test that score displays the numeric value from props; test that move counter renders "M3" when moveCounter=3; test that move counter is absent for position="opponent"; test that timer text is green (class or style) when `hasSubmitted=false` and neutral when `hasSubmitted=true`
-- [ ] T015 [P] [US3] Write failing test in `tests/unit/components/TimerHud.test.tsx` — test that TimerHud accepts `hasSubmitted` prop and applies green text color class when false, neutral color class when true (FR-014)
+- [x] T014 [P] [US3] Write failing test in `tests/unit/components/GameChrome.test.tsx` — test that score displays the numeric value from props; test that move counter renders "M3" when moveCounter=3; test that move counter is absent for position="opponent"; test that timer text is green (class or style) when `hasSubmitted=false` and neutral when `hasSubmitted=true`
+- [x] T015 [P] [US3] Write failing test in `tests/unit/components/TimerHud.test.tsx` — test that TimerHud accepts `hasSubmitted` prop and applies green text color class when false, neutral color class when true (FR-014)
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Add score and move counter data binding in `components/match/GameChrome.tsx` — render `score` as a prominent number (e.g., `text-2xl font-bold`). Render `moveCounter` as "M{n}" (e.g., `text-sm font-mono`). Use `playerColor` for score accent. Format timer via existing MM:SS logic or delegate to TimerHud sub-component
-- [ ] T017 [US3] Add timer state colors to `components/game/TimerHud.tsx` — accept new `hasSubmitted` boolean prop. When `hasSubmitted=false`, apply green text color (`text-emerald-400`). When `hasSubmitted=true`, apply neutral color (`text-slate-400`). Keep existing countdown and paused logic unchanged (FR-014)
-- [ ] T018 [US3] Wire submission status into GameChrome in `components/match/MatchClient.tsx` — derive `hasSubmitted` for each player from round submission state. If not directly available in MatchState, use timer `status === "paused"` as proxy (timer pauses on submission per existing logic). Pass to GameChrome → TimerHud
+- [x] T016 [US3] Add score and move counter data binding in `components/match/GameChrome.tsx` — render `score` as a prominent number (e.g., `text-2xl font-bold`). Render `moveCounter` as "M{n}" (e.g., `text-sm font-mono`). Use `playerColor` for score accent. Format timer via existing MM:SS logic or delegate to TimerHud sub-component
+- [x] T017 [US3] Add timer state colors to `components/game/TimerHud.tsx` — accept new `hasSubmitted` boolean prop. When `hasSubmitted=false`, apply green text color (`text-emerald-400`). When `hasSubmitted=true`, apply neutral color (`text-slate-400`). Keep existing countdown and paused logic unchanged (FR-014)
+- [x] T018 [US3] Wire submission status into GameChrome in `components/match/MatchClient.tsx` — derive `hasSubmitted` for each player from round submission state. If not directly available in MatchState, use timer `status === "paused"` as proxy (timer pauses on submission per existing logic). Pass to GameChrome → TimerHud
 
 **Checkpoint**: Opponent bar shows opponent score + timer. Player bar shows own score + timer + M{n}. Timer color changes on submission.
 
@@ -105,12 +105,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T019 [US4] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that a tile with `frozenTiles["3,5"] = { owner: "player_a" }` renders with blue overlay style; test `player_b` renders red overlay; test `both` renders the split-diagonal gradient; test that frozen tile letters remain visible (not hidden by overlay); test `aria-disabled="true"` on frozen tiles
+- [x] T019 [US4] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that a tile with `frozenTiles["3,5"] = { owner: "player_a" }` renders with blue overlay style; test `player_b` renders red overlay; test `both` renders the split-diagonal gradient; test that frozen tile letters remain visible (not hidden by overlay); test `aria-disabled="true"` on frozen tiles
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Refactor frozen tile rendering in `components/game/BoardGrid.tsx` — replace inline `FROZEN_COLORS` constant with import from `lib/constants/playerColors.ts`. Use the centralized `PLAYER_A_OVERLAY`, `PLAYER_B_OVERLAY`, and `BOTH_GRADIENT` values. Ensure the overlay is a pseudo-element or positioned div layered behind the letter text (not replacing background) so text contrast is maintained. Add `data-frozen-owner` attribute for test targeting. Verify existing `board-grid__cell--frozen` CSS class is still applied (FR-018, FR-019, FR-020)
-- [ ] T021 [US4] Enhance frozen tile CSS in `app/styles/board.css` — ensure `.board-grid__cell--frozen` positions the color overlay behind the letter text (e.g., via `::after` pseudo-element with `position: absolute; inset: 0; z-index: 0` and the color as background, with letter text at `z-index: 1`). Verify letter text contrast meets 4.5:1 WCAG AA against each overlay color (FR-021). Update `board-grid__cell--frozen` hover to prevent the lift effect on frozen tiles
+- [x] T020 [US4] Refactor frozen tile rendering in `components/game/BoardGrid.tsx` — replace inline `FROZEN_COLORS` constant with import from `lib/constants/playerColors.ts`. Use the centralized `PLAYER_A_OVERLAY`, `PLAYER_B_OVERLAY`, and `BOTH_GRADIENT` values. Ensure the overlay is a pseudo-element or positioned div layered behind the letter text (not replacing background) so text contrast is maintained. Add `data-frozen-owner` attribute for test targeting. Verify existing `board-grid__cell--frozen` CSS class is still applied (FR-018, FR-019, FR-020)
+- [x] T021 [US4] Enhance frozen tile CSS in `app/styles/board.css` — ensure `.board-grid__cell--frozen` positions the color overlay behind the letter text (e.g., via `::after` pseudo-element with `position: absolute; inset: 0; z-index: 0` and the color as background, with letter text at `z-index: 1`). Verify letter text contrast meets 4.5:1 WCAG AA against each overlay color (FR-021). Update `board-grid__cell--frozen` hover to prevent the lift effect on frozen tiles
 
 **Checkpoint**: Frozen tiles display blue (player_a), red (player_b), or split (both) overlays at 40% opacity. Letters readable. WCAG contrast passes.
 
@@ -124,13 +124,13 @@
 
 ### Tests for User Story 5
 
-- [ ] T022 [US5] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that triggering a swap sets an `isAnimating` state that blocks further tile clicks; test that after swap animation completes (transitionend fires), `isAnimating` is cleared and tiles are clickable again; test that swap animation uses `transform` property (not top/left)
+- [x] T022 [US5] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that triggering a swap sets an `isAnimating` state that blocks further tile clicks; test that after swap animation completes (transitionend fires), `isAnimating` is cleared and tiles are clickable again; test that swap animation uses `transform` property (not top/left)
 
 ### Implementation for User Story 5
 
-- [ ] T023 [US5] Update swap transition in `app/styles/board.css` — ensure `.board-grid__cell` has `transition: transform 200ms ease-out, border-color 150ms ease, box-shadow 150ms ease`. Add `.board-grid__cell--animating` class that applies `will-change: transform` for GPU layer promotion during animation. Add `@media (prefers-reduced-motion: reduce)` override that sets `transition-duration: 0ms` (FR-042, FR-044)
-- [ ] T024 [US5] Implement swap animation in `components/game/BoardGrid.tsx` — on swap trigger: (1) measure positions of both tiles via `getBoundingClientRect()` using refs, (2) calculate dx/dy pixel offsets between the two tiles, (3) set inline `style.transform = translate(dx, dy)` on each tile (opposite directions), (4) set `isAnimating=true` to block all tile interactions (FR-024), (5) listen for `transitionend` event on either tile, (6) on transition end: clear transforms, update `currentGrid` state with swapped values, set `isAnimating=false`, call existing `submitSwapRequest()` (FR-023, FR-026, FR-027)
-- [ ] T025 [US5] Add tile refs for animation measurement in `components/game/BoardGrid.tsx` — create a `tileRefs` map (Map<string, HTMLButtonElement>) keyed by "col,row" coordinate strings. Assign refs to each tile button via callback ref. Used by T024 for `getBoundingClientRect()` measurement during swap animation
+- [x] T023 [US5] Update swap transition in `app/styles/board.css` — ensure `.board-grid__cell` has `transition: transform 200ms ease-out, border-color 150ms ease, box-shadow 150ms ease`. Add `.board-grid__cell--animating` class that applies `will-change: transform` for GPU layer promotion during animation. Add `@media (prefers-reduced-motion: reduce)` override that sets `transition-duration: 0ms` (FR-042, FR-044)
+- [x] T024 [US5] Implement swap animation in `components/game/BoardGrid.tsx` — on swap trigger: (1) measure positions of both tiles via `getBoundingClientRect()` using refs, (2) calculate dx/dy pixel offsets between the two tiles, (3) set inline `style.transform = translate(dx, dy)` on each tile (opposite directions), (4) set `isAnimating=true` to block all tile interactions (FR-024), (5) listen for `transitionend` event on either tile, (6) on transition end: clear transforms, update `currentGrid` state with swapped values, set `isAnimating=false`, call existing `submitSwapRequest()` (FR-023, FR-026, FR-027)
+- [x] T025 [US5] Add tile refs for animation measurement in `components/game/BoardGrid.tsx` — create a `tileRefs` map (Map<string, HTMLButtonElement>) keyed by "col,row" coordinate strings. Assign refs to each tile button via callback ref. Used by T024 for `getBoundingClientRect()` measurement during swap animation
 
 **Checkpoint**: Swap triggers smooth 200ms slide animation. Tiles end at correct positions. Cannot click during animation.
 

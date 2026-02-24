@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -16,9 +17,14 @@ import type {
   MoveResult,
 } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
+import {
+  PLAYER_A_OVERLAY,
+  PLAYER_B_OVERLAY,
+  BOTH_GRADIENT,
+} from "@/lib/constants/playerColors";
 
 interface BoardGridProps {
-  grid: BoardGridType;
+  grid?: BoardGridType;
   matchId: string;
   className?: string;
   /** Frozen tile map for visual overlays. Keys are "x,y" strings. */
@@ -79,11 +85,11 @@ async function submitSwapRequest(matchId: string, move: MoveRequest): Promise<Mo
 /** Stable empty array for default prop to avoid useEffect re-run loops. */
 const EMPTY_HIGHLIGHTS: Coordinate[][] = [];
 
-/** Player color constants for frozen tile overlays. */
+/** Centralized frozen tile overlay colors from playerColors.ts */
 const FROZEN_COLORS = {
-  player_a: "rgba(59, 130, 246, 0.4)", // blue at 40% opacity
-  player_b: "rgba(239, 68, 68, 0.4)",  // red at 40% opacity
-  both: "linear-gradient(135deg, rgba(59, 130, 246, 0.4) 50%, rgba(239, 68, 68, 0.4) 50%)",
+  player_a: PLAYER_A_OVERLAY,
+  player_b: PLAYER_B_OVERLAY,
+  both: BOTH_GRADIENT,
 };
 
 function isTileInHighlights(
@@ -99,6 +105,27 @@ function isTileInHighlights(
   return false;
 }
 
+function BoardGridSkeleton({ className }: { className?: string }) {
+  return (
+    <div className="board-grid__wrapper">
+      <div
+        data-testid="board-grid-skeleton"
+        aria-hidden="true"
+        className={className ? `${BASE_CLASS} ${className}` : BASE_CLASS}
+        style={{ "--board-size": 10 } as CSSProperties}
+      >
+        {Array.from({ length: 100 }, (_, i) => (
+          <div
+            key={i}
+            className="board-grid__cell animate-pulse"
+            style={{ cursor: "default", opacity: 0.4 }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function BoardGrid({
   grid,
   matchId,
@@ -110,11 +137,43 @@ export function BoardGrid({
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
+  if (!grid || grid.length === 0) {
+    return <BoardGridSkeleton className={className} />;
+  }
+
+  return (
+    <BoardGridActive
+      grid={grid}
+      matchId={matchId}
+      className={className}
+      frozenTiles={frozenTiles}
+      playerSlot={playerSlot}
+      scoredTileHighlights={scoredTileHighlights}
+      highlightDurationMs={highlightDurationMs}
+      onSwapComplete={onSwapComplete}
+      onSwapError={onSwapError}
+    />
+  );
+}
+
+function BoardGridActive({
+  grid,
+  matchId,
+  className,
+  frozenTiles = {},
+  playerSlot,
+  scoredTileHighlights = EMPTY_HIGHLIGHTS,
+  highlightDurationMs = 3000,
+  onSwapComplete,
+  onSwapError,
+}: BoardGridProps & { grid: BoardGridType }) {
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
   const highlightsKeyRef = useRef<string>("");
+  const tileRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     if (
@@ -158,25 +217,25 @@ export function BoardGrid({
   const handleSwap = useCallback(
     async (from: SelectedTile, to: SelectedTile) => {
       setIsSubmitting(true);
-      const previousGrid = currentGrid.map((row) => [...row]) as BoardGridType;
-      const moveRequest: MoveRequest = {
-        from,
-        to,
-      };
+      const moveRequest: MoveRequest = { from, to };
 
       try {
         const result = await submitSwapRequest(matchId, moveRequest);
 
-        // Optimistic update or wait for server?
-        // For now, we rely on the result or parent update.
-        // If result has grid, use it.
         if (result.grid) {
           setCurrentGrid(result.grid);
         }
 
         onSwapComplete?.({ move: moveRequest, result });
       } catch (error) {
-        setCurrentGrid(previousGrid);
+        // Reverse the optimistic swap on error
+        setCurrentGrid((prev) => {
+          const reverted = prev.map((row) => [...row]) as BoardGridType;
+          const temp = reverted[from.y][from.x];
+          reverted[from.y][from.x] = reverted[to.y][to.x];
+          reverted[to.y][to.x] = temp;
+          return reverted;
+        });
         const message =
           error instanceof Error
             ? error.message
@@ -190,7 +249,7 @@ export function BoardGrid({
         onSwapError?.({
           move: moveRequest,
           message: normalizedMessage,
-          grid: previousGrid,
+          grid: currentGrid,
         });
       } finally {
         setIsSubmitting(false);
@@ -199,9 +258,110 @@ export function BoardGrid({
     [currentGrid, matchId, onSwapComplete, onSwapError]
   );
 
+  // FLIP animation state: stored position deltas from before the grid swap
+  const flipRef = useRef<{
+    from: SelectedTile;
+    to: SelectedTile;
+    dx: number;
+    dy: number;
+  } | null>(null);
+
+  const animateSwap = useCallback(
+    (from: SelectedTile, to: SelectedTile) => {
+      const fromKey = `${from.x},${from.y}`;
+      const toKey = `${to.x},${to.y}`;
+      const fromEl = tileRefs.current.get(fromKey);
+      const toEl = tileRefs.current.get(toKey);
+
+      if (!fromEl || !toEl) {
+        void handleSwap(from, to);
+        return;
+      }
+
+      // FIRST: measure positions before the swap
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+      const dx = toRect.left - fromRect.left;
+      const dy = toRect.top - fromRect.top;
+
+      // Store FLIP data for useLayoutEffect
+      flipRef.current = { from, to, dx, dy };
+
+      // LAST: swap grid data immediately (optimistic local update)
+      setCurrentGrid((prev) => {
+        const next = prev.map((row) => [...row]) as BoardGridType;
+        const temp = next[from.y][from.x];
+        next[from.y][from.x] = next[to.y][to.x];
+        next[to.y][to.x] = temp;
+        return next;
+      });
+      setIsAnimating(true);
+    },
+    [handleSwap],
+  );
+
+  // FLIP: INVERT + PLAY phases run after React commits the swapped grid
+  useLayoutEffect(() => {
+    const flip = flipRef.current;
+    if (!flip) return;
+    flipRef.current = null;
+
+    const { from, to, dx, dy } = flip;
+    // After grid swap, the tile that WAS at `from` is now at `to` and vice versa
+    const fromKey = `${from.x},${from.y}`;
+    const toKey = `${to.x},${to.y}`;
+    const elAtFrom = tileRefs.current.get(fromKey);
+    const elAtTo = tileRefs.current.get(toKey);
+
+    if (!elAtFrom || !elAtTo) {
+      setIsAnimating(false);
+      void handleSwap(from, to);
+      return;
+    }
+
+    // INVERT: apply inverse transforms so tiles visually appear at
+    // their OLD positions (before the swap)
+    elAtFrom.style.transition = "none";
+    elAtTo.style.transition = "none";
+    // elAtFrom now holds the letter that came FROM `to` — move it back
+    elAtFrom.style.transform = `translate(${dx}px, ${dy}px)`;
+    // elAtTo now holds the letter that came FROM `from` — move it back
+    elAtTo.style.transform = `translate(${-dx}px, ${-dy}px)`;
+    elAtFrom.classList.add("board-grid__cell--animating");
+    elAtTo.classList.add("board-grid__cell--animating");
+
+    // Force reflow so the browser registers the inverted position
+    void elAtFrom.offsetHeight;
+
+    // PLAY: remove transforms with transition enabled → CSS animates
+    // tiles from inverted (old) position to natural (new) position
+    elAtFrom.style.transition = "";
+    elAtTo.style.transition = "";
+    elAtFrom.style.transform = "";
+    elAtTo.style.transform = "";
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      elAtFrom.removeEventListener("transitionend", onEnd);
+      elAtFrom.classList.remove("board-grid__cell--animating");
+      elAtTo.classList.remove("board-grid__cell--animating");
+      setIsAnimating(false);
+      void handleSwap(from, to);
+    };
+
+    const onEnd = (e: TransitionEvent) => {
+      if (e.propertyName === "transform") cleanup();
+    };
+    elAtFrom.addEventListener("transitionend", onEnd);
+    // Fallback if transitionend doesn't fire (reduced motion, dx=0)
+    setTimeout(cleanup, 300);
+  }, [currentGrid, handleSwap]);
+
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
-      if (isSubmitting) {
+      if (isSubmitting || isAnimating) {
         return;
       }
 
@@ -219,9 +379,9 @@ export function BoardGrid({
       }
 
       setSelected(null);
-      void handleSwap(selected, coordinate);
+      animateSwap(selected, coordinate);
     },
-    [handleSwap, isSubmitting, selected]
+    [animateSwap, isSubmitting, isAnimating, selected]
   );
 
   const boardSize = useMemo(
@@ -245,6 +405,7 @@ export function BoardGrid({
           } as CSSProperties
         }
         data-submitting={isSubmitting ? "true" : undefined}
+        data-animating={isAnimating ? "true" : undefined}
       >
         {currentGrid.map((row, rowIndex) => (
           <div
@@ -273,6 +434,14 @@ export function BoardGrid({
               return (
                 <button
                   key={`cell-${rowIndex}-${colIndex}`}
+                  ref={(el) => {
+                    const refKey = `${colIndex},${rowIndex}`;
+                    if (el) {
+                      tileRefs.current.set(refKey, el);
+                    } else {
+                      tileRefs.current.delete(refKey);
+                    }
+                  }}
                   type="button"
                   role="gridcell"
                   aria-colindex={colIndex + 1}
@@ -285,6 +454,7 @@ export function BoardGrid({
                   data-row={rowIndex}
                   data-selected={isSelected ? "true" : undefined}
                   data-frozen={isTileFrozen ? frozenOwner : undefined}
+                  data-frozen-owner={isTileFrozen ? frozenOwner : undefined}
                   disabled={isSubmitting}
                   onClick={() => handleTileClick(rowIndex, colIndex)}
                   style={frozenStyle}
