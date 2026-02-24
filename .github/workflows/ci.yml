@@ -134,6 +134,9 @@ jobs:
           path: .next/
           if-no-files-found: error
           retention-days: 1
+          # .next/ is a hidden directory (dot-prefix); upload-artifact@v4 skips
+          # hidden files by default — include-hidden-files: true is required.
+          include-hidden-files: true
 
   quickstart:
     name: Supabase Quickstart
