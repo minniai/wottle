@@ -1,7 +1,7 @@
 # Implementation Plan: Board UI and Animations
 
-**Branch**: `004-board-ui-animations` | **Date**: 2026-02-23 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `/specs/004-board-ui-animations/spec.md`
+**Branch**: `005-board-ui-animations` | **Date**: 2026-02-23 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/005-board-ui-animations/spec.md`
 
 ## Summary
 
@@ -42,7 +42,7 @@ Transform the match screen from a backend test harness into a playable game view
 ### Documentation (this feature)
 
 ```text
-specs/004-board-ui-animations/
+specs/005-board-ui-animations/
 ├── plan.md              # This file
 ├── research.md          # Phase 0 output
 ├── data-model.md        # Phase 1 output (client-side entities)
