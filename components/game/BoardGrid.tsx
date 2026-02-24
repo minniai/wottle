@@ -169,8 +169,10 @@ function BoardGridActive({
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
   const highlightsKeyRef = useRef<string>("");
+  const tileRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     if (
@@ -255,9 +257,54 @@ function BoardGridActive({
     [currentGrid, matchId, onSwapComplete, onSwapError]
   );
 
+  const animateSwap = useCallback(
+    (from: SelectedTile, to: SelectedTile) => {
+      const fromKey = `${from.x},${from.y}`;
+      const toKey = `${to.x},${to.y}`;
+      const fromEl = tileRefs.current.get(fromKey);
+      const toEl = tileRefs.current.get(toKey);
+
+      if (!fromEl || !toEl) {
+        void handleSwap(from, to);
+        return;
+      }
+
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+      const dx = toRect.left - fromRect.left;
+      const dy = toRect.top - fromRect.top;
+
+      setIsAnimating(true);
+
+      fromEl.classList.add("board-grid__cell--animating");
+      toEl.classList.add("board-grid__cell--animating");
+      fromEl.style.transform = `translate(${dx}px, ${dy}px)`;
+      toEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
+
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+
+        fromEl.style.transform = "";
+        toEl.style.transform = "";
+        fromEl.classList.remove("board-grid__cell--animating");
+        toEl.classList.remove("board-grid__cell--animating");
+
+        setIsAnimating(false);
+        void handleSwap(from, to);
+      };
+
+      fromEl.addEventListener("transitionend", cleanup, { once: true });
+      // Fallback if transitionend doesn't fire (e.g., reduced motion, dx=0)
+      setTimeout(cleanup, 300);
+    },
+    [handleSwap],
+  );
+
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
-      if (isSubmitting) {
+      if (isSubmitting || isAnimating) {
         return;
       }
 
@@ -275,9 +322,9 @@ function BoardGridActive({
       }
 
       setSelected(null);
-      void handleSwap(selected, coordinate);
+      animateSwap(selected, coordinate);
     },
-    [handleSwap, isSubmitting, selected]
+    [animateSwap, isSubmitting, isAnimating, selected]
   );
 
   const boardSize = useMemo(
@@ -301,6 +348,7 @@ function BoardGridActive({
           } as CSSProperties
         }
         data-submitting={isSubmitting ? "true" : undefined}
+        data-animating={isAnimating ? "true" : undefined}
       >
         {currentGrid.map((row, rowIndex) => (
           <div
@@ -329,6 +377,14 @@ function BoardGridActive({
               return (
                 <button
                   key={`cell-${rowIndex}-${colIndex}`}
+                  ref={(el) => {
+                    const refKey = `${colIndex},${rowIndex}`;
+                    if (el) {
+                      tileRefs.current.set(refKey, el);
+                    } else {
+                      tileRefs.current.delete(refKey);
+                    }
+                  }}
                   type="button"
                   role="gridcell"
                   aria-colindex={colIndex + 1}

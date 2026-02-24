@@ -54,9 +54,20 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     inset 0 -4px 12px rgba(15, 23, 42, 0.35);
   transition:
-    transform 150ms ease,
+    transform 200ms ease-out,
     border-color 150ms ease,
     box-shadow 150ms ease;
+}
+
+.board-grid__cell--animating {
+  will-change: transform;
+  z-index: 10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-grid__cell {
+    transition-duration: 0ms;
+  }
 }
 
 .board-grid__cell:hover,
