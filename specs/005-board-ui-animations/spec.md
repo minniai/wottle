@@ -161,7 +161,7 @@ After a round resolves, a transient popup appears near the player's score showin
 - **FR-001**: System MUST display the match screen in three vertically stacked regions: opponent bar (top), 10x10 game board (center), player bar (bottom), matching the PRD Section 7.1 layout diagram.
 - **FR-002**: The opponent bar MUST display the opponent's name/label, remaining timer, and current score.
 - **FR-003**: The player bar MUST display the player's name/label, remaining timer, current score, and move counter formatted as "M{n}".
-- **FR-005**: On mobile viewports (width < 768px), the layout MUST stack vertically with opponent info, board, and player info per the PRD mobile layout diagram. Timer and move counter MAY wrap to separate lines.
+- **FR-004**: On mobile viewports (width < 768px), the layout MUST stack vertically with opponent info, board, and player info per the PRD mobile layout diagram. Timer and move counter MAY wrap to separate lines.
 - **FR-005**: The layout MUST identify which bar belongs to which player by using the `playerSlot` assignment from the match state.
 
 #### Responsive Board Sizing
@@ -258,7 +258,7 @@ After a round resolves, a transient popup appears near the player's score showin
 - **SC-001**: The match layout conforms to the PRD Section 7.1 diagram on desktop (1280x800): opponent bar with timer + score at top, 10x10 grid centered, player bar with timer + score + M{n} at bottom.
 - **SC-002**: The board fits entirely within the viewport on desktop (1280x800), tablet (768x1024), and phone (375x667) without horizontal scrolling, verified by visual inspection at each resolution.
 - **SC-003**: No debug metadata (match ID, status, round limit) is visible in the default play view on production builds.
-- **SC-005**: Frozen tiles display distinct ownership overlays: own-color, opponent-color, and split-diagonal for shared tiles, verified visually with all three ownership states present on a single board.
+- **SC-004**: Frozen tiles display distinct ownership overlays: own-color, opponent-color, and split-diagonal for shared tiles, verified visually with all three ownership states present on a single board.
 - **SC-005**: Tile swap animation duration is between 150ms and 250ms, measured via browser performance timeline or programmatic timing assertions.
 - **SC-006**: Invalid swap shake animation shows 3-4 visible oscillations over 300-400ms with a concurrent red border flash, verified visually on a frozen tile swap attempt.
 - **SC-007**: Word discovery highlight lasts 600-800ms with visible fade in and fade out phases, verified after a round that scores at least one word.
