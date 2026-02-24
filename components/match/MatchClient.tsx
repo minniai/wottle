@@ -263,10 +263,8 @@ export function MatchClient({
     setSwapError(message);
   }, []);
 
-  const headline = `Match: ${matchId.slice(0, 8)}`;
-
   return (
-    <MatchShell matchId={matchId} headline={headline} statusMessage="Live">
+    <MatchShell matchId={matchId}>
       {isReconnecting && (
         <div
           className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200"

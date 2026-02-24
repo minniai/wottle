@@ -18,7 +18,7 @@ import type {
 import type { FrozenTileMap } from "@/lib/types/match";
 
 interface BoardGridProps {
-  grid: BoardGridType;
+  grid?: BoardGridType;
   matchId: string;
   className?: string;
   /** Frozen tile map for visual overlays. Keys are "x,y" strings. */
@@ -99,6 +99,27 @@ function isTileInHighlights(
   return false;
 }
 
+function BoardGridSkeleton({ className }: { className?: string }) {
+  return (
+    <div className="board-grid__wrapper">
+      <div
+        data-testid="board-grid-skeleton"
+        aria-hidden="true"
+        className={className ? `${BASE_CLASS} ${className}` : BASE_CLASS}
+        style={{ "--board-size": 10 } as CSSProperties}
+      >
+        {Array.from({ length: 100 }, (_, i) => (
+          <div
+            key={i}
+            className="board-grid__cell animate-pulse"
+            style={{ cursor: "default", opacity: 0.4 }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function BoardGrid({
   grid,
   matchId,
@@ -110,6 +131,36 @@ export function BoardGrid({
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
+  if (!grid || grid.length === 0) {
+    return <BoardGridSkeleton className={className} />;
+  }
+
+  return (
+    <BoardGridActive
+      grid={grid}
+      matchId={matchId}
+      className={className}
+      frozenTiles={frozenTiles}
+      playerSlot={playerSlot}
+      scoredTileHighlights={scoredTileHighlights}
+      highlightDurationMs={highlightDurationMs}
+      onSwapComplete={onSwapComplete}
+      onSwapError={onSwapError}
+    />
+  );
+}
+
+function BoardGridActive({
+  grid,
+  matchId,
+  className,
+  frozenTiles = {},
+  playerSlot,
+  scoredTileHighlights = EMPTY_HIGHLIGHTS,
+  highlightDurationMs = 3000,
+  onSwapComplete,
+  onSwapError,
+}: BoardGridProps & { grid: BoardGridType }) {
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

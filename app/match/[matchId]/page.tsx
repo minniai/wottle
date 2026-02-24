@@ -39,13 +39,13 @@ export default async function MatchPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 p-6 text-white">
+    <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 p-6 text-white">
       <MatchClient
         currentPlayerId={session.player.id}
         initialState={matchState}
         matchId={matchId}
       />
-    </main>
+    </div>
   );
 }
 

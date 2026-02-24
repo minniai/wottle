@@ -28,9 +28,9 @@
 
 **Purpose**: Refactor existing components to accept the new layout pattern. MUST complete before any user story work begins.
 
-- [ ] T003 Refactor `components/match/MatchShell.tsx` — accept a `loading` boolean prop. When `loading=true`, render a skeleton layout (gray header bars + 10x10 gray tile grid via `aria-hidden` divs reusing `.board-grid` CSS). When `loading=false`, render only `{children}`. Remove the always-visible "Board Loading" / "Players" placeholder sections. Keep `data-testid="match-shell"`
-- [ ] T004 Fix nested `<main>` tag in `app/match/[matchId]/page.tsx` — replace the inner `<main>` element with a `<div>` or `<section>` to avoid invalid HTML nesting with root layout's `<main>`. Preserve existing className and responsive constraints
-- [ ] T005 Add skeleton board rendering to `components/game/BoardGrid.tsx` — when `grid` prop is empty or undefined, render 100 inert gray `<div>` placeholder tiles (not `<button>`) using the same `.board-grid` CSS grid. Include `aria-hidden="true"` on the skeleton container. No layout shift when real data replaces skeleton (FR-017a)
+- [x] T003 Refactor `components/match/MatchShell.tsx` — accept a `loading` boolean prop. When `loading=true`, render a skeleton layout (gray header bars + 10x10 gray tile grid via `aria-hidden` divs reusing `.board-grid` CSS). When `loading=false`, render only `{children}`. Remove the always-visible "Board Loading" / "Players" placeholder sections. Keep `data-testid="match-shell"`
+- [x] T004 Fix nested `<main>` tag in `app/match/[matchId]/page.tsx` — replace the inner `<main>` element with a `<div>` or `<section>` to avoid invalid HTML nesting with root layout's `<main>`. Preserve existing className and responsive constraints
+- [x] T005 Add skeleton board rendering to `components/game/BoardGrid.tsx` — when `grid` prop is empty or undefined, render 100 inert gray `<div>` placeholder tiles (not `<button>`) using the same `.board-grid` CSS grid. Include `aria-hidden="true"` on the skeleton container. No layout shift when real data replaces skeleton (FR-017a)
 
 **Checkpoint**: MatchShell conditionally renders skeleton or content. Page has valid HTML structure. BoardGrid handles empty state.
 
