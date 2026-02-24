@@ -103,6 +103,39 @@ jobs:
       - name: Run Integration Tests
         run: pnpm test:integration
 
+  build:
+    name: Build Next.js
+    runs-on: ubuntu-latest
+    needs: integration
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build Next.js app
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - name: Upload Next.js build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .next/
+            !.next/cache/
+            !.next/trace
+          if-no-files-found: error
+          retention-days: 1
+
   quickstart:
     name: Supabase Quickstart
     runs-on: ubuntu-latest
@@ -147,11 +180,31 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: latest
+      - name: Capture CLI version for Docker cache key
+        id: supabase-version
+        run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
+      - name: Restore Supabase Docker image cache
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/supabase-docker-cache.tar
+          key: supabase-docker-${{ runner.os }}-${{ steps.supabase-version.outputs.version }}
+      - name: Load cached Docker images
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/supabase-docker-cache.tar
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run quickstart automation
         run: |
           pnpm quickstart 2>&1 | tee quickstart-log.ndjson
+      - name: Export Supabase Docker images to cache
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          docker save \
+            $(docker images --format "{{.Repository}}:{{.Tag}}" \
+              | grep -E 'supabase|postgres|kong|gotrue|postgrest') \
+            -o /tmp/supabase-docker-cache.tar
       - name: Upload quickstart log
         if: always()
         uses: actions/upload-artifact@v4
@@ -165,7 +218,7 @@ jobs:
     runs-on: ubuntu-latest
     # Note: No container here - needs Docker access for Supabase
     # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
-    needs: quickstart
+    needs: build
     strategy:
       fail-fast: false
       matrix:
@@ -217,6 +270,18 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: latest
+      - name: Capture CLI version for Docker cache key
+        id: supabase-version
+        run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
+      - name: Restore Supabase Docker image cache
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/supabase-docker-cache.tar
+          key: supabase-docker-${{ runner.os }}-${{ steps.supabase-version.outputs.version }}
+      - name: Load cached Docker images
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/supabase-docker-cache.tar
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Cache Playwright browsers
@@ -242,18 +307,27 @@ jobs:
           fi
           echo "✓ .env.local created successfully"
           echo "File size: $(wc -c < .env.local) bytes"
-      - name: Load env & build Next.js app
+      - name: Export Supabase Docker images to cache
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
         run: |
-          if [ -f ".env.production.local" ]; then
-            set -a
-            . ./.env.production.local
-            set +a
-          elif [ -f ".env.local" ]; then
-            set -a
-            . ./.env.local
-            set +a
+          docker save \
+            $(docker images --format "{{.Repository}}:{{.Tag}}" \
+              | grep -E 'supabase|postgres|kong|gotrue|postgrest') \
+            -o /tmp/supabase-docker-cache.tar
+      - name: Download Next.js build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .next/
+      - name: Verify build artifact integrity
+        run: |
+          if [ ! -f .next/BUILD_ID ]; then
+            echo "ERROR: .next/BUILD_ID not found — artifact incomplete or download failed"
+            ls -la .next/ || echo ".next/ is empty"
+            exit 1
           fi
-          pnpm build
+          echo "Build artifact OK. BUILD_ID: $(cat .next/BUILD_ID)"
       - name: Start Next.js server
         run: |
           # Ensure the port is free before starting
@@ -504,7 +578,7 @@ jobs:
     runs-on: ubuntu-latest
     # Note: No container here - needs Docker access for Supabase
     # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
-    needs: playwright
+    needs: build
     timeout-minutes: 45
     env:
       APP_PORT: 3000
@@ -541,6 +615,18 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: latest
+      - name: Capture CLI version for Docker cache key
+        id: supabase-version
+        run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
+      - name: Restore Supabase Docker image cache
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/supabase-docker-cache.tar
+          key: supabase-docker-${{ runner.os }}-${{ steps.supabase-version.outputs.version }}
+      - name: Load cached Docker images
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/supabase-docker-cache.tar
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Start Supabase stack via quickstart
@@ -559,18 +645,27 @@ jobs:
           fi
           echo "✓ .env.local created successfully"
           echo "File size: $(wc -c < .env.local) bytes"
-      - name: Load env & build Next.js app
+      - name: Export Supabase Docker images to cache
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
         run: |
-          if [ -f ".env.production.local" ]; then
-            set -a
-            . ./.env.production.local
-            set +a
-          elif [ -f ".env.local" ]; then
-            set -a
-            . ./.env.local
-            set +a
+          docker save \
+            $(docker images --format "{{.Repository}}:{{.Tag}}" \
+              | grep -E 'supabase|postgres|kong|gotrue|postgrest') \
+            -o /tmp/supabase-docker-cache.tar
+      - name: Download Next.js build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .next/
+      - name: Verify build artifact integrity
+        run: |
+          if [ ! -f .next/BUILD_ID ]; then
+            echo "ERROR: .next/BUILD_ID not found — artifact incomplete or download failed"
+            ls -la .next/ || echo ".next/ is empty"
+            exit 1
           fi
-          pnpm build
+          echo "Build artifact OK. BUILD_ID: $(cat .next/BUILD_ID)"
       - name: Start Next.js server
         run: |
           # Verify .env.local exists and load environment variables
