@@ -92,8 +92,8 @@
 
 - [x] T015 In `.github/workflows/ci.yml`, verify the final job topology matches the target graph: `lint` (no needs), `typecheck` (no needs), `quickstart` (no needs), `test` (needs: [lint, typecheck]), `build` (needs: test), `playwright` (needs: build, matrix with no max-parallel), `perf-gate` (needs: build) — correct any discrepancies found
 - [x] T016 [P] Run `actionlint .github/workflows/ci.yml` from repo root to validate YAML syntax and GitHub Actions schema compliance; fix any reported issues — no schema errors found; only pre-existing shellcheck style suggestions (SC2086/SC2046 in Docker-save subshell, SC2012/SC2009 informational)
-- [ ] T017 Run the pipeline twice on the `004-ci-pipeline-refactor` branch with no changes to dependency files between runs; verify all cache-related success criteria: SC-001 (pnpm cache hit), SC-002 (Playwright browser cache hit), SC-003 (Docker image cache hit), SC-004 (single `pnpm build` per run), SC-005 (lint and typecheck overlap), SC-006 (Playwright matrix suites overlap)
-- [ ] T018 Verify SC-007: on a temporary test commit, manually corrupt `pnpm-lock.yaml` by adding an extra line; push and confirm the pipeline fails at `pnpm install --frozen-lockfile` with a lockfile-mismatch error visible in the job log; revert the commit
+- [x] T017 Run the pipeline twice on the `004-ci-pipeline-refactor` branch with no changes to dependency files between runs; verify all cache-related success criteria: SC-001 (pnpm cache hit), SC-002 (Playwright browser cache hit), SC-003 (Docker image cache hit), SC-004 (single `pnpm build` per run), SC-005 (lint and typecheck overlap), SC-006 (Playwright matrix suites overlap)
+- [x] T018 Verify SC-007: on a temporary test commit, manually corrupt `pnpm-lock.yaml` by adding an extra line; push and confirm the pipeline fails at `pnpm install --frozen-lockfile` with a lockfile-mismatch error visible in the job log; revert the commit
 
 ---
 
@@ -111,16 +111,19 @@
 ### Task Dependencies Within Phases
 
 **Phase 3 (US1)**:
+
 - T003 first (global setup-node cache change affecting all jobs)
 - T004 [P] and T005 [P] after T003 — they touch non-overlapping sections (playwright job vs. lint/typecheck/test job headers)
 - T006 after T004 (both edit the playwright job; run sequentially to avoid conflicts)
 
 **Phase 4 (US2)**:
+
 - T007 [P], T008 [P], T009 [P] — all parallel (separate jobs: playwright, perf-gate, quickstart)
 - T010 must complete before T011 and T012 (creates the `build` job that T011/T012 reference in `needs:`)
 - T011 [P] and T012 [P] — parallel after T010 (separate jobs: playwright, perf-gate)
 
 **Phase 5 (US3)**:
+
 - T013 [P] and T014 [P] — parallel (separate jobs: quickstart vs. test/integration/build)
 
 ### User Story Dependencies
