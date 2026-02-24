@@ -65,12 +65,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [US2] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that BoardGrid container has CSS properties ensuring square aspect ratio; test that `--board-max` custom property is computed (or verify the responsive CSS classes are applied); test minimum tile size of 28px is enforced via CSS min-width
+- [x] T011 [US2] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that BoardGrid container has CSS properties ensuring square aspect ratio; test that `--board-max` custom property is computed (or verify the responsive CSS classes are applied); test minimum tile size of 28px is enforced via CSS min-width
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Update `app/styles/board.css` — replace `width: 95%` on `.board-grid` with viewport-responsive sizing: use CSS custom properties `--chrome-height` (sum of opponent bar + player bar + gaps, ~120px) and `--board-max: min(calc(100vh - var(--chrome-height) - 2rem), calc(100vw - 2rem))`. Set `width: var(--board-max); max-width: var(--board-max)` on the board container. Ensure `aspect-ratio: 1` on the grid wrapper. Add `min-width: 28px` on `.board-grid__cell` (FR-009). Keep existing gap/font clamp values but adjust breakpoints if needed
-- [ ] T013 [US2] Update mobile breakpoints in `app/styles/board.css` — at `@media (max-width: 768px)`, set `--chrome-height` to account for taller stacked bars. At `@media (max-width: 480px)`, enable `overflow-x: auto` only if board exceeds viewport (FR-009 fallback). Verify no horizontal scroll on 375px viewport when tiles are >= 28px
+- [x] T012 [US2] Update `app/styles/board.css` — replace `width: 95%` on `.board-grid` with viewport-responsive sizing: use CSS custom properties `--chrome-height` (sum of opponent bar + player bar + gaps, ~120px) and `--board-max: min(calc(100vh - var(--chrome-height) - 2rem), calc(100vw - 2rem))`. Set `width: var(--board-max); max-width: var(--board-max)` on the board container. Ensure `aspect-ratio: 1` on the grid wrapper. Add `min-width: 28px` on `.board-grid__cell` (FR-009). Keep existing gap/font clamp values but adjust breakpoints if needed
+- [x] T013 [US2] Update mobile breakpoints in `app/styles/board.css` — at `@media (max-width: 768px)`, set `--chrome-height` to account for taller stacked bars. At `@media (max-width: 480px)`, enable `overflow-x: auto` only if board exceeds viewport (FR-009 fallback). Verify no horizontal scroll on 375px viewport when tiles are >= 28px
 
 **Checkpoint**: Board fits viewport on all three reference viewports. Tiles remain square. No horizontal scroll on desktop/tablet. Mobile allows vertical scroll if needed.
 

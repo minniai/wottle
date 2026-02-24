@@ -16,6 +16,47 @@ function createGrid(): BoardGridType {
   );
 }
 
+describe("BoardGrid responsive layout (US2)", () => {
+  test("grid container applies board-grid class for viewport-responsive CSS", () => {
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const gridElement = screen.getByTestId("board-grid");
+    expect(gridElement).toHaveClass("board-grid");
+  });
+
+  test("grid wrapper applies board-grid__wrapper class for aspect-ratio CSS", () => {
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const gridElement = screen.getByTestId("board-grid");
+    const wrapper = gridElement.closest(".board-grid__wrapper");
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper).toHaveClass("board-grid__wrapper");
+  });
+
+  test("grid sets --board-size CSS custom property for responsive column sizing", () => {
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const gridElement = screen.getByTestId("board-grid");
+    expect(gridElement.style.getPropertyValue("--board-size")).toBe(
+      `${BOARD_SIZE}`,
+    );
+  });
+
+  test("cells have board-grid__cell class for min-width enforcement", () => {
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const cells = screen.getAllByRole("gridcell");
+    expect(cells).toHaveLength(BOARD_TILE_COUNT);
+    cells.forEach((cell) => {
+      expect(cell).toHaveClass("board-grid__cell");
+    });
+  });
+});
+
 describe("BoardGrid component", () => {
   test(`renders a ${BOARD_SIZE}x${BOARD_SIZE} grid with accessible roles`, () => {
     const grid = createGrid();

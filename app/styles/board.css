@@ -1,7 +1,16 @@
 .board-grid__wrapper {
+  --chrome-height: 120px;
+  --board-max: min(
+    calc(100vh - var(--chrome-height) - 2rem),
+    calc(100vw - 2rem)
+  );
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.75rem;
+  width: var(--board-max);
+  max-width: var(--board-max);
+  aspect-ratio: 1;
 }
 
 .board-grid {
@@ -11,7 +20,7 @@
   display: grid;
   grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
   gap: var(--board-grid-gap);
-  width: 95%;
+  width: 100%;
   padding: clamp(0.75rem, 1.0vw, 1.0rem);
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
@@ -31,6 +40,7 @@
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1;
+  min-width: 28px;
   border-radius: 0.65rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: radial-gradient(circle at 30% 30%, rgba(248, 250, 252, 0.14), rgba(30, 41, 59, 0.85));
@@ -114,6 +124,10 @@
 }
 
 @media (max-width: 768px) {
+  .board-grid__wrapper {
+    --chrome-height: 140px;
+  }
+
   .board-grid {
     --board-grid-gap: clamp(0.12rem, 0.9vw, 0.28rem);
     --board-grid-font-size: clamp(0.7rem, 2.3vw, 1.05rem);
@@ -121,13 +135,13 @@
 }
 
 @media (max-width: 480px) {
-  .board-grid {
+  .board-grid__wrapper {
+    --chrome-height: 160px;
     overflow-x: auto;
-    padding: clamp(0.4rem, 2.8vw, 0.6rem);
   }
 
-  .board-grid__cell {
-    min-width: 2.25rem;
+  .board-grid {
+    padding: clamp(0.4rem, 2.8vw, 0.6rem);
   }
 }
 
