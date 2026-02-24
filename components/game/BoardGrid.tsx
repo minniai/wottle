@@ -285,17 +285,35 @@ function BoardGridActive({
       const cleanup = () => {
         if (cleaned) return;
         cleaned = true;
+        fromEl.removeEventListener("transitionend", onTransitionEnd);
 
+        // Disable transitions before clearing transforms to prevent
+        // a reverse slide animation back to original positions.
+        fromEl.style.transition = "none";
+        toEl.style.transition = "none";
         fromEl.style.transform = "";
         toEl.style.transform = "";
         fromEl.classList.remove("board-grid__cell--animating");
         toEl.classList.remove("board-grid__cell--animating");
 
+        // Re-enable transitions after the browser paints the cleared state
+        requestAnimationFrame(() => {
+          fromEl.style.transition = "";
+          toEl.style.transition = "";
+        });
+
         setIsAnimating(false);
         void handleSwap(from, to);
       };
 
-      fromEl.addEventListener("transitionend", cleanup, { once: true });
+      // Only respond to the transform property finishing — not
+      // border-color or box-shadow which complete earlier.
+      const onTransitionEnd = (e: TransitionEvent) => {
+        if (e.propertyName === "transform") {
+          cleanup();
+        }
+      };
+      fromEl.addEventListener("transitionend", onTransitionEnd);
       // Fallback if transitionend doesn't fire (e.g., reduced motion, dx=0)
       setTimeout(cleanup, 300);
     },

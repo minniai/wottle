@@ -206,9 +206,9 @@ describe("BoardGrid swap animation (US5)", () => {
     const gridEl = screen.getByTestId("board-grid");
     expect(gridEl).toHaveAttribute("data-animating", "true");
 
-    // Fire transitionend — this triggers cleanup which calls handleSwap (async fetch)
+    // Fire transitionend with propertyName=transform to trigger cleanup
     await act(async () => {
-      fireEvent.transitionEnd(tiles[0]);
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
       // Flush the fallback timeout and allow fetch promise to resolve
       await vi.advanceTimersByTimeAsync(350);
     });
