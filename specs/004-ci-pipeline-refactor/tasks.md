@@ -79,8 +79,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [P] [US3] In `.github/workflows/ci.yml`, remove the entire `needs: integration` line from the `quickstart` job so that `quickstart` has no `needs:` entry and starts at workflow trigger in parallel with `lint` and `typecheck` — no other changes to the job (FR-009, SC-008)
-- [ ] T014 [P] [US3] In `.github/workflows/ci.yml`: (a) in the `test` job, add `- run: pnpm test:integration` step immediately after `- run: pnpm test` (or `pnpm test:unit`); (b) delete the entire `integration:` job block; (c) update the `build` job `needs:` from `integration` to `test`; (d) verify `quickstart` still has no `needs:` after the `integration` job is removed (FR-010)
+- [x] T013 [P] [US3] In `.github/workflows/ci.yml`, remove the entire `needs: integration` line from the `quickstart` job so that `quickstart` has no `needs:` entry and starts at workflow trigger in parallel with `lint` and `typecheck` — no other changes to the job (FR-009, SC-008)
+- [x] T014 [P] [US3] In `.github/workflows/ci.yml`: (a) in the `test` job, add `- run: pnpm test:integration` step immediately after `- run: pnpm test` (or `pnpm test:unit`); (b) delete the entire `integration:` job block; (c) update the `build` job `needs:` from `integration` to `test`; (d) verify `quickstart` still has no `needs:` after the `integration` job is removed (FR-010)
 
 **Checkpoint**: Pipeline topology matches the final target graph in plan.md. Push and verify SC-008 (quickstart decoupled, its failure marks workflow FAILED but does not block playwright/perf-gate). All 8 success criteria now verifiable.
 
@@ -90,8 +90,8 @@
 
 **Purpose**: Final validation that all acceptance scenarios from spec.md pass.
 
-- [ ] T015 In `.github/workflows/ci.yml`, verify the final job topology matches the target graph: `lint` (no needs), `typecheck` (no needs), `quickstart` (no needs), `test` (needs: [lint, typecheck]), `build` (needs: test), `playwright` (needs: build, matrix with no max-parallel), `perf-gate` (needs: build) — correct any discrepancies found
-- [ ] T016 [P] Run `actionlint .github/workflows/ci.yml` from repo root to validate YAML syntax and GitHub Actions schema compliance; fix any reported issues
+- [x] T015 In `.github/workflows/ci.yml`, verify the final job topology matches the target graph: `lint` (no needs), `typecheck` (no needs), `quickstart` (no needs), `test` (needs: [lint, typecheck]), `build` (needs: test), `playwright` (needs: build, matrix with no max-parallel), `perf-gate` (needs: build) — correct any discrepancies found
+- [x] T016 [P] Run `actionlint .github/workflows/ci.yml` from repo root to validate YAML syntax and GitHub Actions schema compliance; fix any reported issues — no schema errors found; only pre-existing shellcheck style suggestions (SC2086/SC2046 in Docker-save subshell, SC2012/SC2009 informational)
 - [ ] T017 Run the pipeline twice on the `004-ci-pipeline-refactor` branch with no changes to dependency files between runs; verify all cache-related success criteria: SC-001 (pnpm cache hit), SC-002 (Playwright browser cache hit), SC-003 (Docker image cache hit), SC-004 (single `pnpm build` per run), SC-005 (lint and typecheck overlap), SC-006 (Playwright matrix suites overlap)
 - [ ] T018 Verify SC-007: on a temporary test commit, manually corrupt `pnpm-lock.yaml` by adding an extra line; push and confirm the pipeline fails at `pnpm install --frozen-lockfile` with a lockfile-mismatch error visible in the job log; revert the commit
 

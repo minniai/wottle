@@ -80,33 +80,13 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run Unit Tests
         run: pnpm test:unit
-
-  integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    container: node:lts
-    needs: test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
       - name: Run Integration Tests
         run: pnpm test:integration
 
   build:
     name: Build Next.js
     runs-on: ubuntu-latest
-    needs: integration
+    needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -125,14 +105,19 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          # Placeholder values — no live Supabase instance at build time.
+          # NEXT_PUBLIC_* vars are inlined into the client bundle by Next.js;
+          # the real values are injected at runtime via .env.local in playwright/perf-gate.
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+      - name: Prune build artifact (remove incremental cache and trace)
+        # act does not parse multiline YAML path: blocks — prune here instead
+        run: rm -rf .next/cache .next/trace
       - name: Upload Next.js build artifact
         uses: actions/upload-artifact@v4
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            .next/
-            !.next/cache/
-            !.next/trace
+          path: .next/
           if-no-files-found: error
           retention-days: 1
 
@@ -141,7 +126,6 @@ jobs:
     runs-on: ubuntu-latest
     # Note: No container here - needs Docker access for Supabase
     # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
-    needs: integration
     timeout-minutes: 30
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
