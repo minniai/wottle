@@ -3,10 +3,16 @@ import { describe, expect, test } from "vitest";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
 import type { BoardGrid as BoardGridType } from "@/lib/types/board";
+import type { FrozenTileMap } from "@/lib/types/match";
 import {
   BOARD_SIZE,
   BOARD_TILE_COUNT,
 } from "@/lib/constants/board";
+import {
+  PLAYER_A_OVERLAY,
+  PLAYER_B_OVERLAY,
+  BOTH_GRADIENT,
+} from "@/lib/constants/playerColors";
 
 function createGrid(): BoardGridType {
   return Array.from({ length: BOARD_SIZE }, (_, row) =>
@@ -54,6 +60,82 @@ describe("BoardGrid responsive layout (US2)", () => {
     cells.forEach((cell) => {
       expect(cell).toHaveClass("board-grid__cell");
     });
+  });
+});
+
+describe("BoardGrid frozen tile overlays (US4)", () => {
+  test("player_a frozen tile renders with blue overlay", () => {
+    const grid = createGrid();
+    const frozenTiles: FrozenTileMap = {
+      "3,5": { owner: "player_a" },
+    };
+
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" frozenTiles={frozenTiles} />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[5 * BOARD_SIZE + 3];
+    expect(tile).toHaveStyle({ backgroundColor: PLAYER_A_OVERLAY });
+    expect(tile).toHaveClass("board-grid__cell--frozen");
+    expect(tile).toHaveAttribute("data-frozen", "player_a");
+  });
+
+  test("player_b frozen tile renders with red overlay", () => {
+    const grid = createGrid();
+    const frozenTiles: FrozenTileMap = {
+      "2,4": { owner: "player_b" },
+    };
+
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" frozenTiles={frozenTiles} />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[4 * BOARD_SIZE + 2];
+    expect(tile).toHaveStyle({ backgroundColor: PLAYER_B_OVERLAY });
+    expect(tile).toHaveAttribute("data-frozen", "player_b");
+  });
+
+  test("both-player frozen tile renders with split-diagonal gradient", () => {
+    const grid = createGrid();
+    const frozenTiles: FrozenTileMap = {
+      "1,1": { owner: "both" },
+    };
+
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" frozenTiles={frozenTiles} />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[1 * BOARD_SIZE + 1];
+    expect(tile).toHaveStyle({ background: BOTH_GRADIENT });
+    expect(tile).toHaveAttribute("data-frozen", "both");
+  });
+
+  test("frozen tile letters remain visible (text content present)", () => {
+    const grid = createGrid();
+    const frozenTiles: FrozenTileMap = {
+      "0,0": { owner: "player_a" },
+    };
+
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" frozenTiles={frozenTiles} />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[0];
+    expect(tile).toHaveTextContent(grid[0][0]);
+  });
+
+  test("frozen tile has aria-disabled", () => {
+    const grid = createGrid();
+    const frozenTiles: FrozenTileMap = {
+      "0,0": { owner: "player_a" },
+    };
+
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" frozenTiles={frozenTiles} />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[0];
+    expect(tile).toHaveAttribute("aria-disabled", "true");
   });
 });
 

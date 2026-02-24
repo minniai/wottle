@@ -16,6 +16,11 @@ import type {
   MoveResult,
 } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
+import {
+  PLAYER_A_OVERLAY,
+  PLAYER_B_OVERLAY,
+  BOTH_GRADIENT,
+} from "@/lib/constants/playerColors";
 
 interface BoardGridProps {
   grid?: BoardGridType;
@@ -79,11 +84,11 @@ async function submitSwapRequest(matchId: string, move: MoveRequest): Promise<Mo
 /** Stable empty array for default prop to avoid useEffect re-run loops. */
 const EMPTY_HIGHLIGHTS: Coordinate[][] = [];
 
-/** Player color constants for frozen tile overlays. */
+/** Centralized frozen tile overlay colors from playerColors.ts */
 const FROZEN_COLORS = {
-  player_a: "rgba(59, 130, 246, 0.4)", // blue at 40% opacity
-  player_b: "rgba(239, 68, 68, 0.4)",  // red at 40% opacity
-  both: "linear-gradient(135deg, rgba(59, 130, 246, 0.4) 50%, rgba(239, 68, 68, 0.4) 50%)",
+  player_a: PLAYER_A_OVERLAY,
+  player_b: PLAYER_B_OVERLAY,
+  both: BOTH_GRADIENT,
 };
 
 function isTileInHighlights(
@@ -336,6 +341,7 @@ function BoardGridActive({
                   data-row={rowIndex}
                   data-selected={isSelected ? "true" : undefined}
                   data-frozen={isTileFrozen ? frozenOwner : undefined}
+                  data-frozen-owner={isTileFrozen ? frozenOwner : undefined}
                   disabled={isSubmitting}
                   onClick={() => handleTileClick(rowIndex, colIndex)}
                   style={frozenStyle}

@@ -83,6 +83,25 @@
     inset 0 -4px 12px rgba(15, 23, 42, 0.35);
 }
 
+/* Frozen tile: overlay behind text, no hover lift, letter stays readable */
+.board-grid__cell--frozen {
+  position: relative;
+  cursor: not-allowed;
+}
+
+.board-grid__cell--frozen .board-grid__tile {
+  position: relative;
+  z-index: 1;
+}
+
+.board-grid__cell--frozen:hover,
+.board-grid__cell--frozen:focus-within {
+  transform: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -4px 12px rgba(15, 23, 42, 0.35);
+}
+
 /* Scored tile highlight: 3s display, GPU-accelerated (transform + opacity) */
 .board-grid__cell--scored {
   animation: scored-tile-highlight 3s ease-out forwards;

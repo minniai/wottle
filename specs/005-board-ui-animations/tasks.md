@@ -105,12 +105,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T019 [US4] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that a tile with `frozenTiles["3,5"] = { owner: "player_a" }` renders with blue overlay style; test `player_b` renders red overlay; test `both` renders the split-diagonal gradient; test that frozen tile letters remain visible (not hidden by overlay); test `aria-disabled="true"` on frozen tiles
+- [x] T019 [US4] Write failing test in `tests/unit/components/BoardGrid.test.tsx` — test that a tile with `frozenTiles["3,5"] = { owner: "player_a" }` renders with blue overlay style; test `player_b` renders red overlay; test `both` renders the split-diagonal gradient; test that frozen tile letters remain visible (not hidden by overlay); test `aria-disabled="true"` on frozen tiles
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Refactor frozen tile rendering in `components/game/BoardGrid.tsx` — replace inline `FROZEN_COLORS` constant with import from `lib/constants/playerColors.ts`. Use the centralized `PLAYER_A_OVERLAY`, `PLAYER_B_OVERLAY`, and `BOTH_GRADIENT` values. Ensure the overlay is a pseudo-element or positioned div layered behind the letter text (not replacing background) so text contrast is maintained. Add `data-frozen-owner` attribute for test targeting. Verify existing `board-grid__cell--frozen` CSS class is still applied (FR-018, FR-019, FR-020)
-- [ ] T021 [US4] Enhance frozen tile CSS in `app/styles/board.css` — ensure `.board-grid__cell--frozen` positions the color overlay behind the letter text (e.g., via `::after` pseudo-element with `position: absolute; inset: 0; z-index: 0` and the color as background, with letter text at `z-index: 1`). Verify letter text contrast meets 4.5:1 WCAG AA against each overlay color (FR-021). Update `board-grid__cell--frozen` hover to prevent the lift effect on frozen tiles
+- [x] T020 [US4] Refactor frozen tile rendering in `components/game/BoardGrid.tsx` — replace inline `FROZEN_COLORS` constant with import from `lib/constants/playerColors.ts`. Use the centralized `PLAYER_A_OVERLAY`, `PLAYER_B_OVERLAY`, and `BOTH_GRADIENT` values. Ensure the overlay is a pseudo-element or positioned div layered behind the letter text (not replacing background) so text contrast is maintained. Add `data-frozen-owner` attribute for test targeting. Verify existing `board-grid__cell--frozen` CSS class is still applied (FR-018, FR-019, FR-020)
+- [x] T021 [US4] Enhance frozen tile CSS in `app/styles/board.css` — ensure `.board-grid__cell--frozen` positions the color overlay behind the letter text (e.g., via `::after` pseudo-element with `position: absolute; inset: 0; z-index: 0` and the color as background, with letter text at `z-index: 1`). Verify letter text contrast meets 4.5:1 WCAG AA against each overlay color (FR-021). Update `board-grid__cell--frozen` hover to prevent the lift effect on frozen tiles
 
 **Checkpoint**: Frozen tiles display blue (player_a), red (player_b), or split (both) overlays at 40% opacity. Letters readable. WCAG contrast passes.
 
