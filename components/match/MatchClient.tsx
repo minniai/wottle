@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
-import { TimerHud } from "@/components/game/TimerHud";
+import { GameChrome } from "@/components/match/GameChrome";
 import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
 import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
+import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
@@ -263,6 +264,36 @@ export function MatchClient({
     setSwapError(message);
   }, []);
 
+  // Derive opponent timer
+  const opponentTimer: TimerState = useMemo(() => {
+    if (matchState.timers.playerA.playerId === currentPlayerId) {
+      return matchState.timers.playerB;
+    }
+    return matchState.timers.playerA;
+  }, [currentPlayerId, matchState.timers.playerA, matchState.timers.playerB]);
+
+  const opponentSlot: "player_a" | "player_b" =
+    playerSlot === "player_a" ? "player_b" : "player_a";
+
+  const playerScore =
+    playerSlot === "player_a"
+      ? matchState.scores.playerA
+      : matchState.scores.playerB;
+  const opponentScore =
+    opponentSlot === "player_a"
+      ? matchState.scores.playerA
+      : matchState.scores.playerB;
+
+  const opponentTimeLeft = Math.max(
+    0,
+    Math.floor(opponentTimer.remainingMs / 1000),
+  );
+
+  const searchParams = useSearchParams();
+  const showDebug =
+    process.env.NODE_ENV !== "production" &&
+    searchParams.get("debug") === "1";
+
   return (
     <MatchShell matchId={matchId}>
       {isReconnecting && (
@@ -294,24 +325,64 @@ export function MatchClient({
         </div>
       )}
 
-      <div className="mt-6 flex w-full flex-col items-center">
-        <TimerHud
-          timeLeft={timeLeftSeconds}
-          isPaused={isPaused}
-          roundNumber={matchState.currentRound}
-        />
+      <GameChrome
+        position="opponent"
+        playerName={opponentTimer.playerId}
+        score={opponentScore}
+        timerSeconds={opponentTimeLeft}
+        isPaused={opponentTimer.status !== "running"}
+        hasSubmitted={opponentTimer.status === "paused"}
+        playerColor={getPlayerColors(opponentSlot).hex}
+      />
 
-        <BoardGrid
-          grid={matchState.board}
-          matchId={matchId}
-          frozenTiles={matchState.frozenTiles ?? {}}
-          playerSlot={playerSlot}
-          scoredTileHighlights={summary?.highlights ?? []}
-          highlightDurationMs={3000}
-          onSwapComplete={handleSwapComplete}
-          onSwapError={({ message }) => handleSwapError(message)}
-        />
-      </div>
+      <BoardGrid
+        grid={matchState.board}
+        matchId={matchId}
+        frozenTiles={matchState.frozenTiles ?? {}}
+        playerSlot={playerSlot}
+        scoredTileHighlights={summary?.highlights ?? []}
+        highlightDurationMs={3000}
+        onSwapComplete={handleSwapComplete}
+        onSwapError={({ message }) => handleSwapError(message)}
+      />
+
+      <GameChrome
+        position="player"
+        playerName={currentTimer.playerId}
+        score={playerScore}
+        timerSeconds={timeLeftSeconds}
+        isPaused={isPaused}
+        hasSubmitted={currentTimer.status === "paused"}
+        moveCounter={matchState.currentRound}
+        playerColor={getPlayerColors(playerSlot).hex}
+      />
+
+      {showDebug && (
+        <details
+          className="mt-4 rounded-lg border border-white/10 bg-slate-900/50 p-3 text-xs text-white/60"
+          data-testid="debug-metadata"
+        >
+          <summary className="cursor-pointer text-white/40">
+            Debug Info
+          </summary>
+          <dl className="mt-2 grid grid-cols-2 gap-1">
+            <dt>Match ID</dt>
+            <dd className="font-mono">{matchId}</dd>
+            <dt>Round</dt>
+            <dd>{matchState.currentRound} / 10</dd>
+            <dt>Status</dt>
+            <dd>{matchState.state}</dd>
+            <dt>Player A</dt>
+            <dd className="font-mono">
+              {matchState.timers.playerA.playerId}
+            </dd>
+            <dt>Player B</dt>
+            <dd className="font-mono">
+              {matchState.timers.playerB.playerId}
+            </dd>
+          </dl>
+        </details>
+      )}
 
       <RoundSummaryPanel
         summary={summary}
