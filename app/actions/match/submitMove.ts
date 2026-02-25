@@ -9,6 +9,8 @@ import type { BoardGrid, MoveResult } from "@/lib/types/board";
 import { advanceRound } from "@/lib/match/roundEngine";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import { isClockExpired } from "@/lib/match/clockEnforcer";
+import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 
 export async function submitMove(
     matchId: string,
@@ -35,7 +37,7 @@ export async function submitMove(
     // 1. Get match to check round and validate player is in match
     const { data: match, error: matchError } = await supabase
         .from("matches")
-        .select("current_round, state, player_a_id, player_b_id, frozen_tiles")
+        .select("current_round, state, player_a_id, player_b_id, frozen_tiles, player_a_timer_ms, player_b_timer_ms")
         .eq("id", matchId)
         .single();
 
@@ -44,7 +46,7 @@ export async function submitMove(
     }
 
     if (match.state !== "in_progress") {
-        return { error: "Match is not in progress" };
+        return { status: "rejected" as const, error: "Match has ended" };
     }
 
     // Validate player is in match
@@ -52,10 +54,10 @@ export async function submitMove(
         return { error: "You are not a player in this match" };
     }
 
-    // 2. Get current round to get round_id and board state
+    // 2. Get current round to get round_id, board state, and started_at for clock check
     const { data: round, error: roundError } = await supabase
         .from("rounds")
-        .select("id, state, board_snapshot_before")
+        .select("id, state, board_snapshot_before, started_at")
         .eq("match_id", matchId)
         .eq("round_number", match.current_round)
         .single();
@@ -66,6 +68,27 @@ export async function submitMove(
 
     if (round.state !== "collecting") {
         return { error: "Round is no longer accepting submissions" };
+    }
+
+    // 2b. Clock expiry gate: reject if player's server-authoritative time has expired
+    if (round.started_at) {
+        const roundStartedAt = new Date(round.started_at as string);
+        const playerATimerMs = match.player_a_timer_ms ?? 300_000;
+        const playerBTimerMs = match.player_b_timer_ms ?? 300_000;
+        const playerTimerMs = user.id === match.player_a_id ? playerATimerMs : playerBTimerMs;
+
+        const playerAExpired = isClockExpired(roundStartedAt, playerATimerMs);
+        const playerBExpired = isClockExpired(roundStartedAt, playerBTimerMs);
+
+        if (playerAExpired && playerBExpired) {
+            completeMatchInternal(matchId, "time_expiry").catch((e: unknown) => {
+                console.error("[Clock] Failed to complete match on time expiry:", e);
+            });
+        }
+
+        if (isClockExpired(roundStartedAt, playerTimerMs)) {
+            return { status: "rejected" as const, error: "Your time has expired" };
+        }
     }
 
     // Get current board state

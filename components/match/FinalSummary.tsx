@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
-import type { MatchEndedReason } from "@/lib/types/match";
+import type { MatchEndedReason, TopWord } from "@/lib/types/match";
 
 interface PlayerSummary {
   id: string;
@@ -13,6 +13,8 @@ interface PlayerSummary {
   score: number;
   timeRemainingMs: number;
   timeUsedMs: number;
+  frozenTileCount: number;
+  topWords: TopWord[];
 }
 
 interface ScoreboardRow {
@@ -50,8 +52,8 @@ function reasonLabel(reason: MatchEndedReason) {
   switch (reason) {
     case "round_limit":
       return "10 rounds completed";
-    case "timeout":
-      return "Timeout";
+    case "time_expiry":
+      return "Time expired";
     case "disconnect":
       return "Disconnected opponent";
     case "forfeit":
@@ -59,6 +61,26 @@ function reasonLabel(reason: MatchEndedReason) {
     default:
       return "Completed";
   }
+}
+
+function TopWordsList({ words }: { words: TopWord[] }) {
+  if (words.length === 0) {
+    return <p className="text-xs text-white/40">No words scored</p>;
+  }
+
+  return (
+    <ul className="mt-2 space-y-1">
+      {words.map((entry) => (
+        <li
+          key={entry.word}
+          className="flex items-center justify-between text-xs text-white/70"
+        >
+          <span className="font-mono uppercase tracking-wide">{entry.word}</span>
+          <span>{entry.totalPoints} pts</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function FinalSummary({
@@ -151,6 +173,17 @@ export function FinalSummary({
             <p className="mt-1 text-sm text-white/70">
               Time used: {formatDuration(player.timeUsedMs)}
             </p>
+            <p className="mt-1 text-sm text-white/70">
+              {player.frozenTileCount} tiles frozen
+            </p>
+            {player.topWords.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs uppercase tracking-wide text-white/40">
+                  Top words
+                </p>
+                <TopWordsList words={player.topWords} />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -252,4 +285,3 @@ export function FinalSummary({
     </section>
   );
 }
-

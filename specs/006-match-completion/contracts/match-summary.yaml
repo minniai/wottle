@@ -1,0 +1,116 @@
+openapi: "3.1.0"
+info:
+  title: Match Summary Data Contract
+  version: "1.0.0"
+  description: >
+    Data shape for the /match/[matchId]/summary page (game-over screen).
+    Consumed by FinalSummary component. All data loaded server-side from
+    existing DB tables — no new endpoints required.
+
+paths:
+  /match/{matchId}/summary:
+    get:
+      summary: Load completed match summary (server-rendered page)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Summary page rendered with match result data
+          content:
+            text/html:
+              schema:
+                description: Server-rendered Next.js page
+        "302":
+          description: Redirect to /match/[matchId] if match is not yet completed
+        "403":
+          description: Player is not a participant in this match
+
+components:
+  schemas:
+    MatchSummaryProps:
+      description: Props passed to FinalSummary component from the page
+      type: object
+      required:
+        - matchId
+        - currentPlayerId
+        - winnerId
+        - endedReason
+        - players
+        - topWords
+      properties:
+        matchId:
+          type: string
+          format: uuid
+        currentPlayerId:
+          type: string
+          format: uuid
+        winnerId:
+          type: string
+          format: uuid
+          nullable: true
+          description: null indicates a draw
+        endedReason:
+          type: string
+          enum: [round_limit, time_expiry, disconnect, forfeit, error]
+        players:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/PlayerSummary"
+        topWords:
+          type: array
+          description: Up to 5 top-scoring non-duplicate words per player
+          items:
+            $ref: "#/components/schemas/TopWord"
+
+    PlayerSummary:
+      type: object
+      required: [id, username, finalScore, frozenTileCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        finalScore:
+          type: integer
+          minimum: 0
+        frozenTileCount:
+          type: integer
+          minimum: 0
+          maximum: 76
+          description: >
+            Count of tiles frozen by (or shared with) this player.
+            Derived from matches.frozen_tiles JSONB:
+            count entries where owner = "player_a" | "player_b" | "both".
+
+    TopWord:
+      type: object
+      required: [playerId, word, totalPoints]
+      properties:
+        playerId:
+          type: string
+          format: uuid
+        word:
+          type: string
+          description: Icelandic word (lowercase)
+        totalPoints:
+          type: integer
+          minimum: 1
+        lettersPoints:
+          type: integer
+        bonusPoints:
+          type: integer
+
+  # Data sources for MatchSummaryProps:
+  # - winnerId, endedReason  → matches.winner_id, matches.ended_reason
+  # - finalScore             → scoreboard_snapshots WHERE round_number = max(round_number)
+  # - frozenTileCount        → parse matches.frozen_tiles JSONB, count by owner
+  # - topWords               → word_score_entries WHERE is_duplicate = false
+  #                            GROUP BY player_id, word ORDER BY total_points DESC LIMIT 5

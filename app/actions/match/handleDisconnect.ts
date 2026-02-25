@@ -3,7 +3,6 @@
 import "server-only";
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { writeMatchLog } from "@/lib/match/logWriter";
 
@@ -55,9 +54,6 @@ export async function handlePlayerDisconnect(matchId: string, playerId: string):
     playerId,
     disconnectedAt: new Date().toISOString(),
   });
-
-  // Pause both players' timers (server-side)
-  await pauseMatchTimers(supabase, matchId);
 
   // Broadcast disconnect state to all clients
   await publishMatchStateWithDisconnect(matchId, playerId);
@@ -121,9 +117,8 @@ export async function handlePlayerReconnect(matchId: string, playerId: string): 
     const elapsed = now - disconnectTime;
 
     if (elapsed < RECONNECT_WINDOW_MS) {
-      // Player reconnected within window - resume timers
+      // Player reconnected within window - clear disconnect state
       disconnectStore.delete(disconnectKey);
-      await resumeMatchTimers(supabase, matchId);
       await publishMatchStateWithDisconnect(matchId, null); // Clear disconnect state
 
       await writeMatchLog(supabase, {
@@ -140,34 +135,6 @@ export async function handlePlayerReconnect(matchId: string, playerId: string): 
       disconnectStore.delete(disconnectKey);
     }
   }
-}
-
-async function pauseMatchTimers(
-  supabase: ReturnType<typeof getServiceRoleClient>,
-  matchId: string,
-): Promise<void> {
-  // Update match to indicate timers are paused
-  // In a full implementation, we'd have a paused_timers_at field
-  // For now, we'll track this via the state or a separate field
-  await supabase
-    .from("matches")
-    .update({
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", matchId);
-}
-
-async function resumeMatchTimers(
-  supabase: ReturnType<typeof getServiceRoleClient>,
-  matchId: string,
-): Promise<void> {
-  // Resume timers - update match state
-  await supabase
-    .from("matches")
-    .update({
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", matchId);
 }
 
 async function publishMatchStateWithDisconnect(
@@ -199,22 +166,9 @@ async function loadMatchStateWithDisconnect(
     return null;
   }
 
-  // Update timer status to paused if there's a disconnected player
   if (disconnectedPlayerId) {
-    const timers = { ...state.timers };
-    if (timers.playerA.playerId === disconnectedPlayerId) {
-      timers.playerA = { ...timers.playerA, status: "paused" };
-    }
-    if (timers.playerB.playerId === disconnectedPlayerId) {
-      timers.playerB = { ...timers.playerB, status: "paused" };
-    }
-    // Pause both timers when any player disconnects
-    timers.playerA = { ...timers.playerA, status: "paused" };
-    timers.playerB = { ...timers.playerB, status: "paused" };
-
     return {
       ...state,
-      timers,
       disconnectedPlayerId,
     };
   }

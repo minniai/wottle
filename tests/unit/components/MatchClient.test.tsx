@@ -1,11 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 import type { MatchState } from "@/lib/types/match";
 
+const mockPush = vi.fn();
+
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -130,5 +132,25 @@ describe("MatchClient layout", () => {
     expect(screen.getByTestId("debug-metadata")).toBeInTheDocument();
 
     vi.restoreAllMocks();
+  });
+
+  // T010: MatchClient navigates to /match/[id]/summary when state === "completed"
+  test("T010: calls router.push to summary page when matchState.state is completed", async () => {
+    mockPush.mockClear();
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    const completedState = createMatchState({ state: "completed" });
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={completedState}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    expect(mockPush).toHaveBeenCalledWith("/match/match-test-123/summary");
   });
 });

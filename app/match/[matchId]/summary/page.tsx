@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { FinalSummary } from "@/components/match/FinalSummary";
+import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import type { MatchEndedReason, ScoreTotals } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, ScoreTotals } from "@/lib/types/match";
 
 interface PlayerRecord {
   id: string;
@@ -26,7 +27,8 @@ async function fetchMatchSummary(matchId: string) {
         player_a_id,
         player_b_id,
         player_a_timer_ms,
-        player_b_timer_ms
+        player_b_timer_ms,
+        frozen_tiles
       `,
     )
     .eq("id", matchId)
@@ -68,6 +70,13 @@ async function fetchMatchSummary(matchId: string) {
     .eq("match_id", matchId)
     .order("created_at", { ascending: true });
 
+  const { data: topWordEntries } = await supabase
+    .from("word_score_entries")
+    .select("player_id,word,total_points,letters_points,bonus_points")
+    .eq("match_id", matchId)
+    .eq("is_duplicate", false)
+    .order("total_points", { ascending: false });
+
   const finalScores: ScoreTotals =
     snapshots && snapshots.length > 0
       ? {
@@ -81,6 +90,7 @@ async function fetchMatchSummary(matchId: string) {
     playerMap,
     snapshots: snapshots ?? [],
     wordEntries: wordEntries ?? [],
+    topWordEntries: topWordEntries ?? [],
     roundMap,
     finalScores,
   };
@@ -108,6 +118,23 @@ export default async function MatchSummaryPage({
     redirect("/");
   }
 
+  const frozenTileCounts = computeFrozenTileCountByPlayer(
+    (summary.match.frozen_tiles as FrozenTileMap) ?? {},
+  );
+
+  const TOP_WORDS_LIMIT = 5;
+  function buildTopWords(playerId: string) {
+    return summary.topWordEntries
+      .filter((entry) => entry.player_id === playerId)
+      .slice(0, TOP_WORDS_LIMIT)
+      .map((entry) => ({
+        word: entry.word as string,
+        totalPoints: entry.total_points as number,
+        lettersPoints: entry.letters_points as number,
+        bonusPoints: entry.bonus_points as number,
+      }));
+  }
+
   const players = [
     {
       id: summary.match.player_a_id,
@@ -116,6 +143,8 @@ export default async function MatchSummaryPage({
         summary.playerMap.get(summary.match.player_a_id)?.display_name ?? "Player A",
       score: summary.finalScores.playerA,
       timeRemainingMs: summary.match.player_a_timer_ms ?? BASE_TIMER_MS,
+      frozenTileCount: frozenTileCounts.playerA,
+      topWords: buildTopWords(summary.match.player_a_id),
     },
     {
       id: summary.match.player_b_id,
@@ -124,6 +153,8 @@ export default async function MatchSummaryPage({
         summary.playerMap.get(summary.match.player_b_id)?.display_name ?? "Player B",
       score: summary.finalScores.playerB,
       timeRemainingMs: summary.match.player_b_timer_ms ?? BASE_TIMER_MS,
+      frozenTileCount: frozenTileCounts.playerB,
+      topWords: buildTopWords(summary.match.player_b_id),
     },
   ].map((player) => ({
     ...player,

@@ -7,19 +7,127 @@ import type { MoveRequest } from "@/lib/types/board";
 import { publishMatchState } from "./statePublisher";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 import { trackRoundCompleted } from "@/lib/observability/log";
+import { isClockExpired, computeElapsedMs } from "./clockEnforcer";
+
+type MatchRow = {
+    id: string;
+    current_round: number;
+    state: string;
+    player_a_id: string;
+    player_b_id: string;
+    board_seed: string | null;
+    frozen_tiles: Record<string, unknown> | null;
+    player_a_timer_ms: number | null;
+    player_b_timer_ms: number | null;
+};
+
+type RoundRow = {
+    id: string;
+    state: string;
+    board_snapshot_before: unknown;
+    started_at: string | null;
+};
+
+type SubmissionRow = {
+    id: string;
+    player_id: string;
+    from_x: number;
+    from_y: number;
+    to_x: number;
+    to_y: number;
+    submitted_at: string;
+    status: string;
+};
+
+/** Identify which player slot is absent from submissions. */
+function findAbsentPlayerId(
+    match: MatchRow,
+    submissions: SubmissionRow[],
+): string | null {
+    const submitterIds = new Set(submissions.map((s) => s.player_id));
+    if (!submitterIds.has(match.player_a_id)) return match.player_a_id;
+    if (!submitterIds.has(match.player_b_id)) return match.player_b_id;
+    return null;
+}
+
+function getAbsentTimerMs(match: MatchRow, absentPlayerId: string): number {
+    return absentPlayerId === match.player_a_id
+        ? (match.player_a_timer_ms ?? 300_000)
+        : (match.player_b_timer_ms ?? 300_000);
+}
+
+async function insertTimeoutSubmission(
+    supabase: ReturnType<typeof getServiceRoleClient>,
+    roundId: string,
+    playerId: string,
+): Promise<void> {
+    await supabase.from("move_submissions").insert({
+        round_id: roundId,
+        player_id: playerId,
+        from_x: 0,
+        from_y: 0,
+        to_x: 0,
+        to_y: 0,
+        status: "timeout",
+        submitted_at: new Date().toISOString(),
+    });
+}
+
+async function maybeSynthesizeTimeoutPass(
+    supabase: ReturnType<typeof getServiceRoleClient>,
+    match: MatchRow,
+    round: RoundRow,
+    submissions: SubmissionRow[],
+): Promise<SubmissionRow[]> {
+    if (submissions.length !== 1 || !round.started_at) {
+        return submissions;
+    }
+
+    const absentPlayerId = findAbsentPlayerId(match, submissions);
+    if (!absentPlayerId) return submissions;
+
+    const absentTimerMs = getAbsentTimerMs(match, absentPlayerId);
+    const roundStartedAt = new Date(round.started_at);
+    if (!isClockExpired(roundStartedAt, absentTimerMs)) {
+        return submissions;
+    }
+
+    const now = new Date().toISOString();
+    await insertTimeoutSubmission(supabase, round.id, absentPlayerId);
+
+    // Append the synthetic timeout submission in-memory rather than re-fetching
+    const syntheticSubmission: SubmissionRow = {
+        id: `timeout-${absentPlayerId}`,
+        player_id: absentPlayerId,
+        from_x: 0,
+        from_y: 0,
+        to_x: 0,
+        to_y: 0,
+        submitted_at: now,
+        status: "timeout",
+    };
+
+    return [...submissions, syntheticSubmission];
+}
+
+function deductTimerMs(
+    timerMs: number,
+    submission: SubmissionRow | undefined,
+    roundStartedAt: Date,
+): number {
+    if (!submission) return timerMs;
+    const elapsed = computeElapsedMs(roundStartedAt, new Date(submission.submitted_at));
+    return Math.max(0, timerMs - elapsed);
+}
 
 export async function advanceRound(matchId: string) {
     const supabase = getServiceRoleClient();
     const roundStart = Date.now();
 
-    // Use a transaction to ensure atomicity
-    // Note: Supabase client doesn't have explicit transactions in JS, so we'll use row-level locking via SELECT FOR UPDATE pattern
-    // For now, we'll rely on unique constraints and optimistic updates
-
     // 1. Fetch current match state
     const { data: match, error: matchError } = await supabase
         .from("matches")
-        .select("current_round, state, player_a_id, player_b_id, board_seed, frozen_tiles")
+        .select("current_round, state, player_a_id, player_b_id, board_seed, frozen_tiles, player_a_timer_ms, player_b_timer_ms")
         .eq("id", matchId)
         .single();
 
@@ -29,12 +137,12 @@ export async function advanceRound(matchId: string) {
         return { status: "not_advancing", reason: "Match is not in progress" };
     }
 
-    const currentRound = match.current_round;
+    const currentRound = (match as MatchRow).current_round;
 
-    // 2. Get current round record
+    // 2. Get current round record (including started_at for clock enforcement)
     const { data: round, error: roundError } = await supabase
         .from("rounds")
-        .select("id, state, board_snapshot_before")
+        .select("id, state, board_snapshot_before, started_at")
         .eq("match_id", matchId)
         .eq("round_number", currentRound)
         .single();
@@ -46,8 +154,8 @@ export async function advanceRound(matchId: string) {
         return { status: "not_advancing", reason: `Round is in ${round.state} state` };
     }
 
-    // 4. Fetch submissions for this round
-    const { data: submissions, error: subError } = await supabase
+    // 4. Fetch pending submissions for this round
+    const { data: pendingSubmissions, error: subError } = await supabase
         .from("move_submissions")
         .select("*")
         .eq("round_id", round.id)
@@ -55,14 +163,23 @@ export async function advanceRound(matchId: string) {
 
     if (subError) throw new Error("Failed to fetch submissions");
 
-    // 5. Check if we have submissions from all players (2 for playtest)
+    // 5. Maybe synthesise a timeout submission if absent player's clock expired
+    const submissions = await maybeSynthesizeTimeoutPass(
+        supabase,
+        match as MatchRow,
+        round as RoundRow,
+        pendingSubmissions as SubmissionRow[],
+    );
+
+    // 6. Check if we have submissions from all players (2 for playtest)
     if (submissions.length < 2) {
         return { status: "waiting", received: submissions.length };
     }
 
-    // 6. Resolve conflicts (first-come-first-served for overlapping tiles)
-    // Map database fields to MoveSubmission type (database has submitted_at, not created_at)
-    const mappedSubmissions: MoveSubmission[] = submissions.map((sub: any) => ({
+    // 7. Resolve conflicts (first-come-first-served for overlapping tiles)
+    // Filter out timeout submissions before conflict resolution (they don't lock tiles)
+    const nonTimeoutSubs = submissions.filter((s: SubmissionRow) => s.status !== "timeout");
+    const mappedSubmissions: MoveSubmission[] = nonTimeoutSubs.map((sub: SubmissionRow) => ({
         id: sub.id,
         match_id: matchId,
         player_id: sub.player_id,
@@ -71,11 +188,11 @@ export async function advanceRound(matchId: string) {
         from_y: sub.from_y,
         to_x: sub.to_x,
         to_y: sub.to_y,
-        created_at: sub.submitted_at || sub.created_at || new Date().toISOString(),
+        created_at: sub.submitted_at || new Date().toISOString(),
     }));
     const { acceptedMoves, rejectedMoves } = resolveConflicts(mappedSubmissions);
 
-    // 7. Parse current board state
+    // 8. Parse current board state
     let currentBoard: BoardGrid;
     try {
         currentBoard = boardGridSchema.parse(round.board_snapshot_before);
@@ -83,7 +200,7 @@ export async function advanceRound(matchId: string) {
         throw new Error("Invalid board state");
     }
 
-    // 8. Apply all accepted moves sequentially
+    // 9. Apply all accepted moves sequentially
     let boardAfter = currentBoard;
     for (const move of acceptedMoves) {
         const moveRequest: MoveRequest = {
@@ -93,14 +210,13 @@ export async function advanceRound(matchId: string) {
         try {
             boardAfter = applySwap(boardAfter, moveRequest);
         } catch (error) {
-            // If swap fails, mark this move as rejected
             const rejected = acceptedMoves.splice(acceptedMoves.indexOf(move), 1);
             rejectedMoves.push(...rejected);
             console.error("Failed to apply move:", move, error);
         }
     }
 
-    // 8b. Compute word scores from the board delta
+    // 9b. Compute word scores from the board delta
     try {
         const { computeWordScoresForRound } = await import(
             "@/app/actions/match/publishRoundSummary"
@@ -112,16 +228,15 @@ export async function advanceRound(matchId: string) {
             currentBoard,
             boardAfter,
             acceptedMoves,
-            match.player_a_id,
-            match.player_b_id,
-            match.frozen_tiles ?? {},
+            (match as MatchRow).player_a_id,
+            (match as MatchRow).player_b_id,
+            (match as MatchRow).frozen_tiles as Record<string, { owner: string }> ?? {},
         );
     } catch (e) {
         console.error("[WordEngine] Failed to compute word scores:", e);
-        // Continue — round advancement should not be blocked by scoring errors
     }
 
-    // 9. Update round state to resolving
+    // 10. Update round state to resolving
     const { error: updateRoundError } = await supabase
         .from("rounds")
         .update({
@@ -133,7 +248,7 @@ export async function advanceRound(matchId: string) {
 
     if (updateRoundError) throw new Error("Failed to update round state");
 
-    // 10. Update submission statuses
+    // 11. Update submission statuses
     for (const move of acceptedMoves) {
         await supabase
             .from("move_submissions")
@@ -151,7 +266,7 @@ export async function advanceRound(matchId: string) {
             .eq("id", move.id);
     }
 
-    // 11. Mark round as completed
+    // 12. Mark round as completed
     await supabase
         .from("rounds")
         .update({
@@ -160,11 +275,24 @@ export async function advanceRound(matchId: string) {
         })
         .eq("id", round.id);
 
-    // 12. Advance to next round
+    // 12b. Deduct elapsed time from player timers
+    const roundStartedAt = round.started_at ? new Date(round.started_at as string) : null;
+    const allSubs = submissions as SubmissionRow[];
+    const playerASubmission = allSubs.find((s) => s.player_id === (match as MatchRow).player_a_id);
+    const playerBSubmission = allSubs.find((s) => s.player_id === (match as MatchRow).player_b_id);
+
+    const newPlayerATimerMs = roundStartedAt
+        ? deductTimerMs((match as MatchRow).player_a_timer_ms ?? 300_000, playerASubmission, roundStartedAt)
+        : ((match as MatchRow).player_a_timer_ms ?? 300_000);
+    const newPlayerBTimerMs = roundStartedAt
+        ? deductTimerMs((match as MatchRow).player_b_timer_ms ?? 300_000, playerBSubmission, roundStartedAt)
+        : ((match as MatchRow).player_b_timer_ms ?? 300_000);
+
+    // 13. Advance to next round
     const nextRound = currentRound + 1;
     const isGameOver = nextRound > 10;
 
-    // 13. Create next round if not game over
+    // 14. Create next round if not game over
     if (!isGameOver) {
         const { error: nextRoundError } = await supabase
             .from("rounds")
@@ -172,19 +300,21 @@ export async function advanceRound(matchId: string) {
                 match_id: matchId,
                 round_number: nextRound,
                 state: "collecting",
-                board_snapshot_before: boardAfter, // New round starts with board after previous round
+                board_snapshot_before: boardAfter,
+                started_at: new Date().toISOString(),
             });
 
         if (nextRoundError) {
             console.error("Failed to create next round:", nextRoundError);
-            // Continue anyway - we'll update match state
         }
     }
 
-    // 14. Update match state
-    const updatePayload: any = {
+    // 15. Update match state (with timer deductions)
+    const updatePayload: Record<string, unknown> = {
         current_round: nextRound,
         updated_at: new Date().toISOString(),
+        player_a_timer_ms: newPlayerATimerMs,
+        player_b_timer_ms: newPlayerBTimerMs,
     };
 
     if (isGameOver) {
@@ -198,13 +328,11 @@ export async function advanceRound(matchId: string) {
 
     if (updateError) throw new Error("Failed to update match");
 
-    // 15. Publish round summary (scores will be computed when word-finder is integrated)
-    // For now, this will publish an empty summary if no word scores exist
+    // 16. Publish round summary
     try {
         const { publishRoundSummary } = await import("@/app/actions/match/publishRoundSummary");
         await publishRoundSummary(matchId, currentRound).catch((e: unknown) => {
             console.error("Failed to publish round summary:", e);
-            // Continue anyway - round is already advanced
         });
     } catch (e) {
         console.error("Failed to load publishRoundSummary:", e);
