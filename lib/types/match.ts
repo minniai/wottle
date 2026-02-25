@@ -39,6 +39,14 @@ export type MatchEndedReason =
 
 export type ClockCheckResult = { allowed: true } | { allowed: false; remainingMs: number };
 
+/** Top-scoring word for displaying in the post-game summary screen. */
+export interface TopWord {
+  word: string;
+  totalPoints: number;
+  lettersPoints: number;
+  bonusPoints: number;
+}
+
 /**
  * Broadcast-facing word score type used in round summaries.
  *

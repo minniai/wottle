@@ -144,24 +144,24 @@
 
 ### Tests — Frozen Tile Helper
 
-- [ ] T027 [P] [US3] Write failing unit test in `tests/unit/match/matchSummary.spec.ts`: `computeFrozenTileCountByPlayer()` returns correct counts for `"player_a"`, `"player_b"`, and `"both"` entries in `FrozenTileMap`
+- [x] T027 [P] [US3] Write failing unit test in `tests/unit/match/matchSummary.spec.ts`: `computeFrozenTileCountByPlayer()` returns correct counts for `"player_a"`, `"player_b"`, and `"both"` entries in `FrozenTileMap`
 
 ### Implementation — Frozen Tile Helper
 
-- [ ] T028 [P] [US3] Create `lib/match/matchSummary.ts` with `computeFrozenTileCountByPlayer(frozenTiles: FrozenTileMap): { playerA: number; playerB: number }` — counts entries where `owner === "player_a"` or `"both"` toward playerA, and `"player_b"` or `"both"` toward playerB
+- [x] T028 [P] [US3] Create `lib/match/matchSummary.ts` with `computeFrozenTileCountByPlayer(frozenTiles: FrozenTileMap): { playerA: number; playerB: number }` — counts entries where `owner === "player_a"` or `"both"` toward playerA, and `"player_b"` or `"both"` toward playerB
 
 ### Implementation — Summary Page Data
 
-- [ ] T029 [US3] Update `app/match/[matchId]/summary/page.tsx`: (a) call `computeFrozenTileCountByPlayer(match.frozen_tiles)` to derive counts, (b) query `word_score_entries` for `is_duplicate = false` ordered by `total_points DESC`, slice top 5 per player; pass both as new props to `FinalSummary`
+- [x] T029 [US3] Update `app/match/[matchId]/summary/page.tsx`: (a) call `computeFrozenTileCountByPlayer(match.frozen_tiles)` to derive counts, (b) query `word_score_entries` for `is_duplicate = false` ordered by `total_points DESC`, slice top 5 per player; pass both as new props to `FinalSummary`
 
 ### Implementation — FinalSummary Component
 
-- [ ] T030 [US3] Update `components/match/FinalSummary.tsx`: extend `PlayerSummary` interface with `frozenTileCount: number`; render frozen tile count in each player's score card (label: "Frozen tiles")
-- [ ] T031 [US3] Update `components/match/FinalSummary.tsx`: add `topWords: TopWord[]` (where `TopWord = { word: string; totalPoints: number; lettersPoints: number; bonusPoints: number }`) to each player's section; render top-scoring words list; type `TopWord` defined in `lib/types/match.ts`
+- [x] T030 [US3] Update `components/match/FinalSummary.tsx`: extend `PlayerSummary` interface with `frozenTileCount: number`; render frozen tile count in each player's score card (label: "Frozen tiles")
+- [x] T031 [US3] Update `components/match/FinalSummary.tsx`: add `topWords: TopWord[]` (where `TopWord = { word: string; totalPoints: number; lettersPoints: number; bonusPoints: number }`) to each player's section; render top-scoring words list; type `TopWord` defined in `lib/types/match.ts`
 
 ### Tests — Component and Integration
 
-- [ ] T032 [US3] Write unit test in `tests/unit/components/FinalSummary.spec.tsx`: component renders frozen tile count and top words for each player given valid props
+- [x] T032 [US3] Write unit test in `tests/unit/components/FinalSummary.spec.tsx`: component renders frozen tile count and top words for each player given valid props
 - [ ] T033 [US3] Write integration test in `tests/integration/match/matchSummary.spec.ts`: summary page returns `frozenTileCount` matching `matches.frozen_tiles` and `topWords` matching the top-5 non-duplicate entries in `word_score_entries`
 
 **Checkpoint**: All three user stories functional. Complete playtestable game: bounded match, time pressure, rich game-over screen.
