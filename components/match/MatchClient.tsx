@@ -52,11 +52,13 @@ export function MatchClient({
   const router = useRouter();
   const isAutomation =
     typeof navigator !== "undefined" && navigator.webdriver;
-  const summaryAutoDismissMs = isAutomation ? 15_000 : 3_000;
+  const summaryAutoDismissMs = isAutomation ? 15_000 : 0;
   const [matchState, setMatchState] = useState<MatchState>(initialState);
   const [summary, setSummary] = useState<RoundSummary | null>(
     initialState.lastSummary ?? null,
   );
+  /** ID of the summary the player explicitly dismissed — prevents re-flash on safety-poll. */
+  const dismissedSummaryIdRef = useRef<string | null>(null);
   const realtimeDisabled =
     typeof process !== "undefined" &&
     process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true";
@@ -87,9 +89,12 @@ export function MatchClient({
     setMatchState(initialState);
   }, [initialState]);
 
-  // Sync summary from polled/realtime state updates
+  // Sync summary from polled/realtime state updates.
+  // Guard against re-showing a summary the player already dismissed.
   useEffect(() => {
-    if (matchState.lastSummary) {
+    if (!matchState.lastSummary) return;
+    const id = `${matchState.lastSummary.matchId}-${matchState.lastSummary.roundNumber}`;
+    if (id !== dismissedSummaryIdRef.current) {
       setSummary(matchState.lastSummary);
     }
   }, [matchState.lastSummary]);
@@ -250,7 +255,12 @@ export function MatchClient({
   const isPaused = currentTimer.status !== "running";
 
   const handleSummaryDismiss = useCallback(() => {
-    setSummary(null);
+    setSummary((prev) => {
+      if (prev) {
+        dismissedSummaryIdRef.current = `${prev.matchId}-${prev.roundNumber}`;
+      }
+      return null;
+    });
   }, []);
 
   const playerSlot: "player_a" | "player_b" =
