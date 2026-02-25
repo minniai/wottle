@@ -44,7 +44,7 @@ export async function submitMove(
     }
 
     if (match.state !== "in_progress") {
-        return { error: "Match is not in progress" };
+        return { status: "rejected" as const, error: "Match has ended" };
     }
 
     // Validate player is in match

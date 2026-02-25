@@ -47,15 +47,15 @@
 
 ### Tests
 
-- [ ] T005 [US1] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: `advanceRound()` transitions `matches.state` to `"completed"` and calls `completeMatchInternal("round_limit")` when `nextRound > 10`
-- [ ] T007 [US1] Write failing unit test in `tests/unit/match/submitMove.spec.ts`: `submitMove()` returns `{ status: "rejected", error: "Match has ended" }` when `match.state === "completed"`
-- [ ] T009 [US1] Write failing integration test in `tests/integration/match/matchCompletion.spec.ts`: full 10-round match — submit 10 moves per player, assert match state becomes `"completed"` and an 11th submission is rejected
-- [ ] T010 [US1] Write unit test in `tests/unit/components/MatchClient.spec.tsx`: `MatchClient` calls `router.push("/match/[id]/summary")` when received `matchState.state === "completed"`
+- [x] T005 [US1] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: `advanceRound()` transitions `matches.state` to `"completed"` and calls `completeMatchInternal("round_limit")` when `nextRound > 10`
+- [x] T007 [US1] Write failing unit test in `tests/unit/match/submitMove.spec.ts`: `submitMove()` returns `{ status: "rejected", error: "Match has ended" }` when `match.state === "completed"`
+- [x] T009 [US1] Write failing integration test in `tests/integration/match/matchCompletion.spec.ts`: full 10-round match — submit 10 moves per player, assert match state becomes `"completed"` and an 11th submission is rejected
+- [x] T010 [US1] Write unit test in `tests/unit/components/MatchClient.spec.tsx`: `MatchClient` calls `router.push("/match/[id]/summary")` when received `matchState.state === "completed"`
 
 ### Implementation
 
-- [ ] T006 [US1] Verify T005 passes against existing `lib/match/roundEngine.ts` (round-limit check at `isGameOver = nextRound > 10` should already be green — fix if not)
-- [ ] T008 [US1] Add completed-match guard to `app/actions/match/submitMove.ts`: after session check, reject with `{ status: "rejected", error: "Match has ended" }` if `match.state !== "in_progress"`
+- [x] T006 [US1] Verify T005 passes against existing `lib/match/roundEngine.ts` (round-limit check at `isGameOver = nextRound > 10` should already be green — fix if not)
+- [x] T008 [US1] Add completed-match guard to `app/actions/match/submitMove.ts`: after session check, reject with `{ status: "rejected", error: "Match has ended" }` if `match.state !== "in_progress"`
 
 **Checkpoint**: User Story 1 fully functional — 10-round limit enforced, post-game navigation wired. Can deploy and playtest a bounded match.
 

@@ -173,6 +173,7 @@ export async function advanceRound(matchId: string) {
                 round_number: nextRound,
                 state: "collecting",
                 board_snapshot_before: boardAfter, // New round starts with board after previous round
+                started_at: new Date().toISOString(),
             });
 
         if (nextRoundError) {

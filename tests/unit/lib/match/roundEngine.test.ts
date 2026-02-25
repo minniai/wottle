@@ -12,6 +12,10 @@ vi.mock("@/app/actions/match/publishRoundSummary", () => ({
     computeWordScoresForRound: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("@/app/actions/match/completeMatch", () => ({
+    completeMatchInternal: vi.fn().mockResolvedValue({ matchId: "match-1" }),
+}));
+
 type SubmissionRow = {
     id: string;
     player_id: string;
@@ -20,6 +24,7 @@ type SubmissionRow = {
     to_x: number;
     to_y: number;
     submitted_at: string;
+    status?: string;
 };
 
 type MatchRow = {
@@ -29,6 +34,9 @@ type MatchRow = {
     player_a_id: string;
     player_b_id: string;
     board_seed: string;
+    player_a_timer_ms?: number;
+    player_b_timer_ms?: number;
+    frozen_tiles?: Record<string, unknown>;
 };
 
 function createBoard() {
@@ -74,16 +82,21 @@ describe("roundEngine.advanceRound", () => {
         player_a_id: "player-a",
         player_b_id: "player-b",
         board_seed: "seed-1",
+        player_a_timer_ms: 300_000,
+        player_b_timer_ms: 300_000,
+        frozen_tiles: {},
     };
 
     const roundRow = {
         id: "round-1",
         state: "collecting" as const,
         board_snapshot_before: createBoard(),
+        started_at: "2026-01-01T00:00:00Z",
     };
 
     let updateCalls: any[];
     let roundsInsert: ReturnType<typeof vi.fn>;
+    let moveSubmissionsInsert: ReturnType<typeof vi.fn>;
 
     function setupSupabase(submissions: SubmissionRow[], overrides?: Partial<MatchRow>) {
         updateCalls = [];
@@ -96,6 +109,8 @@ describe("roundEngine.advanceRound", () => {
             updateCalls.push({ table: "move_submissions", payload });
             return { eq: moveSubmissionUpdateEq };
         });
+
+        moveSubmissionsInsert = vi.fn().mockResolvedValue({ error: null });
 
         const roundsUpdateEq = vi.fn().mockResolvedValue({ error: null });
         const roundsUpdate = vi.fn((payload) => {
@@ -148,6 +163,7 @@ describe("roundEngine.advanceRound", () => {
                     return {
                         select: vi.fn(() => submissionsChain),
                         update: moveSubmissionUpdate,
+                        insert: moveSubmissionsInsert,
                     };
                 }
 
@@ -173,6 +189,7 @@ describe("roundEngine.advanceRound", () => {
                 to_x: 0,
                 to_y: 1,
                 submitted_at: "2025-01-01T00:00:00Z",
+                status: "pending",
             },
             {
                 id: "sub-b",
@@ -182,6 +199,7 @@ describe("roundEngine.advanceRound", () => {
                 to_x: 5,
                 to_y: 6,
                 submitted_at: "2025-01-01T00:00:01Z",
+                status: "pending",
             },
         ]);
 
@@ -224,12 +242,14 @@ describe("roundEngine.advanceRound", () => {
                 player_id: "player-a",
                 ...sharedMove,
                 submitted_at: "2025-01-01T00:00:00Z",
+                status: "pending",
             },
             {
                 id: "sub-b",
                 player_id: "player-b",
                 ...sharedMove,
                 submitted_at: "2025-01-01T00:00:02Z",
+                status: "pending",
             },
         ]);
 
@@ -254,6 +274,7 @@ describe("roundEngine.advanceRound", () => {
                 to_x: 0,
                 to_y: 1,
                 submitted_at: "2025-01-01T00:00:00Z",
+                status: "pending",
             },
         ]);
 
@@ -273,6 +294,7 @@ describe("roundEngine.advanceRound", () => {
                     to_x: 0,
                     to_y: 1,
                     submitted_at: "2025-01-01T00:00:00Z",
+                    status: "pending",
                 },
                 {
                     id: "sub-b",
@@ -282,6 +304,7 @@ describe("roundEngine.advanceRound", () => {
                     to_x: 5,
                     to_y: 6,
                     submitted_at: "2025-01-01T00:00:01Z",
+                    status: "pending",
                 },
             ],
             { state: "completed" as const },
@@ -293,5 +316,95 @@ describe("roundEngine.advanceRound", () => {
             status: "not_advancing",
             reason: "Match is not in progress",
         });
+    });
+
+    // T005: advanceRound transitions match state to "completed" after round 10
+    it("T005: transitions match state to completed and calls completeMatchInternal when nextRound > 10", async () => {
+        const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
+        vi.mocked(completeMatchInternal).mockClear();
+
+        setupSupabase(
+            [
+                {
+                    id: "sub-a",
+                    player_id: "player-a",
+                    from_x: 0,
+                    from_y: 0,
+                    to_x: 0,
+                    to_y: 1,
+                    submitted_at: "2026-01-01T00:00:00Z",
+                    status: "pending",
+                },
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: "2026-01-01T00:00:01Z",
+                    status: "pending",
+                },
+            ],
+            { current_round: 10 },
+        );
+
+        const result = await advanceRound("match-1");
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: "advanced",
+                nextRound: 11,
+                isGameOver: true,
+            }),
+        );
+
+        // The match update should include state: "completed"
+        const matchUpdate = updateCalls.find(
+            (c) => c.table === "matches" && c.payload.state === "completed",
+        );
+        expect(matchUpdate).toBeDefined();
+
+        // completeMatchInternal should be called with "round_limit"
+        expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "round_limit");
+
+        // No new round should be inserted after game over
+        expect(roundsInsert).not.toHaveBeenCalled();
+    });
+
+    // T013: createNextRound sets started_at
+    it("T013: creates next round with started_at set to current server timestamp", async () => {
+        setupSupabase([
+            {
+                id: "sub-a",
+                player_id: "player-a",
+                from_x: 0,
+                from_y: 0,
+                to_x: 0,
+                to_y: 1,
+                submitted_at: "2026-01-01T00:00:00Z",
+                status: "pending",
+            },
+            {
+                id: "sub-b",
+                player_id: "player-b",
+                from_x: 5,
+                from_y: 5,
+                to_x: 5,
+                to_y: 6,
+                submitted_at: "2026-01-01T00:00:01Z",
+                status: "pending",
+            },
+        ]);
+
+        await advanceRound("match-1");
+
+        expect(roundsInsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                round_number: 2,
+                state: "collecting",
+                started_at: expect.any(String),
+            }),
+        );
     });
 });
