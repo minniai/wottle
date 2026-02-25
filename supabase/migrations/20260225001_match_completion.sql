@@ -2,9 +2,10 @@
 ALTER TABLE public.rounds
   ADD COLUMN started_at timestamptz;
 
--- Backfill existing rows with created_at as approximation.
+-- Backfill existing rows using resolution_started_at when available, else now().
+-- For completed rounds this gives a reasonable approximation.
 UPDATE public.rounds
-  SET started_at = created_at
+  SET started_at = COALESCE(resolution_started_at, now())
   WHERE started_at IS NULL;
 
 COMMENT ON COLUMN public.rounds.started_at IS

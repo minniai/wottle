@@ -50,8 +50,8 @@ function reasonLabel(reason: MatchEndedReason) {
   switch (reason) {
     case "round_limit":
       return "10 rounds completed";
-    case "timeout":
-      return "Timeout";
+    case "time_expiry":
+      return "Time expired";
     case "disconnect":
       return "Disconnected opponent";
     case "forfeit":

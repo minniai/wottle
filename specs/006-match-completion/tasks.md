@@ -29,9 +29,9 @@
 
 **⚠️ CRITICAL**: US1, US2, and US3 all depend on this phase.
 
-- [ ] T002 Apply migration and verify schema: run `pnpm supabase:migrate` then `pnpm supabase:verify` to confirm `rounds.started_at` column exists
-- [ ] T003 Run test baseline: run `pnpm test:unit` and confirm all existing tests pass on this branch before any changes
-- [ ] T004 [P] Update `lib/types/match.ts`: add `ClockCheckResult` type (`{ allowed: true } | { allowed: false; remainingMs: number }`); rename `"timeout"` to `"time_expiry"` in `MatchEndedReason`; find-and-replace all usages of `"timeout"` reason value across the codebase
+- [x] T002 Apply migration and verify schema: run `pnpm supabase:migrate` then `pnpm supabase:verify` to confirm `rounds.started_at` column exists
+- [x] T003 Run test baseline: run `pnpm test:unit` and confirm all existing tests pass on this branch before any changes
+- [x] T004 [P] Update `lib/types/match.ts`: add `ClockCheckResult` type (`{ allowed: true } | { allowed: false; remainingMs: number }`); rename `"timeout"` to `"time_expiry"` in `MatchEndedReason`; find-and-replace all usages of `"timeout"` reason value across the codebase
 
 **Checkpoint**: Schema applied, types updated, baseline green — user story work can begin.
 
