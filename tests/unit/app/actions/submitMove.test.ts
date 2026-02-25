@@ -7,10 +7,14 @@ vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/rate-limiting/middleware", () => ({ assertWithinRateLimit: vi.fn() }));
 vi.mock("@/lib/match/roundEngine", () => ({ advanceRound: vi.fn().mockResolvedValue({ status: "waiting" }) }));
+vi.mock("@/app/actions/match/completeMatch", () => ({
+    completeMatchInternal: vi.fn().mockResolvedValue({}),
+}));
 
 import { submitMove } from "@/app/actions/match/submitMove";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { readLobbySession } from "@/lib/matchmaking/profile";
+import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 
 const PLAYER_ID = "player-a";
 const MATCH_ID = "match-1";
@@ -32,7 +36,8 @@ function makeSupabaseMock(matchData: Record<string, unknown>, roundData?: Record
                 id: "round-1",
                 state: "collecting",
                 board_snapshot_before: createBoard(),
-                started_at: "2026-01-01T00:00:00Z",
+                // Use current time so player has full timer remaining by default
+                started_at: new Date().toISOString(),
             },
             error: null,
         }),
@@ -117,6 +122,101 @@ describe("submitMove", () => {
                 player_a_timer_ms: 300_000,
                 player_b_timer_ms: 300_000,
             }) as never,
+        );
+
+        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
+
+        expect(result).toMatchObject({ status: "accepted" });
+    });
+
+    // T015: submitMove returns rejected when clock is expired
+    it("T015: returns rejected with 'Your time has expired' when player clock is expired", async () => {
+        // Round started 10 minutes ago, but player only had 1 minute - clock is expired
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        vi.mocked(getServiceRoleClient).mockReturnValue(
+            makeSupabaseMock(
+                {
+                    current_round: 1,
+                    state: "in_progress",
+                    player_a_id: PLAYER_ID,
+                    player_b_id: "player-b",
+                    frozen_tiles: {},
+                    player_a_timer_ms: 60_000, // 1 minute
+                    player_b_timer_ms: 300_000,
+                },
+                {
+                    id: "round-1",
+                    state: "collecting",
+                    board_snapshot_before: createBoard(),
+                    started_at: tenMinutesAgo, // started 10 mins ago
+                },
+            ) as never,
+        );
+
+        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
+
+        expect(result).toMatchObject({
+            status: "rejected",
+            error: "Your time has expired",
+        });
+    });
+
+    // T024: both clocks expired triggers time_expiry completion
+    it("T024: calls completeMatch with time_expiry when both player clocks are expired", async () => {
+        vi.mocked(completeMatchInternal).mockClear();
+
+        // Both players' timers expired (round started 10 mins ago, both had only 60s)
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        vi.mocked(getServiceRoleClient).mockReturnValue(
+            makeSupabaseMock(
+                {
+                    current_round: 1,
+                    state: "in_progress",
+                    player_a_id: PLAYER_ID,
+                    player_b_id: "player-b",
+                    frozen_tiles: {},
+                    player_a_timer_ms: 60_000,
+                    player_b_timer_ms: 60_000, // both expired
+                },
+                {
+                    id: "round-1",
+                    state: "collecting",
+                    board_snapshot_before: createBoard(),
+                    started_at: tenMinutesAgo,
+                },
+            ) as never,
+        );
+
+        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
+
+        // Should reject since clock is expired AND trigger time_expiry completion
+        expect(result).toMatchObject({
+            status: "rejected",
+        });
+        expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "time_expiry");
+    });
+
+    it("T015: accepts a move when clock has not expired", async () => {
+        // Round started 30 seconds ago, player has 60 seconds - clock is still running
+        const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
+        vi.mocked(getServiceRoleClient).mockReturnValue(
+            makeSupabaseMock(
+                {
+                    current_round: 1,
+                    state: "in_progress",
+                    player_a_id: PLAYER_ID,
+                    player_b_id: "player-b",
+                    frozen_tiles: {},
+                    player_a_timer_ms: 60_000, // 1 minute
+                    player_b_timer_ms: 300_000,
+                },
+                {
+                    id: "round-1",
+                    state: "collecting",
+                    board_snapshot_before: createBoard(),
+                    started_at: thirtySecondsAgo, // started 30 seconds ago
+                },
+            ) as never,
         );
 
         const result = await submitMove(MATCH_ID, 0, 0, 0, 1);

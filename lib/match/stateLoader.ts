@@ -11,6 +11,7 @@ import type {
   WordScore,
 } from "@/lib/types/match";
 import { generateBoard } from "@/scripts/supabase/generateBoard";
+import { computeRemainingMs } from "./clockEnforcer";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -211,7 +212,7 @@ export async function loadMatchState(
 
   const { data: round } = await client
     .from("rounds")
-    .select("state, board_snapshot_before, board_snapshot_after")
+    .select("state, board_snapshot_before, board_snapshot_after, started_at")
     .eq("match_id", matchId)
     .eq("round_number", match.current_round)
     .maybeSingle();
@@ -235,6 +236,20 @@ export async function loadMatchState(
   const effectiveState = mapState(round?.state ?? null, match.state);
   const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round);
 
+  // Compute mid-round remaining time from round.started_at when in collecting state
+  const roundStartedAt =
+    round?.started_at && round.state === "collecting"
+      ? new Date(round.started_at as string)
+      : null;
+
+  const playerARemainingMs = roundStartedAt
+    ? computeRemainingMs(roundStartedAt, match.player_a_timer_ms ?? 300_000)
+    : (match.player_a_timer_ms ?? 300_000);
+
+  const playerBRemainingMs = roundStartedAt
+    ? computeRemainingMs(roundStartedAt, match.player_b_timer_ms ?? 300_000)
+    : (match.player_b_timer_ms ?? 300_000);
+
   return {
     matchId: match.id,
     board,
@@ -243,12 +258,12 @@ export async function loadMatchState(
     timers: {
       playerA: {
         playerId: match.player_a_id,
-        remainingMs: match.player_a_timer_ms ?? 300_000,
+        remainingMs: playerARemainingMs,
         status: match.state === "completed" ? "expired" : "running",
       },
       playerB: {
         playerId: match.player_b_id,
-        remainingMs: match.player_b_timer_ms ?? 300_000,
+        remainingMs: playerBRemainingMs,
         status: match.state === "completed" ? "expired" : "running",
       },
     },

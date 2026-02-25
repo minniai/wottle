@@ -71,64 +71,64 @@
 
 ### Tests — Clock Enforcer (Pure Functions)
 
-- [ ] T011 [US2] Write failing unit tests in `tests/unit/match/clockEnforcer.spec.ts` covering: `computeRemainingMs` returns correct ms from `roundStartedAt` and `storedRemainingMs`; `isClockExpired` returns true when remaining ≤ 0; `computeElapsedMs` returns correct difference; injectable `now` parameter enables deterministic tests
+- [x] T011 [US2] Write failing unit tests in `tests/unit/match/clockEnforcer.spec.ts` covering: `computeRemainingMs` returns correct ms from `roundStartedAt` and `storedRemainingMs`; `isClockExpired` returns true when remaining ≤ 0; `computeElapsedMs` returns correct difference; injectable `now` parameter enables deterministic tests
 
 ### Implementation — Clock Enforcer
 
-- [ ] T012 [US2] Create `lib/match/clockEnforcer.ts` with three pure functions: `computeRemainingMs(roundStartedAt, storedRemainingMs, now?)`, `isClockExpired(roundStartedAt, storedRemainingMs, now?)`, `computeElapsedMs(roundStartedAt, submittedAt)` — all ≤20 lines each, no side effects
+- [x] T012 [US2] Create `lib/match/clockEnforcer.ts` with three pure functions: `computeRemainingMs(roundStartedAt, storedRemainingMs, now?)`, `isClockExpired(roundStartedAt, storedRemainingMs, now?)`, `computeElapsedMs(roundStartedAt, submittedAt)` — all ≤20 lines each, no side effects
 
 ### Tests — Round Engine: started_at
 
-- [ ] T013 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: `createNextRound()` inserts a `rounds` row with `started_at` set to the current server timestamp (non-null)
+- [x] T013 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: `createNextRound()` inserts a `rounds` row with `started_at` set to the current server timestamp (non-null)
 
 ### Implementation — Round Engine: started_at
 
-- [ ] T014 [US2] Update `lib/match/roundEngine.ts` `createNextRound()`: include `started_at: new Date()` in the `rounds` INSERT statement
+- [x] T014 [US2] Update `lib/match/roundEngine.ts` `createNextRound()`: include `started_at: new Date()` in the `rounds` INSERT statement
 
 ### Tests — submitMove Clock Gate
 
-- [ ] T015 [US2] Write failing unit test in `tests/unit/match/submitMove.spec.ts`: `submitMove()` returns `{ status: "rejected", error: "Your time has expired" }` when `isClockExpired(round.started_at, player_x_timer_ms)` returns true
+- [x] T015 [US2] Write failing unit test in `tests/unit/match/submitMove.spec.ts`: `submitMove()` returns `{ status: "rejected", error: "Your time has expired" }` when `isClockExpired(round.started_at, player_x_timer_ms)` returns true
 
 ### Implementation — submitMove Clock Gate
 
-- [ ] T016 [US2] Add clock expiry gate to `app/actions/match/submitMove.ts`: after completed-match guard (T008), load `round.started_at`, load `player_x_timer_ms` from match record, call `isClockExpired()`, reject if expired — no new DB query (round already fetched for frozen-tile check)
+- [x] T016 [US2] Add clock expiry gate to `app/actions/match/submitMove.ts`: after completed-match guard (T008), load `round.started_at`, load `player_x_timer_ms` from match record, call `isClockExpired()`, reject if expired — no new DB query (round already fetched for frozen-tile check)
 
 ### Tests — Timeout-Pass Synthesis
 
-- [ ] T017 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: `advanceRound()` with 1 existing submission inserts a synthetic `move_submissions` row with `status = "timeout"` when the absent player's `isClockExpired()` returns true, then proceeds to resolution
+- [x] T017 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: `advanceRound()` with 1 existing submission inserts a synthetic `move_submissions` row with `status = "timeout"` when the absent player's `isClockExpired()` returns true, then proceeds to resolution
 
 ### Implementation — Timeout-Pass Synthesis
 
-- [ ] T018 [US2] Update `lib/match/roundEngine.ts` `advanceRound()`: if `submissions.length === 1` and `round.started_at` is set, compute absent player's remaining time; if expired, insert synthetic submission `{ player_id: absentPlayerId, status: "timeout", from_x: -1, from_y: -1, to_x: -1, to_y: -1, submitted_at: now() }`
-- [ ] T019 [US2] Update `lib/match/conflictResolver.ts`: skip submissions with `status === "timeout"` in conflict resolution (no tile coordinates to lock; treated as a pass)
+- [x] T018 [US2] Update `lib/match/roundEngine.ts` `advanceRound()`: if `submissions.length === 1` and `round.started_at` is set, compute absent player's remaining time; if expired, insert synthetic submission `{ player_id: absentPlayerId, status: "timeout", from_x: -1, from_y: -1, to_x: -1, to_y: -1, submitted_at: now() }`
+- [x] T019 [US2] Update `lib/match/conflictResolver.ts`: skip submissions with `status === "timeout"` in conflict resolution (no tile coordinates to lock; treated as a pass)
 
 ### Tests — Timer Deduction
 
-- [ ] T020 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: after `advanceRound()` resolves, `matches.player_a_timer_ms` and `matches.player_b_timer_ms` are each reduced by the player's elapsed time for that round (computed via `computeElapsedMs`)
+- [x] T020 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: after `advanceRound()` resolves, `matches.player_a_timer_ms` and `matches.player_b_timer_ms` are each reduced by the player's elapsed time for that round (computed via `computeElapsedMs`)
 
 ### Implementation — Timer Deduction
 
-- [ ] T021 [US2] Update `lib/match/roundEngine.ts`: after round resolves, for each submission compute `elapsed = computeElapsedMs(round.started_at, submission.submitted_at)`; update `matches.player_a_timer_ms` and `matches.player_b_timer_ms` by deducting elapsed (clamped to 0); include in the existing match UPDATE statement
+- [x] T021 [US2] Update `lib/match/roundEngine.ts`: after round resolves, for each submission compute `elapsed = computeElapsedMs(round.started_at, submission.submitted_at)`; update `matches.player_a_timer_ms` and `matches.player_b_timer_ms` by deducting elapsed (clamped to 0); include in the existing match UPDATE statement
 
 ### Tests — stateLoader Mid-Round Computation
 
-- [ ] T022 [US2] Write failing unit test in `tests/unit/match/stateLoader.spec.ts`: when round state is `"collecting"` and `round.started_at` is set, `loadMatchState()` returns `timers.playerA.remainingMs = computeRemainingMs(round.started_at, stored_timer_ms)` (not the static stored value)
+- [x] T022 [US2] Write failing unit test in `tests/unit/match/stateLoader.spec.ts`: when round state is `"collecting"` and `round.started_at` is set, `loadMatchState()` returns `timers.playerA.remainingMs = computeRemainingMs(round.started_at, stored_timer_ms)` (not the static stored value)
 
 ### Implementation — stateLoader Mid-Round Computation
 
-- [ ] T023 [US2] Update `lib/match/stateLoader.ts`: when loading timer state and round is in `"collecting"` state with a valid `started_at`, call `computeRemainingMs()` for each player instead of reading `player_x_timer_ms` directly
+- [x] T023 [US2] Update `lib/match/stateLoader.ts`: when loading timer state and round is in `"collecting"` state with a valid `started_at`, call `computeRemainingMs()` for each player instead of reading `player_x_timer_ms` directly
 
 ### Tests — Both-Clocks-Expired Completion
 
-- [ ] T024 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: when both players' computed remaining time is ≤ 0, `advanceRound()` calls `completeMatch(matchId, "time_expiry")` and transitions match to `"completed"` with `ended_reason = "time_expiry"`
+- [x] T024 [US2] Write failing unit test in `tests/unit/match/roundEngine.spec.ts`: when both players' computed remaining time is ≤ 0, `advanceRound()` calls `completeMatch(matchId, "time_expiry")` and transitions match to `"completed"` with `ended_reason = "time_expiry"`
 
 ### Implementation — Both-Clocks-Expired Completion
 
-- [ ] T025 [US2] Update `app/actions/match/submitMove.ts` and `lib/match/stateLoader.ts`: after computing remaining time for both players, if both ≤ 0 call `completeMatch(matchId, "time_expiry")` and return `{ status: "rejected", error: "Match has ended" }`
+- [x] T025 [US2] Update `app/actions/match/submitMove.ts` and `lib/match/stateLoader.ts`: after computing remaining time for both players, if both ≤ 0 call `completeMatch(matchId, "time_expiry")` and return `{ status: "rejected", error: "Match has ended" }`
 
 ### Integration Test
 
-- [ ] T026 [US2] Write failing integration test in `tests/integration/match/clockEnforcement.spec.ts` covering: (a) submission rejected when player's computed clock ≤ 0, (b) opponent's submission accepted when only one player's clock expired, (c) round resolves and scores correctly with timeout-pass for expired player, (d) match ends with `ended_reason = "time_expiry"` when both clocks expire
+- [x] T026 [US2] Write failing integration test in `tests/integration/match/clockEnforcement.spec.ts` covering: (a) submission rejected when player's computed clock ≤ 0, (b) opponent's submission accepted when only one player's clock expired, (c) round resolves and scores correctly with timeout-pass for expired player, (d) match ends with `ended_reason = "time_expiry"` when both clocks expire
 
 **Checkpoint**: User Story 2 fully functional — server-authoritative clock enforced end-to-end. Can independently playtest with time pressure.
 
