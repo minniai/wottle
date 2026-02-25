@@ -162,7 +162,7 @@
 ### Tests — Component and Integration
 
 - [x] T032 [US3] Write unit test in `tests/unit/components/FinalSummary.spec.tsx`: component renders frozen tile count and top words for each player given valid props
-- [ ] T033 [US3] Write integration test in `tests/integration/match/matchSummary.spec.ts`: summary page returns `frozenTileCount` matching `matches.frozen_tiles` and `topWords` matching the top-5 non-duplicate entries in `word_score_entries`
+- [x] T033 [US3] Write integration test in `tests/integration/match/matchSummary.spec.ts`: summary page returns `frozenTileCount` matching `matches.frozen_tiles` and `topWords` matching the top-5 non-duplicate entries in `word_score_entries`
 
 **Checkpoint**: All three user stories functional. Complete playtestable game: bounded match, time pressure, rich game-over screen.
 
