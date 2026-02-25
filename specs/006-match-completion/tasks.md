@@ -172,10 +172,10 @@
 
 **Purpose**: End-to-end validation, minor cleanups, and performance confirmation.
 
-- [ ] T034 Write full E2E test in `tests/integration/ui/match-completion.spec.ts`: two-player match played to round 10; game-over screen displays winner declaration, frozen tile counts, and top words; both players click "Return to Lobby" and land on lobby page
-- [ ] T035 [P] Remove incorrect disconnect-timer-pause behavior in `app/actions/match/handleDisconnect.ts`: remove or guard the `pauseMatchTimers()` call so that timer `status: "paused"` is only set when a player submits their move (not on disconnect); clock authority now rests in `round.started_at`
-- [ ] T036 [P] Run `pnpm perf:round-resolution` and confirm move RTT remains <200ms p95 with the new clock check in submitMove; document result
-- [ ] T037 [P] Run `pnpm lint`, `pnpm typecheck`, and `pnpm test:unit` — resolve all warnings; confirm zero lint errors and all tests green
+- [x] T034 Write full E2E test in `tests/integration/ui/match-completion.spec.ts`: two-player match played to round 10; game-over screen displays winner declaration, frozen tile counts, and top words; both players click "Return to Lobby" and land on lobby page
+- [x] T035 [P] Remove incorrect disconnect-timer-pause behavior in `app/actions/match/handleDisconnect.ts`: remove or guard the `pauseMatchTimers()` call so that timer `status: "paused"` is only set when a player submits their move (not on disconnect); clock authority now rests in `round.started_at`
+- [ ] T036 [P] Run `pnpm perf:round-resolution` and confirm move RTT remains <200ms p95 with the new clock check in submitMove; document result — requires running dev server; clock check adds <1ms per submitMove call (pure in-memory Date arithmetic)
+- [x] T037 [P] Run `pnpm lint`, `pnpm typecheck`, and `pnpm test:unit` — resolve all warnings; confirm zero lint errors and all tests green
 
 ---
 
