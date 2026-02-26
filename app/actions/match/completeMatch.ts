@@ -7,7 +7,8 @@ import { determineMatchWinner } from "@/lib/match/resultCalculator";
 import { writeMatchLog } from "@/lib/match/logWriter";
 import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import type { MatchEndedReason, ScoreTotals } from "@/lib/types/match";
+import type { MatchEndedReason, ScoreTotals, FrozenTileMap } from "@/lib/types/match";
+import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
 import { trackMatchResult } from "@/lib/observability/log";
 
 interface MatchRow {
@@ -18,6 +19,7 @@ interface MatchRow {
   winner_id: string | null;
   ended_reason: string | null;
   round_limit: number;
+  frozen_tiles: Record<string, unknown> | null;
 }
 
 export interface CompleteMatchResult {
@@ -32,7 +34,7 @@ export interface CompleteMatchResult {
 async function fetchMatch(client: ReturnType<typeof getServiceRoleClient>, matchId: string) {
   const { data, error } = await client
     .from("matches")
-    .select("id,state,player_a_id,player_b_id,winner_id,ended_reason,round_limit")
+    .select("id,state,player_a_id,player_b_id,winner_id,ended_reason,round_limit,frozen_tiles")
     .eq("id", matchId)
     .single();
 
@@ -111,7 +113,10 @@ export async function completeMatchInternal(
   }
 
   const scores = await fetchLatestScores(supabase, matchId);
-  const result = determineMatchWinner(scores, match.player_a_id, match.player_b_id);
+  const frozenCounts = computeFrozenTileCountByPlayer(
+    (match.frozen_tiles as FrozenTileMap) ?? {},
+  );
+  const result = determineMatchWinner(scores, match.player_a_id, match.player_b_id, frozenCounts);
 
   await supabase
     .from("matches")
