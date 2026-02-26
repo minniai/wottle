@@ -75,8 +75,8 @@ No new infrastructure needed — all Supabase tables, columns, and indexes are i
 
 **Independent Test**: Play a match to completion by zeroing a player's timer; assert `matches.ended_reason = "timeout"` and `matches.winner_id` reflects the higher-scoring player (or `null` for draw when scores equal).
 
-- [ ] T011 [US3] Write integration test in `tests/integration/match/matchEndTimeout.spec.ts`: seed a match with Player A `timer_ms = 1`; trigger a round resolution; assert `matches.state = "completed"`, `matches.ended_reason = "timeout"`, `matches.winner_id` is correct player ID (higher score) or null (equal scores)
-- [ ] T012 [P] [US3] Write integration test in `tests/integration/match/matchEndRoundLimit.spec.ts`: complete all 10 rounds via `advanceRound`; assert `matches.ended_reason = "round_limit"`, `matches.state = "completed"`, `matches.winner_id` correct
+- [x] T011 [US3] Write integration test in `tests/integration/match/matchEndTimeout.spec.ts`: seed a match with Player A `timer_ms = 1`; trigger a round resolution; assert `matches.state = "completed"`, `matches.ended_reason = "timeout"`, `matches.winner_id` is correct player ID (higher score) or null (equal scores)
+- [x] T012 [P] [US3] Write integration test in `tests/integration/match/matchEndRoundLimit.spec.ts`: complete all 10 rounds via `advanceRound`; assert `matches.ended_reason = "round_limit"`, `matches.state = "completed"`, `matches.winner_id` correct
 
 **Story 3 checkpoint**: T011 and T012 pass. `matches.ended_reason` correctly stored in DB for both end conditions.
 
