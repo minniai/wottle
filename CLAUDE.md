@@ -492,6 +492,8 @@ Key files:
 - `/lib/game-engine/wordEngine.ts` — Orchestrates the full pipeline per round
 
 ## Active Technologies
+- TypeScript 5.x, Node.js 20 + Next.js 16 (App Router), Supabase JS v2, Zod (007-server-authoritative-timer)
+- Supabase PostgreSQL — `matches`, `rounds`, `move_submissions` (all in place) (007-server-authoritative-timer)
 
 - TypeScript 5.x, React 19+, Next.js 16 (App Router)
 - Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)
