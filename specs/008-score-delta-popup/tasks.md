@@ -81,9 +81,9 @@ No foundational tasks required. The `ScoreDelta` type, CSS keyframes, component 
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T019 [P] Run `pnpm lint` and `pnpm typecheck` — confirm zero warnings and zero type errors after all changes
-- [ ] T020 Run full test suite `pnpm test && pnpm exec playwright test` — confirm all tests pass, no regressions
-- [ ] T021 Update `specs/008-score-delta-popup/spec.md` Status field from `Draft` to `Implemented`
+- [X] T019 [P] Run `pnpm lint` and `pnpm typecheck` — confirm zero warnings and zero type errors after all changes
+- [X] T020 Run full test suite `pnpm test && pnpm exec playwright test` — confirm all tests pass, no regressions
+- [X] T021 Update `specs/008-score-delta-popup/spec.md` Status field from `Draft` to `Implemented`
 
 ---
 
