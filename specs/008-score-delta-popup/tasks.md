@@ -72,8 +72,8 @@ No foundational tasks required. The `ScoreDelta` type, CSS keyframes, component 
 
 - [X] T015 [US2] Add `invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)` to `BoardGridActive` in `components/game/BoardGrid.tsx`
 - [X] T016 [US2] In the `handleSwap` catch block in `components/game/BoardGrid.tsx`: call `clearTimeout(invalidTimerRef.current)` before `setInvalidTiles([from, to])`, then assign the new timeout to `invalidTimerRef.current`, clearing to `null` on completion
-- [ ] T017 [US2] Run `pnpm test:unit -- tests/unit/components/game/BoardGrid.test.tsx` and confirm T013 and all existing BoardGrid invalid-shake tests pass
-- [ ] T018 [US2] Run `pnpm exec playwright test tests/integration/ui/swap-flow.spec.ts` and confirm T014 passes
+- [X] T017 [US2] Run `pnpm test:unit -- tests/unit/components/game/BoardGrid.test.tsx` and confirm T013 and all existing BoardGrid invalid-shake tests pass
+- [X] T018 [US2] Run `pnpm exec playwright test tests/integration/ui/swap-flow.spec.ts` and confirm T014 passes
 
 **Checkpoint**: FR-012 rapid re-rejection is robustly handled and both the unit and E2E tests for User Story 2 are green.
 

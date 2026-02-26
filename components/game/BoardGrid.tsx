@@ -173,6 +173,7 @@ function BoardGridActive({
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
   const [invalidTiles, setInvalidTiles] = useState<[Coordinate, Coordinate] | null>(null);
+  const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const highlightsKeyRef = useRef<string>("");
   const tileRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
@@ -238,9 +239,14 @@ function BoardGridActive({
           return reverted;
         });
 
-        // Flash shake animation on the rejected tile pair
+        // Flash shake animation on the rejected tile pair.
+        // Cancel any prior shake window so rapid re-rejections restart cleanly (FR-012).
+        if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
         setInvalidTiles([from, to]);
-        setTimeout(() => setInvalidTiles(null), 400);
+        invalidTimerRef.current = setTimeout(() => {
+          setInvalidTiles(null);
+          invalidTimerRef.current = null;
+        }, 400);
 
         const message =
           error instanceof Error
