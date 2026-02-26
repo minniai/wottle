@@ -110,9 +110,9 @@ No new infrastructure needed — all Supabase tables, columns, and indexes are i
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T023 [P] Run `pnpm lint` and fix any ESLint warnings introduced by type rename or function extraction; zero-warning policy must hold
-- [ ] T024 [P] Run `pnpm typecheck`; confirm 0 errors across entire project after all changes
-- [ ] T025 Run full test suite `pnpm test && pnpm test:integration`; confirm ≥ 310 tests pass with 0 failures and no regressions
+- [x] T023 [P] Run `pnpm lint` and fix any ESLint warnings introduced by type rename or function extraction; zero-warning policy must hold
+- [x] T024 [P] Run `pnpm typecheck`; confirm 0 errors across entire project after all changes
+- [x] T025 Run full test suite `pnpm test && pnpm test:integration`; confirm ≥ 310 tests pass with 0 failures and no regressions
 
 ---
 
