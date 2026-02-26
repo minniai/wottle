@@ -135,4 +135,54 @@ test.describe("Round summary panel", () => {
       await contextB.close();
     }
   });
+
+  // T011: score-delta-popup and round-summary-panel are simultaneously visible
+  test("T011: score-delta-popup and round-summary-panel coexist after round @two-player-playtest", async ({
+    browser,
+  }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+
+    try {
+      const userA = generateTestUsername("coexist-alpha");
+      const userB = generateTestUsername("coexist-beta");
+      await loginAndStartMatch(pageA, pageB, userA, userB);
+
+      await submitSwap(pageA);
+      await submitSwap(pageB);
+
+      // Wait for summary panel
+      const summaryPanel = pageA.getByTestId("round-summary-panel");
+      await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
+
+      // Summary panel must be visible
+      await expect(summaryPanel).toBeVisible();
+
+      // If the player scored, popup should coexist with the panel
+      const deltaText = await pageA
+        .getByTestId("round-summary-player-a-delta")
+        .textContent();
+      const playerScored = (deltaText ?? "").includes("+");
+
+      if (playerScored) {
+        // T011: both elements visible simultaneously within popup's 3s window
+        const popup = pageA.locator('[data-testid="score-delta-popup"]');
+        await expect(popup).toBeVisible({ timeout: 3_000 });
+        await expect(summaryPanel).toBeVisible();
+      }
+
+      // After dismiss, popup should be absent (auto-dismissed or summary gone)
+      await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
+      await expect(pageA.locator('[data-testid="score-delta-popup"]')).not.toBeAttached({
+        timeout: 5_000,
+      });
+    } finally {
+      await pageA.close();
+      await pageB.close();
+      await contextA.close();
+      await contextB.close();
+    }
+  });
 });
