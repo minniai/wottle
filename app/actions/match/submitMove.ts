@@ -7,6 +7,7 @@ import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { boardGridSchema } from "@/lib/types/board";
 import type { BoardGrid, MoveResult } from "@/lib/types/board";
 import { advanceRound } from "@/lib/match/roundEngine";
+import { publishMatchState } from "@/lib/match/statePublisher";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { isClockExpired } from "@/lib/match/clockEnforcer";
@@ -178,6 +179,11 @@ export async function submitMove(
         }
         return { error: "Failed to submit move" };
     }
+
+    // 5b. Broadcast state so clients see submitting player's timer paused
+    publishMatchState(matchId).catch((e) => {
+        console.error("Failed to broadcast match state after submit:", e);
+    });
 
     // 6. Apply swap to current board for optimistic UI feedback
     // Note: The round's board_snapshot_before won't change until round resolves,

@@ -7,11 +7,13 @@ vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/rate-limiting/middleware", () => ({ assertWithinRateLimit: vi.fn() }));
 vi.mock("@/lib/match/roundEngine", () => ({ advanceRound: vi.fn().mockResolvedValue({ status: "waiting" }) }));
+vi.mock("@/lib/match/statePublisher", () => ({ publishMatchState: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/app/actions/match/completeMatch", () => ({
     completeMatchInternal: vi.fn().mockResolvedValue({}),
 }));
 
 import { submitMove } from "@/app/actions/match/submitMove";
+import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
@@ -127,6 +129,7 @@ describe("submitMove", () => {
         const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
 
         expect(result).toMatchObject({ status: "accepted" });
+        expect(publishMatchState).toHaveBeenCalledWith(MATCH_ID);
     });
 
     // T015: submitMove returns rejected when clock is expired

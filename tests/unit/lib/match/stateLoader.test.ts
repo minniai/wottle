@@ -18,6 +18,7 @@ const MATCH_ID = "match-timer-test";
 function makeMockClient(
     matchData: Record<string, unknown>,
     roundData: Record<string, unknown> | null,
+    submissionsData: { player_id: string; submitted_at: string }[] | null = null,
 ) {
     const matchChain = {
         eq: vi.fn().mockReturnThis(),
@@ -31,6 +32,11 @@ function makeMockClient(
         eq: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     };
+    const submissionsResponse = { data: submissionsData ?? [], error: null };
+    const moveSubmissionsChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue(submissionsResponse),
+    };
 
     return {
         from: vi.fn((table: string) => {
@@ -39,6 +45,7 @@ function makeMockClient(
                 select: vi.fn(() => roundChain),
                 upsert: vi.fn().mockResolvedValue({}),
             };
+            if (table === "move_submissions") return moveSubmissionsChain;
             if (table === "scoreboard_snapshots") return { select: vi.fn(() => scoreboardChain) };
             if (table === "word_score_entries") return { select: vi.fn(() => ({ eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
             return {
@@ -74,6 +81,7 @@ describe("stateLoader.loadMatchState", () => {
                 frozen_tiles: {},
             },
             {
+                id: "round-1",
                 state: "collecting",
                 board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
                 board_snapshot_after: null,
@@ -127,5 +135,42 @@ describe("stateLoader.loadMatchState", () => {
         // Falls back to stored values
         expect(state!.timers.playerA.remainingMs).toBe(120_000);
         expect(state!.timers.playerB.remainingMs).toBe(180_000);
+    });
+
+    it("sets submitting player timer to paused with remaining at submit, other stays running", async () => {
+        const roundStartedAt = new Date(Date.now() - 30_000);
+        const playerASubmittedAt = new Date(roundStartedAt.getTime() + 20_000); // 20s after round start
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 1,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 180_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-1",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+            },
+            [{ player_id: PLAYER_A, submitted_at: playerASubmittedAt.toISOString() }],
+        );
+
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state).not.toBeNull();
+        expect(state!.timers.playerA.status).toBe("paused");
+        expect(state!.timers.playerA.remainingMs).toBe(100_000); // 120_000 - 20_000
+        expect(state!.timers.playerB.status).toBe("running");
+        expect(state!.timers.playerB.remainingMs).toBeGreaterThan(148_000);
+        expect(state!.timers.playerB.remainingMs).toBeLessThanOrEqual(150_000);
     });
 });

@@ -11,7 +11,7 @@ import type {
   WordScore,
 } from "@/lib/types/match";
 import { generateBoard } from "@/scripts/supabase/generateBoard";
-import { computeRemainingMs } from "./clockEnforcer";
+import { computeElapsedMs, computeRemainingMs } from "./clockEnforcer";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -212,7 +212,7 @@ export async function loadMatchState(
 
   const { data: round } = await client
     .from("rounds")
-    .select("state, board_snapshot_before, board_snapshot_after, started_at")
+    .select("id, state, board_snapshot_before, board_snapshot_after, started_at")
     .eq("match_id", matchId)
     .eq("round_number", match.current_round)
     .maybeSingle();
@@ -242,13 +242,56 @@ export async function loadMatchState(
       ? new Date(round.started_at as string)
       : null;
 
-  const playerARemainingMs = roundStartedAt
-    ? computeRemainingMs(roundStartedAt, match.player_a_timer_ms ?? 300_000)
-    : (match.player_a_timer_ms ?? 300_000);
+  const storedA = match.player_a_timer_ms ?? 300_000;
+  const storedB = match.player_b_timer_ms ?? 300_000;
 
-  const playerBRemainingMs = roundStartedAt
-    ? computeRemainingMs(roundStartedAt, match.player_b_timer_ms ?? 300_000)
-    : (match.player_b_timer_ms ?? 300_000);
+  let playerARemainingMs: number;
+  let playerBRemainingMs: number;
+  let playerAStatus: "running" | "paused" | "expired";
+  let playerBStatus: "running" | "paused" | "expired";
+
+  if (match.state === "completed") {
+    playerARemainingMs = storedA;
+    playerBRemainingMs = storedB;
+    playerAStatus = "expired";
+    playerBStatus = "expired";
+  } else if (effectiveState === "collecting" && roundStartedAt && round?.id) {
+    const { data: submissions } = await client
+      .from("move_submissions")
+      .select("player_id, submitted_at")
+      .eq("round_id", round.id);
+
+    const subByPlayer = new Map<string, Date>(
+      (submissions ?? []).map((s: { player_id: string; submitted_at: string }) => [
+        s.player_id,
+        new Date(s.submitted_at),
+      ]),
+    );
+    const submittedAtA = subByPlayer.get(match.player_a_id);
+    const submittedAtB = subByPlayer.get(match.player_b_id);
+
+    if (submittedAtA) {
+      const elapsed = computeElapsedMs(roundStartedAt, submittedAtA);
+      playerARemainingMs = Math.max(0, storedA - elapsed);
+      playerAStatus = "paused";
+    } else {
+      playerARemainingMs = computeRemainingMs(roundStartedAt, storedA);
+      playerAStatus = "running";
+    }
+    if (submittedAtB) {
+      const elapsed = computeElapsedMs(roundStartedAt, submittedAtB);
+      playerBRemainingMs = Math.max(0, storedB - elapsed);
+      playerBStatus = "paused";
+    } else {
+      playerBRemainingMs = computeRemainingMs(roundStartedAt, storedB);
+      playerBStatus = "running";
+    }
+  } else {
+    playerARemainingMs = roundStartedAt ? computeRemainingMs(roundStartedAt, storedA) : storedA;
+    playerBRemainingMs = roundStartedAt ? computeRemainingMs(roundStartedAt, storedB) : storedB;
+    playerAStatus = "running";
+    playerBStatus = "running";
+  }
 
   return {
     matchId: match.id,
@@ -259,12 +302,12 @@ export async function loadMatchState(
       playerA: {
         playerId: match.player_a_id,
         remainingMs: playerARemainingMs,
-        status: match.state === "completed" ? "expired" : "running",
+        status: playerAStatus,
       },
       playerB: {
         playerId: match.player_b_id,
         remainingMs: playerBRemainingMs,
-        status: match.state === "completed" ? "expired" : "running",
+        status: playerBStatus,
       },
     },
     scores,
