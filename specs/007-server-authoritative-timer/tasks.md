@@ -90,19 +90,19 @@ No new infrastructure needed — all Supabase tables, columns, and indexes are i
 
 ### 6a — Fix `computeFrozenTileCountByPlayer`
 
-- [ ] T013 [US4] Write failing unit tests in `tests/unit/lib/match/matchSummary.test.ts`: assert `computeFrozenTileCountByPlayer` (a) counts `"player_a"` tiles only for playerA, (b) counts `"player_b"` tiles only for playerB, (c) does NOT count `"both"` tiles for either player, (d) returns `{ playerA: 0, playerB: 0 }` when map is empty
-- [ ] T014 [US4] Fix `lib/match/matchSummary.ts` `computeFrozenTileCountByPlayer`: remove `|| tile.owner === "both"` from both branches so only `tile.owner === "player_a"` increments playerA and only `tile.owner === "player_b"` increments playerB
-- [ ] T015 [P] [US4] Verify `app/match/[matchId]/summary/page.tsx` passes `frozenTileCounts` (from corrected `computeFrozenTileCountByPlayer`) correctly to `FinalSummary` props — no code change expected; confirm by reading the file
+- [x] T013 [US4] Write failing unit tests in `tests/unit/lib/match/matchSummary.test.ts`: assert `computeFrozenTileCountByPlayer` (a) counts `"player_a"` tiles only for playerA, (b) counts `"player_b"` tiles only for playerB, (c) does NOT count `"both"` tiles for either player, (d) returns `{ playerA: 0, playerB: 0 }` when map is empty
+- [x] T014 [US4] Fix `lib/match/matchSummary.ts` `computeFrozenTileCountByPlayer`: remove `|| tile.owner === "both"` from both branches so only `tile.owner === "player_a"` increments playerA and only `tile.owner === "player_b"` increments playerB
+- [x] T015 [P] [US4] Verify `app/match/[matchId]/summary/page.tsx` passes `frozenTileCounts` (from corrected `computeFrozenTileCountByPlayer`) correctly to `FinalSummary` props — no code change expected; confirm by reading the file
 
 ### 6b — Add Frozen-Tile Tiebreaker to Winner Determination
 
-- [ ] T016 [US4] Write failing unit tests in `tests/unit/lib/match/resultCalculator.test.ts` for `determineMatchWinner` covering all tiebreaker scenarios: (a) higher score wins regardless of frozen tiles, (b) equal scores + more frozen tiles for A → A wins, (c) equal scores + more frozen tiles for B → B wins, (d) equal scores + equal frozen tiles → draw (`winnerId = null`), (e) both scores 0 + both frozen 0 → draw
-- [ ] T017 [US4] Ensure `determineMatchWinner` is unit-testable: if it is a private local function inside `app/actions/match/completeMatch.ts`, extract it to `lib/match/resultCalculator.ts` and export it; update the import in `completeMatch.ts`
-- [ ] T018 [US4] Update `determineMatchWinner` signature in `lib/match/resultCalculator.ts` (or `completeMatch.ts`) to accept `frozenCounts: { playerA: number; playerB: number }` as second parameter
-- [ ] T019 [US4] Implement tiebreaker logic in `determineMatchWinner`: (1) higher score wins; (2) if scores equal, player with more exclusively-owned frozen tiles wins; (3) if still equal, `winnerId = null` (draw)
-- [ ] T020 [US4] Update `completeMatchInternal` in `app/actions/match/completeMatch.ts`: after `fetchLatestScores`, call `computeFrozenTileCountByPlayer((match.frozen_tiles as FrozenTileMap) ?? {})` and pass the result as second argument to `determineMatchWinner`
-- [ ] T021 [US4] Write integration test in `tests/integration/match/frozenTileTiebreaker.spec.ts`: seed a completed match with equal scores and Player A owning more exclusively-owned frozen tiles; call `completeMatchInternal`; assert `winner_id = playerAId` and not `null`
-- [ ] T022 [P] [US4] Write integration test in same file: seed equal scores and equal exclusively-owned frozen tiles (some `"both"` tiles present); call `completeMatchInternal`; assert `winner_id = null` (draw), confirming `"both"` tiles do not break the tie
+- [x] T016 [US4] Write failing unit tests in `tests/unit/lib/match/resultCalculator.test.ts` for `determineMatchWinner` covering all tiebreaker scenarios: (a) higher score wins regardless of frozen tiles, (b) equal scores + more frozen tiles for A → A wins, (c) equal scores + more frozen tiles for B → B wins, (d) equal scores + equal frozen tiles → draw (`winnerId = null`), (e) both scores 0 + both frozen 0 → draw
+- [x] T017 [US4] Ensure `determineMatchWinner` is unit-testable: if it is a private local function inside `app/actions/match/completeMatch.ts`, extract it to `lib/match/resultCalculator.ts` and export it; update the import in `completeMatch.ts`
+- [x] T018 [US4] Update `determineMatchWinner` signature in `lib/match/resultCalculator.ts` (or `completeMatch.ts`) to accept `frozenCounts: { playerA: number; playerB: number }` as second parameter
+- [x] T019 [US4] Implement tiebreaker logic in `determineMatchWinner`: (1) higher score wins; (2) if scores equal, player with more exclusively-owned frozen tiles wins; (3) if still equal, `winnerId = null` (draw)
+- [x] T020 [US4] Update `completeMatchInternal` in `app/actions/match/completeMatch.ts`: after `fetchLatestScores`, call `computeFrozenTileCountByPlayer((match.frozen_tiles as FrozenTileMap) ?? {})` and pass the result as second argument to `determineMatchWinner`
+- [x] T021 [US4] Write integration test in `tests/integration/match/frozenTileTiebreaker.spec.ts`: seed a completed match with equal scores and Player A owning more exclusively-owned frozen tiles; call `completeMatchInternal`; assert `winner_id = playerAId` and not `null`
+- [x] T022 [P] [US4] Write integration test in same file: seed equal scores and equal exclusively-owned frozen tiles (some `"both"` tiles present); call `completeMatchInternal`; assert `winner_id = null` (draw), confirming `"both"` tiles do not break the tie
 
 **Story 4 checkpoint**: All T013–T022 tests pass. `pnpm typecheck` clean.
 

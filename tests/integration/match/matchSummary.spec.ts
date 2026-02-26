@@ -32,10 +32,10 @@ describe("matchSummary integration (T033)", () => {
 
       const counts = computeFrozenTileCountByPlayer(frozenTiles);
 
-      // player_a owns (0,0),(1,1),(3,3),(5,5) = 4
-      // player_b owns (2,2),(3,3),(4,4),(5,5) = 4
-      expect(counts.playerA).toBe(4);
-      expect(counts.playerB).toBe(4);
+      // Exclusively: player_a owns (0,0),(1,1) = 2; "both" tiles excluded
+      // Exclusively: player_b owns (2,2),(4,4) = 2; "both" tiles excluded
+      expect(counts.playerA).toBe(2);
+      expect(counts.playerB).toBe(2);
     });
 
     it("T033: returns zero counts for empty frozen_tiles", () => {

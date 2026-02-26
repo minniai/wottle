@@ -29,15 +29,16 @@ describe("matchSummary.computeFrozenTileCountByPlayer", () => {
     expect(result).toEqual({ playerA: 0, playerB: 2 });
   });
 
-  it("counts tiles owned by both toward each player", () => {
+  it("T013c: does NOT count 'both' tiles for either player (exclusive ownership)", () => {
     const frozenTiles: FrozenTileMap = {
       "5,5": { owner: "both" },
     };
     const result = computeFrozenTileCountByPlayer(frozenTiles);
-    expect(result).toEqual({ playerA: 1, playerB: 1 });
+    // "both" tiles are excluded from tiebreaker counts for both players
+    expect(result).toEqual({ playerA: 0, playerB: 0 });
   });
 
-  it("handles mixed ownership correctly", () => {
+  it("T013d: handles mixed ownership — 'both' tiles excluded, exclusive tiles counted", () => {
     const frozenTiles: FrozenTileMap = {
       "0,0": { owner: "player_a" },
       "1,1": { owner: "player_b" },
@@ -45,8 +46,8 @@ describe("matchSummary.computeFrozenTileCountByPlayer", () => {
       "3,3": { owner: "player_a" },
     };
     const result = computeFrozenTileCountByPlayer(frozenTiles);
-    // playerA: tiles at (0,0), (2,2), (3,3) = 3
-    // playerB: tiles at (1,1), (2,2) = 2
-    expect(result).toEqual({ playerA: 3, playerB: 2 });
+    // playerA: (0,0), (3,3) = 2  (excluding "both" at (2,2))
+    // playerB: (1,1) = 1  (excluding "both" at (2,2))
+    expect(result).toEqual({ playerA: 2, playerB: 1 });
   });
 });
