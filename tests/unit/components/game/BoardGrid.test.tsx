@@ -233,6 +233,129 @@ describe("BoardGrid swap animation (US5)", () => {
   });
 });
 
+describe("BoardGrid invalid swap feedback (US7)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        const col = Number(this.getAttribute("data-col") ?? 0);
+        const row = Number(this.getAttribute("data-row") ?? 0);
+        const size = 50;
+        return {
+          top: row * size,
+          left: col * size,
+          bottom: row * size + size,
+          right: col * size + size,
+          width: size,
+          height: size,
+          x: col * size,
+          y: row * size,
+          toJSON: () => ({}),
+        };
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("applies invalid class to both tiles when server rejects the swap", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "Tile is frozen" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // Click (0,0) then (1,0) to trigger a swap
+    act(() => {
+      fireEvent.click(tiles[0]);
+    });
+    act(() => {
+      fireEvent.click(tiles[1]);
+    });
+
+    // Allow animation + fetch to complete
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    // Both tiles should have the invalid class
+    expect(tiles[0]).toHaveClass("board-grid__cell--invalid");
+    expect(tiles[1]).toHaveClass("board-grid__cell--invalid");
+  });
+
+  test("clears invalid class after 400ms", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "Tile is frozen" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const tiles = screen.getAllByTestId("board-tile");
+    act(() => {
+      fireEvent.click(tiles[0]);
+    });
+    act(() => {
+      fireEvent.click(tiles[1]);
+    });
+
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    expect(tiles[0]).toHaveClass("board-grid__cell--invalid");
+
+    // Advance past the 400ms clear timeout
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(401);
+    });
+
+    expect(tiles[0]).not.toHaveClass("board-grid__cell--invalid");
+    expect(tiles[1]).not.toHaveClass("board-grid__cell--invalid");
+  });
+
+  test("does not apply invalid class on a successful swap", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ status: "accepted", grid: null }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const tiles = screen.getAllByTestId("board-tile");
+    act(() => {
+      fireEvent.click(tiles[0]);
+    });
+    act(() => {
+      fireEvent.click(tiles[1]);
+    });
+
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    expect(tiles[0]).not.toHaveClass("board-grid__cell--invalid");
+    expect(tiles[1]).not.toHaveClass("board-grid__cell--invalid");
+  });
+});
+
 describe("BoardGrid component", () => {
   test(`renders a ${BOARD_SIZE}x${BOARD_SIZE} grid with accessible roles`, () => {
     const grid = createGrid();

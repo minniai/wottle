@@ -82,7 +82,7 @@ export async function submitMove(
         const playerBExpired = isClockExpired(roundStartedAt, playerBTimerMs);
 
         if (playerAExpired && playerBExpired) {
-            completeMatchInternal(matchId, "time_expiry").catch((e: unknown) => {
+            completeMatchInternal(matchId, "timeout").catch((e: unknown) => {
                 console.error("[Clock] Failed to complete match on time expiry:", e);
             });
         }

@@ -428,6 +428,90 @@ describe("roundEngine.advanceRound", () => {
         );
     });
 
+    // T007b: deductTimerMs clamps to 0 when elapsed > remaining
+    it("T007b: clamps deducted timer to 0 when elapsed exceeds remaining time", async () => {
+        // player-a has 10s, round started 30s ago, submitted at start of round
+        const roundStart = new Date("2026-02-25T10:00:00Z");
+        const playerASubmittedAt = new Date("2026-02-25T10:00:30Z"); // 30s elapsed, but only 10s remaining
+
+        setupSupabase(
+            [
+                {
+                    id: "sub-a",
+                    player_id: "player-a",
+                    from_x: 0,
+                    from_y: 0,
+                    to_x: 0,
+                    to_y: 1,
+                    submitted_at: playerASubmittedAt.toISOString(),
+                    status: "pending",
+                },
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: new Date("2026-02-25T10:00:05Z").toISOString(),
+                    status: "pending",
+                },
+            ],
+            { player_a_timer_ms: 10_000, player_b_timer_ms: 300_000 }, // player-a only had 10s
+            { started_at: roundStart.toISOString() },
+        );
+
+        await advanceRound("match-1");
+
+        const matchUpdates = updateCalls.filter((c) => c.table === "matches");
+        const timerUpdate = matchUpdates.find(
+            (c) => c.payload.player_a_timer_ms !== undefined,
+        );
+        expect(timerUpdate).toBeDefined();
+        // 10s remaining - 30s elapsed = clamped to 0
+        expect(timerUpdate.payload.player_a_timer_ms).toBe(0);
+    });
+
+    // T007c: timer unchanged when round has no started_at
+    it("T007c: does not deduct timer when round has no started_at", async () => {
+        setupSupabase(
+            [
+                {
+                    id: "sub-a",
+                    player_id: "player-a",
+                    from_x: 0,
+                    from_y: 0,
+                    to_x: 0,
+                    to_y: 1,
+                    submitted_at: new Date().toISOString(),
+                    status: "pending",
+                },
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: new Date().toISOString(),
+                    status: "pending",
+                },
+            ],
+            { player_a_timer_ms: 180_000, player_b_timer_ms: 240_000 },
+            { started_at: "" }, // no started_at → no deduction
+        );
+
+        await advanceRound("match-1");
+
+        const matchUpdates = updateCalls.filter((c) => c.table === "matches");
+        const timerUpdate = matchUpdates.find(
+            (c) => c.payload.player_a_timer_ms !== undefined,
+        );
+        // Timer should remain at original value when no started_at
+        expect(timerUpdate?.payload.player_a_timer_ms).toBe(180_000);
+        expect(timerUpdate?.payload.player_b_timer_ms).toBe(240_000);
+    });
+
     // T017: timeout-pass synthesis when absent player's clock expired
     it("T017: inserts synthetic timeout submission when 1 submission exists and absent player's clock is expired", async () => {
         // Round started 10 minutes ago, player-b timer was only 60 seconds → expired
@@ -464,6 +548,39 @@ describe("roundEngine.advanceRound", () => {
             expect.objectContaining({
                 status: "advanced",
             }),
+        );
+    });
+
+    // T009a: no synthesis when both players have submitted
+    it("T009a: does not insert a synthetic timeout submission when both players have submitted", async () => {
+        setupSupabase([
+            {
+                id: "sub-a",
+                player_id: "player-a",
+                from_x: 0,
+                from_y: 0,
+                to_x: 0,
+                to_y: 1,
+                submitted_at: new Date().toISOString(),
+                status: "pending",
+            },
+            {
+                id: "sub-b",
+                player_id: "player-b",
+                from_x: 5,
+                from_y: 5,
+                to_x: 5,
+                to_y: 6,
+                submitted_at: new Date().toISOString(),
+                status: "pending",
+            },
+        ]);
+
+        await advanceRound("match-1");
+
+        // No synthetic timeout submission should be inserted
+        expect(moveSubmissionsInsert).not.toHaveBeenCalledWith(
+            expect.objectContaining({ status: "timeout" }),
         );
     });
 

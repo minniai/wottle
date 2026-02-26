@@ -154,6 +154,6 @@ describe("clockEnforcement integration (T026)", () => {
 
     await submitMove(MATCH_ID, 0, 0, 0, 1);
 
-    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "time_expiry");
+    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "timeout");
   });
 });

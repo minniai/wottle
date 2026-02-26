@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { ScoreDeltaPopup } from "@/components/match/ScoreDeltaPopup";
+import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
+
 interface GameChromeProps {
   position: "opponent" | "player";
   playerName: string;
@@ -11,6 +14,10 @@ interface GameChromeProps {
   hasSubmitted: boolean;
   moveCounter?: number;
   playerColor: string;
+  /** Score breakdown for the just-completed round. Shown as a transient popup. */
+  scoreDelta?: ScoreDelta | null;
+  /** Round number used as a key to retrigger the popup animation. */
+  scoreDeltaRound?: number;
 }
 
 export function GameChrome({
@@ -22,6 +29,8 @@ export function GameChrome({
   hasSubmitted,
   moveCounter,
   playerColor,
+  scoreDelta,
+  scoreDeltaRound,
 }: GameChromeProps) {
   const [displaySeconds, setDisplaySeconds] = useState(timerSeconds);
 
@@ -62,12 +71,17 @@ export function GameChrome({
         </span>
       )}
 
-      <span
-        className="text-xl font-bold"
-        style={{ color: playerColor }}
-      >
-        {score}
-      </span>
+      <div className="relative" data-testid="score-container">
+        <span
+          className="text-xl font-bold"
+          style={{ color: playerColor }}
+        >
+          {score}
+        </span>
+        {scoreDelta && (
+          <ScoreDeltaPopup key={scoreDeltaRound} delta={scoreDelta} />
+        )}
+      </div>
 
       <div className="flex items-center gap-2">
         <span

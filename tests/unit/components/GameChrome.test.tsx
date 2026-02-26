@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 
 import { GameChrome } from "@/components/match/GameChrome";
+import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 
 describe("GameChrome", () => {
   const baseProps = {
@@ -88,5 +89,40 @@ describe("GameChrome", () => {
       "data-position",
       "player",
     );
+  });
+
+  describe("ScoreDeltaPopup integration", () => {
+    const delta: ScoreDelta = { letterPoints: 18, lengthBonus: 3, combo: 2 };
+
+    test("renders popup when scoreDelta is provided", () => {
+      render(
+        <GameChrome {...baseProps} scoreDelta={delta} scoreDeltaRound={1} />,
+      );
+      expect(screen.getByTestId("score-delta-popup")).toBeInTheDocument();
+    });
+
+    test("does not render popup when scoreDelta is null", () => {
+      render(<GameChrome {...baseProps} scoreDelta={null} />);
+      expect(
+        screen.queryByTestId("score-delta-popup"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("does not render popup when scoreDelta is not provided", () => {
+      render(<GameChrome {...baseProps} />);
+      expect(
+        screen.queryByTestId("score-delta-popup"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("score container is relatively positioned for popup overlay", () => {
+      render(
+        <GameChrome {...baseProps} scoreDelta={delta} scoreDeltaRound={1} />,
+      );
+      const popup = screen.getByTestId("score-delta-popup");
+      // Popup should be inside a relative container near the score
+      const container = popup.closest("[data-testid='score-container']");
+      expect(container).toBeInTheDocument();
+    });
   });
 });

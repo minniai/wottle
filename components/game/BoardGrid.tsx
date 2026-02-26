@@ -172,6 +172,7 @@ function BoardGridActive({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
+  const [invalidTiles, setInvalidTiles] = useState<[Coordinate, Coordinate] | null>(null);
   const highlightsKeyRef = useRef<string>("");
   const tileRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
@@ -236,6 +237,11 @@ function BoardGridActive({
           reverted[to.y][to.x] = temp;
           return reverted;
         });
+
+        // Flash shake animation on the rejected tile pair
+        setInvalidTiles([from, to]);
+        setTimeout(() => setInvalidTiles(null), 400);
+
         const message =
           error instanceof Error
             ? error.message
@@ -424,6 +430,10 @@ function BoardGridActive({
               const isTileFrozen = !!frozenEntry;
               const frozenOwner = frozenEntry?.owner;
               const isScoredHighlight = activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
+              const isInvalid =
+                invalidTiles !== null &&
+                ((invalidTiles[0].x === colIndex && invalidTiles[0].y === rowIndex) ||
+                  (invalidTiles[1].x === colIndex && invalidTiles[1].y === rowIndex));
 
               const frozenStyle: CSSProperties | undefined = isTileFrozen
                 ? frozenOwner === "both"
@@ -447,7 +457,7 @@ function BoardGridActive({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? " board-grid__cell--scored" : ""}`}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? " board-grid__cell--scored" : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}
