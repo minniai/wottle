@@ -6,12 +6,31 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { GameChrome } from "@/components/match/GameChrome";
 import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
+import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
 import { MatchShell } from "./MatchShell";
+
+function deriveScoreDelta(
+  summary: RoundSummary,
+  playerId: string,
+  slot: "player_a" | "player_b",
+): ScoreDelta | null {
+  const playerWords = summary.words.filter(
+    (w) => w.playerId === playerId && !w.isDuplicate,
+  );
+  const letterPoints = playerWords.reduce((sum, w) => sum + w.lettersPoints, 0);
+  const lengthBonus = playerWords.reduce((sum, w) => sum + w.bonusPoints, 0);
+  const combo =
+    slot === "player_a"
+      ? (summary.comboBonus?.playerA ?? 0)
+      : (summary.comboBonus?.playerB ?? 0);
+  if (letterPoints === 0 && lengthBonus === 0 && combo === 0) return null;
+  return { letterPoints, lengthBonus, combo };
+}
 
 interface MatchClientProps {
   initialState: MatchState;
@@ -65,6 +84,7 @@ export function MatchClient({
   const [usePolling, setUsePolling] = useState(realtimeDisabled);
   const [pollError, setPollError] = useState<string | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
+  const [scoreDelta, setScoreDelta] = useState<ScoreDelta | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<
     string | null
@@ -266,6 +286,15 @@ export function MatchClient({
   const playerSlot: "player_a" | "player_b" =
     matchState.timers.playerA.playerId === currentPlayerId ? "player_a" : "player_b";
 
+  // Derive score delta popup data from the latest round summary.
+  useEffect(() => {
+    if (!summary) {
+      setScoreDelta(null);
+      return;
+    }
+    setScoreDelta(deriveScoreDelta(summary, currentPlayerId, playerSlot));
+  }, [summary, currentPlayerId, playerSlot]);
+
   const handleSwapComplete = useCallback(() => {
     setSwapError(null);
   }, []);
@@ -366,6 +395,8 @@ export function MatchClient({
         hasSubmitted={currentTimer.status === "paused"}
         moveCounter={matchState.currentRound}
         playerColor={getPlayerColors(playerSlot).hex}
+        scoreDelta={scoreDelta}
+        scoreDeltaRound={summary?.roundNumber}
       />
 
       {showDebug && (

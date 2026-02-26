@@ -86,6 +86,7 @@ test-results/
 .cache/
 .parcel-cache/
 .vite/
+reports/
 
 # Optional eslint cache
 .eslintcache
