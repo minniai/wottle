@@ -164,8 +164,8 @@ describe("submitMove", () => {
         });
     });
 
-    // T024: both clocks expired triggers time_expiry completion
-    it("T024: calls completeMatch with time_expiry when both player clocks are expired", async () => {
+    // T024: both clocks expired triggers timeout completion
+    it("T024: calls completeMatch with timeout when both player clocks are expired", async () => {
         vi.mocked(completeMatchInternal).mockClear();
 
         // Both players' timers expired (round started 10 mins ago, both had only 60s)
@@ -196,7 +196,7 @@ describe("submitMove", () => {
         expect(result).toMatchObject({
             status: "rejected",
         });
-        expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "time_expiry");
+        expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "timeout");
     });
 
     it("T015: accepts a move when clock has not expired", async () => {

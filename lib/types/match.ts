@@ -32,7 +32,7 @@ export interface ScoreTotals {
 
 export type MatchEndedReason =
   | "round_limit"
-  | "time_expiry"
+  | "timeout"
   | "disconnect"
   | "forfeit"
   | "error";

@@ -85,8 +85,8 @@ describe("FinalSummary", () => {
     expect(screen.getByTestId("final-summary-ended-reason")).toHaveTextContent("10 rounds completed");
   });
 
-  it("T032: renders ended reason correctly for time_expiry", () => {
-    render(<FinalSummary {...makeProps({ endedReason: "time_expiry" })} />);
+  it("T032: renders ended reason correctly for timeout", () => {
+    render(<FinalSummary {...makeProps({ endedReason: "timeout" })} />);
     expect(screen.getByTestId("final-summary-ended-reason")).toHaveTextContent("Time expired");
   });
 });
