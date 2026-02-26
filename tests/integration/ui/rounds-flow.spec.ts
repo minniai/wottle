@@ -90,6 +90,65 @@ async function submitSwap(page: import("@playwright/test").Page): Promise<void> 
   throw new Error("No unfrozen adjacent tile pair found");
 }
 
+// ─── T009 + T010: Score delta popup (US1) ─────────────────────────────────
+test.describe("Score delta popup (US1)", () => {
+  test("T009/T010: popup matches player score after round resolves @two-player-playtest", async ({
+    browser,
+  }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+
+    try {
+      const userA = generateTestUsername("popup-alpha");
+      const userB = generateTestUsername("popup-beta");
+      await loginAndStartMatch(pageA, pageB, userA, userB);
+
+      // Submit round 1 moves
+      await submitSwap(pageA);
+      await submitSwap(pageB);
+
+      // Wait for the round summary panel to confirm round resolved
+      const summaryPanel = pageA.getByTestId("round-summary-panel");
+      await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
+
+      // Read the current player's delta from the summary panel
+      const deltaText = await pageA
+        .getByTestId("round-summary-player-a-delta")
+        .textContent();
+      const playerScored = (deltaText ?? "").includes("+");
+
+      const popup = pageA.locator('[data-testid="score-delta-popup"]');
+
+      if (playerScored) {
+        // T009: popup is visible in the player chrome and contains "+N" format
+        await expect(popup).toBeVisible({ timeout: 3_000 });
+        await expect(popup).toContainText(/\+\d+/);
+        // Popup must be inside the player game-chrome (not opponent)
+        const playerChrome = pageA.getByTestId("game-chrome-player");
+        await expect(
+          playerChrome.locator('[data-testid="score-delta-popup"]'),
+        ).toBeVisible();
+      } else {
+        // T010: when player earns zero points, popup is absent
+        await expect(popup).not.toBeAttached();
+      }
+
+      // T010 invariant: popup is never shown in the opponent's chrome
+      const opponentChrome = pageA.getByTestId("game-chrome-opponent");
+      await expect(
+        opponentChrome.locator('[data-testid="score-delta-popup"]'),
+      ).not.toBeAttached();
+    } finally {
+      await pageA.close();
+      await pageB.close();
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+});
+
 test.describe("Round flow", () => {
   test("completes 10 rounds with reconnect safety + late swap guards @two-player-playtest", async ({
     browser,

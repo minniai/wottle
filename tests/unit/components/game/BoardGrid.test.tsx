@@ -356,6 +356,84 @@ describe("BoardGrid invalid swap feedback (US7)", () => {
   });
 });
 
+// T013: rapid re-rejection must immediately show invalid class on new tile pair
+describe("BoardGrid rapid re-rejection (FR-012)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        const col = Number(this.getAttribute("data-col") ?? 0);
+        const row = Number(this.getAttribute("data-row") ?? 0);
+        const size = 50;
+        return {
+          top: row * size,
+          left: col * size,
+          bottom: row * size + size,
+          right: col * size + size,
+          width: size,
+          height: size,
+          x: col * size,
+          y: row * size,
+          toJSON: () => ({}),
+        };
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("T013: when second rejection arrives before 400ms expires, new tile pair immediately has invalid class", async () => {
+    // Both swap attempts are rejected (frozen tile)
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "Tile is frozen" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" />);
+
+    const tiles = screen.getAllByTestId("board-tile");
+
+    // First swap rejection: tiles[0,1] — timer1 starts (fires at T≈400ms)
+    act(() => { fireEvent.click(tiles[0]); });
+    act(() => { fireEvent.click(tiles[1]); });
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+    expect(tiles[0]).toHaveClass("board-grid__cell--invalid");
+    expect(tiles[1]).toHaveClass("board-grid__cell--invalid");
+
+    // Second swap rejection within the first 400ms window: tiles[2,3]
+    // timer1 fires at T=400ms DURING this advance, clearing invalidTiles
+    // unless it was cancelled first (the FR-012 fix with invalidTimerRef).
+    act(() => { fireEvent.click(tiles[2]); });
+    act(() => { fireEvent.click(tiles[3]); });
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[2], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    // Without invalidTimerRef: timer1 fires at T=400 AFTER catch block sets [2,3]
+    //   → setInvalidTiles(null) wins → tiles[2,3] lose invalid class → FAIL
+    // With invalidTimerRef: timer1 cancelled before setting [2,3] → PASS
+    expect(tiles[2]).toHaveClass("board-grid__cell--invalid");
+    expect(tiles[3]).toHaveClass("board-grid__cell--invalid");
+
+    // After 400ms from second rejection, tiles[2,3] clear (timer2 fires)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(401);
+    });
+    expect(tiles[2]).not.toHaveClass("board-grid__cell--invalid");
+    expect(tiles[3]).not.toHaveClass("board-grid__cell--invalid");
+  });
+});
+
 describe("BoardGrid component", () => {
   test(`renders a ${BOARD_SIZE}x${BOARD_SIZE} grid with accessible roles`, () => {
     const grid = createGrid();

@@ -7,6 +7,7 @@ import { BoardGrid } from "@/components/game/BoardGrid";
 import { GameChrome } from "@/components/match/GameChrome";
 import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
+import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
@@ -14,23 +15,6 @@ import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
 import { MatchShell } from "./MatchShell";
 
-function deriveScoreDelta(
-  summary: RoundSummary,
-  playerId: string,
-  slot: "player_a" | "player_b",
-): ScoreDelta | null {
-  const playerWords = summary.words.filter(
-    (w) => w.playerId === playerId && !w.isDuplicate,
-  );
-  const letterPoints = playerWords.reduce((sum, w) => sum + w.lettersPoints, 0);
-  const lengthBonus = playerWords.reduce((sum, w) => sum + w.bonusPoints, 0);
-  const combo =
-    slot === "player_a"
-      ? (summary.comboBonus?.playerA ?? 0)
-      : (summary.comboBonus?.playerB ?? 0);
-  if (letterPoints === 0 && lengthBonus === 0 && combo === 0) return null;
-  return { letterPoints, lengthBonus, combo };
-}
 
 interface MatchClientProps {
   initialState: MatchState;

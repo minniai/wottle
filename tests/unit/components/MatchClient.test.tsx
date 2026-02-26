@@ -1,6 +1,9 @@
 import { render, screen, act } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
+import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
+import type { RoundSummary } from "@/lib/types/match";
+
 import type { MatchState } from "@/lib/types/match";
 
 const mockPush = vi.fn();
@@ -152,5 +155,95 @@ describe("MatchClient layout", () => {
     });
 
     expect(mockPush).toHaveBeenCalledWith("/match/match-test-123/summary");
+  });
+});
+
+// ─── deriveScoreDelta unit tests (T002–T007) ─────────────────────────────────
+
+function makeSummary(overrides?: Partial<RoundSummary>): RoundSummary {
+  return {
+    matchId: "m1",
+    roundNumber: 1,
+    words: [],
+    deltas: { playerA: 0, playerB: 0 },
+    totals: { playerA: 0, playerB: 0 },
+    highlights: [],
+    resolvedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+describe("deriveScoreDelta", () => {
+  // T002: returns null when letterPoints, lengthBonus, and combo are all zero
+  test("T002: returns null when all point components are zero", () => {
+    const summary = makeSummary({ words: [], comboBonus: { playerA: 0, playerB: 0 } });
+    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
+  });
+
+  // T003: excludes words belonging to the opponent (filters by playerId)
+  test("T003: excludes opponent words from the delta calculation", () => {
+    const summary = makeSummary({
+      words: [
+        { playerId: "player-2", word: "abc", length: 3, lettersPoints: 10, bonusPoints: 5, totalPoints: 15, coordinates: [], isDuplicate: false },
+      ],
+      comboBonus: { playerA: 0, playerB: 0 },
+    });
+    // player-1 has no words → should be null
+    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
+  });
+
+  // T004: excludes words where isDuplicate === true from all totals
+  test("T004: excludes duplicate words from letter and length totals", () => {
+    const summary = makeSummary({
+      words: [
+        { playerId: "player-1", word: "abc", length: 3, lettersPoints: 10, bonusPoints: 5, totalPoints: 0, coordinates: [], isDuplicate: true },
+      ],
+      comboBonus: { playerA: 0, playerB: 0 },
+    });
+    // Duplicate word should be excluded → null
+    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
+  });
+
+  // T005: correctly sums lettersPoints and bonusPoints across all valid words
+  test("T005: sums lettersPoints and bonusPoints across all non-duplicate player words", () => {
+    const summary = makeSummary({
+      words: [
+        { playerId: "player-1", word: "ab", length: 2, lettersPoints: 4, bonusPoints: 3, totalPoints: 7, coordinates: [], isDuplicate: false },
+        { playerId: "player-1", word: "cd", length: 2, lettersPoints: 6, bonusPoints: 2, totalPoints: 8, coordinates: [], isDuplicate: false },
+        { playerId: "player-2", word: "ef", length: 2, lettersPoints: 99, bonusPoints: 99, totalPoints: 198, coordinates: [], isDuplicate: false },
+      ],
+      comboBonus: { playerA: 0, playerB: 0 },
+    });
+    const result = deriveScoreDelta(summary, "player-1", "player_a");
+    expect(result).not.toBeNull();
+    expect(result!.letterPoints).toBe(10); // 4 + 6
+    expect(result!.lengthBonus).toBe(5);   // 3 + 2
+  });
+
+  // T006: reads comboBonus.playerA when slot is "player_a" and comboBonus.playerB when "player_b"
+  test("T006: reads comboBonus.playerA for player_a slot", () => {
+    const summary = makeSummary({
+      words: [],
+      comboBonus: { playerA: 15, playerB: 0 },
+    });
+    const result = deriveScoreDelta(summary, "player-1", "player_a");
+    expect(result).not.toBeNull();
+    expect(result!.combo).toBe(15);
+  });
+
+  test("T006b: reads comboBonus.playerB for player_b slot", () => {
+    const summary = makeSummary({
+      words: [],
+      comboBonus: { playerA: 0, playerB: 20 },
+    });
+    const result = deriveScoreDelta(summary, "player-2", "player_b");
+    expect(result).not.toBeNull();
+    expect(result!.combo).toBe(20);
+  });
+
+  // T007: returns null when comboBonus is undefined and no scoreable words exist
+  test("T007: returns null when comboBonus is undefined and words array is empty", () => {
+    const summary = makeSummary({ words: [], comboBonus: undefined });
+    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
   });
 });
