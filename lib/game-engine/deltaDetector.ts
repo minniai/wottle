@@ -38,37 +38,21 @@ function wordKeySet(words: BoardWord[]): Set<string> {
 }
 
 /**
- * Build a Set of "x,y" position keys for all tiles that belong to any of the given words.
- */
-function buildTileSet(words: BoardWord[]): Set<string> {
-  const set = new Set<string>();
-  for (const word of words) {
-    for (const tile of word.tiles) {
-      set.add(`${tile.x},${tile.y}`);
-    }
-  }
-  return set;
-}
-
-/**
  * Check whether a word creates an invalid perpendicular cross-word with any
- * previously recognised words on the board.
+ * frozen (previously-scored) tile on the board.
+ *
+ * Only frozen tiles can cause a cross-word violation. Non-frozen tiles —
+ * even if they happen to form recognisable words — are ignored.
  *
  * For each tile T in `word`, the perpendicular direction is traced through
- * neighbouring positions that belong to `existingTileSet` (tiles from words
- * that existed *before* this word appeared). Only those neighbour tiles — not
- * the full 10-tile row/column — form the cross-word candidate.
- *
- * If the candidate cross-word (existing-word-tiles + T) is longer than one
- * tile and is not in the dictionary, the word has a violation.
- *
- * This bounds the cross-word to word-to-word junctions, which is the correct
- * Scrabble-style semantics on a dense board.
+ * neighbouring positions that are in `frozenTileSet`. If the resulting
+ * cross-sequence (frozen-tiles + T) is >= 2 tiles and not in the dictionary,
+ * the word has a violation.
  */
 function hasCrossWordViolation(
   board: BoardGrid,
   word: BoardWord,
-  existingTileSet: Set<string>,
+  frozenTileSet: Set<string>,
   dictionary: Set<string>,
 ): boolean {
   const { boardSize, minimumWordLength } = DEFAULT_GAME_CONFIG;
@@ -85,7 +69,7 @@ function hasCrossWordViolation(
     while (
       bx >= 0 && bx < boardSize &&
       by >= 0 && by < boardSize &&
-      existingTileSet.has(`${bx},${by}`)
+      frozenTileSet.has(`${bx},${by}`)
     ) {
       beforeChars.unshift(board[by][bx]);
       bx -= dx;
@@ -99,7 +83,7 @@ function hasCrossWordViolation(
     while (
       fx >= 0 && fx < boardSize &&
       fy >= 0 && fy < boardSize &&
-      existingTileSet.has(`${fx},${fy}`)
+      frozenTileSet.has(`${fx},${fy}`)
     ) {
       afterChars.push(board[fy][fx]);
       fx += dx;
@@ -214,20 +198,18 @@ export function detectNewWords(params: {
   // 3. Scan final board (already boardAfter)
   const final = scanBoard(boardAfter, dictionary);
 
+  // Build a set of frozen tile positions — only these can cause cross-word violations.
+  const frozenTileSet = new Set(Object.keys(frozenTiles));
+
   // Helper to filter, cross-word-validate, and attribute words.
   // `board` is the board state at the point the words were found.
-  // `existingWords` are the recognised words that existed BEFORE this player's
-  // swap — used to bound the perpendicular cross-word check.
   const filterAndAttribute = (
     words: BoardWord[],
     excludeKeys: Set<string>,
     pId: string,
     playerSlot: "player_a" | "player_b",
     board: BoardGrid,
-    existingWords: BoardWord[],
   ) => {
-    const existingTileSet = buildTileSet(existingWords);
-
     for (const word of words) {
       // Only horizontal/vertical (no diagonals)
       if (word.direction !== "right" && word.direction !== "down") continue;
@@ -239,19 +221,19 @@ export function detectNewWords(params: {
       if (containsOpponentFrozenTile(word, frozenTiles, playerSlot)) continue;
 
       // Cross-word check: reject if any tile creates an invalid junction
-      // with a tile from a previously recognised word.
-      if (hasCrossWordViolation(board, word, existingTileSet, dictionary)) continue;
+      // with a previously frozen tile.
+      if (hasCrossWordViolation(board, word, frozenTileSet, dictionary)) continue;
 
       reportedKeys.add(key);
       result.push({ ...word, playerId: pId });
     }
   };
 
-  // Player A: new words checked against baseline (pre-swap) word tiles
-  filterAndAttribute(intermediate.words, baselineKeys, playerAId, "player_a", boardA, baseline.words);
+  // Player A: new words in intermediate that weren't in baseline
+  filterAndAttribute(intermediate.words, baselineKeys, playerAId, "player_a", boardA);
 
-  // Player B: new words checked against intermediate (post-A-swap) word tiles
-  filterAndAttribute(final.words, intermediateKeys, playerBId, "player_b", boardAfter, intermediate.words);
+  // Player B: new words in final that weren't in intermediate
+  filterAndAttribute(final.words, intermediateKeys, playerBId, "player_b", boardAfter);
 
   return result;
 }
