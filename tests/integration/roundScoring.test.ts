@@ -15,7 +15,7 @@ const PLAYER_B = "player-b-id";
 const MATCH_ID = "match-dup-test";
 const ROUND_2_ID = "round-2-id";
 
-function emptyBoard(fill = "z"): BoardGrid {
+function emptyBoard(fill = " "): BoardGrid {
   return Array.from({ length: 10 }, () =>
     Array.from({ length: 10 }, () => fill),
   ) as BoardGrid;
@@ -156,20 +156,28 @@ describe("round scoring duplicate tracking (US3)", () => {
       [PLAYER_A]: new Set(["búr"]),
     };
 
+    // Use blank board and place only the words we care about.
+    // Row 0: "búr" (Player A's duplicate word)
+    // Row 2: "hestur" (Player A's new word — non-adjacent, so no invalid vertical crosses)
     const before = emptyBoard();
     before[0][0] = "b";
     before[0][1] = "ú";
     before[0][2] = "r";
-    before[0][3] = "z";
-    before[1][0] = "h";
-    before[1][1] = "e";
-    before[1][2] = "s";
-    before[1][3] = "t";
-    before[1][4] = "u";
-    before[1][5] = "r";
+    // Row 2: hestur — swap will be (0,2) <-> (5,2) to form it
+    before[2][0] = "r";
+    before[2][1] = "e";
+    before[2][2] = "s";
+    before[2][3] = "t";
+    before[2][4] = "u";
+    before[2][5] = "h";
     const after = before.map((row) => [...row]) as BoardGrid;
-    after[0][3] = "b";
-    after[0][0] = "z";
+    // Swap 1: Player A forms 'búrb' (duplicate) — just swapping within búr, (0,0) <-> (2,0)
+    // Simpler: just swap (0,0) and (2,0) so A's move covers the word búr row on pos 0,2
+    // Actually the simplest case: swap (1,0)<->(2,0): swapping ú and r means before had b-ú-r, after has b-r-ú (not búr)
+    // Let's just model it differently: swap (0,0)↔(0,9) but that's not in búr
+    // Easiest: model the swap as (0,0)↔(5,2) so both are in their respective words
+    after[2][0] = "h";
+    after[2][5] = "r";
 
     const result = await processRoundScoring({
       matchId: MATCH_ID,
@@ -177,8 +185,8 @@ describe("round scoring duplicate tracking (US3)", () => {
       boardBefore: before,
       boardAfter: after,
       acceptedMoves: [
-        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 3, toY: 0 },
-        { playerId: PLAYER_A, fromX: 0, fromY: 1, toX: 5, toY: 1 },
+        // Player A moves within Row 2 ('hestur'), both tile positions are in the word
+        { playerId: PLAYER_A, fromX: 0, fromY: 2, toX: 5, toY: 2 },
       ],
       frozenTiles: {},
       playerAId: PLAYER_A,

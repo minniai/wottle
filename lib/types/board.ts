@@ -1,37 +1,58 @@
 import { z } from "zod";
+import { GameConfig } from "@/lib/types";
+import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 
-import { BOARD_MAX_INDEX, BOARD_SIZE } from "@/lib/constants/board";
-
-export const coordinateSchema = z.object({
-  x: z.number().int().min(0).max(BOARD_MAX_INDEX),
-  y: z.number().int().min(0).max(BOARD_MAX_INDEX),
+export const getCoordinateSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) => z.object({
+  x: z.number().int().min(0).max(config.boardSize - 1),
+  y: z.number().int().min(0).max(config.boardSize - 1),
 });
 
-export const boardGridSchema = z
+export const getBoardGridSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) => z
   .array(
     z
       .array(
         z.string().length(1).regex(/^[A-ZÁÐÉÍÓÚÝÞÆÖa-záðéíóúýþæö]$/)
       )
-      .length(BOARD_SIZE)
+      .length(config.boardSize)
   )
-  .length(BOARD_SIZE);
+  .length(config.boardSize);
 
-export const moveRequestSchema = z.object({
-  from: coordinateSchema,
-  to: coordinateSchema,
+export const getMoveRequestSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) => z.object({
+  from: getCoordinateSchema(config),
+  to: getCoordinateSchema(config),
 });
 
-export const moveResultSchema = z.object({
+export const getMoveResultSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) => z.object({
   status: z.enum(["accepted", "rejected"]),
-  grid: boardGridSchema,
+  grid: getBoardGridSchema(config),
   error: z.string().optional(),
 });
 
-export type Coordinate = z.infer<typeof coordinateSchema>;
-export type BoardGrid = z.infer<typeof boardGridSchema>;
-export type MoveRequest = z.infer<typeof moveRequestSchema>;
-export type MoveResult = z.infer<typeof moveResultSchema>;
+// Since schemas are now factories, we define the types statically
+export interface Coordinate {
+  x: number;
+  y: number;
+}
+
+export type BoardGrid = string[][];
+
+export interface MoveRequest {
+  from: Coordinate;
+  to: Coordinate;
+}
+
+export interface MoveResult {
+  status: "accepted" | "rejected";
+  grid: BoardGrid;
+  error?: string;
+}
+
+// Keep the old exported schemas pointing to default config for backwards compat, 
+// so the rest of the app doesn't immediately break.
+export const coordinateSchema = getCoordinateSchema();
+export const boardGridSchema = getBoardGridSchema();
+export const moveRequestSchema = getMoveRequestSchema();
+export const moveResultSchema = getMoveResultSchema();
 
 // ─── Word Engine Types (003-word-engine-scoring) ──────────────────────
 

@@ -5,7 +5,7 @@ import { loadDictionary } from "@/lib/game-engine/dictionary";
 import type { BoardGrid } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
 
-function emptyBoard(fill = "z"): BoardGrid {
+function emptyBoard(fill = " "): BoardGrid {
   return Array.from({ length: 10 }, () =>
     Array.from({ length: 10 }, () => fill),
   ) as BoardGrid;
@@ -36,28 +36,25 @@ describe("deltaDetector", () => {
   });
 
   test("should detect a new word formed by Player A's swap", () => {
-    // Board has "zestur" at row 0 and 'h' at (0,9)
-    // Player A swaps (0,0) with (0,9) → row 0 becomes "hestur..."
+    // Player A swaps (0,0) with (5,0) → row 0 becomes "hestur..."
     let boardBefore = emptyBoard();
-    boardBefore[0][0] = "z";
+    boardBefore[0][0] = "r";
     boardBefore[0][1] = "e";
     boardBefore[0][2] = "s";
     boardBefore[0][3] = "t";
     boardBefore[0][4] = "u";
-    boardBefore[0][5] = "r";
-    boardBefore[0][9] = "h";
+    boardBefore[0][5] = "h";
 
-    // After Player A swaps (0,0)↔(0,9): h moves to (0,0), z moves to (0,9)
     const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
     boardAfter[0][0] = "h";
-    boardAfter[0][9] = "z";
+    boardAfter[0][5] = "r";
 
     const result = detectNewWords({
       boardBefore,
       boardAfter,
       dictionary: dict,
       acceptedMoves: [
-        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
       ],
       frozenTiles: EMPTY_FROZEN,
       playerAId: PLAYER_A,
@@ -137,10 +134,10 @@ describe("deltaDetector", () => {
   test("should handle both players forming words in same round", () => {
     const boardBefore = emptyBoard();
     // After Player A's swap: "hestur" at row 0
-    // After Player B's swap: "land" at row 1
+    // After Player B's swap: "land" at row 2
     // Build boardAfter with both words
     let boardAfter = placeHorizontal(emptyBoard(), "hestur", 0, 0);
-    boardAfter = placeHorizontal(boardAfter, "land", 0, 1);
+    boardAfter = placeHorizontal(boardAfter, "land", 0, 2);
 
     const result = detectNewWords({
       boardBefore,
@@ -148,7 +145,7 @@ describe("deltaDetector", () => {
       dictionary: dict,
       acceptedMoves: [
         { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
-        { playerId: PLAYER_B, fromX: 0, fromY: 1, toX: 3, toY: 1 },
+        { playerId: PLAYER_B, fromX: 0, fromY: 2, toX: 3, toY: 2 },
       ],
       frozenTiles: EMPTY_FROZEN,
       playerAId: PLAYER_A,

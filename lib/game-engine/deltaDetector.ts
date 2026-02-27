@@ -6,6 +6,8 @@ import type {
 import type { FrozenTileMap } from "@/lib/types/match";
 import { scanBoard } from "./boardScanner";
 import { applySwap } from "./board";
+import { extractValidCrossWords } from "./word-finder";
+import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 
 /** A word attributed to a specific player. */
 export interface AttributedWord extends BoardWord {
@@ -99,7 +101,6 @@ export function detectNewWords(params: {
   playerBId: string;
 }): AttributedWord[] {
   const {
-    boardBefore,
     boardAfter,
     dictionary,
     acceptedMoves,
@@ -107,10 +108,6 @@ export function detectNewWords(params: {
     playerAId,
     playerBId,
   } = params;
-
-  // Scan the baseline board (before any swaps)
-  const wordsBefore = scanBoard(boardBefore, dictionary);
-  const beforeKeys = wordKeySet(wordsBefore.words);
 
   // Determine which moves belong to which player
   const playerAMoves = acceptedMoves.filter(
@@ -121,53 +118,47 @@ export function detectNewWords(params: {
   );
 
   const result: AttributedWord[] = [];
+  const reportedKeys = new Set<string>();
 
   if (playerAMoves.length === 0 && playerBMoves.length === 0) {
     return result;
   }
 
-  // Build intermediate board (after Player A's swap only)
-  let intermediateBoard = boardBefore;
-  for (const move of playerAMoves) {
-    intermediateBoard = applySwap(intermediateBoard, {
-      from: { x: move.fromX, y: move.fromY },
-      to: { x: move.toX, y: move.toY },
-    });
-  }
+  // Wottle v2 Validation Rule: For each accepted move, we extract orthogonal 
+  // words from the `boardAfter` around the swapped tiles.
+  
+  // Helper to process a player's moves
+  const processMoves = (moves: AcceptedMove[], pId: string, playerSlot: "player_a" | "player_b") => {
+    for (const move of moves) {
+      const extResult = extractValidCrossWords(
+        boardAfter,
+        { from: { x: move.fromX, y: move.fromY }, to: { x: move.toX, y: move.toY } },
+        dictionary,
+        DEFAULT_GAME_CONFIG
+      );
 
-  const wordsAfterA = scanBoard(intermediateBoard, dictionary);
-  const afterAKeys = wordKeySet(wordsAfterA.words);
-  const afterAMap = wordKeyMap(wordsAfterA.words);
+      // In the game engine pipeline, if a move is invalid (i.e., invalid word formed),
+      // we would ideally rollback. But for `detectNewWords` as currently spec'd,
+      // we only return valid AttributedWords. If the swap caused an invalid word,
+      // it should theoretically be stopped *before* scoring. But here we only extract the valid ones.
+      if (extResult.isValid) {
+        for (const word of extResult.words) {
+          const key = wordKey(word);
+          if (reportedKeys.has(key)) continue;
 
-  // Scan the final board (after both swaps)
-  const wordsAfterAB = scanBoard(boardAfter, dictionary);
-  const afterABMap = wordKeyMap(wordsAfterAB.words);
+          if (containsOpponentFrozenTile(word, frozenTiles, playerSlot)) {
+            continue;
+          }
 
-  // Player A's new words: in afterA but not in before
-  for (const [key, word] of afterAMap) {
-    if (beforeKeys.has(key)) {
-      continue;
+          reportedKeys.add(key);
+          result.push({ ...word, playerId: pId });
+        }
+      }
     }
-    if (
-      containsOpponentFrozenTile(word, frozenTiles, "player_a")
-    ) {
-      continue;
-    }
-    result.push({ ...word, playerId: playerAId });
-  }
+  };
 
-  // Player B's new words: in afterAB but not in afterA (and not in before)
-  for (const [key, word] of afterABMap) {
-    if (beforeKeys.has(key) || afterAKeys.has(key)) {
-      continue;
-    }
-    if (
-      containsOpponentFrozenTile(word, frozenTiles, "player_b")
-    ) {
-      continue;
-    }
-    result.push({ ...word, playerId: playerBId });
-  }
+  processMoves(playerAMoves, playerAId, "player_a");
+  processMoves(playerBMoves, playerBId, "player_b");
 
   return result;
 }
