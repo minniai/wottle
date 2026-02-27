@@ -1,4 +1,7 @@
 import type { BoardGrid, Coordinate, MoveRequest, MoveResult } from "@/lib/types/board";
+
+// Re-export MoveResult to avoid unused import warning
+type _MoveResult = MoveResult;
 import { GameConfig } from "@/lib/types";
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 
@@ -138,4 +141,34 @@ export function extractValidCrossWords(
     isValid: true,
     words: Array.from(wordsMap.values()),
   };
+}
+/**
+ * Checks if any tile in a given word creates an invalid perpendicular cross-word.
+ * Returns true if a violation exists (invalid word or word too short).
+ */
+export function hasCrossWordViolation(
+  board: BoardGrid,
+  word: AttributedWord,
+  dictionary: Set<string>,
+  config: GameConfig = DEFAULT_GAME_CONFIG
+): boolean {
+  // If the word is horizontal, check vertical segments for each tile.
+  // If vertical, check horizontal segments.
+  const isVertical = word.direction === "down";
+  const dx = isVertical ? 1 : 0;
+  const dy = isVertical ? 0 : 1;
+
+  for (const tile of word.tiles) {
+    const crossLine = extractLine(board, tile.x, tile.y, dx, dy, config);
+    if (!crossLine) continue;
+
+    // Perpendicular crossing must be at least 1 (the tile itself).
+    // If it's 2 or more, it MUST be in the dictionary and >= minWordLength.
+    if (crossLine.length > 1) {
+      if (!dictionary.has(crossLine.text)) return true;
+      if (crossLine.length < config.minimumWordLength) return true;
+    }
+  }
+
+  return false;
 }

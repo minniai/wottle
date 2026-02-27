@@ -11,7 +11,7 @@ export const getBoardGridSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) => 
   .array(
     z
       .array(
-        z.string().length(1).regex(/^[A-ZÁÐÉÍÓÚÝÞÆÖa-záðéíóúýþæö]$/)
+        z.string().length(1).regex(/^[A-ZÁÐÉÍÓÚÝÞÆÖa-záðéíóúýþæö ]$/)
       )
       .length(config.boardSize)
   )

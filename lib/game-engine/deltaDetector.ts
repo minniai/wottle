@@ -1,13 +1,10 @@
 import type {
   BoardGrid,
   BoardWord,
-  Coordinate,
 } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
 import { scanBoard } from "./boardScanner";
 import { applySwap } from "./board";
-import { extractValidCrossWords } from "./word-finder";
-import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 
 /** A word attributed to a specific player. */
 export interface AttributedWord extends BoardWord {
@@ -37,17 +34,6 @@ function wordKey(word: BoardWord): string {
  */
 function wordKeySet(words: BoardWord[]): Set<string> {
   return new Set(words.map(wordKey));
-}
-
-/**
- * Build a Map from word key to BoardWord for fast lookup.
- */
-function wordKeyMap(words: BoardWord[]): Map<string, BoardWord> {
-  const map = new Map<string, BoardWord>();
-  for (const w of words) {
-    map.set(wordKey(w), w);
-  }
-  return map;
 }
 
 /**
@@ -90,6 +76,8 @@ function containsOpponentFrozenTile(
  * Frozen tile filtering (FR-006a):
  * - Player A's words exclude tiles frozen by Player B
  * - Player B's words exclude tiles frozen by Player A
+ *
+ * Direction filtering: only "right" and "down" words are scored (no diagonals).
  */
 export function detectNewWords(params: {
   boardBefore: BoardGrid;
@@ -101,6 +89,7 @@ export function detectNewWords(params: {
   playerBId: string;
 }): AttributedWord[] {
   const {
+    boardBefore,
     boardAfter,
     dictionary,
     acceptedMoves,
@@ -109,13 +98,8 @@ export function detectNewWords(params: {
     playerBId,
   } = params;
 
-  // Determine which moves belong to which player
-  const playerAMoves = acceptedMoves.filter(
-    (m) => m.playerId === playerAId,
-  );
-  const playerBMoves = acceptedMoves.filter(
-    (m) => m.playerId === playerBId,
-  );
+  const playerAMoves = acceptedMoves.filter((m) => m.playerId === playerAId);
+  const playerBMoves = acceptedMoves.filter((m) => m.playerId === playerBId);
 
   const result: AttributedWord[] = [];
   const reportedKeys = new Set<string>();
@@ -124,41 +108,51 @@ export function detectNewWords(params: {
     return result;
   }
 
-  // Wottle v2 Validation Rule: For each accepted move, we extract orthogonal 
-  // words from the `boardAfter` around the swapped tiles.
-  
-  // Helper to process a player's moves
-  const processMoves = (moves: AcceptedMove[], pId: string, playerSlot: "player_a" | "player_b") => {
-    for (const move of moves) {
-      const extResult = extractValidCrossWords(
-        boardAfter,
-        { from: { x: move.fromX, y: move.fromY }, to: { x: move.toX, y: move.toY } },
-        dictionary,
-        DEFAULT_GAME_CONFIG
-      );
+  // 1. Scan boardBefore (baseline)
+  const baseline = scanBoard(boardBefore, dictionary);
+  const baselineKeys = wordKeySet(baseline.words);
 
-      // In the game engine pipeline, if a move is invalid (i.e., invalid word formed),
-      // we would ideally rollback. But for `detectNewWords` as currently spec'd,
-      // we only return valid AttributedWords. If the swap caused an invalid word,
-      // it should theoretically be stopped *before* scoring. But here we only extract the valid ones.
-      if (extResult.isValid) {
-        for (const word of extResult.words) {
-          const key = wordKey(word);
-          if (reportedKeys.has(key)) continue;
+  // 2. Scan after Player A's moves (intermediate)
+  let boardA = boardBefore;
+  for (const move of playerAMoves) {
+    boardA = applySwap(boardA, {
+      from: { x: move.fromX, y: move.fromY },
+      to: { x: move.toX, y: move.toY },
+    });
+  }
+  const intermediate = scanBoard(boardA, dictionary);
+  const intermediateKeys = wordKeySet(intermediate.words);
 
-          if (containsOpponentFrozenTile(word, frozenTiles, playerSlot)) {
-            continue;
-          }
+  // 3. Scan final board (already boardAfter)
+  const final = scanBoard(boardAfter, dictionary);
 
-          reportedKeys.add(key);
-          result.push({ ...word, playerId: pId });
-        }
-      }
+  // Helper to filter and attribute words
+  const filterAndAttribute = (
+    words: BoardWord[],
+    excludeKeys: Set<string>,
+    pId: string,
+    playerSlot: "player_a" | "player_b",
+  ) => {
+    for (const word of words) {
+      // Only horizontal/vertical (no diagonals)
+      if (word.direction !== "right" && word.direction !== "down") continue;
+
+      const key = wordKey(word);
+      if (excludeKeys.has(key)) continue;
+      if (reportedKeys.has(key)) continue;
+
+      if (containsOpponentFrozenTile(word, frozenTiles, playerSlot)) continue;
+
+      reportedKeys.add(key);
+      result.push({ ...word, playerId: pId });
     }
   };
 
-  processMoves(playerAMoves, playerAId, "player_a");
-  processMoves(playerBMoves, playerBId, "player_b");
+  // Player A gets words that appeared in intermediate but weren't in baseline
+  filterAndAttribute(intermediate.words, baselineKeys, playerAId, "player_a");
+
+  // Player B gets words that appeared in final but weren't in intermediate
+  filterAndAttribute(final.words, intermediateKeys, playerBId, "player_b");
 
   return result;
 }
