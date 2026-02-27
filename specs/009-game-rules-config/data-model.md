@@ -10,7 +10,9 @@ A code-level configuration object/interface defining the rules for a match.
 
 - `maxRounds` (number): The maximum number of rounds before the match ends.
 - `timePerRoundMs` (number): The time limit for a single round in milliseconds.
+- `minimumWordLength` (number): The minimum allowed length for a submitted word.
 - `maxWordLength` (number, optional): The maximum allowed length for a submitted word. If omitted, it is constrained by the board dimensions.
+- `boardSize` (number): The dimensions of the square game board (e.g., 15 for a 15x15 board).
 - `allowedDirections` (Array<'horizontal' | 'vertical'>): The explicitly permitted directions for reading a primary word. (For MVP: `['horizontal', 'vertical']`).
 
 **State Transitions**:

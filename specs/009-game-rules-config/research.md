@@ -11,7 +11,9 @@ Based on the constitution principle "I. Server-Authoritative Game Logic", the co
 - **Structure**: A `GameConfig` object/interface containing:
   - `maxRounds`: number
   - `timePerRoundMs`: number
+  - `minimumWordLength`: number
   - `maxWordLength`: number (optional, constrained by board size)
+  - `boardSize`: number
   - `allowedDirections`: `Array<'horizontal' | 'vertical'>` (Note: MVP explicitly removed diagonal directions, and only permits left-to-right/top-to-bottom reading technically via standard Scrabble rules, but we can structure this to allow future flags).
 
 ## Decision: Scrabble Adjacency & Validation
