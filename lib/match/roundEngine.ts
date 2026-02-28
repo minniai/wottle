@@ -163,6 +163,22 @@ export async function advanceRound(matchId: string) {
 
     if (subError) throw new Error("Failed to fetch submissions");
 
+    // 4.5. Both-flagged: 0 submissions + both clocks expired → end match immediately.
+    // This is the "both players ran out of time" scenario (chess: mutual flag).
+    // We complete the match on current scores rather than synthesizing passes and
+    // advancing, which would create a new round with both timers still at 0.
+    if (pendingSubmissions.length === 0 && (round as RoundRow).started_at) {
+        const roundStartedAt = new Date((round as RoundRow).started_at as string);
+        const typedMatch = match as MatchRow;
+        if (
+            isClockExpired(roundStartedAt, typedMatch.player_a_timer_ms ?? 300_000) &&
+            isClockExpired(roundStartedAt, typedMatch.player_b_timer_ms ?? 300_000)
+        ) {
+            await completeMatchInternal(matchId, "timeout");
+            return { status: "completed" as const, reason: "both_players_flagged" };
+        }
+    }
+
     // 5. Maybe synthesise a timeout submission if absent player's clock expired
     const submissions = await maybeSynthesizeTimeoutPass(
         supabase,

@@ -18,7 +18,7 @@ vi.mock("@/app/actions/match/completeMatch", () => ({
 import { submitMove } from "@/app/actions/match/submitMove";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import { completeMatchInternal } from "@/app/actions/match/completeMatch";
+import { advanceRound } from "@/lib/match/roundEngine";
 
 const PLAYER_A = "player-a";
 const PLAYER_B = "player-b";
@@ -144,8 +144,23 @@ describe("clockEnforcement integration (T026)", () => {
     expect(result).toMatchObject({ status: "accepted" });
   });
 
-  it("T026: triggers time_expiry completion when both clocks are expired", async () => {
-    vi.mocked(completeMatchInternal).mockClear();
+  it("T026: triggers round advancement when current player's clock is expired", async () => {
+    vi.mocked(advanceRound).mockClear();
+
+    // Player A had 60s, round started 5 minutes ago → expired
+    vi.mocked(getServiceRoleClient).mockReturnValue(
+      makeMockWithExpiredClocks(60_000, 300_000, 5 * 60 * 1000) as never,
+    );
+
+    await submitMove(MATCH_ID, 0, 0, 0, 1);
+
+    // advanceRound is triggered so the server can synthesize a timeout pass
+    // or complete the match if both players are flagged.
+    expect(advanceRound).toHaveBeenCalledWith(MATCH_ID);
+  });
+
+  it("T026b: triggers round advancement when both clocks are expired", async () => {
+    vi.mocked(advanceRound).mockClear();
 
     // Both players had 60s, round started 5 minutes ago → both expired
     vi.mocked(getServiceRoleClient).mockReturnValue(
@@ -154,6 +169,6 @@ describe("clockEnforcement integration (T026)", () => {
 
     await submitMove(MATCH_ID, 0, 0, 0, 1);
 
-    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "timeout");
+    expect(advanceRound).toHaveBeenCalledWith(MATCH_ID);
   });
 });

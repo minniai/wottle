@@ -551,6 +551,24 @@ describe("roundEngine.advanceRound", () => {
         );
     });
 
+    // T027: both-flagged — 0 submissions and both clocks expired → complete match
+    it("T027: completes match with timeout when both clocks are expired and no submissions exist", async () => {
+        const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
+        vi.mocked(completeMatchInternal).mockClear();
+
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        setupSupabase(
+            [], // no submissions
+            { player_a_timer_ms: 60_000, player_b_timer_ms: 60_000 }, // both only had 60s
+            { started_at: tenMinutesAgo }, // round started 10 min ago → both expired
+        );
+
+        const result = await advanceRound("match-1");
+
+        expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "timeout");
+        expect(result).toMatchObject({ status: "completed" });
+    });
+
     // T009a: no synthesis when both players have submitted
     it("T009a: does not insert a synthetic timeout submission when both players have submitted", async () => {
         setupSupabase([
