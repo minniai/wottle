@@ -265,6 +265,143 @@ describe("deltaDetector", () => {
     expect(result.find((w) => w.text === "def")).toBeUndefined();
   });
 
+  describe("inline extension validation", () => {
+    test("T030: rejects new word that extends forward into frozen tiles forming an invalid sequence", () => {
+      // Simulates TÚR/VOL: "abc" at cols 0-2 extends right into frozen "def" at cols 3-5
+      // → extended sequence "abcdef" is not in dict → "abc" must be rejected
+      const customDict = new Set(["abc", "def"]);
+
+      const boardBefore = emptyBoard();
+      boardBefore[0][0] = "c"; boardBefore[0][1] = "b"; boardBefore[0][2] = "a";
+      boardBefore[0][3] = "d"; boardBefore[0][4] = "e"; boardBefore[0][5] = "f";
+
+      const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+      boardAfter[0][0] = "a"; boardAfter[0][2] = "c"; // Player A swaps (0,0) ↔ (2,0)
+
+      const frozenTiles: FrozenTileMap = {
+        "3,0": { owner: "player_b" },
+        "4,0": { owner: "player_b" },
+        "5,0": { owner: "player_b" },
+      };
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 2, toY: 0 },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // "abc" + frozen "def" = "abcdef" → NOT in dict → inline extension violation → rejected
+      expect(result.find((w) => w.text === "abc")).toBeUndefined();
+    });
+
+    test("T031: rejects new word that extends backward into frozen tiles forming an invalid sequence", () => {
+      // Simulates DÚS/SÓLA: frozen "abc" at cols 0-2, new "def" at cols 3-5
+      // → extended sequence "abcdef" (backward extension) is not in dict → "def" must be rejected
+      const customDict = new Set(["abc", "def"]);
+
+      const boardBefore = emptyBoard();
+      boardBefore[0][0] = "a"; boardBefore[0][1] = "b"; boardBefore[0][2] = "c";
+      boardBefore[0][3] = "f"; boardBefore[0][4] = "e"; boardBefore[0][5] = "d";
+
+      const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+      boardAfter[0][3] = "d"; boardAfter[0][5] = "f"; // Player A swaps (3,0) ↔ (5,0)
+
+      const frozenTiles: FrozenTileMap = {
+        "0,0": { owner: "player_b" },
+        "1,0": { owner: "player_b" },
+        "2,0": { owner: "player_b" },
+      };
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 3, fromY: 0, toX: 5, toY: 0 },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // frozen "abc" + "def" = "abcdef" → NOT in dict → inline extension violation → rejected
+      expect(result.find((w) => w.text === "def")).toBeUndefined();
+    });
+
+    test("T032: accepts new word when inline extension through frozen tiles forms a valid sequence", () => {
+      // Same forward-extension setup as T030 but "abcdef" IS in the dictionary
+      const customDict = new Set(["abc", "def", "abcdef"]);
+
+      const boardBefore = emptyBoard();
+      boardBefore[0][0] = "c"; boardBefore[0][1] = "b"; boardBefore[0][2] = "a";
+      boardBefore[0][3] = "d"; boardBefore[0][4] = "e"; boardBefore[0][5] = "f";
+
+      const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+      boardAfter[0][0] = "a"; boardAfter[0][2] = "c"; // Player A swaps (0,0) ↔ (2,0)
+
+      const frozenTiles: FrozenTileMap = {
+        "3,0": { owner: "player_b" },
+        "4,0": { owner: "player_b" },
+        "5,0": { owner: "player_b" },
+      };
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 2, toY: 0 },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // "abc" + frozen "def" = "abcdef" IS in dict → no inline violation → "abc" scores
+      expect(result.find((w) => w.text === "abc")).toBeDefined();
+    });
+
+    test("T033: rejects new vertical word that extends downward into frozen tiles forming an invalid sequence", () => {
+      // Vertical analog: "abc" (down) at col 0 rows 0-2, frozen "def" (down) at col 0 rows 3-5
+      // → extended sequence "abcdef" is not in dict → "abc" must be rejected
+      const customDict = new Set(["abc", "def"]);
+
+      const boardBefore = emptyBoard();
+      boardBefore[0][0] = "c"; boardBefore[1][0] = "b"; boardBefore[2][0] = "a";
+      boardBefore[3][0] = "d"; boardBefore[4][0] = "e"; boardBefore[5][0] = "f";
+
+      const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+      boardAfter[0][0] = "a"; boardAfter[2][0] = "c"; // Player A swaps (0,0) ↔ (0,2)
+
+      const frozenTiles: FrozenTileMap = {
+        "0,3": { owner: "player_b" },
+        "0,4": { owner: "player_b" },
+        "0,5": { owner: "player_b" },
+      };
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 0, toY: 2 },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // "abc" (down) extends into frozen "def" (down) → "abcdef" not in dict → rejected
+      expect(result.find((w) => w.text === "abc" && w.direction === "down")).toBeUndefined();
+    });
+  });
+
   test("should handle both players forming words in same round", () => {
     const boardBefore = emptyBoard();
     // After Player A's swap: "hestur" at row 0

@@ -111,6 +111,66 @@ function hasCrossWordViolation(
 }
 
 /**
+ * Check whether a word's tile run, when extended along its own direction through
+ * any adjacent established tiles (frozen from prior rounds or credited same-round
+ * opponent tiles), forms an invalid longer sequence.
+ *
+ * Example: a new horizontal word "tur" immediately left of frozen "vol" tiles would
+ * extend to "turvol". If "turvol" is not in the dictionary, the word is rejected.
+ *
+ * Only established tiles trigger the check — unestablished free tiles on the board
+ * are ignored (they cannot be attributed and may change next round).
+ */
+function hasInlineExtensionViolation(
+  board: BoardGrid,
+  word: BoardWord,
+  frozenTileSet: Set<string>,
+  dictionary: Set<string>,
+  extraTileSet: Set<string> = new Set(),
+): boolean {
+  const { boardSize } = DEFAULT_GAME_CONFIG;
+  // Movement delta ALONG the word's own direction (opposite of hasCrossWordViolation)
+  const isHorizontal = word.direction === "right";
+  const dx = isHorizontal ? 1 : 0;
+  const dy = isHorizontal ? 0 : 1;
+
+  const isEstablished = (x: number, y: number) =>
+    frozenTileSet.has(`${x},${y}`) || extraTileSet.has(`${x},${y}`);
+
+  // Extend backward from the first tile
+  const firstTile = word.tiles[0];
+  const beforeChars: string[] = [];
+  let bx = firstTile.x - dx;
+  let by = firstTile.y - dy;
+  while (bx >= 0 && bx < boardSize && by >= 0 && by < boardSize && isEstablished(bx, by)) {
+    beforeChars.unshift(board[by][bx]);
+    bx -= dx;
+    by -= dy;
+  }
+
+  // Extend forward from the last tile
+  const lastTile = word.tiles[word.tiles.length - 1];
+  const afterChars: string[] = [];
+  let fx = lastTile.x + dx;
+  let fy = lastTile.y + dy;
+  while (fx >= 0 && fx < boardSize && fy >= 0 && fy < boardSize && isEstablished(fx, fy)) {
+    afterChars.push(board[fy][fx]);
+    fx += dx;
+    fy += dy;
+  }
+
+  if (beforeChars.length === 0 && afterChars.length === 0) return false;
+
+  const extended = [
+    ...beforeChars,
+    ...word.tiles.map((t) => board[t.y][t.x]),
+    ...afterChars,
+  ].join("").normalize("NFC").toLowerCase();
+
+  return !dictionary.has(extended);
+}
+
+/**
  * True when `shorter` is fully contained within `longer` in the same direction.
  * Used to suppress sub-words so only the longest word in a tile run scores.
  */
@@ -267,6 +327,7 @@ export function detectNewWords(params: {
       if (reportedKeys.has(wordKey(word))) continue;
       if (containsOpponentFrozenTile(word, frozenTiles, playerSlot)) continue;
       if (hasCrossWordViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;
+      if (hasInlineExtensionViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;
       candidates.push({ ...word, playerId: pId });
     }
 
