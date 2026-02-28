@@ -68,6 +68,20 @@ describe("word-finder orthogonal adjacency validation", () => {
     expect(result.isValid).toBe(false);
   });
 
+  test("T038: accepts a swap where the word is only valid when read right-to-left", () => {
+    // Board: t,a,c at x=0,1,2 → horizontal line reads "tac" left-to-right (not in dict)
+    // but "cat" right-to-left IS in the dict → swap should be accepted (OR logic)
+    const boardOR = Array.from({ length: 10 }, () => Array(10).fill(" ")) as BoardGrid;
+    boardOR[0][0] = "t";
+    boardOR[0][1] = "a";
+    boardOR[0][2] = "c";
+
+    const move = { from: { x: 0, y: 0 }, to: { x: 2, y: 0 } };
+    const result = extractValidCrossWords(boardOR, move, dictionary, DEFAULT_GAME_CONFIG);
+    // "tac" is not in dict but "cat" (its reverse) is → isValid should be true
+    expect(result.isValid).toBe(true);
+  });
+
   test("does not score diagonal placements even if they form words", () => {
     const board = createBoard();
     // 'cat' is spelled diagonally down-right

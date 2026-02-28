@@ -450,6 +450,100 @@ describe("deltaDetector", () => {
     });
   });
 
+  describe("bidirectional scoring (left and up directions)", () => {
+    test("T035: detects and scores a new word read right-to-left (left direction)", () => {
+      // Player A swaps (0,0)↔(2,0): c,a,t → t,a,c
+      // boardBefore has "cat" in right direction; after swap the same tiles read "cat" in left direction.
+      // Only "cat" is in the custom dict (not "tac"), so only the new "left" direction word scores.
+      const customDict = new Set(["cat"]);
+
+      const boardBefore = emptyBoard();
+      boardBefore[0][0] = "c";
+      boardBefore[0][1] = "a";
+      boardBefore[0][2] = "t";
+      const boardAfter = emptyBoard();
+      boardAfter[0][0] = "t";
+      boardAfter[0][1] = "a";
+      boardAfter[0][2] = "c";
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [{ playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 2, toY: 0 }],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      const cat = result.find((w) => w.text === "cat" && w.direction === "left");
+      expect(cat).toBeDefined();
+      expect(cat!.playerId).toBe(PLAYER_A);
+      // "tac" (left-to-right reading) should NOT score since "tac" is not in dict
+      expect(result.find((w) => w.text === "tac")).toBeUndefined();
+    });
+
+    test("T036: detects and scores a new word read bottom-to-top (up direction)", () => {
+      // Player A swaps (0,0)↔(0,2): col reads c,a,t top-to-bottom → t,a,c top-to-bottom
+      // boardBefore has "cat" in down direction; after swap the same tiles read "cat" in up direction.
+      // Only "cat" is in the custom dict (not "tac"), so only the new "up" direction word scores.
+      const customDict = new Set(["cat"]);
+
+      const boardBefore = emptyBoard();
+      boardBefore[0][0] = "c";
+      boardBefore[1][0] = "a";
+      boardBefore[2][0] = "t";
+      const boardAfter = emptyBoard();
+      boardAfter[0][0] = "t";
+      boardAfter[1][0] = "a";
+      boardAfter[2][0] = "c";
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [{ playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 0, toY: 2 }],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      const cat = result.find((w) => w.text === "cat" && w.direction === "up");
+      expect(cat).toBeDefined();
+      expect(cat!.playerId).toBe(PLAYER_A);
+      // "tac" (top-to-bottom reading) should NOT score since "tac" is not in dict
+      expect(result.find((w) => w.text === "tac")).toBeUndefined();
+    });
+
+    test("T037: suppresses shorter left-direction subword when longer left-direction word supersedes it", () => {
+      // Board: t,a,c,d at x=0,1,2,3 → "left" scan finds "cat" at start (2,0) and "dcat" at start (3,0)
+      // "dcat" supersedes "cat" → only "dcat" scores
+      const customDict = new Set(["cat", "dcat"]);
+
+      const boardBefore = emptyBoard();
+      const boardAfter = emptyBoard();
+      boardAfter[0][0] = "t";
+      boardAfter[0][1] = "a";
+      boardAfter[0][2] = "c";
+      boardAfter[0][3] = "d";
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [{ playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 3, toY: 0 }],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      const dcat = result.find((w) => w.text === "dcat" && w.direction === "left");
+      expect(dcat).toBeDefined();
+      // "cat" is a strict subword of "dcat" in the "left" direction → suppressed
+      expect(result.find((w) => w.text === "cat" && w.direction === "left")).toBeUndefined();
+    });
+  });
+
   test("should handle both players forming words in same round", () => {
     const boardBefore = emptyBoard();
     // After Player A's swap: "hestur" at row 0
