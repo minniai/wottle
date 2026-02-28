@@ -137,6 +137,40 @@ describe("stateLoader.loadMatchState", () => {
         expect(state!.timers.playerB.remainingMs).toBe(180_000);
     });
 
+    it("T028: returns state=completed when match is completed but current round is still in collecting state (timeout/flagging path)", async () => {
+        // When both players are flagged, completeMatchInternal is called directly without
+        // advancing the current round — the round stays in "collecting" state.
+        // mapState must prioritise the match-level completion over the round state.
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "completed",      // match is done
+                current_round: 9,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 0,
+                player_b_timer_ms: 0,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-9",
+                state: "collecting",    // round was never advanced — still collecting
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: new Date(Date.now() - 60_000).toISOString(),
+            },
+        );
+
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state).not.toBeNull();
+        // The client must see "completed" so it can navigate to the summary page.
+        expect(state!.state).toBe("completed");
+    });
+
     it("sets submitting player timer to paused with remaining at submit, other stays running", async () => {
         const roundStartedAt = new Date(Date.now() - 30_000);
         const playerASubmittedAt = new Date(roundStartedAt.getTime() + 20_000); // 20s after round start

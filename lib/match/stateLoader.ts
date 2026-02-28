@@ -16,22 +16,24 @@ import { computeElapsedMs, computeRemainingMs } from "./clockEnforcer";
 type AnyClient = SupabaseClient<any, any, any>;
 
 function mapState(roundState: string | null | undefined, matchState: string): MatchPhase {
+  // Match-level terminal states take precedence — a timeout or abandon can end the
+  // match while the current round is still in "collecting" state (never advanced).
+  if (matchState === "completed") {
+    return "completed";
+  }
+  if (matchState === "abandoned") {
+    return "abandoned";
+  }
+  if (matchState === "pending") {
+    return "pending";
+  }
+
   if (
     roundState === "collecting" ||
     roundState === "resolving" ||
     roundState === "completed"
   ) {
     return roundState;
-  }
-
-  if (matchState === "pending") {
-    return "pending";
-  }
-  if (matchState === "completed") {
-    return "completed";
-  }
-  if (matchState === "abandoned") {
-    return "abandoned";
   }
 
   // in_progress or any other transient state defaults to collecting
