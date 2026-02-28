@@ -61,7 +61,7 @@ function hasCrossWordViolation(
   extraTileSet: Set<string> = new Set(),
 ): boolean {
   const { boardSize, minimumWordLength } = DEFAULT_GAME_CONFIG;
-  const isHorizontal = word.direction === "right";
+  const isHorizontal = word.direction === "right" || word.direction === "left";
   // Perpendicular direction: vertical for horizontal words, horizontal for vertical words
   const dx = isHorizontal ? 0 : 1;
   const dy = isHorizontal ? 1 : 0;
@@ -104,7 +104,9 @@ function hasCrossWordViolation(
         .join("")
         .normalize("NFC")
         .toLowerCase();
-      if (!dictionary.has(crossWord)) return true;
+      const crossWordReversed = [...crossWord].reverse().join("");
+      // OR: valid if readable in either direction
+      if (!dictionary.has(crossWord) && !dictionary.has(crossWordReversed)) return true;
       if (crossLength < minimumWordLength) return true;
     }
   }
@@ -132,7 +134,7 @@ function hasInlineExtensionViolation(
 ): boolean {
   const { boardSize } = DEFAULT_GAME_CONFIG;
   // Movement delta ALONG the word's own direction (opposite of hasCrossWordViolation)
-  const isHorizontal = word.direction === "right";
+  const isHorizontal = word.direction === "right" || word.direction === "left";
   const dx = isHorizontal ? 1 : 0;
   const dy = isHorizontal ? 0 : 1;
 
@@ -169,7 +171,9 @@ function hasInlineExtensionViolation(
     ...afterChars,
   ].join("").normalize("NFC").toLowerCase();
 
-  return !dictionary.has(extended);
+  const extendedReversed = [...extended].reverse().join("");
+  // OR: valid if the extended sequence is a dictionary word in either reading direction
+  return !dictionary.has(extended) && !dictionary.has(extendedReversed);
 }
 
 /**
@@ -179,22 +183,47 @@ function hasInlineExtensionViolation(
 function isStrictSubword(shorter: BoardWord, longer: BoardWord): boolean {
   if (shorter.direction !== longer.direction) return false;
   if (shorter.tiles.length >= longer.tiles.length) return false;
-  if (shorter.direction === "right") {
-    const shorterEnd = shorter.start.x + shorter.tiles.length - 1;
-    const longerEnd = longer.start.x + longer.tiles.length - 1;
-    return (
-      shorter.start.y === longer.start.y &&
-      shorter.start.x >= longer.start.x &&
-      shorterEnd <= longerEnd
-    );
-  } else {
-    const shorterEnd = shorter.start.y + shorter.tiles.length - 1;
-    const longerEnd = longer.start.y + longer.tiles.length - 1;
-    return (
-      shorter.start.x === longer.start.x &&
-      shorter.start.y >= longer.start.y &&
-      shorterEnd <= longerEnd
-    );
+  switch (shorter.direction) {
+    case "right": {
+      const shorterEnd = shorter.start.x + shorter.tiles.length - 1;
+      const longerEnd = longer.start.x + longer.tiles.length - 1;
+      return (
+        shorter.start.y === longer.start.y &&
+        shorter.start.x >= longer.start.x &&
+        shorterEnd <= longerEnd
+      );
+    }
+    case "left": {
+      // start.x is the rightmost tile; tiles extend leftward.
+      const shorterEnd = shorter.start.x - shorter.tiles.length + 1;
+      const longerEnd = longer.start.x - longer.tiles.length + 1;
+      return (
+        shorter.start.y === longer.start.y &&
+        shorter.start.x <= longer.start.x &&
+        shorterEnd >= longerEnd
+      );
+    }
+    case "down": {
+      const shorterEnd = shorter.start.y + shorter.tiles.length - 1;
+      const longerEnd = longer.start.y + longer.tiles.length - 1;
+      return (
+        shorter.start.x === longer.start.x &&
+        shorter.start.y >= longer.start.y &&
+        shorterEnd <= longerEnd
+      );
+    }
+    case "up": {
+      // start.y is the bottommost tile; tiles extend upward.
+      const shorterEnd = shorter.start.y - shorter.tiles.length + 1;
+      const longerEnd = longer.start.y - longer.tiles.length + 1;
+      return (
+        shorter.start.x === longer.start.x &&
+        shorter.start.y <= longer.start.y &&
+        shorterEnd >= longerEnd
+      );
+    }
+    default:
+      return false;
   }
 }
 
@@ -322,8 +351,13 @@ export function detectNewWords(params: {
     // Phase 1: collect candidates that pass per-word checks.
     const candidates: AttributedWord[] = [];
     for (const word of words) {
-      // Only horizontal/vertical (no diagonals)
-      if (word.direction !== "right" && word.direction !== "down") continue;
+      // Only orthogonal directions (right, left, down, up) — no diagonals
+      if (
+        word.direction !== "right" &&
+        word.direction !== "left" &&
+        word.direction !== "down" &&
+        word.direction !== "up"
+      ) continue;
       if (excludeKeys.has(wordKey(word))) continue;
       if (reportedKeys.has(wordKey(word))) continue;
       if (hasCrossWordViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;

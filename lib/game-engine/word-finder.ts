@@ -94,7 +94,8 @@ export function extractValidCrossWords(
     let hValid = false;
     if (hWord) {
       if (hWord.length > 1) {
-        if (!dictionary.has(hWord.text)) {
+        const hReversed = [...hWord.text].reverse().join("");
+        if (!dictionary.has(hWord.text) && !dictionary.has(hReversed)) {
           return { isValid: false, words: [], error: `Invalid horizontal word: ${hWord.text}` };
         }
         if (hWord.length >= config.minimumWordLength) {
@@ -111,7 +112,8 @@ export function extractValidCrossWords(
     let vValid = false;
     if (vWord) {
       if (vWord.length > 1) {
-        if (!dictionary.has(vWord.text)) {
+        const vReversed = [...vWord.text].reverse().join("");
+        if (!dictionary.has(vWord.text) && !dictionary.has(vReversed)) {
           return { isValid: false, words: [], error: `Invalid vertical word: ${vWord.text}` };
         }
         if (vWord.length >= config.minimumWordLength) {
@@ -165,7 +167,8 @@ export function hasCrossWordViolation(
     // Perpendicular crossing must be at least 1 (the tile itself).
     // If it's 2 or more, it MUST be in the dictionary and >= minWordLength.
     if (crossLine.length > 1) {
-      if (!dictionary.has(crossLine.text)) return true;
+      const crossReversed = [...crossLine.text].reverse().join("");
+      if (!dictionary.has(crossLine.text) && !dictionary.has(crossReversed)) return true;
       if (crossLine.length < config.minimumWordLength) return true;
     }
   }

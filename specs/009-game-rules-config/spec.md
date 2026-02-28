@@ -18,7 +18,7 @@ Developers and Game Designers need to be able to configure core game parameters 
 **Acceptance Scenarios**:
 
 1. **Given** the game configuration sets `maxRounds` to 3, **When** the 3rd round ends, **Then** the game properly triggers the match end state.
-2. **Given** the game configuration only enables `left-to-right` and `top-to-bottom` directions, **When** a player submits a valid word `bottom-to-top`, **Then** the engine rejects the submission.
+2. **Given** the game configuration declares `allowedDirections: ["right", "down"]` _(MVP: reserved field, not enforced in engine)_, **When** the engine runs, **Then** it still scores words in all four orthogonal directions — enforcement of `allowedDirections` is out of scope for this MVP iteration and reserved for a future configuration pass.
 
 ---
 
@@ -38,6 +38,36 @@ Players must place words purely in vertical or horizontal directions, and any ne
 
 ---
 
+### User Story 3 - Frozen Tile Word Extension Scoring (Priority: P1)
+
+Players who extend an opponent's frozen word into a longer valid word receive letter points only for
+the tiles they personally contributed, but receive the full length bonus calculated from the
+complete extended word.
+
+**Why this priority**: This rule prevents "free riding" on an opponent's frozen letters while still
+rewarding the strategic value of forming longer words. It changes the scoring of any word that
+spans opponent-owned frozen tiles.
+
+**Independent Test**: Can be fully tested via unit tests that simulate a board where one player's
+frozen tiles are partially included in another player's newly scored word, and verify that
+`lettersPoints` only includes the new player's tile values while `lengthBonus` uses the full word
+length.
+
+**Acceptance Scenarios**:
+
+1. **Given** Player A has frozen tiles spelling "TAÐI" at row 1 (columns 3–6), **When** Player B
+   swaps tiles so that "RA" appears at columns 1–2 forming the valid 6-letter word "RATAÐI",
+   **Then** Player B's `lettersPoints` equals the letter values of "RA" only, and `lengthBonus`
+   equals `(6-2)*5 = 20`.
+2. **Given** a tile is frozen as owned by "both" players, **When** either player forms a word
+   containing it, **Then** that tile's letter is included in their `lettersPoints` (tiles owned by
+   "both" are freely scoreable by either player).
+3. **Given** Player B forms a valid word entirely from their own tiles (no opponent-frozen tiles
+   in the word), **When** the score is computed, **Then** `lettersPoints` includes all tile values
+   normally.
+
+---
+
 ### Edge Cases
 
 - What happens when a player plays a single letter that is valid in both intersecting axes?
@@ -48,18 +78,21 @@ Players must place words purely in vertical or horizontal directions, and any ne
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide a central code-based configuration module to define game parameters: maximum word length, number of rounds, time per round, and allowed reading directions.
-- **FR-002**: System MUST restrict all tile placements to orthogonal directions (horizontal and vertical). Diagonal placements are strictly prohibited.
+- **FR-001**: System MUST provide a central code-based configuration module to define game parameters: maximum word length, number of rounds, time per round, and allowed reading directions. For MVP, `allowedDirections` is a declared config field but is not enforced by the engine — all four orthogonal directions (right, left, down, up) are always scored. Engine enforcement of `allowedDirections` is deferred to a future iteration.
+- **FR-002**: System MUST restrict all tile placements to orthogonal directions (right, left, down, up). Diagonal placements are strictly prohibited. Words are scored in all four orthogonal directions independently — a "left" direction word (read right-to-left) and a "right" direction word (read left-to-right) over the same tiles are distinct scored words.
 - **FR-003**: System MUST evaluate all continuous tile sequences formed by a new placement (the primary word AND any crossing words formed with adjacent tiles).
-- **FR-004**: System MUST reject a move if ANY of the resulting adjacent sequences on the grid do not form a valid dictionary word.
-- **FR-005**: System MUST treat letters adjacent in standard horizontal and vertical directions as continuous sequences. Adjacency validation strictly checks only orthogonal (horizontal/vertical) row and column intersections like traditional Scrabble. Words can touch diagonally without forming valid words.
-- **FR-006**: System MUST maintain the current scoring mechanism exactly as it is currently implemented, with the exception that diagonal words are no longer scored, and for a letter to score, it must form a valid word in all intersecting orthogonal directions (horizontal and vertical).
+- **FR-004**: System MUST reject a move if ANY of the resulting adjacent sequences on the grid do not form a valid dictionary word in at least one reading direction (OR semantics: a sequence is valid if it is a dictionary word read either forwards or backwards along its axis).
+- **FR-005**: System MUST treat letters adjacent in standard horizontal and vertical directions as continuous sequences. Adjacency validation strictly checks only orthogonal (right, left, down, up) row and column intersections like traditional Scrabble. Words can touch diagonally without forming valid words.
+- **FR-006**: System MUST maintain the existing per-letter and length-bonus scoring formula, with the following three changes from the prior implementation: (1) diagonal words are no longer scored; (2) words in all four orthogonal directions (right, left, down, up) are scored independently — the same tile run may yield both a "right" and a "left" scored word if both readings are valid dictionary words; (3) letter points (`lettersPoints`) for a word that spans opponent-frozen tiles are restricted to the scoring player's own tiles (see FR-007), while the length bonus uses the full word length.
+- **FR-007**: System MUST allow players to score words that contain tiles frozen by the opponent. Letter points (`lettersPoints`) are awarded only for tiles the scoring player contributed; tiles owned by the opponent are excluded from letter point calculation. The length bonus (`lengthBonus`) is calculated using the full word length regardless of tile ownership. Tiles owned by "both" players are treated as the scoring player's own tiles for letter point purposes.
 
 ### Key Entities
 
-- **GameConfig**: Defines `maxWordLength`, `rounds`, `timePerRoundMs`, and `allowedDirections`.
-- **GameEngine**: The core module validating moves against the `GameConfig` and Scrabble-style adjacency rules.
-- **MoveEvaluation**: The resultant object indicating board validity, the array of distinct words formed, and the total computed score.
+- **GameConfig** (`lib/constants/game-config.ts`): Defines `boardSize`, `maxRounds`, `timePerRoundMs`, `minimumWordLength`, and `allowedDirections`. Consumed as a default parameter throughout `lib/game-engine/`.
+- **GameEngine**: The collection of server-side modules (`deltaDetector.ts`, `word-finder.ts`, `wordEngine.ts`, `boardScanner.ts`) that validate moves and score words against `GameConfig` and Scrabble-style adjacency rules.
+- **ExtractCrossWordsResult** (`lib/game-engine/word-finder.ts`): Result of move validation — `{ isValid: boolean, words: AttributedWord[], error?: string }`.
+- **AttributedWord** (`lib/game-engine/deltaDetector.ts`): A scored word extended with `playerId` (owning player) and `opponentFrozenKeys: ReadonlySet<string>` (positions of opponent-frozen tiles within the word, for partial letter scoring).
+- **WordScoreBreakdown** (`lib/types/match.ts`): Per-word score breakdown — `{ word, length, lettersPoints, lengthBonus, totalPoints, isDuplicate, tiles, playerId }`.
 
 ## Success Criteria _(mandatory)_
 

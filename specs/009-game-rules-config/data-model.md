@@ -19,16 +19,48 @@ A code-level configuration object/interface defining the rules for a match.
 
 - Static per match. In the future, this could be passed into the `Match` creation payload. For MVP, this is a globally imported constant or a static default parameter in the game engine.
 
-### `MoveEvaluation`
+### `ExtractCrossWordsResult` (move validation result)
 
-The result of validating a proposed tile placement against the `GameConfig` and Scrabble rules.
+The result of validating all orthogonal words formed by a swap, as returned by
+`extractValidCrossWords` in `lib/game-engine/word-finder.ts`.
 
 **Fields**:
 
-- `isValid` (boolean): True if the move is legal (orthogonal, valid words, adjacent).
-- `words` (Array<{ word: string, startIndex: number, direction: 'horizontal' | 'vertical' }>): The complete list of distinct words formed by the move, including the primary word and all orthogonal cross-words.
-- `score` (number): The computed score for the move, maintaining the existing scoring logic but applying it specifically to the `words` array.
-- `error` (string, optional): The reason for rejection if `isValid` is false (e.g., "Invalid word 'TZ'").
+- `isValid` (boolean): True if the move is legal (valid orthogonal words, no invalid adjacencies).
+- `words` (Array<`AttributedWord`>): The complete list of distinct valid words formed by the swap,
+  including all horizontal and vertical sequences. Each word carries its `start` coordinate,
+  `direction`, `length`, `tiles`, and `playerId`.
+- `error` (string, optional): The reason for rejection if `isValid` is false (e.g., `"Invalid
+  horizontal word: tz"`).
+
+### `AttributedWord` (scored word with ownership info)
+
+Defined in `lib/game-engine/deltaDetector.ts`. Extends `BoardWord` with player attribution and
+opponent-frozen tile tracking (FR-007).
+
+**Fields (additions to `BoardWord`)**:
+
+- `playerId` (string): The ID of the player who scored this word.
+- `opponentFrozenKeys` (ReadonlySet\<string\>): Set of `"x,y"` keys for tiles in this word frozen
+  by the opponent. Used by `scoreAttributedWords` to exclude those tiles from `lettersPoints`.
+  Tiles owned by "both" are NOT included — they are freely scoreable.
+
+### `WordScoreBreakdown` (round scoring result)
+
+Defined in `lib/types/match.ts`. The per-word breakdown produced by `scoreAttributedWords` in
+`lib/game-engine/wordEngine.ts`.
+
+**Fields**:
+
+- `word` (string): The word text.
+- `length` (number): Full word length (used for length bonus regardless of tile ownership).
+- `lettersPoints` (number): Sum of letter values for tiles contributed by this player only
+  (opponent-frozen tiles excluded per FR-007).
+- `lengthBonus` (number): `(length - 2) * 5` — always uses full word length.
+- `totalPoints` (number): `lettersPoints + lengthBonus` (0 if `isDuplicate`).
+- `isDuplicate` (boolean): True if this player already scored this word in a prior round.
+- `tiles` (Coordinate[]): All tile positions in the word.
+- `playerId` (string): Owning player ID.
 
 ## Validation Rules (Engine Logic)
 
