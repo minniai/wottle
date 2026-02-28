@@ -273,12 +273,28 @@ export function detectNewWords(params: {
     // Phase 2: suppress sub-words — only the longest word in each tile run scores.
     const accepted = removeSubwords(candidates);
 
+    // Phase 2.5: cross-validate same-round words against each other.
+    // A word is invalid if any tile it contains, together with an adjacent tile
+    // from another accepted same-round word, forms an invalid cross-sequence.
+    // This catches adjacent parallel words (e.g. two vertical words side-by-side)
+    // that produce invalid horizontal junctions between them.
+    const crossValidated = accepted.filter((word) => {
+      const otherTiles = new Set<string>(extraTileSet);
+      for (const other of accepted) {
+        if (other === word) continue;
+        for (const tile of other.tiles) {
+          otherTiles.add(`${tile.x},${tile.y}`);
+        }
+      }
+      return !hasCrossWordViolation(board, word, frozenTileSet, dictionary, otherTiles);
+    });
+
     // Phase 3: register and return.
-    for (const w of accepted) {
+    for (const w of crossValidated) {
       reportedKeys.add(wordKey(w));
       result.push(w);
     }
-    return accepted;
+    return crossValidated;
   };
 
   // Player A: new words in intermediate that weren't in baseline

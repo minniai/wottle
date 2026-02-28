@@ -226,6 +226,45 @@ describe("deltaDetector", () => {
     expect(abc).toBeUndefined();
   });
 
+  test("should reject both same-player same-round words when they form invalid adjacent cross-words with each other", () => {
+    // Two adjacent vertical words from Player B in the same round.
+    // "abc" at column 0 and "def" at column 1 create horizontal sequences
+    // "ad", "be", "cf" (none in dict) between every row → both must be rejected.
+    //
+    // Before the fix, neither word's tiles counted as "established" for the
+    // other's cross-word check, so both words scored incorrectly.
+    const customDict = new Set(["abc", "def"]);
+
+    const boardBefore = emptyBoard();
+    const boardAfter = emptyBoard();
+    // column 0: a(0,0) b(0,1) c(0,2)
+    boardAfter[0][0] = "a";
+    boardAfter[1][0] = "b";
+    boardAfter[2][0] = "c";
+    // column 1: d(1,0) e(1,1) f(1,2)
+    boardAfter[0][1] = "d";
+    boardAfter[1][1] = "e";
+    boardAfter[2][1] = "f";
+
+    const result = detectNewWords({
+      boardBefore,
+      boardAfter,
+      dictionary: customDict,
+      // Dummy moves so both scans differ; the words appear only in boardAfter
+      acceptedMoves: [
+        { playerId: PLAYER_A, fromX: 8, fromY: 8, toX: 9, toY: 8 },
+        { playerId: PLAYER_B, fromX: 8, fromY: 9, toX: 9, toY: 9 },
+      ],
+      frozenTiles: EMPTY_FROZEN,
+      playerAId: PLAYER_A,
+      playerBId: PLAYER_B,
+    });
+
+    // Adjacent cross-words "ad", "be", "cf" are invalid → neither word should score
+    expect(result.find((w) => w.text === "abc")).toBeUndefined();
+    expect(result.find((w) => w.text === "def")).toBeUndefined();
+  });
+
   test("should handle both players forming words in same round", () => {
     const boardBefore = emptyBoard();
     // After Player A's swap: "hestur" at row 0
