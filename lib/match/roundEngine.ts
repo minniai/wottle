@@ -216,6 +216,21 @@ export async function advanceRound(matchId: string) {
         }
     }
 
+    // 9.5. Mark round as resolving immediately after board computation, before word scoring.
+    // This shrinks the window where both clocks appear "paused" (stateLoader sees
+    // collecting + both submissions) to < 10ms. Also acts as a write-lock against
+    // concurrent advanceRound() calls on the same round.
+    const { error: updateRoundError } = await supabase
+        .from("rounds")
+        .update({
+            state: "resolving",
+            board_snapshot_after: boardAfter,
+            resolution_started_at: new Date().toISOString(),
+        })
+        .eq("id", round.id);
+
+    if (updateRoundError) throw new Error("Failed to update round state");
+
     // 9b. Compute word scores from the board delta
     try {
         const { computeWordScoresForRound } = await import(
@@ -236,19 +251,7 @@ export async function advanceRound(matchId: string) {
         console.error("[WordEngine] Failed to compute word scores:", e);
     }
 
-    // 10. Update round state to resolving
-    const { error: updateRoundError } = await supabase
-        .from("rounds")
-        .update({
-            state: "resolving",
-            board_snapshot_after: boardAfter,
-            resolution_started_at: new Date().toISOString(),
-        })
-        .eq("id", round.id);
-
-    if (updateRoundError) throw new Error("Failed to update round state");
-
-    // 11. Update submission statuses
+    // 10. Update submission statuses
     for (const move of acceptedMoves) {
         await supabase
             .from("move_submissions")
@@ -266,7 +269,7 @@ export async function advanceRound(matchId: string) {
             .eq("id", move.id);
     }
 
-    // 12. Mark round as completed
+    // 11. Mark round as completed
     await supabase
         .from("rounds")
         .update({
@@ -275,7 +278,7 @@ export async function advanceRound(matchId: string) {
         })
         .eq("id", round.id);
 
-    // 12b. Deduct elapsed time from player timers
+    // 11b. Deduct elapsed time from player timers
     const roundStartedAt = round.started_at ? new Date(round.started_at as string) : null;
     const allSubs = submissions as SubmissionRow[];
     const playerASubmission = allSubs.find((s) => s.player_id === (match as MatchRow).player_a_id);
@@ -288,11 +291,11 @@ export async function advanceRound(matchId: string) {
         ? deductTimerMs((match as MatchRow).player_b_timer_ms ?? 300_000, playerBSubmission, roundStartedAt)
         : ((match as MatchRow).player_b_timer_ms ?? 300_000);
 
-    // 13. Advance to next round
+    // 12. Advance to next round
     const nextRound = currentRound + 1;
     const isGameOver = nextRound > 10;
 
-    // 14. Create next round if not game over
+    // 13. Create next round if not game over
     if (!isGameOver) {
         const { error: nextRoundError } = await supabase
             .from("rounds")
@@ -309,7 +312,7 @@ export async function advanceRound(matchId: string) {
         }
     }
 
-    // 15. Update match state (with timer deductions)
+    // 14. Update match state (with timer deductions)
     const updatePayload: Record<string, unknown> = {
         current_round: nextRound,
         updated_at: new Date().toISOString(),
@@ -328,7 +331,7 @@ export async function advanceRound(matchId: string) {
 
     if (updateError) throw new Error("Failed to update match");
 
-    // 16. Publish round summary
+    // 15. Publish round summary
     try {
         const { publishRoundSummary } = await import("@/app/actions/match/publishRoundSummary");
         await publishRoundSummary(matchId, currentRound).catch((e: unknown) => {
