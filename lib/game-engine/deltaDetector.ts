@@ -39,27 +39,33 @@ function wordKeySet(words: BoardWord[]): Set<string> {
 
 /**
  * Check whether a word creates an invalid perpendicular cross-word with any
- * frozen (previously-scored) tile on the board.
+ * established tile on the board.
  *
- * Only frozen tiles can cause a cross-word violation. Non-frozen tiles —
- * even if they happen to form recognisable words — are ignored.
+ * "Established" means: tiles frozen in prior rounds (frozenTileSet) OR tiles
+ * belonging to the opponent's newly credited words in the same round
+ * (extraTileSet). Non-established tiles — even if they happen to form
+ * recognisable words — are ignored.
  *
  * For each tile T in `word`, the perpendicular direction is traced through
- * neighbouring positions that are in `frozenTileSet`. If the resulting
- * cross-sequence (frozen-tiles + T) is >= 2 tiles and not in the dictionary,
- * the word has a violation.
+ * neighbouring positions that are in the established set. If the resulting
+ * cross-sequence (established-tiles + T) is >= 2 tiles and not in the
+ * dictionary, the word has a violation.
  */
 function hasCrossWordViolation(
   board: BoardGrid,
   word: BoardWord,
   frozenTileSet: Set<string>,
   dictionary: Set<string>,
+  extraTileSet: Set<string> = new Set(),
 ): boolean {
   const { boardSize, minimumWordLength } = DEFAULT_GAME_CONFIG;
   const isHorizontal = word.direction === "right";
   // Perpendicular direction: vertical for horizontal words, horizontal for vertical words
   const dx = isHorizontal ? 0 : 1;
   const dy = isHorizontal ? 1 : 0;
+
+  const isEstablished = (x: number, y: number) =>
+    frozenTileSet.has(`${x},${y}`) || extraTileSet.has(`${x},${y}`);
 
   for (const tile of word.tiles) {
     // Trace backward (upward for horizontal words)
@@ -69,7 +75,7 @@ function hasCrossWordViolation(
     while (
       bx >= 0 && bx < boardSize &&
       by >= 0 && by < boardSize &&
-      frozenTileSet.has(`${bx},${by}`)
+      isEstablished(bx, by)
     ) {
       beforeChars.unshift(board[by][bx]);
       bx -= dx;
@@ -83,7 +89,7 @@ function hasCrossWordViolation(
     while (
       fx >= 0 && fx < boardSize &&
       fy >= 0 && fy < boardSize &&
-      frozenTileSet.has(`${fx},${fy}`)
+      isEstablished(fx, fy)
     ) {
       afterChars.push(board[fy][fx]);
       fx += dx;
@@ -102,6 +108,45 @@ function hasCrossWordViolation(
   }
 
   return false;
+}
+
+/**
+ * True when `shorter` is fully contained within `longer` in the same direction.
+ * Used to suppress sub-words so only the longest word in a tile run scores.
+ */
+function isStrictSubword(shorter: BoardWord, longer: BoardWord): boolean {
+  if (shorter.direction !== longer.direction) return false;
+  if (shorter.tiles.length >= longer.tiles.length) return false;
+  if (shorter.direction === "right") {
+    const shorterEnd = shorter.start.x + shorter.tiles.length - 1;
+    const longerEnd = longer.start.x + longer.tiles.length - 1;
+    return (
+      shorter.start.y === longer.start.y &&
+      shorter.start.x >= longer.start.x &&
+      shorterEnd <= longerEnd
+    );
+  } else {
+    const shorterEnd = shorter.start.y + shorter.tiles.length - 1;
+    const longerEnd = longer.start.y + longer.tiles.length - 1;
+    return (
+      shorter.start.x === longer.start.x &&
+      shorter.start.y >= longer.start.y &&
+      shorterEnd <= longerEnd
+    );
+  }
+}
+
+/**
+ * Remove words that are strict sub-words of another word in the same list.
+ * Ensures each player scores only the longest word in every tile run.
+ */
+function removeSubwords<T extends BoardWord>(words: T[]): T[] {
+  return words.filter(
+    (candidate) =>
+      !words.some(
+        (other) => other !== candidate && isStrictSubword(candidate, other),
+      ),
+  );
 }
 
 /**
@@ -203,37 +248,63 @@ export function detectNewWords(params: {
 
   // Helper to filter, cross-word-validate, and attribute words.
   // `board` is the board state at the point the words were found.
+  // `extraTileSet` adds same-round opponent tile positions to the established-tile
+  // set used for cross-word checking (see hasCrossWordViolation).
   const filterAndAttribute = (
     words: BoardWord[],
     excludeKeys: Set<string>,
     pId: string,
     playerSlot: "player_a" | "player_b",
     board: BoardGrid,
-  ) => {
+    extraTileSet: Set<string> = new Set(),
+  ): AttributedWord[] => {
+    // Phase 1: collect candidates that pass per-word checks.
+    const candidates: AttributedWord[] = [];
     for (const word of words) {
       // Only horizontal/vertical (no diagonals)
       if (word.direction !== "right" && word.direction !== "down") continue;
-
-      const key = wordKey(word);
-      if (excludeKeys.has(key)) continue;
-      if (reportedKeys.has(key)) continue;
-
+      if (excludeKeys.has(wordKey(word))) continue;
+      if (reportedKeys.has(wordKey(word))) continue;
       if (containsOpponentFrozenTile(word, frozenTiles, playerSlot)) continue;
-
-      // Cross-word check: reject if any tile creates an invalid junction
-      // with a previously frozen tile.
-      if (hasCrossWordViolation(board, word, frozenTileSet, dictionary)) continue;
-
-      reportedKeys.add(key);
-      result.push({ ...word, playerId: pId });
+      if (hasCrossWordViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;
+      candidates.push({ ...word, playerId: pId });
     }
+
+    // Phase 2: suppress sub-words — only the longest word in each tile run scores.
+    const accepted = removeSubwords(candidates);
+
+    // Phase 3: register and return.
+    for (const w of accepted) {
+      reportedKeys.add(wordKey(w));
+      result.push(w);
+    }
+    return accepted;
   };
 
   // Player A: new words in intermediate that weren't in baseline
-  filterAndAttribute(intermediate.words, baselineKeys, playerAId, "player_a", boardA);
+  const playerAWords = filterAndAttribute(
+    intermediate.words,
+    baselineKeys,
+    playerAId,
+    "player_a",
+    boardA,
+  );
+
+  // Build the set of tile positions belonging to Player A's newly credited words.
+  // These are "established" for Player B's cross-word checks this round.
+  const playerATileSet = new Set<string>(
+    playerAWords.flatMap((w) => w.tiles.map((t) => `${t.x},${t.y}`)),
+  );
 
   // Player B: new words in final that weren't in intermediate
-  filterAndAttribute(final.words, intermediateKeys, playerBId, "player_b", boardAfter);
+  filterAndAttribute(
+    final.words,
+    intermediateKeys,
+    playerBId,
+    "player_b",
+    boardAfter,
+    playerATileSet,
+  );
 
   return result;
 }

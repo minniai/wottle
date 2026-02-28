@@ -110,7 +110,6 @@ describe("deltaDetector", () => {
     const boardBefore = emptyBoard();
     // Player A's swap doesn't form words. Player B's swap forms "land".
     // Simulate: boardBefore → Player A swap (no effect) → Player B swap creates "land"
-    const boardAfterA = emptyBoard(); // same as before (A's swap is irrelevant)
     const boardAfter = placeHorizontal(emptyBoard(), "land", 0, 0);
 
     const result = detectNewWords({
@@ -129,6 +128,102 @@ describe("deltaDetector", () => {
     const land = result.find((w) => w.text === "land");
     expect(land).toBeDefined();
     expect(land!.playerId).toBe(PLAYER_B);
+  });
+
+  test("should reject Player B word when it creates an invalid same-round cross-word junction with Player A's word", () => {
+    // Synthetic 3-letter words; "bb" intentionally absent from dict.
+    //
+    // boardBefore row 0: c(0,0) b(1,0) a(2,0)  →  "cba" not in dict → no baseline word
+    // boardBefore row 1: a(1,1) c(2,1) b(3,1)  →  "acb" not in dict → no baseline word
+    //
+    // Player A swaps (0,0)↔(2,0): row 0 → a(0) b(1) c(2)  → "abc" detected ✓
+    // Player B swaps (1,1)↔(3,1): row 1 → b(1) c(2) a(3)  → "bca" detected
+    //
+    // b at (1,0) from Player A's "abc" sits directly above b at (1,1) from "bca".
+    // Vertical cross-sequence = "bb", which is not in the dictionary.
+    // Therefore "bca" must be rejected even though no frozen tiles are involved.
+    const customDict = new Set(["abc", "bca"]);
+
+    const boardBefore = emptyBoard();
+    boardBefore[0][0] = "c";
+    boardBefore[0][1] = "b";
+    boardBefore[0][2] = "a";
+    boardBefore[1][1] = "a";
+    boardBefore[1][2] = "c";
+    boardBefore[1][3] = "b";
+
+    const boardAfter = emptyBoard();
+    boardAfter[0][0] = "a";
+    boardAfter[0][1] = "b";
+    boardAfter[0][2] = "c";
+    boardAfter[1][1] = "b";
+    boardAfter[1][2] = "c";
+    boardAfter[1][3] = "a";
+
+    const result = detectNewWords({
+      boardBefore,
+      boardAfter,
+      dictionary: customDict,
+      acceptedMoves: [
+        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 2, toY: 0 },
+        { playerId: PLAYER_B, fromX: 1, fromY: 1, toX: 3, toY: 1 },
+      ],
+      frozenTiles: EMPTY_FROZEN,
+      playerAId: PLAYER_A,
+      playerBId: PLAYER_B,
+    });
+
+    const abc = result.find((w) => w.text === "abc");
+    const bca = result.find((w) => w.text === "bca");
+
+    expect(abc).toBeDefined();
+    expect(abc!.playerId).toBe(PLAYER_A);
+
+    // "bca" must be rejected: b(1,0) from Player A's "abc" sits directly above
+    // b(1,1) from "bca", forming vertical "bb" which is not in the dictionary.
+    expect(bca).toBeUndefined();
+  });
+
+  test("should only score the longest word when a shorter word is a strict sub-word", () => {
+    // dict: "abc" and "abcd" both valid; "abcd" supersedes "abc".
+    //
+    // boardBefore row 0: d(0,0) b(1,0) c(2,0) a(3,0)  →  "dbca" not in dict → no baseline
+    // Player A swaps (0,0)↔(3,0): row 0 → a b c d
+    //   Scanner finds both "abc" (start 0, len 3) and "abcd" (start 0, len 4).
+    //   "abc" is a strict sub-word of "abcd" → only "abcd" must be credited.
+    const customDict = new Set(["abc", "abcd"]);
+
+    const boardBefore = emptyBoard();
+    boardBefore[0][0] = "d";
+    boardBefore[0][1] = "b";
+    boardBefore[0][2] = "c";
+    boardBefore[0][3] = "a";
+
+    const boardAfter = emptyBoard();
+    boardAfter[0][0] = "a";
+    boardAfter[0][1] = "b";
+    boardAfter[0][2] = "c";
+    boardAfter[0][3] = "d";
+
+    const result = detectNewWords({
+      boardBefore,
+      boardAfter,
+      dictionary: customDict,
+      acceptedMoves: [
+        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 3, toY: 0 },
+      ],
+      frozenTiles: EMPTY_FROZEN,
+      playerAId: PLAYER_A,
+      playerBId: PLAYER_B,
+    });
+
+    const abcd = result.find((w) => w.text === "abcd");
+    const abc = result.find((w) => w.text === "abc");
+
+    expect(abcd).toBeDefined();
+    expect(abcd!.playerId).toBe(PLAYER_A);
+    // "abc" tiles are fully contained within "abcd" — must be suppressed
+    expect(abc).toBeUndefined();
   });
 
   test("should handle both players forming words in same round", () => {
