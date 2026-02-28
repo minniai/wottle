@@ -1,4 +1,4 @@
-export const LETTER_SCORING_VALUES_SV = {
+export const LETTER_SCORING_VALUES_SE = {
   A: 1,
   B: 3,
   C: 8,
