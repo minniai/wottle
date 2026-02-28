@@ -8,6 +8,7 @@ import { GameChrome } from "@/components/match/GameChrome";
 import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
+import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
 import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
@@ -74,6 +75,18 @@ export function MatchClient({
     string | null
   >(null);
 
+  // Animation phase machine for post-round highlight sequence (US7)
+  type AnimationPhase = "idle" | "highlighting" | "showing-summary";
+  const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
+  const [pendingSummary, setPendingSummary] = useState<RoundSummary | null>(null);
+  const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefersReducedMotionRef = useRef(
+    typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
   /** Ref so the safety-net poller always reads the freshest round. */
   const matchStateRef = useRef(matchState);
   useEffect(() => {
@@ -95,13 +108,15 @@ export function MatchClient({
 
   // Sync summary from polled/realtime state updates.
   // Guard against re-showing a summary the player already dismissed.
+  // Also guard while highlight animation is playing — onSummary handles that path.
   useEffect(() => {
     if (!matchState.lastSummary) return;
+    if (animationPhase === "highlighting") return;
     const id = `${matchState.lastSummary.matchId}-${matchState.lastSummary.roundNumber}`;
     if (id !== dismissedSummaryIdRef.current) {
       setSummary(matchState.lastSummary);
     }
-  }, [matchState.lastSummary]);
+  }, [matchState.lastSummary, animationPhase]);
 
   // Navigate to final summary when match completes
   useEffect(() => {
@@ -134,12 +149,29 @@ export function MatchClient({
         applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
-        setSummary(nextSummary);
+        const colors = deriveHighlightPlayerColors(
+          nextSummary.words,
+          matchState.timers.playerA.playerId,
+        );
+        setHighlightPlayerColors(colors);
+        setPendingSummary(nextSummary);
+        setAnimationPhase("highlighting");
         setMatchState((prev) => ({
           ...prev,
           scores: nextSummary.totals,
           lastSummary: nextSummary,
         }));
+
+        if (prefersReducedMotionRef.current) {
+          setAnimationPhase("showing-summary");
+          setSummary(nextSummary);
+        } else {
+          if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+          highlightTimerRef.current = setTimeout(() => {
+            setAnimationPhase("showing-summary");
+            setSummary(nextSummary);
+          }, 800);
+        }
       },
       onError: (error) => {
         console.error(
@@ -174,6 +206,7 @@ export function MatchClient({
 
     return () => {
       channel.unsubscribe();
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     };
   }, [
     matchId,
@@ -181,6 +214,7 @@ export function MatchClient({
     currentPlayerId,
     disconnectedPlayerId,
     applySnapshot,
+    matchState.timers.playerA.playerId,
   ]);
 
   // ── Primary polling (only when Realtime is confirmed down) ────────
@@ -265,6 +299,9 @@ export function MatchClient({
       }
       return null;
     });
+    setAnimationPhase("idle");
+    setPendingSummary(null);
+    setHighlightPlayerColors({});
   }, []);
 
   const playerSlot: "player_a" | "player_b" =
@@ -364,8 +401,15 @@ export function MatchClient({
         matchId={matchId}
         frozenTiles={matchState.frozenTiles ?? {}}
         playerSlot={playerSlot}
-        scoredTileHighlights={summary?.highlights ?? []}
-        highlightDurationMs={3000}
+        scoredTileHighlights={
+          animationPhase === "highlighting"
+            ? (pendingSummary?.highlights ?? [])
+            : []
+        }
+        highlightPlayerColors={
+          animationPhase === "highlighting" ? highlightPlayerColors : {}
+        }
+        highlightDurationMs={800}
         onSwapComplete={handleSwapComplete}
         onSwapError={({ message }) => handleSwapError(message)}
       />
@@ -410,12 +454,14 @@ export function MatchClient({
         </details>
       )}
 
-      <RoundSummaryPanel
-        summary={summary}
-        currentPlayerId={currentPlayerId}
-        onDismiss={handleSummaryDismiss}
-        autoDismissMs={summaryAutoDismissMs}
-      />
+      {animationPhase !== "highlighting" && (
+        <RoundSummaryPanel
+          summary={summary}
+          currentPlayerId={currentPlayerId}
+          onDismiss={handleSummaryDismiss}
+          autoDismissMs={summaryAutoDismissMs}
+        />
+      )}
     </MatchShell>
   );
 }
