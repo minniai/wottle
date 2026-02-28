@@ -202,10 +202,13 @@ jobs:
         if: steps.docker-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
-          docker save \
-            $(docker images --format "{{.Repository}}:{{.Tag}}" \
-              | grep -E 'supabase|postgres|kong|gotrue|postgrest') \
-            -o /tmp/supabase-docker-cache.tar
+          IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
+          if [ -z "$IMAGES" ]; then
+            echo "No matching Supabase Docker images found — skipping cache export"
+            exit 0
+          fi
+          docker save $IMAGES -o /tmp/supabase-docker-cache.tar
       - name: Upload quickstart log
         if: always()
         uses: actions/upload-artifact@v4
@@ -312,10 +315,13 @@ jobs:
         if: steps.docker-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
-          docker save \
-            $(docker images --format "{{.Repository}}:{{.Tag}}" \
-              | grep -E 'supabase|postgres|kong|gotrue|postgrest') \
-            -o /tmp/supabase-docker-cache.tar
+          IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
+          if [ -z "$IMAGES" ]; then
+            echo "No matching Supabase Docker images found — skipping cache export"
+            exit 0
+          fi
+          docker save $IMAGES -o /tmp/supabase-docker-cache.tar
       - name: Download Next.js build artifact
         uses: actions/download-artifact@v4
         with:
@@ -650,10 +656,13 @@ jobs:
         if: steps.docker-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
-          docker save \
-            $(docker images --format "{{.Repository}}:{{.Tag}}" \
-              | grep -E 'supabase|postgres|kong|gotrue|postgrest') \
-            -o /tmp/supabase-docker-cache.tar
+          IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
+          if [ -z "$IMAGES" ]; then
+            echo "No matching Supabase Docker images found — skipping cache export"
+            exit 0
+          fi
+          docker save $IMAGES -o /tmp/supabase-docker-cache.tar
       - name: Download Next.js build artifact
         uses: actions/download-artifact@v4
         with:
