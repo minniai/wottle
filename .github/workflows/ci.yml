@@ -202,6 +202,12 @@ jobs:
         if: steps.docker-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
+          AVAILABLE_GB=$(df --output=avail -BG /tmp | tail -1 | tr -d 'G ')
+          echo "Available disk space: ${AVAILABLE_GB}GB"
+          if [ "${AVAILABLE_GB:-0}" -lt 8 ]; then
+            echo "Insufficient disk space (${AVAILABLE_GB}GB) — skipping cache export"
+            exit 0
+          fi
           IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
             | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
           if [ -z "$IMAGES" ]; then
@@ -315,6 +321,12 @@ jobs:
         if: steps.docker-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
+          AVAILABLE_GB=$(df --output=avail -BG /tmp | tail -1 | tr -d 'G ')
+          echo "Available disk space: ${AVAILABLE_GB}GB"
+          if [ "${AVAILABLE_GB:-0}" -lt 8 ]; then
+            echo "Insufficient disk space (${AVAILABLE_GB}GB) — skipping cache export"
+            exit 0
+          fi
           IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
             | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
           if [ -z "$IMAGES" ]; then
@@ -656,6 +668,12 @@ jobs:
         if: steps.docker-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
+          AVAILABLE_GB=$(df --output=avail -BG /tmp | tail -1 | tr -d 'G ')
+          echo "Available disk space: ${AVAILABLE_GB}GB"
+          if [ "${AVAILABLE_GB:-0}" -lt 8 ]; then
+            echo "Insufficient disk space (${AVAILABLE_GB}GB) — skipping cache export"
+            exit 0
+          fi
           IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
             | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
           if [ -z "$IMAGES" ]; then
