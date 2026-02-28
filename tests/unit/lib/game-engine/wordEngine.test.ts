@@ -10,7 +10,7 @@ import * as frozenTiles from "@/lib/game-engine/frozenTiles";
 import type { BoardGrid } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
 
-function emptyBoard(fill = "z"): BoardGrid {
+function emptyBoard(fill = " "): BoardGrid {
   return Array.from({ length: 10 }, () =>
     Array.from({ length: 10 }, () => fill),
   ) as BoardGrid;
@@ -40,23 +40,24 @@ describe("wordEngine", () => {
     await loadDictionary();
   });
 
-  /** Create a board where swapping (0,0) ↔ (0,9) forms "hestur" at row 0. */
+  /** Create a board where swapping (0,0) ↔ (5,0) forms "hestur" at row 0. */
   function makeHesturSetup(): {
     boardBefore: BoardGrid;
     boardAfter: BoardGrid;
   } {
     const boardBefore = emptyBoard();
-    boardBefore[0][0] = "z";
+    // "restur" before swap — 'h' is at (5,0), 'r' is at (0,0)
+    boardBefore[0][0] = "r";
     boardBefore[0][1] = "e";
     boardBefore[0][2] = "s";
     boardBefore[0][3] = "t";
     boardBefore[0][4] = "u";
-    boardBefore[0][5] = "r";
-    boardBefore[0][9] = "h";
+    boardBefore[0][5] = "h";
 
+    // After Player A swaps (0,0)↔(5,0): h→(0,0), r→(5,0), forming "hestur"
     const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
     boardAfter[0][0] = "h";
-    boardAfter[0][9] = "z";
+    boardAfter[0][5] = "r";
 
     return { boardBefore, boardAfter };
   }
@@ -70,7 +71,7 @@ describe("wordEngine", () => {
       boardBefore,
       boardAfter,
       acceptedMoves: [
-        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
       ],
       frozenTiles: EMPTY_FROZEN,
       playerAId: PLAYER_A,
@@ -94,7 +95,7 @@ describe("wordEngine", () => {
       boardBefore,
       boardAfter,
       acceptedMoves: [
-        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
       ],
       frozenTiles: EMPTY_FROZEN,
       playerAId: PLAYER_A,
@@ -141,7 +142,7 @@ describe("wordEngine", () => {
       boardBefore,
       boardAfter,
       acceptedMoves: [
-        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
       ],
       frozenTiles: EMPTY_FROZEN,
       playerAId: PLAYER_A,
@@ -167,7 +168,7 @@ describe("wordEngine", () => {
         boardBefore,
         boardAfter,
         acceptedMoves: [
-          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
         ],
         frozenTiles: EMPTY_FROZEN,
         playerAId: PLAYER_A,
@@ -193,7 +194,7 @@ describe("wordEngine", () => {
         boardBefore,
         boardAfter,
         acceptedMoves: [
-          { playerId: PLAYER_B, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+          { playerId: PLAYER_B, fromX: 0, fromY: 0, toX: 5, toY: 0 },
         ],
         frozenTiles: EMPTY_FROZEN,
         playerAId: PLAYER_A,
@@ -219,7 +220,7 @@ describe("wordEngine", () => {
         boardBefore,
         boardAfter,
         acceptedMoves: [
-          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 9, toY: 0 },
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
         ],
         frozenTiles: EMPTY_FROZEN,
         playerAId: PLAYER_A,

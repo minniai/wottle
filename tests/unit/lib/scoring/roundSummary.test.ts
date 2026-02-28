@@ -65,7 +65,7 @@ describe("roundSummary scoring utilities", () => {
     const summary = aggregateRoundSummary("match-1", 3, words, {
       playerA: 20,
       playerB: 18,
-    });
+    }, "player-a", "player-b");
 
     expect(summary).toEqual(
       expect.objectContaining({
@@ -82,5 +82,61 @@ describe("roundSummary scoring utilities", () => {
     );
     expect(summary.resolvedAt).toBe("2025-01-01T00:00:00.000Z");
   });
-});
 
+  it("correctly attributes score when only player_b scores in a round", () => {
+    // Regression: without actual player IDs, player_b's words would be
+    // mistakenly assigned to internal 'playerA' and added to player_a_score.
+    const words: WordScore[] = [
+      {
+        playerId: "player-b",
+        word: "ÖLD",
+        length: 3,
+        lettersPoints: 11,
+        bonusPoints: 5,
+        totalPoints: 16,
+        coordinates: [{ x: 5, y: 5 }, { x: 6, y: 5 }, { x: 7, y: 5 }],
+      },
+    ];
+
+    const summary = aggregateRoundSummary(
+      "match-1",
+      2,
+      words,
+      { playerA: 20, playerB: 0 },
+      "player-a",
+      "player-b",
+    );
+
+    expect(summary.deltas).toEqual({ playerA: 0, playerB: 16 });
+    expect(summary.totals).toEqual({ playerA: 20, playerB: 16 });
+  });
+
+  it("correctly attributes score when only player_a scores in a round", () => {
+    const words: WordScore[] = [
+      {
+        playerId: "player-a",
+        word: "HRAUN",
+        length: 5,
+        lettersPoints: 12,
+        bonusPoints: 15,
+        totalPoints: 27,
+        coordinates: [
+          { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
+          { x: 3, y: 0 }, { x: 4, y: 0 },
+        ],
+      },
+    ];
+
+    const summary = aggregateRoundSummary(
+      "match-1",
+      2,
+      words,
+      { playerA: 0, playerB: 30 },
+      "player-a",
+      "player-b",
+    );
+
+    expect(summary.deltas).toEqual({ playerA: 27, playerB: 0 });
+    expect(summary.totals).toEqual({ playerA: 27, playerB: 30 });
+  });
+});

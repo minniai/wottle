@@ -11,7 +11,6 @@ import { publishMatchState } from "@/lib/match/statePublisher";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { isClockExpired } from "@/lib/match/clockEnforcer";
-import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 
 export async function submitMove(
     matchId: string,
@@ -71,23 +70,19 @@ export async function submitMove(
         return { error: "Round is no longer accepting submissions" };
     }
 
-    // 2b. Clock expiry gate: reject if player's server-authoritative time has expired
+    // 2b. Clock expiry gate: reject if player's server-authoritative time has expired.
+    // Trigger advanceRound so the server can synthesize a timeout pass for the
+    // expired player or complete the match if both players are flagged.
     if (round.started_at) {
         const roundStartedAt = new Date(round.started_at as string);
-        const playerATimerMs = match.player_a_timer_ms ?? 300_000;
-        const playerBTimerMs = match.player_b_timer_ms ?? 300_000;
-        const playerTimerMs = user.id === match.player_a_id ? playerATimerMs : playerBTimerMs;
-
-        const playerAExpired = isClockExpired(roundStartedAt, playerATimerMs);
-        const playerBExpired = isClockExpired(roundStartedAt, playerBTimerMs);
-
-        if (playerAExpired && playerBExpired) {
-            completeMatchInternal(matchId, "timeout").catch((e: unknown) => {
-                console.error("[Clock] Failed to complete match on time expiry:", e);
-            });
-        }
+        const playerTimerMs = user.id === match.player_a_id
+            ? (match.player_a_timer_ms ?? 300_000)
+            : (match.player_b_timer_ms ?? 300_000);
 
         if (isClockExpired(roundStartedAt, playerTimerMs)) {
+            advanceRound(matchId).catch((e: unknown) => {
+                console.error("[Clock] Failed to advance round on player timeout:", e);
+            });
             return { status: "rejected" as const, error: "Your time has expired" };
         }
     }

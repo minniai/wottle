@@ -16,7 +16,6 @@ import { submitMove } from "@/app/actions/match/submitMove";
 import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 
 const PLAYER_ID = "player-a";
 const MATCH_ID = "match-1";
@@ -164,9 +163,11 @@ describe("submitMove", () => {
         });
     });
 
-    // T024: both clocks expired triggers timeout completion
-    it("T024: calls completeMatch with timeout when both player clocks are expired", async () => {
-        vi.mocked(completeMatchInternal).mockClear();
+    // T024: expired clock triggers advanceRound so the server can synthesize a
+    // timeout pass or complete the match if both players are flagged.
+    it("T024: triggers advanceRound when the current player's clock is expired", async () => {
+        const { advanceRound } = await import("@/lib/match/roundEngine");
+        vi.mocked(advanceRound).mockClear();
 
         // Both players' timers expired (round started 10 mins ago, both had only 60s)
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -192,11 +193,8 @@ describe("submitMove", () => {
 
         const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
 
-        // Should reject since clock is expired AND trigger time_expiry completion
-        expect(result).toMatchObject({
-            status: "rejected",
-        });
-        expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "timeout");
+        expect(result).toMatchObject({ status: "rejected" });
+        expect(advanceRound).toHaveBeenCalledWith(MATCH_ID);
     });
 
     it("T015: accepts a move when clock has not expired", async () => {

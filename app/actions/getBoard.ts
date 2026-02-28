@@ -5,7 +5,8 @@ import "server-only";
 import { unstable_noStore as noStore } from "next/cache";
 
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import { boardGridSchema, type BoardGrid } from "@/lib/types/board";
+import { getBoardGridSchema, type BoardGrid } from "@/lib/types/board";
+import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
 
 type BoardRow = {
@@ -50,7 +51,7 @@ export async function getBoard(): Promise<GetBoardResult> {
 
   let grid: BoardGrid;
   try {
-    grid = boardGridSchema.parse(data.grid);
+    grid = getBoardGridSchema(DEFAULT_GAME_CONFIG).parse(data.grid);
   } catch (parseError) {
     throw new Error("Invalid board grid received from Supabase", {
       cause: parseError,

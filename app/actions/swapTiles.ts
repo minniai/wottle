@@ -6,8 +6,8 @@ import { ZodError } from "zod";
 
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import {
-  boardGridSchema,
-  moveRequestSchema,
+  getBoardGridSchema,
+  getMoveRequestSchema,
   type BoardGrid,
   type MoveRequest,
   type MoveResult,
@@ -19,10 +19,10 @@ import {
 } from "@/lib/game-engine/mutations";
 import { PRIMARY_BOARD_ID } from "@/scripts/supabase/constants";
 import { createPerfTimer } from "@/lib/observability/perf";
-import {
-  BOARD_DIMENSIONS_LABEL,
-  BOARD_MAX_INDEX,
-} from "@/lib/constants/board";
+import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
+
+const BOARD_DIMENSIONS_LABEL = `${DEFAULT_GAME_CONFIG.boardSize}x${DEFAULT_GAME_CONFIG.boardSize}`;
+const BOARD_MAX_INDEX = DEFAULT_GAME_CONFIG.boardSize - 1;
 
 interface BoardRow {
   id: string;
@@ -91,14 +91,14 @@ export async function swapTiles(payload: MoveRequest): Promise<MoveResult> {
 
   let currentGrid: BoardGrid;
   try {
-    currentGrid = boardGridSchema.parse(data.grid);
+    currentGrid = getBoardGridSchema(DEFAULT_GAME_CONFIG).parse(data.grid);
   } catch (parseError) {
     const failure = new Error("Stored board grid is invalid.", { cause: parseError });
     perf.failure(failure, { reason: "grid-invalid", boardRowId: data.id });
     throw failure;
   }
 
-  const parsedMove = moveRequestSchema.safeParse(payload);
+  const parsedMove = getMoveRequestSchema(DEFAULT_GAME_CONFIG).safeParse(payload);
   if (!parsedMove.success) {
     const errorMessage = toValidationMessage(parsedMove.error);
     perf.success({
@@ -116,7 +116,7 @@ export async function swapTiles(payload: MoveRequest): Promise<MoveResult> {
   const move = parsedMove.data;
 
   try {
-    const nextGrid = applySwap(currentGrid, move);
+    const nextGrid = applySwap(currentGrid, move, DEFAULT_GAME_CONFIG);
 
     await persistAcceptedSwap({
       client: supabase,

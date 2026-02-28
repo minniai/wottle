@@ -16,22 +16,24 @@ import { computeElapsedMs, computeRemainingMs } from "./clockEnforcer";
 type AnyClient = SupabaseClient<any, any, any>;
 
 function mapState(roundState: string | null | undefined, matchState: string): MatchPhase {
+  // Match-level terminal states take precedence — a timeout or abandon can end the
+  // match while the current round is still in "collecting" state (never advanced).
+  if (matchState === "completed") {
+    return "completed";
+  }
+  if (matchState === "abandoned") {
+    return "abandoned";
+  }
+  if (matchState === "pending") {
+    return "pending";
+  }
+
   if (
     roundState === "collecting" ||
     roundState === "resolving" ||
     roundState === "completed"
   ) {
     return roundState;
-  }
-
-  if (matchState === "pending") {
-    return "pending";
-  }
-  if (matchState === "completed") {
-    return "completed";
-  }
-  if (matchState === "abandoned") {
-    return "abandoned";
   }
 
   // in_progress or any other transient state defaults to collecting
@@ -129,6 +131,8 @@ async function loadLatestRoundSummary(
   client: AnyClient,
   matchId: string,
   currentRound: number,
+  playerAId: string,
+  playerBId: string,
 ): Promise<RoundSummary | null> {
   const summaryRound = currentRound - 1;
   if (summaryRound < 1) {
@@ -147,7 +151,7 @@ async function loadLatestRoundSummary(
 
   const previousTotals = await fetchPreviousTotals(client, matchId, summaryRound);
   const wordScores = mapWordScores(wordEntries);
-  return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals);
+  return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals, playerAId, playerBId);
 }
 
 export async function loadMatchState(
@@ -234,7 +238,7 @@ export async function loadMatchState(
 
   const board = ensureBoardSnapshot(match.id, match.board_seed, round ?? null);
   const effectiveState = mapState(round?.state ?? null, match.state);
-  const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round);
+  const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round, match.player_a_id, match.player_b_id);
 
   // Compute mid-round remaining time from round.started_at when in collecting state
   const roundStartedAt =
