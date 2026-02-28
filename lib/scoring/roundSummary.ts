@@ -40,27 +40,14 @@ export function aggregateRoundSummary(
     matchId: string,
     roundNumber: number,
     wordScores: WordScore[],
-    previousTotals: ScoreTotals
+    previousTotals: ScoreTotals,
+    playerAId: string,
+    playerBId: string,
 ): RoundSummary {
-    // Group words by player
-    const playerAWords: WordScore[] = [];
-    const playerBWords: WordScore[] = [];
-    let playerAId: string | null = null;
-    let playerBId: string | null = null;
-
-    for (const wordScore of wordScores) {
-        if (!playerAId) {
-            playerAId = wordScore.playerId;
-            playerAWords.push(wordScore);
-        } else if (wordScore.playerId === playerAId) {
-            playerAWords.push(wordScore);
-        } else {
-            if (!playerBId) {
-                playerBId = wordScore.playerId;
-            }
-            playerBWords.push(wordScore);
-        }
-    }
+    // Group words by the actual match player slots so scores always land in
+    // the correct column — even when one player has zero words this round.
+    const playerAWords = wordScores.filter((ws) => ws.playerId === playerAId);
+    const playerBWords = wordScores.filter((ws) => ws.playerId === playerBId);
 
     // Count non-duplicate words per player for combo bonus
     const playerANewWords = playerAWords.filter((ws) => !ws.isDuplicate).length;

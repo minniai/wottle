@@ -20,7 +20,7 @@ export async function publishRoundSummary(
 ): Promise<RoundSummary | { error: string }> {
     const supabase = getServiceRoleClient();
 
-    // 1. Get round with board snapshots
+    // 1. Get round with board snapshots and match player IDs
     const { data: round, error: roundError } = await supabase
         .from("rounds")
         .select("id, board_snapshot_before, board_snapshot_after, match_id")
@@ -30,6 +30,16 @@ export async function publishRoundSummary(
 
     if (roundError || !round) {
         return { error: "Round not found" };
+    }
+
+    const { data: matchPlayers, error: matchError } = await supabase
+        .from("matches")
+        .select("player_a_id, player_b_id")
+        .eq("id", matchId)
+        .single();
+
+    if (matchError || !matchPlayers) {
+        return { error: "Match not found" };
     }
 
     // 2. Get word score entries for this round
@@ -75,7 +85,9 @@ export async function publishRoundSummary(
         matchId,
         roundNumber,
         wordScores,
-        previousTotals
+        previousTotals,
+        matchPlayers.player_a_id,
+        matchPlayers.player_b_id,
     );
 
     // 6. Persist scoreboard snapshot

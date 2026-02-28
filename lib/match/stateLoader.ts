@@ -129,6 +129,8 @@ async function loadLatestRoundSummary(
   client: AnyClient,
   matchId: string,
   currentRound: number,
+  playerAId: string,
+  playerBId: string,
 ): Promise<RoundSummary | null> {
   const summaryRound = currentRound - 1;
   if (summaryRound < 1) {
@@ -147,7 +149,7 @@ async function loadLatestRoundSummary(
 
   const previousTotals = await fetchPreviousTotals(client, matchId, summaryRound);
   const wordScores = mapWordScores(wordEntries);
-  return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals);
+  return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals, playerAId, playerBId);
 }
 
 export async function loadMatchState(
@@ -234,7 +236,7 @@ export async function loadMatchState(
 
   const board = ensureBoardSnapshot(match.id, match.board_seed, round ?? null);
   const effectiveState = mapState(round?.state ?? null, match.state);
-  const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round);
+  const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round, match.player_a_id, match.player_b_id);
 
   // Compute mid-round remaining time from round.started_at when in collecting state
   const roundStartedAt =

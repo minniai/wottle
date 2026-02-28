@@ -123,7 +123,9 @@ export async function GET(
         matchId,
         roundNumber,
         wordScores,
-        previousTotals
+        previousTotals,
+        match.player_a_id,
+        match.player_b_id,
     );
 
     return NextResponse.json(summary, { status: 200, headers: NO_CACHE_HEADERS });
