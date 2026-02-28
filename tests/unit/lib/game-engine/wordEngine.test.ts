@@ -485,4 +485,100 @@ describe("wordEngine", () => {
       expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe("partial letter scoring (opponent-frozen tiles)", () => {
+    test("scores only own tiles' letter points when word spans opponent-frozen tiles", async () => {
+      // Player B forms "abcdef" where cols 3-5 ("def") are frozen by player_a.
+      // Expected: lettersPoints = value of "abc" only, lengthBonus = (6-2)*5 = 20.
+      const boardBefore = emptyBoard();
+      const boardAfter = emptyBoard();
+      boardAfter[0][0] = "a"; boardAfter[0][1] = "b"; boardAfter[0][2] = "c";
+      boardAfter[0][3] = "d"; boardAfter[0][4] = "e"; boardAfter[0][5] = "f";
+
+      const frozenMap: FrozenTileMap = {
+        "3,0": { owner: "player_a" },
+        "4,0": { owner: "player_a" },
+        "5,0": { owner: "player_a" },
+      };
+
+      // Mock detectNewWords to return an attributed word with opponentFrozenKeys set
+      const spy = vi.spyOn(deltaDetector, "detectNewWords").mockReturnValueOnce([
+        {
+          text: "abcdef",
+          displayText: "abcdef",
+          direction: "right" as const,
+          start: { x: 0, y: 0 },
+          length: 6,
+          tiles: [
+            { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
+            { x: 3, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 },
+          ],
+          playerId: PLAYER_B,
+          opponentFrozenKeys: new Set(["3,0", "4,0", "5,0"]),
+        },
+      ]);
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore,
+        boardAfter,
+        acceptedMoves: [{ playerId: PLAYER_B, fromX: 0, fromY: 0, toX: 2, toY: 0 }],
+        frozenTiles: frozenMap,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      spy.mockRestore();
+
+      const word = result.playerBWords.find((w) => w.word === "abcdef");
+      expect(word).toBeDefined();
+      // Letter points only for own tiles "abc" (positions 0-2)
+      const { calculateLetterPoints } = await import("@/lib/game-engine/scorer");
+      const expectedLetters = calculateLetterPoints("abc");
+      expect(word!.lettersPoints).toBe(expectedLetters);
+      // Length bonus for full 6-letter word
+      expect(word!.lengthBonus).toBe(20);
+      expect(word!.totalPoints).toBe(expectedLetters + 20);
+    });
+
+    test("scores all tiles when no opponent-frozen tiles are present", async () => {
+      // Sanity check: empty opponentFrozenKeys → full letter points as before.
+      const boardBefore = emptyBoard();
+      const boardAfter = emptyBoard();
+      boardAfter[0][0] = "a"; boardAfter[0][1] = "b"; boardAfter[0][2] = "c";
+
+      const spy = vi.spyOn(deltaDetector, "detectNewWords").mockReturnValueOnce([
+        {
+          text: "abc",
+          displayText: "abc",
+          direction: "right" as const,
+          start: { x: 0, y: 0 },
+          length: 3,
+          tiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }],
+          playerId: PLAYER_A,
+          opponentFrozenKeys: new Set<string>(),
+        },
+      ]);
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore,
+        boardAfter,
+        acceptedMoves: [{ playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 2, toY: 0 }],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      spy.mockRestore();
+
+      const word = result.playerAWords.find((w) => w.word === "abc");
+      expect(word).toBeDefined();
+      const { calculateLetterPoints } = await import("@/lib/game-engine/scorer");
+      expect(word!.lettersPoints).toBe(calculateLetterPoints("abc"));
+      expect(word!.lengthBonus).toBe(5); // (3-2)*5
+    });
+  });
 });

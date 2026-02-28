@@ -10,6 +10,8 @@ import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 /** A word attributed to a specific player. */
 export interface AttributedWord extends BoardWord {
   playerId: string;
+  /** "x,y" keys of tiles in this word frozen by the opponent (for partial letter scoring). */
+  opponentFrozenKeys: ReadonlySet<string>;
 }
 
 /** A move accepted after conflict resolution. */
@@ -210,27 +212,26 @@ function removeSubwords<T extends BoardWord>(words: T[]): T[] {
 }
 
 /**
- * Check whether a word contains any tile frozen by the opponent.
+ * Return the set of "x,y" keys for tiles in `word` that are frozen by the opponent.
+ * Tiles owned by "both" are NOT included — both players may score through them freely.
  */
-function containsOpponentFrozenTile(
+function getOpponentFrozenKeys(
   word: BoardWord,
   frozenTiles: FrozenTileMap,
   playerSlot: "player_a" | "player_b",
-): boolean {
+): Set<string> {
   const opponentSlot =
     playerSlot === "player_a" ? "player_b" : "player_a";
+  const keys = new Set<string>();
 
   for (const tile of word.tiles) {
     const key = `${tile.x},${tile.y}`;
     const frozen = frozenTiles[key];
-    if (frozen) {
-      if (frozen.owner === opponentSlot) {
-        return true;
-      }
-      // "both" means both players own it → valid for both
+    if (frozen?.owner === opponentSlot) {
+      keys.add(key);
     }
   }
-  return false;
+  return keys;
 }
 
 /**
@@ -325,10 +326,10 @@ export function detectNewWords(params: {
       if (word.direction !== "right" && word.direction !== "down") continue;
       if (excludeKeys.has(wordKey(word))) continue;
       if (reportedKeys.has(wordKey(word))) continue;
-      if (containsOpponentFrozenTile(word, frozenTiles, playerSlot)) continue;
       if (hasCrossWordViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;
       if (hasInlineExtensionViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;
-      candidates.push({ ...word, playerId: pId });
+      const opponentFrozenKeys = getOpponentFrozenKeys(word, frozenTiles, playerSlot);
+      candidates.push({ ...word, playerId: pId, opponentFrozenKeys });
     }
 
     // Phase 2: suppress sub-words — only the longest word in each tile run scores.

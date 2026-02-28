@@ -34,7 +34,14 @@ function scoreAttributedWords(
   priorScoredWordsByPlayer?: Record<string, Set<string>>,
 ): WordScoreBreakdown[] {
   return words.map((word) => {
-    const lettersPoints = calculateLetterPoints(word.text);
+    // Score only the letters contributed by this player (not opponent-frozen tiles).
+    // Length bonus uses the full word length regardless of tile ownership.
+    const ownLetters = word.tiles
+      .map((t, i) =>
+        word.opponentFrozenKeys.has(`${t.x},${t.y}`) ? "" : word.text[i],
+      )
+      .join("");
+    const lettersPoints = calculateLetterPoints(ownLetters);
     const lengthBonus = calculateLengthBonus(word.length);
     const normalizedWord = word.text.toLowerCase();
     const playerSet = priorScoredWordsByPlayer?.[word.playerId];

@@ -334,8 +334,11 @@ describe("deltaDetector", () => {
       expect(result.find((w) => w.text === "def")).toBeUndefined();
     });
 
-    test("T032: accepts new word when inline extension through frozen tiles forms a valid sequence", () => {
-      // Same forward-extension setup as T030 but "abcdef" IS in the dictionary
+    test("T032: accepts word when inline extension through frozen tiles forms a valid sequence", () => {
+      // Same forward-extension setup as T030 but "abcdef" IS in the dictionary.
+      // The scanner finds both "abc" (cols 0-2) and "abcdef" (cols 0-5).
+      // "abc" is suppressed as a subword of "abcdef", so only "abcdef" scores.
+      // "abcdef" contains opponent-frozen tiles (cols 3-5) so opponentFrozenKeys is populated.
       const customDict = new Set(["abc", "def", "abcdef"]);
 
       const boardBefore = emptyBoard();
@@ -363,8 +366,53 @@ describe("deltaDetector", () => {
         playerBId: PLAYER_B,
       });
 
-      // "abc" + frozen "def" = "abcdef" IS in dict → no inline violation → "abc" scores
-      expect(result.find((w) => w.text === "abc")).toBeDefined();
+      // "abcdef" scores (not rejected for containing opponent tiles)
+      const scored = result.find((w) => w.text === "abcdef");
+      expect(scored).toBeDefined();
+      // Opponent-frozen keys cover the "def" portion (cols 3-5)
+      expect(scored!.opponentFrozenKeys).toEqual(new Set(["3,0", "4,0", "5,0"]));
+      // "abc" is suppressed as a strict subword of "abcdef"
+      expect(result.find((w) => w.text === "abc")).toBeUndefined();
+    });
+
+    test("T034: scores word that contains opponent-frozen tiles (no longer rejected)", () => {
+      // Player B places tiles to create "abcdef" where "abc" (cols 0-2) are
+      // frozen by player_a. The word is valid → Player B should score with
+      // opponentFrozenKeys covering the "abc" portion.
+      const customDict = new Set(["abcdef", "def"]);
+
+      const boardBefore = emptyBoard();
+      // Before: "abc" already on board (frozen), "fed" at cols 3-5 (wrong order)
+      boardBefore[0][0] = "a"; boardBefore[0][1] = "b"; boardBefore[0][2] = "c";
+      boardBefore[0][3] = "f"; boardBefore[0][4] = "e"; boardBefore[0][5] = "d";
+
+      const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+      boardAfter[0][3] = "d"; boardAfter[0][5] = "f"; // Player B swaps (3,0) ↔ (5,0)
+
+      const frozenTiles: FrozenTileMap = {
+        "0,0": { owner: "player_a" },
+        "1,0": { owner: "player_a" },
+        "2,0": { owner: "player_a" },
+      };
+
+      const result = detectNewWords({
+        boardBefore,
+        boardAfter,
+        dictionary: customDict,
+        acceptedMoves: [
+          { playerId: PLAYER_B, fromX: 3, fromY: 0, toX: 5, toY: 0 },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // "abcdef" must now score (no longer rejected for containing opponent tiles)
+      const scored = result.find((w) => w.text === "abcdef");
+      expect(scored).toBeDefined();
+      expect(scored!.playerId).toBe(PLAYER_B);
+      // opponentFrozenKeys covers the "abc" portion (cols 0-2, frozen by player_a)
+      expect(scored!.opponentFrozenKeys).toEqual(new Set(["0,0", "1,0", "2,0"]));
     });
 
     test("T033: rejects new vertical word that extends downward into frozen tiles forming an invalid sequence", () => {
