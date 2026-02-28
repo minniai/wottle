@@ -99,9 +99,9 @@
 
 **Purpose**: Verify zero regressions, confirm zero-warnings policy, add E2E coverage.
 
-- [ ] T010 [P] Run `pnpm lint && pnpm typecheck && pnpm test:unit` from repo root — fix any TypeScript errors (e.g., `CSSProperties` type for `--highlight-color` custom property), lint warnings (zero-warnings policy), or unit test regressions introduced by the `BoardGrid` prop changes or `MatchClient` state additions; confirm all 330+ existing tests still pass
+- [x] T010 [P] Run `pnpm lint && pnpm typecheck && pnpm test:unit` from repo root — fix any TypeScript errors (e.g., `CSSProperties` type for `--highlight-color` custom property), lint warnings (zero-warnings policy), or unit test regressions introduced by the `BoardGrid` prop changes or `MatchClient` state additions; confirm all 330+ existing tests still pass
 
-- [ ] T011 [P] Write E2E test in `tests/integration/ui/board-ui.spec.ts` — add a test that completes a round where Player A scores a word; assert that within 200ms of round resolution, at least one tile has the `board-grid__cell--scored` class and its computed `--highlight-color` CSS variable is set to the Player A highlight color; assert that the `RoundSummaryPanel` (`data-testid="round-summary-panel"` or equivalent) is NOT visible during the 700ms highlight window; assert that the `RoundSummaryPanel` IS visible within 1200ms of round resolution (after highlight clears)
+- [x] T011 [P] Write E2E test in `tests/integration/ui/board-ui.spec.ts` — add a test that completes a round where Player A scores a word; assert that within 200ms of round resolution, at least one tile has the `board-grid__cell--scored` class and its computed `--highlight-color` CSS variable is set to the Player A highlight color; assert that the `RoundSummaryPanel` (`data-testid="round-summary-panel"` or equivalent) is NOT visible during the 700ms highlight window; assert that the `RoundSummaryPanel` IS visible within 1200ms of round resolution (after highlight clears)
 
 ---
 
