@@ -33,8 +33,10 @@ interface BoardGridProps {
   playerSlot?: "player_a" | "player_b";
   /** Tile coordinates of scored words for highlight animation (FR-020). Shown for highlightDurationMs. */
   scoredTileHighlights?: Coordinate[][];
-  /** Duration to show scored tile highlights in ms. Default 3000. */
+  /** Duration to show scored tile highlights in ms. Default 800. */
   highlightDurationMs?: number;
+  /** Per-tile highlight color map for player-attributed glow. Keys are "x,y" strings, values are CSS color strings. */
+  highlightPlayerColors?: Record<string, string>;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -133,7 +135,8 @@ export function BoardGrid({
   frozenTiles = {},
   playerSlot,
   scoredTileHighlights = EMPTY_HIGHLIGHTS,
-  highlightDurationMs = 3000,
+  highlightDurationMs = 800,
+  highlightPlayerColors = {},
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
@@ -150,6 +153,7 @@ export function BoardGrid({
       playerSlot={playerSlot}
       scoredTileHighlights={scoredTileHighlights}
       highlightDurationMs={highlightDurationMs}
+      highlightPlayerColors={highlightPlayerColors}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
     />
@@ -163,7 +167,8 @@ function BoardGridActive({
   frozenTiles = {},
   playerSlot,
   scoredTileHighlights = EMPTY_HIGHLIGHTS,
-  highlightDurationMs = 3000,
+  highlightDurationMs = 800,
+  highlightPlayerColors = {},
   onSwapComplete,
   onSwapError,
 }: BoardGridProps & { grid: BoardGridType }) {
@@ -447,6 +452,13 @@ function BoardGridActive({
                   : { backgroundColor: FROZEN_COLORS[frozenOwner ?? "player_a"] }
                 : undefined;
 
+              const highlightColor = isScoredHighlight
+                ? highlightPlayerColors[tileKey]
+                : undefined;
+              const tileStyle: CSSProperties | undefined = highlightColor
+                ? { ...frozenStyle, "--highlight-color": highlightColor } as CSSProperties
+                : frozenStyle;
+
               return (
                 <button
                   key={`cell-${rowIndex}-${colIndex}`}
@@ -473,7 +485,7 @@ function BoardGridActive({
                   data-frozen-owner={isTileFrozen ? frozenOwner : undefined}
                   disabled={isSubmitting}
                   onClick={() => handleTileClick(rowIndex, colIndex)}
-                  style={frozenStyle}
+                  style={tileStyle}
                 >
                   <span className="board-grid__tile" aria-hidden="true">
                     {letter}
