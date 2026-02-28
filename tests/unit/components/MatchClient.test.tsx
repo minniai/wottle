@@ -489,3 +489,82 @@ describe("MatchClient animation phase machine (US2)", () => {
     expect(tiles[2 * 10 + 1]).toHaveClass("board-grid__cell--scored");
   });
 });
+
+// ─── MatchClient reduced-motion bypass tests (US3) ───────────────────────────
+
+describe("MatchClient reduced-motion bypass (US3)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockMatchCallbacks.onSummary = null;
+    // Mock window.matchMedia to simulate prefers-reduced-motion: reduce
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: (query: string) => ({
+        matches: query === "(prefers-reduced-motion: reduce)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }),
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    // Restore matchMedia to undefined for other tests
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: undefined,
+    });
+  });
+
+  test("RoundSummaryPanel renders immediately when prefers-reduced-motion is active (no 800ms wait)", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    act(() => {
+      mockMatchCallbacks.onSummary!(mockRoundSummary);
+    });
+
+    // With reduced motion: panel should be visible immediately (no 800ms wait needed)
+    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+  });
+
+  test("animationPhase transitions directly to showing-summary without highlighting when reduced motion is active", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    act(() => {
+      mockMatchCallbacks.onSummary!(mockRoundSummary);
+    });
+
+    // Panel is visible without advancing timers — confirms no 800ms gate
+    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+
+    // No tiles should have board-grid__cell--scored class (highlighting phase skipped)
+    const scoredTiles = document.querySelectorAll(".board-grid__cell--scored");
+    expect(scoredTiles).toHaveLength(0);
+  });
+});
