@@ -19,7 +19,7 @@ This feature introduces a centralized code-based game configuration (`GameConfig
 **Project Type**: Web Application
 **Performance Goals**: Word validation <50ms server-side (per Constitution SLA)
 **Constraints**: Must maintain existing scoring mechanism
-**Scale/Scope**: Core Game Engine overhaul affecting `board.ts`, `validator.ts`, `scorer.ts`
+**Scale/Scope**: Core Game Engine overhaul affecting `board.ts`, `deltaDetector.ts`, `word-finder.ts`, `wordEngine.ts`
 
 ## Constitution Check
 
@@ -54,13 +54,15 @@ app/
 
 lib/
 ├── constants/
-│   └── game-config.ts   # NEW: Centralized defaults
+│   └── game-config.ts      # NEW: Centralized defaults (DEFAULT_GAME_CONFIG)
 ├── game-engine/
-│   ├── board.ts         # MODIFIED: Orthogonal validation
-│   ├── scorer.ts        # MODIFIED: Score all cross-words
-│   └── word-finder.ts   # MODIFIED: Scrabble adjacency
+│   ├── board.ts            # MODIFIED: Uses GameConfig for board size
+│   ├── deltaDetector.ts    # MODIFIED: Scrabble adjacency + partial scoring (opponentFrozenKeys)
+│   ├── word-finder.ts      # MODIFIED: Orthogonal extraction + hasCrossWordViolation
+│   └── wordEngine.ts       # MODIFIED: scoreAttributedWords uses opponentFrozenKeys
 └── types/
-    └── index.ts         # MODIFIED: Add GameConfig, MoveEvaluation interfaces
+    ├── index.ts            # MODIFIED: Add GameConfig interface
+    └── board.ts            # MODIFIED: BoardWord, ScanResult (orthogonal directions only)
 
 tests/
 ├── unit/
