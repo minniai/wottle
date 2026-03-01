@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
-import type { BoardGrid as BoardGridType } from "@/lib/types/board";
+import type { BoardGrid as BoardGridType, Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
 import {
   BOARD_SIZE,
@@ -12,6 +12,8 @@ import {
   PLAYER_A_OVERLAY,
   PLAYER_B_OVERLAY,
   BOTH_GRADIENT,
+  PLAYER_A_HIGHLIGHT,
+  PLAYER_B_HIGHLIGHT,
 } from "@/lib/constants/playerColors";
 
 function createGrid(): BoardGridType {
@@ -472,6 +474,145 @@ describe("BoardGrid component", () => {
         expect(cell).toHaveTextContent(grid[rowIndex][colIndex]);
       });
     });
+  });
+});
+
+describe("BoardGrid scored tile highlights with player colors (US7)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("tile in scoredTileHighlights with matching highlightPlayerColors receives scored class and --highlight-color CSS var", () => {
+    const grid = createGrid();
+    // col=2, row=3 → tileKey="2,3"
+    const scoredTileHighlights: Coordinate[][] = [[{ x: 2, y: 3 }]];
+    const highlightPlayerColors = { "2,3": PLAYER_A_HIGHLIGHT };
+
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        scoredTileHighlights={scoredTileHighlights}
+        highlightPlayerColors={highlightPlayerColors}
+        highlightDurationMs={800}
+      />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[3 * BOARD_SIZE + 2];
+    expect(tile).toHaveClass("board-grid__cell--scored");
+    expect(tile.style.getPropertyValue("--highlight-color")).toBe(PLAYER_A_HIGHLIGHT);
+  });
+
+  test("tile in scoredTileHighlights but absent from highlightPlayerColors receives scored class only (no --highlight-color)", () => {
+    const grid = createGrid();
+    const scoredTileHighlights: Coordinate[][] = [[{ x: 1, y: 2 }]];
+    const highlightPlayerColors: Record<string, string> = {};
+
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        scoredTileHighlights={scoredTileHighlights}
+        highlightPlayerColors={highlightPlayerColors}
+        highlightDurationMs={800}
+      />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[2 * BOARD_SIZE + 1];
+    expect(tile).toHaveClass("board-grid__cell--scored");
+    expect(tile.style.getPropertyValue("--highlight-color")).toBe("");
+  });
+
+  test("tile not in scoredTileHighlights receives neither board-grid__cell--scored class nor --highlight-color", () => {
+    const grid = createGrid();
+    const scoredTileHighlights: Coordinate[][] = [[{ x: 5, y: 5 }]];
+    const highlightPlayerColors = { "5,5": PLAYER_B_HIGHLIGHT };
+
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        scoredTileHighlights={scoredTileHighlights}
+        highlightPlayerColors={highlightPlayerColors}
+        highlightDurationMs={800}
+      />,
+    );
+
+    // tile at col=0, row=0 — not in scoredTileHighlights
+    const tile = screen.getAllByTestId("board-tile")[0];
+    expect(tile).not.toHaveClass("board-grid__cell--scored");
+    expect(tile.style.getPropertyValue("--highlight-color")).toBe("");
+  });
+
+  test("multiple word groups all highlight simultaneously in one render", () => {
+    const grid = createGrid();
+    const scoredTileHighlights: Coordinate[][] = [
+      [{ x: 0, y: 0 }, { x: 1, y: 0 }], // word 1: col=0,1 row=0
+      [{ x: 5, y: 5 }, { x: 6, y: 5 }], // word 2: col=5,6 row=5
+    ];
+    const highlightPlayerColors = {
+      "0,0": PLAYER_A_HIGHLIGHT,
+      "1,0": PLAYER_A_HIGHLIGHT,
+      "5,5": PLAYER_B_HIGHLIGHT,
+      "6,5": PLAYER_B_HIGHLIGHT,
+    };
+
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        scoredTileHighlights={scoredTileHighlights}
+        highlightPlayerColors={highlightPlayerColors}
+        highlightDurationMs={800}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // word 1 tiles (Player A — blue)
+    expect(tiles[0 * BOARD_SIZE + 0]).toHaveClass("board-grid__cell--scored");
+    expect(tiles[0 * BOARD_SIZE + 1]).toHaveClass("board-grid__cell--scored");
+    expect(tiles[0 * BOARD_SIZE + 0].style.getPropertyValue("--highlight-color")).toBe(PLAYER_A_HIGHLIGHT);
+    // word 2 tiles (Player B — red)
+    expect(tiles[5 * BOARD_SIZE + 5]).toHaveClass("board-grid__cell--scored");
+    expect(tiles[5 * BOARD_SIZE + 6]).toHaveClass("board-grid__cell--scored");
+    expect(tiles[5 * BOARD_SIZE + 5].style.getPropertyValue("--highlight-color")).toBe(PLAYER_B_HIGHLIGHT);
+  });
+
+  test("board-grid__cell--scored class is removed from all tiles after highlightDurationMs", async () => {
+    const grid = createGrid();
+    const scoredTileHighlights: Coordinate[][] = [[{ x: 2, y: 2 }, { x: 3, y: 2 }]];
+    const highlightPlayerColors = {
+      "2,2": PLAYER_A_HIGHLIGHT,
+      "3,2": PLAYER_A_HIGHLIGHT,
+    };
+
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        scoredTileHighlights={scoredTileHighlights}
+        highlightPlayerColors={highlightPlayerColors}
+        highlightDurationMs={800}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    const tile1 = tiles[2 * BOARD_SIZE + 2];
+    const tile2 = tiles[2 * BOARD_SIZE + 3];
+    expect(tile1).toHaveClass("board-grid__cell--scored");
+    expect(tile2).toHaveClass("board-grid__cell--scored");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(801);
+    });
+
+    expect(tile1).not.toHaveClass("board-grid__cell--scored");
+    expect(tile2).not.toHaveClass("board-grid__cell--scored");
   });
 });
 

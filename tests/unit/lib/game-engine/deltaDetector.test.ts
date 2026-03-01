@@ -544,6 +544,83 @@ describe("deltaDetector", () => {
     });
   });
 
+  test("T038: suppresses suffix-overlap word when union span is not a valid dictionary word", () => {
+    // boardBefore col 0: k(y=0) l(y=1) a(y=2) x(y=3) a(y=4) s(y=5)
+    // Player A swaps (0,3)↔(0,5): col 0 becomes k l a s a x
+    // → "klasa" (y=0..4) and "sax" (y=3..5) both found after swap.
+    // Neither is a strict subword of the other; union "klasax" ∉ dict.
+    // Only "klasa" (earlier start) should score; "sax" must be suppressed.
+    const customDict = new Set(["klasa", "sax"]);
+
+    const boardBefore = emptyBoard();
+    boardBefore[0][0] = "k";
+    boardBefore[1][0] = "l";
+    boardBefore[2][0] = "a";
+    boardBefore[3][0] = "x";
+    boardBefore[4][0] = "a";
+    boardBefore[5][0] = "s";
+
+    const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+    boardAfter[3][0] = "s";
+    boardAfter[5][0] = "x";
+
+    const result = detectNewWords({
+      boardBefore,
+      boardAfter,
+      dictionary: customDict,
+      acceptedMoves: [{ playerId: PLAYER_A, fromX: 0, fromY: 3, toX: 0, toY: 5 }],
+      frozenTiles: EMPTY_FROZEN,
+      playerAId: PLAYER_A,
+      playerBId: PLAYER_B,
+    });
+
+    const klasa = result.find((w) => w.text === "klasa" && w.direction === "down");
+    const sax = result.find((w) => w.text === "sax" && w.direction === "down");
+
+    expect(klasa).toBeDefined();
+    expect(klasa!.playerId).toBe(PLAYER_A);
+    // "sax" shares tiles with "klasa"; union "klasax" ∉ dict → "sax" suppressed
+    expect(sax).toBeUndefined();
+  });
+
+  test("T039: suppresses opposite-direction word when same-row union span is not a valid dictionary word", () => {
+    // boardBefore row 0: e(x=0) b(x=1) c(x=2) d(x=3) a(x=4)
+    // Player A swaps (0,0)↔(4,0): row 0 becomes a b c d e
+    // → "abc" (right, x=0..2) and "edc" (left, x=4→3→2) both found after swap.
+    // They share tile c at (2,0). Union "abcde" ∉ dict.
+    // "edc" left (min_x=2 > 0) must be suppressed; only "abc" right scores.
+    const customDict = new Set(["abc", "edc"]);
+
+    const boardBefore = emptyBoard();
+    boardBefore[0][0] = "e";
+    boardBefore[0][1] = "b";
+    boardBefore[0][2] = "c";
+    boardBefore[0][3] = "d";
+    boardBefore[0][4] = "a";
+
+    const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+    boardAfter[0][0] = "a";
+    boardAfter[0][4] = "e";
+
+    const result = detectNewWords({
+      boardBefore,
+      boardAfter,
+      dictionary: customDict,
+      acceptedMoves: [{ playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 4, toY: 0 }],
+      frozenTiles: EMPTY_FROZEN,
+      playerAId: PLAYER_A,
+      playerBId: PLAYER_B,
+    });
+
+    const abc = result.find((w) => w.text === "abc" && w.direction === "right");
+    const edc = result.find((w) => w.text === "edc" && w.direction === "left");
+
+    expect(abc).toBeDefined();
+    expect(abc!.playerId).toBe(PLAYER_A);
+    // "edc" shares tile c at (2,0) with "abc"; union "abcde" ∉ dict → "edc" suppressed
+    expect(edc).toBeUndefined();
+  });
+
   test("should handle both players forming words in same round", () => {
     const boardBefore = emptyBoard();
     // After Player A's swap: "hestur" at row 0

@@ -1,6 +1,7 @@
 import type {
   BoardGrid,
   BoardWord,
+  Coordinate,
 } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
 import { scanBoard } from "./boardScanner";
@@ -241,6 +242,100 @@ function removeSubwords<T extends BoardWord>(words: T[]): T[] {
 }
 
 /**
+ * Build the NFC-normalized lowercase text of the union span of two colinear
+ * overlapping words. Tiles are sorted in the word's reading direction.
+ * Returns null for diagonal or mismatched directions.
+ */
+function buildUnionText(
+  a: BoardWord,
+  b: BoardWord,
+  board: BoardGrid,
+): string | null {
+  const aIsHorizontal = a.direction === "right" || a.direction === "left";
+  const bIsHorizontal = b.direction === "right" || b.direction === "left";
+  if (aIsHorizontal !== bIsHorizontal) return null;
+  const seen = new Set<string>();
+  const union: Coordinate[] = [];
+  for (const t of [...a.tiles, ...b.tiles]) {
+    const k = `${t.x},${t.y}`;
+    if (!seen.has(k)) {
+      seen.add(k);
+      union.push(t);
+    }
+  }
+  // Sort by physical position (ascending) so the text reads left-to-right or top-to-bottom.
+  if (aIsHorizontal) {
+    union.sort((p, q) => p.x - q.x);
+  } else {
+    union.sort((p, q) => p.y - q.y);
+  }
+  return union.map((t) => board[t.y][t.x]).join("").normalize("NFC").toLowerCase();
+}
+
+/**
+ * Returns true when `candidate` starts later in reading order than `other`
+ * (i.e. candidate is the suffix / tail word in the overlap).
+ */
+function startsLater(candidate: BoardWord, other: BoardWord): boolean {
+  if (candidate.direction === other.direction) {
+    switch (candidate.direction) {
+      case "right": return candidate.start.x > other.start.x;
+      case "left":  return candidate.start.x < other.start.x;
+      case "down":  return candidate.start.y > other.start.y;
+      case "up":    return candidate.start.y < other.start.y;
+      default: return false;
+    }
+  }
+  // Cross-direction on the same axis: compare physical minimum coordinate.
+  const candIsHorizontal = candidate.direction === "right" || candidate.direction === "left";
+  if (candIsHorizontal) {
+    const candMinX = Math.min(...candidate.tiles.map((t) => t.x));
+    const otherMinX = Math.min(...other.tiles.map((t) => t.x));
+    return candMinX > otherMinX;
+  }
+  const candMinY = Math.min(...candidate.tiles.map((t) => t.y));
+  const otherMinY = Math.min(...other.tiles.map((t) => t.y));
+  return candMinY > otherMinY;
+}
+
+/**
+ * Remove words that suffix-overlap another word in the same candidate list
+ * such that their union span is not a dictionary word.
+ *
+ * Example: "klasa" (y=0..4) and "sax" (y=3..5) share tiles S,A.
+ * Union "klasax" ∉ dict → "sax" (later-starting) is suppressed.
+ *
+ * If the union IS in the dictionary, `removeSubwords` already handles it
+ * (both shorter words are strict sub-words of the longer combined word).
+ */
+function removeSuffixOverlaps<T extends BoardWord>(
+  words: T[],
+  board: BoardGrid,
+  dictionary: Set<string>,
+): T[] {
+  return words.filter((candidate) => {
+    const candIsHorizontal = candidate.direction === "right" || candidate.direction === "left";
+    for (const other of words) {
+      if (other === candidate) continue;
+      const otherIsHorizontal = other.direction === "right" || other.direction === "left";
+      // Only compare words on the same axis (both horizontal or both vertical).
+      if (candIsHorizontal !== otherIsHorizontal) continue;
+      if (!startsLater(candidate, other)) continue;
+
+      const otherKeys = new Set(other.tiles.map((t) => `${t.x},${t.y}`));
+      const hasOverlap = candidate.tiles.some((t) => otherKeys.has(`${t.x},${t.y}`));
+      if (!hasOverlap) continue;
+
+      const combined = buildUnionText(candidate, other, board);
+      if (combined === null) continue;
+      const combinedReversed = [...combined].reverse().join("");
+      if (!dictionary.has(combined) && !dictionary.has(combinedReversed)) return false;
+    }
+    return true;
+  });
+}
+
+/**
  * Return the set of "x,y" keys for tiles in `word` that are frozen by the opponent.
  * Tiles owned by "both" are NOT included — both players may score through them freely.
  */
@@ -369,14 +464,19 @@ export function detectNewWords(params: {
     // Phase 2: suppress sub-words — only the longest word in each tile run scores.
     const accepted = removeSubwords(candidates);
 
+    // Phase 2a: suppress suffix-prefix overlaps — when two words share tiles at a
+    // suffix/prefix boundary and their union is not a dictionary word, keep only
+    // the earlier-starting word.
+    const overlapFiltered = removeSuffixOverlaps(accepted, board, dictionary);
+
     // Phase 2.5: cross-validate same-round words against each other.
     // A word is invalid if any tile it contains, together with an adjacent tile
     // from another accepted same-round word, forms an invalid cross-sequence.
     // This catches adjacent parallel words (e.g. two vertical words side-by-side)
     // that produce invalid horizontal junctions between them.
-    const crossValidated = accepted.filter((word) => {
+    const crossValidated = overlapFiltered.filter((word) => {
       const otherTiles = new Set<string>(extraTileSet);
-      for (const other of accepted) {
+      for (const other of overlapFiltered) {
         if (other === word) continue;
         for (const tile of other.tiles) {
           otherTiles.add(`${tile.x},${tile.y}`);
