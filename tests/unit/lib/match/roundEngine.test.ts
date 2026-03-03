@@ -602,6 +602,115 @@ describe("roundEngine.advanceRound", () => {
         );
     });
 
+    // T028: ends match immediately when both timers deduct to 0 after round resolves
+    it("T028: ends match with 'timeout' when both timers deduct to 0 after round resolves", async () => {
+        const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
+        vi.mocked(completeMatchInternal).mockClear();
+
+        const roundStart = new Date("2026-01-01T00:00:00.000Z");
+        // B's timer is 500ms; B submitted at exactly the 500ms mark → deducts to 0
+        const bSubmittedAt = new Date(roundStart.getTime() + 500).toISOString();
+
+        setupSupabase(
+            [
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: bSubmittedAt,
+                    status: "pending",
+                },
+            ],
+            { player_a_timer_ms: 0, player_b_timer_ms: 500 }, // A already exhausted, B uses last 500ms
+            { started_at: roundStart.toISOString() },
+        );
+
+        const result = await advanceRound("match-1");
+
+        // Both timers deduct to 0 → must complete with "timeout", not create a zombie round
+        expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "timeout");
+        expect(roundsInsert).not.toHaveBeenCalled();
+        expect(result).toMatchObject({ status: "advanced", isGameOver: true });
+    });
+
+    // T028b: game continues when only one timer is exhausted
+    it("T028b: continues match when only player-a timer is exhausted after round resolves", async () => {
+        const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
+        vi.mocked(completeMatchInternal).mockClear();
+
+        const roundStart = new Date("2026-01-01T00:00:00.000Z");
+        // B submitted at 200ms, B timer is 1000ms → 800ms remaining after deduction
+        const bSubmittedAt = new Date(roundStart.getTime() + 200).toISOString();
+
+        setupSupabase(
+            [
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: bSubmittedAt,
+                    status: "pending",
+                },
+            ],
+            { player_a_timer_ms: 0, player_b_timer_ms: 1000 },
+            { started_at: roundStart.toISOString() },
+        );
+
+        await advanceRound("match-1");
+
+        // B still has 800ms → game must not end with "timeout"
+        expect(completeMatchInternal).not.toHaveBeenCalledWith(expect.anything(), "timeout");
+        expect(roundsInsert).toHaveBeenCalled();
+    });
+
+    // T028c: round_limit takes precedence over bothTimersExhausted on round 10
+    it("T028c: uses 'round_limit' reason when round 10 ends with both timers deducting to 0", async () => {
+        const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
+        vi.mocked(completeMatchInternal).mockClear();
+
+        const roundStart = new Date("2026-01-01T00:00:00.000Z");
+        const aSubmittedAt = new Date(roundStart.getTime() + 300_000).toISOString();
+        const bSubmittedAt = new Date(roundStart.getTime() + 300_000).toISOString();
+
+        setupSupabase(
+            [
+                {
+                    id: "sub-a",
+                    player_id: "player-a",
+                    from_x: 0,
+                    from_y: 0,
+                    to_x: 0,
+                    to_y: 1,
+                    submitted_at: aSubmittedAt,
+                    status: "pending",
+                },
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: bSubmittedAt,
+                    status: "pending",
+                },
+            ],
+            { current_round: 10, player_a_timer_ms: 300_000, player_b_timer_ms: 300_000 },
+            { started_at: roundStart.toISOString() },
+        );
+
+        await advanceRound("match-1");
+
+        // round_limit takes precedence over timer exhaustion
+        expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "round_limit");
+    });
+
     // T020: timer deduction after round resolves
     it("T020: deducts elapsed time from player timers after round resolves", async () => {
         const roundStart = new Date("2026-02-25T10:00:00Z");

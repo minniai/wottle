@@ -309,7 +309,8 @@ export async function advanceRound(matchId: string) {
 
     // 12. Advance to next round
     const nextRound = currentRound + 1;
-    const isGameOver = nextRound > 10;
+    const bothTimersExhausted = newPlayerATimerMs === 0 && newPlayerBTimerMs === 0;
+    const isGameOver = nextRound > 10 || bothTimersExhausted;
 
     // 13. Create next round if not game over
     if (!isGameOver) {
@@ -364,8 +365,9 @@ export async function advanceRound(matchId: string) {
     }
 
     if (isGameOver) {
+        const endReason = nextRound > 10 ? "round_limit" : "timeout";
         try {
-            await completeMatchInternal(matchId, "round_limit");
+            await completeMatchInternal(matchId, endReason);
         } catch (error) {
             console.error("[MatchState] Failed to finalize match:", error);
         }
