@@ -621,6 +621,46 @@ describe("deltaDetector", () => {
     expect(edc).toBeUndefined();
   });
 
+  test("T040: scores valid word when adjacent frozen tiles from a prior round would form an invalid cross-word", () => {
+    // "abc" (down) at column 0 rows 0-2 is newly formed by Player A's swap.
+    // A frozen tile "d" at (1,1) sits immediately to the right of "b" at (0,1),
+    // left over from an unrelated prior-round horizontal word.
+    // Cross-sequence "bd" ∉ dict, but this should NOT reject "abc" — frozen tiles
+    // from prior unrelated words are not cross-word junctions for the new word.
+    const customDict = new Set(["abc"]);
+
+    const boardBefore = emptyBoard();
+    boardBefore[0][0] = "a";
+    boardBefore[1][0] = "x"; // x ↔ b swap creates "abc" at col 0
+    boardBefore[2][0] = "c";
+    boardBefore[1][5] = "b"; // b is swapped to (0,1)
+    boardBefore[1][1] = "d"; // frozen from prior round — unrelated to "abc"
+
+    const boardAfter = boardBefore.map((row) => [...row]) as BoardGrid;
+    boardAfter[1][0] = "b";
+    boardAfter[1][5] = "x";
+
+    const frozenTiles: FrozenTileMap = {
+      "1,1": { owner: "player_b" },
+    };
+
+    const result = detectNewWords({
+      boardBefore,
+      boardAfter,
+      dictionary: customDict,
+      acceptedMoves: [{ playerId: PLAYER_A, fromX: 0, fromY: 1, toX: 5, toY: 1 }],
+      frozenTiles,
+      playerAId: PLAYER_A,
+      playerBId: PLAYER_B,
+    });
+
+    // "abc" must score: the adjacent frozen tile "d" is from an unrelated prior-round word
+    // and must not be treated as a cross-word junction blocking the new word.
+    const abc = result.find((w) => w.text === "abc" && w.direction === "down");
+    expect(abc).toBeDefined();
+    expect(abc!.playerId).toBe(PLAYER_A);
+  });
+
   test("should handle both players forming words in same round", () => {
     const boardBefore = emptyBoard();
     // After Player A's swap: "hestur" at row 0

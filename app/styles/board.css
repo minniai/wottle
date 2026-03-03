@@ -1,5 +1,7 @@
 .board-grid__wrapper {
-  --chrome-height: 120px;
+  /* Accounts for root header (~80px) + layout padding (112px) + both chrome bars (~88px).
+     Total non-board overhead ≈ 280px. Formula subtracts 2rem separately, so 260px here. */
+  --chrome-height: 260px;
   --board-max: min(
     calc(100dvh - var(--chrome-height) - 2rem),
     calc(100vw - 2rem)
@@ -10,6 +12,10 @@
   gap: 0.75rem;
   width: var(--board-max);
   max-width: var(--board-max);
+  /* Explicit height fixes Safari's aspect-ratio bug on flex containers
+     (aspect-ratio alone doesn't constrain height for display:flex in WebKit). */
+  height: var(--board-max);
+  max-height: var(--board-max);
   aspect-ratio: 1;
 }
 
@@ -19,8 +25,13 @@
   --board-size: 12;
   display: grid;
   grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
+  /* Explicit row tracks prevent sub-pixel accumulation: 10 rows × rounding error
+     can exceed the wrapper height, causing clipping or overflow.  1fr rows are
+     computed directly from the grid's height rather than accumulated from cells. */
+  grid-template-rows: repeat(var(--board-size), 1fr);
   gap: var(--board-grid-gap);
   width: 100%;
+  height: 100%;
   padding: clamp(0.75rem, 1.0vw, 1.0rem);
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
@@ -248,7 +259,7 @@
 
 @media (max-width: 768px) {
   .board-grid__wrapper {
-    --chrome-height: 140px;
+    --chrome-height: 280px;
   }
 
   .board-grid {
@@ -259,7 +270,7 @@
 
 @media (max-width: 480px) {
   .board-grid__wrapper {
-    --chrome-height: 160px;
+    --chrome-height: 300px;
     overflow-x: auto;
   }
 

@@ -455,7 +455,11 @@ export function detectNewWords(params: {
       ) continue;
       if (excludeKeys.has(wordKey(word))) continue;
       if (reportedKeys.has(wordKey(word))) continue;
-      if (hasCrossWordViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;
+      // Cross-word violations are only checked against same-round tiles (extraTileSet).
+      // Frozen tiles from prior rounds are NOT cross-word junctions — they belong to
+      // unrelated previously-scored words and must not block valid new standalone words.
+      // Inline extension violations (same axis as the word) still use frozenTileSet.
+      if (hasCrossWordViolation(board, word, new Set(), dictionary, extraTileSet)) continue;
       if (hasInlineExtensionViolation(board, word, frozenTileSet, dictionary, extraTileSet)) continue;
       const opponentFrozenKeys = getOpponentFrozenKeys(word, frozenTiles, playerSlot);
       candidates.push({ ...word, playerId: pId, opponentFrozenKeys });
@@ -482,7 +486,7 @@ export function detectNewWords(params: {
           otherTiles.add(`${tile.x},${tile.y}`);
         }
       }
-      return !hasCrossWordViolation(board, word, frozenTileSet, dictionary, otherTiles);
+      return !hasCrossWordViolation(board, word, new Set(), dictionary, otherTiles);
     });
 
     // Phase 3: register and return.
