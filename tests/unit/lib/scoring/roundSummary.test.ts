@@ -15,14 +15,14 @@ describe("roundSummary scoring utilities", () => {
     const result = calculateWordScore("mist", coordinates);
 
     // PRD formula: bonusPoints = (length - 2) * 5 = (4-2)*5 = 10
-    // M=2, I=1, S=1, T=1 → lettersPoints = 5
+    // M=2, I=1, S=1, T=2 → lettersPoints = 6
     expect(result).toEqual(
       expect.objectContaining({
         word: "mist",
         length: 4,
-        lettersPoints: 5,
+        lettersPoints: 6,
         bonusPoints: 10,
-        totalPoints: 15,
+        totalPoints: 16,
         coordinates,
       }),
     );

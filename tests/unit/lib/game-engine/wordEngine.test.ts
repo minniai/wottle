@@ -106,12 +106,12 @@ describe("wordEngine", () => {
       (w) => w.word === "hestur",
     );
     expect(hestur).toBeDefined();
-    // H=3, E=2, S=1, T=1, U=1, R=1 = 9
-    expect(hestur!.lettersPoints).toBe(9);
+    // H=4, E=3, S=1, T=2, U=2, R=1 = 13
+    expect(hestur!.lettersPoints).toBe(13);
     // (6-2)*5 = 20
     expect(hestur!.lengthBonus).toBe(20);
-    // 9 + 20 = 29
-    expect(hestur!.totalPoints).toBe(29);
+    // 13 + 20 = 33
+    expect(hestur!.totalPoints).toBe(33);
   });
 
   test("should return zero deltas when no new words are formed", async () => {
@@ -149,9 +149,9 @@ describe("wordEngine", () => {
       playerBId: PLAYER_B,
     });
 
-    // Player A delta should include at least the "hestur" word total (29)
+    // Player A delta should include at least the "hestur" word total (33)
     // plus any other subwords that happen to be valid
-    expect(result.deltas.playerA).toBeGreaterThanOrEqual(29);
+    expect(result.deltas.playerA).toBeGreaterThanOrEqual(33);
     expect(result.deltas.playerB).toBe(0);
   });
 
