@@ -2,10 +2,7 @@
   /* Accounts for root header (~80px) + layout padding (112px) + both chrome bars (~88px).
      Total non-board overhead ≈ 280px. Formula subtracts 2rem separately, so 260px here. */
   --chrome-height: 260px;
-  --board-max: min(
-    calc(100dvh - var(--chrome-height) - 2rem),
-    calc(100vw - 2rem)
-  );
+  --board-max: min(calc(100dvh - var(--chrome-height) - 2rem), calc(100vw - 2rem));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -21,7 +18,7 @@
 
 .board-grid {
   --board-grid-gap: clamp(0.15rem, 1vw + 0.45rem, 1.15rem);
-  --board-grid-font-size: clamp(0.75rem, 1vw + 1.5rem, 3.0rem);
+  --board-grid-font-size: clamp(0.75rem, 1vw + 1.5rem, 3rem);
   --board-size: 12;
   display: grid;
   grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
@@ -32,12 +29,16 @@
   gap: var(--board-grid-gap);
   width: 100%;
   height: 100%;
-  padding: clamp(0.75rem, 1.0vw, 1.0rem);
+  padding: clamp(0.75rem, 1vw, 1rem);
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 18px 28px -24px rgba(15, 118, 255, 0.5);
+
+  transform: scale(var(--board-scale, 1));
+  transform-origin: center center;
+  touch-action: pan-y; /* Allow vertical scroll but disable native pinch-zoom */
 }
 
 .board-grid__row {
@@ -54,7 +55,11 @@
   min-width: 28px;
   border-radius: 0.65rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: radial-gradient(circle at 30% 30%, rgba(248, 250, 252, 0.14), rgba(30, 41, 59, 0.85));
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(248, 250, 252, 0.14),
+    rgba(30, 41, 59, 0.85)
+  );
   color: rgba(248, 250, 252, 0.92);
   font-weight: 600;
   font-size: var(--board-grid-font-size);
@@ -79,6 +84,21 @@
   .board-grid__cell {
     transition-duration: 0ms;
   }
+}
+
+/* US3: Responsive 44px minimum touch target regardless of board scale */
+.board-grid__cell::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Hitbox must be at least 44px when visually scaled down */
+  width: max(100%, calc(44px / var(--board-scale, 1)));
+  height: max(100%, calc(44px / var(--board-scale, 1)));
+  min-width: 44px;
+  min-height: 44px;
+  z-index: 5;
 }
 
 .board-grid__cell:hover,
@@ -139,14 +159,14 @@
   }
   28% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.30),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
       inset 0 -4px 12px rgba(15, 23, 42, 0.35),
       0 0 0 6px var(--highlight-color, transparent);
     opacity: 1;
   }
   71% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.30),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
       inset 0 -4px 12px rgba(15, 23, 42, 0.35),
       0 0 0 6px var(--highlight-color, transparent);
     opacity: 1;
@@ -278,5 +298,3 @@
     padding: clamp(0.4rem, 2.8vw, 0.6rem);
   }
 }
-
-

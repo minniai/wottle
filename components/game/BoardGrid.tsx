@@ -22,6 +22,7 @@ import {
   PLAYER_B_OVERLAY,
   BOTH_GRADIENT,
 } from "@/lib/constants/playerColors";
+import { usePinchZoom } from "@/components/game/usePinchZoom";
 
 interface BoardGridProps {
   grid?: BoardGridType;
@@ -179,6 +180,7 @@ function BoardGridActive({
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
   const [invalidTiles, setInvalidTiles] = useState<[Coordinate, Coordinate] | null>(null);
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { scale: boardScale, handleTouchStart, handleTouchMove, handleTouchEnd } = usePinchZoom(0.5, 1.5);
   const highlightsKeyRef = useRef<string>("");
   const tileRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
@@ -395,10 +397,27 @@ function BoardGridActive({
         return;
       }
 
+      // Explicit local check for frozen tiles (US1).
+      // If either tile is frozen, reject instantly without hitting the server
+      // or triggering an optimistic swap.
+      const fromKey = `${selected.x},${selected.y}`;
+      const toKey = `${coordinate.x},${coordinate.y}`;
+      if (frozenTiles[fromKey] || frozenTiles[toKey]) {
+        if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
+        setInvalidTiles([selected, coordinate]);
+        invalidTimerRef.current = setTimeout(() => {
+          setInvalidTiles(null);
+          invalidTimerRef.current = null;
+        }, 400);
+        setSelected(null);
+        // Play optional audio error cue here if ever implemented (FR-A-001)
+        return;
+      }
+
       setSelected(null);
       animateSwap(selected, coordinate);
     },
-    [animateSwap, isSubmitting, isAnimating, selected]
+    [animateSwap, isSubmitting, isAnimating, selected, frozenTiles]
   );
 
   const boardSize = useMemo(
@@ -407,7 +426,14 @@ function BoardGridActive({
   );
 
   return (
-    <div className="board-grid__wrapper">
+    <div 
+      className="board-grid__wrapper"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      style={{ "--board-scale": boardScale } as React.CSSProperties}
+    >
       <div
         data-testid="board-grid"
         role="grid"

@@ -62,15 +62,6 @@ export function GameChrome({
         {playerName}
       </span>
 
-      {position === "opponent" && moveCounter != null && (
-        <span
-          className="text-sm font-bold text-white/70"
-          data-testid="round-indicator"
-        >
-          Round {moveCounter}
-        </span>
-      )}
-
       <div className="relative" data-testid="score-container">
         <span
           className="text-xl font-bold"
@@ -96,8 +87,11 @@ export function GameChrome({
           <span className="text-xs text-yellow-400">Paused</span>
         )}
 
-        {position === "player" && moveCounter != null && (
-          <span className="font-mono text-sm text-white/60">
+        {moveCounter != null && (
+          <span 
+            className="font-mono text-sm text-white/60"
+            data-testid="move-indicator"
+          >
             M{moveCounter}
           </span>
         )}
