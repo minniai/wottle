@@ -200,21 +200,20 @@ jobs:
           pnpm quickstart 2>&1 | tee quickstart-log.ndjson
       - name: Export Supabase Docker images to cache
         if: steps.docker-cache.outputs.cache-hit != 'true'
-        continue-on-error: true
         run: |
-          AVAILABLE_GB=$(df --output=avail -BG /tmp | tail -1 | tr -d 'G ')
+          AVAILABLE_GB=$(df --output=avail -BG /tmp 2>/dev/null | tail -1 | tr -d 'G ' || echo "0")
           echo "Available disk space: ${AVAILABLE_GB}GB"
           if [ "${AVAILABLE_GB:-0}" -lt 8 ]; then
             echo "Insufficient disk space (${AVAILABLE_GB}GB) — skipping cache export"
             exit 0
           fi
           IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
+            | grep -E 'supabase|postgres|kong|gotrue|postgrest' | grep -v '<none>' || true)
           if [ -z "$IMAGES" ]; then
             echo "No matching Supabase Docker images found — skipping cache export"
             exit 0
           fi
-          docker save $IMAGES -o /tmp/supabase-docker-cache.tar
+          docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Upload quickstart log
         if: always()
         uses: actions/upload-artifact@v4
@@ -319,21 +318,20 @@ jobs:
           echo "File size: $(wc -c < .env.local) bytes"
       - name: Export Supabase Docker images to cache
         if: steps.docker-cache.outputs.cache-hit != 'true'
-        continue-on-error: true
         run: |
-          AVAILABLE_GB=$(df --output=avail -BG /tmp | tail -1 | tr -d 'G ')
+          AVAILABLE_GB=$(df --output=avail -BG /tmp 2>/dev/null | tail -1 | tr -d 'G ' || echo "0")
           echo "Available disk space: ${AVAILABLE_GB}GB"
           if [ "${AVAILABLE_GB:-0}" -lt 8 ]; then
             echo "Insufficient disk space (${AVAILABLE_GB}GB) — skipping cache export"
             exit 0
           fi
           IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
+            | grep -E 'supabase|postgres|kong|gotrue|postgrest' | grep -v '<none>' || true)
           if [ -z "$IMAGES" ]; then
             echo "No matching Supabase Docker images found — skipping cache export"
             exit 0
           fi
-          docker save $IMAGES -o /tmp/supabase-docker-cache.tar
+          docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
         uses: actions/download-artifact@v4
         with:
@@ -666,21 +664,20 @@ jobs:
           echo "File size: $(wc -c < .env.local) bytes"
       - name: Export Supabase Docker images to cache
         if: steps.docker-cache.outputs.cache-hit != 'true'
-        continue-on-error: true
         run: |
-          AVAILABLE_GB=$(df --output=avail -BG /tmp | tail -1 | tr -d 'G ')
+          AVAILABLE_GB=$(df --output=avail -BG /tmp 2>/dev/null | tail -1 | tr -d 'G ' || echo "0")
           echo "Available disk space: ${AVAILABLE_GB}GB"
           if [ "${AVAILABLE_GB:-0}" -lt 8 ]; then
             echo "Insufficient disk space (${AVAILABLE_GB}GB) — skipping cache export"
             exit 0
           fi
           IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep -E 'supabase|postgres|kong|gotrue|postgrest' || true)
+            | grep -E 'supabase|postgres|kong|gotrue|postgrest' | grep -v '<none>' || true)
           if [ -z "$IMAGES" ]; then
             echo "No matching Supabase Docker images found — skipping cache export"
             exit 0
           fi
-          docker save $IMAGES -o /tmp/supabase-docker-cache.tar
+          docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
         uses: actions/download-artifact@v4
         with:
