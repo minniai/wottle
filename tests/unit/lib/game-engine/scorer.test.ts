@@ -1,23 +1,29 @@
 import { describe, expect, test } from "vitest";
-import { calculateLetterPoints, calculateLengthBonus, calculateMoveScore } from "@/lib/game-engine/scorer";
-import type { AttributedWord } from "@/lib/game-engine/word-finder";
+import {
+  calculateLetterPoints,
+  calculateLengthBonus,
+} from "@/lib/game-engine/scorer";
 
-describe("scorer cross-word updates", () => {
-  test("calculates points appropriately for individual words", () => {
-    // We mock Icelandic values roughly, or just assert it's a number > 0
-    expect(calculateLetterPoints("cat")).toBeGreaterThan(0); 
+describe("scorer", () => {
+  test("calculates letter points for a word", () => {
+    expect(calculateLetterPoints("cat")).toBeGreaterThan(0);
   });
 
-  test("calculates score for multiple crossing words simultaneously", () => {
-    const words: AttributedWord[] = [
-      { text: "cat", displayText: "cat", direction: "right", start: { x: 0, y: 0 }, length: 3, tiles: [] },
-      { text: "car", displayText: "car", direction: "down", start: { x: 0, y: 0 }, length: 3, tiles: [] }
-    ];
+  test("calculates length bonus for 3-letter word", () => {
+    expect(calculateLengthBonus(3)).toBe(5);
+  });
 
-    const score = calculateMoveScore(words);
-    // Score should be the sum of letter points and length bonuses for BOTH words
-    const baseCat = calculateLetterPoints("cat") + calculateLengthBonus(3);
-    const baseCar = calculateLetterPoints("car") + calculateLengthBonus(3);
-    expect(score).toEqual(baseCat + baseCar);
+  test("calculates length bonus for 5-letter word", () => {
+    expect(calculateLengthBonus(5)).toBe(15);
+  });
+
+  test("2-letter word has zero length bonus (FR-004)", () => {
+    expect(calculateLengthBonus(2)).toBe(0);
+  });
+
+  test("2-letter word scores letter points only", () => {
+    const letters = calculateLetterPoints("ás");
+    expect(letters).toBeGreaterThan(0);
+    expect(calculateLengthBonus(2)).toBe(0);
   });
 });

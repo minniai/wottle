@@ -77,7 +77,6 @@ export async function publishRoundSummary(
         bonusPoints: entry.bonus_points,
         totalPoints: entry.total_points,
         coordinates: entry.tiles as Coordinate[],
-        isDuplicate: entry.is_duplicate ?? false,
     }));
 
     // 5. Aggregate round summary
@@ -118,31 +117,6 @@ export async function publishRoundSummary(
     }
 
     return summary;
-}
-
-/**
- * Build a map of player ID → set of words already scored in prior rounds for this match.
- * Used to mark duplicates so the same word scores only once per player per match.
- */
-async function getPriorScoredWordsByPlayer(
-    supabase: ReturnType<typeof getServiceRoleClient>,
-    matchId: string,
-    currentRoundId: string,
-): Promise<Record<string, Set<string>>> {
-    const { data: priorEntries } = await supabase
-        .from("word_score_entries")
-        .select("player_id, word")
-        .eq("match_id", matchId)
-        .neq("round_id", currentRoundId);
-
-    const byPlayer: Record<string, Set<string>> = {};
-    for (const row of priorEntries ?? []) {
-        const pid = row.player_id as string;
-        const word = (row.word as string).toLowerCase();
-        if (!byPlayer[pid]) byPlayer[pid] = new Set();
-        byPlayer[pid].add(word);
-    }
-    return byPlayer;
 }
 
 /**
@@ -230,7 +204,7 @@ async function persistFrozenTilesAtomically(
  * Compute word scores from board state and player moves using the word engine.
  * Called by roundEngine after applying moves.
  *
- * Pipeline: getPriorScoredWords → processRoundScoring → persist to word_score_entries → return WordScore[]
+ * Pipeline: processRoundScoring → persist to word_score_entries → return WordScore[]
  *
  * Wrapped with retry logic (FR-026): retries up to 3 times on failure.
  * On exhaustion, cancels the match and broadcasts error to both players.
@@ -240,8 +214,7 @@ export async function computeWordScoresForRound(
     roundId: string,
     roundNumber: number,
     boardBefore: BoardGrid,
-    boardAfter: BoardGrid,
-    acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number }>,
+    acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number; created_at: string }>,
     playerAId: string,
     playerBId: string,
     frozenTiles: Record<string, { owner: string }> = {},
@@ -250,7 +223,7 @@ export async function computeWordScoresForRound(
         return await withRetry(
             () => executeScoringPipeline(
                 matchId, roundId, roundNumber,
-                boardBefore, boardAfter, acceptedMoves,
+                boardBefore, acceptedMoves,
                 playerAId, playerBId, frozenTiles,
             ),
             {
@@ -322,18 +295,12 @@ async function executeScoringPipeline(
     roundId: string,
     roundNumber: number,
     boardBefore: BoardGrid,
-    boardAfter: BoardGrid,
-    acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number }>,
+    acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number; created_at: string }>,
     playerAId: string,
     playerBId: string,
     frozenTiles: Record<string, { owner: string }>,
 ): Promise<WordScore[]> {
     const supabase = getServiceRoleClient();
-    const priorScoredWordsByPlayer = await getPriorScoredWordsByPlayer(
-        supabase,
-        matchId,
-        roundId,
-    );
 
     const { processRoundScoring } = await import("@/lib/game-engine/wordEngine");
 
@@ -342,18 +309,17 @@ async function executeScoringPipeline(
         roundId,
         roundNumber,
         boardBefore,
-        boardAfter,
         acceptedMoves: acceptedMoves.map((m) => ({
             playerId: m.player_id,
             fromX: m.from_x,
             fromY: m.from_y,
             toX: m.to_x,
             toY: m.to_y,
+            submittedAt: m.created_at,
         })),
         frozenTiles: frozenTiles as FrozenTileMap,
         playerAId,
         playerBId,
-        priorScoredWordsByPlayer,
     });
 
     const allBreakdowns = [...result.playerAWords, ...result.playerBWords];
@@ -373,7 +339,7 @@ async function executeScoringPipeline(
         bonus_points: bd.lengthBonus,
         total_points: bd.totalPoints,
         tiles: bd.tiles,
-        is_duplicate: bd.isDuplicate,
+        is_duplicate: false,
     }));
 
     const { error: insertError } = await supabase
@@ -403,7 +369,6 @@ async function executeScoringPipeline(
         bonusPoints: bd.lengthBonus,
         totalPoints: bd.totalPoints,
         coordinates: bd.tiles,
-        isDuplicate: bd.isDuplicate,
     }));
 }
 

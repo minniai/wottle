@@ -50,16 +50,6 @@ export function RoundSummaryPanel({
             ? summary.deltas.playerB
             : summary.deltas.playerA
         : 0;
-    const yourComboBonus = summary?.comboBonus
-        ? currentPlayerIsPlayerA
-            ? summary.comboBonus.playerA
-            : summary.comboBonus.playerB
-        : 0;
-    const opponentComboBonus = summary?.comboBonus
-        ? currentPlayerIsPlayerA
-            ? summary.comboBonus.playerB
-            : summary.comboBonus.playerA
-        : 0;
     const hasWords = words.length > 0;
 
     // Auto-dismiss timer
@@ -186,15 +176,6 @@ export function RoundSummaryPanel({
                                     <WordScoreRow key={`${word.word}-${idx}`} wordScore={word} />
                                 ))}
                             </div>
-                            {yourComboBonus > 0 && (
-                                <p
-                                    className="mt-2 text-sm text-emerald-300/90"
-                                    data-testid="round-summary-combo-bonus"
-                                >
-                                    {currentPlayerWords.filter((w) => !w.isDuplicate).length}-word
-                                    combo bonus: +{yourComboBonus}
-                                </p>
-                            )}
                         </div>
                     )}
 
@@ -212,12 +193,6 @@ export function RoundSummaryPanel({
                                     />
                                 ))}
                             </div>
-                            {opponentComboBonus > 0 && (
-                                <p className="mt-2 text-sm text-sky-300/80">
-                                    {opponentWords.filter((w) => !w.isDuplicate).length}-word combo
-                                    bonus: +{opponentComboBonus}
-                                </p>
-                            )}
                         </div>
                     )}
                 </div>
@@ -240,32 +215,22 @@ export function RoundSummaryPanel({
 }
 
 function WordScoreRow({ wordScore, isOpponent = false }: { wordScore: WordScore; isOpponent?: boolean }) {
-    const isDuplicate = wordScore.isDuplicate === true;
     const baseClasses = isOpponent
         ? "border-white/10 bg-white/5 text-white/80"
         : "border-emerald-500/30 bg-emerald-500/10 text-white";
-    const duplicateClasses = "border-white/10 bg-white/5 text-white/60 opacity-75";
 
     return (
-        <div
-            className={`rounded-lg border p-3 ${isDuplicate ? duplicateClasses : baseClasses}`}
-            data-testid={isDuplicate ? "word-previously-scored" : undefined}
-        >
+        <div className={`rounded-lg border p-3 ${baseClasses}`}>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <span className="font-mono text-lg font-bold">{wordScore.word.toUpperCase()}</span>
                     <span className="text-xs text-white/60">({wordScore.length} letters)</span>
-                    {isDuplicate && (
-                        <span className="text-xs italic text-white/70">— previously scored</span>
-                    )}
                 </div>
                 <div className="text-right">
-                    <p className="font-bold text-lg">{isDuplicate ? "0" : `+${wordScore.totalPoints}`}</p>
-                    {!isDuplicate && (
-                        <p className="text-xs text-white/60">
-                            {wordScore.lettersPoints} + {wordScore.bonusPoints} bonus
-                        </p>
-                    )}
+                    <p className="font-bold text-lg">+{wordScore.totalPoints}</p>
+                    <p className="text-xs text-white/60">
+                        {wordScore.lettersPoints} + {wordScore.bonusPoints} bonus
+                    </p>
                 </div>
             </div>
         </div>

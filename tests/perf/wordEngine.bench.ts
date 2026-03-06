@@ -11,33 +11,25 @@ const ENGINE_SLA_MS = 50;
 const BENCHMARK_RUNS = 10;
 
 /** Create a sparse board with 'hestur' at row 0, ready to be swapped. */
-function makeTestBoard(): { before: BoardGrid; after: BoardGrid } {
-  const before: BoardGrid = Array.from({ length: 10 }, () => Array(10).fill(" ")) as BoardGrid;
+function makeTestBoard(): BoardGrid {
+  const board: BoardGrid = Array.from({ length: 10 }, () => Array(10).fill(" ")) as BoardGrid;
   // Set up 'restur' at row 0, with 'h' at position 5
-  before[0][0] = "r"; before[0][1] = "e"; before[0][2] = "s";
-  before[0][3] = "t"; before[0][4] = "u"; before[0][5] = "h";
+  board[0][0] = "r"; board[0][1] = "e"; board[0][2] = "s";
+  board[0][3] = "t"; board[0][4] = "u"; board[0][5] = "h";
 
   // Set up 'land' at row 3 (separate from row 0)
-  before[3][0] = "d"; before[3][1] = "n"; before[3][2] = "a"; before[3][3] = "l";
+  board[3][0] = "d"; board[3][1] = "n"; board[3][2] = "a"; board[3][3] = "l";
 
-  const after = before.map((row) => [...row]) as BoardGrid;
-  // Player A swaps (0,0) ↔ (5,0): 'hestur' at row 0
-  after[0][0] = "h"; after[0][5] = "r";
-  // Player B swaps (0,3) ↔ (3,3): 'land' at row 3
-  after[3][0] = "l"; after[3][3] = "d";
-
-  return { before, after };
+  return board;
 }
 
 describe("word engine performance (FR-021 - <50ms SLA)", () => {
-  let dict: Set<string>;
-
   beforeAll(async () => {
-    dict = await loadDictionary();
+    await loadDictionary();
   });
 
   test(`processRoundScoring completes in under ${ENGINE_SLA_MS}ms at p95`, async () => {
-    const { before, after } = makeTestBoard();
+    const board = makeTestBoard();
     const durations: number[] = [];
 
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
@@ -45,11 +37,10 @@ describe("word engine performance (FR-021 - <50ms SLA)", () => {
       await processRoundScoring({
         matchId: MATCH_ID,
         roundId: ROUND_ID,
-        boardBefore: before,
-        boardAfter: after,
+        boardBefore: board,
         acceptedMoves: [
-          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0 },
-          { playerId: PLAYER_B, fromX: 0, fromY: 3, toX: 3, toY: 3 },
+          { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 5, toY: 0, submittedAt: "2026-01-01T00:00:00Z" },
+          { playerId: PLAYER_B, fromX: 0, fromY: 3, toX: 3, toY: 3, submittedAt: "2026-01-01T00:00:01Z" },
         ],
         frozenTiles: {},
         playerAId: PLAYER_A,

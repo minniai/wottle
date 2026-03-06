@@ -1,7 +1,6 @@
 import type { WordScore, RoundSummary, ScoreTotals } from "@/lib/types/match";
 import type { Coordinate } from "@/lib/types/board";
 import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
-import { calculateComboBonus } from "@/lib/game-engine/scorer";
 
 /**
  * Calculate points for a single word based on letters and bonuses.
@@ -49,19 +48,12 @@ export function aggregateRoundSummary(
     const playerAWords = wordScores.filter((ws) => ws.playerId === playerAId);
     const playerBWords = wordScores.filter((ws) => ws.playerId === playerBId);
 
-    // Count non-duplicate words per player for combo bonus
-    const playerANewWords = playerAWords.filter((ws) => !ws.isDuplicate).length;
-    const playerBNewWords = playerBWords.filter((ws) => !ws.isDuplicate).length;
-    const comboBonusA = calculateComboBonus(playerANewWords);
-    const comboBonusB = calculateComboBonus(playerBNewWords);
-
-    // Calculate round scores (word totals + combo bonus)
+    // Calculate round scores (pure word point sums — no combo bonus)
     const playerAScore =
-        playerAWords.reduce((sum, ws) => sum + ws.totalPoints, 0) + comboBonusA;
+        playerAWords.reduce((sum, ws) => sum + ws.totalPoints, 0);
     const playerBScore =
-        playerBWords.reduce((sum, ws) => sum + ws.totalPoints, 0) + comboBonusB;
+        playerBWords.reduce((sum, ws) => sum + ws.totalPoints, 0);
 
-    // Calculate deltas (new points this round, includes combo)
     const deltas: ScoreTotals = {
         playerA: playerAScore,
         playerB: playerBScore,
@@ -82,7 +74,6 @@ export function aggregateRoundSummary(
         words: wordScores,
         deltas,
         totals,
-        comboBonus: { playerA: comboBonusA, playerB: comboBonusB },
         highlights,
         resolvedAt: new Date().toISOString(),
     };

@@ -43,8 +43,6 @@ export interface WordHistoryRow {
   bonusPoints: number;
   /** Tile positions where the word appeared on the board */
   coordinates: Coordinate[];
-  /** True if this word was already scored by this player in a prior round */
-  isDuplicate: boolean;
 }
 
 export interface FinalSummaryProps {

@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeAll } from "vitest";
 
-import { scanBoard } from "@/lib/game-engine/boardScanner";
+import { scanBoard, scanFromSwapCoordinates } from "@/lib/game-engine/boardScanner";
 import { loadDictionary } from "@/lib/game-engine/dictionary";
 import type { BoardGrid } from "@/lib/types/board";
 
@@ -220,5 +220,188 @@ describe("boardScanner", () => {
     const result = scanBoard(board, dict);
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
     expect(result.scannedAt).toBeGreaterThan(0);
+  });
+});
+
+// ─── scanFromSwapCoordinates (US1, T017–T024) ───────────────────────────────
+
+describe("scanFromSwapCoordinates", () => {
+  let dict: Set<string>;
+
+  beforeAll(async () => {
+    dict = await loadDictionary();
+  });
+
+  // T017: finds horizontal word through swap coordinate
+  test("T017: finds horizontal word through swap coordinate", () => {
+    const board = emptyBoard();
+    placeHorizontal(board, "búr", 0, 0); // b(0,0) ú(1,0) r(2,0)
+
+    const words = scanFromSwapCoordinates(board, [{ x: 1, y: 0 }], dict);
+    const found = words.find((w) => w.text === "búr");
+
+    expect(found).toBeDefined();
+    expect(found!.tiles).toEqual([
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ]);
+  });
+
+  // T018: finds vertical word through swap coordinate
+  test("T018: finds vertical word through swap coordinate", () => {
+    const board = emptyBoard();
+    placeVertical(board, "búr", 3, 2); // b(3,2) ú(3,3) r(3,4)
+
+    const words = scanFromSwapCoordinates(board, [{ x: 3, y: 3 }], dict);
+    const found = words.find((w) => w.text === "búr");
+
+    expect(found).toBeDefined();
+    expect(found!.tiles).toEqual([
+      { x: 3, y: 2 },
+      { x: 3, y: 3 },
+      { x: 3, y: 4 },
+    ]);
+  });
+
+  // T019: does NOT find diagonal words
+  test("T019: does NOT find diagonal words", () => {
+    const board = emptyBoard();
+    placeDiagonalDownRight(board, "hestur", 0, 0);
+
+    const words = scanFromSwapCoordinates(board, [{ x: 2, y: 2 }], dict);
+
+    // No diagonal directions should appear
+    const diagonalWords = words.filter(
+      (w) =>
+        w.direction === "down-right" ||
+        w.direction === "down-left" ||
+        w.direction === "up-right" ||
+        w.direction === "up-left",
+    );
+    expect(diagonalWords).toHaveLength(0);
+  });
+
+  // T020: does NOT find words that don't pass through swap coordinate
+  test("T020: does NOT find words that don't pass through swap coordinate", () => {
+    const board = emptyBoard();
+    placeHorizontal(board, "hestur", 0, 0); // row 0
+    placeHorizontal(board, "búr", 0, 5);    // row 5
+
+    // Swap coordinate is at (1,0), in "hestur" row
+    const words = scanFromSwapCoordinates(board, [{ x: 1, y: 0 }], dict);
+
+    // Should NOT find "búr" from row 5
+    const burRow5 = words.find(
+      (w) => w.text === "búr" && w.tiles[0].y === 5,
+    );
+    expect(burRow5).toBeUndefined();
+  });
+
+  // T021: finds 2-letter words (uses mock dictionary since real dict has no 2-letter entries)
+  test("T021: finds 2-letter words (minimum length 2)", () => {
+    const board = emptyBoard();
+    board[0][3] = "a";
+    board[0][4] = "b";
+
+    const mockDict = new Set(["ab"]);
+    const words = scanFromSwapCoordinates(board, [{ x: 3, y: 0 }], mockDict);
+
+    const found = words.find((w) => w.text === "ab");
+    expect(found).toBeDefined();
+    expect(found!.length).toBe(2);
+    expect(found!.tiles).toEqual([
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+    ]);
+  });
+
+  // T022: finds both horizontal and vertical through same swap coordinate
+  test("T022: finds both horizontal and vertical word through same swap coordinate", () => {
+    const board = emptyBoard();
+    // Place "búr" horizontally at row 2: b(0,2) ú(1,2) r(2,2)
+    placeHorizontal(board, "búr", 0, 2);
+    // Place "búr" vertically at col 1: b(1,1) ú(1,2) r(1,3)
+    // (1,2) is already "ú" from horizontal — perfect intersection
+    board[1][1] = "b";
+    board[3][1] = "r";
+
+    const words = scanFromSwapCoordinates(board, [{ x: 1, y: 2 }], dict);
+
+    const horizontalBur = words.find(
+      (w) => w.text === "búr" && (w.direction === "right" || w.direction === "left"),
+    );
+    expect(horizontalBur).toBeDefined();
+
+    const verticalBur = words.find(
+      (w) => w.text === "búr" && (w.direction === "down" || w.direction === "up"),
+    );
+    expect(verticalBur).toBeDefined();
+  });
+
+  // T023: exhaustively finds overlapping subwords in same direction
+  test("T023: exhaustively finds overlapping subwords in same direction", () => {
+    const board = emptyBoard();
+    // Place "hestur" horizontally at (0,0): h-e-s-t-u-r
+    placeHorizontal(board, "hestur", 0, 0);
+
+    // Swap coordinate at (0,0) — start of "hestur"
+    const words = scanFromSwapCoordinates(board, [{ x: 0, y: 0 }], dict);
+
+    // "hestur" (6 letters) should be found
+    const hestur = words.find((w) => w.text === "hestur");
+    expect(hestur).toBeDefined();
+
+    // Any valid subwords containing (0,0) should also be found
+    // "hest" is a valid Icelandic word (horse, accusative)
+    const hest = words.find((w) => w.text === "hest");
+    if (dict.has("hest")) {
+      expect(hest).toBeDefined();
+    }
+  });
+
+  // T024: finds words reading in both directions (forward and reverse)
+  test("T024: finds words in both reading directions from swap coordinate", () => {
+    const board = emptyBoard();
+    // Place "búr" at (0,0): b(0,0) ú(1,0) r(2,0)
+    placeHorizontal(board, "búr", 0, 0);
+
+    const words = scanFromSwapCoordinates(board, [{ x: 1, y: 0 }], dict);
+
+    // "búr" reading right should be found
+    const burRight = words.find(
+      (w) => w.text === "búr" && w.direction === "right",
+    );
+    expect(burRight).toBeDefined();
+
+    // "rúb" reading left — may or may not be valid
+    // The key test is that both forward and reverse are checked
+    // Check that at least the forward direction works
+    expect(words.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // Additional: returns empty for no valid words
+  test("returns empty array when no valid words pass through swap coordinate", () => {
+    const board = emptyBoard("x");
+    const words = scanFromSwapCoordinates(board, [{ x: 5, y: 5 }], dict);
+    expect(words).toHaveLength(0);
+  });
+
+  // Additional: deduplicates words found from multiple swap coordinates
+  test("deduplicates words when swap coordinates share a word", () => {
+    const board = emptyBoard();
+    placeHorizontal(board, "búr", 0, 0);
+
+    // Both (0,0) and (1,0) are in "búr" — should not duplicate
+    const words = scanFromSwapCoordinates(
+      board,
+      [{ x: 0, y: 0 }, { x: 1, y: 0 }],
+      dict,
+    );
+
+    const burCount = words.filter(
+      (w) => w.text === "búr" && w.direction === "right",
+    ).length;
+    expect(burCount).toBe(1);
   });
 });

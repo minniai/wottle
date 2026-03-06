@@ -21,7 +21,6 @@ function makeWord(
     lettersPoints: 10,
     lengthBonus: 5,
     totalPoints: 15,
-    isDuplicate: false,
     tiles,
     playerId,
   };
@@ -47,8 +46,8 @@ describe("frozenTiles", () => {
       expect(isFrozen(map, { x: 0, y: 0 })).toBe(false);
     });
 
-    test("should return true for tiles owned by 'both'", () => {
-      const map: FrozenTileMap = { "2,0": { owner: "both" } };
+    test("should return true for tiles owned by either player", () => {
+      const map: FrozenTileMap = { "2,0": { owner: "player_b" } };
       expect(isFrozen(map, { x: 2, y: 0 })).toBe(true);
     });
   });
@@ -68,10 +67,10 @@ describe("frozenTiles", () => {
       );
     });
 
-    test("should return false when tile is owned by 'both'", () => {
-      const map: FrozenTileMap = { "3,5": { owner: "both" } };
+    test("should return true when tile is owned by opponent (first-owner-wins)", () => {
+      const map: FrozenTileMap = { "3,5": { owner: "player_b" } };
       expect(isFrozenByOpponent(map, { x: 3, y: 5 }, "player_a")).toBe(
-        false,
+        true,
       );
     });
 
@@ -80,6 +79,84 @@ describe("frozenTiles", () => {
       expect(isFrozenByOpponent(map, { x: 3, y: 5 }, "player_a")).toBe(
         false,
       );
+    });
+  });
+
+  // T039: resolveOwnership returns existing owner (first-owner-wins)
+  describe("resolveOwnership via freezeTiles (T039)", () => {
+    test("keeps player_a ownership when player_b tries to claim same tile", () => {
+      const existing: FrozenTileMap = {
+        "3,3": { owner: "player_a" },
+      };
+      const wordB = makeWord(PLAYER_B, [{ x: 3, y: 3 }]);
+
+      const result = freezeTiles({
+        scoredWords: [wordB],
+        existingFrozenTiles: existing,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.updatedFrozenTiles["3,3"].owner).toBe("player_a");
+    });
+
+    test("keeps player_b ownership when player_a tries to claim same tile", () => {
+      const existing: FrozenTileMap = {
+        "5,5": { owner: "player_b" },
+      };
+      const wordA = makeWord(PLAYER_A, [{ x: 5, y: 5 }]);
+
+      const result = freezeTiles({
+        scoredWords: [wordA],
+        existingFrozenTiles: existing,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.updatedFrozenTiles["5,5"].owner).toBe("player_b");
+    });
+  });
+
+  // T040: freezeTiles never produces "both" ownership
+  describe("no 'both' ownership (T040)", () => {
+    test("all frozen tiles have exactly one owner after freeze", () => {
+      const wordA = makeWord(PLAYER_A, [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ]);
+      const wordB = makeWord(PLAYER_B, [
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+      ]);
+
+      const result = freezeTiles({
+        scoredWords: [wordA, wordB],
+        existingFrozenTiles: {},
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      for (const [, tile] of Object.entries(result.updatedFrozenTiles)) {
+        expect(["player_a", "player_b"]).toContain(tile.owner);
+      }
+    });
+  });
+
+  // T041: isFrozenByOpponent returns correct values (no "both" case)
+  describe("isFrozenByOpponent exclusive ownership (T041)", () => {
+    test("returns true only for opponent-owned tiles", () => {
+      const map: FrozenTileMap = {
+        "0,0": { owner: "player_a" },
+        "1,1": { owner: "player_b" },
+      };
+      // From player_a's perspective:
+      expect(isFrozenByOpponent(map, { x: 0, y: 0 }, "player_a")).toBe(false);
+      expect(isFrozenByOpponent(map, { x: 1, y: 1 }, "player_a")).toBe(true);
+      // From player_b's perspective:
+      expect(isFrozenByOpponent(map, { x: 0, y: 0 }, "player_b")).toBe(true);
+      expect(isFrozenByOpponent(map, { x: 1, y: 1 }, "player_b")).toBe(false);
     });
   });
 
@@ -110,7 +187,7 @@ describe("frozenTiles", () => {
       expect(result.newlyFrozen).toHaveLength(3);
     });
 
-    test("should set dual ownership when both players claim same tile", () => {
+    test("should use first-owner-wins when both players claim same tile", () => {
       const wordA = makeWord(PLAYER_A, [
         { x: 2, y: 0 },
         { x: 3, y: 0 },
@@ -127,8 +204,9 @@ describe("frozenTiles", () => {
         playerBId: PLAYER_B,
       });
 
+      // First-owner-wins: player_a claimed tile (2,0) first
       expect(result.updatedFrozenTiles["2,0"]).toEqual({
-        owner: "both",
+        owner: "player_a",
       });
       expect(result.updatedFrozenTiles["3,0"]).toEqual({
         owner: "player_a",
@@ -138,7 +216,7 @@ describe("frozenTiles", () => {
       });
     });
 
-    test("should upgrade existing single ownership to 'both' when opponent claims same tile", () => {
+    test("should keep existing owner when opponent claims same tile (first-owner-wins)", () => {
       const existing: FrozenTileMap = {
         "2,0": { owner: "player_a" },
       };
@@ -154,8 +232,9 @@ describe("frozenTiles", () => {
         playerBId: PLAYER_B,
       });
 
+      // First-owner-wins: player_a already owns tile (2,0)
       expect(result.updatedFrozenTiles["2,0"]).toEqual({
-        owner: "both",
+        owner: "player_a",
       });
     });
 
@@ -242,12 +321,11 @@ describe("frozenTiles", () => {
       });
     });
 
-    test("should skip duplicate words when freezing", () => {
+    test("should freeze all scored word tiles (no duplicate filtering)", () => {
       const word = makeWord(PLAYER_A, [
         { x: 0, y: 0 },
         { x: 1, y: 0 },
       ]);
-      word.isDuplicate = true;
 
       const result = freezeTiles({
         scoredWords: [word],
@@ -256,8 +334,7 @@ describe("frozenTiles", () => {
         playerBId: PLAYER_B,
       });
 
-      // Duplicate words should not freeze tiles
-      expect(result.newlyFrozen).toHaveLength(0);
+      expect(result.newlyFrozen).toHaveLength(2);
     });
   });
 });

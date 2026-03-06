@@ -1,52 +1,49 @@
-import type { BoardGrid } from "@/lib/types/board";
+import type { BoardGrid, BoardWord, Coordinate } from "@/lib/types/board";
 import type {
+  AcceptedMove,
   FrozenTileMap,
   WordScoreBreakdown,
   RoundScoreResult,
 } from "@/lib/types/match";
 import { logPlaytestInfo } from "@/lib/observability/log";
 import { loadDictionary } from "./dictionary";
-import {
-  detectNewWords,
-  type AcceptedMove,
-  type AttributedWord,
-} from "./deltaDetector";
+import { applySwap } from "./board";
+import { scanFromSwapCoordinates } from "./boardScanner";
+import { selectOptimalCombination } from "./crossValidator";
 import {
   calculateLetterPoints,
   calculateLengthBonus,
-  calculateComboBonus,
 } from "./scorer";
 import { freezeTiles } from "./frozenTiles";
 
 /**
- * Score a list of attributed words using the PRD formula.
+ * Score a list of BoardWords for a player using the PRD formula.
  *
  * For each word:
- *   base = sum(letter_values)
- *   lengthBonus = (length - 2) * 5
- *   total = base + lengthBonus (0 if duplicate)
- *
- * When priorScoredWordsByPlayer is provided, words already scored
- * by that player in a prior round are marked isDuplicate and get 0 points.
+ *   lettersPoints = sum(letter_values) — excluding opponent-frozen tiles
+ *   lengthBonus = (word_length - 2) * 5
+ *   total = lettersPoints + lengthBonus
  */
-function scoreAttributedWords(
-  words: AttributedWord[],
-  priorScoredWordsByPlayer?: Record<string, Set<string>>,
+function scoreBoardWords(
+  words: BoardWord[],
+  playerId: string,
+  frozenTiles: FrozenTileMap,
+  playerSlot: "player_a" | "player_b",
 ): WordScoreBreakdown[] {
+  const opponentSlot =
+    playerSlot === "player_a" ? "player_b" : "player_a";
+
   return words.map((word) => {
-    // Score only the letters contributed by this player (not opponent-frozen tiles).
-    // Length bonus uses the full word length regardless of tile ownership.
     const ownLetters = word.tiles
-      .map((t, i) =>
-        word.opponentFrozenKeys.has(`${t.x},${t.y}`) ? "" : word.text[i],
-      )
+      .map((t, i) => {
+        const key = `${t.x},${t.y}`;
+        const frozen = frozenTiles[key];
+        return frozen?.owner === opponentSlot ? "" : word.text[i];
+      })
       .join("");
     const lettersPoints = calculateLetterPoints(ownLetters);
     const lengthBonus = calculateLengthBonus(word.length);
-    const normalizedWord = word.text.toLowerCase();
-    const playerSet = priorScoredWordsByPlayer?.[word.playerId];
-    const isDuplicate = playerSet?.has(normalizedWord) ?? false;
-    const totalPoints = isDuplicate ? 0 : lettersPoints + lengthBonus;
+    const totalPoints = lettersPoints + lengthBonus;
 
     return {
       word: word.text,
@@ -54,9 +51,8 @@ function scoreAttributedWords(
       lettersPoints,
       lengthBonus,
       totalPoints,
-      isDuplicate,
       tiles: word.tiles,
-      playerId: word.playerId,
+      playerId,
     };
   });
 }
@@ -66,16 +62,12 @@ function scoreAttributedWords(
  */
 function computeDeltas(
   breakdowns: WordScoreBreakdown[],
-  comboBonus: { playerA: number; playerB: number },
   playerAId: string,
 ): { playerA: number; playerB: number } {
-  let playerATotal = comboBonus.playerA;
-  let playerBTotal = comboBonus.playerB;
+  let playerATotal = 0;
+  let playerBTotal = 0;
 
   for (const bd of breakdowns) {
-    if (bd.isDuplicate) {
-      continue;
-    }
     if (bd.playerId === playerAId) {
       playerATotal += bd.totalPoints;
     } else {
@@ -84,37 +76,6 @@ function computeDeltas(
   }
 
   return { playerA: playerATotal, playerB: playerBTotal };
-}
-
-/**
- * Top-level orchestrator for word finding, scoring, and freezing.
- *
- * Pipeline: loadDictionary → detectNewWords (3 scans) → score → compute deltas
- *
- * Frozen tile management is handled separately (Phase 4, US2).
- * This facade returns the scoring results; the integration layer
- * handles persistence, duplicate checking, and freeze updates.
- *
- * @performance MUST complete in <50ms total (FR-021)
- */
-/** Per-player sets of words already scored in prior rounds (for duplicate detection). */
-export type PriorScoredWordsByPlayer = Record<string, Set<string>>;
-
-/**
- * Helper function to check if two boards are identical (tile-by-tile comparison).
- */
-function areBoardsIdentical(
-  board1: BoardGrid,
-  board2: BoardGrid,
-): boolean {
-  for (let y = 0; y < board1.length; y++) {
-    for (let x = 0; x < board1[y].length; x++) {
-      if (board1[y][x] !== board2[y][x]) {
-        return false;
-      }
-    }
-  }
-  return true;
 }
 
 /**
@@ -127,7 +88,6 @@ function emptyRoundScoreResult(
   return {
     playerAWords: [],
     playerBWords: [],
-    comboBonus: { playerA: 0, playerB: 0 },
     deltas: { playerA: 0, playerB: 0 },
     newFrozenTiles: frozenTiles,
     wasPartialFreeze: false,
@@ -135,27 +95,136 @@ function emptyRoundScoreResult(
   };
 }
 
+/**
+ * Get the swap coordinates from an AcceptedMove.
+ */
+function getSwapCoordinates(move: AcceptedMove): Coordinate[] {
+  return [
+    { x: move.fromX, y: move.fromY },
+    { x: move.toX, y: move.toY },
+  ];
+}
+
+/**
+ * Sort accepted moves by submittedAt ascending. If timestamps are
+ * identical, player_a gets precedence (deterministic tiebreaker).
+ */
+function sortByPrecedence(
+  moves: AcceptedMove[],
+  playerAId: string,
+): AcceptedMove[] {
+  return [...moves].sort((a, b) => {
+    const aTime = a.submittedAt ?? "";
+    const bTime = b.submittedAt ?? "";
+    if (aTime < bTime) return -1;
+    if (aTime > bTime) return 1;
+    // Tiebreaker: player_a first
+    if (a.playerId === playerAId) return -1;
+    if (b.playerId === playerAId) return 1;
+    return 0;
+  });
+}
+
+/**
+ * Process a single player's move: apply swap → scan → cross-validate → score → freeze.
+ */
+function processPlayerMove(
+  board: BoardGrid,
+  move: AcceptedMove,
+  frozenTiles: FrozenTileMap,
+  dictionary: Set<string>,
+  playerSlot: "player_a" | "player_b",
+  playerAId: string,
+  playerBId: string,
+): {
+  breakdowns: WordScoreBreakdown[];
+  updatedFrozenTiles: FrozenTileMap;
+  boardAfterSwap: BoardGrid;
+  wasPartialFreeze: boolean;
+} {
+  // Reject swap if either position was frozen by a prior move this round
+  const fromKey = `${move.fromX},${move.fromY}`;
+  const toKey = `${move.toX},${move.toY}`;
+  if (fromKey in frozenTiles || toKey in frozenTiles) {
+    return {
+      breakdowns: [],
+      updatedFrozenTiles: frozenTiles,
+      boardAfterSwap: board,
+      wasPartialFreeze: false,
+    };
+  }
+
+  // Apply swap
+  const boardAfterSwap = applySwap(board, {
+    from: { x: move.fromX, y: move.fromY },
+    to: { x: move.toX, y: move.toY },
+  });
+
+  // Scan for words from swap coordinates
+  const swapCoords = getSwapCoordinates(move);
+  const candidates = scanFromSwapCoordinates(
+    boardAfterSwap,
+    swapCoords,
+    dictionary,
+  );
+
+  // Cross-validate and select optimal combination
+  const validWords = selectOptimalCombination(
+    candidates,
+    boardAfterSwap,
+    frozenTiles,
+    dictionary,
+    playerSlot,
+  );
+
+  // Score the valid words
+  const breakdowns = scoreBoardWords(
+    validWords,
+    move.playerId,
+    frozenTiles,
+    playerSlot,
+  );
+
+  // Freeze tiles from scored words
+  const freezeResult = freezeTiles({
+    scoredWords: breakdowns,
+    existingFrozenTiles: frozenTiles,
+    playerAId,
+    playerBId,
+  });
+
+  return {
+    breakdowns,
+    updatedFrozenTiles: freezeResult.updatedFrozenTiles,
+    boardAfterSwap,
+    wasPartialFreeze: freezeResult.wasPartialFreeze,
+  };
+}
+
+/**
+ * Top-level orchestrator for word finding, scoring, and freezing.
+ *
+ * Pipeline (FR-005, FR-006, FR-007):
+ * 1. Sort moves by submittedAt ascending (first submitter has precedence)
+ * 2. Process first submitter: apply swap → scan → cross-validate → score → freeze
+ * 3. Process second submitter: apply swap on updated board →
+ *    scan → cross-validate (with updated frozen tiles) → score → freeze
+ *
+ * @performance MUST complete in <50ms total
+ */
 export async function processRoundScoring(params: {
   matchId: string;
   roundId: string;
-  /** Round number (1-based) for observability logging. */
   roundNumber?: number;
   boardBefore: BoardGrid;
-  boardAfter: BoardGrid;
   acceptedMoves: AcceptedMove[];
   frozenTiles: FrozenTileMap;
   playerAId: string;
   playerBId: string;
-  /** Words each player has already scored in prior rounds (match-wide). Used to mark duplicates. */
-  priorScoredWordsByPlayer?: PriorScoredWordsByPlayer;
 }): Promise<RoundScoreResult> {
   const start = performance.now();
-  const startMark = "word-engine:start";
-  const endMark = "word-engine:end";
-  performance.mark(startMark);
 
-  // FR-006d: Zero-accepted-moves guard
-  // If no moves were accepted, skip the entire pipeline
+  // Zero-accepted-moves guard
   if (params.acceptedMoves.length === 0) {
     const durationMs = performance.now() - start;
     logPlaytestInfo("word-engine.scoring", {
@@ -166,104 +235,59 @@ export async function processRoundScoring(params: {
         durationMs: Math.round(durationMs),
         wordsFound: 0,
         wordsScored: 0,
-        duplicatesDetected: 0,
         tilesFrozen: 0,
-        comboBonusA: 0,
-        comboBonusB: 0,
-      },
-    });
-    return emptyRoundScoreResult(durationMs, params.frozenTiles);
-  }
-
-  // FR-006e: Board-unchanged short-circuit
-  // If the board didn't change at all, skip the entire pipeline
-  if (areBoardsIdentical(params.boardBefore, params.boardAfter)) {
-    const durationMs = performance.now() - start;
-    logPlaytestInfo("word-engine.scoring", {
-      matchId: params.matchId,
-      roundNumber: params.roundNumber,
-      metadata: {
-        roundId: params.roundId,
-        durationMs: Math.round(durationMs),
-        wordsFound: 0,
-        wordsScored: 0,
-        duplicatesDetected: 0,
-        tilesFrozen: 0,
-        comboBonusA: 0,
-        comboBonusB: 0,
       },
     });
     return emptyRoundScoreResult(durationMs, params.frozenTiles);
   }
 
   const dictionary = await loadDictionary();
-  performance.mark("word-engine:dict-loaded");
 
-  const newWords = detectNewWords({
-    boardBefore: params.boardBefore,
-    boardAfter: params.boardAfter,
-    dictionary,
-    acceptedMoves: params.acceptedMoves,
-    frozenTiles: params.frozenTiles,
-    playerAId: params.playerAId,
-    playerBId: params.playerBId,
-  });
-  performance.mark("word-engine:delta-done");
-
-  const breakdowns = scoreAttributedWords(
-    newWords,
-    params.priorScoredWordsByPlayer,
-  );
-
-  const playerAWords = breakdowns.filter(
-    (b) => b.playerId === params.playerAId,
-  );
-  const playerBWords = breakdowns.filter(
-    (b) => b.playerId === params.playerBId,
-  );
-  performance.mark("word-engine:scored");
-
-  const playerANewCount = playerAWords.filter(
-    (w) => !w.isDuplicate,
-  ).length;
-  const playerBNewCount = playerBWords.filter(
-    (w) => !w.isDuplicate,
-  ).length;
-
-  const comboBonus = {
-    playerA: calculateComboBonus(playerANewCount),
-    playerB: calculateComboBonus(playerBNewCount),
-  };
-
-  const deltas = computeDeltas(
-    breakdowns,
-    comboBonus,
+  // Sort by submission time (FR-005)
+  const sortedMoves = sortByPrecedence(
+    params.acceptedMoves,
     params.playerAId,
   );
 
-  performance.mark("word-engine:freeze-start");
-  // Freeze tiles from scored words
-  const freezeResult = freezeTiles({
-    scoredWords: breakdowns,
-    existingFrozenTiles: params.frozenTiles,
-    playerAId: params.playerAId,
-    playerBId: params.playerBId,
-  });
-  performance.mark("word-engine:freeze-done");
-  performance.mark(endMark);
+  const allBreakdowns: WordScoreBreakdown[] = [];
+  let currentBoard = params.boardBefore;
+  let currentFrozenTiles = params.frozenTiles;
+  let wasPartialFreeze = false;
 
+  // Process each player sequentially (FR-006, FR-007)
+  for (const move of sortedMoves) {
+    const playerSlot =
+      move.playerId === params.playerAId
+        ? "player_a"
+        : "player_b";
+
+    const result = processPlayerMove(
+      currentBoard,
+      move,
+      currentFrozenTiles,
+      dictionary,
+      playerSlot,
+      params.playerAId,
+      params.playerBId,
+    );
+
+    allBreakdowns.push(...result.breakdowns);
+    currentBoard = result.boardAfterSwap;
+    currentFrozenTiles = result.updatedFrozenTiles;
+    if (result.wasPartialFreeze) wasPartialFreeze = true;
+  }
+
+  const playerAWords = allBreakdowns.filter(
+    (b) => b.playerId === params.playerAId,
+  );
+  const playerBWords = allBreakdowns.filter(
+    (b) => b.playerId === params.playerBId,
+  );
+
+  const deltas = computeDeltas(allBreakdowns, params.playerAId);
   const durationMs = performance.now() - start;
-  performance.measure("word-engine:total", startMark, endMark);
-  const computeDurationMs = performance.measure(
-    "word-engine:compute",
-    "word-engine:dict-loaded",
-    "word-engine:scored",
-  ).duration;
 
-  const wordsFound = newWords.length;
-  const wordsScored = breakdowns.filter((b) => !b.isDuplicate).length;
-  const duplicatesDetected = breakdowns.filter((b) => b.isDuplicate).length;
-  const tilesFrozen = Object.keys(freezeResult.updatedFrozenTiles).length;
+  const tilesFrozen = Object.keys(currentFrozenTiles).length;
 
   logPlaytestInfo("word-engine.scoring", {
     matchId: params.matchId,
@@ -271,24 +295,19 @@ export async function processRoundScoring(params: {
     metadata: {
       roundId: params.roundId,
       durationMs: Math.round(durationMs),
-      computeDurationMs: Math.round(computeDurationMs),
-      wordsFound,
-      wordsScored,
-      duplicatesDetected,
+      wordsFound: allBreakdowns.length,
+      wordsScored: allBreakdowns.length,
       tilesFrozen,
-      comboBonusA: comboBonus.playerA,
-      comboBonusB: comboBonus.playerB,
-      wasPartialFreeze: freezeResult.wasPartialFreeze,
+      wasPartialFreeze,
     },
   });
 
   return {
     playerAWords,
     playerBWords,
-    comboBonus,
     deltas,
-    newFrozenTiles: freezeResult.updatedFrozenTiles,
-    wasPartialFreeze: freezeResult.wasPartialFreeze,
+    newFrozenTiles: currentFrozenTiles,
+    wasPartialFreeze,
     durationMs,
   };
 }

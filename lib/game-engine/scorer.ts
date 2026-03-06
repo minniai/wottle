@@ -1,5 +1,4 @@
 import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
-import type { AttributedWord } from "@/lib/game-engine/word-finder";
 
 type LetterKey = keyof typeof LETTER_SCORING_VALUES_IS;
 
@@ -27,46 +26,9 @@ export function calculateLetterPoints(word: string): number {
  *
  * PRD formula: (word_length - 2) * 5
  *
- * @param wordLength - Number of letters in the word (≥3)
+ * @param wordLength - Number of letters in the word (≥2)
  * @returns Length bonus points
  */
 export function calculateLengthBonus(wordLength: number): number {
   return (wordLength - 2) * 5;
-}
-
-/**
- * Calculate the combo bonus for multiple words in a round.
- *
- * PRD formula: 1→+0, 2→+2, 3→+5, 4+→+7+(n-4)
- * Only non-duplicate words count toward the combo.
- *
- * @param newWordCount - Number of non-duplicate words scored this round
- * @returns Combo bonus points
- */
-export function calculateComboBonus(newWordCount: number): number {
-  if (newWordCount <= 1) return 0;
-  if (newWordCount === 2) return 2;
-  if (newWordCount === 3) return 5;
-  return 7 + (newWordCount - 4);
-}
-
-/**
- * Calculates the total score for a valid move by summing the points
- * of all extracted cross-words.
- */
-export function calculateMoveScore(words: AttributedWord[]): number {
-  if (words.length === 0) return 0;
-
-  let totalScore = 0;
-  for (const word of words) {
-    const lettersPoints = calculateLetterPoints(word.text);
-    const lengthBonus = calculateLengthBonus(word.length);
-    totalScore += lettersPoints + lengthBonus;
-  }
-
-  // Can also apply calculateComboBonus based on unique words if needed, but per the PRD combo bonus
-  // is calculated at the round level for *all* words played by the player, not just one move.
-  // For now, calculateMoveScore just aggregates base + length.
-  
-  return totalScore;
 }

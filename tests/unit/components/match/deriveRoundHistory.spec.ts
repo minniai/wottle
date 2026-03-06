@@ -15,7 +15,6 @@ function makeWord(overrides: Partial<WordHistoryRow> = {}): WordHistoryRow {
       { x: 1, y: 0 },
       { x: 2, y: 0 },
     ],
-    isDuplicate: false,
     ...overrides,
   };
 }
@@ -77,49 +76,6 @@ describe("deriveRoundHistory", () => {
     expect(result).toHaveLength(1);
     expect(result[0].playerA.words).toHaveLength(0);
     expect(result[0].playerB.words).toHaveLength(0);
-    expect(result[0].playerA.comboBonus).toBe(0);
-    expect(result[0].playerB.comboBonus).toBe(0);
-  });
-
-  it("T004: duplicate word has isDuplicate flag and totalPoints 0", () => {
-    const words: WordHistoryRow[] = [
-      makeWord({ roundNumber: 1, playerId: "player-a", word: "búr", totalPoints: 0, isDuplicate: true }),
-    ];
-    const scores: ScoreboardRow[] = [makeScore()];
-
-    const result = deriveRoundHistory(words, scores, "player-a", "Player A", "player-b", "Player B");
-
-    expect(result[0].playerA.words[0].isDuplicate).toBe(true);
-    expect(result[0].playerA.words[0].totalPoints).toBe(0);
-    // Duplicate does not count toward combo bonus
-    expect(result[0].playerA.comboBonus).toBe(0);
-  });
-
-  it("T004: combo bonus appears when player scores 2+ non-duplicate words", () => {
-    const words: WordHistoryRow[] = [
-      makeWord({ roundNumber: 1, playerId: "player-a", word: "búr", totalPoints: 20 }),
-      makeWord({ roundNumber: 1, playerId: "player-a", word: "lag", totalPoints: 15 }),
-    ];
-    const scores: ScoreboardRow[] = [makeScore({ playerADelta: 37, playerBDelta: 0 })];
-
-    const result = deriveRoundHistory(words, scores, "player-a", "Player A", "player-b", "Player B");
-
-    // calculateComboBonus(2) = 2
-    expect(result[0].playerA.comboBonus).toBe(2);
-    // Player B has no words, no combo bonus
-    expect(result[0].playerB.comboBonus).toBe(0);
-  });
-
-  it("T004: combo bonus is 0 when only duplicate words are present", () => {
-    const words: WordHistoryRow[] = [
-      makeWord({ roundNumber: 1, playerId: "player-a", word: "búr", totalPoints: 0, isDuplicate: true }),
-      makeWord({ roundNumber: 1, playerId: "player-a", word: "lag", totalPoints: 0, isDuplicate: true }),
-    ];
-    const scores: ScoreboardRow[] = [makeScore({ playerADelta: 0, playerBDelta: 0 })];
-
-    const result = deriveRoundHistory(words, scores, "player-a", "Player A", "player-b", "Player B");
-
-    expect(result[0].playerA.comboBonus).toBe(0);
   });
 
   it("T004: entries are ordered by round number ascending", () => {

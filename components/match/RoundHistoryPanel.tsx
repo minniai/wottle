@@ -26,35 +26,25 @@ function WordRow({
 }) {
   return (
     <li
-      className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-        word.isDuplicate ? "opacity-50" : "hover:bg-white/5"
-      }`}
+      className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-white/5"
       onMouseEnter={() => onWordHover?.(word)}
       onMouseLeave={() => onWordHover?.(null)}
       onFocus={() => onWordHover?.(word)}
       onBlur={() => onWordHover?.(null)}
       tabIndex={onWordHover ? 0 : undefined}
     >
-      <span
-        className={`font-mono uppercase tracking-wide text-white ${word.isDuplicate ? "line-through" : ""}`}
-      >
+      <span className="font-mono uppercase tracking-wide text-white">
         {word.word}
       </span>
       <span className="ml-4 shrink-0 text-white/60">
-        {word.isDuplicate ? (
-          <span className="text-white/40">0 pts (duplicate)</span>
-        ) : (
-          <>
-            <span className="text-white/40">{word.word.length}L</span>
-            {" · "}
-            <span>{word.lettersPoints}</span>
-            {word.bonusPoints > 0 && (
-              <span className="text-emerald-400"> +{word.bonusPoints}</span>
-            )}
-            {" = "}
-            <span className="font-semibold text-white">{word.totalPoints} pts</span>
-          </>
+        <span className="text-white/40">{word.word.length}L</span>
+        {" · "}
+        <span>{word.lettersPoints}</span>
+        {word.bonusPoints > 0 && (
+          <span className="text-emerald-400"> +{word.bonusPoints}</span>
         )}
+        {" = "}
+        <span className="font-semibold text-white">{word.totalPoints} pts</span>
       </span>
     </li>
   );
@@ -63,13 +53,11 @@ function WordRow({
 function PlayerWordSection({
   username,
   words,
-  comboBonus,
   roundNumber,
   onWordHover,
 }: {
   username: string;
   words: WordHistoryRow[];
-  comboBonus: number;
   roundNumber: number;
   onWordHover?: (word: WordHistoryRow | null) => void;
 }) {
@@ -89,11 +77,6 @@ function PlayerWordSection({
           {words.map((w, i) => (
             <WordRow key={`${w.word}-${i}`} word={w} onWordHover={onWordHover} />
           ))}
-          {comboBonus > 0 && (
-            <li className="px-3 py-1 text-sm text-emerald-400">
-              Combo +{comboBonus}
-            </li>
-          )}
         </ul>
       )}
     </div>
@@ -157,14 +140,12 @@ function RoundRow({
           <PlayerWordSection
             username={playerAUsername}
             words={entry.playerA.words}
-            comboBonus={entry.playerA.comboBonus}
             roundNumber={entry.roundNumber}
             onWordHover={onWordHover}
           />
           <PlayerWordSection
             username={playerBUsername}
             words={entry.playerB.words}
-            comboBonus={entry.playerB.comboBonus}
             roundNumber={entry.roundNumber}
             onWordHover={onWordHover}
           />

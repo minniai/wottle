@@ -82,7 +82,7 @@ describe("GameChrome", () => {
   });
 
   describe("ScoreDeltaPopup integration", () => {
-    const delta: ScoreDelta = { letterPoints: 18, lengthBonus: 3, combo: 2 };
+    const delta: ScoreDelta = { letterPoints: 18, lengthBonus: 3 };
 
     test("renders popup when scoreDelta is provided", () => {
       render(

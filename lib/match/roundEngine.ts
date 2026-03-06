@@ -257,7 +257,6 @@ export async function advanceRound(matchId: string) {
             round.id,
             currentRound,
             currentBoard,
-            boardAfter,
             acceptedMoves,
             (match as MatchRow).player_a_id,
             (match as MatchRow).player_b_id,

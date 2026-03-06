@@ -189,77 +189,37 @@ function makeSummary(overrides?: Partial<RoundSummary>): RoundSummary {
 }
 
 describe("deriveScoreDelta", () => {
-  // T002: returns null when letterPoints, lengthBonus, and combo are all zero
   test("T002: returns null when all point components are zero", () => {
-    const summary = makeSummary({ words: [], comboBonus: { playerA: 0, playerB: 0 } });
-    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
+    const summary = makeSummary({ words: [] });
+    expect(deriveScoreDelta(summary, "player-1")).toBeNull();
   });
 
-  // T003: excludes words belonging to the opponent (filters by playerId)
   test("T003: excludes opponent words from the delta calculation", () => {
     const summary = makeSummary({
       words: [
-        { playerId: "player-2", word: "abc", length: 3, lettersPoints: 10, bonusPoints: 5, totalPoints: 15, coordinates: [], isDuplicate: false },
+        { playerId: "player-2", word: "abc", length: 3, lettersPoints: 10, bonusPoints: 5, totalPoints: 15, coordinates: [] },
       ],
-      comboBonus: { playerA: 0, playerB: 0 },
     });
-    // player-1 has no words → should be null
-    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
+    expect(deriveScoreDelta(summary, "player-1")).toBeNull();
   });
 
-  // T004: excludes words where isDuplicate === true from all totals
-  test("T004: excludes duplicate words from letter and length totals", () => {
+  test("T005: sums lettersPoints and bonusPoints across all player words", () => {
     const summary = makeSummary({
       words: [
-        { playerId: "player-1", word: "abc", length: 3, lettersPoints: 10, bonusPoints: 5, totalPoints: 0, coordinates: [], isDuplicate: true },
+        { playerId: "player-1", word: "ab", length: 2, lettersPoints: 4, bonusPoints: 3, totalPoints: 7, coordinates: [] },
+        { playerId: "player-1", word: "cd", length: 2, lettersPoints: 6, bonusPoints: 2, totalPoints: 8, coordinates: [] },
+        { playerId: "player-2", word: "ef", length: 2, lettersPoints: 99, bonusPoints: 99, totalPoints: 198, coordinates: [] },
       ],
-      comboBonus: { playerA: 0, playerB: 0 },
     });
-    // Duplicate word should be excluded → null
-    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
-  });
-
-  // T005: correctly sums lettersPoints and bonusPoints across all valid words
-  test("T005: sums lettersPoints and bonusPoints across all non-duplicate player words", () => {
-    const summary = makeSummary({
-      words: [
-        { playerId: "player-1", word: "ab", length: 2, lettersPoints: 4, bonusPoints: 3, totalPoints: 7, coordinates: [], isDuplicate: false },
-        { playerId: "player-1", word: "cd", length: 2, lettersPoints: 6, bonusPoints: 2, totalPoints: 8, coordinates: [], isDuplicate: false },
-        { playerId: "player-2", word: "ef", length: 2, lettersPoints: 99, bonusPoints: 99, totalPoints: 198, coordinates: [], isDuplicate: false },
-      ],
-      comboBonus: { playerA: 0, playerB: 0 },
-    });
-    const result = deriveScoreDelta(summary, "player-1", "player_a");
+    const result = deriveScoreDelta(summary, "player-1");
     expect(result).not.toBeNull();
     expect(result!.letterPoints).toBe(10); // 4 + 6
     expect(result!.lengthBonus).toBe(5);   // 3 + 2
   });
 
-  // T006: reads comboBonus.playerA when slot is "player_a" and comboBonus.playerB when "player_b"
-  test("T006: reads comboBonus.playerA for player_a slot", () => {
-    const summary = makeSummary({
-      words: [],
-      comboBonus: { playerA: 15, playerB: 0 },
-    });
-    const result = deriveScoreDelta(summary, "player-1", "player_a");
-    expect(result).not.toBeNull();
-    expect(result!.combo).toBe(15);
-  });
-
-  test("T006b: reads comboBonus.playerB for player_b slot", () => {
-    const summary = makeSummary({
-      words: [],
-      comboBonus: { playerA: 0, playerB: 20 },
-    });
-    const result = deriveScoreDelta(summary, "player-2", "player_b");
-    expect(result).not.toBeNull();
-    expect(result!.combo).toBe(20);
-  });
-
-  // T007: returns null when comboBonus is undefined and no scoreable words exist
-  test("T007: returns null when comboBonus is undefined and words array is empty", () => {
-    const summary = makeSummary({ words: [], comboBonus: undefined });
-    expect(deriveScoreDelta(summary, "player-1", "player_a")).toBeNull();
+  test("T007: returns null when words array is empty", () => {
+    const summary = makeSummary({ words: [] });
+    expect(deriveScoreDelta(summary, "player-1")).toBeNull();
   });
 });
 
@@ -276,7 +236,7 @@ describe("deriveHighlightPlayerColors", () => {
         bonusPoints: 5,
         totalPoints: 15,
         coordinates: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }],
-        isDuplicate: false,
+
       },
     ];
     const result = deriveHighlightPlayerColors(words, "player-1");
@@ -295,7 +255,7 @@ describe("deriveHighlightPlayerColors", () => {
         bonusPoints: 5,
         totalPoints: 13,
         coordinates: [{ x: 5, y: 5 }, { x: 6, y: 5 }],
-        isDuplicate: false,
+
       },
     ];
     const result = deriveHighlightPlayerColors(words, "player-1");
@@ -313,7 +273,7 @@ describe("deriveHighlightPlayerColors", () => {
         bonusPoints: 0,
         totalPoints: 4,
         coordinates: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
-        isDuplicate: false,
+
       },
       {
         playerId: "player-1",
@@ -323,7 +283,7 @@ describe("deriveHighlightPlayerColors", () => {
         bonusPoints: 0,
         totalPoints: 6,
         coordinates: [{ x: 3, y: 3 }, { x: 4, y: 3 }],
-        isDuplicate: false,
+
       },
       {
         playerId: "player-2",
@@ -333,7 +293,7 @@ describe("deriveHighlightPlayerColors", () => {
         bonusPoints: 0,
         totalPoints: 5,
         coordinates: [{ x: 7, y: 7 }],
-        isDuplicate: false,
+
       },
     ];
     const result = deriveHighlightPlayerColors(words, "player-1");
@@ -354,7 +314,7 @@ describe("deriveHighlightPlayerColors", () => {
         bonusPoints: 0,
         totalPoints: 4,
         coordinates: [{ x: 1, y: 1 }],
-        isDuplicate: false,
+
       },
       {
         playerId: "player-2",
@@ -364,7 +324,7 @@ describe("deriveHighlightPlayerColors", () => {
         bonusPoints: 0,
         totalPoints: 4,
         coordinates: [{ x: 1, y: 1 }],
-        isDuplicate: false,
+
       },
     ];
     const result = deriveHighlightPlayerColors(words, "player-1");
@@ -387,7 +347,6 @@ const mockRoundSummary: RoundSummary = {
       bonusPoints: 5,
       totalPoints: 15,
       coordinates: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }],
-      isDuplicate: false,
     },
     {
       playerId: "player-2",
@@ -397,7 +356,6 @@ const mockRoundSummary: RoundSummary = {
       bonusPoints: 5,
       totalPoints: 13,
       coordinates: [{ x: 5, y: 5 }, { x: 6, y: 5 }, { x: 7, y: 5 }],
-      isDuplicate: false,
     },
   ],
   highlights: [

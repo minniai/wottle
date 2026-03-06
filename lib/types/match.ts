@@ -62,8 +62,6 @@ export interface WordScore {
   bonusPoints: number;
   totalPoints: number;
   coordinates: Coordinate[];
-  /** True if this word was already scored by this player in a prior round (0 points). */
-  isDuplicate?: boolean;
 }
 
 export interface RoundSummary {
@@ -72,8 +70,6 @@ export interface RoundSummary {
   words: WordScore[];
   deltas: ScoreTotals;
   totals: ScoreTotals;
-  /** Combo bonus per player (included in deltas). Shown in UI for transparency. */
-  comboBonus?: ScoreTotals;
   highlights: Coordinate[][];
   resolvedAt: string;
 }
@@ -166,9 +162,22 @@ export interface MoveSubmission {
   created_at: string;
 }
 
+// ─── Move Types ───────────────────────────────────────────────────────
+
+/** A move accepted after conflict resolution. */
+export interface AcceptedMove {
+  playerId: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  /** ISO timestamp for scoring precedence ordering (FR-005). Required from Phase 6. */
+  submittedAt?: string;
+}
+
 // ─── Frozen Tile Types (003-word-engine-scoring) ──────────────────────
 
-export type FrozenTileOwner = "player_a" | "player_b" | "both";
+export type FrozenTileOwner = "player_a" | "player_b";
 
 export interface FrozenTile {
   owner: FrozenTileOwner;
@@ -195,10 +204,8 @@ export interface WordScoreBreakdown {
   lettersPoints: number;
   /** Length bonus: (word_length - 2) * 5 */
   lengthBonus: number;
-  /** lettersPoints + lengthBonus (0 if duplicate) */
+  /** lettersPoints + lengthBonus */
   totalPoints: number;
-  /** True if word was scored by this player in a prior round */
-  isDuplicate: boolean;
   /** Ordered tile coordinates */
   tiles: Coordinate[];
   /** Player who formed this word */
@@ -211,8 +218,6 @@ export interface RoundScoreResult {
   playerAWords: WordScoreBreakdown[];
   /** Per-word breakdowns for Player B */
   playerBWords: WordScoreBreakdown[];
-  /** Combo bonuses per player */
-  comboBonus: { playerA: number; playerB: number };
   /** Score deltas for this round */
   deltas: ScoreTotals;
   /** Updated frozen tile map (merged with existing) */

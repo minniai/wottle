@@ -11,7 +11,6 @@ import {
 import {
   PLAYER_A_OVERLAY,
   PLAYER_B_OVERLAY,
-  BOTH_GRADIENT,
   PLAYER_A_HIGHLIGHT,
   PLAYER_B_HIGHLIGHT,
 } from "@/lib/constants/playerColors";
@@ -95,21 +94,6 @@ describe("BoardGrid frozen tile overlays (US4)", () => {
     const tile = screen.getAllByTestId("board-tile")[4 * BOARD_SIZE + 2];
     expect(tile).toHaveStyle({ backgroundColor: PLAYER_B_OVERLAY });
     expect(tile).toHaveAttribute("data-frozen", "player_b");
-  });
-
-  test("both-player frozen tile renders with split-diagonal gradient", () => {
-    const grid = createGrid();
-    const frozenTiles: FrozenTileMap = {
-      "1,1": { owner: "both" },
-    };
-
-    render(
-      <BoardGrid grid={grid} matchId="test-match-id" frozenTiles={frozenTiles} />,
-    );
-
-    const tile = screen.getAllByTestId("board-tile")[1 * BOARD_SIZE + 1];
-    expect(tile).toHaveStyle({ background: BOTH_GRADIENT });
-    expect(tile).toHaveAttribute("data-frozen", "both");
   });
 
   test("frozen tile letters remain visible (text content present)", () => {
