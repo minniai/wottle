@@ -204,7 +204,7 @@ async function persistFrozenTilesAtomically(
  * Compute word scores from board state and player moves using the word engine.
  * Called by roundEngine after applying moves.
  *
- * Pipeline: getPriorScoredWords → processRoundScoring → persist to word_score_entries → return WordScore[]
+ * Pipeline: processRoundScoring → persist to word_score_entries → return WordScore[]
  *
  * Wrapped with retry logic (FR-026): retries up to 3 times on failure.
  * On exhaustion, cancels the match and broadcasts error to both players.
@@ -214,7 +214,6 @@ export async function computeWordScoresForRound(
     roundId: string,
     roundNumber: number,
     boardBefore: BoardGrid,
-    boardAfter: BoardGrid,
     acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number; created_at: string }>,
     playerAId: string,
     playerBId: string,
@@ -224,7 +223,7 @@ export async function computeWordScoresForRound(
         return await withRetry(
             () => executeScoringPipeline(
                 matchId, roundId, roundNumber,
-                boardBefore, boardAfter, acceptedMoves,
+                boardBefore, acceptedMoves,
                 playerAId, playerBId, frozenTiles,
             ),
             {
@@ -296,7 +295,6 @@ async function executeScoringPipeline(
     roundId: string,
     roundNumber: number,
     boardBefore: BoardGrid,
-    _boardAfter: BoardGrid,
     acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number; created_at: string }>,
     playerAId: string,
     playerBId: string,

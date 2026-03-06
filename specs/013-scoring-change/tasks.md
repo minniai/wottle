@@ -215,14 +215,14 @@
 
 **Purpose**: Update Server Actions, database, and integration tests to work with the new scoring pipeline
 
-- [ ] T069 Update `executeScoringPipeline()` in `app/actions/match/publishRoundSummary.ts` — remove `priorScoredWordsByPlayer` call, pass `submittedAt` in accepted moves, remove `boardAfter` param, adapt to new `RoundScoreResult` (no `comboBonus`, no `isDuplicate`)
-- [ ] T070 Update `computeWordScoresForRound()` signature in `app/actions/match/publishRoundSummary.ts` — align with new `processRoundScoring()` contract
-- [ ] T071 Update word score entry persistence in `executeScoringPipeline()` — remove `is_duplicate` field from insert payload in `app/actions/match/publishRoundSummary.ts`
-- [ ] T072 Create Supabase migration to update `matches.frozen_tiles` JSONB — convert existing `"both"` owner values to `"player_a"` in `supabase/migrations/`
-- [ ] T073 Create Supabase migration to set `word_score_entries.is_duplicate` default to false (or drop column) in `supabase/migrations/`
-- [ ] T074 Update `roundEngine` callers to pass `submittedAt` from `move_submissions.created_at` to `computeWordScoresForRound()` in `lib/match/roundEngine.ts`
-- [ ] T075 Write integration test: full round scoring pipeline with new rules (orthogonal scan, cross-validation, sequential precedence) in `tests/integration/roundScoring.test.ts`
-- [ ] T076 Verify integration test passes — run `pnpm test:integration -- tests/integration/roundScoring.test.ts`
+- [x] T069 Update `executeScoringPipeline()` in `app/actions/match/publishRoundSummary.ts` — remove `priorScoredWordsByPlayer` call, pass `submittedAt` in accepted moves, remove `boardAfter` param, adapt to new `RoundScoreResult` (no `comboBonus`, no `isDuplicate`)
+- [x] T070 Update `computeWordScoresForRound()` signature in `app/actions/match/publishRoundSummary.ts` — align with new `processRoundScoring()` contract
+- [x] T071 Update word score entry persistence in `executeScoringPipeline()` — remove `is_duplicate` field from insert payload in `app/actions/match/publishRoundSummary.ts`
+- [x] T072 Create Supabase migration to update `matches.frozen_tiles` JSONB — convert existing `"both"` owner values to `"player_a"` in `supabase/migrations/`
+- [x] T073 Create Supabase migration to set `word_score_entries.is_duplicate` default to false (or drop column) in `supabase/migrations/`
+- [x] T074 Update `roundEngine` callers to pass `submittedAt` from `move_submissions.created_at` to `computeWordScoresForRound()` in `lib/match/roundEngine.ts`
+- [x] T075 Write integration test: full round scoring pipeline with new rules (orthogonal scan, cross-validation, sequential precedence) in `tests/integration/roundScoring.test.ts`
+- [x] T076 Verify integration test passes — run `pnpm test:integration -- tests/integration/roundScoring.test.ts`
 
 ---
 
