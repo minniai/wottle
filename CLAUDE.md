@@ -496,6 +496,7 @@ Key files:
 - Supabase PostgreSQL — `matches`, `rounds`, `move_submissions` (all in place) (007-server-authoritative-timer)
 - TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion) (010-word-discovery-highlights)
 - N/A — reads existing `RoundSummary` from Supabase Realtime broadcasts; no new persistence (010-word-discovery-highlights)
+- N/A — reads existing `word_score_entries`, `scoreboard_snapshots`, `rounds` tables via Supabase; no new tables or columns (012-round-history-and-game-recap)
 
 - TypeScript 5.x, React 19+, Next.js 16 (App Router)
 - Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)

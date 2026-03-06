@@ -63,8 +63,8 @@ As a mobile player, I want the game board to be readable and interactive on smal
 ### Functional Requirements
 
 - **FR-001**: System MUST animate an invalid swap with a shake effect of 3-4 oscillations lasting 300-400ms on the affected tiles.
-- **FR-002**: System MUST flash a red border around the tiles involved in an invalid swap for exactly 200ms.
-- **FR-003**: System MUST display the exact move progress of both players in the TimerHud UI, replacing the placeholder "Round X" with a dynamic `M{num}` representation.
+- **FR-002**: System MUST flash a red border around the tiles involved in an invalid swap as part of the 400ms invalid-shake animation.
+- **FR-003**: System MUST display the exact move progress of both players in the GameChrome HUD, replacing the placeholder "Round X" with a dynamic `M{num}` representation.
 - **FR-004**: System MUST allow vertical scrolling for the board layout when viewed on a mobile viewport.
 - **FR-005**: System MUST implement pinch-to-zoom capabilities for the game board, bounded between 50% and 150% scaling.
 - **FR-006**: System MUST ensure that touch targets (tiles and UI elements) are never smaller than 44x44px for accessibility on all zoom levels and devices.
