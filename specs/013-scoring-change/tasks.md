@@ -88,20 +88,20 @@
 
 > **NOTE: Write these tests FIRST (TDD Red)**
 
-- [ ] T028 [P] [US5] Write failing test: `selectOptimalCombination` returns single word when it passes cross-validation against frozen tiles in `tests/unit/lib/game-engine/crossValidator.test.ts`
-- [ ] T029 [P] [US5] Write failing test: `selectOptimalCombination` excludes word that creates invalid cross-word with frozen tile in `tests/unit/lib/game-engine/crossValidator.test.ts`
-- [ ] T030 [P] [US5] Write failing test: `selectOptimalCombination` returns empty array when no valid combination exists in `tests/unit/lib/game-engine/crossValidator.test.ts`
-- [ ] T031 [P] [US5] Write failing test: `selectOptimalCombination` picks highest-scoring combination when multiple valid subsets exist in `tests/unit/lib/game-engine/crossValidator.test.ts`
-- [ ] T032 [P] [US5] Write failing test: `selectOptimalCombination` handles mutual cross-validation between candidate words (word A valid alone but invalid with word B) in `tests/unit/lib/game-engine/crossValidator.test.ts`
-- [ ] T033 [P] [US5] Write failing test: `selectOptimalCombination` prefers superword "ANDINN" over subword "ANDI" when both pass cross-validation (higher score) in `tests/unit/lib/game-engine/crossValidator.test.ts`
-- [ ] T034 [P] [US5] Write failing test: `selectOptimalCombination` falls back to subword "ANDI" when superword "ANDINN" fails cross-validation in `tests/unit/lib/game-engine/crossValidator.test.ts`
-- [ ] T035 [P] [US5] Write failing test: word with no adjacent scored tiles passes cross-validation without checks in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T028 [P] [US5] Write failing test: `selectOptimalCombination` returns single word when it passes cross-validation against frozen tiles in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T029 [P] [US5] Write failing test: `selectOptimalCombination` excludes word that creates invalid cross-word with frozen tile in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T030 [P] [US5] Write failing test: `selectOptimalCombination` returns empty array when no valid combination exists in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T031 [P] [US5] Write failing test: `selectOptimalCombination` picks highest-scoring combination when multiple valid subsets exist in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T032 [P] [US5] Write failing test: `selectOptimalCombination` handles mutual cross-validation between candidate words (word A valid alone but invalid with word B) in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T033 [P] [US5] Write failing test: `selectOptimalCombination` prefers superword "ANDINN" over subword "ANDI" when both pass cross-validation (higher score) in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T034 [P] [US5] Write failing test: `selectOptimalCombination` falls back to subword "ANDI" when superword "ANDINN" fails cross-validation in `tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T035 [P] [US5] Write failing test: word with no adjacent scored tiles passes cross-validation without checks in `tests/unit/lib/game-engine/crossValidator.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T036 [US5] Create `lib/game-engine/crossValidator.ts` — extract and adapt the existing `hasCrossWordViolation()` from `lib/game-engine/deltaDetector.ts` (lines 57–116) to check perpendicular sequences against frozen tiles + candidate tiles; update the original to re-export from crossValidator.ts to avoid duplication (FR-013)
-- [ ] T037 [US5] Implement `selectOptimalCombination()` in `lib/game-engine/crossValidator.ts` — brute-force subset enumeration over candidates, filter by mutual cross-validation, return highest-scoring valid combination (FR-014, FR-014a)
-- [ ] T038 [US5] Verify all US5 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/crossValidator.test.ts`
+- [x] T036 [US5] Create `lib/game-engine/crossValidator.ts` — extract and adapt the existing `hasCrossWordViolation()` from `lib/game-engine/deltaDetector.ts` (lines 57–116) to check perpendicular sequences against frozen tiles + candidate tiles; update the original to re-export from crossValidator.ts to avoid duplication (FR-013)
+- [x] T037 [US5] Implement `selectOptimalCombination()` in `lib/game-engine/crossValidator.ts` — brute-force subset enumeration over candidates, filter by mutual cross-validation, return highest-scoring valid combination (FR-014, FR-014a)
+- [x] T038 [US5] Verify all US5 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/crossValidator.test.ts`
 
 **Checkpoint**: `selectOptimalCombination()` works as a pure function. Given candidate words, frozen tiles, board, and dictionary, it returns the optimal valid subset.
 
