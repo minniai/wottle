@@ -230,13 +230,13 @@
 
 **Purpose**: Update UI components to remove combo bonus display and isDuplicate badges
 
-- [ ] T077 [P] Remove combo bonus derivation from `deriveScoreDelta()` in `components/match/deriveScoreDelta.ts` — remove `combo` field from `ScoreDelta` interface
-- [ ] T078 [P] Remove combo bonus display line from `ScoreDeltaPopup` in `components/match/ScoreDeltaPopup.tsx`
-- [ ] T079 [P] Remove combo bonus display from `RoundSummaryPanel` in `components/match/RoundSummaryPanel.tsx`
-- [ ] T080 [P] Remove combo derivation from `deriveRoundHistory()` in `components/match/deriveRoundHistory.ts`
-- [ ] T081 [P] Remove `isDuplicate` badges and combo totals from `FinalSummary` in `components/match/FinalSummary.tsx`
-- [ ] T082 Update `deriveScoreDelta.test.ts` — remove combo bonus assertions in `tests/unit/components/match/deriveScoreDelta.test.ts`
-- [ ] T083 Update any remaining client component tests that reference `comboBonus` or `isDuplicate`
+- [x] T077 [P] Remove combo bonus derivation from `deriveScoreDelta()` in `components/match/deriveScoreDelta.ts` — remove `combo` field from `ScoreDelta` interface
+- [x] T078 [P] Remove combo bonus display line from `ScoreDeltaPopup` in `components/match/ScoreDeltaPopup.tsx`
+- [x] T079 [P] Remove combo bonus display from `RoundSummaryPanel` in `components/match/RoundSummaryPanel.tsx`
+- [x] T080 [P] Remove combo derivation from `deriveRoundHistory()` in `components/match/deriveRoundHistory.ts`
+- [x] T081 [P] Remove `isDuplicate` badges and combo totals from `FinalSummary` in `components/match/FinalSummary.tsx`
+- [x] T082 Update `deriveScoreDelta.test.ts` — remove combo bonus assertions in `tests/unit/components/match/deriveScoreDelta.test.ts`
+- [x] T083 Update any remaining client component tests that reference `comboBonus` or `isDuplicate`
 
 ---
 
