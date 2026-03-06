@@ -72,7 +72,7 @@ export function hasCrossWordViolation(
     }
 
     const crossLength = beforeChars.length + 1 + afterChars.length;
-    if (crossLength > 1) {
+    if (crossLength >= minimumWordLength) {
       const crossWord = [
         ...beforeChars,
         board[tile.y][tile.x],
@@ -88,7 +88,6 @@ export function hasCrossWordViolation(
       ) {
         return true;
       }
-      if (crossLength < minimumWordLength) return true;
     }
   }
 
@@ -151,7 +150,10 @@ export function selectOptimalCombination(
       }
     }
 
-    // Step 3: Verify mutual cross-validation within the subset
+    // Step 3a: Skip subsets with same-axis tile overlaps
+    if (!hasNoSameAxisOverlap(subset)) continue;
+
+    // Step 3b: Verify mutual cross-validation within the subset
     if (isSubsetValid(subset, board, frozenTileSet, dictionary)) {
       const totalScore = subset.reduce(
         (sum, word) => sum + scoreWord(word),
@@ -165,6 +167,34 @@ export function selectOptimalCombination(
   }
 
   return bestSubset;
+}
+
+/**
+ * Check whether two words share any tile coordinates along the same
+ * axis (both horizontal or both vertical). Perpendicular words may
+ * share a single crossing tile — that is valid and expected.
+ */
+function wordsOverlapSameAxis(a: BoardWord, b: BoardWord): boolean {
+  const aHoriz = a.direction === "right" || a.direction === "left";
+  const bHoriz = b.direction === "right" || b.direction === "left";
+  if (aHoriz !== bHoriz) return false;
+
+  const setA = new Set(a.tiles.map((t) => `${t.x},${t.y}`));
+  return b.tiles.some((t) => setA.has(`${t.x},${t.y}`));
+}
+
+/**
+ * Check that no two words in the subset overlap along the same axis.
+ * Same-axis overlapping words (e.g. "TOTAÐS" and its subword "TOTA")
+ * are mutually exclusive — only one can be scored.
+ */
+function hasNoSameAxisOverlap(subset: BoardWord[]): boolean {
+  for (let i = 0; i < subset.length; i++) {
+    for (let j = i + 1; j < subset.length; j++) {
+      if (wordsOverlapSameAxis(subset[i], subset[j])) return false;
+    }
+  }
+  return true;
 }
 
 /**
