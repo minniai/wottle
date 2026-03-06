@@ -400,6 +400,43 @@ describe("selectOptimalCombination", () => {
     expect(result[0].text).toBe("ab");
   });
 
+  // Regression: word through already-frozen tile with pre-existing
+  // perpendicular cross-word (e.g., AMA through frozen M where M-I-N-T
+  // is already frozen vertically and "MINT" is not in dictionary)
+  test("allows word through frozen tile whose perpendicular cross-word is pre-existing", () => {
+    const board = emptyBoard();
+    // AMA horizontal at row 1: (0,1), (1,1), (2,1)
+    placeH(board, "ab", 0, 1); // "ab" at row 1
+    // Frozen column at x=1: rows 1-4 with letters that form "bqzz"
+    // (1,1)="b" is part of the word AND frozen
+    // (1,2)="q", (1,3)="z", (1,4)="z" are frozen below
+    board[2][1] = "q";
+    board[3][1] = "z";
+    board[4][1] = "z";
+
+    const frozenTiles: FrozenTileMap = {
+      "1,1": { owner: "player_b" }, // M tile — already frozen
+      "1,2": { owner: "player_b" }, // I tile
+      "1,3": { owner: "player_b" }, // N tile
+      "1,4": { owner: "player_b" }, // T tile
+    };
+
+    // "bqzz" vertical is NOT in dict — but it's pre-existing.
+    // "ab" should still pass because (1,1) is already frozen
+    // and its perpendicular cross-word is unchanged by scoring "ab".
+    const candidates = [hWord("ab", 0, 1)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      dict,
+      "player_a",
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("ab");
+  });
+
   // Additional: empty candidates returns empty result
   test("returns empty array for empty candidates", () => {
     const board = emptyBoard();

@@ -142,6 +142,18 @@ function processPlayerMove(
   boardAfterSwap: BoardGrid;
   wasPartialFreeze: boolean;
 } {
+  // Reject swap if either position was frozen by a prior move this round
+  const fromKey = `${move.fromX},${move.fromY}`;
+  const toKey = `${move.toX},${move.toY}`;
+  if (fromKey in frozenTiles || toKey in frozenTiles) {
+    return {
+      breakdowns: [],
+      updatedFrozenTiles: frozenTiles,
+      boardAfterSwap: board,
+      wasPartialFreeze: false,
+    };
+  }
+
   // Apply swap
   const boardAfterSwap = applySwap(board, {
     from: { x: move.fromX, y: move.fromY },

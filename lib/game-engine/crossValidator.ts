@@ -33,6 +33,18 @@ export function hasCrossWordViolation(
     frozenTileSet.has(`${x},${y}`) || extraTileSet.has(`${x},${y}`);
 
   for (const tile of word.tiles) {
+    const tileKey = `${tile.x},${tile.y}`;
+
+    // Skip tiles that are already frozen — their perpendicular
+    // cross-words are pre-existing and unaffected by the new word.
+    // Only check if a new extra tile creates a new adjacency.
+    if (frozenTileSet.has(tileKey)) {
+      const hasExtraNeighbor =
+        extraTileSet.has(`${tile.x + dx},${tile.y + dy}`) ||
+        extraTileSet.has(`${tile.x - dx},${tile.y - dy}`);
+      if (!hasExtraNeighbor) continue;
+    }
+
     const beforeChars: string[] = [];
     let bx = tile.x - dx;
     let by = tile.y - dy;

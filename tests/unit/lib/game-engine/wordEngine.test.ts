@@ -478,6 +478,54 @@ describe("wordEngine", () => {
     });
   });
 
+  // Regression: second player's swap rejected when targeting tile frozen by first player
+  test("second player's swap is skipped when targeting a newly frozen tile", async () => {
+    const board = emptyBoard();
+    // Row 0: r-ú-b → Player A swaps (0,0)↔(2,0) → "búr"
+    board[0][0] = "r";
+    board[0][1] = "ú";
+    board[0][2] = "b";
+    // Player B wants to swap (5,5)↔(1,0), but (1,0) gets frozen by Player A
+    board[5][5] = "x";
+
+    const result = await processRoundScoring({
+      matchId: MATCH_ID,
+      roundId: ROUND_ID,
+      boardBefore: board,
+      acceptedMoves: [
+        {
+          playerId: PLAYER_A,
+          fromX: 0,
+          fromY: 0,
+          toX: 2,
+          toY: 0,
+          submittedAt: "2026-01-01T00:00:00Z", // FIRST
+        },
+        {
+          playerId: PLAYER_B,
+          fromX: 5,
+          fromY: 5,
+          toX: 1,
+          toY: 0,
+          submittedAt: "2026-01-01T00:00:01Z", // SECOND — targets (1,0) which A just froze
+        },
+      ],
+      frozenTiles: EMPTY_FROZEN,
+      playerAId: PLAYER_A,
+      playerBId: PLAYER_B,
+    });
+
+    // Player A scores "búr"
+    expect(result.playerAWords.length).toBeGreaterThanOrEqual(1);
+
+    // Player B's swap was skipped — no words, no board corruption
+    expect(result.playerBWords).toHaveLength(0);
+    expect(result.deltas.playerB).toBe(0);
+
+    // Frozen tile at (1,0) should still be owned by Player A (not corrupted)
+    expect(result.newFrozenTiles["1,0"]?.owner).toBe("player_a");
+  });
+
   // T051: result without comboBonus
   test("T051: result has no comboBonus field", async () => {
     const board = makeHesturBoard();
@@ -561,14 +609,14 @@ describe("wordEngine", () => {
   describe("partial letter scoring (opponent-frozen tiles) — T059-T061", () => {
     // T059: word spanning opponent tiles → zero letter points for those tiles
     test("scores zero letter points for opponent-frozen tiles but full length bonus", async () => {
-      // Pre-freeze tiles (3,0)-(5,0) as player_a
+      // Freeze middle tiles (1,0)-(3,0) as player_a — NOT the swap positions
       const frozenTiles: FrozenTileMap = {
+        "1,0": { owner: "player_a" },
+        "2,0": { owner: "player_a" },
         "3,0": { owner: "player_a" },
-        "4,0": { owner: "player_a" },
-        "5,0": { owner: "player_a" },
       };
 
-      // Player B creates "hestur" through frozen tiles
+      // Player B creates "hestur" by swapping (0,0)↔(5,0), both non-frozen
       const board = emptyBoard();
       board[0][0] = "r";
       board[0][1] = "e";
@@ -598,24 +646,22 @@ describe("wordEngine", () => {
 
       const hestur = result.playerBWords.find((w) => w.word === "hestur");
       expect(hestur).toBeDefined();
-      // Frozen tiles (3,0)-(5,0) have letters t,u,r → player_b gets 0 for those
-      // Player B's own letter points: H=4, E=3, S=1 = 8
-      expect(hestur!.lettersPoints).toBe(8);
+      // Frozen tiles (1,0)-(3,0) have letters e,s,t → player_b gets 0 for those
+      // Player B's own letter points: H=4, U=1, R=2 = 7
+      expect(hestur!.lettersPoints).toBe(7);
       // Full length bonus: (6-2)*5 = 20
       expect(hestur!.lengthBonus).toBe(20);
-      expect(hestur!.totalPoints).toBe(28);
+      expect(hestur!.totalPoints).toBe(27);
     });
 
-    // T060: ALL tiles opponent-owned → zero letter points, full length bonus
-    test("scores zero letter points when ALL tiles are opponent-owned", async () => {
-      // Pre-freeze ALL positions of "búr" (0,0)-(2,0) as player_a
+    // T060: swap rejected when either position is frozen
+    test("swap rejected when target tile is frozen — player gets zero", async () => {
+      // Freeze (1,0) as player_a. Player B tries to swap (0,0)↔(1,0).
+      // (1,0) is frozen → swap rejected, zero words.
       const frozenTiles: FrozenTileMap = {
-        "0,0": { owner: "player_a" },
         "1,0": { owner: "player_a" },
-        "2,0": { owner: "player_a" },
       };
 
-      // Player B forms "búr" through entirely opponent-frozen tiles
       const board = emptyBoard();
       board[0][0] = "r";
       board[0][1] = "ú";
@@ -630,7 +676,7 @@ describe("wordEngine", () => {
             playerId: PLAYER_B,
             fromX: 0,
             fromY: 0,
-            toX: 2,
+            toX: 1,
             toY: 0,
             submittedAt: "2026-01-01T00:00:00Z",
           },
@@ -640,13 +686,9 @@ describe("wordEngine", () => {
         playerBId: PLAYER_B,
       });
 
-      const bur = result.playerBWords.find((w) => w.word === "búr");
-      expect(bur).toBeDefined();
-      // All tiles opponent-owned → zero letter points
-      expect(bur!.lettersPoints).toBe(0);
-      // Full length bonus: (3-2)*5 = 5
-      expect(bur!.lengthBonus).toBe(5);
-      expect(bur!.totalPoints).toBe(5);
+      // Swap rejected — no words scored
+      expect(result.playerBWords).toHaveLength(0);
+      expect(result.deltas.playerB).toBe(0);
     });
 
     // T061: no opponent-owned tiles → full letter points
