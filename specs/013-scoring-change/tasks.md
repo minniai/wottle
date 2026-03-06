@@ -117,17 +117,17 @@
 
 > **NOTE: Write these tests FIRST (TDD Red)**
 
-- [ ] T039 [P] [US3] Write failing test: `resolveOwnership` returns existing owner when tile is already frozen (first-owner-wins) in `tests/unit/lib/game-engine/frozenTiles.test.ts`
-- [ ] T040 [P] [US3] Write failing test: `freezeTiles` never produces `"both"` ownership in output in `tests/unit/lib/game-engine/frozenTiles.test.ts`
-- [ ] T041 [P] [US3] Write failing test: `isFrozenByOpponent` returns true for opponent-owned tiles (no "both" case) in `tests/unit/lib/game-engine/frozenTiles.test.ts`
+- [x] T039 [P] [US3] Write failing test: `resolveOwnership` returns existing owner when tile is already frozen (first-owner-wins) in `tests/unit/lib/game-engine/frozenTiles.test.ts`
+- [x] T040 [P] [US3] Write failing test: `freezeTiles` never produces `"both"` ownership in output in `tests/unit/lib/game-engine/frozenTiles.test.ts`
+- [x] T041 [P] [US3] Write failing test: `isFrozenByOpponent` returns true for opponent-owned tiles (no "both" case) in `tests/unit/lib/game-engine/frozenTiles.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T042 [US3] Update `resolveOwnership()` in `lib/game-engine/frozenTiles.ts` — return existing owner when tile already frozen, never return `"both"` (FR-008, FR-009)
-- [ ] T043 [US3] Update `isFrozenByOpponent()` in `lib/game-engine/frozenTiles.ts` — remove `"both"` special case
-- [ ] T044 [US3] Update `freezeTiles()` in `lib/game-engine/frozenTiles.ts` — remove `"both"` from tile claim deduplication logic (lines 204–206)
-- [ ] T045 [US3] Update existing `frozenTiles.test.ts` — replace all `"both"` ownership tests with first-owner-wins assertions in `tests/unit/lib/game-engine/frozenTiles.test.ts`
-- [ ] T046 [US3] Verify all US3 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/frozenTiles.test.ts`
+- [x] T042 [US3] Update `resolveOwnership()` in `lib/game-engine/frozenTiles.ts` — return existing owner when tile already frozen, never return `"both"` (FR-008, FR-009)
+- [x] T043 [US3] Update `isFrozenByOpponent()` in `lib/game-engine/frozenTiles.ts` — remove `"both"` special case
+- [x] T044 [US3] Update `freezeTiles()` in `lib/game-engine/frozenTiles.ts` — remove `"both"` from tile claim deduplication logic (lines 204–206)
+- [x] T045 [US3] Update existing `frozenTiles.test.ts` — replace all `"both"` ownership tests with first-owner-wins assertions in `tests/unit/lib/game-engine/frozenTiles.test.ts`
+- [x] T046 [US3] Verify all US3 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/frozenTiles.test.ts`
 
 **Checkpoint**: Frozen tile ownership is exclusive. No tile ever has `"both"` ownership. First owner wins permanently.
 
