@@ -59,20 +59,20 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (TDD Red)**
 
-- [ ] T017 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds horizontal word through swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T018 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds vertical word through swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T019 [P] [US1] Write failing test: `scanFromSwapCoordinates` does NOT find diagonal words in `tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T020 [P] [US1] Write failing test: `scanFromSwapCoordinates` does NOT find words that don't pass through swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T021 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds 2-letter words in `tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T022 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds both a horizontal and vertical word through same swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T023 [P] [US1] Write failing test: `scanFromSwapCoordinates` exhaustively finds overlapping subwords (e.g., "ÁS" and "ÁSTIN" in same direction through swap coord) in `tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T024 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds words in both directions from a single swap coordinate (up vs down, left vs right) in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T017 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds horizontal word through swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T018 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds vertical word through swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T019 [P] [US1] Write failing test: `scanFromSwapCoordinates` does NOT find diagonal words in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T020 [P] [US1] Write failing test: `scanFromSwapCoordinates` does NOT find words that don't pass through swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T021 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds 2-letter words in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T022 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds both a horizontal and vertical word through same swap coordinate in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T023 [P] [US1] Write failing test: `scanFromSwapCoordinates` exhaustively finds overlapping subwords (e.g., "ÁS" and "ÁSTIN" in same direction through swap coord) in `tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T024 [P] [US1] Write failing test: `scanFromSwapCoordinates` finds words in both directions from a single swap coordinate (up vs down, left vs right) in `tests/unit/lib/game-engine/boardScanner.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T025 [US1] Implement `scanFromSwapCoordinates()` in `lib/game-engine/boardScanner.ts` — for each swap coordinate, trace 4 orthogonal directions, extract full lines, enumerate all subsequences of length ≥2 containing the swap coordinate, check dictionary (FR-001, FR-002, FR-003, FR-004, FR-020)
-- [ ] T026 [US1] Verify all US1 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/boardScanner.test.ts`
-- [ ] T027 [US1] Update existing `boardScanner.test.ts` tests that assumed minimum length 3 or 8-directional scanning — keep `scanBoard()` tests for backward compat but add new `scanFromSwapCoordinates()` test section
+- [x] T025 [US1] Implement `scanFromSwapCoordinates()` in `lib/game-engine/boardScanner.ts` — for each swap coordinate, trace 4 orthogonal directions, extract full lines, enumerate all subsequences of length ≥2 containing the swap coordinate, check dictionary (FR-001, FR-002, FR-003, FR-004, FR-020)
+- [x] T026 [US1] Verify all US1 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/boardScanner.test.ts`
+- [x] T027 [US1] Update existing `boardScanner.test.ts` tests that assumed minimum length 3 or 8-directional scanning — keep `scanBoard()` tests for backward compat but add new `scanFromSwapCoordinates()` test section
 
 **Checkpoint**: `scanFromSwapCoordinates()` works independently. Given a board and swap coordinates, it finds all valid orthogonal words through those coordinates.
 

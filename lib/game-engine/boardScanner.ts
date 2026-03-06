@@ -140,6 +140,97 @@ function getStartPositions(
   return positions;
 }
 
+/** Orthogonal direction vectors (no diagonals). */
+const ORTHOGONAL_VECTORS: Array<{
+  dx: number;
+  dy: number;
+  forward: Direction;
+  reverse: Direction;
+}> = [
+  { dx: 1, dy: 0, forward: "right", reverse: "left" },
+  { dx: 0, dy: 1, forward: "down", reverse: "up" },
+];
+
+/**
+ * Exhaustive orthogonal word scanner from swap coordinates (FR-001–FR-004, FR-020).
+ *
+ * For each swap coordinate, traces 2 orthogonal axes (horizontal, vertical),
+ * extracts the full line through that coordinate, and enumerates ALL valid
+ * dictionary subsequences of length ≥2 that include the swap coordinate.
+ * Both forward and reverse readings are checked.
+ *
+ * @param board - 10×10 grid of letters
+ * @param swapCoordinates - Coordinates involved in the swap
+ * @param dictionary - Set of valid words (NFC-normalized, lowercase)
+ * @returns All valid words found through swap coordinates (deduplicated)
+ */
+export function scanFromSwapCoordinates(
+  board: BoardGrid,
+  swapCoordinates: Coordinate[],
+  dictionary: Set<string>,
+): BoardWord[] {
+  const words: BoardWord[] = [];
+  const seen = new Set<string>();
+
+  for (const coord of swapCoordinates) {
+    for (const { dx, dy, forward, reverse } of ORTHOGONAL_VECTORS) {
+      // Trace backward to find line start
+      let startX = coord.x;
+      let startY = coord.y;
+      while (
+        startX - dx >= 0 &&
+        startX - dx < BOARD_SIZE &&
+        startY - dy >= 0 &&
+        startY - dy < BOARD_SIZE
+      ) {
+        startX -= dx;
+        startY -= dy;
+      }
+
+      const { chars, coords } = extractLine(board, startX, startY, dx, dy);
+      const lineLen = chars.length;
+
+      // Find the index of the swap coordinate in this line
+      const swapIdx = coords.findIndex(
+        (c) => c.x === coord.x && c.y === coord.y,
+      );
+      if (swapIdx === -1) continue;
+
+      // Enumerate all subsequences of length ≥2 that include swapIdx
+      for (let start = 0; start <= swapIdx; start++) {
+        for (let end = swapIdx + 1; end <= lineLen; end++) {
+          const len = end - start;
+          if (len < 2) continue;
+
+          // Forward direction
+          const fwd = buildBoardWord(chars, coords, start, len, forward);
+          const fwdKey = `${fwd.text}:${fwd.direction}:${fwd.start.x},${fwd.start.y}`;
+          if (!seen.has(fwdKey) && dictionary.has(fwd.text)) {
+            seen.add(fwdKey);
+            words.push(fwd);
+          }
+
+          // Reverse direction
+          const rev = buildReverseBoardWord(
+            chars,
+            coords,
+            start,
+            len,
+            reverse,
+          );
+          const revKey = `${rev.text}:${rev.direction}:${rev.start.x},${rev.start.y}`;
+          if (!seen.has(revKey) && dictionary.has(rev.text)) {
+            seen.add(revKey);
+            words.push(rev);
+          }
+        }
+      }
+    }
+  }
+
+  return words;
+}
+
 /**
  * Scan a board in all 8 directions for valid dictionary words.
  *
