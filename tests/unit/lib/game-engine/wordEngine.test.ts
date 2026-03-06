@@ -558,7 +558,8 @@ describe("wordEngine", () => {
     expect(result.wasPartialFreeze).toBe(true);
   });
 
-  describe("partial letter scoring (opponent-frozen tiles)", () => {
+  describe("partial letter scoring (opponent-frozen tiles) — T059-T061", () => {
+    // T059: word spanning opponent tiles → zero letter points for those tiles
     test("scores zero letter points for opponent-frozen tiles but full length bonus", async () => {
       // Pre-freeze tiles (3,0)-(5,0) as player_a
       const frozenTiles: FrozenTileMap = {
@@ -605,6 +606,50 @@ describe("wordEngine", () => {
       expect(hestur!.totalPoints).toBe(28);
     });
 
+    // T060: ALL tiles opponent-owned → zero letter points, full length bonus
+    test("scores zero letter points when ALL tiles are opponent-owned", async () => {
+      // Pre-freeze ALL positions of "búr" (0,0)-(2,0) as player_a
+      const frozenTiles: FrozenTileMap = {
+        "0,0": { owner: "player_a" },
+        "1,0": { owner: "player_a" },
+        "2,0": { owner: "player_a" },
+      };
+
+      // Player B forms "búr" through entirely opponent-frozen tiles
+      const board = emptyBoard();
+      board[0][0] = "r";
+      board[0][1] = "ú";
+      board[0][2] = "b";
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [
+          {
+            playerId: PLAYER_B,
+            fromX: 0,
+            fromY: 0,
+            toX: 2,
+            toY: 0,
+            submittedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      const bur = result.playerBWords.find((w) => w.word === "búr");
+      expect(bur).toBeDefined();
+      // All tiles opponent-owned → zero letter points
+      expect(bur!.lettersPoints).toBe(0);
+      // Full length bonus: (3-2)*5 = 5
+      expect(bur!.lengthBonus).toBe(5);
+      expect(bur!.totalPoints).toBe(5);
+    });
+
+    // T061: no opponent-owned tiles → full letter points
     test("scores full letter points when no opponent-frozen tiles", async () => {
       const board = makeHesturBoard();
 

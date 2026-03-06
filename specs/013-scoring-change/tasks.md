@@ -175,15 +175,15 @@
 
 > **NOTE: Write these tests FIRST (TDD Red)**
 
-- [ ] T059 [P] [US4] Write failing test: word spanning opponent tiles scores zero letter points for opponent positions but full length bonus in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T060 [P] [US4] Write failing test: word where ALL tiles are opponent-owned scores zero letter points but full length bonus in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T061 [P] [US4] Write failing test: word where no tiles are opponent-owned scores full letter points plus length bonus in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T059 [P] [US4] Write failing test: word spanning opponent tiles scores zero letter points for opponent positions but full length bonus in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T060 [P] [US4] Write failing test: word where ALL tiles are opponent-owned scores zero letter points but full length bonus in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T061 [P] [US4] Write failing test: word where no tiles are opponent-owned scores full letter points plus length bonus in `tests/unit/lib/game-engine/wordEngine.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T062 [US4] Move `getOpponentFrozenKeys()` from `lib/game-engine/deltaDetector.ts` to `lib/game-engine/frozenTiles.ts`, remove `"both"` exception, and update all import sites — all tiles owned by opponent are opponent-frozen (FR-010, FR-011, FR-012)
-- [ ] T063 [US4] Verify opponent-tile scoring logic in `scoreAttributedWords()` works correctly with exclusive ownership in `lib/game-engine/wordEngine.ts`
-- [ ] T064 [US4] Verify all US4 tests pass (TDD Green) — run relevant test files
+- [x] T062 [US4] Move `getOpponentFrozenKeys()` from `lib/game-engine/deltaDetector.ts` to `lib/game-engine/frozenTiles.ts`, remove `"both"` exception, and update all import sites — all tiles owned by opponent are opponent-frozen (FR-010, FR-011, FR-012)
+- [x] T063 [US4] Verify opponent-tile scoring logic in `scoreAttributedWords()` works correctly with exclusive ownership in `lib/game-engine/wordEngine.ts`
+- [x] T064 [US4] Verify all US4 tests pass (TDD Green) — run relevant test files
 
 **Checkpoint**: Words correctly cross opponent territory. Letter points exclude opponent tiles, length bonus uses full word length.
 
