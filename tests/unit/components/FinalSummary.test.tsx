@@ -46,10 +46,11 @@ function makeProps(overrides?: Partial<FinalSummaryProps>): FinalSummaryProps {
       },
     ],
     scoreboard: [
-      { roundNumber: 1, playerAScore: 50, playerBScore: 30 },
-      { roundNumber: 2, playerAScore: 100, playerBScore: 80 },
+      { roundNumber: 1, playerAScore: 50, playerBScore: 30, playerADelta: 50, playerBDelta: 30 },
+      { roundNumber: 2, playerAScore: 100, playerBScore: 80, playerADelta: 50, playerBDelta: 50 },
     ],
     wordHistory: [],
+    board: null,
     ...overrides,
   };
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { MatchEndedReason, TopWord } from "@/lib/types/match";
+import type { BoardGrid, Coordinate } from "@/lib/types/board";
 
 interface PlayerSummary {
   id: string;
@@ -17,19 +18,25 @@ interface PlayerSummary {
   topWords: TopWord[];
 }
 
-interface ScoreboardRow {
+export interface ScoreboardRow {
   roundNumber: number;
   playerAScore: number;
   playerBScore: number;
+  playerADelta: number;
+  playerBDelta: number;
 }
 
-interface WordHistoryRow {
+export interface WordHistoryRow {
   roundNumber: number;
   playerId: string;
   word: string;
   totalPoints: number;
   lettersPoints: number;
   bonusPoints: number;
+  /** Tile positions where the word appeared on the board */
+  coordinates: Coordinate[];
+  /** True if this word was already scored by this player in a prior round */
+  isDuplicate: boolean;
 }
 
 export interface FinalSummaryProps {
@@ -40,6 +47,7 @@ export interface FinalSummaryProps {
   players: PlayerSummary[];
   scoreboard: ScoreboardRow[];
   wordHistory: WordHistoryRow[];
+  board: BoardGrid | null;
 }
 
 function formatDuration(ms: number) {
@@ -91,6 +99,7 @@ export function FinalSummary({
   players,
   scoreboard,
   wordHistory,
+  board,
 }: FinalSummaryProps) {
   const router = useRouter();
   const [isRematching, startRematch] = useTransition();
