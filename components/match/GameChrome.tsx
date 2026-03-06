@@ -18,6 +18,10 @@ interface GameChromeProps {
   scoreDelta?: ScoreDelta | null;
   /** Round number used as a key to retrigger the popup animation. */
   scoreDeltaRound?: number;
+  /** Number of completed rounds with history available. Button hidden when 0. */
+  roundHistoryCount?: number;
+  /** Callback to toggle the round history overlay. */
+  onHistoryToggle?: () => void;
 }
 
 export function GameChrome({
@@ -31,6 +35,8 @@ export function GameChrome({
   playerColor,
   scoreDelta,
   scoreDeltaRound,
+  roundHistoryCount = 0,
+  onHistoryToggle,
 }: GameChromeProps) {
   const [displaySeconds, setDisplaySeconds] = useState(timerSeconds);
 
@@ -88,12 +94,27 @@ export function GameChrome({
         )}
 
         {moveCounter != null && (
-          <span 
+          <span
             className="font-mono text-sm text-white/60"
             data-testid="move-indicator"
           >
             M{moveCounter}
           </span>
+        )}
+
+        {onHistoryToggle && roundHistoryCount > 0 && (
+          <button
+            type="button"
+            aria-label="Round history"
+            onClick={onHistoryToggle}
+            className="relative rounded-md bg-white/10 px-2 py-1 text-xs text-white/80 transition hover:bg-white/20"
+            data-testid="history-toggle"
+          >
+            <span aria-hidden="true">H</span>
+            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+              {roundHistoryCount}
+            </span>
+          </button>
         )}
       </div>
     </div>
