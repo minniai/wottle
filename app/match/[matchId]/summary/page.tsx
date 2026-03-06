@@ -5,6 +5,7 @@ import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import type { FrozenTileMap, MatchEndedReason, ScoreTotals } from "@/lib/types/match";
+import type { BoardGrid, Coordinate } from "@/lib/types/board";
 
 interface PlayerRecord {
   id: string;
@@ -50,7 +51,7 @@ async function fetchMatchSummary(matchId: string) {
 
   const { data: snapshots } = await supabase
     .from("scoreboard_snapshots")
-    .select("round_number,player_a_score,player_b_score")
+    .select("round_number,player_a_score,player_b_score,player_a_delta,player_b_delta")
     .eq("match_id", matchId)
     .order("round_number", { ascending: true });
 
@@ -64,9 +65,17 @@ async function fetchMatchSummary(matchId: string) {
     roundMap.set(round.id as string, round.round_number as number);
   });
 
+  const { data: lastRound } = await supabase
+    .from("rounds")
+    .select("board_snapshot_after")
+    .eq("match_id", matchId)
+    .order("round_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: wordEntries } = await supabase
     .from("word_score_entries")
-    .select("round_id,player_id,word,total_points,length,letters_points,bonus_points")
+    .select("round_id,player_id,word,total_points,length,letters_points,bonus_points,tiles,is_duplicate")
     .eq("match_id", matchId)
     .order("created_at", { ascending: true });
 
@@ -93,6 +102,7 @@ async function fetchMatchSummary(matchId: string) {
     topWordEntries: topWordEntries ?? [],
     roundMap,
     finalScores,
+    board: (lastRound?.board_snapshot_after as BoardGrid | null) ?? null,
   };
 }
 
@@ -168,12 +178,16 @@ export default async function MatchSummaryPage({
     totalPoints: entry.total_points as number,
     lettersPoints: entry.letters_points as number,
     bonusPoints: entry.bonus_points as number,
+    coordinates: (entry.tiles as Coordinate[] | null) ?? [],
+    isDuplicate: (entry.is_duplicate as boolean | null) ?? false,
   }));
 
   const scoreboard = summary.snapshots.map((row) => ({
     roundNumber: row.round_number as number,
     playerAScore: row.player_a_score ?? 0,
     playerBScore: row.player_b_score ?? 0,
+    playerADelta: (row.player_a_delta as number | null) ?? 0,
+    playerBDelta: (row.player_b_delta as number | null) ?? 0,
   }));
 
   return (
@@ -186,6 +200,7 @@ export default async function MatchSummaryPage({
         players={players}
         scoreboard={scoreboard}
         wordHistory={wordHistory}
+        board={summary.board}
       />
     </main>
   );

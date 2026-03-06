@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { MatchEndedReason, TopWord } from "@/lib/types/match";
+import type { BoardGrid, Coordinate } from "@/lib/types/board";
+import { BoardGrid as BoardGridComponent } from "@/components/game/BoardGrid";
+import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
+import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
+import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
+import {
+  PLAYER_A_HIGHLIGHT,
+  PLAYER_B_HIGHLIGHT,
+} from "@/lib/constants/playerColors";
 
 interface PlayerSummary {
   id: string;
@@ -17,19 +26,25 @@ interface PlayerSummary {
   topWords: TopWord[];
 }
 
-interface ScoreboardRow {
+export interface ScoreboardRow {
   roundNumber: number;
   playerAScore: number;
   playerBScore: number;
+  playerADelta: number;
+  playerBDelta: number;
 }
 
-interface WordHistoryRow {
+export interface WordHistoryRow {
   roundNumber: number;
   playerId: string;
   word: string;
   totalPoints: number;
   lettersPoints: number;
   bonusPoints: number;
+  /** Tile positions where the word appeared on the board */
+  coordinates: Coordinate[];
+  /** True if this word was already scored by this player in a prior round */
+  isDuplicate: boolean;
 }
 
 export interface FinalSummaryProps {
@@ -40,6 +55,7 @@ export interface FinalSummaryProps {
   players: PlayerSummary[];
   scoreboard: ScoreboardRow[];
   wordHistory: WordHistoryRow[];
+  board: BoardGrid | null;
 }
 
 function formatDuration(ms: number) {
@@ -83,6 +99,8 @@ function TopWordsList({ words }: { words: TopWord[] }) {
   );
 }
 
+type ActiveTab = "overview" | "round-history";
+
 export function FinalSummary({
   matchId,
   currentPlayerId,
@@ -91,10 +109,13 @@ export function FinalSummary({
   players,
   scoreboard,
   wordHistory,
+  board,
 }: FinalSummaryProps) {
   const router = useRouter();
   const [isRematching, startRematch] = useTransition();
   const [rematchError, setRematchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
+  const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
 
   const winner = useMemo(() => players.find((player) => player.id === winnerId), [
     players,
@@ -102,6 +123,43 @@ export function FinalSummary({
   ]);
 
   const currentPlayer = players.find((player) => player.id === currentPlayerId);
+
+  const playerA = players[0];
+  const playerB = players[1];
+
+  const usernameMap = useMemo(
+    () => Object.fromEntries(players.map((p) => [p.id, p.displayName])),
+    [players],
+  );
+
+  const roundHistory = useMemo(
+    () =>
+      deriveRoundHistory(
+        wordHistory,
+        scoreboard,
+        playerA?.id ?? "",
+        playerA?.displayName ?? "Player A",
+        playerB?.id ?? "",
+        playerB?.displayName ?? "Player B",
+      ),
+    [wordHistory, scoreboard, playerA, playerB],
+  );
+
+  const biggestSwing = useMemo(() => deriveBiggestSwing(scoreboard), [scoreboard]);
+  const highestWord = useMemo(() => deriveHighestScoringWord(wordHistory, usernameMap), [wordHistory, usernameMap]);
+
+  const handleWordHover = (word: WordHistoryRow | null) => {
+    if (!word) {
+      setHighlightPlayerColors({});
+      return;
+    }
+    const color = word.playerId === playerA?.id ? PLAYER_A_HIGHLIGHT : PLAYER_B_HIGHLIGHT;
+    const colors: Record<string, string> = {};
+    for (const coord of word.coordinates) {
+      colors[`${coord.x},${coord.y}`] = color;
+    }
+    setHighlightPlayerColors(colors);
+  };
 
   const handleRematch = () => {
     setRematchError(null);
@@ -122,6 +180,61 @@ export function FinalSummary({
       className="w-full rounded-3xl border border-white/10 bg-slate-950/70 p-8 shadow-2xl shadow-slate-950/60"
       data-testid="final-summary-view"
     >
+      {/* Board rendered outside tab area so it stays visible on both tabs */}
+      {board && (
+        <div className="mb-6" data-testid="final-summary-board">
+          <BoardGridComponent
+            grid={board}
+            matchId={matchId}
+            className="mx-auto"
+            highlightPlayerColors={highlightPlayerColors}
+            persistentHighlight
+          />
+        </div>
+      )}
+      {/* Tab bar */}
+      <div className="mb-6 flex gap-2 border-b border-white/10 pb-1" role="tablist" aria-label="Match summary">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "overview"}
+          aria-controls="tab-panel-overview"
+          id="tab-overview"
+          onClick={() => setActiveTab("overview")}
+          className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "overview"
+              ? "border-b-2 border-emerald-400 text-emerald-300"
+              : "text-white/60 hover:text-white/90"
+          }`}
+          data-testid="tab-overview"
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "round-history"}
+          aria-controls="tab-panel-round-history"
+          id="tab-round-history"
+          onClick={() => setActiveTab("round-history")}
+          className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "round-history"
+              ? "border-b-2 border-emerald-400 text-emerald-300"
+              : "text-white/60 hover:text-white/90"
+          }`}
+          data-testid="tab-round-history"
+        >
+          Round History
+        </button>
+      </div>
+
+      {/* Overview tab panel */}
+      <div
+        id="tab-panel-overview"
+        role="tabpanel"
+        aria-labelledby="tab-overview"
+        hidden={activeTab !== "overview"}
+      >
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-[0.3em] text-emerald-200/80">
           Match Complete
@@ -282,6 +395,27 @@ export function FinalSummary({
           Playing as <span className="font-semibold">{currentPlayer.displayName}</span>
         </p>
       )}
+      </div>{/* end overview tab panel */}
+
+      {/* Round History tab panel */}
+      <div
+        id="tab-panel-round-history"
+        role="tabpanel"
+        aria-labelledby="tab-round-history"
+        hidden={activeTab !== "round-history"}
+        data-testid="tab-panel-round-history"
+      >
+        <RoundHistoryPanel
+          rounds={roundHistory}
+          playerAUsername={playerA?.displayName ?? "Player A"}
+          playerBUsername={playerB?.displayName ?? "Player B"}
+          scores={scoreboard}
+          wordHistory={wordHistory}
+          biggestSwing={biggestSwing}
+          highestWord={highestWord}
+          onWordHover={handleWordHover}
+        />
+      </div>
     </section>
   );
 }

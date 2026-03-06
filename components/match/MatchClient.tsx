@@ -6,9 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { GameChrome } from "@/components/match/GameChrome";
 import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
+import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
+import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
+import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
+import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
 import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
@@ -74,6 +78,11 @@ export function MatchClient({
   const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<
     string | null
   >(null);
+
+  // In-game round history accumulation (US4)
+  const [accumulatedWords, setAccumulatedWords] = useState<WordHistoryRow[]>([]);
+  const [accumulatedScores, setAccumulatedScores] = useState<ScoreboardRow[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Animation phase machine for post-round highlight sequence (US7)
   type AnimationPhase = "idle" | "highlighting" | "showing-summary";
@@ -161,6 +170,27 @@ export function MatchClient({
           scores: nextSummary.totals,
           lastSummary: nextSummary,
         }));
+
+        // Accumulate round history for in-game panel (US4)
+        const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
+          roundNumber: nextSummary.roundNumber,
+          playerId: w.playerId,
+          word: w.word,
+          totalPoints: w.totalPoints,
+          lettersPoints: w.lettersPoints,
+          bonusPoints: w.bonusPoints,
+          coordinates: w.coordinates,
+          isDuplicate: w.isDuplicate ?? false,
+        }));
+        const newScore: ScoreboardRow = {
+          roundNumber: nextSummary.roundNumber,
+          playerAScore: nextSummary.totals.playerA,
+          playerBScore: nextSummary.totals.playerB,
+          playerADelta: nextSummary.deltas.playerA,
+          playerBDelta: nextSummary.deltas.playerB,
+        };
+        setAccumulatedWords((prev) => [...prev, ...newWords]);
+        setAccumulatedScores((prev) => [...prev, newScore]);
 
         if (prefersReducedMotionRef.current) {
           setAnimationPhase("showing-summary");
@@ -349,6 +379,56 @@ export function MatchClient({
     Math.floor(opponentTimer.remainingMs / 1000),
   );
 
+  // Derive in-game round history from accumulated data (US4)
+  const playerAId = matchState.timers.playerA.playerId;
+  const playerBId = matchState.timers.playerB.playerId;
+  const roundHistory = useMemo(
+    () =>
+      deriveRoundHistory(
+        accumulatedWords,
+        accumulatedScores,
+        playerAId,
+        playerAId,
+        playerBId,
+        playerBId,
+      ),
+    [accumulatedWords, accumulatedScores, playerAId, playerBId],
+  );
+
+  const usernameMap = useMemo(
+    () => ({ [playerAId]: playerAId, [playerBId]: playerBId }),
+    [playerAId, playerBId],
+  );
+  const biggestSwing = useMemo(() => deriveBiggestSwing(accumulatedScores), [accumulatedScores]);
+  const highestWord = useMemo(() => deriveHighestScoringWord(accumulatedWords, usernameMap), [accumulatedWords, usernameMap]);
+
+  const historyOverlayRef = useRef<HTMLDivElement>(null);
+
+  // Dismiss overlay on Escape key
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setHistoryOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [historyOpen]);
+
+  // Dismiss overlay on outside click
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (
+        historyOverlayRef.current &&
+        !historyOverlayRef.current.contains(e.target as Node)
+      ) {
+        setHistoryOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [historyOpen]);
+
   const searchParams = useSearchParams();
   const showDebug =
     process.env.NODE_ENV !== "production" &&
@@ -385,47 +465,68 @@ export function MatchClient({
         </div>
       )}
 
-      <GameChrome
-        position="opponent"
-        playerName={opponentTimer.playerId}
-        score={opponentScore}
-        timerSeconds={opponentTimeLeft}
-        isPaused={opponentTimer.status !== "running"}
-        hasSubmitted={opponentTimer.status === "paused"}
-        moveCounter={matchState.currentRound}
-        playerColor={getPlayerColors(opponentSlot).hex}
-      />
+      <div className="match-layout">
+        {/* Board area */}
+        <div className="match-layout__board">
+          <GameChrome
+            position="opponent"
+            playerName={opponentTimer.playerId}
+            score={opponentScore}
+            timerSeconds={opponentTimeLeft}
+            isPaused={opponentTimer.status !== "running"}
+            hasSubmitted={opponentTimer.status === "paused"}
+            moveCounter={matchState.currentRound}
+            playerColor={getPlayerColors(opponentSlot).hex}
+          />
 
-      <BoardGrid
-        grid={matchState.board}
-        matchId={matchId}
-        frozenTiles={matchState.frozenTiles ?? {}}
-        playerSlot={playerSlot}
-        scoredTileHighlights={
-          animationPhase === "highlighting"
-            ? (pendingSummary?.highlights ?? [])
-            : []
-        }
-        highlightPlayerColors={
-          animationPhase === "highlighting" ? highlightPlayerColors : {}
-        }
-        highlightDurationMs={800}
-        onSwapComplete={handleSwapComplete}
-        onSwapError={({ message }) => handleSwapError(message)}
-      />
+          <BoardGrid
+            grid={matchState.board}
+            matchId={matchId}
+            frozenTiles={matchState.frozenTiles ?? {}}
+            playerSlot={playerSlot}
+            scoredTileHighlights={
+              animationPhase === "highlighting"
+                ? (pendingSummary?.highlights ?? [])
+                : []
+            }
+            highlightPlayerColors={
+              animationPhase === "highlighting"
+                ? highlightPlayerColors
+                : {}
+            }
+            highlightDurationMs={800}
+            onSwapComplete={handleSwapComplete}
+            onSwapError={({ message }) => handleSwapError(message)}
+          />
 
-      <GameChrome
-        position="player"
-        playerName={currentTimer.playerId}
-        score={playerScore}
-        timerSeconds={timeLeftSeconds}
-        isPaused={isPaused}
-        hasSubmitted={currentTimer.status === "paused"}
-        moveCounter={matchState.currentRound}
-        playerColor={getPlayerColors(playerSlot).hex}
-        scoreDelta={scoreDelta}
-        scoreDeltaRound={summary?.roundNumber}
-      />
+          <GameChrome
+            position="player"
+            playerName={currentTimer.playerId}
+            score={playerScore}
+            timerSeconds={timeLeftSeconds}
+            isPaused={isPaused}
+            hasSubmitted={currentTimer.status === "paused"}
+            moveCounter={matchState.currentRound}
+            playerColor={getPlayerColors(playerSlot).hex}
+            scoreDelta={scoreDelta}
+            scoreDeltaRound={summary?.roundNumber}
+            roundHistoryCount={roundHistory.length}
+            onHistoryToggle={() => setHistoryOpen((v) => !v)}
+          />
+        </div>
+
+        {/* Round summary — right of board on >=900px, below on smaller */}
+        {animationPhase !== "highlighting" && summary && (
+          <div className="match-layout__summary">
+            <RoundSummaryPanel
+              summary={summary}
+              currentPlayerId={currentPlayerId}
+              onDismiss={handleSummaryDismiss}
+              autoDismissMs={summaryAutoDismissMs}
+            />
+          </div>
+        )}
+      </div>
 
       {showDebug && (
         <details
@@ -454,13 +555,41 @@ export function MatchClient({
         </details>
       )}
 
-      {animationPhase !== "highlighting" && (
-        <RoundSummaryPanel
-          summary={summary}
-          currentPlayerId={currentPlayerId}
-          onDismiss={handleSummaryDismiss}
-          autoDismissMs={summaryAutoDismissMs}
-        />
+      {historyOpen && roundHistory.length > 0 && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
+          data-testid="history-overlay-backdrop"
+        >
+          <div
+            ref={historyOverlayRef}
+            className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-white/10 bg-slate-900 p-4 shadow-2xl sm:rounded-2xl"
+            role="dialog"
+            aria-label="Round history"
+            data-testid="history-overlay"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Round History</h2>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(false)}
+                className="rounded-lg px-2 py-1 text-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close round history"
+                data-testid="history-close"
+              >
+                Close
+              </button>
+            </div>
+            <RoundHistoryPanel
+              rounds={roundHistory}
+              playerAUsername={playerAId}
+              playerBUsername={playerBId}
+              scores={accumulatedScores}
+              wordHistory={accumulatedWords}
+              biggestSwing={biggestSwing}
+              highestWord={highestWord}
+            />
+          </div>
+        </div>
       )}
     </MatchShell>
   );

@@ -58,14 +58,16 @@ specs/011-board-ui-polish/
 ### Source Code (repository root)
 
 ```text
-frontend/
-├── app/
-├── components/
-│   ├── game/
-│   │   ├── BoardGrid.tsx
-│   │   └── TimerHud.tsx
-└── tests/
-    └── integration/
+app/
+├── styles/board.css
+components/
+├── game/
+│   ├── BoardGrid.tsx
+│   └── usePinchZoom.ts
+├── match/
+│   └── GameChrome.tsx
+tests/
+└── unit/components/
 ```
 
 **Structure Decision**: Code will integrate into the existing `components/game` Next.js directory structure.

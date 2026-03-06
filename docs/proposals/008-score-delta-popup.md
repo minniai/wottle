@@ -1,4 +1,4 @@
-# Next Feature After 006-Match-Completion
+r Next Feature After 006-Match-Completion
 
 **Purpose:** Recommend the next spec to implement after 006-match-completion so the game feels more polished and moves toward an “amazing playable word game” without large scope or long implementation time.
 
@@ -29,7 +29,7 @@ Implement the **Score Delta Popup** as defined in PRD §7.2 (Visual Feedback).
   - “Content Format: '+18 letters, +3 length, +2 combo' or similar breakdown.”
   - “Animation: Fade in over 200ms, hold for 2–2.8s, fade out over 200ms.”
 - **Small scope:** One new component + wiring. Backend already provides per-round breakdown (letter total, length bonus, combo) in `RoundSummary` (deltas, comboBonus, word breakdowns). No new server work.
-- **High impact:** Players see *why* their score went up (letters vs length vs combo) right next to their score. This makes scoring tangible and reinforces the core loop. Combo bonuses become visible and rewarding.
+- **High impact:** Players see _why_ their score went up (letters vs length vs combo) right next to their score. This makes scoring tangible and reinforces the core loop. Combo bonuses become visible and rewarding.
 - **Moves toward “amazing playable”:** Clear, immediate feedback is what separates a prototype from a game that feels good to play.
 
 ### Scope of work
@@ -52,7 +52,7 @@ Implement the **Score Delta Popup** as defined in PRD §7.2 (Visual Feedback).
 ### Out of scope for this spec
 
 - Changing round summary content or server scoring.
-- Invalid-swap feedback (shake, red border) — good candidate for the *next* small spec.
+- Invalid-swap feedback (shake, red border) — good candidate for the _next_ small spec.
 - Rematch flow, board generation, or legacy cleanup.
 
 ---
@@ -71,9 +71,9 @@ Currently, rejection is communicated (e.g. via `MoveFeedback` toast), but the **
 
 ## 4. Summary
 
-| Recommendation | Scope | Value |
-|----------------|--------|--------|
-| **007-Score-Delta-Popup** | One component + wiring to round summary; optional type tweaks for breakdown. | Makes scoring transparent and satisfying; fulfils PRD §7.2; small, low-risk. |
-| **Invalid-swap feedback** (same or next spec) | Shake + red border on rejected swap; reuse existing rejection path. | Clear, tactile feedback on errors; completes PRD visual feedback. |
+| Recommendation                                | Scope                                                                        | Value                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **007-Score-Delta-Popup**                     | One component + wiring to round summary; optional type tweaks for breakdown. | Makes scoring transparent and satisfying; fulfils PRD §7.2; small, low-risk. |
+| **Invalid-swap feedback** (same or next spec) | Shake + red border on rejected swap; reuse existing rejection path.          | Clear, tactile feedback on errors; completes PRD visual feedback.            |
 
 **Next feature after 006-match-completion:** Implement **Score Delta Popup** (and optionally Invalid Swap Feedback) so the next step is **bounded, PRD-grounded, and directly improves “playability”** on the path to an amazing word game.
