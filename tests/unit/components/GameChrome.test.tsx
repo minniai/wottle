@@ -23,32 +23,22 @@ describe("GameChrome", () => {
     expect(screen.getByText("3:00")).toBeInTheDocument();
   });
 
-  test("renders move counter for player position", () => {
+  test("renders move indicator (M{n}) for player position", () => {
     render(<GameChrome {...baseProps} moveCounter={5} />);
-
-    expect(screen.getByText("M5")).toBeInTheDocument();
+    expect(screen.getByTestId("move-indicator")).toHaveTextContent("M5");
   });
 
-  test("does not render move counter for opponent position", () => {
+  test("renders move indicator (M{n}) for opponent position", () => {
     render(
       <GameChrome {...baseProps} position="opponent" moveCounter={5} />,
     );
-
-    expect(screen.queryByText("M5")).not.toBeInTheDocument();
+    expect(screen.getByTestId("move-indicator")).toHaveTextContent("M5");
   });
 
-  test("renders round indicator for opponent position", () => {
+  test("does not render legacy round indicator for opponent position", () => {
     render(
       <GameChrome {...baseProps} position="opponent" moveCounter={3} />,
     );
-
-    const roundEl = screen.getByTestId("round-indicator");
-    expect(roundEl).toHaveTextContent("Round 3");
-  });
-
-  test("does not render round indicator for player position", () => {
-    render(<GameChrome {...baseProps} moveCounter={3} />);
-
     expect(screen.queryByTestId("round-indicator")).not.toBeInTheDocument();
   });
 

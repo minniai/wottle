@@ -356,7 +356,38 @@ describe("BoardGrid invalid swap feedback (US7)", () => {
     expect(tiles[0]).not.toHaveClass("board-grid__cell--invalid");
     expect(tiles[1]).not.toHaveClass("board-grid__cell--invalid");
   });
+
+  test("rejects locally instantly when a selected tile is frozen (US1)", async () => {
+    const grid = createGrid();
+    const frozenTiles: FrozenTileMap = {
+      "0,0": { owner: "player_a" },
+    };
+    render(<BoardGrid grid={grid} matchId="test-match-id" frozenTiles={frozenTiles} />);
+
+    const tiles = screen.getAllByTestId("board-tile");
+    act(() => {
+      fireEvent.click(tiles[0]); // Tile 0,0 (frozen)
+    });
+    act(() => {
+      fireEvent.click(tiles[1]); // Tile 1,0 (not frozen)
+    });
+
+    // Should not trigger fetch
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // Both tiles should instantly get invalid class (no wait for animation/fetch)
+    expect(tiles[0]).toHaveClass("board-grid__cell--invalid");
+    expect(tiles[1]).toHaveClass("board-grid__cell--invalid");
+
+    // Clear after 400ms
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(401);
+    });
+    expect(tiles[0]).not.toHaveClass("board-grid__cell--invalid");
+    expect(tiles[1]).not.toHaveClass("board-grid__cell--invalid");
+  });
 });
+
 
 // T013: rapid re-rejection must immediately show invalid class on new tile pair
 describe("BoardGrid rapid re-rejection (FR-012)", () => {
