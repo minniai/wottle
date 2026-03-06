@@ -104,9 +104,9 @@
 
 **Purpose**: E2E coverage, reduced-motion validation, and edge-case handling across all stories.
 
-- [ ] T022 [P] Write E2E test in `tests/integration/ui/round-history.spec.ts` — complete a 2-player match; navigate to summary page; verify "Round History" tab is present; click tab; verify round rows equal completed round count with correct deltas; expand a round; verify word list with correct player grouping; verify callout cards show correct round/word; hover a word and verify board highlight appears
-- [ ] T023 [P] Validate `prefers-reduced-motion` treatment — in `app/styles/board.css`, confirm `.scored-tile-highlight` has a `@media (prefers-reduced-motion: reduce)` block that substitutes the static outline; in `components/match/RoundHistoryPanel.tsx`, confirm no CSS transitions on expand/collapse animations under reduced motion
-- [ ] T024 Handle edge-case display in `components/match/RoundHistoryPanel.tsx` and `components/match/FinalSummary.tsx` — matches that ended with fewer than 10 rounds show only the completed round count with no empty rows (FR-015); verify with a match fixture that has 3 rounds
+- [x] T022 [P] Write E2E test in `tests/integration/ui/round-history.spec.ts` — complete a 2-player match; navigate to summary page; verify "Round History" tab is present; click tab; verify round rows equal completed round count with correct deltas; expand a round; verify word list with correct player grouping; verify callout cards show correct round/word; hover a word and verify board highlight appears
+- [x] T023 [P] Validate `prefers-reduced-motion` treatment — in `app/styles/board.css`, confirm `.scored-tile-highlight` has a `@media (prefers-reduced-motion: reduce)` block that substitutes the static outline; in `components/match/RoundHistoryPanel.tsx`, confirm no CSS transitions on expand/collapse animations under reduced motion
+- [x] T024 Handle edge-case display in `components/match/RoundHistoryPanel.tsx` and `components/match/FinalSummary.tsx` — matches that ended with fewer than 10 rounds show only the completed round count with no empty rows (FR-015); verify with a match fixture that has 3 rounds
 
 ---
 
