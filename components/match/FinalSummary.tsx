@@ -7,6 +7,13 @@ import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { MatchEndedReason, TopWord } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 import { BoardGrid as BoardGridComponent } from "@/components/game/BoardGrid";
+import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
+import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
+import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
+import {
+  PLAYER_A_HIGHLIGHT,
+  PLAYER_B_HIGHLIGHT,
+} from "@/lib/constants/playerColors";
 
 interface PlayerSummary {
   id: string;
@@ -116,6 +123,43 @@ export function FinalSummary({
   ]);
 
   const currentPlayer = players.find((player) => player.id === currentPlayerId);
+
+  const playerA = players[0];
+  const playerB = players[1];
+
+  const usernameMap = useMemo(
+    () => Object.fromEntries(players.map((p) => [p.id, p.displayName])),
+    [players],
+  );
+
+  const roundHistory = useMemo(
+    () =>
+      deriveRoundHistory(
+        wordHistory,
+        scoreboard,
+        playerA?.id ?? "",
+        playerA?.displayName ?? "Player A",
+        playerB?.id ?? "",
+        playerB?.displayName ?? "Player B",
+      ),
+    [wordHistory, scoreboard, playerA, playerB],
+  );
+
+  const biggestSwing = useMemo(() => deriveBiggestSwing(scoreboard), [scoreboard]);
+  const highestWord = useMemo(() => deriveHighestScoringWord(wordHistory, usernameMap), [wordHistory, usernameMap]);
+
+  const handleWordHover = (word: WordHistoryRow | null) => {
+    if (!word) {
+      setHighlightPlayerColors({});
+      return;
+    }
+    const color = word.playerId === playerA?.id ? PLAYER_A_HIGHLIGHT : PLAYER_B_HIGHLIGHT;
+    const colors: Record<string, string> = {};
+    for (const coord of word.coordinates) {
+      colors[`${coord.x},${coord.y}`] = color;
+    }
+    setHighlightPlayerColors(colors);
+  };
 
   const handleRematch = () => {
     setRematchError(null);
@@ -353,14 +397,25 @@ export function FinalSummary({
       )}
       </div>{/* end overview tab panel */}
 
-      {/* Round History tab panel — wired in T010 */}
+      {/* Round History tab panel */}
       <div
         id="tab-panel-round-history"
         role="tabpanel"
         aria-labelledby="tab-round-history"
         hidden={activeTab !== "round-history"}
         data-testid="tab-panel-round-history"
-      />
+      >
+        <RoundHistoryPanel
+          rounds={roundHistory}
+          playerAUsername={playerA?.displayName ?? "Player A"}
+          playerBUsername={playerB?.displayName ?? "Player B"}
+          scores={scoreboard}
+          wordHistory={wordHistory}
+          biggestSwing={biggestSwing}
+          highestWord={highestWord}
+          onWordHover={handleWordHover}
+        />
+      </div>
     </section>
   );
 }
