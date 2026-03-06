@@ -244,14 +244,14 @@
 
 **Purpose**: Verify full system integrity, performance, and cleanup
 
-- [ ] T084 Run `pnpm typecheck` — verify zero TypeScript errors across entire codebase
-- [ ] T085 Run `pnpm lint` — verify zero ESLint warnings
-- [ ] T086 Run `pnpm test` — verify all unit and contract tests pass
-- [ ] T087 Run `pnpm test:integration` — verify all integration tests pass
-- [ ] T088 Performance validation: verify word validation completes in <50ms with new scanner — run `pnpm perf:round-resolution` or add targeted perf test (SC-008)
-- [ ] T089 Remove dead code: clean up unused imports, delete `removeSubwords()`, `removeSuffixOverlaps()`, `buildUnionText()`, `startsLater()` from `lib/game-engine/deltaDetector.ts` if no longer used
-- [ ] T090 Remove unused `calculateMoveScore()` from `lib/game-engine/scorer.ts` if no longer called
-- [ ] T091 Verify `pnpm build` succeeds — production build with no errors
+- [x] T084 Run `pnpm typecheck` — verify zero TypeScript errors across entire codebase
+- [x] T085 Run `pnpm lint` — verify zero ESLint warnings
+- [x] T086 Run `pnpm test` — verify all unit and contract tests pass
+- [x] T087 Run `pnpm test:integration` — verify all integration tests pass
+- [x] T088 Performance validation: verify word validation completes in <50ms with new scanner — run `pnpm perf:round-resolution` or add targeted perf test (SC-008)
+- [x] T089 Remove dead code: clean up unused imports, delete `removeSubwords()`, `removeSuffixOverlaps()`, `buildUnionText()`, `startsLater()` from `lib/game-engine/deltaDetector.ts` if no longer used
+- [x] T090 Remove unused `calculateMoveScore()` from `lib/game-engine/scorer.ts` if no longer called
+- [x] T091 Verify `pnpm build` succeeds — production build with no errors
 
 ---
 
