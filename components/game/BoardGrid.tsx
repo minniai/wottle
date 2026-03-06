@@ -38,6 +38,8 @@ interface BoardGridProps {
   highlightDurationMs?: number;
   /** Per-tile highlight color map for player-attributed glow. Keys are "x,y" strings, values are CSS color strings. */
   highlightPlayerColors?: Record<string, string>;
+  /** When true, scored tile highlights persist until highlightPlayerColors is externally cleared (no auto-clear timer). */
+  persistentHighlight?: boolean;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -138,6 +140,7 @@ export function BoardGrid({
   scoredTileHighlights = EMPTY_HIGHLIGHTS,
   highlightDurationMs = 800,
   highlightPlayerColors = {},
+  persistentHighlight = false,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
@@ -155,6 +158,7 @@ export function BoardGrid({
       scoredTileHighlights={scoredTileHighlights}
       highlightDurationMs={highlightDurationMs}
       highlightPlayerColors={highlightPlayerColors}
+      persistentHighlight={persistentHighlight}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
     />
@@ -170,6 +174,7 @@ function BoardGridActive({
   scoredTileHighlights = EMPTY_HIGHLIGHTS,
   highlightDurationMs = 800,
   highlightPlayerColors = {},
+  persistentHighlight = false,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps & { grid: BoardGridType }) {
@@ -208,12 +213,13 @@ function BoardGridActive({
     if (highlightsKeyRef.current === key) return;
     highlightsKeyRef.current = key;
     setActiveHighlights(scoredTileHighlights);
+    if (persistentHighlight) return;
     const t = setTimeout(() => {
       setActiveHighlights([]);
       highlightsKeyRef.current = "";
     }, highlightDurationMs);
     return () => clearTimeout(t);
-  }, [scoredTileHighlights, highlightDurationMs]);
+  }, [scoredTileHighlights, highlightDurationMs, persistentHighlight]);
 
   const rowCount = currentGrid.length;
   const colCount = currentGrid[0]?.length ?? 0;
@@ -466,7 +472,11 @@ function BoardGridActive({
               const frozenEntry = frozenTiles[tileKey];
               const isTileFrozen = !!frozenEntry;
               const frozenOwner = frozenEntry?.owner;
-              const isScoredHighlight = activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
+              // In persistent mode, any tile with an explicit color is highlighted directly.
+              // In normal mode, highlight is driven by the timed activeHighlights array.
+              const isScoredHighlight = persistentHighlight
+                ? !!highlightPlayerColors[tileKey]
+                : activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
               const isInvalid =
                 invalidTiles !== null &&
                 ((invalidTiles[0].x === colIndex && invalidTiles[0].y === rowIndex) ||

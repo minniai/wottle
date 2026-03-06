@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { MatchEndedReason, TopWord } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
+import { BoardGrid as BoardGridComponent } from "@/components/game/BoardGrid";
 
 interface PlayerSummary {
   id: string;
@@ -91,6 +92,8 @@ function TopWordsList({ words }: { words: TopWord[] }) {
   );
 }
 
+type ActiveTab = "overview" | "round-history";
+
 export function FinalSummary({
   matchId,
   currentPlayerId,
@@ -104,6 +107,8 @@ export function FinalSummary({
   const router = useRouter();
   const [isRematching, startRematch] = useTransition();
   const [rematchError, setRematchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
+  const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
 
   const winner = useMemo(() => players.find((player) => player.id === winnerId), [
     players,
@@ -131,6 +136,61 @@ export function FinalSummary({
       className="w-full rounded-3xl border border-white/10 bg-slate-950/70 p-8 shadow-2xl shadow-slate-950/60"
       data-testid="final-summary-view"
     >
+      {/* Board rendered outside tab area so it stays visible on both tabs */}
+      {board && (
+        <div className="mb-6" data-testid="final-summary-board">
+          <BoardGridComponent
+            grid={board}
+            matchId={matchId}
+            className="mx-auto"
+            highlightPlayerColors={highlightPlayerColors}
+            persistentHighlight
+          />
+        </div>
+      )}
+      {/* Tab bar */}
+      <div className="mb-6 flex gap-2 border-b border-white/10 pb-1" role="tablist" aria-label="Match summary">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "overview"}
+          aria-controls="tab-panel-overview"
+          id="tab-overview"
+          onClick={() => setActiveTab("overview")}
+          className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "overview"
+              ? "border-b-2 border-emerald-400 text-emerald-300"
+              : "text-white/60 hover:text-white/90"
+          }`}
+          data-testid="tab-overview"
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "round-history"}
+          aria-controls="tab-panel-round-history"
+          id="tab-round-history"
+          onClick={() => setActiveTab("round-history")}
+          className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "round-history"
+              ? "border-b-2 border-emerald-400 text-emerald-300"
+              : "text-white/60 hover:text-white/90"
+          }`}
+          data-testid="tab-round-history"
+        >
+          Round History
+        </button>
+      </div>
+
+      {/* Overview tab panel */}
+      <div
+        id="tab-panel-overview"
+        role="tabpanel"
+        aria-labelledby="tab-overview"
+        hidden={activeTab !== "overview"}
+      >
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-[0.3em] text-emerald-200/80">
           Match Complete
@@ -291,6 +351,16 @@ export function FinalSummary({
           Playing as <span className="font-semibold">{currentPlayer.displayName}</span>
         </p>
       )}
+      </div>{/* end overview tab panel */}
+
+      {/* Round History tab panel — wired in T010 */}
+      <div
+        id="tab-panel-round-history"
+        role="tabpanel"
+        aria-labelledby="tab-round-history"
+        hidden={activeTab !== "round-history"}
+        data-testid="tab-panel-round-history"
+      />
     </section>
   );
 }
