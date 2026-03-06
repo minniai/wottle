@@ -1,16 +1,15 @@
-import type { BoardGrid } from "@/lib/types/board";
+import type { BoardGrid, BoardWord, Coordinate } from "@/lib/types/board";
 import type {
+  AcceptedMove,
   FrozenTileMap,
   WordScoreBreakdown,
   RoundScoreResult,
 } from "@/lib/types/match";
 import { logPlaytestInfo } from "@/lib/observability/log";
 import { loadDictionary } from "./dictionary";
-import {
-  detectNewWords,
-  type AcceptedMove,
-  type AttributedWord,
-} from "./deltaDetector";
+import { applySwap } from "./board";
+import { scanFromSwapCoordinates } from "./boardScanner";
+import { selectOptimalCombination } from "./crossValidator";
 import {
   calculateLetterPoints,
   calculateLengthBonus,
@@ -18,23 +17,29 @@ import {
 import { freezeTiles } from "./frozenTiles";
 
 /**
- * Score a list of attributed words using the PRD formula.
+ * Score a list of BoardWords for a player using the PRD formula.
  *
  * For each word:
- *   base = sum(letter_values) — excluding opponent-frozen tiles
- *   lengthBonus = (length - 2) * 5
- *   total = base + lengthBonus
+ *   lettersPoints = sum(letter_values) — excluding opponent-frozen tiles
+ *   lengthBonus = (word_length - 2) * 5
+ *   total = lettersPoints + lengthBonus
  */
-function scoreAttributedWords(
-  words: AttributedWord[],
+function scoreBoardWords(
+  words: BoardWord[],
+  playerId: string,
+  frozenTiles: FrozenTileMap,
+  playerSlot: "player_a" | "player_b",
 ): WordScoreBreakdown[] {
+  const opponentSlot =
+    playerSlot === "player_a" ? "player_b" : "player_a";
+
   return words.map((word) => {
-    // Score only the letters contributed by this player (not opponent-frozen tiles).
-    // Length bonus uses the full word length regardless of tile ownership.
     const ownLetters = word.tiles
-      .map((t, i) =>
-        word.opponentFrozenKeys.has(`${t.x},${t.y}`) ? "" : word.text[i],
-      )
+      .map((t, i) => {
+        const key = `${t.x},${t.y}`;
+        const frozen = frozenTiles[key];
+        return frozen?.owner === opponentSlot ? "" : word.text[i];
+      })
       .join("");
     const lettersPoints = calculateLetterPoints(ownLetters);
     const lengthBonus = calculateLengthBonus(word.length);
@@ -47,7 +52,7 @@ function scoreAttributedWords(
       lengthBonus,
       totalPoints,
       tiles: word.tiles,
-      playerId: word.playerId,
+      playerId,
     };
   });
 }
@@ -74,35 +79,6 @@ function computeDeltas(
 }
 
 /**
- * Top-level orchestrator for word finding, scoring, and freezing.
- *
- * Pipeline: loadDictionary → detectNewWords (3 scans) → score → compute deltas
- *
- * NOTE: This function will be fully rewritten in Phase 6 (US2) to support
- * sequential player processing by submittedAt timestamp. For now it preserves
- * the existing three-scan approach but without combo bonus or duplicate tracking.
- *
- * @performance MUST complete in <50ms total (FR-021)
- */
-
-/**
- * Helper function to check if two boards are identical (tile-by-tile comparison).
- */
-function areBoardsIdentical(
-  board1: BoardGrid,
-  board2: BoardGrid,
-): boolean {
-  for (let y = 0; y < board1.length; y++) {
-    for (let x = 0; x < board1[y].length; x++) {
-      if (board1[y][x] !== board2[y][x]) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-/**
  * Create an empty RoundScoreResult for zero-word rounds.
  */
 function emptyRoundScoreResult(
@@ -119,24 +95,124 @@ function emptyRoundScoreResult(
   };
 }
 
+/**
+ * Get the swap coordinates from an AcceptedMove.
+ */
+function getSwapCoordinates(move: AcceptedMove): Coordinate[] {
+  return [
+    { x: move.fromX, y: move.fromY },
+    { x: move.toX, y: move.toY },
+  ];
+}
+
+/**
+ * Sort accepted moves by submittedAt ascending. If timestamps are
+ * identical, player_a gets precedence (deterministic tiebreaker).
+ */
+function sortByPrecedence(
+  moves: AcceptedMove[],
+  playerAId: string,
+): AcceptedMove[] {
+  return [...moves].sort((a, b) => {
+    const aTime = a.submittedAt ?? "";
+    const bTime = b.submittedAt ?? "";
+    if (aTime < bTime) return -1;
+    if (aTime > bTime) return 1;
+    // Tiebreaker: player_a first
+    if (a.playerId === playerAId) return -1;
+    if (b.playerId === playerAId) return 1;
+    return 0;
+  });
+}
+
+/**
+ * Process a single player's move: apply swap → scan → cross-validate → score → freeze.
+ */
+function processPlayerMove(
+  board: BoardGrid,
+  move: AcceptedMove,
+  frozenTiles: FrozenTileMap,
+  dictionary: Set<string>,
+  playerSlot: "player_a" | "player_b",
+  playerAId: string,
+  playerBId: string,
+): {
+  breakdowns: WordScoreBreakdown[];
+  updatedFrozenTiles: FrozenTileMap;
+  boardAfterSwap: BoardGrid;
+  wasPartialFreeze: boolean;
+} {
+  // Apply swap
+  const boardAfterSwap = applySwap(board, {
+    from: { x: move.fromX, y: move.fromY },
+    to: { x: move.toX, y: move.toY },
+  });
+
+  // Scan for words from swap coordinates
+  const swapCoords = getSwapCoordinates(move);
+  const candidates = scanFromSwapCoordinates(
+    boardAfterSwap,
+    swapCoords,
+    dictionary,
+  );
+
+  // Cross-validate and select optimal combination
+  const validWords = selectOptimalCombination(
+    candidates,
+    boardAfterSwap,
+    frozenTiles,
+    dictionary,
+    playerSlot,
+  );
+
+  // Score the valid words
+  const breakdowns = scoreBoardWords(
+    validWords,
+    move.playerId,
+    frozenTiles,
+    playerSlot,
+  );
+
+  // Freeze tiles from scored words
+  const freezeResult = freezeTiles({
+    scoredWords: breakdowns,
+    existingFrozenTiles: frozenTiles,
+    playerAId,
+    playerBId,
+  });
+
+  return {
+    breakdowns,
+    updatedFrozenTiles: freezeResult.updatedFrozenTiles,
+    boardAfterSwap,
+    wasPartialFreeze: freezeResult.wasPartialFreeze,
+  };
+}
+
+/**
+ * Top-level orchestrator for word finding, scoring, and freezing.
+ *
+ * Pipeline (FR-005, FR-006, FR-007):
+ * 1. Sort moves by submittedAt ascending (first submitter has precedence)
+ * 2. Process first submitter: apply swap → scan → cross-validate → score → freeze
+ * 3. Process second submitter: apply swap on updated board →
+ *    scan → cross-validate (with updated frozen tiles) → score → freeze
+ *
+ * @performance MUST complete in <50ms total
+ */
 export async function processRoundScoring(params: {
   matchId: string;
   roundId: string;
-  /** Round number (1-based) for observability logging. */
   roundNumber?: number;
   boardBefore: BoardGrid;
-  boardAfter: BoardGrid;
   acceptedMoves: AcceptedMove[];
   frozenTiles: FrozenTileMap;
   playerAId: string;
   playerBId: string;
 }): Promise<RoundScoreResult> {
   const start = performance.now();
-  const startMark = "word-engine:start";
-  const endMark = "word-engine:end";
-  performance.mark(startMark);
 
-  // FR-006d: Zero-accepted-moves guard
+  // Zero-accepted-moves guard
   if (params.acceptedMoves.length === 0) {
     const durationMs = performance.now() - start;
     logPlaytestInfo("word-engine.scoring", {
@@ -153,70 +229,53 @@ export async function processRoundScoring(params: {
     return emptyRoundScoreResult(durationMs, params.frozenTiles);
   }
 
-  // FR-006e: Board-unchanged short-circuit
-  if (areBoardsIdentical(params.boardBefore, params.boardAfter)) {
-    const durationMs = performance.now() - start;
-    logPlaytestInfo("word-engine.scoring", {
-      matchId: params.matchId,
-      roundNumber: params.roundNumber,
-      metadata: {
-        roundId: params.roundId,
-        durationMs: Math.round(durationMs),
-        wordsFound: 0,
-        wordsScored: 0,
-        tilesFrozen: 0,
-      },
-    });
-    return emptyRoundScoreResult(durationMs, params.frozenTiles);
+  const dictionary = await loadDictionary();
+
+  // Sort by submission time (FR-005)
+  const sortedMoves = sortByPrecedence(
+    params.acceptedMoves,
+    params.playerAId,
+  );
+
+  const allBreakdowns: WordScoreBreakdown[] = [];
+  let currentBoard = params.boardBefore;
+  let currentFrozenTiles = params.frozenTiles;
+  let wasPartialFreeze = false;
+
+  // Process each player sequentially (FR-006, FR-007)
+  for (const move of sortedMoves) {
+    const playerSlot =
+      move.playerId === params.playerAId
+        ? "player_a"
+        : "player_b";
+
+    const result = processPlayerMove(
+      currentBoard,
+      move,
+      currentFrozenTiles,
+      dictionary,
+      playerSlot,
+      params.playerAId,
+      params.playerBId,
+    );
+
+    allBreakdowns.push(...result.breakdowns);
+    currentBoard = result.boardAfterSwap;
+    currentFrozenTiles = result.updatedFrozenTiles;
+    if (result.wasPartialFreeze) wasPartialFreeze = true;
   }
 
-  const dictionary = await loadDictionary();
-  performance.mark("word-engine:dict-loaded");
-
-  const newWords = detectNewWords({
-    boardBefore: params.boardBefore,
-    boardAfter: params.boardAfter,
-    dictionary,
-    acceptedMoves: params.acceptedMoves,
-    frozenTiles: params.frozenTiles,
-    playerAId: params.playerAId,
-    playerBId: params.playerBId,
-  });
-  performance.mark("word-engine:delta-done");
-
-  const breakdowns = scoreAttributedWords(newWords);
-
-  const playerAWords = breakdowns.filter(
+  const playerAWords = allBreakdowns.filter(
     (b) => b.playerId === params.playerAId,
   );
-  const playerBWords = breakdowns.filter(
+  const playerBWords = allBreakdowns.filter(
     (b) => b.playerId === params.playerBId,
   );
-  performance.mark("word-engine:scored");
 
-  const deltas = computeDeltas(breakdowns, params.playerAId);
-
-  performance.mark("word-engine:freeze-start");
-  const freezeResult = freezeTiles({
-    scoredWords: breakdowns,
-    existingFrozenTiles: params.frozenTiles,
-    playerAId: params.playerAId,
-    playerBId: params.playerBId,
-  });
-  performance.mark("word-engine:freeze-done");
-  performance.mark(endMark);
-
+  const deltas = computeDeltas(allBreakdowns, params.playerAId);
   const durationMs = performance.now() - start;
-  performance.measure("word-engine:total", startMark, endMark);
-  const computeDurationMs = performance.measure(
-    "word-engine:compute",
-    "word-engine:dict-loaded",
-    "word-engine:scored",
-  ).duration;
 
-  const wordsFound = newWords.length;
-  const wordsScored = breakdowns.length;
-  const tilesFrozen = Object.keys(freezeResult.updatedFrozenTiles).length;
+  const tilesFrozen = Object.keys(currentFrozenTiles).length;
 
   logPlaytestInfo("word-engine.scoring", {
     matchId: params.matchId,
@@ -224,11 +283,10 @@ export async function processRoundScoring(params: {
     metadata: {
       roundId: params.roundId,
       durationMs: Math.round(durationMs),
-      computeDurationMs: Math.round(computeDurationMs),
-      wordsFound,
-      wordsScored,
+      wordsFound: allBreakdowns.length,
+      wordsScored: allBreakdowns.length,
       tilesFrozen,
-      wasPartialFreeze: freezeResult.wasPartialFreeze,
+      wasPartialFreeze,
     },
   });
 
@@ -236,8 +294,8 @@ export async function processRoundScoring(params: {
     playerAWords,
     playerBWords,
     deltas,
-    newFrozenTiles: freezeResult.updatedFrozenTiles,
-    wasPartialFreeze: freezeResult.wasPartialFreeze,
+    newFrozenTiles: currentFrozenTiles,
+    wasPartialFreeze,
     durationMs,
   };
 }

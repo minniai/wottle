@@ -296,7 +296,7 @@ async function executeScoringPipeline(
     roundId: string,
     roundNumber: number,
     boardBefore: BoardGrid,
-    boardAfter: BoardGrid,
+    _boardAfter: BoardGrid,
     acceptedMoves: Array<{ player_id: string; from_x: number; from_y: number; to_x: number; to_y: number; created_at: string }>,
     playerAId: string,
     playerBId: string,
@@ -311,7 +311,6 @@ async function executeScoringPipeline(
         roundId,
         roundNumber,
         boardBefore,
-        boardAfter,
         acceptedMoves: acceptedMoves.map((m) => ({
             playerId: m.player_id,
             fromX: m.from_x,

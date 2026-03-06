@@ -143,23 +143,23 @@
 
 > **NOTE: Write these tests FIRST (TDD Red)**
 
-- [ ] T047 [P] [US2] Write failing test: `processRoundScoring` processes first submitter (by `submittedAt`) before second submitter in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T048 [P] [US2] Write failing test: first submitter's tiles are frozen before second submitter's words are evaluated in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T049 [P] [US2] Write failing test: second submitter's words through first submitter's newly frozen tiles score zero letter points for those tiles in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T050 [P] [US2] Write failing test: precedence is by `submittedAt` timestamp, not player slot (player_b can have precedence) in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T050a [P] [US2] Write failing test: when both moves have identical `submittedAt` timestamps, player_a receives scoring precedence as deterministic tiebreaker in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T051 [P] [US2] Write failing test: `processRoundScoring` returns result without `comboBonus` field in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T052 [P] [US2] Write failing test: single-player submission (only one move) is processed correctly in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T053 [P] [US2] Write failing test: zero-move round returns empty result in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T047 [P] [US2] Write failing test: `processRoundScoring` processes first submitter (by `submittedAt`) before second submitter in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T048 [P] [US2] Write failing test: first submitter's tiles are frozen before second submitter's words are evaluated in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T049 [P] [US2] Write failing test: second submitter's words through first submitter's newly frozen tiles score zero letter points for those tiles in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T050 [P] [US2] Write failing test: precedence is by `submittedAt` timestamp, not player slot (player_b can have precedence) in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T050a [P] [US2] Write failing test: when both moves have identical `submittedAt` timestamps, player_a receives scoring precedence as deterministic tiebreaker in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T051 [P] [US2] Write failing test: `processRoundScoring` returns result without `comboBonus` field in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T052 [P] [US2] Write failing test: single-player submission (only one move) is processed correctly in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T053 [P] [US2] Write failing test: zero-move round returns empty result in `tests/unit/lib/game-engine/wordEngine.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T054 [US2] Rewrite `processRoundScoring()` in `lib/game-engine/wordEngine.ts` — sort moves by `submittedAt`, process first submitter (scan → cross-validate → score → freeze), then process second submitter with updated frozen tiles (FR-005, FR-006, FR-007)
-- [ ] T055 [US2] Remove `scoreAttributedWords()` text-based duplicate logic from `lib/game-engine/wordEngine.ts` — all words score full points
-- [ ] T056 [US2] Remove `computeDeltas()` combo bonus parameter from `lib/game-engine/wordEngine.ts` — deltas are pure word point sums
-- [ ] T057 [US2] Remove `PriorScoredWordsByPlayer` export and `boardAfter` parameter from `processRoundScoring()` signature in `lib/game-engine/wordEngine.ts`
-- [ ] T058 [US2] Verify all US2 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T058a [US2] Write test: freezeTiles stops freezing when ≥24 unfrozen tile safeguard would be violated under sequential processing in `tests/unit/lib/game-engine/wordEngine.test.ts` (FR-018)
+- [x] T054 [US2] Rewrite `processRoundScoring()` in `lib/game-engine/wordEngine.ts` — sort moves by `submittedAt`, process first submitter (scan → cross-validate → score → freeze), then process second submitter with updated frozen tiles (FR-005, FR-006, FR-007)
+- [x] T055 [US2] Remove `scoreAttributedWords()` text-based duplicate logic from `lib/game-engine/wordEngine.ts` — all words score full points
+- [x] T056 [US2] Remove `computeDeltas()` combo bonus parameter from `lib/game-engine/wordEngine.ts` — deltas are pure word point sums
+- [x] T057 [US2] Remove `PriorScoredWordsByPlayer` export and `boardAfter` parameter from `processRoundScoring()` signature in `lib/game-engine/wordEngine.ts`
+- [x] T058 [US2] Verify all US2 tests pass (TDD Green) — run `pnpm test:unit -- tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T058a [US2] Write test: freezeTiles stops freezing when ≥24 unfrozen tile safeguard would be violated under sequential processing in `tests/unit/lib/game-engine/wordEngine.test.ts` (FR-018)
 
 **Checkpoint**: Full scoring pipeline works with sequential processing, no combo bonus, no text-based duplicates. First submitter's tiles freeze before second submitter's evaluation. Unfrozen tile safeguard verified.
 

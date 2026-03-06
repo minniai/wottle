@@ -17,17 +17,13 @@ function emptyBoard(fill = " "): BoardGrid {
   ) as BoardGrid;
 }
 
-/** Board where row 0 spells "búr" after swapping (0,0)↔(0,1): before ú-b-r, after b-ú-r. */
-function makeBurBoard(): { boardBefore: BoardGrid; boardAfter: BoardGrid } {
-  const before = emptyBoard();
-  before[0][0] = "ú";
-  before[0][1] = "b";
-  before[0][2] = "r";
-
-  const after = before.map((row) => [...row]) as BoardGrid;
-  after[0][0] = "b";
-  after[0][1] = "ú";
-  return { boardBefore: before, boardAfter: after };
+/** Board where row 0 has ú-b-r; swapping (0,0)↔(1,0) → b-ú-r = "búr". */
+function makeBurBoard(): BoardGrid {
+  const board = emptyBoard();
+  board[0][0] = "ú";
+  board[0][1] = "b";
+  board[0][2] = "r";
+  return board;
 }
 
 describe("round scoring integration", () => {
@@ -41,15 +37,21 @@ describe("round scoring integration", () => {
       "@/lib/game-engine/wordEngine"
     );
 
-    const { boardBefore, boardAfter } = makeBurBoard();
+    const boardBefore = makeBurBoard();
 
     const result = await processRoundScoring({
       matchId: MATCH_ID,
       roundId: ROUND_ID,
       boardBefore,
-      boardAfter,
       acceptedMoves: [
-        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 1, toY: 0 },
+        {
+          playerId: PLAYER_A,
+          fromX: 0,
+          fromY: 0,
+          toX: 1,
+          toY: 0,
+          submittedAt: "2026-01-01T00:00:00Z",
+        },
       ],
       frozenTiles: {} as FrozenTileMap,
       playerAId: PLAYER_A,
@@ -73,7 +75,6 @@ describe("round scoring integration", () => {
       matchId: MATCH_ID,
       roundId: ROUND_ID,
       boardBefore: board,
-      boardAfter: board,
       acceptedMoves: [],
       frozenTiles: {} as FrozenTileMap,
       playerAId: PLAYER_A,
@@ -90,15 +91,21 @@ describe("round scoring integration", () => {
       "@/lib/game-engine/wordEngine"
     );
 
-    const { boardBefore, boardAfter } = makeBurBoard();
+    const boardBefore = makeBurBoard();
 
     const result = await processRoundScoring({
       matchId: MATCH_ID,
       roundId: ROUND_ID,
       boardBefore,
-      boardAfter,
       acceptedMoves: [
-        { playerId: PLAYER_A, fromX: 0, fromY: 0, toX: 1, toY: 0 },
+        {
+          playerId: PLAYER_A,
+          fromX: 0,
+          fromY: 0,
+          toX: 1,
+          toY: 0,
+          submittedAt: "2026-01-01T00:00:00Z",
+        },
       ],
       frozenTiles: {} as FrozenTileMap,
       playerAId: PLAYER_A,
