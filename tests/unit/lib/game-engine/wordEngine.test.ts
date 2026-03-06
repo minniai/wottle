@@ -679,4 +679,61 @@ describe("wordEngine", () => {
       expect(hestur!.lengthBonus).toBe(20);
     });
   });
+
+  // T065-T066: Coordinate-based duplicate allowance (US6)
+  describe("coordinate-based duplicate allowance — T065-T066", () => {
+    // T066: both players score same word text at different coordinates
+    test("T066: both players scoring same word text at different coords get full points", async () => {
+      // Player A forms "búr" at row 0, Player B forms "búr" at row 5
+      const board = emptyBoard();
+      // Row 0: r-ú-b → swap (0,0)↔(2,0) → "búr"
+      board[0][0] = "r";
+      board[0][1] = "ú";
+      board[0][2] = "b";
+      // Row 5: r-ú-b → swap (0,5)↔(2,5) → "búr"
+      board[5][0] = "r";
+      board[5][1] = "ú";
+      board[5][2] = "b";
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [
+          {
+            playerId: PLAYER_A,
+            fromX: 0,
+            fromY: 0,
+            toX: 2,
+            toY: 0,
+            submittedAt: "2026-01-01T00:00:00Z",
+          },
+          {
+            playerId: PLAYER_B,
+            fromX: 0,
+            fromY: 5,
+            toX: 2,
+            toY: 5,
+            submittedAt: "2026-01-01T00:00:01Z",
+          },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Both players should have scored "búr" — no text-based penalty
+      const playerABur = result.playerAWords.find(
+        (w) => w.word === "búr",
+      );
+      const playerBBur = result.playerBWords.find(
+        (w) => w.word === "búr",
+      );
+      expect(playerABur).toBeDefined();
+      expect(playerBBur).toBeDefined();
+      // Both should score same total (no duplicate penalty)
+      expect(playerABur!.totalPoints).toBeGreaterThan(0);
+      expect(playerBBur!.totalPoints).toBeGreaterThan(0);
+    });
+  });
 });

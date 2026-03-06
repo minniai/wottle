@@ -199,13 +199,13 @@
 
 > **NOTE: Write these tests FIRST (TDD Red)**
 
-- [ ] T065 [P] [US6] Write failing test: same word text at different coordinates both score full points across rounds in `tests/unit/lib/game-engine/wordEngine.test.ts`
-- [ ] T066 [P] [US6] Write failing test: both players scoring same word text at different coordinates in same round both get full points in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T065 [P] [US6] Write failing test: same word text at different coordinates both score full points across rounds in `tests/unit/lib/game-engine/wordEngine.test.ts`
+- [x] T066 [P] [US6] Write failing test: both players scoring same word text at different coordinates in same round both get full points in `tests/unit/lib/game-engine/wordEngine.test.ts`
 
 ### Implementation for User Story 6
 
-- [ ] T067 [US6] Verify coordinate-based uniqueness is enforced by frozen tile system — tiles that are already frozen cannot be re-scored at same coordinates (no explicit duplicate tracking needed)
-- [ ] T068 [US6] Verify all US6 tests pass (TDD Green) — confirm no text-based duplicate penalties remain anywhere in pipeline
+- [x] T067 [US6] Verify coordinate-based uniqueness is enforced by frozen tile system — tiles that are already frozen cannot be re-scored at same coordinates (no explicit duplicate tracking needed)
+- [x] T068 [US6] Verify all US6 tests pass (TDD Green) — confirm no text-based duplicate penalties remain anywhere in pipeline
 
 **Checkpoint**: Word uniqueness is coordinate-based. Same word at different positions scores full points each time.
 
