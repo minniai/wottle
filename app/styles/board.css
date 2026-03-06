@@ -2,17 +2,17 @@
   /* Accounts for root header (~80px) + layout padding (112px) + both chrome bars (~88px).
      Total non-board overhead ≈ 280px. Formula subtracts 2rem separately, so 260px here. */
   --chrome-height: 260px;
-  --board-max: min(calc(100dvh - var(--chrome-height) - 2rem), calc(100vw - 2rem));
+  --board-max-h: calc(100dvh - var(--chrome-height) - 2rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  width: var(--board-max);
-  max-width: var(--board-max);
+  width: 100%;
+  max-width: var(--board-max-h);
   /* Explicit height fixes Safari's aspect-ratio bug on flex containers
      (aspect-ratio alone doesn't constrain height for display:flex in WebKit). */
-  height: var(--board-max);
-  max-height: var(--board-max);
+  height: auto;
+  max-height: var(--board-max-h);
   aspect-ratio: 1;
 }
 
@@ -288,6 +288,41 @@
   font-size: 0.9rem;
   padding: 0.75rem 1rem;
   box-shadow: 0 10px 24px -20px rgba(248, 113, 113, 0.65);
+}
+
+/* Responsive match layout: board + summary side-by-side on wide screens */
+.match-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.match-layout__board {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.match-layout__summary {
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .match-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  .match-layout__board {
+    flex: 1 1 0%;
+  }
+
+  .match-layout__summary {
+    width: 20rem;
+    flex-shrink: 0;
+  }
 }
 
 @media (max-width: 768px) {

@@ -465,49 +465,68 @@ export function MatchClient({
         </div>
       )}
 
-      <GameChrome
-        position="opponent"
-        playerName={opponentTimer.playerId}
-        score={opponentScore}
-        timerSeconds={opponentTimeLeft}
-        isPaused={opponentTimer.status !== "running"}
-        hasSubmitted={opponentTimer.status === "paused"}
-        moveCounter={matchState.currentRound}
-        playerColor={getPlayerColors(opponentSlot).hex}
-      />
+      <div className="match-layout">
+        {/* Board area */}
+        <div className="match-layout__board">
+          <GameChrome
+            position="opponent"
+            playerName={opponentTimer.playerId}
+            score={opponentScore}
+            timerSeconds={opponentTimeLeft}
+            isPaused={opponentTimer.status !== "running"}
+            hasSubmitted={opponentTimer.status === "paused"}
+            moveCounter={matchState.currentRound}
+            playerColor={getPlayerColors(opponentSlot).hex}
+          />
 
-      <BoardGrid
-        grid={matchState.board}
-        matchId={matchId}
-        frozenTiles={matchState.frozenTiles ?? {}}
-        playerSlot={playerSlot}
-        scoredTileHighlights={
-          animationPhase === "highlighting"
-            ? (pendingSummary?.highlights ?? [])
-            : []
-        }
-        highlightPlayerColors={
-          animationPhase === "highlighting" ? highlightPlayerColors : {}
-        }
-        highlightDurationMs={800}
-        onSwapComplete={handleSwapComplete}
-        onSwapError={({ message }) => handleSwapError(message)}
-      />
+          <BoardGrid
+            grid={matchState.board}
+            matchId={matchId}
+            frozenTiles={matchState.frozenTiles ?? {}}
+            playerSlot={playerSlot}
+            scoredTileHighlights={
+              animationPhase === "highlighting"
+                ? (pendingSummary?.highlights ?? [])
+                : []
+            }
+            highlightPlayerColors={
+              animationPhase === "highlighting"
+                ? highlightPlayerColors
+                : {}
+            }
+            highlightDurationMs={800}
+            onSwapComplete={handleSwapComplete}
+            onSwapError={({ message }) => handleSwapError(message)}
+          />
 
-      <GameChrome
-        position="player"
-        playerName={currentTimer.playerId}
-        score={playerScore}
-        timerSeconds={timeLeftSeconds}
-        isPaused={isPaused}
-        hasSubmitted={currentTimer.status === "paused"}
-        moveCounter={matchState.currentRound}
-        playerColor={getPlayerColors(playerSlot).hex}
-        scoreDelta={scoreDelta}
-        scoreDeltaRound={summary?.roundNumber}
-        roundHistoryCount={roundHistory.length}
-        onHistoryToggle={() => setHistoryOpen((v) => !v)}
-      />
+          <GameChrome
+            position="player"
+            playerName={currentTimer.playerId}
+            score={playerScore}
+            timerSeconds={timeLeftSeconds}
+            isPaused={isPaused}
+            hasSubmitted={currentTimer.status === "paused"}
+            moveCounter={matchState.currentRound}
+            playerColor={getPlayerColors(playerSlot).hex}
+            scoreDelta={scoreDelta}
+            scoreDeltaRound={summary?.roundNumber}
+            roundHistoryCount={roundHistory.length}
+            onHistoryToggle={() => setHistoryOpen((v) => !v)}
+          />
+        </div>
+
+        {/* Round summary — right of board on >=900px, below on smaller */}
+        {animationPhase !== "highlighting" && summary && (
+          <div className="match-layout__summary">
+            <RoundSummaryPanel
+              summary={summary}
+              currentPlayerId={currentPlayerId}
+              onDismiss={handleSummaryDismiss}
+              autoDismissMs={summaryAutoDismissMs}
+            />
+          </div>
+        )}
+      </div>
 
       {showDebug && (
         <details
@@ -571,15 +590,6 @@ export function MatchClient({
             />
           </div>
         </div>
-      )}
-
-      {animationPhase !== "highlighting" && (
-        <RoundSummaryPanel
-          summary={summary}
-          currentPlayerId={currentPlayerId}
-          onDismiss={handleSummaryDismiss}
-          autoDismissMs={summaryAutoDismissMs}
-        />
       )}
     </MatchShell>
   );
