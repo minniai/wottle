@@ -25,17 +25,17 @@ describe("matchSummary integration (T033)", () => {
         "0,0": { owner: "player_a" },
         "1,1": { owner: "player_a" },
         "2,2": { owner: "player_b" },
-        "3,3": { owner: "both" },
+        "3,3": { owner: "player_a" },
         "4,4": { owner: "player_b" },
-        "5,5": { owner: "both" },
+        "5,5": { owner: "player_b" },
       };
 
       const counts = computeFrozenTileCountByPlayer(frozenTiles);
 
-      // Exclusively: player_a owns (0,0),(1,1) = 2; "both" tiles excluded
-      // Exclusively: player_b owns (2,2),(4,4) = 2; "both" tiles excluded
-      expect(counts.playerA).toBe(2);
-      expect(counts.playerB).toBe(2);
+      // First-owner-wins: player_a owns (0,0),(1,1),(3,3) = 3
+      // player_b owns (2,2),(4,4),(5,5) = 3
+      expect(counts.playerA).toBe(3);
+      expect(counts.playerB).toBe(3);
     });
 
     it("T033: returns zero counts for empty frozen_tiles", () => {

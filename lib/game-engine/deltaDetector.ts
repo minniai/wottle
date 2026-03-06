@@ -3,25 +3,19 @@ import type {
   BoardWord,
   Coordinate,
 } from "@/lib/types/board";
-import type { FrozenTileMap } from "@/lib/types/match";
+import type { AcceptedMove, FrozenTileMap } from "@/lib/types/match";
 import { scanBoard } from "./boardScanner";
 import { applySwap } from "./board";
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
+
+// Re-export AcceptedMove for backward compatibility
+export type { AcceptedMove };
 
 /** A word attributed to a specific player. */
 export interface AttributedWord extends BoardWord {
   playerId: string;
   /** "x,y" keys of tiles in this word frozen by the opponent (for partial letter scoring). */
   opponentFrozenKeys: ReadonlySet<string>;
-}
-
-/** A move accepted after conflict resolution. */
-export interface AcceptedMove {
-  playerId: string;
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
 }
 
 /**
@@ -337,7 +331,7 @@ function removeSuffixOverlaps<T extends BoardWord>(
 
 /**
  * Return the set of "x,y" keys for tiles in `word` that are frozen by the opponent.
- * Tiles owned by "both" are NOT included — both players may score through them freely.
+ * Each tile has exactly one owner (first-owner-wins semantics).
  */
 function getOpponentFrozenKeys(
   word: BoardWord,

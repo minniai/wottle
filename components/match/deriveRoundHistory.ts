@@ -1,4 +1,3 @@
-import { calculateComboBonus } from "@/lib/game-engine/scorer";
 import type { ScoreboardRow, WordHistoryRow } from "@/components/match/FinalSummary";
 
 export interface RoundPlayerSlice {
@@ -7,7 +6,6 @@ export interface RoundPlayerSlice {
   delta: number;
   cumulative: number;
   words: WordHistoryRow[];
-  comboBonus: number;
 }
 
 export interface RoundHistoryEntry {
@@ -23,14 +21,12 @@ function buildSlice(
   delta: number,
   cumulative: number,
 ): RoundPlayerSlice {
-  const nonDuplicateCount = words.filter((w) => !w.isDuplicate).length;
   return {
     playerId,
     username,
     delta,
     cumulative,
     words,
-    comboBonus: calculateComboBonus(nonDuplicateCount),
   };
 }
 

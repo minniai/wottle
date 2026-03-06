@@ -38,7 +38,7 @@ export function deriveHighestScoringWord(
   words: WordHistoryRow[],
   usernameMap: Record<string, string>,
 ): HighestScoringWordCallout | null {
-  const candidates = words.filter((w) => !w.isDuplicate && w.totalPoints > 0);
+  const candidates = words.filter((w) => w.totalPoints > 0);
   if (candidates.length === 0) return null;
 
   const best = candidates.reduce((winner, candidate) => {

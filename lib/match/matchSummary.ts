@@ -1,8 +1,8 @@
 import type { FrozenTileMap } from "@/lib/types/match";
 
 /**
- * Count exclusively-owned frozen tiles per player from the match frozen tile map.
- * Tiles with owner "both" are excluded from both counts (tiebreaker uses exclusive ownership).
+ * Count frozen tiles per player from the match frozen tile map.
+ * Each tile has exactly one owner (first-owner-wins semantics).
  */
 export function computeFrozenTileCountByPlayer(
   frozenTiles: FrozenTileMap,

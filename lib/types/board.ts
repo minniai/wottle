@@ -76,7 +76,7 @@ export interface BoardWord {
   direction: Direction;
   /** Starting tile coordinate */
   start: Coordinate;
-  /** Number of letters (≥3) */
+  /** Number of letters (≥2) */
   length: number;
   /** Ordered coordinates of each letter in the word */
   tiles: Coordinate[];

@@ -179,7 +179,6 @@ export default async function MatchSummaryPage({
     lettersPoints: entry.letters_points as number,
     bonusPoints: entry.bonus_points as number,
     coordinates: (entry.tiles as Coordinate[] | null) ?? [],
-    isDuplicate: (entry.is_duplicate as boolean | null) ?? false,
   }));
 
   const scoreboard = summary.snapshots.map((row) => ({

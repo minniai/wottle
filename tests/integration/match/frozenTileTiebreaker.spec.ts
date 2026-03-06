@@ -2,7 +2,7 @@
  * Integration tests for frozen-tile tiebreaker (US4, T021-T022).
  * Verifies that when scores are equal, completeMatchInternal uses
  * exclusively-owned frozen tile counts to break the tie.
- * "both" tiles are excluded from both players' counts.
+ * Each tile has exactly one owner (first-owner-wins).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -108,13 +108,11 @@ describe("frozenTileTiebreaker (T021-T022)", () => {
     expect(result.isDraw).toBe(false);
   });
 
-  it("T022: equal scores + equal exclusively-owned frozen tiles (with 'both' tiles present) → draw", async () => {
+  it("T022: equal scores + equal frozen tiles → draw", async () => {
     const frozenTiles = {
       "0,0": { owner: "player_a" },
       "1,1": { owner: "player_b" },
-      "2,2": { owner: "both" }, // "both" tiles do NOT break the tie
-      "3,3": { owner: "both" },
-    }; // playerA=1, playerB=1 (exclusive; "both" tiles excluded)
+    }; // playerA=1, playerB=1 (first-owner-wins, no shared tiles)
 
     const { getMatchUpdatePayload } = setupMocks(frozenTiles);
 

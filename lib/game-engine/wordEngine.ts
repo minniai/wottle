@@ -14,7 +14,6 @@ import {
 import {
   calculateLetterPoints,
   calculateLengthBonus,
-  calculateComboBonus,
 } from "./scorer";
 import { freezeTiles } from "./frozenTiles";
 
@@ -22,16 +21,12 @@ import { freezeTiles } from "./frozenTiles";
  * Score a list of attributed words using the PRD formula.
  *
  * For each word:
- *   base = sum(letter_values)
+ *   base = sum(letter_values) — excluding opponent-frozen tiles
  *   lengthBonus = (length - 2) * 5
- *   total = base + lengthBonus (0 if duplicate)
- *
- * When priorScoredWordsByPlayer is provided, words already scored
- * by that player in a prior round are marked isDuplicate and get 0 points.
+ *   total = base + lengthBonus
  */
 function scoreAttributedWords(
   words: AttributedWord[],
-  priorScoredWordsByPlayer?: Record<string, Set<string>>,
 ): WordScoreBreakdown[] {
   return words.map((word) => {
     // Score only the letters contributed by this player (not opponent-frozen tiles).
@@ -43,10 +38,7 @@ function scoreAttributedWords(
       .join("");
     const lettersPoints = calculateLetterPoints(ownLetters);
     const lengthBonus = calculateLengthBonus(word.length);
-    const normalizedWord = word.text.toLowerCase();
-    const playerSet = priorScoredWordsByPlayer?.[word.playerId];
-    const isDuplicate = playerSet?.has(normalizedWord) ?? false;
-    const totalPoints = isDuplicate ? 0 : lettersPoints + lengthBonus;
+    const totalPoints = lettersPoints + lengthBonus;
 
     return {
       word: word.text,
@@ -54,7 +46,6 @@ function scoreAttributedWords(
       lettersPoints,
       lengthBonus,
       totalPoints,
-      isDuplicate,
       tiles: word.tiles,
       playerId: word.playerId,
     };
@@ -66,16 +57,12 @@ function scoreAttributedWords(
  */
 function computeDeltas(
   breakdowns: WordScoreBreakdown[],
-  comboBonus: { playerA: number; playerB: number },
   playerAId: string,
 ): { playerA: number; playerB: number } {
-  let playerATotal = comboBonus.playerA;
-  let playerBTotal = comboBonus.playerB;
+  let playerATotal = 0;
+  let playerBTotal = 0;
 
   for (const bd of breakdowns) {
-    if (bd.isDuplicate) {
-      continue;
-    }
     if (bd.playerId === playerAId) {
       playerATotal += bd.totalPoints;
     } else {
@@ -91,14 +78,12 @@ function computeDeltas(
  *
  * Pipeline: loadDictionary → detectNewWords (3 scans) → score → compute deltas
  *
- * Frozen tile management is handled separately (Phase 4, US2).
- * This facade returns the scoring results; the integration layer
- * handles persistence, duplicate checking, and freeze updates.
+ * NOTE: This function will be fully rewritten in Phase 6 (US2) to support
+ * sequential player processing by submittedAt timestamp. For now it preserves
+ * the existing three-scan approach but without combo bonus or duplicate tracking.
  *
  * @performance MUST complete in <50ms total (FR-021)
  */
-/** Per-player sets of words already scored in prior rounds (for duplicate detection). */
-export type PriorScoredWordsByPlayer = Record<string, Set<string>>;
 
 /**
  * Helper function to check if two boards are identical (tile-by-tile comparison).
@@ -127,7 +112,6 @@ function emptyRoundScoreResult(
   return {
     playerAWords: [],
     playerBWords: [],
-    comboBonus: { playerA: 0, playerB: 0 },
     deltas: { playerA: 0, playerB: 0 },
     newFrozenTiles: frozenTiles,
     wasPartialFreeze: false,
@@ -146,8 +130,6 @@ export async function processRoundScoring(params: {
   frozenTiles: FrozenTileMap;
   playerAId: string;
   playerBId: string;
-  /** Words each player has already scored in prior rounds (match-wide). Used to mark duplicates. */
-  priorScoredWordsByPlayer?: PriorScoredWordsByPlayer;
 }): Promise<RoundScoreResult> {
   const start = performance.now();
   const startMark = "word-engine:start";
@@ -155,7 +137,6 @@ export async function processRoundScoring(params: {
   performance.mark(startMark);
 
   // FR-006d: Zero-accepted-moves guard
-  // If no moves were accepted, skip the entire pipeline
   if (params.acceptedMoves.length === 0) {
     const durationMs = performance.now() - start;
     logPlaytestInfo("word-engine.scoring", {
@@ -166,17 +147,13 @@ export async function processRoundScoring(params: {
         durationMs: Math.round(durationMs),
         wordsFound: 0,
         wordsScored: 0,
-        duplicatesDetected: 0,
         tilesFrozen: 0,
-        comboBonusA: 0,
-        comboBonusB: 0,
       },
     });
     return emptyRoundScoreResult(durationMs, params.frozenTiles);
   }
 
   // FR-006e: Board-unchanged short-circuit
-  // If the board didn't change at all, skip the entire pipeline
   if (areBoardsIdentical(params.boardBefore, params.boardAfter)) {
     const durationMs = performance.now() - start;
     logPlaytestInfo("word-engine.scoring", {
@@ -187,10 +164,7 @@ export async function processRoundScoring(params: {
         durationMs: Math.round(durationMs),
         wordsFound: 0,
         wordsScored: 0,
-        duplicatesDetected: 0,
         tilesFrozen: 0,
-        comboBonusA: 0,
-        comboBonusB: 0,
       },
     });
     return emptyRoundScoreResult(durationMs, params.frozenTiles);
@@ -210,10 +184,7 @@ export async function processRoundScoring(params: {
   });
   performance.mark("word-engine:delta-done");
 
-  const breakdowns = scoreAttributedWords(
-    newWords,
-    params.priorScoredWordsByPlayer,
-  );
+  const breakdowns = scoreAttributedWords(newWords);
 
   const playerAWords = breakdowns.filter(
     (b) => b.playerId === params.playerAId,
@@ -223,26 +194,9 @@ export async function processRoundScoring(params: {
   );
   performance.mark("word-engine:scored");
 
-  const playerANewCount = playerAWords.filter(
-    (w) => !w.isDuplicate,
-  ).length;
-  const playerBNewCount = playerBWords.filter(
-    (w) => !w.isDuplicate,
-  ).length;
-
-  const comboBonus = {
-    playerA: calculateComboBonus(playerANewCount),
-    playerB: calculateComboBonus(playerBNewCount),
-  };
-
-  const deltas = computeDeltas(
-    breakdowns,
-    comboBonus,
-    params.playerAId,
-  );
+  const deltas = computeDeltas(breakdowns, params.playerAId);
 
   performance.mark("word-engine:freeze-start");
-  // Freeze tiles from scored words
   const freezeResult = freezeTiles({
     scoredWords: breakdowns,
     existingFrozenTiles: params.frozenTiles,
@@ -261,8 +215,7 @@ export async function processRoundScoring(params: {
   ).duration;
 
   const wordsFound = newWords.length;
-  const wordsScored = breakdowns.filter((b) => !b.isDuplicate).length;
-  const duplicatesDetected = breakdowns.filter((b) => b.isDuplicate).length;
+  const wordsScored = breakdowns.length;
   const tilesFrozen = Object.keys(freezeResult.updatedFrozenTiles).length;
 
   logPlaytestInfo("word-engine.scoring", {
@@ -274,10 +227,7 @@ export async function processRoundScoring(params: {
       computeDurationMs: Math.round(computeDurationMs),
       wordsFound,
       wordsScored,
-      duplicatesDetected,
       tilesFrozen,
-      comboBonusA: comboBonus.playerA,
-      comboBonusB: comboBonus.playerB,
       wasPartialFreeze: freezeResult.wasPartialFreeze,
     },
   });
@@ -285,7 +235,6 @@ export async function processRoundScoring(params: {
   return {
     playerAWords,
     playerBWords,
-    comboBonus,
     deltas,
     newFrozenTiles: freezeResult.updatedFrozenTiles,
     wasPartialFreeze: freezeResult.wasPartialFreeze,

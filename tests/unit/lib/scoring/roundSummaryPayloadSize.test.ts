@@ -28,7 +28,6 @@ describe("FR-019: round summary broadcast payload size", () => {
           y: Math.floor((index * 14 + j) / 10) % 10,
         }),
       ),
-      isDuplicate: false,
     });
 
     const words: WordScore[] = [
@@ -72,8 +71,7 @@ describe("FR-019: round summary broadcast payload size", () => {
           { x: 4, y: 0 },
           { x: 5, y: 0 },
         ],
-        isDuplicate: false,
-      },
+        },
       {
         playerId: "player-b-id",
         word: "búr",
@@ -86,8 +84,7 @@ describe("FR-019: round summary broadcast payload size", () => {
           { x: 8, y: 3 },
           { x: 9, y: 3 },
         ],
-        isDuplicate: false,
-      },
+        },
     ];
 
     const payload: RoundSummary = {

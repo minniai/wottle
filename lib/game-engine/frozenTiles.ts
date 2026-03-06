@@ -40,7 +40,7 @@ export function isFrozen(
 
 /**
  * Check if a coordinate is frozen by the opponent of the given player slot.
- * Returns false for tiles owned by the player themselves or "both".
+ * Returns false for tiles owned by the player themselves.
  */
 export function isFrozenByOpponent(
   frozenTiles: FrozenTileMap,
@@ -67,13 +67,8 @@ function resolveOwnership(
   if (!existingOwner) {
     return newPlayerSlot;
   }
-  if (existingOwner === "both") {
-    return "both";
-  }
-  if (existingOwner === newPlayerSlot) {
-    return newPlayerSlot;
-  }
-  return "both";
+  // First-owner-wins: existing owner keeps ownership (FR-008, FR-009)
+  return existingOwner;
 }
 
 /**
@@ -99,11 +94,10 @@ function sortReadingOrder(coords: Coordinate[]): Coordinate[] {
 /**
  * Freeze tiles from scored words, respecting the 24-unfrozen minimum.
  *
- * - Collects all tile coordinates from non-duplicate scored words
+ * - Collects all tile coordinates from scored words
  * - Deduplicates and sorts in reading order (row first, then column)
  * - Enforces MAX_FROZEN_TILES (76) limit by truncating in reading order
- * - Merges with existing frozen tiles, upgrading ownership to "both"
- *   when both players claim the same tile
+ * - First-owner-wins: existing frozen tiles keep their owner
  */
 export function freezeTiles(params: {
   scoredWords: WordScoreBreakdown[];
@@ -122,16 +116,13 @@ export function freezeTiles(params: {
   const currentFrozenCount = Object.keys(existingFrozenTiles).length;
   const freezeCapacity = MAX_FROZEN_TILES - currentFrozenCount;
 
-  // Collect all tiles from non-duplicate scored words with their owner
+  // Collect all tiles from scored words with their owner
   const candidateTiles: Array<{
     coord: Coordinate;
     playerSlot: "player_a" | "player_b";
   }> = [];
 
   for (const word of scoredWords) {
-    if (word.isDuplicate) {
-      continue;
-    }
     const slot = toPlayerSlot(word.playerId, playerAId);
     for (const tile of word.tiles) {
       candidateTiles.push({ coord: tile, playerSlot: slot });
@@ -201,8 +192,8 @@ export function freezeTiles(params: {
   const newlyFrozen: Coordinate[] = [];
 
   for (const { key, coord, slots } of tilesToFreeze) {
-    let owner: FrozenTileOwner =
-      slots.size > 1 ? "both" : [...slots][0];
+    // First-owner-wins: take the first claiming slot
+    const owner: FrozenTileOwner = [...slots][0];
     updatedFrozenTiles[key] = { owner };
     newlyFrozen.push(coord);
   }

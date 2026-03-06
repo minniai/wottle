@@ -180,7 +180,6 @@ export function MatchClient({
           lettersPoints: w.lettersPoints,
           bonusPoints: w.bonusPoints,
           coordinates: w.coordinates,
-          isDuplicate: w.isDuplicate ?? false,
         }));
         const newScore: ScoreboardRow = {
           roundNumber: nextSummary.roundNumber,
@@ -343,7 +342,7 @@ export function MatchClient({
       setScoreDelta(null);
       return;
     }
-    setScoreDelta(deriveScoreDelta(summary, currentPlayerId, playerSlot));
+    setScoreDelta(deriveScoreDelta(summary, currentPlayerId));
   }, [summary, currentPlayerId, playerSlot]);
 
   const handleSwapComplete = useCallback(() => {

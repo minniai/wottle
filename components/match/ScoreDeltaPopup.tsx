@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 export interface ScoreDelta {
   letterPoints: number;
   lengthBonus: number;
-  combo: number;
 }
 
 interface ScoreDeltaPopupProps {
@@ -23,7 +22,6 @@ export function ScoreDeltaPopup({ delta }: ScoreDeltaPopupProps) {
   const parts: string[] = [];
   if (delta.letterPoints > 0) parts.push(`+${delta.letterPoints} letters`);
   if (delta.lengthBonus > 0) parts.push(`+${delta.lengthBonus} length`);
-  if (delta.combo > 0) parts.push(`+${delta.combo} combo`);
 
   if (!mounted || parts.length === 0) return null;
 

@@ -20,7 +20,6 @@ import type { FrozenTileMap } from "@/lib/types/match";
 import {
   PLAYER_A_OVERLAY,
   PLAYER_B_OVERLAY,
-  BOTH_GRADIENT,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
 
@@ -94,7 +93,6 @@ const EMPTY_HIGHLIGHTS: Coordinate[][] = [];
 const FROZEN_COLORS = {
   player_a: PLAYER_A_OVERLAY,
   player_b: PLAYER_B_OVERLAY,
-  both: BOTH_GRADIENT,
 };
 
 function isTileInHighlights(
@@ -483,9 +481,7 @@ function BoardGridActive({
                   (invalidTiles[1].x === colIndex && invalidTiles[1].y === rowIndex));
 
               const frozenStyle: CSSProperties | undefined = isTileFrozen
-                ? frozenOwner === "both"
-                  ? { background: FROZEN_COLORS.both }
-                  : { backgroundColor: FROZEN_COLORS[frozenOwner ?? "player_a"] }
+                ? { backgroundColor: FROZEN_COLORS[frozenOwner ?? "player_a"] }
                 : undefined;
 
               const highlightColor = isScoredHighlight

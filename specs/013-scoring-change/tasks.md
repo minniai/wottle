@@ -19,14 +19,14 @@
 
 **Purpose**: Type changes, config updates, and obsolete code removal that all stories depend on
 
-- [ ] T001 Update `FrozenTileOwner` type to remove `"both"` variant in `lib/types/match.ts` — change from `"player_a" | "player_b" | "both"` to `"player_a" | "player_b"` (FR-008)
-- [ ] T002 Remove `isDuplicate` field from `WordScoreBreakdown` interface in `lib/types/match.ts` (FR-015/FR-016)
-- [ ] T003 Remove `isDuplicate` field from `WordScore` interface in `lib/types/match.ts` (FR-015/FR-016)
-- [ ] T004 Remove `comboBonus` field from `RoundScoreResult` interface in `lib/types/match.ts` (FR-017)
-- [ ] T005 Remove `comboBonus` field from `RoundSummary` interface in `lib/types/match.ts` (FR-017)
-- [ ] T006 Move `AcceptedMove` interface from `lib/game-engine/deltaDetector.ts` to `lib/types/match.ts`, add `submittedAt: string` field, and update all import sites (FR-005)
-- [ ] T007 Update `minimumWordLength` from 3 to 2 in `lib/constants/game-config.ts` (FR-004)
-- [ ] T008 Update `BoardWord.length` JSDoc from "≥3" to "≥2" in `lib/types/board.ts`
+- [x] T001 Update `FrozenTileOwner` type to remove `"both"` variant in `lib/types/match.ts` — change from `"player_a" | "player_b" | "both"` to `"player_a" | "player_b"` (FR-008)
+- [x] T002 Remove `isDuplicate` field from `WordScoreBreakdown` interface in `lib/types/match.ts` (FR-015/FR-016)
+- [x] T003 Remove `isDuplicate` field from `WordScore` interface in `lib/types/match.ts` (FR-015/FR-016)
+- [x] T004 Remove `comboBonus` field from `RoundScoreResult` interface in `lib/types/match.ts` (FR-017)
+- [x] T005 Remove `comboBonus` field from `RoundSummary` interface in `lib/types/match.ts` (FR-017)
+- [x] T006 Move `AcceptedMove` interface from `lib/game-engine/deltaDetector.ts` to `lib/types/match.ts`, add `submittedAt: string` field, and update all import sites (FR-005)
+- [x] T007 Update `minimumWordLength` from 3 to 2 in `lib/constants/game-config.ts` (FR-004)
+- [x] T008 Update `BoardWord.length` JSDoc from "≥3" to "≥2" in `lib/types/board.ts`
 
 ---
 
@@ -36,14 +36,14 @@
 
 **⚠️ CRITICAL**: These removals must be complete before pipeline rewrite begins
 
-- [ ] T009 Write failing test for `calculateLetterPoints` with 2-letter words in `tests/unit/lib/game-engine/scorer.test.ts` — verify 2-letter words score correctly with length bonus of 0 (FR-004)
-- [ ] T010 Remove `calculateComboBonus()` function and its export from `lib/game-engine/scorer.ts` (FR-017)
-- [ ] T011 Update `scorer.test.ts` — remove combo bonus test cases, update existing tests for 2-letter word support in `tests/unit/lib/game-engine/scorer.test.ts`
-- [ ] T012 Remove combo bonus calculation from `aggregateRoundSummary()` in `lib/scoring/roundSummary.ts` — deltas become sum of word totalPoints only
-- [ ] T013 Update `roundSummary.test.ts` — remove combo bonus assertions, verify deltas exclude combo in `tests/unit/lib/scoring/roundSummary.test.ts`
-- [ ] T014 Remove `getPriorScoredWordsByPlayer()` function from `app/actions/match/publishRoundSummary.ts` (FR-015/FR-016)
-- [ ] T015 Fix all TypeScript compilation errors caused by type changes in T001–T008 across the codebase — update all references to removed fields (`isDuplicate`, `comboBonus`, `"both"`)
-- [ ] T016 Ensure `pnpm typecheck` passes cleanly after all Phase 1–2 changes
+- [x] T009 Write failing test for `calculateLetterPoints` with 2-letter words in `tests/unit/lib/game-engine/scorer.test.ts` — verify 2-letter words score correctly with length bonus of 0 (FR-004)
+- [x] T010 Remove `calculateComboBonus()` function and its export from `lib/game-engine/scorer.ts` (FR-017)
+- [x] T011 Update `scorer.test.ts` — remove combo bonus test cases, update existing tests for 2-letter word support in `tests/unit/lib/game-engine/scorer.test.ts`
+- [x] T012 Remove combo bonus calculation from `aggregateRoundSummary()` in `lib/scoring/roundSummary.ts` — deltas become sum of word totalPoints only
+- [x] T013 Update `roundSummary.test.ts` — remove combo bonus assertions, verify deltas exclude combo in `tests/unit/lib/scoring/roundSummary.test.ts`
+- [x] T014 Remove `getPriorScoredWordsByPlayer()` function from `app/actions/match/publishRoundSummary.ts` (FR-015/FR-016)
+- [x] T015 Fix all TypeScript compilation errors caused by type changes in T001–T008 across the codebase — update all references to removed fields (`isDuplicate`, `comboBonus`, `"both"`)
+- [x] T016 Ensure `pnpm typecheck` passes cleanly after all Phase 1–2 changes
 
 **Checkpoint**: Types are updated, combo bonus removed, duplicate tracking removed. Codebase compiles. Existing tests may fail (expected — they will be rewritten in subsequent phases).
 

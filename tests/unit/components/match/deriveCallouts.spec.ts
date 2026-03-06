@@ -22,7 +22,6 @@ function makeWord(overrides: Partial<WordHistoryRow> = {}): WordHistoryRow {
     lettersPoints: 15,
     bonusPoints: 5,
     coordinates: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }],
-    isDuplicate: false,
     ...overrides,
   };
 }
@@ -100,10 +99,10 @@ describe("deriveHighestScoringWord", () => {
     expect(result!.roundNumber).toBe(2);
   });
 
-  it("T005: excludes duplicate words from consideration", () => {
+  it("T005: filters out zero-point words from consideration", () => {
     const words: WordHistoryRow[] = [
-      makeWord({ word: "búr", totalPoints: 0, isDuplicate: true, roundNumber: 1 }),
-      makeWord({ word: "lag", totalPoints: 15, isDuplicate: false, roundNumber: 2 }),
+      makeWord({ word: "búr", totalPoints: 0, roundNumber: 1 }),
+      makeWord({ word: "lag", totalPoints: 15, roundNumber: 2 }),
     ];
 
     const result = deriveHighestScoringWord(words, usernameMap);
@@ -137,9 +136,9 @@ describe("deriveHighestScoringWord", () => {
     expect(result!.word).toBe("búr");
   });
 
-  it("T005: returns null when all words are duplicates", () => {
+  it("T005: returns null when all words have zero points", () => {
     const words: WordHistoryRow[] = [
-      makeWord({ isDuplicate: true, totalPoints: 0 }),
+      makeWord({ totalPoints: 0 }),
     ];
 
     const result = deriveHighestScoringWord(words, usernameMap);

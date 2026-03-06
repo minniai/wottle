@@ -50,22 +50,11 @@ describe("atomic frozen tile update contract (T047, FR-027)", () => {
     expect(Object.keys(newTiles).length).toBeGreaterThan(0);
   });
 
-  test("should handle shared tile ownership (both players)", () => {
-    const tiles = {
-      "2,3": { owner: "both" as const },
-      "2,4": { owner: "player_a" as const },
-    };
-
-    // Shared tiles should serialize deterministically
-    const serialized = JSON.stringify(tiles);
-    expect(JSON.parse(serialized)).toEqual(tiles);
-  });
-
-  test("should detect when a single tile's owner changes", () => {
+  test("should detect when a single tile's owner changes (first-owner-wins prevents this in practice)", () => {
     const previous = { "5,5": { owner: "player_a" as const } };
-    const current = { "5,5": { owner: "both" as const } };
+    const current = { "5,5": { owner: "player_b" as const } };
 
-    // Owner changed from player_a to both — stale
+    // Owner changed — stale (first-owner-wins prevents this in normal play)
     expect(JSON.stringify(previous)).not.toBe(JSON.stringify(current));
   });
 });

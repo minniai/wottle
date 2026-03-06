@@ -20,7 +20,6 @@ const summaryWithTwoWords: RoundSummary = {
         { x: 1, y: 0 },
         { x: 2, y: 0 },
       ],
-      isDuplicate: false,
     },
     {
       playerId: "player-a",
@@ -35,12 +34,10 @@ const summaryWithTwoWords: RoundSummary = {
         { x: 5, y: 1 },
         { x: 6, y: 1 },
       ],
-      isDuplicate: false,
     },
   ],
-  deltas: { playerA: 39, playerB: 0 },
+  deltas: { playerA: 35, playerB: 0 },
   totals: { playerA: 65, playerB: 10 },
-  comboBonus: { playerA: 2, playerB: 0 },
   highlights: [],
   resolvedAt: new Date().toISOString(),
 };
@@ -77,20 +74,7 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
     expect(screen.getByText(/8 \+ 10 bonus/)).toBeInTheDocument();
   });
 
-  it("displays multi-word combo bonus line when player has multiple words", () => {
-    render(
-      <RoundSummaryPanel
-        summary={summaryWithTwoWords}
-        currentPlayerId="player-a"
-        autoDismissMs={0}
-      />,
-    );
-
-    expect(screen.getByText(/combo/i)).toBeInTheDocument();
-    expect(screen.getByText(/\+2/)).toBeInTheDocument();
-  });
-
-  it("shows per-player round delta (+25) for current player", () => {
+  it("shows per-player round delta for current player", () => {
     render(
       <RoundSummaryPanel
         summary={summaryWithTwoWords}
@@ -100,7 +84,7 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
     );
 
     const deltaEl = screen.getByTestId("round-summary-player-a-delta");
-    expect(deltaEl).toHaveTextContent(/\+39/);
+    expect(deltaEl).toHaveTextContent(/\+35/);
   });
 
   it("shows cumulative total (65) for current player", () => {
@@ -128,12 +112,10 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
           bonusPoints: 10,
           totalPoints: 14,
           coordinates: [{ x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }],
-          isDuplicate: false,
         },
       ],
-      deltas: { playerA: 39, playerB: 14 },
+      deltas: { playerA: 35, playerB: 14 },
       totals: { playerA: 65, playerB: 24 },
-      comboBonus: { playerA: 2, playerB: 0 },
     };
 
     render(
