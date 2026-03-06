@@ -108,7 +108,7 @@ export function RoundSummaryPanel({
     return (
         <div
             ref={panelRef}
-            className="fixed inset-x-4 bottom-16 z-50 mx-auto max-w-2xl rounded-2xl border border-white/20 bg-slate-900/95 p-6 shadow-2xl shadow-slate-950/60 backdrop-blur-sm"
+            className="fixed inset-x-4 bottom-16 top-20 z-50 mx-auto max-w-2xl overflow-y-auto rounded-2xl border border-white/20 bg-slate-900/95 p-6 shadow-2xl shadow-slate-950/60 backdrop-blur-sm"
             data-testid="round-summary-panel"
             role="dialog"
             aria-modal="true"
