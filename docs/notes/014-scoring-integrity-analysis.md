@@ -20,7 +20,6 @@
 |-------|-------------|-------|
 | `hasCrossWordViolation` | Perpendicular cross-words with frozen/same-round tiles must be valid | Per-word viability + subset mutual validation |
 | `violatesFrozenAdjacencyOnSameAxis` | Word adjacent to frozen run on same axis → combined must be valid; sandwich check validates full sequence when frozen on both sides | Per-word viability only |
-| `violatesSameAxisBoundary` | Both 1-tile extensions invalid and neither at board edge → reject | Per-word viability only |
 | `hasNoSameAxisConflict` | No same-axis overlap or adjacency between words in subset | Subset validation |
 | `isSubsetValid` | Mutual cross-word validation between all words in subset | Subset validation |
 
@@ -41,10 +40,8 @@ When a word in round N+1 is adjacent to a frozen word from round N, `violatesFro
 ### PASS: Perpendicular cross-words
 `hasCrossWordViolation` validates perpendicular sequences against frozen tiles and same-round tiles.
 
-### FIXED: Non-frozen tile boundaries (OPA+T bug)
-`violatesSameAxisBoundary` rejects words where BOTH boundary extensions (1-tile) are invalid and neither is at a board edge.
-
-**Example**: Vertical word OPA at col 1 rows 2-4, with M above (row 1) and T below (row 5, part of horizontal TÍS). MOPA and OPAT are both not words → OPA rejected. A word at a board edge (e.g., GEA at cols 7-9) passes because one boundary is at the edge.
+### PASS: Non-frozen adjacent tiles
+Non-frozen adjacent tiles do NOT affect scoring validation. Only frozen tile sequences (from previously scored words) trigger adjacency checks via `violatesFrozenAdjacencyOnSameAxis`.
 
 ### FIXED: Sandwich — word fills gap between two frozen runs
 When frozen runs exist on BOTH sides of a word, the full combined sequence (frozen_before + word + frozen_after) is validated as a single unit. Previously only pairwise combinations were checked.
@@ -53,16 +50,15 @@ When frozen runs exist on BOTH sides of a word, the full combined sequence (froz
 
 ## Files Modified
 
-- `lib/game-engine/crossValidator.ts` — added `violatesSameAxisBoundary()`, refactored `violatesFrozenAdjacencyOnSameAxis()` with sandwich check
+- `lib/game-engine/crossValidator.ts` — refactored `violatesFrozenAdjacencyOnSameAxis()` with sandwich check (removed `violatesSameAxisBoundary()` — non-frozen boundaries are not validated)
 - `tests/unit/lib/game-engine/crossValidator.test.ts` — tests T043-T048
 
 ## Test Coverage
 
 | Test | Scenario | Expected |
 |------|----------|----------|
-| T043 | Vertical word with both boundary extensions invalid (OPA+T) | Rejected |
-| T044 | Horizontal word at board edge, one extension invalid | Accepted |
-| T045 | Word with both boundary extensions valid | Accepted |
-| T046 | Interior word with both boundary extensions invalid | Rejected |
+| T043 | OPA+TÍS subset rejected via cross-word (OPAT invalid) | 1 word survives |
+| T044 | Non-frozen adjacent tiles don't affect validation | Accepted |
+| T046 | Interior word with non-frozen adjacent tiles | Accepted |
 | T047 | Sandwich: pairwise valid but full sequence invalid | Rejected |
 | T048 | Sandwich: full combined sequence valid | Accepted |
