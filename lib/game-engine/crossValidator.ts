@@ -131,6 +131,12 @@ export function selectOptimalCombination(
         word,
         frozenTileSet,
         dictionary,
+      ) &&
+      !violatesFrozenAdjacencyOnSameAxis(
+        word,
+        board,
+        frozenTileSet,
+        dictionary,
       ),
   );
 
@@ -167,6 +173,97 @@ export function selectOptimalCombination(
   }
 
   return bestSubset;
+}
+
+/**
+ * Check whether a candidate word is adjacent to a frozen scored word
+ * on the same axis and the combined sequence is NOT a valid word.
+ *
+ * Only triggers when the adjacent frozen run is itself a valid
+ * dictionary word (i.e., it was scored on this axis). Frozen tiles
+ * from perpendicular words that happen to be adjacent are ignored.
+ */
+function violatesFrozenAdjacencyOnSameAxis(
+  word: BoardWord,
+  board: BoardGrid,
+  frozenTileSet: Set<string>,
+  dictionary: Set<string>,
+): boolean {
+  const isHorizontal =
+    word.direction === "right" || word.direction === "left";
+  const dx = isHorizontal ? 1 : 0;
+  const dy = isHorizontal ? 0 : 1;
+
+  // Get axis-sorted tiles
+  const sortedTiles = [...word.tiles].sort((a, b) =>
+    isHorizontal ? a.x - b.x : a.y - b.y,
+  );
+  const first = sortedTiles[0];
+  const last = sortedTiles[sortedTiles.length - 1];
+
+  // Check backward from first tile
+  if (checkFrozenRun(first.x - dx, first.y - dy, -dx, -dy)) return true;
+
+  // Check forward from last tile
+  if (checkFrozenRun(last.x + dx, last.y + dy, dx, dy)) return true;
+
+  return false;
+
+  function checkFrozenRun(
+    startX: number,
+    startY: number,
+    stepX: number,
+    stepY: number,
+  ): boolean {
+    if (
+      startX < 0 || startX >= BOARD_SIZE ||
+      startY < 0 || startY >= BOARD_SIZE ||
+      !frozenTileSet.has(`${startX},${startY}`)
+    ) {
+      return false;
+    }
+
+    // Trace contiguous frozen tiles in this direction
+    const frozenChars: string[] = [];
+    let cx = startX;
+    let cy = startY;
+    while (
+      cx >= 0 && cx < BOARD_SIZE &&
+      cy >= 0 && cy < BOARD_SIZE &&
+      frozenTileSet.has(`${cx},${cy}`)
+    ) {
+      frozenChars.push(board[cy][cx]);
+      cx += stepX;
+      cy += stepY;
+    }
+
+    // Only apply if the frozen run is itself a valid word
+    // (it was scored on this axis, not just perpendicular tiles)
+    const frozenText = frozenChars
+      .join("")
+      .normalize("NFC")
+      .toLowerCase();
+    const frozenReversed = [...frozenText].reverse().join("");
+    if (!dictionary.has(frozenText) && !dictionary.has(frozenReversed)) {
+      return false;
+    }
+
+    // Frozen run IS a scored word — check combined sequence
+    const wordChars = sortedTiles.map((t) => board[t.y][t.x]);
+    const isBeforeWord = stepX < 0 || stepY < 0;
+    const combined = isBeforeWord
+      ? [...frozenChars.reverse(), ...wordChars]
+      : [...wordChars, ...frozenChars];
+    const combinedText = combined
+      .join("")
+      .normalize("NFC")
+      .toLowerCase();
+    const combinedReversed = [...combinedText].reverse().join("");
+    return (
+      !dictionary.has(combinedText) &&
+      !dictionary.has(combinedReversed)
+    );
+  }
 }
 
 /**
