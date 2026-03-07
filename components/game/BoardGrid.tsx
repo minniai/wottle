@@ -22,6 +22,7 @@ import {
   PLAYER_B_OVERLAY,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
+import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
 
 interface BoardGridProps {
   grid?: BoardGridType;
@@ -39,6 +40,10 @@ interface BoardGridProps {
   highlightPlayerColors?: Record<string, string>;
   /** When true, scored tile highlights persist until highlightPlayerColors is externally cleared (no auto-clear timer). */
   persistentHighlight?: boolean;
+  /** When true, board ignores all tile clicks (move lock after swap submission). */
+  disabled?: boolean;
+  /** Coordinates of the two tiles involved in the locked swap — rendered with orange highlight. */
+  lockedTiles?: [Coordinate, Coordinate] | null;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -139,6 +144,8 @@ export function BoardGrid({
   highlightDurationMs = 800,
   highlightPlayerColors = {},
   persistentHighlight = false,
+  disabled = false,
+  lockedTiles = null,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
@@ -157,6 +164,8 @@ export function BoardGrid({
       highlightDurationMs={highlightDurationMs}
       highlightPlayerColors={highlightPlayerColors}
       persistentHighlight={persistentHighlight}
+      disabled={disabled}
+      lockedTiles={lockedTiles}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
     />
@@ -173,6 +182,8 @@ function BoardGridActive({
   highlightDurationMs = 800,
   highlightPlayerColors = {},
   persistentHighlight = false,
+  disabled = false,
+  lockedTiles = null,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps & { grid: BoardGridType }) {
@@ -384,7 +395,7 @@ function BoardGridActive({
 
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
-      if (isSubmitting || isAnimating) {
+      if (isSubmitting || isAnimating || disabled) {
         return;
       }
 
@@ -421,7 +432,7 @@ function BoardGridActive({
       setSelected(null);
       animateSwap(selected, coordinate);
     },
-    [animateSwap, isSubmitting, isAnimating, selected, frozenTiles]
+    [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles]
   );
 
   const boardSize = useMemo(
@@ -475,6 +486,10 @@ function BoardGridActive({
               const isScoredHighlight = persistentHighlight
                 ? !!highlightPlayerColors[tileKey]
                 : activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
+              const isLocked =
+                lockedTiles !== null &&
+                ((lockedTiles[0].x === colIndex && lockedTiles[0].y === rowIndex) ||
+                  (lockedTiles[1].x === colIndex && lockedTiles[1].y === rowIndex));
               const isInvalid =
                 invalidTiles !== null &&
                 ((invalidTiles[0].x === colIndex && invalidTiles[0].y === rowIndex) ||
@@ -507,7 +522,7 @@ function BoardGridActive({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}
@@ -521,6 +536,9 @@ function BoardGridActive({
                 >
                   <span className="board-grid__tile" aria-hidden="true">
                     {letter}
+                  </span>
+                  <span className="board-grid__tile-score" aria-hidden="true">
+                    {LETTER_SCORING_VALUES_IS[letter.toUpperCase() as keyof typeof LETTER_SCORING_VALUES_IS] ?? 1}
                   </span>
                   <span className="sr-only">
                     Row {rowIndex + 1}, column {colIndex + 1}, letter {letter}

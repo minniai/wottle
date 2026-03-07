@@ -1,4 +1,4 @@
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
@@ -12,6 +12,7 @@ import {
 // Hoisted mutable holder so the matchChannel mock can capture callbacks
 const mockMatchCallbacks = vi.hoisted(() => ({
   onSummary: null as ((summary: RoundSummary) => void) | null,
+  onState: null as ((state: MatchState) => void) | null,
 }));
 
 const mockPush = vi.fn();
@@ -32,9 +33,10 @@ vi.mock("@/lib/realtime/matchChannel", () => ({
   subscribeToMatchChannel: (
     _client: unknown,
     _matchId: string,
-    callbacks: { onSummary: (summary: RoundSummary) => void },
+    callbacks: { onSummary: (summary: RoundSummary) => void; onState?: (state: MatchState) => void },
   ) => {
     mockMatchCallbacks.onSummary = callbacks.onSummary;
+    mockMatchCallbacks.onState = callbacks.onState ?? null;
     return {
       on: () => ({ on: vi.fn() }),
       unsubscribe: vi.fn(),
@@ -184,6 +186,7 @@ function makeSummary(overrides?: Partial<RoundSummary>): RoundSummary {
     totals: { playerA: 0, playerB: 0 },
     highlights: [],
     resolvedAt: new Date().toISOString(),
+    moves: [],
     ...overrides,
   };
 }
@@ -365,6 +368,7 @@ const mockRoundSummary: RoundSummary = {
   deltas: { playerA: 15, playerB: 13 },
   totals: { playerA: 60, playerB: 43 },
   resolvedAt: new Date().toISOString(),
+  moves: [],
 };
 
 describe("MatchClient animation phase machine (US2)", () => {
@@ -524,5 +528,103 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
     // No tiles should have board-grid__cell--scored class (highlighting phase skipped)
     const scoredTiles = document.querySelectorAll(".board-grid__cell--scored");
     expect(scoredTiles).toHaveLength(0);
+  });
+});
+
+// ─── MatchClient move lock tests (US1) ──────────────────────────────────────
+
+describe("MatchClient move lock (US1)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockMatchCallbacks.onSummary = null;
+    mockMatchCallbacks.onState = null;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        const col = Number(this.getAttribute("data-col") ?? 0);
+        const row = Number(this.getAttribute("data-row") ?? 0);
+        const size = 50;
+        return {
+          top: row * size, left: col * size,
+          bottom: row * size + size, right: col * size + size,
+          width: size, height: size, x: col * size, y: row * size,
+          toJSON: () => ({}),
+        };
+      },
+    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ status: "accepted", grid: null }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("T006: board ignores clicks after successful swap submission (moveLocked)", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // Click two tiles to trigger swap
+    act(() => { fireEvent.click(tiles[0]); });
+    act(() => { fireEvent.click(tiles[1]); });
+
+    // Complete FLIP animation + fetch
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    // Board should now be locked — clicking a tile should NOT select it
+    act(() => { fireEvent.click(tiles[20]); });
+    expect(tiles[20]).not.toHaveAttribute("aria-selected", "true");
+  });
+
+  test("T009: moveLocked resets when currentRound increments via onState", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState({ currentRound: 3 })}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // Swap to lock
+    act(() => { fireEvent.click(tiles[0]); });
+    act(() => { fireEvent.click(tiles[1]); });
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    // Board is locked
+    act(() => { fireEvent.click(tiles[20]); });
+    expect(tiles[20]).not.toHaveAttribute("aria-selected", "true");
+
+    // Simulate round increment via realtime onState
+    act(() => {
+      mockMatchCallbacks.onState!(createMatchState({ currentRound: 4 }));
+    });
+
+    // Board should be unlocked now — clicking a tile should select it
+    act(() => { fireEvent.click(tiles[20]); });
+    expect(tiles[20]).toHaveAttribute("aria-selected", "true");
   });
 });

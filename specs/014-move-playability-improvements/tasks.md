@@ -37,17 +37,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Write failing test: `moveLocked` state set to true and `lockedSwapTiles` populated after successful swap submission in `tests/unit/components/MatchClient.test.tsx`
-- [ ] T007 [P] [US1] Write failing test: BoardGrid ignores tile clicks when `disabled` prop is true in `tests/unit/components/BoardGrid.test.tsx`
-- [ ] T008 [P] [US1] Write failing test: tiles with `lockedTiles` coordinates render with `.board-grid__cell--locked` class in `tests/unit/components/BoardGrid.test.tsx`
-- [ ] T009 [US1] Write failing test: `moveLocked` resets to false and `lockedSwapTiles` clears when `matchState.currentRound` increments in `tests/unit/components/MatchClient.test.tsx`
+- [x] T006 [P] [US1] Write failing test: `moveLocked` state set to true and `lockedSwapTiles` populated after successful swap submission in `tests/unit/components/MatchClient.test.tsx`
+- [x] T007 [P] [US1] Write failing test: BoardGrid ignores tile clicks when `disabled` prop is true in `tests/unit/components/BoardGrid.test.tsx`
+- [x] T008 [P] [US1] Write failing test: tiles with `lockedTiles` coordinates render with `.board-grid__cell--locked` class in `tests/unit/components/BoardGrid.test.tsx`
+- [x] T009 [US1] Write failing test: `moveLocked` resets to false and `lockedSwapTiles` clears when `matchState.currentRound` increments in `tests/unit/components/MatchClient.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Add `.board-grid__cell--locked` CSS class with orange background (`background: rgba(251, 146, 60, 0.7)`) in `app/styles/board.css`
-- [ ] T011 [US1] Add `moveLocked` boolean and `lockedSwapTiles: [Coordinate, Coordinate] | null` state to `MatchClient` in `components/match/MatchClient.tsx` — set on successful `onSwapComplete`, reset on `currentRound` change via `useEffect`
-- [ ] T012 [US1] Add `disabled?: boolean` and `lockedTiles?: [Coordinate, Coordinate] | null` props to `BoardGrid` in `components/game/BoardGrid.tsx` — when `disabled`, early-return from `handleTileClick`; when tile matches `lockedTiles` coordinate, add `board-grid__cell--locked` class
-- [ ] T013 [US1] Pass `disabled={moveLocked}` and `lockedTiles={lockedSwapTiles}` from `MatchClient` to `BoardGrid` in `components/match/MatchClient.tsx`
+- [x] T010 [P] [US1] Add `.board-grid__cell--locked` CSS class with orange background (`background: rgba(251, 146, 60, 0.7)`) in `app/styles/board.css`
+- [x] T011 [US1] Add `moveLocked` boolean and `lockedSwapTiles: [Coordinate, Coordinate] | null` state to `MatchClient` in `components/match/MatchClient.tsx` — set on successful `onSwapComplete`, reset on `currentRound` change via `useEffect`
+- [x] T012 [US1] Add `disabled?: boolean` and `lockedTiles?: [Coordinate, Coordinate] | null` props to `BoardGrid` in `components/game/BoardGrid.tsx` — when `disabled`, early-return from `handleTileClick`; when tile matches `lockedTiles` coordinate, add `board-grid__cell--locked` class
+- [x] T013 [US1] Pass `disabled={moveLocked}` and `lockedTiles={lockedSwapTiles}` from `MatchClient` to `BoardGrid` in `components/match/MatchClient.tsx`
 
 **Checkpoint**: Move lock works — swap tiles stay orange, board locked until next round. FR-001, FR-002, FR-003, FR-004 satisfied.
 
@@ -89,15 +89,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Write failing test: timer container renders with `bg-emerald-600/80` when status is running in `tests/unit/components/GameChrome.test.tsx`
-- [ ] T025 [P] [US3] Write failing test: timer container renders with `bg-amber-500/80` when status is paused in `tests/unit/components/GameChrome.test.tsx`
-- [ ] T026 [P] [US3] Write failing test: timer container renders with `bg-red-600/80` when `timerSeconds === 0` in `tests/unit/components/GameChrome.test.tsx`
+- [x] T024 [P] [US3] Write failing test: timer container renders with `bg-emerald-600/80` when status is running in `tests/unit/components/GameChrome.test.tsx`
+- [x] T025 [P] [US3] Write failing test: timer container renders with `bg-amber-500/80` when status is paused in `tests/unit/components/GameChrome.test.tsx`
+- [x] T026 [P] [US3] Write failing test: timer container renders with `bg-red-600/80` when `timerSeconds === 0` in `tests/unit/components/GameChrome.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Add `timerStatus` derived value in `GameChrome`: `"expired"` when `timerSeconds <= 0`, `"paused"` when `hasSubmitted`, `"running"` otherwise in `components/match/GameChrome.tsx`
-- [ ] T028 [US3] Update timer container element in `GameChrome` with background color classes based on `timerStatus`: `bg-emerald-600/80` (running), `bg-amber-500/80` (paused), `bg-red-600/80` (expired); add `rounded-lg px-3 py-2` for panel appearance in `components/match/GameChrome.tsx`
-- [ ] T029 [US3] Remove old text-color-only timer styling (`text-emerald-400` / `text-slate-400`) and replace with white text on colored background in `components/match/GameChrome.tsx`
+- [x] T027 [US3] Add `timerStatus` derived value in `GameChrome`: `"expired"` when `timerSeconds <= 0`, `"paused"` when `hasSubmitted`, `"running"` otherwise in `components/match/GameChrome.tsx`
+- [x] T028 [US3] Update timer container element in `GameChrome` with background color classes based on `timerStatus`: `bg-emerald-600/80` (running), `bg-amber-500/80` (paused), `bg-red-600/80` (expired); add `rounded-lg px-3 py-2` for panel appearance in `components/match/GameChrome.tsx`
+- [x] T029 [US3] Remove old text-color-only timer styling (`text-emerald-400` / `text-slate-400`) and replace with white text on colored background in `components/match/GameChrome.tsx`
 
 **Checkpoint**: Timers display as prominent colored panels. FR-006 satisfied.
 
@@ -133,12 +133,12 @@
 
 ### Tests for User Story 5
 
-- [ ] T034 [US5] Write failing test: `FinalSummary` passes `frozenTiles` prop to `BoardGrid` in `tests/unit/components/FinalSummary.test.tsx` (or existing test file)
+- [x] T034 [US5] Write failing test: `FinalSummary` passes `frozenTiles` prop to `BoardGrid` in `tests/unit/components/FinalSummary.test.tsx` (or existing test file)
 
 ### Implementation for User Story 5
 
-- [ ] T035 [US5] Add `frozenTiles?: FrozenTileMap` prop to `FinalSummary` component and pass it to `BoardGridComponent` in `components/match/FinalSummary.tsx`
-- [ ] T036 [US5] Pass `frozenTiles` from match record (`match.frozen_tiles`) through to `FinalSummary` component in `app/match/[matchId]/summary/page.tsx`
+- [x] T035 [US5] Add `frozenTiles?: FrozenTileMap` prop to `FinalSummary` component and pass it to `BoardGridComponent` in `components/match/FinalSummary.tsx`
+- [x] T036 [US5] Pass `frozenTiles` from match record (`match.frozen_tiles`) through to `FinalSummary` component in `app/match/[matchId]/summary/page.tsx`
 
 **Checkpoint**: Summary board shows player-colored frozen tiles. FR-009 satisfied.
 
@@ -152,13 +152,13 @@
 
 ### Tests for User Story 6
 
-- [ ] T037 [P] [US6] Write failing test: tile renders a score value element with correct point value for known letters (A=1, X=10) in `tests/unit/components/BoardGrid.test.tsx`
-- [ ] T038 [P] [US6] Write failing test: score value element has `board-grid__tile-score` class in `tests/unit/components/BoardGrid.test.tsx`
+- [x] T037 [P] [US6] Write failing test: tile renders a score value element with correct point value for known letters (A=1, X=10) in `tests/unit/components/BoardGrid.test.tsx`
+- [x] T038 [P] [US6] Write failing test: score value element has `board-grid__tile-score` class in `tests/unit/components/BoardGrid.test.tsx`
 
 ### Implementation for User Story 6
 
-- [ ] T039 [P] [US6] Add `.board-grid__tile-score` CSS class in `app/styles/board.css` — absolute positioned bottom-right, `font-size: 0.45em`, `opacity: 0.7`, `line-height: 1`, `pointer-events: none`
-- [ ] T040 [US6] Import `LETTER_SCORING_VALUES_IS` in `BoardGrid` from `docs/wordlist/letter_scoring_values_is.ts` and render a `<span className="board-grid__tile-score">` inside each tile button showing the letter's point value in `components/game/BoardGrid.tsx`
+- [x] T039 [P] [US6] Add `.board-grid__tile-score` CSS class in `app/styles/board.css` — absolute positioned bottom-right, `font-size: 0.45em`, `opacity: 0.7`, `line-height: 1`, `pointer-events: none`
+- [x] T040 [US6] Import `LETTER_SCORING_VALUES_IS` in `BoardGrid` from `docs/wordlist/letter_scoring_values_is.ts` and render a `<span className="board-grid__tile-score">` inside each tile button showing the letter's point value in `components/game/BoardGrid.tsx`
 
 **Checkpoint**: All tiles show Scrabble-style point values. FR-010 satisfied.
 
@@ -172,12 +172,12 @@
 
 ### Tests for User Story 7
 
-- [ ] T041 [US7] Write failing test: `match-layout__summary` div renders even when `summary` is null in `tests/unit/components/MatchClient.test.tsx`
+- [x] T041 [US7] Write failing test: `match-layout__summary` div renders even when `summary` is null in `tests/unit/components/MatchClient.test.tsx`
 
 ### Implementation for User Story 7
 
-- [ ] T042 [US7] Always render `<div className="match-layout__summary">` container in `MatchClient` render method, regardless of `summary` or `animationPhase` state — keep `RoundSummaryPanel` conditionally rendered inside the container in `components/match/MatchClient.tsx`
-- [ ] T043 [US7] Add `min-height` to `.match-layout__summary` in `app/styles/board.css` to ensure consistent reserved space (match existing panel height, e.g., `min-height: 12rem` on desktop)
+- [x] T042 [US7] Always render `<div className="match-layout__summary">` container in `MatchClient` render method, regardless of `summary` or `animationPhase` state — keep `RoundSummaryPanel` conditionally rendered inside the container in `components/match/MatchClient.tsx`
+- [x] T043 [US7] Add `min-height` to `.match-layout__summary` in `app/styles/board.css` to ensure consistent reserved space (match existing panel height, e.g., `min-height: 12rem` on desktop)
 
 **Checkpoint**: Summary area present from round 1; no CLS. FR-011, FR-012 satisfied.
 

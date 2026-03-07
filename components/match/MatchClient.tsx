@@ -13,7 +13,7 @@ import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightP
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
-import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
+import type { MatchState, RoundSummary, TimerState, Coordinate } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
@@ -84,6 +84,10 @@ export function MatchClient({
   const [accumulatedWords, setAccumulatedWords] = useState<WordHistoryRow[]>([]);
   const [accumulatedScores, setAccumulatedScores] = useState<ScoreboardRow[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Move lock state (US1): after swap, board is locked until next round
+  const [moveLocked, setMoveLocked] = useState(false);
+  const [lockedSwapTiles, setLockedSwapTiles] = useState<[Coordinate, Coordinate] | null>(null);
 
   // Resign state
   const [showResignDialog, setShowResignDialog] = useState(false);
@@ -326,6 +330,12 @@ export function MatchClient({
   );
   const isPaused = currentTimer.status !== "running";
 
+  // Reset move lock when round advances (US1)
+  useEffect(() => {
+    setMoveLocked(false);
+    setLockedSwapTiles(null);
+  }, [matchState.currentRound]);
+
   const handleSummaryDismiss = useCallback(() => {
     setSummary((prev) => {
       if (prev) {
@@ -350,9 +360,14 @@ export function MatchClient({
     setScoreDelta(deriveScoreDelta(summary, currentPlayerId));
   }, [summary, currentPlayerId, playerSlot]);
 
-  const handleSwapComplete = useCallback(() => {
-    setSwapError(null);
-  }, []);
+  const handleSwapComplete = useCallback(
+    ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
+      setSwapError(null);
+      setMoveLocked(true);
+      setLockedSwapTiles([move.from, move.to]);
+    },
+    [],
+  );
 
   const handleSwapError = useCallback((message: string) => {
     setSwapError(message);
@@ -503,6 +518,8 @@ export function MatchClient({
             matchId={matchId}
             frozenTiles={matchState.frozenTiles ?? {}}
             playerSlot={playerSlot}
+            disabled={moveLocked}
+            lockedTiles={lockedSwapTiles}
             scoredTileHighlights={
               animationPhase === "highlighting"
                 ? (pendingSummary?.highlights ?? [])
@@ -540,17 +557,18 @@ export function MatchClient({
           />
         </div>
 
-        {/* Round summary — right of board on >=900px, below on smaller */}
-        {animationPhase !== "highlighting" && summary && (
-          <div className="match-layout__summary">
+        {/* Round summary — right of board on >=900px, below on smaller.
+             Container always rendered to reserve layout space (no shift). */}
+        <div className="match-layout__summary">
+          {animationPhase !== "highlighting" && summary && (
             <RoundSummaryPanel
               summary={summary}
               currentPlayerId={currentPlayerId}
               onDismiss={handleSummaryDismiss}
               autoDismissMs={summaryAutoDismissMs}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {showDebug && (

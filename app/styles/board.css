@@ -125,6 +125,17 @@
     inset 0 -4px 12px rgba(15, 23, 42, 0.35);
 }
 
+/* Move lock: orange highlight on swapped tiles until next round (US1) */
+.board-grid__cell--locked {
+  background: rgba(251, 146, 60, 0.7) !important;
+  cursor: not-allowed;
+}
+
+.board-grid__cell--locked:hover,
+.board-grid__cell--locked:focus-within {
+  transform: none;
+}
+
 /* Frozen tile: overlay behind text, no hover lift, letter stays readable */
 .board-grid__cell--frozen {
   position: relative;
@@ -200,6 +211,17 @@
 }
 
 .board-grid__tile {
+  pointer-events: none;
+}
+
+/* Scrabble-style letter point value — small number in the bottom-right corner */
+.board-grid__tile-score {
+  position: absolute;
+  bottom: 1px;
+  right: 2px;
+  font-size: 0.45em;
+  opacity: 0.7;
+  line-height: 1;
   pointer-events: none;
 }
 
@@ -321,6 +343,7 @@
 
   .match-layout__summary {
     width: 20rem;
+    min-height: 12rem;
     flex-shrink: 0;
   }
 }

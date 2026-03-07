@@ -451,6 +451,30 @@ describe("BoardGrid rapid re-rejection (FR-012)", () => {
   });
 });
 
+describe("BoardGrid move lock (US1)", () => {
+  test("T007: ignores tile clicks when disabled prop is true", () => {
+    const grid = createGrid();
+    render(<BoardGrid grid={grid} matchId="test-match-id" disabled={true} />);
+    const tiles = screen.getAllByTestId("board-tile");
+    act(() => { fireEvent.click(tiles[0]); });
+    expect(tiles[0]).not.toHaveAttribute("aria-selected", "true");
+    act(() => { fireEvent.click(tiles[5]); });
+    expect(tiles[5]).not.toHaveAttribute("aria-selected", "true");
+  });
+
+  test("T008: tiles matching lockedTiles coordinates render with board-grid__cell--locked class", () => {
+    const grid = createGrid();
+    const lockedTiles: [Coordinate, Coordinate] = [{ x: 2, y: 3 }, { x: 4, y: 3 }];
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" lockedTiles={lockedTiles} />,
+    );
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[3 * BOARD_SIZE + 2]).toHaveClass("board-grid__cell--locked");
+    expect(tiles[3 * BOARD_SIZE + 4]).toHaveClass("board-grid__cell--locked");
+    expect(tiles[0]).not.toHaveClass("board-grid__cell--locked");
+  });
+});
+
 describe("BoardGrid component", () => {
   test(`renders a ${BOARD_SIZE}x${BOARD_SIZE} grid with accessible roles`, () => {
     const grid = createGrid();
