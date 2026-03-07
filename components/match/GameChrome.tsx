@@ -22,6 +22,10 @@ interface GameChromeProps {
   roundHistoryCount?: number;
   /** Callback to toggle the round history overlay. */
   onHistoryToggle?: () => void;
+  /** Callback to trigger resignation. Only shown for the "player" position. */
+  onResign?: () => void;
+  /** Whether the resign button should be disabled (e.g. during resolution). */
+  resignDisabled?: boolean;
 }
 
 export function GameChrome({
@@ -37,6 +41,8 @@ export function GameChrome({
   scoreDeltaRound,
   roundHistoryCount = 0,
   onHistoryToggle,
+  onResign,
+  resignDisabled = false,
 }: GameChromeProps) {
   const [displaySeconds, setDisplaySeconds] = useState(timerSeconds);
 
@@ -114,6 +120,19 @@ export function GameChrome({
             <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
               {roundHistoryCount}
             </span>
+          </button>
+        )}
+
+        {onResign && (
+          <button
+            type="button"
+            aria-label="Resign"
+            onClick={onResign}
+            disabled={resignDisabled}
+            className="rounded-md bg-red-500/20 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid="resign-button"
+          >
+            Resign
           </button>
         )}
       </div>

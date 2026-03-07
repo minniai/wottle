@@ -18,6 +18,7 @@ import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
+import { resignMatch } from "@/app/actions/match/resignMatch";
 import { MatchShell } from "./MatchShell";
 
 
@@ -83,6 +84,10 @@ export function MatchClient({
   const [accumulatedWords, setAccumulatedWords] = useState<WordHistoryRow[]>([]);
   const [accumulatedScores, setAccumulatedScores] = useState<ScoreboardRow[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Resign state
+  const [showResignDialog, setShowResignDialog] = useState(false);
+  const [isResigning, setIsResigning] = useState(false);
 
   // Animation phase machine for post-round highlight sequence (US7)
   type AnimationPhase = "idle" | "highlighting" | "showing-summary";
@@ -353,6 +358,21 @@ export function MatchClient({
     setSwapError(message);
   }, []);
 
+  const handleResignConfirm = useCallback(async () => {
+    setIsResigning(true);
+    try {
+      await resignMatch(matchId);
+      setShowResignDialog(false);
+    } catch (e) {
+      setSwapError(
+        e instanceof Error ? e.message : "Failed to resign.",
+      );
+      setShowResignDialog(false);
+    } finally {
+      setIsResigning(false);
+    }
+  }, [matchId]);
+
   // Derive opponent timer
   const opponentTimer: TimerState = useMemo(() => {
     if (matchState.timers.playerA.playerId === currentPlayerId) {
@@ -511,6 +531,12 @@ export function MatchClient({
             scoreDeltaRound={summary?.roundNumber}
             roundHistoryCount={roundHistory.length}
             onHistoryToggle={() => setHistoryOpen((v) => !v)}
+            onResign={() => setShowResignDialog(true)}
+            resignDisabled={
+              matchState.state === "resolving" ||
+              matchState.state === "completed" ||
+              isResigning
+            }
           />
         </div>
 
@@ -587,6 +613,45 @@ export function MatchClient({
               biggestSwing={biggestSwing}
               highestWord={highestWord}
             />
+          </div>
+        </div>
+      )}
+      {showResignDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          data-testid="resign-dialog-backdrop"
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl"
+            role="alertdialog"
+            aria-label="Confirm resignation"
+            data-testid="resign-dialog"
+          >
+            <h2 className="text-lg font-semibold text-white">
+              Resign?
+            </h2>
+            <p className="mt-2 text-sm text-white/70">
+              Are you sure you want to resign? Your opponent will win.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={handleResignConfirm}
+                disabled={isResigning}
+                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-400 disabled:opacity-50"
+                data-testid="resign-confirm"
+              >
+                {isResigning ? "Resigning..." : "Yes, Resign"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowResignDialog(false)}
+                className="rounded-xl border border-white/20 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+                data-testid="resign-cancel"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
