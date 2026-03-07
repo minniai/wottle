@@ -13,12 +13,13 @@ import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightP
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
-import type { MatchState, RoundSummary, TimerState } from "@/lib/types/match";
+import type { MatchState, RoundSummary, TimerState, Coordinate } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
 import { resignMatch } from "@/app/actions/match/resignMatch";
+import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
 import { MatchShell } from "./MatchShell";
 
 
@@ -85,12 +86,19 @@ export function MatchClient({
   const [accumulatedScores, setAccumulatedScores] = useState<ScoreboardRow[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
+  // Move lock state (US1): after swap, board is locked until next round
+  const [moveLocked, setMoveLocked] = useState(false);
+  const [lockedSwapTiles, setLockedSwapTiles] = useState<[Coordinate, Coordinate] | null>(null);
+
+  // Opponent reveal state (US2): briefly show opponent's swapped tiles on round completion
+  const [opponentRevealTiles, setOpponentRevealTiles] = useState<[Coordinate, Coordinate] | null>(null);
+
   // Resign state
   const [showResignDialog, setShowResignDialog] = useState(false);
   const [isResigning, setIsResigning] = useState(false);
 
   // Animation phase machine for post-round highlight sequence (US7)
-  type AnimationPhase = "idle" | "highlighting" | "showing-summary";
+  type AnimationPhase = "idle" | "revealing-opponent-move" | "highlighting" | "showing-summary";
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
   const [pendingSummary, setPendingSummary] = useState<RoundSummary | null>(null);
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
@@ -125,7 +133,7 @@ export function MatchClient({
   // Also guard while highlight animation is playing — onSummary handles that path.
   useEffect(() => {
     if (!matchState.lastSummary) return;
-    if (animationPhase === "highlighting") return;
+    if (animationPhase === "highlighting" || animationPhase === "revealing-opponent-move") return;
     const id = `${matchState.lastSummary.matchId}-${matchState.lastSummary.roundNumber}`;
     if (id !== dismissedSummaryIdRef.current) {
       setSummary(matchState.lastSummary);
@@ -169,7 +177,6 @@ export function MatchClient({
         );
         setHighlightPlayerColors(colors);
         setPendingSummary(nextSummary);
-        setAnimationPhase("highlighting");
         setMatchState((prev) => ({
           ...prev,
           scores: nextSummary.totals,
@@ -199,8 +206,32 @@ export function MatchClient({
         if (prefersReducedMotionRef.current) {
           setAnimationPhase("showing-summary");
           setSummary(nextSummary);
+          return;
+        }
+
+        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+
+        // Check for opponent's move to reveal (US2)
+        const opponentMove = nextSummary.moves.find(
+          (m) => m.playerId !== currentPlayerId,
+        );
+
+        if (opponentMove) {
+          setOpponentRevealTiles([opponentMove.from, opponentMove.to]);
+          setAnimationPhase("revealing-opponent-move");
+          highlightTimerRef.current = setTimeout(() => {
+            // Transition to highlighting: clear reveal state (T023)
+            setOpponentRevealTiles(null);
+            setMoveLocked(false);
+            setLockedSwapTiles(null);
+            setAnimationPhase("highlighting");
+            highlightTimerRef.current = setTimeout(() => {
+              setAnimationPhase("showing-summary");
+              setSummary(nextSummary);
+            }, 800);
+          }, 1000);
         } else {
-          if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+          setAnimationPhase("highlighting");
           highlightTimerRef.current = setTimeout(() => {
             setAnimationPhase("showing-summary");
             setSummary(nextSummary);
@@ -326,6 +357,30 @@ export function MatchClient({
   );
   const isPaused = currentTimer.status !== "running";
 
+  // Reset move lock when round advances (US1)
+  useEffect(() => {
+    setMoveLocked(false);
+    setLockedSwapTiles(null);
+  }, [matchState.currentRound]);
+
+  // Dual timeout detection (US4): both players' timers at zero
+  const dualTimeoutDetected =
+    matchState.timers.playerA.remainingMs <= 0 &&
+    matchState.timers.playerB.remainingMs <= 0;
+
+  // Trigger server-side timeout check when dual timeout detected
+  const timeoutCheckFiredRef = useRef(false);
+  useEffect(() => {
+    if (
+      dualTimeoutDetected &&
+      matchState.state !== "completed" &&
+      !timeoutCheckFiredRef.current
+    ) {
+      timeoutCheckFiredRef.current = true;
+      triggerTimeoutCheck(matchId).catch(() => {});
+    }
+  }, [dualTimeoutDetected, matchState.state, matchId]);
+
   const handleSummaryDismiss = useCallback(() => {
     setSummary((prev) => {
       if (prev) {
@@ -350,9 +405,14 @@ export function MatchClient({
     setScoreDelta(deriveScoreDelta(summary, currentPlayerId));
   }, [summary, currentPlayerId, playerSlot]);
 
-  const handleSwapComplete = useCallback(() => {
-    setSwapError(null);
-  }, []);
+  const handleSwapComplete = useCallback(
+    ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
+      setSwapError(null);
+      setMoveLocked(true);
+      setLockedSwapTiles([move.from, move.to]);
+    },
+    [],
+  );
 
   const handleSwapError = useCallback((message: string) => {
     setSwapError(message);
@@ -475,6 +535,15 @@ export function MatchClient({
         </div>
       )}
 
+      {dualTimeoutDetected && matchState.state !== "completed" && (
+        <div
+          className="mt-4 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-sm font-semibold text-red-200"
+          data-testid="dual-timeout-overlay"
+        >
+          Both players timed out
+        </div>
+      )}
+
       {(pollError || swapError) && (
         <div
           className="mt-2 rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm text-red-200"
@@ -503,6 +572,9 @@ export function MatchClient({
             matchId={matchId}
             frozenTiles={matchState.frozenTiles ?? {}}
             playerSlot={playerSlot}
+            disabled={moveLocked}
+            lockedTiles={lockedSwapTiles}
+            opponentRevealTiles={animationPhase === "revealing-opponent-move" ? opponentRevealTiles : null}
             scoredTileHighlights={
               animationPhase === "highlighting"
                 ? (pendingSummary?.highlights ?? [])
@@ -540,17 +612,18 @@ export function MatchClient({
           />
         </div>
 
-        {/* Round summary — right of board on >=900px, below on smaller */}
-        {animationPhase !== "highlighting" && summary && (
-          <div className="match-layout__summary">
+        {/* Round summary — right of board on >=900px, below on smaller.
+             Container always rendered to reserve layout space (no shift). */}
+        <div className="match-layout__summary">
+          {animationPhase !== "highlighting" && animationPhase !== "revealing-opponent-move" && summary && (
             <RoundSummaryPanel
               summary={summary}
               currentPlayerId={currentPlayerId}
               onDismiss={handleSummaryDismiss}
               autoDismissMs={summaryAutoDismissMs}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {showDebug && (

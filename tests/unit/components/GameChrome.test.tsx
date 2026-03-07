@@ -25,30 +25,29 @@ describe("GameChrome", () => {
 
   test("renders round indicator for player position", () => {
     render(<GameChrome {...baseProps} moveCounter={5} />);
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("Round 5");
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent("R5");
   });
 
   test("renders round indicator for opponent position", () => {
     render(
       <GameChrome {...baseProps} position="opponent" moveCounter={5} />,
     );
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("Round 5");
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent("R5");
   });
 
-  test("timer text is green when hasSubmitted is false", () => {
+  test("chrome bar has default dark background when running", () => {
     render(<GameChrome {...baseProps} hasSubmitted={false} />);
 
-    const timerEl = screen.getByText("3:00");
-    expect(timerEl).toHaveClass("text-emerald-400");
-    expect(timerEl).not.toHaveClass("text-slate-400");
+    const chrome = screen.getByTestId("game-chrome-player");
+    expect(chrome).toHaveAttribute("data-timer-status", "running");
   });
 
-  test("timer text is neutral when hasSubmitted is true", () => {
+  test("chrome bar has amber background when paused", () => {
     render(<GameChrome {...baseProps} hasSubmitted={true} />);
 
-    const timerEl = screen.getByText("3:00");
-    expect(timerEl).toHaveClass("text-slate-400");
-    expect(timerEl).not.toHaveClass("text-emerald-400");
+    const chrome = screen.getByTestId("game-chrome-player");
+    expect(chrome).toHaveAttribute("data-timer-status", "paused");
+    expect(chrome).toHaveStyle({ background: "#d97706" });
   });
 
   test("score displays with playerColor accent", () => {
@@ -72,6 +71,46 @@ describe("GameChrome", () => {
       "data-position",
       "player",
     );
+  });
+
+  describe("chrome bar background colors by timer status", () => {
+    test("default dark background when running (not submitted)", () => {
+      render(
+        <GameChrome
+          {...baseProps}
+          hasSubmitted={false}
+          timerSeconds={180}
+        />,
+      );
+      const chrome = screen.getByTestId("game-chrome-player");
+      expect(chrome).toHaveAttribute("data-timer-status", "running");
+    });
+
+    test("amber background when paused (hasSubmitted=true)", () => {
+      render(
+        <GameChrome
+          {...baseProps}
+          hasSubmitted={true}
+          timerSeconds={180}
+        />,
+      );
+      const chrome = screen.getByTestId("game-chrome-player");
+      expect(chrome).toHaveAttribute("data-timer-status", "paused");
+      expect(chrome).toHaveStyle({ background: "#d97706" });
+    });
+
+    test("red background when timer expired (timerSeconds=0)", () => {
+      render(
+        <GameChrome
+          {...baseProps}
+          hasSubmitted={false}
+          timerSeconds={0}
+        />,
+      );
+      const chrome = screen.getByTestId("game-chrome-player");
+      expect(chrome).toHaveAttribute("data-timer-status", "expired");
+      expect(chrome).toHaveStyle({ background: "#dc2626" });
+    });
   });
 
   describe("ScoreDeltaPopup integration", () => {

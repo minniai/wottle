@@ -22,6 +22,7 @@ import {
   PLAYER_B_OVERLAY,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
+import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
 
 interface BoardGridProps {
   grid?: BoardGridType;
@@ -39,6 +40,12 @@ interface BoardGridProps {
   highlightPlayerColors?: Record<string, string>;
   /** When true, scored tile highlights persist until highlightPlayerColors is externally cleared (no auto-clear timer). */
   persistentHighlight?: boolean;
+  /** When true, board ignores all tile clicks (move lock after swap submission). */
+  disabled?: boolean;
+  /** Coordinates of the two tiles involved in the locked swap — rendered with orange highlight. */
+  lockedTiles?: [Coordinate, Coordinate] | null;
+  /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
+  opponentRevealTiles?: [Coordinate, Coordinate] | null;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -139,6 +146,9 @@ export function BoardGrid({
   highlightDurationMs = 800,
   highlightPlayerColors = {},
   persistentHighlight = false,
+  disabled = false,
+  lockedTiles = null,
+  opponentRevealTiles = null,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
@@ -157,6 +167,9 @@ export function BoardGrid({
       highlightDurationMs={highlightDurationMs}
       highlightPlayerColors={highlightPlayerColors}
       persistentHighlight={persistentHighlight}
+      disabled={disabled}
+      lockedTiles={lockedTiles}
+      opponentRevealTiles={opponentRevealTiles}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
     />
@@ -173,6 +186,9 @@ function BoardGridActive({
   highlightDurationMs = 800,
   highlightPlayerColors = {},
   persistentHighlight = false,
+  disabled = false,
+  lockedTiles = null,
+  opponentRevealTiles = null,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps & { grid: BoardGridType }) {
@@ -197,8 +213,15 @@ function BoardGridActive({
   }, [grid]);
 
   useEffect(() => {
-    setCurrentGrid(grid);
-  }, [grid]);
+    // Skip sync while board is move-locked — the optimistic swap in
+    // currentGrid must persist.  The Realtime broadcast during "collecting"
+    // carries board_snapshot_before (the pre-swap board) which would revert
+    // the visual swap.  When disabled flips back to false (round advances)
+    // the latest grid prop is applied.
+    if (!disabled) {
+      setCurrentGrid(grid);
+    }
+  }, [grid, disabled]);
 
   useEffect(() => {
     if (!scoredTileHighlights?.length) {
@@ -223,8 +246,12 @@ function BoardGridActive({
   const colCount = currentGrid[0]?.length ?? 0;
 
   const containerClass = useMemo(
-    () => (className ? `${BASE_CLASS} ${className}` : BASE_CLASS),
-    [className]
+    () => {
+      let cls = className ? `${BASE_CLASS} ${className}` : BASE_CLASS;
+      if (disabled) cls += " board-grid--locked";
+      return cls;
+    },
+    [className, disabled]
   );
 
   const handleSwap = useCallback(
@@ -384,7 +411,7 @@ function BoardGridActive({
 
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
-      if (isSubmitting || isAnimating) {
+      if (isSubmitting || isAnimating || disabled) {
         return;
       }
 
@@ -421,7 +448,7 @@ function BoardGridActive({
       setSelected(null);
       animateSwap(selected, coordinate);
     },
-    [animateSwap, isSubmitting, isAnimating, selected, frozenTiles]
+    [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles]
   );
 
   const boardSize = useMemo(
@@ -449,11 +476,21 @@ function BoardGridActive({
         style={
           {
             "--board-size": boardSize,
+            position: "relative",
           } as CSSProperties
         }
         data-submitting={isSubmitting ? "true" : undefined}
         data-animating={isAnimating ? "true" : undefined}
       >
+        {disabled && (
+          <div
+            className="board-grid__lock-banner"
+            aria-live="polite"
+            data-testid="move-lock-banner"
+          >
+            Move submitted — waiting for opponent
+          </div>
+        )}
         {currentGrid.map((row, rowIndex) => (
           <div
             key={`row-${rowIndex}`}
@@ -475,6 +512,14 @@ function BoardGridActive({
               const isScoredHighlight = persistentHighlight
                 ? !!highlightPlayerColors[tileKey]
                 : activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
+              const isLocked =
+                lockedTiles !== null &&
+                ((lockedTiles[0].x === colIndex && lockedTiles[0].y === rowIndex) ||
+                  (lockedTiles[1].x === colIndex && lockedTiles[1].y === rowIndex));
+              const isOpponentReveal =
+                opponentRevealTiles !== null &&
+                ((opponentRevealTiles[0].x === colIndex && opponentRevealTiles[0].y === rowIndex) ||
+                  (opponentRevealTiles[1].x === colIndex && opponentRevealTiles[1].y === rowIndex));
               const isInvalid =
                 invalidTiles !== null &&
                 ((invalidTiles[0].x === colIndex && invalidTiles[0].y === rowIndex) ||
@@ -507,7 +552,7 @@ function BoardGridActive({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}
@@ -521,6 +566,9 @@ function BoardGridActive({
                 >
                   <span className="board-grid__tile" aria-hidden="true">
                     {letter}
+                  </span>
+                  <span className="board-grid__tile-score" aria-hidden="true">
+                    {LETTER_SCORING_VALUES_IS[letter.toUpperCase() as keyof typeof LETTER_SCORING_VALUES_IS] ?? 1}
                   </span>
                   <span className="sr-only">
                     Row {rowIndex + 1}, column {colIndex + 1}, letter {letter}

@@ -45,6 +45,7 @@ describe("FR-019: round summary broadcast payload size", () => {
       deltas: { playerA: 500, playerB: 500 },
       highlights: words.map((w) => w.coordinates),
       resolvedAt: new Date().toISOString(),
+      moves: [],
     };
 
     const serialized = JSON.stringify(payload);
@@ -95,6 +96,7 @@ describe("FR-019: round summary broadcast payload size", () => {
       deltas: { playerA: 38, playerB: 17 },
       highlights: words.map((w) => w.coordinates),
       resolvedAt: new Date().toISOString(),
+      moves: [],
     };
 
     const serialized = JSON.stringify(payload);

@@ -6,7 +6,7 @@ import { recordScoreSnapshot } from "@/lib/matchmaking/service";
 import { withRetry } from "@/lib/game-engine/retry";
 import { logPlaytestError, logPlaytestInfo } from "@/lib/observability/log";
 import { completeMatchInternal } from "./completeMatch";
-import type { RoundSummary, WordScore, ScoreTotals, FrozenTileMap } from "@/lib/types/match";
+import type { RoundSummary, RoundMove, WordScore, ScoreTotals, FrozenTileMap } from "@/lib/types/match";
 import type { Coordinate } from "@/lib/types/board";
 import type { BoardGrid } from "@/lib/types/board";
 
@@ -79,7 +79,21 @@ export async function publishRoundSummary(
         coordinates: entry.tiles as Coordinate[],
     }));
 
-    // 5. Aggregate round summary
+    // 5. Fetch accepted moves for opponent move reveal
+    const { data: moveSubmissions } = await supabase
+        .from("move_submissions")
+        .select("player_id, from_x, from_y, to_x, to_y")
+        .eq("round_id", round.id)
+        .eq("status", "accepted")
+        .order("submitted_at", { ascending: true });
+
+    const moves: RoundMove[] = (moveSubmissions || []).map((sub) => ({
+        playerId: sub.player_id,
+        from: { x: sub.from_x, y: sub.from_y },
+        to: { x: sub.to_x, y: sub.to_y },
+    }));
+
+    // 6. Aggregate round summary
     const summary = aggregateRoundSummary(
         matchId,
         roundNumber,
@@ -87,9 +101,10 @@ export async function publishRoundSummary(
         previousTotals,
         matchPlayers.player_a_id,
         matchPlayers.player_b_id,
+        moves,
     );
 
-    // 6. Persist scoreboard snapshot
+    // 7. Persist scoreboard snapshot
     try {
         await recordScoreSnapshot(
             supabase,
@@ -103,7 +118,7 @@ export async function publishRoundSummary(
         // Continue anyway - we'll still publish the summary
     }
 
-    // 7. Publish via Realtime broadcast
+    // 8. Publish via Realtime broadcast
     const channel = supabase.channel(`match:${matchId}`);
     const broadcastResult = await channel.send({
         type: "broadcast",

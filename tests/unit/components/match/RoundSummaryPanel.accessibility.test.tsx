@@ -27,6 +27,7 @@ const baseSummary: RoundSummary = {
   totals: { playerA: 12, playerB: 4 },
   highlights: [],
   resolvedAt: new Date().toISOString(),
+  moves: [],
 };
 
 describe("RoundSummaryPanel accessibility", () => {

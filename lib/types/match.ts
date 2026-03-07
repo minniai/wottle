@@ -64,6 +64,13 @@ export interface WordScore {
   coordinates: Coordinate[];
 }
 
+/** A player's accepted swap coordinates, included in round summaries for opponent move reveal. */
+export interface RoundMove {
+  playerId: string;
+  from: Coordinate;
+  to: Coordinate;
+}
+
 export interface RoundSummary {
   matchId: string;
   roundNumber: number;
@@ -72,6 +79,8 @@ export interface RoundSummary {
   totals: ScoreTotals;
   highlights: Coordinate[][];
   resolvedAt: string;
+  /** Accepted moves per player for opponent move reveal animation. */
+  moves: RoundMove[];
 }
 
 export interface MatchState {

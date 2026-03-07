@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
-import type { MatchEndedReason, TopWord } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, TopWord } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 import { BoardGrid as BoardGridComponent } from "@/components/game/BoardGrid";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
@@ -54,6 +54,10 @@ export interface FinalSummaryProps {
   scoreboard: ScoreboardRow[];
   wordHistory: WordHistoryRow[];
   board: BoardGrid | null;
+  /** Frozen tile map for player-colored overlays on the final board. */
+  frozenTiles?: FrozenTileMap;
+  /** True when both players' timers expired (dual timeout). */
+  isDualTimeout?: boolean;
 }
 
 function formatDuration(ms: number) {
@@ -108,6 +112,8 @@ export function FinalSummary({
   scoreboard,
   wordHistory,
   board,
+  frozenTiles,
+  isDualTimeout = false,
 }: FinalSummaryProps) {
   const router = useRouter();
   const [isRematching, startRematch] = useTransition();
@@ -175,18 +181,20 @@ export function FinalSummary({
 
   return (
     <section
-      className="w-full rounded-3xl border border-white/10 bg-slate-950/70 p-8 shadow-2xl shadow-slate-950/60"
+      className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-slate-950/60 sm:p-8"
       data-testid="final-summary-view"
     >
       {/* Board rendered outside tab area so it stays visible on both tabs */}
       {board && (
-        <div className="mb-6 pointer-events-none" data-testid="final-summary-board">
+        <div className="relative mb-6" data-testid="final-summary-board">
           <BoardGridComponent
             grid={board}
             matchId={matchId}
-            className="mx-auto"
+            className="mx-auto pointer-events-none"
+            frozenTiles={frozenTiles}
             highlightPlayerColors={highlightPlayerColors}
             persistentHighlight
+            disabled
           />
         </div>
       )}
@@ -242,7 +250,7 @@ export function FinalSummary({
           className="text-white/70"
           data-testid="final-summary-ended-reason"
         >
-          {reasonLabel(endedReason)}
+          {isDualTimeout ? "Both players timed out" : reasonLabel(endedReason)}
         </p>
       </header>
 

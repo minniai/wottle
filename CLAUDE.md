@@ -499,6 +499,7 @@ Key files:
 - N/A — reads existing `word_score_entries`, `scoreboard_snapshots`, `rounds` tables via Supabase; no new tables or columns (012-round-history-and-game-recap)
 - TypeScript 5.x, Node.js 20, Next.js 16 (App Router) + Supabase JS v2, Zod, Vitest, Playwrigh (013-scoring-change)
 - Supabase PostgreSQL — `matches` (frozen_tiles JSONB), `word_score_entries`, `scoreboard_snapshots` (013-scoring-change)
+- N/A — reads existing Supabase tables; no new tables or columns (014-move-playability-improvements)
 
 - TypeScript 5.x, React 19+, Next.js 16 (App Router)
 - Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)

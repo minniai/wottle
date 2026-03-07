@@ -40,6 +40,7 @@ const summaryWithTwoWords: RoundSummary = {
   totals: { playerA: 65, playerB: 10 },
   highlights: [],
   resolvedAt: new Date().toISOString(),
+  moves: [],
 };
 
 describe("RoundSummaryPanel enhanced display (US4)", () => {

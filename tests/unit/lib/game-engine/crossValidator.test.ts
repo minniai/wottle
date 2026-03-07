@@ -559,6 +559,89 @@ describe("selectOptimalCombination", () => {
     expect(result[0].text).toBe("abc");
   });
 
+  // T040: Rejects word adjacent to frozen tiles on same axis when combined is invalid
+  test("T040: rejects word adjacent to frozen tiles on same axis when combined sequence is invalid", () => {
+    const localDict = new Set(["uma", "xy"]);
+    const board = emptyBoard();
+    // "uma" vertically at column 0, rows 0-2
+    placeV(board, "uma", 0, 0);
+    // Frozen tiles at (0,3) and (0,4) with letters "x","y"
+    board[3][0] = "x";
+    board[4][0] = "y";
+
+    const frozenTiles: FrozenTileMap = {
+      "0,3": { owner: "player_b" },
+      "0,4": { owner: "player_b" },
+    };
+
+    // "uma" is adjacent to frozen tile (0,3) on the same vertical axis
+    // Combined: "uma" + "xy" = "umaxy" ∉ dict → reject "uma"
+    const candidates = [vWord("uma", 0, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    expect(result).toHaveLength(0);
+  });
+
+  // T041: Allows word adjacent to frozen tiles on same axis when combined IS valid
+  test("T041: allows word adjacent to frozen tiles on same axis when combined sequence is valid", () => {
+    const localDict = new Set(["ab", "cd", "abcd"]);
+    const board = emptyBoard();
+    placeH(board, "abcd", 0, 0);
+
+    // Frozen "cd" at (2,0)-(3,0)
+    const frozenTiles: FrozenTileMap = {
+      "2,0": { owner: "player_b" },
+      "3,0": { owner: "player_b" },
+    };
+
+    // "ab" at (0,0)-(1,0) is adjacent to frozen "cd" at (2,0)
+    // Combined: "ab" + "cd" = "abcd" ∈ dict → accept "ab"
+    const candidates = [hWord("ab", 0, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("ab");
+  });
+
+  // T042: Word with frozen tiles before it on same axis — combined invalid
+  test("T042: rejects word when frozen tiles precede it on same axis with invalid combined", () => {
+    const localDict = new Set(["cd", "ab"]);
+    const board = emptyBoard();
+    placeH(board, "abcd", 0, 0);
+
+    // Frozen "ab" at (0,0)-(1,0)
+    const frozenTiles: FrozenTileMap = {
+      "0,0": { owner: "player_a" },
+      "1,0": { owner: "player_a" },
+    };
+
+    // New word "cd" at (2,0)-(3,0) — frozen "ab" immediately before it
+    // Combined: "ab" + "cd" = "abcd" — put "abcd" NOT in dict for this test
+    const candidates = [hWord("cd", 2, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // "abcd" ∉ localDict → reject "cd"
+    expect(result).toHaveLength(0);
+  });
+
   // Additional: empty candidates returns empty result
   test("returns empty array for empty candidates", () => {
     const board = emptyBoard();

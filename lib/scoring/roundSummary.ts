@@ -1,4 +1,4 @@
-import type { WordScore, RoundSummary, ScoreTotals } from "@/lib/types/match";
+import type { WordScore, RoundSummary, ScoreTotals, RoundMove } from "@/lib/types/match";
 import type { Coordinate } from "@/lib/types/board";
 import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
 
@@ -42,6 +42,7 @@ export function aggregateRoundSummary(
     previousTotals: ScoreTotals,
     playerAId: string,
     playerBId: string,
+    moves: RoundMove[] = [],
 ): RoundSummary {
     // Group words by the actual match player slots so scores always land in
     // the correct column — even when one player has zero words this round.
@@ -76,6 +77,7 @@ export function aggregateRoundSummary(
         totals,
         highlights,
         resolvedAt: new Date().toISOString(),
+        moves,
     };
 }
 

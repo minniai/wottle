@@ -67,7 +67,7 @@ async function fetchMatchSummary(matchId: string) {
 
   const { data: lastRound } = await supabase
     .from("rounds")
-    .select("board_snapshot_after")
+    .select("board_snapshot_after,board_snapshot_before")
     .eq("match_id", matchId)
     .order("round_number", { ascending: false })
     .limit(1)
@@ -76,8 +76,7 @@ async function fetchMatchSummary(matchId: string) {
   const { data: wordEntries } = await supabase
     .from("word_score_entries")
     .select("round_id,player_id,word,total_points,length,letters_points,bonus_points,tiles,is_duplicate")
-    .eq("match_id", matchId)
-    .order("created_at", { ascending: true });
+    .eq("match_id", matchId);
 
   const { data: topWordEntries } = await supabase
     .from("word_score_entries")
@@ -102,7 +101,10 @@ async function fetchMatchSummary(matchId: string) {
     topWordEntries: topWordEntries ?? [],
     roundMap,
     finalScores,
-    board: (lastRound?.board_snapshot_after as BoardGrid | null) ?? null,
+    board:
+      (lastRound?.board_snapshot_after as BoardGrid | null) ??
+      (lastRound?.board_snapshot_before as BoardGrid | null) ??
+      null,
   };
 }
 
@@ -190,7 +192,7 @@ export default async function MatchSummaryPage({
   }));
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 p-6 text-white">
+    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 py-4 text-white sm:p-6">
       <FinalSummary
         currentPlayerId={session!.player.id}
         matchId={matchId}
@@ -200,6 +202,12 @@ export default async function MatchSummaryPage({
         scoreboard={scoreboard}
         wordHistory={wordHistory}
         board={summary.board}
+        frozenTiles={(summary.match.frozen_tiles as FrozenTileMap) ?? undefined}
+        isDualTimeout={
+          summary.match.ended_reason === "timeout" &&
+          (summary.match.player_a_timer_ms as number) <= 0 &&
+          (summary.match.player_b_timer_ms as number) <= 0
+        }
       />
     </main>
   );
