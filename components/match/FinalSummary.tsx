@@ -180,7 +180,7 @@ export function FinalSummary({
     >
       {/* Board rendered outside tab area so it stays visible on both tabs */}
       {board && (
-        <div className="mb-6" data-testid="final-summary-board">
+        <div className="mb-6 pointer-events-none" data-testid="final-summary-board">
           <BoardGridComponent
             grid={board}
             matchId={matchId}
