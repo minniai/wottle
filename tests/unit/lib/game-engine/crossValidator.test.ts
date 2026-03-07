@@ -228,12 +228,12 @@ describe("selectOptimalCombination", () => {
 
   // T032b: word A valid alone, but combining with B creates 3-letter cross-word violation
   test("T032b: word A valid alone, but word B tiles create cross-word violation for A", () => {
-    const localDict = new Set(["abc", "def"]);
+    const localDict = new Set(["abc", "de"]);
     const board4 = emptyBoard();
-    // Word A: "abc" horizontal at (0,3)-(2,3) — left edge for boundary
+    // Word A: "abc" horizontal at (0,3)-(2,3) — left edge
     placeH(board4, "abc", 0, 3);
-    // Word B: "def" vertical at (0,4)-(0,6)
-    placeV(board4, "def", 0, 4);
+    // Word B: "de" vertical at (0,4)-(0,5)
+    placeV(board4, "de", 0, 4);
     // Frozen tile at (0,2)="q" — adjacent above word A's tile (0,3)
     board4[2][0] = "q";
 
@@ -241,7 +241,7 @@ describe("selectOptimalCombination", () => {
       "0,2": { owner: "player_b" },
     };
 
-    const candidates4 = [hWord("abc", 0, 3), vWord("def", 0, 4)];
+    const candidates4 = [hWord("abc", 0, 3), vWord("de", 0, 4)];
 
     const result4 = selectOptimalCombination(
       candidates4,
@@ -251,13 +251,10 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // A alone: left edge boundary OK. Passes boundary check.
-    //   tile (0,3) cross-word = frozen "q"(0,2) + "a"(0,3) = "qa" (2 letters → ignored). Passes cross-word.
-    // B alone: top boundary at row 3 is "a" (not edge). Bottom boundary at row 7 is "z". Both invalid → rejected.
-    // Wait — B at (0,4)-(0,6) has top at (0,3)="a" and bottom at (0,7)="z".
-    //   "adef" ∉ dict, "defz" ∉ dict → both violated → B rejected.
-    // {A,B}: tile (0,3) cross = "q"(0,2) + "a"(0,3) + "d"(0,4) + "e"(0,5) + "f"(0,6) = "qadef" ∉ dict → fails.
-    // Only A survives.
+    // A alone: passes (no frozen adjacency on horizontal axis, "qa" cross-word < 3 chars → ignored)
+    // B alone: passes (no frozen adjacency on vertical axis)
+    // {A,B}: tile (0,3) cross = "q"(0,2) + "a"(0,3) + "d"(0,4) + "e"(0,5) = "qade" ∉ dict → rejected
+    // A scores higher (3 letters vs 2) → A selected
     expect(result4).toHaveLength(1);
     expect(result4[0].text).toBe("abc");
   });
@@ -323,7 +320,6 @@ describe("selectOptimalCombination", () => {
   // T035: Word with no adjacent scored tiles passes without checks
   test("T035: word with no adjacent frozen tiles passes cross-validation", () => {
     const board = emptyBoard();
-    // Place at left edge so boundary check passes (one boundary at edge)
     placeH(board, "ab", 0, 5);
 
     const candidates = [hWord("ab", 0, 5)];
@@ -681,18 +677,16 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(2);
   });
 
-  // T043: Rejects word when both same-axis boundaries extend into invalid sequences
-  test("T043: rejects vertical word when both ends extend into invalid sequences (OPA+T bug)", () => {
+  // T043: OPA+TÍS same-round — subset validation rejects pair via cross-word
+  test("T043: rejects subset {OPA, TÍS} when perpendicular cross-word OPAT is invalid", () => {
     const localDict = new Set(["opa", "tís"]);
     const board = emptyBoard();
-    // Column 1: M at row 1, O-P-A at rows 2-4, T at row 5
-    board[1][1] = "m";
+    // OPA vertical at col 1, rows 2-4
     placeV(board, "opa", 1, 2);
-    board[5][1] = "t";
-    // Also place TÍS horizontally at row 5 (irrelevant to check but matches bug scenario)
+    // TÍS horizontal at row 5, cols 1-3 (T at (1,5) is directly below OPA)
     placeH(board, "tís", 1, 5);
 
-    const candidates = [vWord("opa", 1, 2)];
+    const candidates = [vWord("opa", 1, 2), hWord("tís", 1, 5)];
     const frozenTiles: FrozenTileMap = {};
 
     const result = selectOptimalCombination(
@@ -703,23 +697,21 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // OPA at rows 2-4:
-    //   Top: M at row 1 → "mopa" ∉ dict → top boundary violated
-    //   Bottom: T at row 5 → "opat" ∉ dict → bottom boundary violated
-    // Both boundaries violated → OPA rejected
-    expect(result).toHaveLength(0);
+    // {OPA, TÍS}: tile (1,5) of TÍS — vertical cross-word = OPA + T = "opat" ∉ dict → rejected
+    // Only the higher-scoring single word survives
+    expect(result).toHaveLength(1);
   });
 
-  // T044: Allows word when one same-axis boundary is at board edge
-  test("T044: allows horizontal word at board edge even if other end extends into invalid sequence", () => {
-    const localDict = new Set(["gea"]);
+  // T044: Word alone passes when adjacent non-frozen tiles don't affect scoring
+  test("T044: allows word when adjacent tiles are not frozen (MÖLUN regression fix)", () => {
+    const localDict = new Set(["abc"]);
     const board = emptyBoard();
-    // GEA at row 8, cols 7-9 (right edge)
-    placeH(board, "gea", 7, 8);
-    // F at col 6 — FGEA ∉ dict
-    board[8][6] = "f";
+    // Place q-abc-x at row 5 (interior)
+    board[5][2] = "q";
+    placeH(board, "abc", 3, 5);
+    board[5][6] = "x";
 
-    const candidates = [hWord("gea", 7, 8)];
+    const candidates = [hWord("abc", 3, 5)];
     const frozenTiles: FrozenTileMap = {};
 
     const result = selectOptimalCombination(
@@ -730,37 +722,10 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // GEA at cols 7-9:
-    //   Left: F at col 6 → "fgea" ∉ dict → left boundary violated
-    //   Right: col 9 is board edge → right boundary OK
-    // Only one boundary violated → GEA accepted
+    // Adjacent Q and X are NOT frozen — only frozen sequences matter.
+    // ABC itself is valid → accepted (violatesSameAxisBoundary removed)
     expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("gea");
-  });
-
-  // T045: Allows word when one end extends into a valid dictionary word
-  test("T045: allows word when one boundary extends into valid word", () => {
-    const localDict = new Set(["ab", "abc", "xab"]);
-    const board = emptyBoard();
-    placeH(board, "xabc", 3, 3);
-
-    const candidates = [hWord("ab", 4, 3)];
-    const frozenTiles: FrozenTileMap = {};
-
-    const result = selectOptimalCombination(
-      candidates,
-      board,
-      frozenTiles,
-      localDict,
-      "player_a",
-    );
-
-    // AB at cols 4-5:
-    //   Left: X at col 3 → "xab" ∈ dict → left boundary OK
-    //   Right: C at col 6 → "abc" ∈ dict → right boundary OK
-    // Both boundaries OK → AB accepted
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("ab");
+    expect(result[0].text).toBe("abc");
   });
 
   // T047: Sandwich — word between two frozen runs, pairwise valid but full sequence invalid
@@ -824,8 +789,9 @@ describe("selectOptimalCombination", () => {
     expect(result[0].text).toBe("cd");
   });
 
-  // T046: Rejects word when both boundary extensions are invalid (interior word)
-  test("T046: rejects interior word when both boundary extensions are invalid", () => {
+  // T046: Interior word with non-frozen adjacent tiles — accepted (invariant only
+  // applies to frozen tile sequences, not arbitrary board tiles)
+  test("T046: allows interior word when adjacent tiles are not frozen", () => {
     const localDict = new Set(["abc"]);
     const board = emptyBoard();
     // Place q-abc-x at row 0
@@ -844,10 +810,9 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // ABC at cols 3-5:
-    //   Left: Q at col 2 → "qabc" ∉ dict → left boundary violated
-    //   Right: X at col 6 → "abcx" ∉ dict → right boundary violated
-    // Both boundaries violated → ABC rejected
-    expect(result).toHaveLength(0);
+    // Adjacent Q and X are NOT frozen — only frozen sequences matter.
+    // ABC itself is valid → accepted
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("abc");
   });
 });

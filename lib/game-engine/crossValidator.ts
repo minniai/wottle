@@ -137,8 +137,7 @@ export function selectOptimalCombination(
         board,
         frozenTileSet,
         dictionary,
-      ) &&
-      !violatesSameAxisBoundary(word, board, dictionary),
+      ),
   );
 
   if (viable.length === 0) return [];
@@ -182,7 +181,8 @@ export function selectOptimalCombination(
  *
  * Only triggers when the adjacent frozen run is itself a valid
  * dictionary word (i.e., it was scored on this axis). Frozen tiles
- * from perpendicular words that happen to be adjacent are ignored.
+ * from perpendicular words that happen to be adjacent are ignored
+ * because they were not scored on this axis.
  */
 function violatesFrozenAdjacencyOnSameAxis(
   word: BoardWord,
@@ -263,6 +263,7 @@ function violatesFrozenAdjacencyOnSameAxis(
     }
 
     // Only apply if the frozen run is itself a valid word
+    // (i.e., it was scored on this axis, not from a perpendicular word)
     const frozenText = chars
       .join("")
       .normalize("NFC")
@@ -292,76 +293,6 @@ function violatesFrozenAdjacencyOnSameAxis(
       !dictionary.has(combinedReversed)
     );
   }
-}
-
-/**
- * Check whether a candidate word has BOTH same-axis boundaries
- * extending into invalid (non-dictionary) sequences.
- *
- * A boundary is "OK" when it reaches the board edge or when the
- * 1-tile extension forms a valid dictionary word (either direction).
- * The word is rejected only when BOTH boundaries are violated.
- */
-export function violatesSameAxisBoundary(
-  word: BoardWord,
-  board: BoardGrid,
-  dictionary: Set<string>,
-): boolean {
-  const { minimumWordLength } = DEFAULT_GAME_CONFIG;
-  const isHorizontal =
-    word.direction === "right" || word.direction === "left";
-  const dx = isHorizontal ? 1 : 0;
-  const dy = isHorizontal ? 0 : 1;
-
-  const sortedTiles = [...word.tiles].sort((a, b) =>
-    isHorizontal ? a.x - b.x : a.y - b.y,
-  );
-  const first = sortedTiles[0];
-  const last = sortedTiles[sortedTiles.length - 1];
-
-  const beforeX = first.x - dx;
-  const beforeY = first.y - dy;
-  const afterX = last.x + dx;
-  const afterY = last.y + dy;
-
-  const beforeAtEdge =
-    beforeX < 0 || beforeX >= BOARD_SIZE ||
-    beforeY < 0 || beforeY >= BOARD_SIZE;
-  const afterAtEdge =
-    afterX < 0 || afterX >= BOARD_SIZE ||
-    afterY < 0 || afterY >= BOARD_SIZE;
-
-  // If either boundary is at the board edge, the word passes
-  if (beforeAtEdge || afterAtEdge) return false;
-
-  const wordChars = sortedTiles.map((t) => board[t.y][t.x]);
-
-  // Check before boundary: prepend the adjacent tile
-  const beforeChar = board[beforeY][beforeX];
-  const beforeSeq = [beforeChar, ...wordChars]
-    .join("")
-    .normalize("NFC")
-    .toLowerCase();
-  const beforeSeqRev = [...beforeSeq].reverse().join("");
-  const beforeOk =
-    beforeSeq.length < minimumWordLength ||
-    dictionary.has(beforeSeq) ||
-    dictionary.has(beforeSeqRev);
-
-  // Check after boundary: append the adjacent tile
-  const afterChar = board[afterY][afterX];
-  const afterSeq = [...wordChars, afterChar]
-    .join("")
-    .normalize("NFC")
-    .toLowerCase();
-  const afterSeqRev = [...afterSeq].reverse().join("");
-  const afterOk =
-    afterSeq.length < minimumWordLength ||
-    dictionary.has(afterSeq) ||
-    dictionary.has(afterSeqRev);
-
-  // Reject only when BOTH boundaries are violated
-  return !beforeOk && !afterOk;
 }
 
 /**
