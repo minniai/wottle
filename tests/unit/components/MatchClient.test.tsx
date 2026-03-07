@@ -371,6 +371,14 @@ const mockRoundSummary: RoundSummary = {
   moves: [],
 };
 
+const mockRoundSummaryWithMoves: RoundSummary = {
+  ...mockRoundSummary,
+  moves: [
+    { playerId: "player-1", from: { x: 2, y: 3 }, to: { x: 4, y: 3 } },
+    { playerId: "player-2", from: { x: 7, y: 1 }, to: { x: 7, y: 2 } },
+  ],
+};
+
 describe("MatchClient animation phase machine (US2)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -626,5 +634,75 @@ describe("MatchClient move lock (US1)", () => {
     // Board should be unlocked now — clicking a tile should select it
     act(() => { fireEvent.click(tiles[20]); });
     expect(tiles[20]).toHaveAttribute("aria-selected", "true");
+  });
+});
+
+// ─── MatchClient opponent reveal tests (US2) ────────────────────────────────
+
+describe("MatchClient opponent reveal (US2)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockMatchCallbacks.onSummary = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("T014: phases transition idle → revealing-opponent-move → highlighting → showing-summary", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    act(() => { mockMatchCallbacks.onSummary!(mockRoundSummaryWithMoves); });
+
+    // Phase 1: revealing-opponent-move — no scored highlights, no summary panel
+    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    const scoredDuringReveal = document.querySelectorAll(".board-grid__cell--scored");
+    expect(scoredDuringReveal).toHaveLength(0);
+
+    // Advance past reveal timer (1000ms) → transitions to "highlighting"
+    await act(async () => { await vi.advanceTimersByTimeAsync(1001); });
+
+    // Phase 2: highlighting — scored highlights ARE active, no summary panel
+    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    const scoredDuringHighlight = document.querySelectorAll(".board-grid__cell--scored");
+    expect(scoredDuringHighlight.length).toBeGreaterThan(0);
+
+    // Advance past highlight timer (800ms) → transitions to "showing-summary"
+    await act(async () => { await vi.advanceTimersByTimeAsync(801); });
+
+    // Phase 3: showing-summary — summary panel IS shown
+    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+  });
+
+  test("T015: opponent's swapped tiles get opponent-reveal class during reveal phase", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    act(() => { mockMatchCallbacks.onSummary!(mockRoundSummaryWithMoves); });
+
+    // Opponent is player-2, their move is (7,1)→(7,2)
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[1 * 10 + 7]).toHaveClass("board-grid__cell--opponent-reveal");
+    expect(tiles[2 * 10 + 7]).toHaveClass("board-grid__cell--opponent-reveal");
   });
 });

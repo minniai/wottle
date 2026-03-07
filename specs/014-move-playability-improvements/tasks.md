@@ -63,19 +63,19 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Write failing test: `AnimationPhase` includes `"revealing-opponent-move"` and transitions `idle → revealing-opponent-move → highlighting → showing-summary` in `tests/unit/components/MatchClient.test.tsx`
-- [ ] T015 [P] [US2] Write failing test: `opponentRevealTiles` populated from `RoundSummary.moves` filtered to opponent's move in `tests/unit/components/MatchClient.test.tsx`
-- [ ] T016 [P] [US2] Write failing test: tile with opponent-reveal class renders with `.board-grid__cell--opponent-reveal` in `tests/unit/components/BoardGrid.test.tsx`
+- [x] T014 [P] [US2] Write failing test: `AnimationPhase` includes `"revealing-opponent-move"` and transitions `idle → revealing-opponent-move → highlighting → showing-summary` in `tests/unit/components/MatchClient.test.tsx`
+- [x] T015 [P] [US2] Write failing test: `opponentRevealTiles` populated from `RoundSummary.moves` filtered to opponent's move in `tests/unit/components/MatchClient.test.tsx`
+- [x] T016 [P] [US2] Write failing test: tile with opponent-reveal class renders with `.board-grid__cell--opponent-reveal` in `tests/unit/components/BoardGrid.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T017 [P] [US2] Add `@keyframes opponent-reveal-fade` (orange background → transparent, 1s ease-out) and `.board-grid__cell--opponent-reveal` class in `app/styles/board.css` — include `prefers-reduced-motion` bypass
-- [ ] T018 [US2] Extend `AnimationPhase` type to include `"revealing-opponent-move"` in `components/match/MatchClient.tsx`
-- [ ] T019 [US2] Add `opponentRevealTiles: [Coordinate, Coordinate] | null` state to `MatchClient` in `components/match/MatchClient.tsx`
-- [ ] T020 [US2] Update `onSummary` callback in `MatchClient`: extract opponent's move from `summary.moves`, set `opponentRevealTiles`, set phase to `"revealing-opponent-move"`, after ~1000ms transition to `"highlighting"` phase in `components/match/MatchClient.tsx`
-- [ ] T021 [US2] Add `opponentRevealTiles?: [Coordinate, Coordinate] | null` prop to `BoardGrid` — when tile matches, apply `.board-grid__cell--opponent-reveal` class in `components/game/BoardGrid.tsx`
-- [ ] T022 [US2] Pass `opponentRevealTiles` from `MatchClient` to `BoardGrid` in `components/match/MatchClient.tsx`
-- [ ] T023 [US2] Clear `moveLocked`, `lockedSwapTiles`, and `opponentRevealTiles` on transition from `"revealing-opponent-move"` to `"highlighting"` in `components/match/MatchClient.tsx`
+- [x] T017 [P] [US2] Add `@keyframes opponent-reveal-fade` (orange background → transparent, 1s ease-out) and `.board-grid__cell--opponent-reveal` class in `app/styles/board.css` — include `prefers-reduced-motion` bypass
+- [x] T018 [US2] Extend `AnimationPhase` type to include `"revealing-opponent-move"` in `components/match/MatchClient.tsx`
+- [x] T019 [US2] Add `opponentRevealTiles: [Coordinate, Coordinate] | null` state to `MatchClient` in `components/match/MatchClient.tsx`
+- [x] T020 [US2] Update `onSummary` callback in `MatchClient`: extract opponent's move from `summary.moves`, set `opponentRevealTiles`, set phase to `"revealing-opponent-move"`, after ~1000ms transition to `"highlighting"` phase in `components/match/MatchClient.tsx`
+- [x] T021 [US2] Add `opponentRevealTiles?: [Coordinate, Coordinate] | null` prop to `BoardGrid` — when tile matches, apply `.board-grid__cell--opponent-reveal` class in `components/game/BoardGrid.tsx`
+- [x] T022 [US2] Pass `opponentRevealTiles` from `MatchClient` to `BoardGrid` in `components/match/MatchClient.tsx`
+- [x] T023 [US2] Clear `moveLocked`, `lockedSwapTiles`, and `opponentRevealTiles` on transition from `"revealing-opponent-move"` to `"highlighting"` in `components/match/MatchClient.tsx`
 
 **Checkpoint**: Round completion shows opponent's move first (orange fade ~1s), then scored-tile-highlight (~700ms), then summary. FR-005 satisfied.
 

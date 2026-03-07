@@ -125,6 +125,27 @@
     inset 0 -4px 12px rgba(15, 23, 42, 0.35);
 }
 
+/* Opponent move reveal: orange flash with fade-out on round completion (US2) */
+.board-grid__cell--opponent-reveal {
+  animation: opponent-reveal-fade 1s ease-out forwards;
+}
+
+@keyframes opponent-reveal-fade {
+  0% {
+    background: rgba(251, 146, 60, 0.7);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-grid__cell--opponent-reveal {
+    animation: none;
+    background: rgba(251, 146, 60, 0.7);
+  }
+}
+
 /* Move lock: orange highlight on swapped tiles until next round (US1) */
 .board-grid__cell--locked {
   background: rgba(251, 146, 60, 0.7) !important;

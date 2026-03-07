@@ -475,6 +475,20 @@ describe("BoardGrid move lock (US1)", () => {
   });
 });
 
+describe("BoardGrid opponent reveal (US2)", () => {
+  test("T016: tiles matching opponentRevealTiles render with board-grid__cell--opponent-reveal class", () => {
+    const grid = createGrid();
+    const opponentRevealTiles: [Coordinate, Coordinate] = [{ x: 7, y: 1 }, { x: 7, y: 2 }];
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" opponentRevealTiles={opponentRevealTiles} />,
+    );
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[1 * BOARD_SIZE + 7]).toHaveClass("board-grid__cell--opponent-reveal");
+    expect(tiles[2 * BOARD_SIZE + 7]).toHaveClass("board-grid__cell--opponent-reveal");
+    expect(tiles[0]).not.toHaveClass("board-grid__cell--opponent-reveal");
+  });
+});
+
 describe("BoardGrid component", () => {
   test(`renders a ${BOARD_SIZE}x${BOARD_SIZE} grid with accessible roles`, () => {
     const grid = createGrid();

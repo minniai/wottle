@@ -44,6 +44,8 @@ interface BoardGridProps {
   disabled?: boolean;
   /** Coordinates of the two tiles involved in the locked swap — rendered with orange highlight. */
   lockedTiles?: [Coordinate, Coordinate] | null;
+  /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
+  opponentRevealTiles?: [Coordinate, Coordinate] | null;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -146,6 +148,7 @@ export function BoardGrid({
   persistentHighlight = false,
   disabled = false,
   lockedTiles = null,
+  opponentRevealTiles = null,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps) {
@@ -166,6 +169,7 @@ export function BoardGrid({
       persistentHighlight={persistentHighlight}
       disabled={disabled}
       lockedTiles={lockedTiles}
+      opponentRevealTiles={opponentRevealTiles}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
     />
@@ -184,6 +188,7 @@ function BoardGridActive({
   persistentHighlight = false,
   disabled = false,
   lockedTiles = null,
+  opponentRevealTiles = null,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps & { grid: BoardGridType }) {
@@ -490,6 +495,10 @@ function BoardGridActive({
                 lockedTiles !== null &&
                 ((lockedTiles[0].x === colIndex && lockedTiles[0].y === rowIndex) ||
                   (lockedTiles[1].x === colIndex && lockedTiles[1].y === rowIndex));
+              const isOpponentReveal =
+                opponentRevealTiles !== null &&
+                ((opponentRevealTiles[0].x === colIndex && opponentRevealTiles[0].y === rowIndex) ||
+                  (opponentRevealTiles[1].x === colIndex && opponentRevealTiles[1].y === rowIndex));
               const isInvalid =
                 invalidTiles !== null &&
                 ((invalidTiles[0].x === colIndex && invalidTiles[0].y === rowIndex) ||
@@ -522,7 +531,7 @@ function BoardGridActive({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
+                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}
