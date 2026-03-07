@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { aggregateRoundSummary, calculateWordScore } from "@/lib/scoring/roundSummary";
-import type { WordScore } from "@/lib/types/match";
+import type { WordScore, RoundMove } from "@/lib/types/match";
 
 describe("roundSummary scoring utilities", () => {
   it("calculates letter and bonus points for a word", () => {
@@ -138,5 +138,24 @@ describe("roundSummary scoring utilities", () => {
 
     expect(summary.deltas).toEqual({ playerA: 27, playerB: 0 });
     expect(summary.totals).toEqual({ playerA: 27, playerB: 30 });
+  });
+
+  it("includes moves in aggregated round summary", () => {
+    const moves: RoundMove[] = [
+      { playerId: "player-a", from: { x: 2, y: 3 }, to: { x: 4, y: 3 } },
+      { playerId: "player-b", from: { x: 7, y: 1 }, to: { x: 7, y: 2 } },
+    ];
+
+    const summary = aggregateRoundSummary(
+      "match-1",
+      1,
+      [],
+      { playerA: 0, playerB: 0 },
+      "player-a",
+      "player-b",
+      moves,
+    );
+
+    expect(summary.moves).toEqual(moves);
   });
 });
