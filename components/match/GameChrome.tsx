@@ -64,6 +64,15 @@ export function GameChrome({
   const seconds = displaySeconds % 60;
   const timerDisplay = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
+  const timerStatus: "expired" | "paused" | "running" =
+    displaySeconds <= 0 ? "expired" : hasSubmitted ? "paused" : "running";
+
+  const timerBgClass = {
+    running: "bg-emerald-600/80",
+    paused: "bg-amber-500/80",
+    expired: "bg-red-600/80",
+  }[timerStatus];
+
   return (
     <div
       className="flex w-full items-center justify-between rounded-lg bg-slate-800/80 px-4 py-2"
@@ -88,16 +97,11 @@ export function GameChrome({
 
       <div className="flex items-center gap-2">
         <span
-          className={`font-mono text-lg ${
-            !hasSubmitted ? "text-emerald-400" : "text-slate-400"
-          }`}
+          className={`rounded-lg px-3 py-2 font-mono text-lg text-white ${timerBgClass}`}
+          data-testid="timer-panel"
         >
           {timerDisplay}
         </span>
-
-        {isPaused && (
-          <span className="text-xs text-yellow-400">Paused</span>
-        )}
 
         {moveCounter != null && (
           <span

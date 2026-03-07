@@ -35,20 +35,20 @@ describe("GameChrome", () => {
     expect(screen.getByTestId("round-indicator")).toHaveTextContent("Round 5");
   });
 
-  test("timer text is green when hasSubmitted is false", () => {
+  test("timer panel has green background when running", () => {
     render(<GameChrome {...baseProps} hasSubmitted={false} />);
 
-    const timerEl = screen.getByText("3:00");
-    expect(timerEl).toHaveClass("text-emerald-400");
-    expect(timerEl).not.toHaveClass("text-slate-400");
+    const timerPanel = screen.getByTestId("timer-panel");
+    expect(timerPanel).toHaveClass("bg-emerald-600/80");
+    expect(timerPanel).toHaveClass("text-white");
   });
 
-  test("timer text is neutral when hasSubmitted is true", () => {
+  test("timer panel has amber background when paused", () => {
     render(<GameChrome {...baseProps} hasSubmitted={true} />);
 
-    const timerEl = screen.getByText("3:00");
-    expect(timerEl).toHaveClass("text-slate-400");
-    expect(timerEl).not.toHaveClass("text-emerald-400");
+    const timerPanel = screen.getByTestId("timer-panel");
+    expect(timerPanel).toHaveClass("bg-amber-500/80");
+    expect(timerPanel).toHaveClass("text-white");
   });
 
   test("score displays with playerColor accent", () => {
@@ -72,6 +72,44 @@ describe("GameChrome", () => {
       "data-position",
       "player",
     );
+  });
+
+  describe("timer panel background colors", () => {
+    test("timer container has green background when running (not submitted)", () => {
+      render(
+        <GameChrome
+          {...baseProps}
+          hasSubmitted={false}
+          timerSeconds={180}
+        />,
+      );
+      const timerPanel = screen.getByTestId("timer-panel");
+      expect(timerPanel).toHaveClass("bg-emerald-600/80");
+    });
+
+    test("timer container has amber background when paused (hasSubmitted=true)", () => {
+      render(
+        <GameChrome
+          {...baseProps}
+          hasSubmitted={true}
+          timerSeconds={180}
+        />,
+      );
+      const timerPanel = screen.getByTestId("timer-panel");
+      expect(timerPanel).toHaveClass("bg-amber-500/80");
+    });
+
+    test("timer container has red background when timer expired (timerSeconds=0)", () => {
+      render(
+        <GameChrome
+          {...baseProps}
+          hasSubmitted={false}
+          timerSeconds={0}
+        />,
+      );
+      const timerPanel = screen.getByTestId("timer-panel");
+      expect(timerPanel).toHaveClass("bg-red-600/80");
+    });
   });
 
   describe("ScoreDeltaPopup integration", () => {
