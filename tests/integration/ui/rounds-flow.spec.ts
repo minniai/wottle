@@ -184,7 +184,7 @@ test.describe("Round flow", () => {
 
           // Wait for next round to start
           await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(
-            new RegExp(`round ${round + 1}`, "i"),
+            new RegExp(`r${round + 1}`, "i"),
             { timeout: 5_000 }
           );
         }

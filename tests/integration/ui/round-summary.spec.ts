@@ -125,7 +125,7 @@ test.describe("Round summary panel", () => {
       await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
 
       // Verify round number incremented
-      await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(/round 2/i, {
+      await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(/r2/i, {
         timeout: 5_000,
       });
     } finally {

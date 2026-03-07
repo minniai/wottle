@@ -117,7 +117,7 @@ test.describe("Final summary recap", () => {
           await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
           await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
           await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(
-            new RegExp(`round ${round + 1}`, "i"),
+            new RegExp(`r${round + 1}`, "i"),
             { timeout: 5_000 }
           );
         }

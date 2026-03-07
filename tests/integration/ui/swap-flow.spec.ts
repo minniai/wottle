@@ -92,7 +92,7 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
 
       // Dismiss summary to resume play
       await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
-      await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(/round 2/i, {
+      await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(/r2/i, {
         timeout: 10_000,
       });
 
