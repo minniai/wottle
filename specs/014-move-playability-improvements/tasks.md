@@ -187,9 +187,9 @@
 
 **Purpose**: Verification across all stories
 
-- [ ] T044 Run full test suite (`pnpm test`) — all existing + new tests pass
-- [ ] T045 Run `pnpm lint && pnpm typecheck` — zero warnings, zero errors
-- [ ] T046 Verify `prefers-reduced-motion` handling for new animations (opponent-reveal-fade, locked tile orange) in `app/styles/board.css`
+- [x] T044 Run full test suite (`pnpm test`) — all existing + new tests pass
+- [x] T045 Run `pnpm lint && pnpm typecheck` — zero warnings, zero errors
+- [x] T046 Verify `prefers-reduced-motion` handling for new animations (opponent-reveal-fade, locked tile orange) in `app/styles/board.css`
 - [ ] T047 Manual playtest verification: play a full 2-player game and confirm all 7 improvements work together
 
 ---
