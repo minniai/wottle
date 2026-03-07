@@ -19,6 +19,7 @@ import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
 import { resignMatch } from "@/app/actions/match/resignMatch";
+import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
 import { MatchShell } from "./MatchShell";
 
 
@@ -366,6 +367,19 @@ export function MatchClient({
   const dualTimeoutDetected =
     matchState.timers.playerA.remainingMs <= 0 &&
     matchState.timers.playerB.remainingMs <= 0;
+
+  // Trigger server-side timeout check when dual timeout detected
+  const timeoutCheckFiredRef = useRef(false);
+  useEffect(() => {
+    if (
+      dualTimeoutDetected &&
+      matchState.state !== "completed" &&
+      !timeoutCheckFiredRef.current
+    ) {
+      timeoutCheckFiredRef.current = true;
+      triggerTimeoutCheck(matchId).catch(() => {});
+    }
+  }, [dualTimeoutDetected, matchState.state, matchId]);
 
   const handleSummaryDismiss = useCallback(() => {
     setSummary((prev) => {
