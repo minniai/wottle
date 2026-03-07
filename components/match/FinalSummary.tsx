@@ -195,6 +195,7 @@ export function FinalSummary({
             highlightPlayerColors={highlightPlayerColors}
             persistentHighlight
             disabled
+            showLockBanner={false}
           />
         </div>
       )}

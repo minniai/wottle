@@ -42,6 +42,8 @@ interface BoardGridProps {
   persistentHighlight?: boolean;
   /** When true, board ignores all tile clicks (move lock after swap submission). */
   disabled?: boolean;
+  /** When true, shows "Move submitted" banner. Defaults to value of `disabled`. */
+  showLockBanner?: boolean;
   /** Coordinates of the two tiles involved in the locked swap — rendered with orange highlight. */
   lockedTiles?: [Coordinate, Coordinate] | null;
   /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
@@ -147,6 +149,7 @@ export function BoardGrid({
   highlightPlayerColors = {},
   persistentHighlight = false,
   disabled = false,
+  showLockBanner,
   lockedTiles = null,
   opponentRevealTiles = null,
   onSwapComplete,
@@ -168,6 +171,7 @@ export function BoardGrid({
       highlightPlayerColors={highlightPlayerColors}
       persistentHighlight={persistentHighlight}
       disabled={disabled}
+      showLockBanner={showLockBanner}
       lockedTiles={lockedTiles}
       opponentRevealTiles={opponentRevealTiles}
       onSwapComplete={onSwapComplete}
@@ -187,11 +191,13 @@ function BoardGridActive({
   highlightPlayerColors = {},
   persistentHighlight = false,
   disabled = false,
+  showLockBanner: showLockBannerProp,
   lockedTiles = null,
   opponentRevealTiles = null,
   onSwapComplete,
   onSwapError,
 }: BoardGridProps & { grid: BoardGridType }) {
+  const showLockBanner = showLockBannerProp ?? disabled;
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -482,7 +488,7 @@ function BoardGridActive({
         data-submitting={isSubmitting ? "true" : undefined}
         data-animating={isAnimating ? "true" : undefined}
       >
-        {disabled && (
+        {showLockBanner && (
           <div
             className="board-grid__lock-banner"
             aria-live="polite"
