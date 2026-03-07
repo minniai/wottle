@@ -76,8 +76,7 @@ async function fetchMatchSummary(matchId: string) {
   const { data: wordEntries } = await supabase
     .from("word_score_entries")
     .select("round_id,player_id,word,total_points,length,letters_points,bonus_points,tiles,is_duplicate")
-    .eq("match_id", matchId)
-    .order("created_at", { ascending: true });
+    .eq("match_id", matchId);
 
   const { data: topWordEntries } = await supabase
     .from("word_score_entries")
