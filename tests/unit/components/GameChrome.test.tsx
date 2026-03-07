@@ -25,30 +25,30 @@ describe("GameChrome", () => {
 
   test("renders round indicator for player position", () => {
     render(<GameChrome {...baseProps} moveCounter={5} />);
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("Round 5");
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent("R5");
   });
 
   test("renders round indicator for opponent position", () => {
     render(
       <GameChrome {...baseProps} position="opponent" moveCounter={5} />,
     );
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("Round 5");
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent("R5");
   });
 
-  test("timer panel has green background when running", () => {
+  test("chrome bar has green background when running", () => {
     render(<GameChrome {...baseProps} hasSubmitted={false} />);
 
-    const timerPanel = screen.getByTestId("timer-panel");
-    expect(timerPanel).toHaveClass("bg-emerald-600/80");
-    expect(timerPanel).toHaveClass("text-white");
+    const chrome = screen.getByTestId("game-chrome-player");
+    expect(chrome).toHaveClass("bg-emerald-600");
+    expect(chrome).toHaveAttribute("data-timer-status", "running");
   });
 
-  test("timer panel has amber background when paused", () => {
+  test("chrome bar has amber background when paused", () => {
     render(<GameChrome {...baseProps} hasSubmitted={true} />);
 
-    const timerPanel = screen.getByTestId("timer-panel");
-    expect(timerPanel).toHaveClass("bg-amber-500/80");
-    expect(timerPanel).toHaveClass("text-white");
+    const chrome = screen.getByTestId("game-chrome-player");
+    expect(chrome).toHaveClass("bg-amber-500");
+    expect(chrome).toHaveAttribute("data-timer-status", "paused");
   });
 
   test("score displays with playerColor accent", () => {
@@ -74,8 +74,8 @@ describe("GameChrome", () => {
     );
   });
 
-  describe("timer panel background colors", () => {
-    test("timer container has green background when running (not submitted)", () => {
+  describe("chrome bar background colors by timer status", () => {
+    test("green background when running (not submitted)", () => {
       render(
         <GameChrome
           {...baseProps}
@@ -83,11 +83,12 @@ describe("GameChrome", () => {
           timerSeconds={180}
         />,
       );
-      const timerPanel = screen.getByTestId("timer-panel");
-      expect(timerPanel).toHaveClass("bg-emerald-600/80");
+      const chrome = screen.getByTestId("game-chrome-player");
+      expect(chrome).toHaveClass("bg-emerald-600");
+      expect(chrome).toHaveAttribute("data-timer-status", "running");
     });
 
-    test("timer container has amber background when paused (hasSubmitted=true)", () => {
+    test("amber background when paused (hasSubmitted=true)", () => {
       render(
         <GameChrome
           {...baseProps}
@@ -95,11 +96,12 @@ describe("GameChrome", () => {
           timerSeconds={180}
         />,
       );
-      const timerPanel = screen.getByTestId("timer-panel");
-      expect(timerPanel).toHaveClass("bg-amber-500/80");
+      const chrome = screen.getByTestId("game-chrome-player");
+      expect(chrome).toHaveClass("bg-amber-500");
+      expect(chrome).toHaveAttribute("data-timer-status", "paused");
     });
 
-    test("timer container has red background when timer expired (timerSeconds=0)", () => {
+    test("red background when timer expired (timerSeconds=0)", () => {
       render(
         <GameChrome
           {...baseProps}
@@ -107,8 +109,9 @@ describe("GameChrome", () => {
           timerSeconds={0}
         />,
       );
-      const timerPanel = screen.getByTestId("timer-panel");
-      expect(timerPanel).toHaveClass("bg-red-600/80");
+      const chrome = screen.getByTestId("game-chrome-player");
+      expect(chrome).toHaveClass("bg-red-600");
+      expect(chrome).toHaveAttribute("data-timer-status", "expired");
     });
   });
 

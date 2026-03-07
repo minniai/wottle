@@ -192,7 +192,7 @@ export default async function MatchSummaryPage({
   }));
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 p-6 text-white">
+    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 py-4 text-white sm:p-6">
       <FinalSummary
         currentPlayerId={session!.player.id}
         matchId={matchId}

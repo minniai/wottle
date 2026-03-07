@@ -181,7 +181,7 @@ export function FinalSummary({
 
   return (
     <section
-      className="w-full rounded-3xl border border-white/10 bg-slate-950/70 p-8 shadow-2xl shadow-slate-950/60"
+      className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-slate-950/60 sm:p-8"
       data-testid="final-summary-view"
     >
       {/* Board rendered outside tab area so it stays visible on both tabs */}
