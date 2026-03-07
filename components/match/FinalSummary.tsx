@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
-import type { MatchEndedReason, TopWord } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, TopWord } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 import { BoardGrid as BoardGridComponent } from "@/components/game/BoardGrid";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
@@ -54,6 +54,8 @@ export interface FinalSummaryProps {
   scoreboard: ScoreboardRow[];
   wordHistory: WordHistoryRow[];
   board: BoardGrid | null;
+  /** Frozen tile map for player-colored overlays on the final board. */
+  frozenTiles?: FrozenTileMap;
 }
 
 function formatDuration(ms: number) {
@@ -108,6 +110,7 @@ export function FinalSummary({
   scoreboard,
   wordHistory,
   board,
+  frozenTiles,
 }: FinalSummaryProps) {
   const router = useRouter();
   const [isRematching, startRematch] = useTransition();
@@ -185,6 +188,7 @@ export function FinalSummary({
             grid={board}
             matchId={matchId}
             className="mx-auto"
+            frozenTiles={frozenTiles}
             highlightPlayerColors={highlightPlayerColors}
             persistentHighlight
           />

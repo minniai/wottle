@@ -200,6 +200,7 @@ export default async function MatchSummaryPage({
         scoreboard={scoreboard}
         wordHistory={wordHistory}
         board={summary.board}
+        frozenTiles={(summary.match.frozen_tiles as FrozenTileMap) ?? undefined}
       />
     </main>
   );
