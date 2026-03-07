@@ -201,6 +201,11 @@ export default async function MatchSummaryPage({
         wordHistory={wordHistory}
         board={summary.board}
         frozenTiles={(summary.match.frozen_tiles as FrozenTileMap) ?? undefined}
+        isDualTimeout={
+          summary.match.ended_reason === "timeout" &&
+          (summary.match.player_a_timer_ms as number) <= 0 &&
+          (summary.match.player_b_timer_ms as number) <= 0
+        }
       />
     </main>
   );

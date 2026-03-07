@@ -706,3 +706,31 @@ describe("MatchClient opponent reveal (US2)", () => {
     expect(tiles[2 * 10 + 7]).toHaveClass("board-grid__cell--opponent-reveal");
   });
 });
+
+// ─── MatchClient dual timeout tests (US4) ──────────────────────────────────
+
+describe("MatchClient dual timeout (US4)", () => {
+  test("T030: displays dual-timeout indicator when both timers are at zero", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    const dualTimeoutState = createMatchState({
+      timers: {
+        playerA: { playerId: "player-1", remainingMs: 0, status: "expired" },
+        playerB: { playerId: "player-2", remainingMs: 0, status: "expired" },
+      },
+    });
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={dualTimeoutState}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+        />,
+      );
+    });
+
+    expect(screen.getByTestId("dual-timeout-overlay")).toBeInTheDocument();
+    expect(screen.getByText(/both players timed out/i)).toBeInTheDocument();
+  });
+});

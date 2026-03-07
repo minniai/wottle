@@ -362,6 +362,11 @@ export function MatchClient({
     setLockedSwapTiles(null);
   }, [matchState.currentRound]);
 
+  // Dual timeout detection (US4): both players' timers at zero
+  const dualTimeoutDetected =
+    matchState.timers.playerA.remainingMs <= 0 &&
+    matchState.timers.playerB.remainingMs <= 0;
+
   const handleSummaryDismiss = useCallback(() => {
     setSummary((prev) => {
       if (prev) {
@@ -513,6 +518,15 @@ export function MatchClient({
           data-testid="polling-fallback-banner"
         >
           Realtime connection lost. Falling back to polling updates.
+        </div>
+      )}
+
+      {dualTimeoutDetected && matchState.state !== "completed" && (
+        <div
+          className="mt-4 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-sm font-semibold text-red-200"
+          data-testid="dual-timeout-overlay"
+        >
+          Both players timed out
         </div>
       )}
 

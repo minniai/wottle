@@ -56,6 +56,8 @@ export interface FinalSummaryProps {
   board: BoardGrid | null;
   /** Frozen tile map for player-colored overlays on the final board. */
   frozenTiles?: FrozenTileMap;
+  /** True when both players' timers expired (dual timeout). */
+  isDualTimeout?: boolean;
 }
 
 function formatDuration(ms: number) {
@@ -111,6 +113,7 @@ export function FinalSummary({
   wordHistory,
   board,
   frozenTiles,
+  isDualTimeout = false,
 }: FinalSummaryProps) {
   const router = useRouter();
   const [isRematching, startRematch] = useTransition();
@@ -246,7 +249,7 @@ export function FinalSummary({
           className="text-white/70"
           data-testid="final-summary-ended-reason"
         >
-          {reasonLabel(endedReason)}
+          {isDualTimeout ? "Both players timed out" : reasonLabel(endedReason)}
         </p>
       </header>
 

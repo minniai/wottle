@@ -113,13 +113,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T030 [US4] Write failing test: when both timer states show `remainingMs <= 0`, MatchClient displays dual-timeout indicator in `tests/unit/components/MatchClient.test.tsx`
+- [x] T030 [US4] Write failing test: when both timer states show `remainingMs <= 0`, MatchClient displays dual-timeout indicator in `tests/unit/components/MatchClient.test.tsx`
 
 ### Implementation for User Story 4
 
-- [ ] T031 [US4] Add `useEffect` in `MatchClient` that detects when both `matchState.timers.playerA.remainingMs <= 0` AND `matchState.timers.playerB.remainingMs <= 0` — set a `dualTimeoutDetected` flag in `components/match/MatchClient.tsx`
-- [ ] T032 [US4] When `dualTimeoutDetected` is true, display "Both players timed out" overlay text; existing match completion logic (server broadcasts `state: "completed"`) handles navigation to summary in `components/match/MatchClient.tsx`
-- [ ] T033 [US4] Verify `FinalSummary` displays "Both players timed out" when `endedReason === "timeout"` and both timer values are zero in `components/match/FinalSummary.tsx` — add dual-timeout specific messaging if not already present
+- [x] T031 [US4] Add `useEffect` in `MatchClient` that detects when both `matchState.timers.playerA.remainingMs <= 0` AND `matchState.timers.playerB.remainingMs <= 0` — set a `dualTimeoutDetected` flag in `components/match/MatchClient.tsx`
+- [x] T032 [US4] When `dualTimeoutDetected` is true, display "Both players timed out" overlay text; existing match completion logic (server broadcasts `state: "completed"`) handles navigation to summary in `components/match/MatchClient.tsx`
+- [x] T033 [US4] Verify `FinalSummary` displays "Both players timed out" when `endedReason === "timeout"` and both timer values are zero in `components/match/FinalSummary.tsx` — add dual-timeout specific messaging if not already present
 
 **Checkpoint**: Dual timeout ends game immediately. FR-007, FR-008 satisfied.
 
