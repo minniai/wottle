@@ -35,11 +35,10 @@ describe("GameChrome", () => {
     expect(screen.getByTestId("round-indicator")).toHaveTextContent("R5");
   });
 
-  test("chrome bar has green background when running", () => {
+  test("chrome bar has default dark background when running", () => {
     render(<GameChrome {...baseProps} hasSubmitted={false} />);
 
     const chrome = screen.getByTestId("game-chrome-player");
-    expect(chrome).toHaveClass("bg-emerald-600");
     expect(chrome).toHaveAttribute("data-timer-status", "running");
   });
 
@@ -47,8 +46,8 @@ describe("GameChrome", () => {
     render(<GameChrome {...baseProps} hasSubmitted={true} />);
 
     const chrome = screen.getByTestId("game-chrome-player");
-    expect(chrome).toHaveClass("bg-amber-500");
     expect(chrome).toHaveAttribute("data-timer-status", "paused");
+    expect(chrome).toHaveStyle({ background: "#d97706" });
   });
 
   test("score displays with playerColor accent", () => {
@@ -75,7 +74,7 @@ describe("GameChrome", () => {
   });
 
   describe("chrome bar background colors by timer status", () => {
-    test("green background when running (not submitted)", () => {
+    test("default dark background when running (not submitted)", () => {
       render(
         <GameChrome
           {...baseProps}
@@ -84,7 +83,6 @@ describe("GameChrome", () => {
         />,
       );
       const chrome = screen.getByTestId("game-chrome-player");
-      expect(chrome).toHaveClass("bg-emerald-600");
       expect(chrome).toHaveAttribute("data-timer-status", "running");
     });
 
@@ -97,8 +95,8 @@ describe("GameChrome", () => {
         />,
       );
       const chrome = screen.getByTestId("game-chrome-player");
-      expect(chrome).toHaveClass("bg-amber-500");
       expect(chrome).toHaveAttribute("data-timer-status", "paused");
+      expect(chrome).toHaveStyle({ background: "#d97706" });
     });
 
     test("red background when timer expired (timerSeconds=0)", () => {
@@ -110,8 +108,8 @@ describe("GameChrome", () => {
         />,
       );
       const chrome = screen.getByTestId("game-chrome-player");
-      expect(chrome).toHaveClass("bg-red-600");
       expect(chrome).toHaveAttribute("data-timer-status", "expired");
+      expect(chrome).toHaveStyle({ background: "#dc2626" });
     });
   });
 
