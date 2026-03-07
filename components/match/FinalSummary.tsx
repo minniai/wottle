@@ -251,7 +251,19 @@ export function FinalSummary({
           <p className="text-sm uppercase tracking-wide text-emerald-200/80">
             Winner
           </p>
-          <p className="text-2xl font-semibold text-white">{winner.displayName}</p>
+          <p className="text-2xl font-semibold text-white">
+            {winner.displayName}
+          </p>
+          {endedReason === "forfeit" && (
+            <p
+              className="mt-1 text-sm text-white/60"
+              data-testid="final-summary-forfeit-label"
+            >
+              {winner.id === currentPlayerId
+                ? "Your opponent resigned"
+                : "You resigned"}
+            </p>
+          )}
         </div>
       ) : (
         <div className="mt-6 rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4">
