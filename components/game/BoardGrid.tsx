@@ -213,8 +213,15 @@ function BoardGridActive({
   }, [grid]);
 
   useEffect(() => {
-    setCurrentGrid(grid);
-  }, [grid]);
+    // Skip sync while board is move-locked — the optimistic swap in
+    // currentGrid must persist.  The Realtime broadcast during "collecting"
+    // carries board_snapshot_before (the pre-swap board) which would revert
+    // the visual swap.  When disabled flips back to false (round advances)
+    // the latest grid prop is applied.
+    if (!disabled) {
+      setCurrentGrid(grid);
+    }
+  }, [grid, disabled]);
 
   useEffect(() => {
     if (!scoredTileHighlights?.length) {
@@ -239,8 +246,12 @@ function BoardGridActive({
   const colCount = currentGrid[0]?.length ?? 0;
 
   const containerClass = useMemo(
-    () => (className ? `${BASE_CLASS} ${className}` : BASE_CLASS),
-    [className]
+    () => {
+      let cls = className ? `${BASE_CLASS} ${className}` : BASE_CLASS;
+      if (disabled) cls += " board-grid--locked";
+      return cls;
+    },
+    [className, disabled]
   );
 
   const handleSwap = useCallback(
@@ -465,11 +476,21 @@ function BoardGridActive({
         style={
           {
             "--board-size": boardSize,
+            position: "relative",
           } as CSSProperties
         }
         data-submitting={isSubmitting ? "true" : undefined}
         data-animating={isAnimating ? "true" : undefined}
       >
+        {disabled && (
+          <div
+            className="board-grid__lock-banner"
+            aria-live="polite"
+            data-testid="move-lock-banner"
+          >
+            Move submitted — waiting for opponent
+          </div>
+        )}
         {currentGrid.map((row, rowIndex) => (
           <div
             key={`row-${rowIndex}`}

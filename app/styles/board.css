@@ -146,15 +146,75 @@
   }
 }
 
+/* Move lock: entire board dims when player has submitted (US1) */
+.board-grid--locked .board-grid__cell {
+  cursor: not-allowed;
+  opacity: 0.45;
+  filter: saturate(0.3);
+  transition:
+    opacity 200ms ease,
+    filter 200ms ease,
+    transform 200ms ease-out;
+}
+
+.board-grid--locked .board-grid__cell:hover,
+.board-grid--locked .board-grid__cell:focus-within {
+  transform: none;
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -4px 12px rgba(15, 23, 42, 0.35);
+}
+
 /* Move lock: orange highlight on swapped tiles until next round (US1) */
 .board-grid__cell--locked {
   background: rgba(251, 146, 60, 0.7) !important;
   cursor: not-allowed;
+  opacity: 1 !important;
+  filter: none !important;
 }
 
 .board-grid__cell--locked:hover,
 .board-grid__cell--locked:focus-within {
   transform: none;
+}
+
+/* "Move submitted" banner overlaid on locked board */
+.board-grid__lock-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.75rem;
+  background: rgba(251, 146, 60, 0.85);
+  color: #fff;
+  font-size: clamp(0.75rem, 1vw + 0.3rem, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: lock-banner-in 300ms ease-out forwards;
+}
+
+@keyframes lock-banner-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-grid__lock-banner {
+    animation: none;
+  }
 }
 
 /* Frozen tile: overlay behind text, no hover lift, letter stays readable */
@@ -240,8 +300,8 @@
   position: absolute;
   bottom: 1px;
   right: 2px;
-  font-size: 0.45em;
-  opacity: 0.7;
+  font-size: 0.35em;
+  opacity: 0.5;
   line-height: 1;
   pointer-events: none;
 }
