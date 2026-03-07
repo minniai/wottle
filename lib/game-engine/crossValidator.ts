@@ -150,8 +150,8 @@ export function selectOptimalCombination(
       }
     }
 
-    // Step 3a: Skip subsets with same-axis tile overlaps
-    if (!hasNoSameAxisOverlap(subset)) continue;
+    // Step 3a: Skip subsets with same-axis overlap or adjacency
+    if (!hasNoSameAxisConflict(subset)) continue;
 
     // Step 3b: Verify mutual cross-validation within the subset
     if (isSubsetValid(subset, board, frozenTileSet, dictionary)) {
@@ -184,14 +184,44 @@ function wordsOverlapSameAxis(a: BoardWord, b: BoardWord): boolean {
 }
 
 /**
- * Check that no two words in the subset overlap along the same axis.
- * Same-axis overlapping words (e.g. "TOTAÐS" and its subword "TOTA")
- * are mutually exclusive — only one can be scored.
+ * True when two words on the same axis are physically contiguous
+ * (one ends where the other begins, with no gap between them).
+ *
+ * Standalone invariant: a scored word must end at an unscored tile or
+ * the board edge — it cannot continue into another scored word.
  */
-function hasNoSameAxisOverlap(subset: BoardWord[]): boolean {
+function wordsAdjacentOnSameAxis(a: BoardWord, b: BoardWord): boolean {
+  const aHoriz = a.direction === "right" || a.direction === "left";
+  const bHoriz = b.direction === "right" || b.direction === "left";
+  if (aHoriz !== bHoriz) return false;
+
+  if (aHoriz) {
+    if (a.tiles[0].y !== b.tiles[0].y) return false;
+    const aMinX = Math.min(...a.tiles.map((t) => t.x));
+    const aMaxX = Math.max(...a.tiles.map((t) => t.x));
+    const bMinX = Math.min(...b.tiles.map((t) => t.x));
+    const bMaxX = Math.max(...b.tiles.map((t) => t.x));
+    return aMaxX + 1 === bMinX || bMaxX + 1 === aMinX;
+  }
+
+  if (a.tiles[0].x !== b.tiles[0].x) return false;
+  const aMinY = Math.min(...a.tiles.map((t) => t.y));
+  const aMaxY = Math.max(...a.tiles.map((t) => t.y));
+  const bMinY = Math.min(...b.tiles.map((t) => t.y));
+  const bMaxY = Math.max(...b.tiles.map((t) => t.y));
+  return aMaxY + 1 === bMinY || bMaxY + 1 === aMinY;
+}
+
+/**
+ * Check that no two words in the subset overlap or are adjacent along
+ * the same axis. Adjacent words violate the standalone invariant: each
+ * scored word must end at an unscored tile or the board edge.
+ */
+function hasNoSameAxisConflict(subset: BoardWord[]): boolean {
   for (let i = 0; i < subset.length; i++) {
     for (let j = i + 1; j < subset.length; j++) {
       if (wordsOverlapSameAxis(subset[i], subset[j])) return false;
+      if (wordsAdjacentOnSameAxis(subset[i], subset[j])) return false;
     }
   }
   return true;

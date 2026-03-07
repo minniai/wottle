@@ -31,6 +31,26 @@ function hWord(
   };
 }
 
+/** Build a horizontal-left BoardWord for testing (read right-to-left). */
+function hWordLeft(
+  text: string,
+  startX: number,
+  startY: number,
+): BoardWord {
+  const tiles = Array.from({ length: text.length }, (_, i) => ({
+    x: startX - i,
+    y: startY,
+  }));
+  return {
+    text: text.toLowerCase(),
+    displayText: text,
+    direction: "left",
+    start: { x: startX, y: startY },
+    length: text.length,
+    tiles,
+  };
+}
+
 /** Build a vertical BoardWord for testing. */
 function vWord(
   text: string,
@@ -446,6 +466,97 @@ describe("selectOptimalCombination", () => {
     );
 
     expect(result).toHaveLength(2);
+  });
+
+  // T036: Adjacent same-direction words on same row — standalone invariant
+  test("T036: rejects adjacent same-direction words on same row — keeps higher-scoring", () => {
+    const board = emptyBoard();
+    placeH(board, "abcde", 0, 0);
+
+    // "abc" at (0,0)-(2,0), "de" at (3,0)-(4,0) — adjacent (col 2 borders col 3)
+    const candidates = [hWord("abc", 0, 0), hWord("de", 3, 0)];
+    const frozenTiles: FrozenTileMap = {};
+
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      dict,
+      "player_a",
+    );
+
+    // Adjacent words violate standalone invariant — only higher-scoring kept
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("abc");
+  });
+
+  // T037: Adjacent opposite-direction words (right + left) — Issue 2 repro
+  test("T037: rejects adjacent right+left words on same row (LÉT+ÆLA pattern)", () => {
+    const localDict = new Set(["abc", "fed"]);
+    const board = emptyBoard();
+    // "abc" right at (0,0)-(2,0), "fed" left at (5,0) reading f(5),e(4),d(3)
+    placeH(board, "abcdef", 0, 0);
+
+    const candidates = [
+      hWord("abc", 0, 0),         // right: tiles (0,0),(1,0),(2,0)
+      hWordLeft("fed", 5, 0),     // left: tiles (5,0),(4,0),(3,0)
+    ];
+    const frozenTiles: FrozenTileMap = {};
+
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // Adjacent: "abc" max_x=2, "fed" min_x=3 → contiguous
+    // Only one should be scored
+    expect(result).toHaveLength(1);
+  });
+
+  // T038: Non-adjacent words on same row should BOTH score
+  test("T038: scores both words when gap exists between them on same row", () => {
+    const board = emptyBoard();
+    placeH(board, "ab", 0, 0);
+    placeH(board, "cd", 4, 0); // gap at positions 2,3
+
+    const candidates = [hWord("ab", 0, 0), hWord("cd", 4, 0)];
+    const frozenTiles: FrozenTileMap = {};
+
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      dict,
+      "player_a",
+    );
+
+    // Gap of 2 tiles between them → not adjacent → both score
+    expect(result).toHaveLength(2);
+  });
+
+  // T039: Adjacent vertical words should not both score
+  test("T039: rejects adjacent vertical words on same column", () => {
+    const localDict = new Set(["abc", "de"]);
+    const board = emptyBoard();
+    placeV(board, "abcde", 0, 0);
+
+    const candidates = [vWord("abc", 0, 0), vWord("de", 0, 3)];
+    const frozenTiles: FrozenTileMap = {};
+
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // Adjacent: "abc" max_y=2, "de" min_y=3 → contiguous
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("abc");
   });
 
   // Additional: empty candidates returns empty result
