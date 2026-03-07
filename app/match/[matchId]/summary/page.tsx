@@ -67,7 +67,7 @@ async function fetchMatchSummary(matchId: string) {
 
   const { data: lastRound } = await supabase
     .from("rounds")
-    .select("board_snapshot_after")
+    .select("board_snapshot_after,board_snapshot_before")
     .eq("match_id", matchId)
     .order("round_number", { ascending: false })
     .limit(1)
@@ -102,7 +102,10 @@ async function fetchMatchSummary(matchId: string) {
     topWordEntries: topWordEntries ?? [],
     roundMap,
     finalScores,
-    board: (lastRound?.board_snapshot_after as BoardGrid | null) ?? null,
+    board:
+      (lastRound?.board_snapshot_after as BoardGrid | null) ??
+      (lastRound?.board_snapshot_before as BoardGrid | null) ??
+      null,
   };
 }
 
