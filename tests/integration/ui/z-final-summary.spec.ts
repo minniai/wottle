@@ -116,7 +116,7 @@ test.describe("Final summary recap", () => {
           const summaryPanel = pageA.getByTestId("round-summary-panel");
           await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
           await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
-          await expect(pageA.getByTestId("round-indicator")).toContainText(
+          await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(
             new RegExp(`round ${round + 1}`, "i"),
             { timeout: 5_000 }
           );
