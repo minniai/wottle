@@ -228,20 +228,20 @@ describe("selectOptimalCombination", () => {
 
   // T032b: word A valid alone, but combining with B creates 3-letter cross-word violation
   test("T032b: word A valid alone, but word B tiles create cross-word violation for A", () => {
-    const localDict = new Set(["abc", "def"]);
+    const localDict = new Set(["abc", "de"]);
     const board4 = emptyBoard();
-    // Word A: "abc" horizontal at (3,3)-(5,3)
-    placeH(board4, "abc", 3, 3);
-    // Word B: "def" vertical at (3,4)-(3,6)
-    placeV(board4, "def", 3, 4);
-    // Frozen tile at (3,2)="q" — adjacent above word A's tile (3,3)
-    board4[2][3] = "q";
+    // Word A: "abc" horizontal at (0,3)-(2,3) — left edge
+    placeH(board4, "abc", 0, 3);
+    // Word B: "de" vertical at (0,4)-(0,5)
+    placeV(board4, "de", 0, 4);
+    // Frozen tile at (0,2)="q" — adjacent above word A's tile (0,3)
+    board4[2][0] = "q";
 
     const frozenTiles4: FrozenTileMap = {
-      "3,2": { owner: "player_b" },
+      "0,2": { owner: "player_b" },
     };
 
-    const candidates4 = [hWord("abc", 3, 3), vWord("def", 3, 4)];
+    const candidates4 = [hWord("abc", 0, 3), vWord("de", 0, 4)];
 
     const result4 = selectOptimalCombination(
       candidates4,
@@ -251,12 +251,12 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // A alone: tile (3,3) cross-word = frozen "q"(3,2) + "a"(3,3) = "qa" (2 letters → ignored). Passes.
-    // B alone: no established perpendicular neighbors. Passes.
-    // {A,B}: tile (3,3) cross = "q"(3,2) + "a"(3,3) + "d"(3,4) + "e"(3,5) + "f"(3,6) = "qadef" ∉ dict → fails.
-    // System picks the higher-scoring single word.
+    // A alone: passes (no frozen adjacency on horizontal axis, "qa" cross-word < 3 chars → ignored)
+    // B alone: passes (no frozen adjacency on vertical axis)
+    // {A,B}: tile (0,3) cross = "q"(0,2) + "a"(0,3) + "d"(0,4) + "e"(0,5) = "qade" ∉ dict → rejected
+    // A scores higher (3 letters vs 2) → A selected
     expect(result4).toHaveLength(1);
-    expect(["abc", "def"]).toContain(result4[0].text);
+    expect(result4[0].text).toBe("abc");
   });
 
   // T033: Prefers superword over subword when both pass cross-validation
@@ -320,9 +320,9 @@ describe("selectOptimalCombination", () => {
   // T035: Word with no adjacent scored tiles passes without checks
   test("T035: word with no adjacent frozen tiles passes cross-validation", () => {
     const board = emptyBoard();
-    placeH(board, "ab", 5, 5);
+    placeH(board, "ab", 0, 5);
 
-    const candidates = [hWord("ab", 5, 5)];
+    const candidates = [hWord("ab", 0, 5)];
     const frozenTiles: FrozenTileMap = {};
 
     const result = selectOptimalCombination(
@@ -424,15 +424,15 @@ describe("selectOptimalCombination", () => {
   test("scores both perpendicular words that share a crossing tile", () => {
     const perpDict = new Set(["abc", "dae"]);
     const board = emptyBoard();
-    // "abc" horizontal at (3,3)-(5,3): a(3,3) b(4,3) c(5,3)
-    placeH(board, "abc", 3, 3);
-    // "dae" vertical at (3,2)-(3,4): d(3,2) a(3,3) e(3,4)
-    board[2][3] = "d";
-    board[4][3] = "e";
+    // "abc" horizontal at (0,1)-(2,1) — left edge
+    placeH(board, "abc", 0, 1);
+    // "dae" vertical at col 0, rows 0-2 — top edge, sharing "a" at (0,1)
+    board[0][0] = "d";
+    board[2][0] = "e";
 
     const candidates = [
-      hWord("abc", 3, 3),
-      vWord("dae", 3, 2),
+      hWord("abc", 0, 1),
+      vWord("dae", 0, 0),
     ];
     const frozenTiles: FrozenTileMap = {};
 
@@ -444,6 +444,7 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
+    // abc: left edge boundary OK. dae: top edge boundary OK.
     // Perpendicular words sharing one tile → both valid
     expect(result).toHaveLength(2);
   });
@@ -451,10 +452,10 @@ describe("selectOptimalCombination", () => {
   // Non-overlapping same-direction words should both be scored
   test("scores multiple same-direction words that don't overlap", () => {
     const board = emptyBoard();
-    placeH(board, "ab", 0, 0);
-    placeH(board, "cd", 5, 0); // same row, no overlap
+    placeH(board, "ab", 0, 0);  // left edge
+    placeH(board, "cd", 8, 0);  // right edge (cols 8-9)
 
-    const candidates = [hWord("ab", 0, 0), hWord("cd", 5, 0)];
+    const candidates = [hWord("ab", 0, 0), hWord("cd", 8, 0)];
     const frozenTiles: FrozenTileMap = {};
 
     const result = selectOptimalCombination(
@@ -519,10 +520,10 @@ describe("selectOptimalCombination", () => {
   // T038: Non-adjacent words on same row should BOTH score
   test("T038: scores both words when gap exists between them on same row", () => {
     const board = emptyBoard();
-    placeH(board, "ab", 0, 0);
-    placeH(board, "cd", 4, 0); // gap at positions 2,3
+    placeH(board, "ab", 0, 0);   // left edge
+    placeH(board, "cd", 8, 0);   // right edge (cols 8-9), gap at positions 2-7
 
-    const candidates = [hWord("ab", 0, 0), hWord("cd", 4, 0)];
+    const candidates = [hWord("ab", 0, 0), hWord("cd", 8, 0)];
     const frozenTiles: FrozenTileMap = {};
 
     const result = selectOptimalCombination(
@@ -533,7 +534,7 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // Gap of 2 tiles between them → not adjacent → both score
+    // Gap between them, both at edges → both score
     expect(result).toHaveLength(2);
   });
 
@@ -658,11 +659,11 @@ describe("selectOptimalCombination", () => {
   // Additional: multiple non-conflicting words all pass
   test("includes all words when none conflict with each other", () => {
     const board = emptyBoard();
-    // Two words far apart — no cross-word interaction
-    placeH(board, "ab", 0, 0);
-    placeH(board, "cd", 5, 5);
+    // Two words far apart, both at edges — no cross-word interaction
+    placeH(board, "ab", 0, 0);   // left+top edge
+    placeH(board, "cd", 8, 9);   // right+bottom edge
 
-    const candidates = [hWord("ab", 0, 0), hWord("cd", 5, 5)];
+    const candidates = [hWord("ab", 0, 0), hWord("cd", 8, 9)];
     const frozenTiles: FrozenTileMap = {};
 
     const result = selectOptimalCombination(
@@ -674,5 +675,144 @@ describe("selectOptimalCombination", () => {
     );
 
     expect(result).toHaveLength(2);
+  });
+
+  // T043: OPA+TÍS same-round — subset validation rejects pair via cross-word
+  test("T043: rejects subset {OPA, TÍS} when perpendicular cross-word OPAT is invalid", () => {
+    const localDict = new Set(["opa", "tís"]);
+    const board = emptyBoard();
+    // OPA vertical at col 1, rows 2-4
+    placeV(board, "opa", 1, 2);
+    // TÍS horizontal at row 5, cols 1-3 (T at (1,5) is directly below OPA)
+    placeH(board, "tís", 1, 5);
+
+    const candidates = [vWord("opa", 1, 2), hWord("tís", 1, 5)];
+    const frozenTiles: FrozenTileMap = {};
+
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // {OPA, TÍS}: tile (1,5) of TÍS — vertical cross-word = OPA + T = "opat" ∉ dict → rejected
+    // Only the higher-scoring single word survives
+    expect(result).toHaveLength(1);
+  });
+
+  // T044: Word alone passes when adjacent non-frozen tiles don't affect scoring
+  test("T044: allows word when adjacent tiles are not frozen (MÖLUN regression fix)", () => {
+    const localDict = new Set(["abc"]);
+    const board = emptyBoard();
+    // Place q-abc-x at row 5 (interior)
+    board[5][2] = "q";
+    placeH(board, "abc", 3, 5);
+    board[5][6] = "x";
+
+    const candidates = [hWord("abc", 3, 5)];
+    const frozenTiles: FrozenTileMap = {};
+
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // Adjacent Q and X are NOT frozen — only frozen sequences matter.
+    // ABC itself is valid → accepted (violatesSameAxisBoundary removed)
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("abc");
+  });
+
+  // T047: Sandwich — word between two frozen runs, pairwise valid but full sequence invalid
+  test("T047: rejects word sandwiched between frozen runs when full combined sequence is invalid", () => {
+    // "ab", "cd", "ef" are valid words; "abcd", "cdef", "bcd" are valid;
+    // but "abcdef" is NOT valid — the full frozen sequence would be invalid
+    const localDict = new Set(["ab", "cd", "ef", "abcd", "cdef", "bcd"]);
+    const board = emptyBoard();
+    placeH(board, "abcdef", 0, 0);
+
+    // Frozen "ab" at (0,0)-(1,0) from a prior round
+    // Frozen "ef" at (4,0)-(5,0) from a prior round
+    const frozenTiles: FrozenTileMap = {
+      "0,0": { owner: "player_a" },
+      "1,0": { owner: "player_a" },
+      "4,0": { owner: "player_b" },
+      "5,0": { owner: "player_b" },
+    };
+
+    // New word "cd" at (2,0)-(3,0) fills the gap
+    const candidates = [hWord("cd", 2, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // "cd" at cols 2-3:
+    //   Backward frozen: "ab" at cols 0-1 → "ab" ∈ dict → combined "abcd" ∈ dict ✓
+    //   Forward frozen: "ef" at cols 4-5 → "ef" ∈ dict → combined "cdef" ∈ dict ✓
+    //   BUT full sequence "abcdef" ∉ dict → sandwich violation → reject "cd"
+    expect(result).toHaveLength(0);
+  });
+
+  // T048: Sandwich — full combined sequence IS valid → word accepted
+  test("T048: allows sandwiched word when full combined sequence is valid", () => {
+    const localDict = new Set(["ab", "cd", "ef", "abcd", "cdef", "bcd", "abcdef"]);
+    const board = emptyBoard();
+    placeH(board, "abcdef", 0, 0);
+
+    const frozenTiles: FrozenTileMap = {
+      "0,0": { owner: "player_a" },
+      "1,0": { owner: "player_a" },
+      "4,0": { owner: "player_b" },
+      "5,0": { owner: "player_b" },
+    };
+
+    const candidates = [hWord("cd", 2, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // Full sequence "abcdef" ∈ dict → sandwich OK → "cd" accepted
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("cd");
+  });
+
+  // T046: Interior word with non-frozen adjacent tiles — accepted (invariant only
+  // applies to frozen tile sequences, not arbitrary board tiles)
+  test("T046: allows interior word when adjacent tiles are not frozen", () => {
+    const localDict = new Set(["abc"]);
+    const board = emptyBoard();
+    // Place q-abc-x at row 0
+    board[0][2] = "q";
+    placeH(board, "abc", 3, 0);
+    board[0][6] = "x";
+
+    const candidates = [hWord("abc", 3, 0)];
+    const frozenTiles: FrozenTileMap = {};
+
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // Adjacent Q and X are NOT frozen — only frozen sequences matter.
+    // ABC itself is valid → accepted
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("abc");
   });
 });
