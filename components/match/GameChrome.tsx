@@ -96,9 +96,9 @@ export function GameChrome({
         {moveCounter != null && (
           <span
             className="font-mono text-sm text-white/60"
-            data-testid="move-indicator"
+            data-testid="round-indicator"
           >
-            M{moveCounter}
+            Round {moveCounter}
           </span>
         )}
 
