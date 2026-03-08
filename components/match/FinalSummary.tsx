@@ -194,7 +194,6 @@ export function FinalSummary({
             frozenTiles={frozenTiles}
             highlightPlayerColors={highlightPlayerColors}
             persistentHighlight
-            disabled
           />
         </div>
       )}
