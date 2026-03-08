@@ -573,6 +573,7 @@ export function MatchClient({
             frozenTiles={matchState.frozenTiles ?? {}}
             playerSlot={playerSlot}
             disabled={moveLocked}
+            showLockBanner={moveLocked}
             lockedTiles={lockedSwapTiles}
             opponentRevealTiles={animationPhase === "revealing-opponent-move" ? opponentRevealTiles : null}
             scoredTileHighlights={
@@ -619,6 +620,7 @@ export function MatchClient({
             <RoundSummaryPanel
               summary={summary}
               currentPlayerId={currentPlayerId}
+              playerAId={playerAId}
               onDismiss={handleSummaryDismiss}
               autoDismissMs={summaryAutoDismissMs}
             />
