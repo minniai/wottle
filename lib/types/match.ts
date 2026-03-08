@@ -188,8 +188,12 @@ export interface AcceptedMove {
 
 export type FrozenTileOwner = "player_a" | "player_b";
 
+export type ScoredAxis = "horizontal" | "vertical";
+
 export interface FrozenTile {
   owner: FrozenTileOwner;
+  /** Which axis(es) this tile was scored on. Absent for legacy data. */
+  scoredAxes?: ScoredAxis[];
 }
 
 /** Keys are "x,y" coordinate strings. Values indicate ownership. */

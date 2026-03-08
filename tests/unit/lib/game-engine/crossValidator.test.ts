@@ -147,6 +147,35 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
+  // T029b: Rejects word when swapped tile is adjacent to a frozen tile forming a 2-letter cross-sequence
+  // Regression for real-game scoring bug: "rám" was scored even though M at (7,1) was
+  // vertically adjacent to frozen Y at (7,2), forming "my" (2 letters — too short to be valid).
+  test("T029b: rejects word when end tile has 2-letter vertical cross-sequence with frozen tile", () => {
+    const localDict = new Set(["rám"]);
+    const board = emptyBoard();
+    // "rám" horizontal at row 1: r(5,1) á(6,1) m(7,1)
+    board[1][5] = "r";
+    board[1][6] = "á";
+    board[1][7] = "m";
+    // Frozen "y" at (7,2) — directly below m
+    board[2][7] = "y";
+    const frozenTiles: FrozenTileMap = {
+      "7,2": { owner: "player_b" },
+    };
+
+    const candidates = [hWord("rám", 5, 1)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // m(7,1) + frozen y(7,2) = "my" (2 letters) → sub-minimum cross-word → violation → "rám" rejected
+    expect(result).toHaveLength(0);
+  });
+
   // T030: Returns empty array when no valid combination exists
   test("T030: returns empty array when no valid combination exists", () => {
     const board = emptyBoard();
@@ -251,12 +280,11 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // A alone: passes (no frozen adjacency on horizontal axis, "qa" cross-word < 3 chars → ignored)
+    // A alone: FAILS — frozen "q" at (0,2) + "a" at (0,3) = "qa" (2 letters) → sub-minimum violation
     // B alone: passes (no frozen adjacency on vertical axis)
-    // {A,B}: tile (0,3) cross = "q"(0,2) + "a"(0,3) + "d"(0,4) + "e"(0,5) = "qade" ∉ dict → rejected
-    // A scores higher (3 letters vs 2) → A selected
+    // Result: only B survives
     expect(result4).toHaveLength(1);
-    expect(result4[0].text).toBe("abc");
+    expect(result4[0].text).toBe("de");
   });
 
   // T033: Prefers superword over subword when both pass cross-validation
@@ -814,5 +842,123 @@ describe("selectOptimalCombination", () => {
     // ABC itself is valid → accepted
     expect(result).toHaveLength(1);
     expect(result[0].text).toBe("abc");
+  });
+
+  // ─── T049: scoredAxes-based frozen adjacency ─────────────────────
+
+  // T049: Single frozen tile with scoredAxes: ["horizontal"] adjacent to
+  // a horizontal word — combined invalid → rejected (THE BUG FIX)
+  //
+  // Bug scenario: Player 1 scored "LÓÐA" horizontally → "A" at (3,0) is
+  // frozen. Player 2's word "TAÐ" at (4,0) is adjacent. The frozen run
+  // from (3,0) is just "A" — one letter, NOT a valid word — so the old
+  // heuristic skips the check entirely. With scoredAxes, we know (3,0)
+  // was scored horizontally, so we trigger the check regardless.
+  test("T049: rejects horizontal word adjacent to single frozen tile with scoredAxes horizontal", () => {
+    const localDict = new Set(["tað"]);
+    const board = emptyBoard();
+    // Frozen tile "a" at (3,0) — part of a prior horizontal word
+    board[0][3] = "a";
+    // New word "tað" at (4,0)-(6,0)
+    placeH(board, "tað", 4, 0);
+
+    const frozenTiles: FrozenTileMap = {
+      "3,0": { owner: "player_a", scoredAxes: ["horizontal"] },
+    };
+
+    const candidates = [hWord("tað", 4, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_b",
+    );
+
+    // Frozen "a" at (3,0) scored horizontally → triggers adjacency check
+    // Combined "atað" ∉ dict → TAÐ rejected
+    expect(result).toHaveLength(0);
+  });
+
+  // T049b: Perpendicular — scoredAxes: ["vertical"] adjacent to horizontal
+  // word → ignored, word accepted
+  test("T049b: allows horizontal word adjacent to frozen tile with scoredAxes vertical only", () => {
+    const localDict = new Set(["tað"]);
+    const board = emptyBoard();
+    // Frozen tile "x" at (3,0) scored vertically (part of a vertical word)
+    board[0][3] = "x";
+    // New horizontal word "tað" at (4,0)-(6,0)
+    placeH(board, "tað", 4, 0);
+
+    const frozenTiles: FrozenTileMap = {
+      "3,0": { owner: "player_a", scoredAxes: ["vertical"] },
+    };
+
+    const candidates = [hWord("tað", 4, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_b",
+    );
+
+    // Frozen tile at (3,0) was scored vertically, not horizontally →
+    // irrelevant for horizontal adjacency → TAÐ accepted
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("tað");
+  });
+
+  // T049c: Multi-axis tile — scoredAxes: ["horizontal", "vertical"] → triggers check
+  test("T049c: rejects word adjacent to multi-axis frozen tile when same-axis combined is invalid", () => {
+    const localDict = new Set(["tað"]);
+    const board = emptyBoard();
+    board[0][3] = "x";
+    placeH(board, "tað", 4, 0);
+
+    const frozenTiles: FrozenTileMap = {
+      "3,0": { owner: "player_a", scoredAxes: ["horizontal", "vertical"] },
+    };
+
+    const candidates = [hWord("tað", 4, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_b",
+    );
+
+    // Frozen tile at (3,0) scored on horizontal axis → triggers check
+    // Combined "xtað" ∉ dict → rejected
+    expect(result).toHaveLength(0);
+  });
+
+  // T049d: No scoredAxes (legacy data) → old heuristic fallback
+  test("T049d: falls back to valid-word heuristic when scoredAxes is absent (legacy)", () => {
+    // This is the T040 test scenario with legacy frozen tiles (no scoredAxes).
+    // Frozen run "xy" IS a valid word → old heuristic triggers → combined check runs.
+    const localDict = new Set(["uma", "xy"]);
+    const board = emptyBoard();
+    placeV(board, "uma", 0, 0);
+    board[3][0] = "x";
+    board[4][0] = "y";
+
+    const frozenTiles: FrozenTileMap = {
+      "0,3": { owner: "player_b" },
+      "0,4": { owner: "player_b" },
+    };
+
+    const candidates = [vWord("uma", 0, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // Legacy: "xy" ∈ dict → old heuristic fires → "umaxy" ∉ dict → rejected
+    expect(result).toHaveLength(0);
   });
 });

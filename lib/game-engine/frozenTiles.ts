@@ -2,6 +2,7 @@ import type { Coordinate } from "@/lib/types/board";
 import type {
   FrozenTileMap,
   FrozenTileOwner,
+  ScoredAxis,
   WordScoreBreakdown,
 } from "@/lib/types/match";
 import { BOARD_TILE_COUNT } from "@/lib/constants/board";
@@ -82,6 +83,27 @@ function toPlayerSlot(
 }
 
 /**
+ * Infer the axis of a word from its tile coordinates.
+ * Same y → horizontal, same x → vertical.
+ */
+function inferAxis(tiles: Coordinate[]): ScoredAxis {
+  if (tiles.length < 2) return "horizontal";
+  return tiles[0].y === tiles[1].y ? "horizontal" : "vertical";
+}
+
+/**
+ * Merge a new axis into an existing axes array, avoiding duplicates.
+ */
+function mergeAxes(
+  existing: ScoredAxis[] | undefined,
+  axis: ScoredAxis,
+): ScoredAxis[] {
+  if (!existing) return [axis];
+  if (existing.includes(axis)) return existing;
+  return [...existing, axis];
+}
+
+/**
  * Sort coordinates in reading order (row first, then column).
  */
 function sortReadingOrder(coords: Coordinate[]): Coordinate[] {
@@ -115,6 +137,16 @@ export function freezeTiles(params: {
   const updatedFrozenTiles: FrozenTileMap = { ...existingFrozenTiles };
   const currentFrozenCount = Object.keys(existingFrozenTiles).length;
   const freezeCapacity = MAX_FROZEN_TILES - currentFrozenCount;
+
+  // Build axis map: for each tile coordinate, which axes it was scored on
+  const axisMap = new Map<string, ScoredAxis[]>();
+  for (const word of scoredWords) {
+    const axis = inferAxis(word.tiles);
+    for (const tile of word.tiles) {
+      const key = toFrozenKey(tile);
+      axisMap.set(key, mergeAxes(axisMap.get(key), axis));
+    }
+  }
 
   // Collect all tiles from scored words with their owner
   const candidateTiles: Array<{
@@ -170,12 +202,21 @@ export function freezeTiles(params: {
 
   // Apply ownership upgrades to already-frozen tiles (no capacity cost)
   for (const { key, slots } of upgradeEntries) {
+    const existing = updatedFrozenTiles[key];
+    let currentAxes = existing?.scoredAxes;
+    const newAxes = axisMap.get(key);
+    if (newAxes) {
+      for (const axis of newAxes) {
+        currentAxes = mergeAxes(currentAxes, axis);
+      }
+    }
     for (const slot of slots) {
       updatedFrozenTiles[key] = {
         owner: resolveOwnership(
           updatedFrozenTiles[key]?.owner,
           slot,
         ),
+        scoredAxes: currentAxes,
       };
     }
   }
@@ -194,7 +235,10 @@ export function freezeTiles(params: {
   for (const { key, coord, slots } of tilesToFreeze) {
     // First-owner-wins: take the first claiming slot
     const owner: FrozenTileOwner = [...slots][0];
-    updatedFrozenTiles[key] = { owner };
+    updatedFrozenTiles[key] = {
+      owner,
+      scoredAxes: axisMap.get(key),
+    };
     newlyFrozen.push(coord);
   }
 
