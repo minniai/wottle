@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
@@ -655,7 +656,7 @@ export function MatchClient({
         </details>
       )}
 
-      {historyOpen && roundHistory.length > 0 && (
+      {historyOpen && roundHistory.length > 0 && createPortal(
         <div
           className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
           data-testid="history-overlay-backdrop"
@@ -689,9 +690,10 @@ export function MatchClient({
               highestWord={highestWord}
             />
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
-      {showResignDialog && (
+      {showResignDialog && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           data-testid="resign-dialog-backdrop"
@@ -728,7 +730,8 @@ export function MatchClient({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </MatchShell>
   );
