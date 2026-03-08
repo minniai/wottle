@@ -186,7 +186,7 @@ export function FinalSummary({
     >
       {/* Board rendered outside tab area so it stays visible on both tabs */}
       {board && (
-        <div className="relative mb-6" data-testid="final-summary-board">
+        <div className="relative mb-6 mx-auto" style={{ maxWidth: "min(100%, 50dvh)" }} data-testid="final-summary-board">
           <BoardGridComponent
             grid={board}
             matchId={matchId}
