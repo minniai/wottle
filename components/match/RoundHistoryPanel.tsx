@@ -94,7 +94,7 @@ function RoundRow({
   playerBUsername: string;
   onWordHover?: (word: WordHistoryRow | null) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const panelId = `round-history-panel-${entry.roundNumber}`;
   const triggerId = `round-history-trigger-${entry.roundNumber}`;
 
