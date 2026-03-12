@@ -18,7 +18,7 @@ export class DictionaryLoadError extends Error {
 }
 
 /**
- * Path to the Icelandic word list file (~2.76M inflected forms).
+ * Path to the Icelandic word list file (~3.74M inflected forms, full BÍN fresh, 1+ char).
  * Resolved relative to the project root.
  */
 const WORDLIST_PATH = resolve(
@@ -26,8 +26,8 @@ const WORDLIST_PATH = resolve(
   "docs/wordlist/word_list_is.txt",
 );
 
-/** Minimum expected dictionary entries (2M words) to detect corrupt/partial files */
-const MIN_DICTIONARY_ENTRIES = 2_000_000;
+/** Minimum expected dictionary entries (3.5M words) to detect corrupt/partial files */
+const MIN_DICTIONARY_ENTRIES = 3_500_000;
 
 /** Module-level singleton cache for the loaded dictionary. */
 let cachedDictionary: Set<string> | null = null;
