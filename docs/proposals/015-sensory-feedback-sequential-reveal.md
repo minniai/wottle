@@ -1,8 +1,8 @@
-# 014-sensory-feedback-sequential-reveal
+# 015-sensory-feedback-sequential-reveal
 
 ## Context
 
-Following the **014-move-feedback-and-playability-improvements** (orthogonal-only scanning, submission-time precedence, and cross-validation), the game's mechanics have become more nuanced and competitive. To ensure these rules are intuitive and the game feels "alive," we need to focus on sensory feedback and the temporal flow of round resolution.
+Following the **013-scoring-change** (orthogonal-only scanning, submission-time precedence, and cross-validation), the game's mechanics have become more nuanced and competitive. To ensure these rules are intuitive and the game feels "alive," we need to focus on sensory feedback and the temporal flow of round resolution.
 
 This proposal targets **"Juice"** and **Visual Clarity** as defined in PRD §1.3 (Mobile Feedback) and §7.2 (Visual/Audio Feedback).
 
