@@ -42,6 +42,9 @@ interface BoardGridProps {
   persistentHighlight?: boolean;
   /** When true, board ignores all tile clicks (move lock after swap submission). */
   disabled?: boolean;
+  /** When true, shows the "Move submitted — waiting for opponent" overlay. Separate from disabled so
+   *  read-only boards (e.g. final summary) don't show the in-game lock banner. */
+  showLockBanner?: boolean;
   /** Coordinates of the two tiles involved in the locked swap — rendered with orange highlight. */
   lockedTiles?: [Coordinate, Coordinate] | null;
   /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
@@ -147,6 +150,7 @@ export function BoardGrid({
   highlightPlayerColors = {},
   persistentHighlight = false,
   disabled = false,
+  showLockBanner = false,
   lockedTiles = null,
   opponentRevealTiles = null,
   onSwapComplete,
@@ -168,6 +172,7 @@ export function BoardGrid({
       highlightPlayerColors={highlightPlayerColors}
       persistentHighlight={persistentHighlight}
       disabled={disabled}
+      showLockBanner={showLockBanner}
       lockedTiles={lockedTiles}
       opponentRevealTiles={opponentRevealTiles}
       onSwapComplete={onSwapComplete}
@@ -187,6 +192,7 @@ function BoardGridActive({
   highlightPlayerColors = {},
   persistentHighlight = false,
   disabled = false,
+  showLockBanner = false,
   lockedTiles = null,
   opponentRevealTiles = null,
   onSwapComplete,
@@ -482,7 +488,7 @@ function BoardGridActive({
         data-submitting={isSubmitting ? "true" : undefined}
         data-animating={isAnimating ? "true" : undefined}
       >
-        {disabled && (
+        {showLockBanner && (
           <div
             className="board-grid__lock-banner"
             aria-live="polite"

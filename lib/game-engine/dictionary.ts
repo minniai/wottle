@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import { Language } from "@/lib/types/game-config";
 
 /**
  * Custom error thrown when dictionary loading fails.
@@ -17,51 +18,58 @@ export class DictionaryLoadError extends Error {
   }
 }
 
+/** Per-language wordlist paths and minimum entry counts to detect corrupt/partial files. */
+const LANGUAGE_DICTIONARY_CONFIG: Record<
+  Language,
+  { file: string; minEntries: number }
+> = {
+  is: { file: "docs/wordlist/word_list_is.txt", minEntries: 2_000_000 },
+  en: { file: "docs/wordlist/word_list_en.txt", minEntries: 10_000 },
+  se: { file: "docs/wordlist/word_list_se.txt", minEntries: 100_000 },
+  no: { file: "docs/wordlist/word_list_no.txt", minEntries: 100_000 },
+  dk: { file: "docs/wordlist/word_list_dk.txt", minEntries: 100_000 },
+};
+
+/** Per-language singleton caches for loaded dictionaries. */
+const cachedDictionaries = new Map<Language, Set<string>>();
+
 /**
- * Path to the Icelandic word list file (~3.74M inflected forms, full BÍN fresh, 1+ char).
- * Resolved relative to the project root.
- */
-const WORDLIST_PATH = resolve(
-  process.cwd(),
-  "docs/wordlist/word_list_is.txt",
-);
-
-/** Minimum expected dictionary entries (3.5M words) to detect corrupt/partial files */
-const MIN_DICTIONARY_ENTRIES = 3_500_000;
-
-/** Module-level singleton cache for the loaded dictionary. */
-let cachedDictionary: Set<string> | null = null;
-
-/**
- * Load the Icelandic dictionary into an in-memory Set.
+ * Load a language dictionary into an in-memory Set.
  *
  * Reads the entire word list synchronously, splits by newline,
  * NFC-normalizes and lowercases each entry, and inserts into a Set
  * for O(1) lookups. Uses sync I/O for maximum throughput on the
- * single bulk read (~50MB file). The result is cached as a
- * module-level singleton — subsequent calls return instantly.
+ * single bulk read. The result is cached per language — subsequent
+ * calls for the same language return instantly.
  *
- * @returns Set of NFC-normalized, lowercased valid Icelandic words
+ * @param language - Language code selecting the dictionary (defaults to 'is')
+ * @returns Set of NFC-normalized, lowercased valid words
  * @throws {DictionaryLoadError} if the dictionary file cannot be read, is empty, or is corrupt
  * @performance MUST complete in <1000ms on cold start (FR-022, SC-007)
  */
-export async function loadDictionary(): Promise<Set<string>> {
-  if (cachedDictionary) {
-    return cachedDictionary;
+export async function loadDictionary(
+  language: Language = "is",
+): Promise<Set<string>> {
+  const cached = cachedDictionaries.get(language);
+  if (cached) {
+    return cached;
   }
 
-  const startMark = "dictionary-load-start";
-  const endMark = "dictionary-load-end";
+  const { file, minEntries } = LANGUAGE_DICTIONARY_CONFIG[language];
+  const wordlistPath = resolve(process.cwd(), file);
+
+  const startMark = `dictionary-load-start-${language}`;
+  const endMark = `dictionary-load-end-${language}`;
   performance.mark(startMark);
 
   try {
     // Attempt to read the dictionary file
-    const raw = readFileSync(WORDLIST_PATH, "utf-8");
+    const raw = readFileSync(wordlistPath, "utf-8");
 
     // Validate file is not empty (FR-001a)
     if (!raw || raw.trim().length === 0) {
       throw new DictionaryLoadError(
-        "Dictionary file is empty. Cannot proceed with word validation.",
+        `Dictionary file for '${language}' is empty. Cannot proceed with word validation.`,
       );
     }
 
@@ -71,15 +79,15 @@ export async function loadDictionary(): Promise<Set<string>> {
     words.delete(""); // Remove any empty entries
 
     // Validate minimum entry count to detect corrupt/partial files (FR-001a)
-    if (words.size < MIN_DICTIONARY_ENTRIES) {
+    if (words.size < minEntries) {
       throw new DictionaryLoadError(
-        `Dictionary appears corrupt or partial. Expected >=${MIN_DICTIONARY_ENTRIES.toLocaleString()} entries, got ${words.size.toLocaleString()}. Cannot proceed with word validation.`,
+        `Dictionary for '${language}' appears corrupt or partial. Expected >=${minEntries.toLocaleString()} entries, got ${words.size.toLocaleString()}. Cannot proceed with word validation.`,
       );
     }
 
     performance.mark(endMark);
     const measure = performance.measure(
-      "dictionary-load",
+      `dictionary-load-${language}`,
       startMark,
       endMark,
     );
@@ -88,12 +96,13 @@ export async function loadDictionary(): Promise<Set<string>> {
       JSON.stringify({
         level: "info",
         event: "dictionary.loaded",
+        language,
         entries: words.size,
         durationMs: Math.round(measure.duration),
       }),
     );
 
-    cachedDictionary = words;
+    cachedDictionaries.set(language, words);
     return words;
   } catch (error) {
     // If already a DictionaryLoadError, re-throw as-is
@@ -105,8 +114,8 @@ export async function loadDictionary(): Promise<Set<string>> {
     const fsError = error as NodeJS.ErrnoException;
     const errorMessage =
       fsError.code === "ENOENT"
-        ? `Failed to load dictionary: file not found at ${WORDLIST_PATH}. The game cannot be played without a valid dictionary.`
-        : `Failed to load dictionary: ${fsError.message}. The game cannot be played without a valid dictionary.`;
+        ? `Failed to load dictionary for '${language}': file not found at ${wordlistPath}. The game cannot be played without a valid dictionary.`
+        : `Failed to load dictionary for '${language}': ${fsError.message}. The game cannot be played without a valid dictionary.`;
 
     throw new DictionaryLoadError(errorMessage, fsError);
   }
@@ -133,9 +142,9 @@ export function lookupWord(
 }
 
 /**
- * Reset the dictionary cache. Used for testing and benchmarking
+ * Reset all dictionary caches. Used for testing and benchmarking
  * to force a fresh load from disk.
  */
 export function resetDictionaryCache(): void {
-  cachedDictionary = null;
+  cachedDictionaries.clear();
 }

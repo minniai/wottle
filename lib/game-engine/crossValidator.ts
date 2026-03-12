@@ -1,5 +1,5 @@
 import type { BoardGrid, BoardWord } from "@/lib/types/board";
-import type { FrozenTileMap } from "@/lib/types/match";
+import type { FrozenTileMap, ScoredAxis } from "@/lib/types/match";
 import { BOARD_SIZE } from "@/lib/constants/board";
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 import {
@@ -72,7 +72,10 @@ export function hasCrossWordViolation(
     }
 
     const crossLength = beforeChars.length + 1 + afterChars.length;
-    if (crossLength >= minimumWordLength) {
+    if (crossLength > 1) {
+      // A cross-sequence shorter than the minimum word length can never be a
+      // valid word — always a violation (consistent with deltaDetector.ts).
+      if (crossLength < minimumWordLength) return true;
       const crossWord = [
         ...beforeChars,
         board[tile.y][tile.x],
@@ -137,6 +140,7 @@ export function selectOptimalCombination(
         board,
         frozenTileSet,
         dictionary,
+        frozenTiles,
       ),
   );
 
@@ -179,19 +183,23 @@ export function selectOptimalCombination(
  * Check whether a candidate word is adjacent to a frozen scored word
  * on the same axis and the combined sequence is NOT a valid word.
  *
- * Only triggers when the adjacent frozen run is itself a valid
- * dictionary word (i.e., it was scored on this axis). Frozen tiles
- * from perpendicular words that happen to be adjacent are ignored
- * because they were not scored on this axis.
+ * Uses `scoredAxes` metadata on frozen tiles to determine whether an
+ * adjacent tile was scored on the same axis as the candidate word.
+ * Falls back to the valid-word heuristic for legacy frozen tiles
+ * that lack `scoredAxes`.
  */
 function violatesFrozenAdjacencyOnSameAxis(
   word: BoardWord,
   board: BoardGrid,
   frozenTileSet: Set<string>,
   dictionary: Set<string>,
+  frozenTileMap?: FrozenTileMap,
 ): boolean {
   const isHorizontal =
     word.direction === "right" || word.direction === "left";
+  const wordAxis: ScoredAxis = isHorizontal
+    ? "horizontal"
+    : "vertical";
   const dx = isHorizontal ? 1 : 0;
   const dy = isHorizontal ? 0 : 1;
 
@@ -250,6 +258,7 @@ function violatesFrozenAdjacencyOnSameAxis(
     }
 
     const chars: string[] = [];
+    let hasSameAxisTile = false;
     let cx = startX;
     let cy = startY;
     while (
@@ -258,12 +267,23 @@ function violatesFrozenAdjacencyOnSameAxis(
       frozenTileSet.has(`${cx},${cy}`)
     ) {
       chars.push(board[cy][cx]);
+      const tile = frozenTileMap?.[`${cx},${cy}`];
+      if (tile?.scoredAxes?.includes(wordAxis)) {
+        hasSameAxisTile = true;
+      }
       cx += stepX;
       cy += stepY;
     }
 
-    // Only apply if the frozen run is itself a valid word
-    // (i.e., it was scored on this axis, not from a perpendicular word)
+    // If any tile in the run has scoredAxes matching this word's axis,
+    // the run is relevant — trigger the combined check.
+    if (hasSameAxisTile) {
+      return { chars };
+    }
+
+    // Fallback for legacy frozen tiles without scoredAxes:
+    // only apply if the frozen run is itself a valid word
+    // (heuristic: it was likely scored on this axis).
     const frozenText = chars
       .join("")
       .normalize("NFC")

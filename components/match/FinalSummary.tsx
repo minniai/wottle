@@ -186,7 +186,7 @@ export function FinalSummary({
     >
       {/* Board rendered outside tab area so it stays visible on both tabs */}
       {board && (
-        <div className="relative mb-6" data-testid="final-summary-board">
+        <div className="relative mb-6 mx-auto" style={{ maxWidth: "min(100%, 50dvh)" }} data-testid="final-summary-board">
           <BoardGridComponent
             grid={board}
             matchId={matchId}
@@ -194,7 +194,6 @@ export function FinalSummary({
             frozenTiles={frozenTiles}
             highlightPlayerColors={highlightPlayerColors}
             persistentHighlight
-            disabled
           />
         </div>
       )}
@@ -283,6 +282,32 @@ export function FinalSummary({
           </p>
         </div>
       )}
+
+      {rematchError && (
+        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+          {rematchError}
+        </p>
+      )}
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <button
+          type="button"
+          className="rounded-2xl bg-emerald-500 px-5 py-3 text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
+          onClick={handleRematch}
+          disabled={isRematching}
+          data-testid="final-summary-rematch"
+        >
+          {isRematching ? "Creating match…" : "Rematch"}
+        </button>
+        <button
+          type="button"
+          className="rounded-2xl border border-white/20 px-5 py-3 text-white transition hover:bg-white/10"
+          onClick={() => router.push("/")}
+          data-testid="final-summary-back-lobby"
+        >
+          Back to Lobby
+        </button>
+      </div>
 
       <div
         className="mt-6 grid gap-4 md:grid-cols-2"
@@ -380,32 +405,6 @@ export function FinalSummary({
             })}
           </div>
         )}
-      </div>
-
-      {rematchError && (
-        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
-          {rematchError}
-        </p>
-      )}
-
-      <div className="mt-8 flex flex-wrap gap-3">
-        <button
-          type="button"
-          className="rounded-2xl bg-emerald-500 px-5 py-3 text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
-          onClick={handleRematch}
-          disabled={isRematching}
-          data-testid="final-summary-rematch"
-        >
-          {isRematching ? "Creating match…" : "Rematch"}
-        </button>
-        <button
-          type="button"
-          className="rounded-2xl border border-white/20 px-5 py-3 text-white transition hover:bg-white/10"
-          onClick={() => router.push("/")}
-          data-testid="final-summary-back-lobby"
-        >
-          Back to Lobby
-        </button>
       </div>
 
       {currentPlayer && (

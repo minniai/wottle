@@ -6,6 +6,7 @@ import type { RoundSummary, WordScore } from "@/lib/types/match";
 interface RoundSummaryPanelProps {
     summary: RoundSummary | null;
     currentPlayerId: string;
+    playerAId: string;
     onDismiss?: () => void;
     autoDismissMs?: number;
 }
@@ -13,6 +14,7 @@ interface RoundSummaryPanelProps {
 export function RoundSummaryPanel({
     summary,
     currentPlayerId,
+    playerAId,
     onDismiss,
     autoDismissMs = 3000,
 }: RoundSummaryPanelProps) {
@@ -21,15 +23,9 @@ export function RoundSummaryPanel({
     const liveRegionRef = useRef<HTMLDivElement | null>(null);
     const currentSummaryId = summary ? `${summary.matchId}-${summary.roundNumber}` : null;
     const words = summary?.words ?? [];
-    const firstPlayerId = words[0]?.playerId ?? null;
-    const playerAWords =
-        firstPlayerId !== null ? words.filter((word) => word.playerId === firstPlayerId) : [];
-    const playerBWords =
-        firstPlayerId !== null ? words.filter((word) => word.playerId !== firstPlayerId) : words;
-    const currentPlayerIsPlayerA =
-        firstPlayerId !== null ? firstPlayerId === currentPlayerId : true;
-    const currentPlayerWords = currentPlayerIsPlayerA ? playerAWords : playerBWords;
-    const opponentWords = currentPlayerIsPlayerA ? playerBWords : playerAWords;
+    const currentPlayerIsPlayerA = playerAId === currentPlayerId;
+    const currentPlayerWords = words.filter((w) => w.playerId === currentPlayerId);
+    const opponentWords = words.filter((w) => w.playerId !== currentPlayerId);
     const yourScore = summary
         ? currentPlayerIsPlayerA
             ? summary.totals.playerA

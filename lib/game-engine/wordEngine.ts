@@ -7,6 +7,20 @@ import type {
 } from "@/lib/types/match";
 import { logPlaytestInfo } from "@/lib/observability/log";
 import { loadDictionary } from "./dictionary";
+import type { Language } from "@/lib/types/game-config";
+import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
+import { LETTER_SCORING_VALUES_EN } from "@/docs/wordlist/letter_scoring_values_en";
+import { LETTER_SCORING_VALUES_SE } from "@/docs/wordlist/letter_scoring_values_se";
+import { LETTER_SCORING_VALUES_NO } from "@/docs/wordlist/letter_scoring_values_no";
+import { LETTER_SCORING_VALUES_DK } from "@/docs/wordlist/letter_scoring_values_dk";
+
+const LETTER_VALUES_BY_LANGUAGE: Record<Language, Record<string, number>> = {
+  is: LETTER_SCORING_VALUES_IS,
+  en: LETTER_SCORING_VALUES_EN,
+  se: LETTER_SCORING_VALUES_SE,
+  no: LETTER_SCORING_VALUES_NO,
+  dk: LETTER_SCORING_VALUES_DK,
+};
 import { applySwap } from "./board";
 import { scanFromSwapCoordinates } from "./boardScanner";
 import { selectOptimalCombination } from "./crossValidator";
@@ -29,6 +43,7 @@ function scoreBoardWords(
   playerId: string,
   frozenTiles: FrozenTileMap,
   playerSlot: "player_a" | "player_b",
+  letterValues: Record<string, number> = LETTER_SCORING_VALUES_IS,
 ): WordScoreBreakdown[] {
   const opponentSlot =
     playerSlot === "player_a" ? "player_b" : "player_a";
@@ -41,7 +56,7 @@ function scoreBoardWords(
         return frozen?.owner === opponentSlot ? "" : word.text[i];
       })
       .join("");
-    const lettersPoints = calculateLetterPoints(ownLetters);
+    const lettersPoints = calculateLetterPoints(ownLetters, letterValues);
     const lengthBonus = calculateLengthBonus(word.length);
     const totalPoints = lettersPoints + lengthBonus;
 
@@ -136,6 +151,7 @@ function processPlayerMove(
   playerSlot: "player_a" | "player_b",
   playerAId: string,
   playerBId: string,
+  letterValues: Record<string, number> = LETTER_SCORING_VALUES_IS,
 ): {
   breakdowns: WordScoreBreakdown[];
   updatedFrozenTiles: FrozenTileMap;
@@ -183,6 +199,7 @@ function processPlayerMove(
     move.playerId,
     frozenTiles,
     playerSlot,
+    letterValues,
   );
 
   // Freeze tiles from scored words
@@ -221,6 +238,7 @@ export async function processRoundScoring(params: {
   frozenTiles: FrozenTileMap;
   playerAId: string;
   playerBId: string;
+  language?: Language;
 }): Promise<RoundScoreResult> {
   const start = performance.now();
 
@@ -241,7 +259,9 @@ export async function processRoundScoring(params: {
     return emptyRoundScoreResult(durationMs, params.frozenTiles);
   }
 
-  const dictionary = await loadDictionary();
+  const language = params.language ?? "is";
+  const dictionary = await loadDictionary(language);
+  const letterValues = LETTER_VALUES_BY_LANGUAGE[language];
 
   // Sort by submission time (FR-005)
   const sortedMoves = sortByPrecedence(
@@ -269,6 +289,7 @@ export async function processRoundScoring(params: {
       playerSlot,
       params.playerAId,
       params.playerBId,
+      letterValues,
     );
 
     allBreakdowns.push(...result.breakdowns);

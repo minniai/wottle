@@ -36,6 +36,7 @@ describe("RoundSummaryPanel accessibility", () => {
       <RoundSummaryPanel
         summary={baseSummary}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );
@@ -52,6 +53,7 @@ describe("RoundSummaryPanel accessibility", () => {
       <RoundSummaryPanel
         summary={baseSummary}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );
@@ -63,6 +65,7 @@ describe("RoundSummaryPanel accessibility", () => {
       <RoundSummaryPanel
         summary={{ ...baseSummary, roundNumber: 4, deltas: { playerA: 0, playerB: 5 } }}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );

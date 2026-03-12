@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeAll } from "vitest";
+import { describe, expect, test, beforeAll, beforeEach } from "vitest";
 
 import {
   loadDictionary,
@@ -124,6 +124,45 @@ describe("dictionary", () => {
       const composed = "búr".normalize("NFC");
       expect(decomposed).not.toBe(composed);
       expect(lookupWord(dict, decomposed)).toBe(true);
+    });
+  });
+
+  describe("multi-language support", () => {
+    beforeEach(() => {
+      resetDictionaryCache();
+    });
+
+    test("loadDictionary('en') returns a non-empty Set", async () => {
+      const dict = await loadDictionary("en");
+      expect(dict).toBeInstanceOf(Set);
+      expect(dict.size).toBeGreaterThan(10_000);
+    });
+
+    test("loadDictionary('is') still works with explicit language param", async () => {
+      const dict = await loadDictionary("is");
+      expect(dict.size).toBeGreaterThan(2_000_000);
+    });
+
+    test("loadDictionary() with no arg defaults to Icelandic", async () => {
+      const withDefault = await loadDictionary();
+      const withExplicit = await loadDictionary("is");
+      expect(withDefault).toBe(withExplicit);
+    });
+
+    test("different languages are cached independently", async () => {
+      const en = await loadDictionary("en");
+      const is = await loadDictionary("is");
+      expect(en).not.toBe(is);
+      // Same language returns the same cached instance
+      expect(await loadDictionary("en")).toBe(en);
+      expect(await loadDictionary("is")).toBe(is);
+    });
+
+    test("resetDictionaryCache clears all language caches", async () => {
+      const en1 = await loadDictionary("en");
+      resetDictionaryCache();
+      const en2 = await loadDictionary("en");
+      expect(en1).not.toBe(en2);
     });
   });
 });

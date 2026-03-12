@@ -49,6 +49,7 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
       <RoundSummaryPanel
         summary={summaryWithTwoWords}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );
@@ -67,6 +68,7 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
       <RoundSummaryPanel
         summary={summaryWithTwoWords}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );
@@ -80,6 +82,7 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
       <RoundSummaryPanel
         summary={summaryWithTwoWords}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );
@@ -93,11 +96,67 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
       <RoundSummaryPanel
         summary={summaryWithTwoWords}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );
 
     expect(screen.getByText("65")).toBeInTheDocument();
+  });
+
+  it("attributes words correctly when opponent's words come first in array", () => {
+    const summaryOpponentFirst: RoundSummary = {
+      matchId: "match-123",
+      roundNumber: 2,
+      words: [
+        {
+          playerId: "player-b",
+          word: "tala",
+          length: 4,
+          lettersPoints: 4,
+          bonusPoints: 10,
+          totalPoints: 14,
+          coordinates: [
+            { x: 0, y: 2 },
+            { x: 1, y: 2 },
+            { x: 2, y: 2 },
+            { x: 3, y: 2 },
+          ],
+        },
+      ],
+      deltas: { playerA: 0, playerB: 14 },
+      totals: { playerA: 10, playerB: 24 },
+      highlights: [],
+      resolvedAt: new Date().toISOString(),
+      moves: [],
+    };
+
+    render(
+      <RoundSummaryPanel
+        summary={summaryOpponentFirst}
+        currentPlayerId="player-a"
+        playerAId="player-a"
+        autoDismissMs={0}
+      />,
+    );
+
+    // Current player scored 0 this round
+    const yourDelta = screen.getByTestId("round-summary-player-a-delta");
+    expect(yourDelta).toHaveTextContent("0 this round");
+
+    // Current player total is 10
+    expect(screen.getByText("10")).toBeInTheDocument();
+
+    // No "Your Words" section
+    expect(screen.queryByText("Your Words")).not.toBeInTheDocument();
+
+    // Opponent's word is shown under "Opponent's Words"
+    expect(screen.getByText("Opponent's Words")).toBeInTheDocument();
+    expect(screen.getByText(/TALA/i)).toBeInTheDocument();
+
+    // Opponent delta is +14
+    const opponentDelta = screen.getByTestId("round-summary-player-b-delta");
+    expect(opponentDelta).toHaveTextContent(/\+14/);
   });
 
   it("shows opponent delta and total when opponent scored", () => {
@@ -123,6 +182,7 @@ describe("RoundSummaryPanel enhanced display (US4)", () => {
       <RoundSummaryPanel
         summary={summaryBothScored}
         currentPlayerId="player-a"
+        playerAId="player-a"
         autoDismissMs={0}
       />,
     );

@@ -6,4 +6,5 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
   minimumWordLength: 3,
   boardSize: 10,
   allowedDirections: ['horizontal', 'vertical'],
+  language: 'is',
 };

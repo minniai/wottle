@@ -175,15 +175,9 @@ describe("frozenTiles", () => {
         playerBId: PLAYER_B,
       });
 
-      expect(result.updatedFrozenTiles["0,0"]).toEqual({
-        owner: "player_a",
-      });
-      expect(result.updatedFrozenTiles["1,0"]).toEqual({
-        owner: "player_a",
-      });
-      expect(result.updatedFrozenTiles["2,0"]).toEqual({
-        owner: "player_a",
-      });
+      expect(result.updatedFrozenTiles["0,0"].owner).toBe("player_a");
+      expect(result.updatedFrozenTiles["1,0"].owner).toBe("player_a");
+      expect(result.updatedFrozenTiles["2,0"].owner).toBe("player_a");
       expect(result.newlyFrozen).toHaveLength(3);
     });
 
@@ -205,15 +199,9 @@ describe("frozenTiles", () => {
       });
 
       // First-owner-wins: player_a claimed tile (2,0) first
-      expect(result.updatedFrozenTiles["2,0"]).toEqual({
-        owner: "player_a",
-      });
-      expect(result.updatedFrozenTiles["3,0"]).toEqual({
-        owner: "player_a",
-      });
-      expect(result.updatedFrozenTiles["2,1"]).toEqual({
-        owner: "player_b",
-      });
+      expect(result.updatedFrozenTiles["2,0"].owner).toBe("player_a");
+      expect(result.updatedFrozenTiles["3,0"].owner).toBe("player_a");
+      expect(result.updatedFrozenTiles["2,1"].owner).toBe("player_b");
     });
 
     test("should keep existing owner when opponent claims same tile (first-owner-wins)", () => {
@@ -233,9 +221,7 @@ describe("frozenTiles", () => {
       });
 
       // First-owner-wins: player_a already owns tile (2,0)
-      expect(result.updatedFrozenTiles["2,0"]).toEqual({
-        owner: "player_a",
-      });
+      expect(result.updatedFrozenTiles["2,0"].owner).toBe("player_a");
     });
 
     test("should enforce 24-unfrozen minimum (76 max frozen)", () => {
@@ -310,15 +296,9 @@ describe("frozenTiles", () => {
         playerBId: PLAYER_B,
       });
 
-      expect(result.updatedFrozenTiles["0,0"]).toEqual({
-        owner: "player_a",
-      });
-      expect(result.updatedFrozenTiles["1,0"]).toEqual({
-        owner: "player_b",
-      });
-      expect(result.updatedFrozenTiles["5,5"]).toEqual({
-        owner: "player_a",
-      });
+      expect(result.updatedFrozenTiles["0,0"].owner).toBe("player_a");
+      expect(result.updatedFrozenTiles["1,0"].owner).toBe("player_b");
+      expect(result.updatedFrozenTiles["5,5"].owner).toBe("player_a");
     });
 
     test("should freeze all scored word tiles (no duplicate filtering)", () => {
@@ -335,6 +315,141 @@ describe("frozenTiles", () => {
       });
 
       expect(result.newlyFrozen).toHaveLength(2);
+    });
+
+    // ─── T067-T070: scoredAxes population ────────────────────────────
+
+    // T067: Horizontal word stores scoredAxes: ["horizontal"]
+    test("T067: stores scoredAxes horizontal for horizontal word tiles", () => {
+      const word: WordScoreBreakdown = {
+        word: "abc",
+        length: 3,
+        lettersPoints: 10,
+        lengthBonus: 5,
+        totalPoints: 15,
+        tiles: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 },
+          { x: 2, y: 0 },
+        ],
+        playerId: PLAYER_A,
+      };
+
+      const result = freezeTiles({
+        scoredWords: [word],
+        existingFrozenTiles: {},
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.updatedFrozenTiles["0,0"].scoredAxes).toEqual(["horizontal"]);
+      expect(result.updatedFrozenTiles["1,0"].scoredAxes).toEqual(["horizontal"]);
+      expect(result.updatedFrozenTiles["2,0"].scoredAxes).toEqual(["horizontal"]);
+    });
+
+    // T068: Vertical word stores scoredAxes: ["vertical"]
+    test("T068: stores scoredAxes vertical for vertical word tiles", () => {
+      const word: WordScoreBreakdown = {
+        word: "abc",
+        length: 3,
+        lettersPoints: 10,
+        lengthBonus: 5,
+        totalPoints: 15,
+        tiles: [
+          { x: 0, y: 0 },
+          { x: 0, y: 1 },
+          { x: 0, y: 2 },
+        ],
+        playerId: PLAYER_B,
+      };
+
+      const result = freezeTiles({
+        scoredWords: [word],
+        existingFrozenTiles: {},
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.updatedFrozenTiles["0,0"].scoredAxes).toEqual(["vertical"]);
+      expect(result.updatedFrozenTiles["0,1"].scoredAxes).toEqual(["vertical"]);
+      expect(result.updatedFrozenTiles["0,2"].scoredAxes).toEqual(["vertical"]);
+    });
+
+    // T069: Merges axes when tile is scored on both axes
+    test("T069: merges scoredAxes when tile is scored on both horizontal and vertical", () => {
+      const hWordScore: WordScoreBreakdown = {
+        word: "abc",
+        length: 3,
+        lettersPoints: 10,
+        lengthBonus: 5,
+        totalPoints: 15,
+        tiles: [
+          { x: 0, y: 1 },
+          { x: 1, y: 1 },
+          { x: 2, y: 1 },
+        ],
+        playerId: PLAYER_A,
+      };
+      const vWordScore: WordScoreBreakdown = {
+        word: "def",
+        length: 3,
+        lettersPoints: 10,
+        lengthBonus: 5,
+        totalPoints: 15,
+        tiles: [
+          { x: 1, y: 0 },
+          { x: 1, y: 1 }, // shared tile
+          { x: 1, y: 2 },
+        ],
+        playerId: PLAYER_A,
+      };
+
+      const result = freezeTiles({
+        scoredWords: [hWordScore, vWordScore],
+        existingFrozenTiles: {},
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Shared tile at (1,1) should have both axes
+      const axes = result.updatedFrozenTiles["1,1"].scoredAxes;
+      expect(axes).toContain("horizontal");
+      expect(axes).toContain("vertical");
+      expect(axes).toHaveLength(2);
+    });
+
+    // T070: Preserves scoredAxes on ownership upgrade
+    test("T070: preserves and merges scoredAxes on ownership upgrade", () => {
+      const existing: FrozenTileMap = {
+        "1,1": { owner: "player_a", scoredAxes: ["horizontal"] },
+      };
+      const vWordScore: WordScoreBreakdown = {
+        word: "def",
+        length: 3,
+        lettersPoints: 10,
+        lengthBonus: 5,
+        totalPoints: 15,
+        tiles: [
+          { x: 1, y: 0 },
+          { x: 1, y: 1 }, // already frozen, new vertical axis
+          { x: 1, y: 2 },
+        ],
+        playerId: PLAYER_B,
+      };
+
+      const result = freezeTiles({
+        scoredWords: [vWordScore],
+        existingFrozenTiles: existing,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Owner stays player_a (first-owner-wins)
+      expect(result.updatedFrozenTiles["1,1"].owner).toBe("player_a");
+      // Axes merged: existing "horizontal" + new "vertical"
+      const axes = result.updatedFrozenTiles["1,1"].scoredAxes;
+      expect(axes).toContain("horizontal");
+      expect(axes).toContain("vertical");
     });
   });
 });
