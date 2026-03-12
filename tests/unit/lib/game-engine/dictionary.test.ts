@@ -49,14 +49,13 @@ describe("dictionary", () => {
       expect(first).toBe(second);
     });
 
-    test("should contain no entries shorter than 3 characters", async () => {
-      // boardScanner.ts hardcodes a minimum length of 3; entries shorter than 3
-      // can never be matched by the scanner and would only create confusion.
+    test("should contain no empty entries", async () => {
+      // All dictionary entries must be at least 1 character (non-empty).
       const dict = await loadDictionary();
       for (const entry of dict) {
-        if (entry.length < 3) {
+        if (entry.length < 1) {
           throw new Error(
-            `Dictionary contains a ${entry.length}-char entry: "${entry}". All entries must be >= 3 chars.`,
+            `Dictionary contains an empty entry. All entries must be >= 1 char.`,
           );
         }
       }

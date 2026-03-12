@@ -114,7 +114,7 @@ Before implementing any feature:
   - `/lib/types` - Shared TypeScript types
   - `/lib/constants` - Board dimensions, feature flags, app constants
 - `/docs` - PRD, analysis, wordlists
-  - `/docs/wordlist` - Icelandic word list (~2.76M inflected forms, loaded at runtime) + letter scoring values
+  - `/docs/wordlist` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
 - `/components` - React Client Components
   - `/components/game` - Board, BoardGrid, MoveFeedback, TimerHud
   - `/components/match` - MatchClient, MatchShell, RoundSummaryPanel, FinalSummary, WordHighlightOverlay
@@ -226,7 +226,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 | Rate Limiting     | Complete    | 5/min auth, 30/min moves, 429 responses                                         |
 | Accessibility     | Complete    | Focus traps, aria-live, keyboard nav, WCAG 2.1 A                                |
 | Observability     | Complete    | Structured logs, perf marks, analytics hooks                                    |
-| Word Finding      | Complete    | Set-based dictionary (2.76M entries), 8-directional scanner, delta detection    |
+| Word Finding      | Complete    | Set-based dictionary (3.74M entries), 8-directional scanner, delta detection    |
 | Scoring           | Complete    | PRD-compliant formula, length bonus, combo bonuses, unique word tracking        |
 | Frozen Tiles      | Complete    | Freeze tracking, swap validation, visual overlay, >=24 unfrozen safeguard       |
 | Board Animations  | Spec Only   | Spec 004 defined (41 tasks), CSS scored-tile-highlight keyframe exists          |
