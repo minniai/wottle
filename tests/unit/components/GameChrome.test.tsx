@@ -12,7 +12,7 @@ describe("GameChrome", () => {
     timerSeconds: 180,
     isPaused: false,
     hasSubmitted: false,
-    playerColor: "#3B82F6",
+    playerColor: "#38BDF8",
   };
 
   test("renders player name, timer, and score", () => {
