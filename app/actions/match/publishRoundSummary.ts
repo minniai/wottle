@@ -82,7 +82,7 @@ export async function publishRoundSummary(
     // 5. Fetch accepted moves for opponent move reveal
     const { data: moveSubmissions } = await supabase
         .from("move_submissions")
-        .select("player_id, from_x, from_y, to_x, to_y")
+        .select("player_id, from_x, from_y, to_x, to_y, submitted_at")
         .eq("round_id", round.id)
         .eq("status", "accepted")
         .order("submitted_at", { ascending: true });
@@ -91,6 +91,7 @@ export async function publishRoundSummary(
         playerId: sub.player_id,
         from: { x: sub.from_x, y: sub.from_y },
         to: { x: sub.to_x, y: sub.to_y },
+        submittedAt: sub.submitted_at ?? new Date().toISOString(),
     }));
 
     // 6. Aggregate round summary

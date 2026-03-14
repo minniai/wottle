@@ -12,6 +12,7 @@ import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
+import { deriveRevealSequence } from "@/lib/match/revealSequence";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
 import type { MatchState, RoundSummary, TimerState, Coordinate } from "@/lib/types/match";
@@ -21,6 +22,9 @@ import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
+import { useSensoryPreferences } from "@/lib/preferences/useSensoryPreferences";
+import { useSoundEffects } from "@/lib/audio/useSoundEffects";
+import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { MatchShell } from "./MatchShell";
 
 
@@ -87,19 +91,27 @@ export function MatchClient({
   const [accumulatedScores, setAccumulatedScores] = useState<ScoreboardRow[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
+  // Sensory preferences, audio, and haptic feedback (US3/US4/US5)
+  const { preferences } = useSensoryPreferences();
+  const { playTileSelect, playValidSwap, playInvalidMove, playWordDiscovery, playMatchStart, playMatchEnd } =
+    useSoundEffects(preferences.soundEnabled);
+  const { vibrateValidSwap, vibrateInvalidMove, vibrateMatchStart, vibrateMatchEnd } =
+    useHapticFeedback(preferences.hapticsEnabled);
+
   // Move lock state (US1): after swap, board is locked until next round
   const [moveLocked, setMoveLocked] = useState(false);
   const [lockedSwapTiles, setLockedSwapTiles] = useState<[Coordinate, Coordinate] | null>(null);
 
-  // Opponent reveal state (US2): briefly show opponent's swapped tiles on round completion
-  const [opponentRevealTiles, setOpponentRevealTiles] = useState<[Coordinate, Coordinate] | null>(null);
+  // Sequential reveal state (US1): active player's swap tiles and highlights during reveal phases
+  const [activeRevealMove, setActiveRevealMove] = useState<{ from: Coordinate; to: Coordinate } | null>(null);
+  const [activeRevealHighlights, setActiveRevealHighlights] = useState<Coordinate[][]>([]);
 
   // Resign state
   const [showResignDialog, setShowResignDialog] = useState(false);
   const [isResigning, setIsResigning] = useState(false);
 
-  // Animation phase machine for post-round highlight sequence (US7)
-  type AnimationPhase = "idle" | "revealing-opponent-move" | "highlighting" | "showing-summary";
+  // Animation phase machine for post-round sequential reveal (US1)
+  type AnimationPhase = "idle" | "revealing-player-one" | "revealing-player-two" | "showing-summary";
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
   const [pendingSummary, setPendingSummary] = useState<RoundSummary | null>(null);
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
@@ -131,22 +143,31 @@ export function MatchClient({
 
   // Sync summary from polled/realtime state updates.
   // Guard against re-showing a summary the player already dismissed.
-  // Also guard while highlight animation is playing — onSummary handles that path.
+  // Also guard while reveal animation is playing — onSummary handles that path.
   useEffect(() => {
     if (!matchState.lastSummary) return;
-    if (animationPhase === "highlighting" || animationPhase === "revealing-opponent-move") return;
+    if (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two") return;
     const id = `${matchState.lastSummary.matchId}-${matchState.lastSummary.roundNumber}`;
     if (id !== dismissedSummaryIdRef.current) {
       setSummary(matchState.lastSummary);
     }
   }, [matchState.lastSummary, animationPhase]);
 
-  // Navigate to final summary when match completes
+  // Play match start sound + haptic on mount
+  useEffect(() => {
+    playMatchStart();
+    vibrateMatchStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Navigate to final summary when match completes; play match end sound + haptic
   useEffect(() => {
     if (matchState.state === "completed") {
+      playMatchEnd();
+      vibrateMatchEnd();
       router.push(`/match/${matchId}/summary`);
     }
-  }, [matchId, matchState.state, router]);
+  }, [matchId, matchState.state, router, playMatchEnd, vibrateMatchEnd]);
 
   // ── Realtime channel ──────────────────────────────────────────────
   useEffect(() => {
@@ -212,32 +233,53 @@ export function MatchClient({
 
         if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
-        // Check for opponent's move to reveal (US2)
-        const opponentMove = nextSummary.moves.find(
-          (m) => m.playerId !== currentPlayerId,
-        );
+        const sequence = deriveRevealSequence(nextSummary);
 
-        if (opponentMove) {
-          setOpponentRevealTiles([opponentMove.from, opponentMove.to]);
-          setAnimationPhase("revealing-opponent-move");
-          highlightTimerRef.current = setTimeout(() => {
-            // Transition to highlighting: clear reveal state (T023)
-            setOpponentRevealTiles(null);
-            setMoveLocked(false);
-            setLockedSwapTiles(null);
-            setAnimationPhase("highlighting");
-            highlightTimerRef.current = setTimeout(() => {
-              setAnimationPhase("showing-summary");
-              setSummary(nextSummary);
-            }, 800);
-          }, 1000);
-        } else {
-          setAnimationPhase("highlighting");
+        if (sequence.orderedMoves.length === 0) {
+          // No moves — show global highlights briefly before summary
+          setActiveRevealMove(null);
+          setActiveRevealHighlights(nextSummary.highlights);
+          setAnimationPhase("revealing-player-one");
           highlightTimerRef.current = setTimeout(() => {
             setAnimationPhase("showing-summary");
             setSummary(nextSummary);
-          }, 800);
+          }, 700);
+          return;
         }
+
+        // Step 1: reveal first submitter's swap + their word highlights
+        const firstMove = sequence.orderedMoves[0];
+        const firstHighlights = nextSummary.words
+          .filter((w) => w.playerId === firstMove.playerId)
+          .map((w) => w.coordinates);
+        setActiveRevealMove({ from: firstMove.from, to: firstMove.to });
+        setActiveRevealHighlights(firstHighlights);
+        setMoveLocked(false);
+        setLockedSwapTiles(null);
+        setAnimationPhase("revealing-player-one");
+        if (firstHighlights.length > 0) playWordDiscovery();
+
+        highlightTimerRef.current = setTimeout(() => {
+          if (sequence.orderedMoves.length > 1) {
+            // Step 2: reveal second submitter's swap + their word highlights
+            const secondMove = sequence.orderedMoves[1];
+            const secondHighlights = nextSummary.words
+              .filter((w) => w.playerId === secondMove.playerId)
+              .map((w) => w.coordinates);
+            setActiveRevealMove({ from: secondMove.from, to: secondMove.to });
+            setActiveRevealHighlights(secondHighlights);
+            setAnimationPhase("revealing-player-two");
+            if (secondHighlights.length > 0) playWordDiscovery();
+            highlightTimerRef.current = setTimeout(() => {
+              setAnimationPhase("showing-summary");
+              setSummary(nextSummary);
+            }, 700);
+          } else {
+            // Single submission — skip player-two reveal
+            setAnimationPhase("showing-summary");
+            setSummary(nextSummary);
+          }
+        }, 700);
       },
       onError: (error) => {
         console.error(
@@ -281,6 +323,7 @@ export function MatchClient({
     disconnectedPlayerId,
     applySnapshot,
     matchState.timers.playerA.playerId,
+    playWordDiscovery,
   ]);
 
   // ── Primary polling (only when Realtime is confirmed down) ────────
@@ -576,20 +619,27 @@ export function MatchClient({
             disabled={moveLocked}
             showLockBanner={moveLocked}
             lockedTiles={lockedSwapTiles}
-            opponentRevealTiles={animationPhase === "revealing-opponent-move" ? opponentRevealTiles : null}
+            opponentRevealTiles={
+              (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two") && activeRevealMove
+                ? [activeRevealMove.from, activeRevealMove.to]
+                : null
+            }
             scoredTileHighlights={
-              animationPhase === "highlighting"
-                ? (pendingSummary?.highlights ?? [])
+              (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two")
+                ? activeRevealHighlights
                 : []
             }
             highlightPlayerColors={
-              animationPhase === "highlighting"
+              (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two")
                 ? highlightPlayerColors
                 : {}
             }
             highlightDurationMs={800}
             onSwapComplete={handleSwapComplete}
             onSwapError={({ message }) => handleSwapError(message)}
+            onTileSelect={playTileSelect}
+            onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
+            onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
           />
 
           <GameChrome
@@ -617,7 +667,7 @@ export function MatchClient({
         {/* Round summary — right of board on >=900px, below on smaller.
              Container always rendered to reserve layout space (no shift). */}
         <div className="match-layout__summary">
-          {animationPhase !== "highlighting" && animationPhase !== "revealing-opponent-move" && summary && (
+          {animationPhase !== "revealing-player-one" && animationPhase !== "revealing-player-two" && summary && (
             <RoundSummaryPanel
               summary={summary}
               currentPlayerId={currentPlayerId}

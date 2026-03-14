@@ -142,8 +142,8 @@ describe("roundSummary scoring utilities", () => {
 
   it("includes moves in aggregated round summary", () => {
     const moves: RoundMove[] = [
-      { playerId: "player-a", from: { x: 2, y: 3 }, to: { x: 4, y: 3 } },
-      { playerId: "player-b", from: { x: 7, y: 1 }, to: { x: 7, y: 2 } },
+      { playerId: "player-a", from: { x: 2, y: 3 }, to: { x: 4, y: 3 }, submittedAt: "2026-01-01T00:00:00.000Z" },
+      { playerId: "player-b", from: { x: 7, y: 1 }, to: { x: 7, y: 2 }, submittedAt: "2026-01-01T00:00:01.000Z" },
     ];
 
     const summary = aggregateRoundSummary(
