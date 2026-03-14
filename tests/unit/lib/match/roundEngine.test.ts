@@ -430,9 +430,10 @@ describe("roundEngine.advanceRound", () => {
 
     // T007b: deductTimerMs clamps to 0 when elapsed > remaining
     it("T007b: clamps deducted timer to 0 when elapsed exceeds remaining time", async () => {
-        // player-a has 10s, round started 30s ago, submitted at start of round
-        const roundStart = new Date("2026-02-25T10:00:00Z");
-        const playerASubmittedAt = new Date("2026-02-25T10:00:30Z"); // 30s elapsed, but only 10s remaining
+        // player-a has 10s, round started 30s ago, submitted 30s after start
+        const now = Date.now();
+        const roundStart = new Date(now - 30_000); // 30s ago
+        const playerASubmittedAt = new Date(now); // submitted just now (30s after round start)
 
         setupSupabase(
             [
@@ -453,7 +454,7 @@ describe("roundEngine.advanceRound", () => {
                     from_y: 5,
                     to_x: 5,
                     to_y: 6,
-                    submitted_at: new Date("2026-02-25T10:00:05Z").toISOString(),
+                    submitted_at: new Date(now - 25_000).toISOString(),
                     status: "pending",
                 },
             ],
@@ -514,8 +515,9 @@ describe("roundEngine.advanceRound", () => {
 
     // T017: timeout-pass synthesis when absent player's clock expired
     it("T017: inserts synthetic timeout submission when 1 submission exists and absent player's clock is expired", async () => {
-        // Round started 10 minutes ago, player-b timer was only 60 seconds → expired
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        // Round started 2 minutes ago, player-b timer was only 60s → expired,
+        // but player-a has 300s remaining → NOT expired (only player-b flagged).
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
         setupSupabase(
             [
                 {
@@ -529,8 +531,8 @@ describe("roundEngine.advanceRound", () => {
                     status: "pending",
                 },
             ],
-            { player_b_timer_ms: 60_000 }, // player-b only had 60s, expired
-            { started_at: tenMinutesAgo },
+            { player_b_timer_ms: 60_000 }, // player-b only had 60s, expired; player-a default 300s, not expired
+            { started_at: twoMinutesAgo },
         );
 
         const result = await advanceRound("match-1");
@@ -551,7 +553,7 @@ describe("roundEngine.advanceRound", () => {
         );
     });
 
-    // T027: both-flagged — 0 submissions and both clocks expired → complete match
+    // T027: both-flagged — both clocks expired → complete match (regardless of submissions)
     it("T027: completes match with timeout when both clocks are expired and no submissions exist", async () => {
         const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
         vi.mocked(completeMatchInternal).mockClear();
@@ -567,6 +569,35 @@ describe("roundEngine.advanceRound", () => {
 
         expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "timeout");
         expect(result).toMatchObject({ status: "completed" });
+    });
+
+    // T027b: both-flagged with 1 submission — both clocks expired → still complete match immediately
+    it("T027b: completes match with timeout when both clocks expired even if one player already submitted", async () => {
+        const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
+        vi.mocked(completeMatchInternal).mockClear();
+
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        setupSupabase(
+            [
+                {
+                    id: "sub-a",
+                    player_id: "player-a",
+                    from_x: 0,
+                    from_y: 0,
+                    to_x: 0,
+                    to_y: 1,
+                    submitted_at: new Date(Date.now() - 9 * 60 * 1000).toISOString(),
+                    status: "pending",
+                },
+            ],
+            { player_a_timer_ms: 60_000, player_b_timer_ms: 60_000 }, // both only had 60s
+            { started_at: tenMinutesAgo }, // round started 10 min ago → both expired
+        );
+
+        const result = await advanceRound("match-1");
+
+        expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "timeout");
+        expect(result).toMatchObject({ status: "completed", reason: "both_players_flagged" });
     });
 
     // T009a: no synthesis when both players have submitted
@@ -602,13 +633,13 @@ describe("roundEngine.advanceRound", () => {
         );
     });
 
-    // T028: ends match immediately when both timers deduct to 0 after round resolves
-    it("T028: ends match with 'timeout' when both timers deduct to 0 after round resolves", async () => {
+    // T028: ends match immediately via both-flagged when both clocks expired (1 submission)
+    it("T028: ends match with 'timeout' via both-flagged early exit when both clocks are expired", async () => {
         const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
         vi.mocked(completeMatchInternal).mockClear();
 
-        const roundStart = new Date("2026-01-01T00:00:00.000Z");
-        // B's timer is 500ms; B submitted at exactly the 500ms mark → deducts to 0
+        // Round started 2s ago. A has 0ms (exhausted), B has 500ms (expired after 2s elapsed).
+        const roundStart = new Date(Date.now() - 2_000);
         const bSubmittedAt = new Date(roundStart.getTime() + 500).toISOString();
 
         setupSupabase(
@@ -624,16 +655,16 @@ describe("roundEngine.advanceRound", () => {
                     status: "pending",
                 },
             ],
-            { player_a_timer_ms: 0, player_b_timer_ms: 500 }, // A already exhausted, B uses last 500ms
+            { player_a_timer_ms: 0, player_b_timer_ms: 500 }, // A already exhausted, B 500ms expired
             { started_at: roundStart.toISOString() },
         );
 
         const result = await advanceRound("match-1");
 
-        // Both timers deduct to 0 → must complete with "timeout", not create a zombie round
+        // Both clocks expired → completes immediately via both-flagged path
         expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "timeout");
         expect(roundsInsert).not.toHaveBeenCalled();
-        expect(result).toMatchObject({ status: "advanced", isGameOver: true });
+        expect(result).toMatchObject({ status: "completed", reason: "both_players_flagged" });
     });
 
     // T028b: game continues when only one timer is exhausted
@@ -641,9 +672,9 @@ describe("roundEngine.advanceRound", () => {
         const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
         vi.mocked(completeMatchInternal).mockClear();
 
-        const roundStart = new Date("2026-01-01T00:00:00.000Z");
-        // B submitted at 200ms, B timer is 1000ms → 800ms remaining after deduction
-        const bSubmittedAt = new Date(roundStart.getTime() + 200).toISOString();
+        // Round started 200ms ago. Player-a: 0ms → expired. Player-b: 60_000ms → NOT expired.
+        const roundStart = new Date(Date.now() - 200);
+        const bSubmittedAt = new Date(roundStart.getTime() + 100).toISOString();
 
         setupSupabase(
             [
@@ -658,13 +689,13 @@ describe("roundEngine.advanceRound", () => {
                     status: "pending",
                 },
             ],
-            { player_a_timer_ms: 0, player_b_timer_ms: 1000 },
+            { player_a_timer_ms: 0, player_b_timer_ms: 60_000 },
             { started_at: roundStart.toISOString() },
         );
 
         await advanceRound("match-1");
 
-        // B still has 800ms → game must not end with "timeout"
+        // B still has ~59_900ms → game must not end with "timeout"
         expect(completeMatchInternal).not.toHaveBeenCalledWith(expect.anything(), "timeout");
         expect(roundsInsert).toHaveBeenCalled();
     });
@@ -674,7 +705,10 @@ describe("roundEngine.advanceRound", () => {
         const { completeMatchInternal } = await import("@/app/actions/match/completeMatch");
         vi.mocked(completeMatchInternal).mockClear();
 
-        const roundStart = new Date("2026-01-01T00:00:00.000Z");
+        // Round started 5s ago. Both players have 300s → neither clock expired at check time.
+        // But submission timestamps use 300s elapsed so timers deduct to 0 after resolution.
+        const now = Date.now();
+        const roundStart = new Date(now - 5_000);
         const aSubmittedAt = new Date(roundStart.getTime() + 300_000).toISOString();
         const bSubmittedAt = new Date(roundStart.getTime() + 300_000).toISOString();
 
@@ -713,9 +747,10 @@ describe("roundEngine.advanceRound", () => {
 
     // T020: timer deduction after round resolves
     it("T020: deducts elapsed time from player timers after round resolves", async () => {
-        const roundStart = new Date("2026-02-25T10:00:00Z");
-        const playerASubmittedAt = new Date("2026-02-25T10:00:30Z"); // 30s after start
-        const playerBSubmittedAt = new Date("2026-02-25T10:00:45Z"); // 45s after start
+        const now = Date.now();
+        const roundStart = new Date(now - 60_000); // 1 minute ago (within 300s timer)
+        const playerASubmittedAt = new Date(roundStart.getTime() + 30_000); // 30s after start
+        const playerBSubmittedAt = new Date(roundStart.getTime() + 45_000); // 45s after start
 
         setupSupabase(
             [
