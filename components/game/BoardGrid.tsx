@@ -55,6 +55,12 @@ interface BoardGridProps {
     message: string;
     grid: BoardGridType;
   }) => void;
+  /** Called on every tile selection click (for audio feedback). */
+  onTileSelect?: () => void;
+  /** Called when a swap is accepted by the server (for audio feedback). */
+  onValidSwap?: () => void;
+  /** Called when a swap is rejected or a frozen tile is clicked (for audio feedback). */
+  onInvalidMove?: () => void;
 }
 
 type SelectedTile = {
@@ -155,6 +161,9 @@ export function BoardGrid({
   opponentRevealTiles = null,
   onSwapComplete,
   onSwapError,
+  onTileSelect,
+  onValidSwap,
+  onInvalidMove,
 }: BoardGridProps) {
   if (!grid || grid.length === 0) {
     return <BoardGridSkeleton className={className} />;
@@ -177,6 +186,9 @@ export function BoardGrid({
       opponentRevealTiles={opponentRevealTiles}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
+      onTileSelect={onTileSelect}
+      onValidSwap={onValidSwap}
+      onInvalidMove={onInvalidMove}
     />
   );
 }
@@ -197,6 +209,9 @@ function BoardGridActive({
   opponentRevealTiles = null,
   onSwapComplete,
   onSwapError,
+  onTileSelect,
+  onValidSwap,
+  onInvalidMove,
 }: BoardGridProps & { grid: BoardGridType }) {
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
@@ -272,6 +287,11 @@ function BoardGridActive({
           setCurrentGrid(result.grid);
         }
 
+        if (result.status === "accepted") {
+          onValidSwap?.();
+        } else {
+          onInvalidMove?.();
+        }
         onSwapComplete?.({ move: moveRequest, result });
       } catch (error) {
         // Reverse the optimistic swap on error
@@ -302,6 +322,7 @@ function BoardGridActive({
             ? "Network error while submitting swap. Please try again."
             : message;
 
+        onInvalidMove?.();
         onSwapError?.({
           move: moveRequest,
           message: normalizedMessage,
@@ -311,7 +332,7 @@ function BoardGridActive({
         setIsSubmitting(false);
       }
     },
-    [currentGrid, matchId, onSwapComplete, onSwapError]
+    [currentGrid, matchId, onSwapComplete, onSwapError, onValidSwap, onInvalidMove]
   );
 
   // FLIP animation state: stored position deltas from before the grid swap
@@ -424,6 +445,7 @@ function BoardGridActive({
       const coordinate = { x: colIndex, y: rowIndex } as SelectedTile;
 
       if (!selected) {
+        onTileSelect?.();
         setSelected(coordinate);
         return;
       }
@@ -446,15 +468,15 @@ function BoardGridActive({
           setInvalidTiles(null);
           invalidTimerRef.current = null;
         }, 400);
+        onInvalidMove?.();
         setSelected(null);
-        // Play optional audio error cue here if ever implemented (FR-A-001)
         return;
       }
 
       setSelected(null);
       animateSwap(selected, coordinate);
     },
-    [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles]
+    [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles, onTileSelect, onInvalidMove]
   );
 
   const boardSize = useMemo(

@@ -1,19 +1,19 @@
 .board-grid__wrapper {
-  /* Accounts for root header (~80px) + layout padding (112px) + both chrome bars (~88px).
-     Total non-board overhead ≈ 280px. Formula subtracts 2rem separately, so 260px here. */
-  --chrome-height: 260px;
+  /* Accounts for root header (~90px, includes gear menu row) + layout padding (112px) + both chrome bars (~88px).
+     Total non-board overhead ≈ 290px. Formula subtracts 2rem separately, so 270px here.
+     width: min(100%, --board-max-h) picks the smaller of available width vs height budget,
+     then aspect-ratio: 1 locks height = width.  Grid rows use minmax(0, 1fr) to match
+     columns — prevents content-based minimum from breaking the square. */
+  --chrome-height: 270px;
   --board-max-h: calc(100dvh - var(--chrome-height) - 2rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  width: 100%;
-  max-width: var(--board-max-h);
-  /* Explicit height fixes Safari's aspect-ratio bug on flex containers
-     (aspect-ratio alone doesn't constrain height for display:flex in WebKit). */
-  height: auto;
-  max-height: var(--board-max-h);
+  width: min(100%, var(--board-max-h));
   aspect-ratio: 1;
+  flex-shrink: 0;
+  overflow: hidden; /* Enforce aspect-ratio as hard limit — safe with minmax(0,1fr) rows */
 }
 
 .board-grid {
@@ -22,13 +22,13 @@
   --board-size: 12;
   display: grid;
   grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
-  /* Explicit row tracks prevent sub-pixel accumulation: 10 rows × rounding error
-     can exceed the wrapper height, causing clipping or overflow.  1fr rows are
-     computed directly from the grid's height rather than accumulated from cells. */
-  grid-template-rows: repeat(var(--board-size), 1fr);
+  /* minmax(0, 1fr) rows — must match columns so cells stay square.
+     Plain 1fr is shorthand for minmax(auto, 1fr) whose auto minimum
+     lets cell content push rows taller than columns, breaking squareness. */
+  grid-template-rows: repeat(var(--board-size), minmax(0, 1fr));
   gap: var(--board-grid-gap);
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1; /* Grid itself must be square — independent of wrapper height */
   padding: clamp(0.75rem, 1vw, 1rem);
   border-radius: 1rem;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
@@ -118,10 +118,10 @@
 }
 
 .board-grid__cell--selected {
-  border-color: rgba(59, 130, 246, 0.9);
+  border-color: rgba(56, 189, 248, 0.9);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 0 0 3px rgba(59, 130, 246, 0.35),
+    0 0 0 3px rgba(56, 189, 248, 0.35),
     inset 0 -4px 12px rgba(15, 23, 42, 0.35);
 }
 
@@ -431,7 +431,7 @@
 
 @media (max-width: 768px) {
   .board-grid__wrapper {
-    --chrome-height: 280px;
+    --chrome-height: 290px;
   }
 
   .board-grid {
@@ -442,8 +442,7 @@
 
 @media (max-width: 480px) {
   .board-grid__wrapper {
-    --chrome-height: 300px;
-    overflow-x: auto;
+    --chrome-height: 310px;
   }
 
   .board-grid {

@@ -197,6 +197,7 @@ export async function loadMatchState(
           round_number: 1,
           state: "collecting",
           board_snapshot_before: initialBoard,
+          started_at: new Date().toISOString(),
         },
         { onConflict: "match_id,round_number" },
       );

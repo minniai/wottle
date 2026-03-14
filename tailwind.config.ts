@@ -16,7 +16,7 @@ const config: Config = {
           highlight: "#38bdf8",
         },
         player: {
-          a: "#3B82F6",
+          a: "#38BDF8",
           b: "#EF4444",
         },
       },

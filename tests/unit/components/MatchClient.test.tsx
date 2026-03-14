@@ -374,8 +374,8 @@ const mockRoundSummary: RoundSummary = {
 const mockRoundSummaryWithMoves: RoundSummary = {
   ...mockRoundSummary,
   moves: [
-    { playerId: "player-1", from: { x: 2, y: 3 }, to: { x: 4, y: 3 } },
-    { playerId: "player-2", from: { x: 7, y: 1 }, to: { x: 7, y: 2 } },
+    { playerId: "player-1", from: { x: 2, y: 3 }, to: { x: 4, y: 3 }, submittedAt: "2026-01-01T00:00:00.000Z" },
+    { playerId: "player-2", from: { x: 7, y: 1 }, to: { x: 7, y: 2 }, submittedAt: "2026-01-01T00:00:01.000Z" },
   ],
 };
 
@@ -410,7 +410,7 @@ describe("MatchClient animation phase machine (US2)", () => {
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
   });
 
-  test("RoundSummaryPanel IS rendered after 800ms timer fires", async () => {
+  test("RoundSummaryPanel IS rendered after 700ms timer fires", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -430,7 +430,7 @@ describe("MatchClient animation phase machine (US2)", () => {
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(801);
+      await vi.advanceTimersByTimeAsync(701);
     });
 
     expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
@@ -637,9 +637,9 @@ describe("MatchClient move lock (US1)", () => {
   });
 });
 
-// ─── MatchClient opponent reveal tests (US2) ────────────────────────────────
+// ─── MatchClient sequential reveal tests (US1) ───────────────────────────────
 
-describe("MatchClient opponent reveal (US2)", () => {
+describe("MatchClient sequential reveal (US1)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockMatchCallbacks.onSummary = null;
@@ -650,7 +650,7 @@ describe("MatchClient opponent reveal (US2)", () => {
     vi.restoreAllMocks();
   });
 
-  test("T014: phases transition idle → revealing-opponent-move → highlighting → showing-summary", async () => {
+  test("T014: phases transition idle → revealing-player-one → revealing-player-two → showing-summary", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -665,27 +665,23 @@ describe("MatchClient opponent reveal (US2)", () => {
 
     act(() => { mockMatchCallbacks.onSummary!(mockRoundSummaryWithMoves); });
 
-    // Phase 1: revealing-opponent-move — no scored highlights, no summary panel
+    // Phase 1: revealing-player-one — no summary panel
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-    const scoredDuringReveal = document.querySelectorAll(".board-grid__cell--scored");
-    expect(scoredDuringReveal).toHaveLength(0);
 
-    // Advance past reveal timer (1000ms) → transitions to "highlighting"
-    await act(async () => { await vi.advanceTimersByTimeAsync(1001); });
+    // Advance past first reveal timer (700ms) → transitions to "revealing-player-two"
+    await act(async () => { await vi.advanceTimersByTimeAsync(701); });
 
-    // Phase 2: highlighting — scored highlights ARE active, no summary panel
+    // Phase 2: revealing-player-two — still no summary panel
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-    const scoredDuringHighlight = document.querySelectorAll(".board-grid__cell--scored");
-    expect(scoredDuringHighlight.length).toBeGreaterThan(0);
 
-    // Advance past highlight timer (800ms) → transitions to "showing-summary"
-    await act(async () => { await vi.advanceTimersByTimeAsync(801); });
+    // Advance past second reveal timer (700ms) → transitions to "showing-summary"
+    await act(async () => { await vi.advanceTimersByTimeAsync(701); });
 
     // Phase 3: showing-summary — summary panel IS shown
     expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
   });
 
-  test("T015: opponent's swapped tiles get opponent-reveal class during reveal phase", async () => {
+  test("T015: first submitter's swapped tiles get opponent-reveal class during revealing-player-one phase", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -700,10 +696,10 @@ describe("MatchClient opponent reveal (US2)", () => {
 
     act(() => { mockMatchCallbacks.onSummary!(mockRoundSummaryWithMoves); });
 
-    // Opponent is player-2, their move is (7,1)→(7,2)
+    // player-1 submitted first (submittedAt 00:00), their move is (2,3)→(4,3)
     const tiles = screen.getAllByTestId("board-tile");
-    expect(tiles[1 * 10 + 7]).toHaveClass("board-grid__cell--opponent-reveal");
-    expect(tiles[2 * 10 + 7]).toHaveClass("board-grid__cell--opponent-reveal");
+    expect(tiles[3 * 10 + 2]).toHaveClass("board-grid__cell--opponent-reveal");
+    expect(tiles[3 * 10 + 4]).toHaveClass("board-grid__cell--opponent-reveal");
   });
 });
 

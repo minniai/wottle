@@ -163,11 +163,14 @@ export async function advanceRound(matchId: string) {
 
     if (subError) throw new Error("Failed to fetch submissions");
 
-    // 4.5. Both-flagged: 0 submissions + both clocks expired → end match immediately.
+    // 4.5. Both-flagged: both clocks expired → end match immediately.
     // This is the "both players ran out of time" scenario (chess: mutual flag).
-    // We complete the match on current scores rather than synthesizing passes and
-    // advancing, which would create a new round with both timers still at 0.
-    if (pendingSubmissions.length === 0 && (round as RoundRow).started_at) {
+    // We complete the match on current scores when fewer than 2 submissions exist
+    // — even if one player submitted before both timers hit zero, the match ends
+    // now rather than waiting for a second submission that can never arrive.
+    // When both players HAVE submitted (length === 2), the round proceeds normally
+    // because both moves were valid; timer deduction handles the end-of-game check.
+    if (pendingSubmissions.length < 2 && (round as RoundRow).started_at) {
         const roundStartedAt = new Date((round as RoundRow).started_at as string);
         const typedMatch = match as MatchRow;
         if (

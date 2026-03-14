@@ -69,6 +69,8 @@ export interface RoundMove {
   playerId: string;
   from: Coordinate;
   to: Coordinate;
+  /** ISO timestamp from move_submissions.created_at. Used to determine sequential reveal order. */
+  submittedAt: string;
 }
 
 export interface RoundSummary {
