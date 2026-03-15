@@ -1,29 +1,26 @@
+import type { RematchEvent } from "@/lib/types/match";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
-import { loadMatchState } from "./stateLoader";
-
-export async function publishMatchState(matchId: string) {
+export async function broadcastRematchEvent(
+  matchId: string,
+  event: RematchEvent,
+): Promise<void> {
   const supabase = getServiceRoleClient();
-  const state = await loadMatchState(supabase, matchId);
-  if (!state) {
-    return;
-  }
-
   const channel = supabase.channel(`match:${matchId}`);
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         channel
           .send({
             type: "broadcast",
-            event: "state",
-            payload: state,
+            event: "rematch",
+            payload: event,
           })
           .then((result) => {
             if (result === "error") {
               console.error(
-                "[MatchState] Failed to broadcast match snapshot",
+                "[Rematch] Failed to broadcast rematch event",
               );
             }
             supabase.removeChannel(channel);
@@ -32,12 +29,11 @@ export async function publishMatchState(matchId: string) {
       }
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         console.error(
-          `[MatchState] Channel subscription failed: ${status}`,
+          `[Rematch] Channel subscription failed: ${status}`,
         );
         supabase.removeChannel(channel);
-        resolve();
+        reject(new Error(`Channel subscription failed: ${status}`));
       }
     });
   });
 }
-

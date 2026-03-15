@@ -9,6 +9,26 @@ vi.mock("@/app/actions/match/requestRematch", () => ({
   requestRematchAction: vi.fn(),
 }));
 
+vi.mock("@/app/actions/match/respondToRematch", () => ({
+  acceptRematchAction: vi.fn(),
+  declineRematchAction: vi.fn(),
+  respondToRematchAction: vi.fn(),
+}));
+
+vi.mock("@/app/actions/match/cancelRematch", () => ({
+  cancelRematchAction: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/browser", () => ({
+  getBrowserSupabaseClient: () => ({
+    channel: () => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn(),
+    }),
+  }),
+}));
+
 import { FinalSummary } from "@/components/match/FinalSummary";
 import type { FinalSummaryProps } from "@/components/match/FinalSummary";
 
@@ -89,5 +109,63 @@ describe("FinalSummary", () => {
   it("T032: renders ended reason correctly for timeout", () => {
     render(<FinalSummary {...makeProps({ endedReason: "timeout" })} />);
     expect(screen.getByTestId("final-summary-ended-reason")).toHaveTextContent("Time expired");
+  });
+
+  it("T031: renders series badge when seriesContext has gameNumber > 1", () => {
+    render(
+      <FinalSummary
+        {...makeProps({
+          seriesContext: {
+            gameNumber: 2,
+            currentPlayerWins: 1,
+            opponentWins: 0,
+            draws: 0,
+          },
+        })}
+      />,
+    );
+    const badge = screen.getByTestId("series-badge");
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent("Game 2");
+    expect(badge).toHaveTextContent("You lead 1-0");
+  });
+
+  it("T031: renders series badge with tied score", () => {
+    render(
+      <FinalSummary
+        {...makeProps({
+          seriesContext: {
+            gameNumber: 3,
+            currentPlayerWins: 1,
+            opponentWins: 1,
+            draws: 0,
+          },
+        })}
+      />,
+    );
+    const badge = screen.getByTestId("series-badge");
+    expect(badge).toHaveTextContent("Game 3");
+    expect(badge).toHaveTextContent("Tied 1-1");
+  });
+
+  it("T032: does not render series badge when no seriesContext", () => {
+    render(<FinalSummary {...makeProps()} />);
+    expect(screen.queryByTestId("series-badge")).not.toBeInTheDocument();
+  });
+
+  it("T032: does not render series badge when gameNumber is 1", () => {
+    render(
+      <FinalSummary
+        {...makeProps({
+          seriesContext: {
+            gameNumber: 1,
+            currentPlayerWins: 0,
+            opponentWins: 0,
+            draws: 0,
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByTestId("series-badge")).not.toBeInTheDocument();
   });
 });

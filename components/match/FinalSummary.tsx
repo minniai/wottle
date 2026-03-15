@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { requestRematchAction } from "@/app/actions/match/requestRematch";
-import type { FrozenTileMap, MatchEndedReason, TopWord } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, SeriesContext, TopWord } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 import { BoardGrid as BoardGridComponent } from "@/components/game/BoardGrid";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
@@ -14,6 +13,10 @@ import {
   PLAYER_A_HIGHLIGHT,
   PLAYER_B_HIGHLIGHT,
 } from "@/lib/constants/playerColors";
+import { useRematchNegotiation } from "@/components/match/useRematchNegotiation";
+import { RematchBanner } from "@/components/match/RematchBanner";
+import { RematchInterstitial } from "@/components/match/RematchInterstitial";
+import { PlayerProfileModal } from "@/components/player/PlayerProfileModal";
 
 interface PlayerSummary {
   id: string;
@@ -24,6 +27,9 @@ interface PlayerSummary {
   timeUsedMs: number;
   frozenTileCount: number;
   topWords: TopWord[];
+  ratingBefore?: number;
+  ratingAfter?: number;
+  ratingDelta?: number;
 }
 
 export interface ScoreboardRow {
@@ -58,6 +64,8 @@ export interface FinalSummaryProps {
   frozenTiles?: FrozenTileMap;
   /** True when both players' timers expired (dual timeout). */
   isDualTimeout?: boolean;
+  /** Series context for rematch chains (game number, score). */
+  seriesContext?: SeriesContext;
 }
 
 function formatDuration(ms: number) {
@@ -101,6 +109,47 @@ function TopWordsList({ words }: { words: TopWord[] }) {
   );
 }
 
+function RatingDeltaDisplay({
+  ratingDelta,
+  ratingAfter,
+}: {
+  ratingDelta?: number;
+  ratingAfter?: number;
+}) {
+  if (ratingDelta === undefined) {
+    return (
+      <p
+        className="mt-1 text-sm text-white/40 italic"
+        data-testid="rating-pending"
+      >
+        Rating update pending
+      </p>
+    );
+  }
+
+  const sign = ratingDelta > 0 ? "+" : "";
+  const color =
+    ratingDelta > 0
+      ? "text-emerald-400"
+      : ratingDelta < 0
+        ? "text-rose-400"
+        : "text-white/60";
+
+  return (
+    <p className="mt-1 text-sm" data-testid="rating-delta">
+      <span className={`font-semibold ${color}`}>
+        {sign}
+        {ratingDelta}
+      </span>
+      {ratingAfter !== undefined && (
+        <span className="ml-2 text-white/50">
+          → {ratingAfter}
+        </span>
+      )}
+    </p>
+  );
+}
+
 type ActiveTab = "overview" | "round-history";
 
 export function FinalSummary({
@@ -114,12 +163,12 @@ export function FinalSummary({
   board,
   frozenTiles,
   isDualTimeout = false,
+  seriesContext,
 }: FinalSummaryProps) {
   const router = useRouter();
-  const [isRematching, startRematch] = useTransition();
-  const [rematchError, setRematchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
+  const [profilePlayerId, setProfilePlayerId] = useState<string | null>(null);
 
   const winner = useMemo(() => players.find((player) => player.id === winnerId), [
     players,
@@ -127,9 +176,23 @@ export function FinalSummary({
   ]);
 
   const currentPlayer = players.find((player) => player.id === currentPlayerId);
+  const opponent = players.find((player) => player.id !== currentPlayerId);
 
   const playerA = players[0];
   const playerB = players[1];
+
+  const {
+    phase: rematchPhase,
+    requestRematch: handleRematch,
+    acceptRematch,
+    declineRematch,
+    error: rematchError,
+    requesterName,
+  } = useRematchNegotiation(
+    matchId,
+    currentPlayerId,
+    opponent?.displayName ?? "Opponent",
+  );
 
   const usernameMap = useMemo(
     () => Object.fromEntries(players.map((p) => [p.id, p.displayName])),
@@ -165,21 +228,52 @@ export function FinalSummary({
     setHighlightPlayerColors(colors);
   };
 
-  const handleRematch = () => {
-    setRematchError(null);
-    startRematch(async () => {
-      try {
-        const result = await requestRematchAction(matchId);
-        router.push(`/match/${result.matchId}`);
-      } catch (error) {
-        setRematchError(
-          error instanceof Error ? error.message : "Unable to start rematch.",
-        );
-      }
-    });
-  };
+  const isRematchDisabled =
+    rematchPhase !== "idle" && rematchPhase !== "incoming";
+
+  function rematchButtonLabel(): string {
+    switch (rematchPhase) {
+      case "requesting":
+        return "Requesting...";
+      case "waiting":
+        return "Waiting for opponent...";
+      case "declined":
+        return "Opponent declined";
+      case "expired":
+        return "No response — returning to lobby";
+      case "accepted":
+      case "interstitial":
+        return "Starting new game...";
+      default:
+        return "Rematch";
+    }
+  }
+
+  function seriesBadgeText(): string | null {
+    if (!seriesContext || seriesContext.gameNumber <= 1) return null;
+    const { currentPlayerWins, opponentWins, draws } = seriesContext;
+    let scoreText: string;
+    if (currentPlayerWins > opponentWins) {
+      scoreText = `You lead ${currentPlayerWins}-${opponentWins}`;
+    } else if (opponentWins > currentPlayerWins) {
+      scoreText = `${opponent?.displayName ?? "Opponent"} leads ${opponentWins}-${currentPlayerWins}`;
+    } else {
+      scoreText = `Tied ${currentPlayerWins}-${opponentWins}`;
+    }
+    if (draws > 0) {
+      scoreText += ` (${draws} draw${draws > 1 ? "s" : ""})`;
+    }
+    return `Game ${seriesContext.gameNumber} — ${scoreText}`;
+  }
 
   return (
+    <>
+    {profilePlayerId && (
+      <PlayerProfileModal
+        playerId={profilePlayerId}
+        onClose={() => setProfilePlayerId(null)}
+      />
+    )}
     <section
       className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-slate-950/60 sm:p-8"
       data-testid="final-summary-view"
@@ -283,6 +377,27 @@ export function FinalSummary({
         </div>
       )}
 
+      {rematchPhase === "interstitial" && <RematchInterstitial />}
+
+      {seriesBadgeText() && (
+        <p
+          className="mt-4 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-200"
+          data-testid="series-badge"
+        >
+          {seriesBadgeText()}
+        </p>
+      )}
+
+      {rematchPhase === "incoming" && requesterName && (
+        <div className="mt-4">
+          <RematchBanner
+            requesterName={requesterName}
+            onAccept={acceptRematch}
+            onDecline={declineRematch}
+          />
+        </div>
+      )}
+
       {rematchError && (
         <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
           {rematchError}
@@ -294,10 +409,10 @@ export function FinalSummary({
           type="button"
           className="rounded-2xl bg-emerald-500 px-5 py-3 text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
           onClick={handleRematch}
-          disabled={isRematching}
+          disabled={isRematchDisabled}
           data-testid="final-summary-rematch"
         >
-          {isRematching ? "Creating match…" : "Rematch"}
+          {rematchButtonLabel()}
         </button>
         <button
           type="button"
@@ -322,9 +437,13 @@ export function FinalSummary({
                 : "border-white/10 bg-white/5"
             }`}
           >
-            <p className="text-xs uppercase tracking-wide text-white/60">
+            <button
+              type="button"
+              className="text-xs uppercase tracking-wide text-white/60 hover:text-emerald-300 transition"
+              onClick={() => setProfilePlayerId(player.id)}
+            >
               {player.id === currentPlayerId ? "You" : player.displayName}
-            </p>
+            </button>
             <p className="mt-2 text-4xl font-bold text-white">{player.score}</p>
             <p className="mt-1 text-sm text-white/70">
               Time used: {formatDuration(player.timeUsedMs)}
@@ -332,6 +451,10 @@ export function FinalSummary({
             <p className="mt-1 text-sm text-white/70">
               {player.frozenTileCount} tiles frozen
             </p>
+            <RatingDeltaDisplay
+              ratingDelta={player.ratingDelta}
+              ratingAfter={player.ratingAfter}
+            />
             {player.topWords.length > 0 && (
               <div className="mt-3">
                 <p className="text-xs uppercase tracking-wide text-white/40">
@@ -434,5 +557,6 @@ export function FinalSummary({
         />
       </div>
     </section>
+    </>
   );
 }
