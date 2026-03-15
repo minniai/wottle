@@ -125,9 +125,9 @@
 
 **Purpose**: Integration validation, E2E tests, verification
 
-- [ ] T036 Run `pnpm typecheck` and fix any type errors across all modified files
-- [ ] T037 Run `pnpm lint` and fix any lint warnings across all modified files
-- [ ] T038 Run `pnpm test` and verify all unit tests pass (including new rematchService tests)
+- [x] T036 Run `pnpm typecheck` and fix any type errors across all modified files
+- [x] T037 Run `pnpm lint` and fix any lint warnings across all modified files
+- [x] T038 Run `pnpm test` and verify all unit tests pass (including new rematchService tests)
 - [ ] T039 Apply migration with `pnpm supabase:migrate` and verify schema with `pnpm supabase:verify`
 - [ ] T040 Run quickstart.md manual validation — complete full rematch flow (request → accept → new match → series badge)
 
