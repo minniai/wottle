@@ -68,6 +68,20 @@ describe("validateRematchRequest", () => {
     ).toBeNull();
   });
 
+  it("FR-012: allows rematch for forfeited match (state=completed)", () => {
+    // Forfeited matches have state="completed" with ended_reason="forfeit"
+    // validateRematchRequest only checks state, so this should pass
+    expect(
+      validateRematchRequest(
+        "completed",
+        "player-a",
+        "player-b",
+        "player-a",
+        null,
+      ),
+    ).toBeNull();
+  });
+
   it("rejects non-completed match", () => {
     const result = validateRematchRequest(
       "in_progress",

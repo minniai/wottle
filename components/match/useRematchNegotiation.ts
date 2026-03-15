@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { cancelRematchAction } from "@/app/actions/match/cancelRematch";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
-import { respondToRematchAction } from "@/app/actions/match/respondToRematch";
+import {
+  acceptRematchAction,
+  declineRematchAction,
+} from "@/app/actions/match/respondToRematch";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import type { RematchEvent } from "@/lib/types/match";
@@ -46,6 +50,10 @@ export function useRematchNegotiation(
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interstitialRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<ReturnType<typeof subscribeToMatchChannel> | null>(null);
+  const phaseRef = useRef<RematchPhase>(phase);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
@@ -118,6 +126,12 @@ export function useRematchNegotiation(
     return () => {
       clearTimers();
       channel.unsubscribe();
+      // FR-018: cancel pending request when requester navigates away
+      if (phaseRef.current === "waiting") {
+        cancelRematchAction(matchId).catch(() => {
+          // Fire-and-forget; ignore errors on unmount
+        });
+      }
     };
   }, [matchId, currentPlayerId, opponentDisplayName, clearTimers, startInterstitial, router]);
 
@@ -158,7 +172,7 @@ export function useRematchNegotiation(
     setError(null);
 
     try {
-      const result = await respondToRematchAction(matchId, true);
+      const result = await acceptRematchAction(matchId);
 
       if (result.status === "accepted") {
         startInterstitial(result.matchId);
@@ -181,7 +195,7 @@ export function useRematchNegotiation(
     setError(null);
 
     try {
-      await respondToRematchAction(matchId, false);
+      await declineRematchAction(matchId);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to decline rematch.",

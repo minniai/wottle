@@ -4,6 +4,9 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
+
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { writeMatchLog } from "@/lib/match/logWriter";
 import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
@@ -11,6 +14,7 @@ import {
   fetchRematchRequest,
   updateRematchRequestStatus,
 } from "@/lib/match/rematchRepository";
+import type { RematchRequest } from "@/lib/types/match";
 import { bootstrapMatchRecord } from "@/lib/matchmaking/service";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
@@ -37,15 +41,19 @@ async function setPlayersInMatch(playerIds: string[]) {
     .in("player_id", playerIds);
 }
 
-export type RespondToRematchResult =
-  | { status: "accepted"; matchId: string }
-  | { status: "declined" }
-  | { status: "expired" };
+interface ValidatedRematchContext {
+  playerId: string;
+  request: RematchRequest;
+  supabase: SupabaseClient;
+}
 
-export async function respondToRematchAction(
+const matchIdSchema = z.string().uuid("Invalid match ID.");
+
+async function validateAndFetchRequest(
   matchId: string,
-  accept: boolean,
-): Promise<RespondToRematchResult> {
+): Promise<ValidatedRematchContext | { status: "expired" }> {
+  matchIdSchema.parse(matchId);
+
   const session = await readLobbySession();
   if (!session) {
     throw new Error("Authentication required.");
@@ -68,7 +76,9 @@ export async function respondToRematchAction(
   }
 
   if (request.responderId !== playerId) {
-    throw new Error("You are not the responder for this rematch request.");
+    throw new Error(
+      "You are not the responder for this rematch request.",
+    );
   }
 
   if (request.status !== "pending") {
@@ -76,7 +86,8 @@ export async function respondToRematchAction(
   }
 
   // Check staleness
-  const elapsed = Date.now() - new Date(request.createdAt).getTime();
+  const elapsed =
+    Date.now() - new Date(request.createdAt).getTime();
   if (elapsed > REMATCH_TIMEOUT_MS) {
     await updateRematchRequestStatus(supabase, request.id, "expired");
 
@@ -90,26 +101,21 @@ export async function respondToRematchAction(
     return { status: "expired" };
   }
 
-  if (!accept) {
-    await updateRematchRequestStatus(supabase, request.id, "declined");
+  return { playerId, request, supabase };
+}
 
-    await writeMatchLog(supabase, {
-      matchId,
-      eventType: "match.rematch.declined",
-      actorId: playerId,
-    });
+export type AcceptRematchResult =
+  | { status: "accepted"; matchId: string }
+  | { status: "expired" };
 
-    await broadcastRematchEvent(matchId, {
-      type: "rematch-declined",
-      matchId,
-      requesterId: request.requesterId,
-      status: "declined",
-    });
+export async function acceptRematchAction(
+  matchId: string,
+): Promise<AcceptRematchResult> {
+  const ctx = await validateAndFetchRequest(matchId);
+  if ("status" in ctx) return ctx;
 
-    return { status: "declined" };
-  }
+  const { request, supabase } = ctx;
 
-  // Accept: create new match
   const newMatchId = await bootstrapMatchRecord(supabase, {
     boardSeed: randomUUID(),
     playerAId: request.requesterId,
@@ -141,4 +147,53 @@ export async function respondToRematchAction(
   });
 
   return { status: "accepted", matchId: newMatchId };
+}
+
+export type DeclineRematchResult =
+  | { status: "declined" }
+  | { status: "expired" };
+
+export async function declineRematchAction(
+  matchId: string,
+): Promise<DeclineRematchResult> {
+  const ctx = await validateAndFetchRequest(matchId);
+  if ("status" in ctx) return ctx;
+
+  const { playerId, request, supabase } = ctx;
+
+  await updateRematchRequestStatus(supabase, request.id, "declined");
+
+  await writeMatchLog(supabase, {
+    matchId,
+    eventType: "match.rematch.declined",
+    actorId: playerId,
+  });
+
+  await broadcastRematchEvent(matchId, {
+    type: "rematch-declined",
+    matchId,
+    requesterId: request.requesterId,
+    status: "declined",
+  });
+
+  return { status: "declined" };
+}
+
+/**
+ * @deprecated Use acceptRematchAction or declineRematchAction instead.
+ * Kept for backward compatibility with existing tests.
+ */
+export type RespondToRematchResult =
+  | { status: "accepted"; matchId: string }
+  | { status: "declined" }
+  | { status: "expired" };
+
+export async function respondToRematchAction(
+  matchId: string,
+  accept: boolean,
+): Promise<RespondToRematchResult> {
+  if (accept) {
+    return acceptRematchAction(matchId);
+  }
+  return declineRematchAction(matchId);
 }

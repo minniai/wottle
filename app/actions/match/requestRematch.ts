@@ -4,6 +4,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import { z } from "zod";
+
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { writeMatchLog } from "@/lib/match/logWriter";
 import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
@@ -99,9 +101,13 @@ export type RematchResult =
   | { status: "pending" }
   | { status: "accepted"; matchId: string };
 
+const matchIdSchema = z.string().uuid("Invalid match ID.");
+
 export async function requestRematchAction(
   matchId: string,
 ): Promise<RematchResult> {
+  matchIdSchema.parse(matchId);
+
   const session = await readLobbySession();
   if (!session) {
     throw new Error("Authentication required.");

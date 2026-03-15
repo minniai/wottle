@@ -10,7 +10,13 @@ vi.mock("@/app/actions/match/requestRematch", () => ({
 }));
 
 vi.mock("@/app/actions/match/respondToRematch", () => ({
+  acceptRematchAction: vi.fn(),
+  declineRematchAction: vi.fn(),
   respondToRematchAction: vi.fn(),
+}));
+
+vi.mock("@/app/actions/match/cancelRematch", () => ({
+  cancelRematchAction: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/browser", () => ({

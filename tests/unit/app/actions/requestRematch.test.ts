@@ -43,9 +43,9 @@ import {
 import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
 import { bootstrapMatchRecord } from "@/lib/matchmaking/service";
 
-const PLAYER_A = "player-a";
-const PLAYER_B = "player-b";
-const MATCH_ID = "match-1";
+const PLAYER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const PLAYER_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+const MATCH_ID = "11111111-1111-1111-1111-111111111111";
 
 function mockSession(playerId: string) {
   vi.mocked(readLobbySession).mockResolvedValue({
