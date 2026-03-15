@@ -148,10 +148,10 @@ describe("selectOptimalCombination", () => {
   });
 
   // T029b: Rejects word when swapped tile is adjacent to a frozen tile forming a 2-letter cross-sequence
-  // Regression for real-game scoring bug: "rám" was scored even though M at (7,1) was
-  // vertically adjacent to frozen Y at (7,2), forming "my" (2 letters — too short to be valid).
-  test("T029b: rejects word when end tile has 2-letter vertical cross-sequence with frozen tile", () => {
-    const localDict = new Set(["rám"]);
+  // that is NOT in the dictionary.
+  // "rám" creates cross "my" at M+frozen Y — "my" and "ym" are not valid words → violation.
+  test("T029b: rejects word when end tile has 2-letter vertical cross-sequence not in dictionary", () => {
+    const localDict = new Set(["rám"]); // "my"/"ym" not in dict
     const board = emptyBoard();
     // "rám" horizontal at row 1: r(5,1) á(6,1) m(7,1)
     board[1][5] = "r";
@@ -172,8 +172,48 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // m(7,1) + frozen y(7,2) = "my" (2 letters) → sub-minimum cross-word → violation → "rám" rejected
+    // m(7,1) + frozen y(7,2) = "my" → not in dictionary → violation → "rám" rejected
     expect(result).toHaveLength(0);
+  });
+
+  // T029c: Accepts word when it creates a 2-letter cross-sequence that IS a valid dictionary word.
+  // Real-game scenario: "pura" (vertical, up) creates cross "að" at the A tile adjacent to frozen Ð —
+  // "að" is a valid Icelandic word, so "pura" must NOT be rejected.
+  test("T029c: accepts word when 2-letter cross-sequence with frozen tile is a valid dictionary word", () => {
+    const localDict = new Set(["pura", "að"]); // both words valid
+    const board = emptyBoard();
+    // "pura" vertical (direction "up"): tiles at col 2, rows 1–4 (start=(2,4) for "up" direction)
+    board[1][2] = "a";
+    board[2][2] = "r";
+    board[3][2] = "u";
+    board[4][2] = "p";
+    // Frozen "ð" at (3,1) — directly right of a(2,1)
+    board[1][3] = "ð";
+    const frozenTiles: FrozenTileMap = {
+      "3,1": { owner: "player_b" },
+    };
+
+    const candidates = [
+      {
+        text: "pura",
+        displayText: "PURA",
+        direction: "up" as const,
+        start: { x: 2, y: 4 },
+        length: 4,
+        tiles: [{ x: 2, y: 4 }, { x: 2, y: 3 }, { x: 2, y: 2 }, { x: 2, y: 1 }],
+      },
+    ];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // a(2,1) + frozen ð(3,1) = "að" → IS in dictionary → no violation → "pura" accepted
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("pura");
   });
 
   // T030: Returns empty array when no valid combination exists
