@@ -1,10 +1,11 @@
 .board-grid__wrapper {
-  /* Accounts for root header (~90px, includes gear menu row) + layout padding (112px) + both chrome bars (~88px).
-     Total non-board overhead ≈ 290px. Formula subtracts 2rem separately, so 270px here.
+  /* Accounts for both GameChrome bars (~116px) + page vertical padding (48px) +
+     inter-element gaps (~48px) + safety margin. Total non-board overhead ≈ 320px.
+     Formula subtracts 2rem separately, so 288px here.
      width: min(100%, --board-max-h) picks the smaller of available width vs height budget,
-     then aspect-ratio: 1 locks height = width.  Grid rows use minmax(0, 1fr) to match
+     then aspect-ratio: 1 locks height = width. Grid rows use minmax(0, 1fr) to match
      columns — prevents content-based minimum from breaking the square. */
-  --chrome-height: 270px;
+  --chrome-height: 288px;
   --board-max-h: calc(100dvh - var(--chrome-height) - 2rem);
   display: flex;
   flex-direction: column;
@@ -13,7 +14,8 @@
   width: min(100%, var(--board-max-h));
   aspect-ratio: 1;
   flex-shrink: 0;
-  overflow: hidden; /* Enforce aspect-ratio as hard limit — safe with minmax(0,1fr) rows */
+  /* overflow: hidden removed — it was clipping the bottom row of tiles.
+     The inner .board-grid uses minmax(0, 1fr) rows so it self-constrains. */
 }
 
 .board-grid {
@@ -431,7 +433,7 @@
 
 @media (max-width: 768px) {
   .board-grid__wrapper {
-    --chrome-height: 290px;
+    --chrome-height: 310px;
   }
 
   .board-grid {
@@ -442,7 +444,7 @@
 
 @media (max-width: 480px) {
   .board-grid__wrapper {
-    --chrome-height: 310px;
+    --chrome-height: 330px;
   }
 
   .board-grid {

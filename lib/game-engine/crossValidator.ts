@@ -73,9 +73,6 @@ export function hasCrossWordViolation(
 
     const crossLength = beforeChars.length + 1 + afterChars.length;
     if (crossLength > 1) {
-      // A cross-sequence shorter than the minimum word length can never be a
-      // valid word — always a violation (consistent with deltaDetector.ts).
-      if (crossLength < minimumWordLength) return true;
       const crossWord = [
         ...beforeChars,
         board[tile.y][tile.x],
