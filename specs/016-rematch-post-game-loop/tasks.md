@@ -34,18 +34,18 @@
 
 ### Tests (TDD: write first, verify they fail)
 
-- [ ] T005 [P] Write unit tests for `detectSimultaneousRematch` in `tests/unit/lib/match/rematchService.test.ts` — pending request where caller is responder returns true; null/wrong-caller/non-pending returns false
-- [ ] T006 [P] Write unit tests for `validateRematchRequest` in `tests/unit/lib/match/rematchService.test.ts` — valid returns null; non-completed/non-participant/duplicate/already-processed return error messages; simultaneous (pending + caller is responder) returns null
-- [ ] T007 [P] Write unit tests for `walkRematchChain` in `tests/unit/lib/match/rematchService.test.ts` — single match, 3-match chain, circular reference protection
-- [ ] T008 [P] Write unit tests for `deriveSeriesContext` in `tests/unit/lib/match/rematchService.test.ts` — game 1 single match, game 3 with mixed wins, draws, opponent perspective
+- [x] T005 [P] Write unit tests for `detectSimultaneousRematch` in `tests/unit/lib/match/rematchService.test.ts` — pending request where caller is responder returns true; null/wrong-caller/non-pending returns false
+- [x] T006 [P] Write unit tests for `validateRematchRequest` in `tests/unit/lib/match/rematchService.test.ts` — valid returns null; non-completed/non-participant/duplicate/already-processed return error messages; simultaneous (pending + caller is responder) returns null
+- [x] T007 [P] Write unit tests for `walkRematchChain` in `tests/unit/lib/match/rematchService.test.ts` — single match, 3-match chain, circular reference protection
+- [x] T008 [P] Write unit tests for `deriveSeriesContext` in `tests/unit/lib/match/rematchService.test.ts` — game 1 single match, game 3 with mixed wins, draws, opponent perspective
 
 ### Implementation
 
-- [ ] T009 Implement `detectSimultaneousRematch` and `validateRematchRequest` pure functions in `lib/match/rematchService.ts`
-- [ ] T010 Implement `walkRematchChain` and `deriveSeriesContext` pure functions in `lib/match/rematchService.ts`
-- [ ] T011 [P] Implement `fetchRematchRequest`, `insertRematchRequest`, `updateRematchRequestStatus` in `lib/match/rematchRepository.ts`
-- [ ] T012 [P] Implement `fetchMatchChainForSeries` backward chain walker in `lib/match/rematchRepository.ts`
-- [ ] T013 [P] Implement `broadcastRematchEvent` in `lib/match/rematchBroadcast.ts` following `statePublisher.ts` pattern
+- [x] T009 Implement `detectSimultaneousRematch` and `validateRematchRequest` pure functions in `lib/match/rematchService.ts`
+- [x] T010 Implement `walkRematchChain` and `deriveSeriesContext` pure functions in `lib/match/rematchService.ts`
+- [x] T011 [P] Implement `fetchRematchRequest`, `insertRematchRequest`, `updateRematchRequestStatus` in `lib/match/rematchRepository.ts`
+- [x] T012 [P] Implement `fetchMatchChainForSeries` backward chain walker in `lib/match/rematchRepository.ts`
+- [x] T013 [P] Implement `broadcastRematchEvent` in `lib/match/rematchBroadcast.ts` following `statePublisher.ts` pattern
 
 **Checkpoint**: Foundation ready — pure logic tested, DB access and broadcast modules available
 
