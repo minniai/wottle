@@ -9,7 +9,7 @@ import {
 } from "@/lib/match/rematchService";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import type { FrozenTileMap, MatchEndedReason, ScoreTotals, SeriesContext } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, MatchRatingResult, ScoreTotals, SeriesContext } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 
 interface PlayerRecord {
@@ -98,6 +98,27 @@ async function fetchMatchSummary(matchId: string) {
         }
       : { playerA: 0, playerB: 0 };
 
+  const { data: ratingRows } = await supabase
+    .from("match_ratings")
+    .select(
+      "player_id, rating_before, rating_after, rating_delta, k_factor, match_result",
+    )
+    .eq("match_id", matchId);
+
+  const ratingMap = new Map<string, MatchRatingResult>(
+    (ratingRows ?? []).map((row) => [
+      row.player_id as string,
+      {
+        playerId: row.player_id as string,
+        ratingBefore: row.rating_before as number,
+        ratingAfter: row.rating_after as number,
+        ratingDelta: row.rating_delta as number,
+        kFactor: row.k_factor as number,
+        matchResult: row.match_result as "win" | "loss" | "draw",
+      },
+    ]),
+  );
+
   return {
     match,
     playerMap,
@@ -106,6 +127,7 @@ async function fetchMatchSummary(matchId: string) {
     topWordEntries: topWordEntries ?? [],
     roundMap,
     finalScores,
+    ratingMap,
     board:
       (lastRound?.board_snapshot_after as BoardGrid | null) ??
       (lastRound?.board_snapshot_before as BoardGrid | null) ??
@@ -173,10 +195,16 @@ export default async function MatchSummaryPage({
       frozenTileCount: frozenTileCounts.playerB,
       topWords: buildTopWords(summary.match.player_b_id),
     },
-  ].map((player) => ({
-    ...player,
-    timeUsedMs: Math.max(0, BASE_TIMER_MS - player.timeRemainingMs),
-  }));
+  ].map((player) => {
+    const rating = summary.ratingMap.get(player.id);
+    return {
+      ...player,
+      timeUsedMs: Math.max(0, BASE_TIMER_MS - player.timeRemainingMs),
+      ratingBefore: rating?.ratingBefore,
+      ratingAfter: rating?.ratingAfter,
+      ratingDelta: rating?.ratingDelta,
+    };
+  });
 
   const wordHistory = summary.wordEntries.map((entry) => ({
     roundNumber: summary.roundMap.get(entry.round_id as string) ?? 0,

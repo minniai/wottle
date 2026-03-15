@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 import type { PlayerIdentity } from "@/lib/types/match";
 import { LobbyCard } from "./LobbyCard";
 import { MatchmakerControls } from "./MatchmakerControls";
+import { PlayerProfileModal } from "@/components/player/PlayerProfileModal";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { getNextRovingIndex } from "@/lib/a11y/rovingFocus";
 
@@ -149,9 +150,18 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
     [players]
   );
 
+  const [profilePlayerId, setProfilePlayerId] = useState<string | null>(null);
+
   const statusLabel = buildStatusLabel(status, connectionMode, lastEventAt);
 
   return (
+    <>
+    {profilePlayerId && (
+      <PlayerProfileModal
+        playerId={profilePlayerId}
+        onClose={() => setProfilePlayerId(null)}
+      />
+    )}
     <section
       className="rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900/60 to-slate-950/80 p-6 text-sm text-white/70 shadow-2xl shadow-slate-950/40"
       data-testid="lobby-presence-list"
@@ -191,6 +201,8 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
                 onKeyDown={(event) => handleCardKeyDown(player.id, event)}
                 ariaLabel={accessibleLabel}
                 ref={(node) => registerCardRef(player.id, node)}
+                viewerRating={currentPlayer.eloRating ?? 1200}
+                onUsernameClick={setProfilePlayerId}
               />
             );
           })}
@@ -220,6 +232,7 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
         </div>
       )}
     </section>
+    </>
   );
 }
 

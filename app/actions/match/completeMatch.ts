@@ -10,6 +10,9 @@ import { getServiceRoleClient } from "@/lib/supabase/server";
 import type { MatchEndedReason, ScoreTotals, FrozenTileMap } from "@/lib/types/match";
 import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
 import { trackMatchResult } from "@/lib/observability/log";
+import { calculateElo, determineKFactor } from "@/lib/rating/calculateElo";
+import { persistRatingChanges } from "@/lib/rating/persistRatingChanges";
+import type { RatingChange, MatchRatingResult } from "@/lib/types/match";
 
 interface MatchRow {
   id: string;
@@ -29,6 +32,7 @@ export interface CompleteMatchResult {
   isDraw: boolean;
   scores: ScoreTotals;
   endedReason: MatchEndedReason;
+  ratingChanges?: RatingChange;
 }
 
 async function fetchMatch(client: ReturnType<typeof getServiceRoleClient>, matchId: string) {
@@ -128,6 +132,26 @@ export async function completeMatchInternal(
     })
     .eq("id", matchId);
 
+  // Calculate and persist Elo rating changes
+  let ratingChanges: RatingChange | undefined;
+  try {
+    ratingChanges = await applyRatingChanges(
+      supabase,
+      matchId,
+      match.player_a_id,
+      match.player_b_id,
+      result,
+    );
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        event: "rating.update.error",
+        matchId,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
+
   await resetPlayerStatuses(supabase, [match.player_a_id, match.player_b_id]);
 
   await writeMatchLog(supabase, {
@@ -136,6 +160,7 @@ export async function completeMatchInternal(
     metadata: {
       winnerId: result.winnerId,
       scores,
+      ratingChanges,
     },
   });
 
@@ -158,6 +183,7 @@ export async function completeMatchInternal(
     isDraw: result.isDraw,
     scores,
     endedReason: reason,
+    ratingChanges,
   };
 }
 
@@ -180,5 +206,84 @@ export async function completeMatchAction(
   }
 
   return completeMatchInternal(matchId, reason);
+}
+
+async function applyRatingChanges(
+  supabase: ReturnType<typeof getServiceRoleClient>,
+  matchId: string,
+  playerAId: string,
+  playerBId: string,
+  winnerResult: { winnerId: string | null; isDraw: boolean },
+): Promise<RatingChange> {
+  const { data: players, error } = await supabase
+    .from("players")
+    .select("id, elo_rating, games_played")
+    .in("id", [playerAId, playerBId]);
+
+  if (error || !players || players.length !== 2) {
+    throw new Error("Failed to fetch player ratings.");
+  }
+
+  const pA = players.find((p) => p.id === playerAId)!;
+  const pB = players.find((p) => p.id === playerBId)!;
+
+  const scoreA = winnerResult.isDraw
+    ? 0.5
+    : winnerResult.winnerId === playerAId
+      ? 1.0
+      : 0.0;
+  const scoreB = 1.0 - scoreA;
+
+  const kA = determineKFactor(pA.games_played);
+  const kB = determineKFactor(pB.games_played);
+
+  const eloA = calculateElo({
+    playerRating: pA.elo_rating,
+    opponentRating: pB.elo_rating,
+    actualScore: scoreA,
+    kFactor: kA,
+  });
+
+  const eloB = calculateElo({
+    playerRating: pB.elo_rating,
+    opponentRating: pA.elo_rating,
+    actualScore: scoreB,
+    kFactor: kB,
+  });
+
+  const resultA: MatchRatingResult = {
+    playerId: playerAId,
+    ratingBefore: pA.elo_rating,
+    ratingAfter: eloA.newRating,
+    ratingDelta: eloA.delta,
+    kFactor: kA,
+    matchResult: winnerResult.isDraw
+      ? "draw"
+      : winnerResult.winnerId === playerAId
+        ? "win"
+        : "loss",
+  };
+
+  const resultB: MatchRatingResult = {
+    playerId: playerBId,
+    ratingBefore: pB.elo_rating,
+    ratingAfter: eloB.newRating,
+    ratingDelta: eloB.delta,
+    kFactor: kB,
+    matchResult: winnerResult.isDraw
+      ? "draw"
+      : winnerResult.winnerId === playerBId
+        ? "win"
+        : "loss",
+  };
+
+  await persistRatingChanges(matchId, resultA, resultB);
+
+  return {
+    playerADelta: eloA.delta,
+    playerBDelta: eloB.delta,
+    playerARatingAfter: eloA.newRating,
+    playerBRatingAfter: eloB.newRating,
+  };
 }
 

@@ -243,6 +243,56 @@ export interface SeriesContext {
   draws: number;
 }
 
+// ─── Elo Rating Types (017-elo-rating-player-stats) ───────────────────
+
+export interface EloCalculationInput {
+  playerRating: number;
+  opponentRating: number;
+  /** 1.0 = win, 0.5 = draw, 0.0 = loss */
+  actualScore: number;
+  /** 32 for new players (<20 games), 16 for established */
+  kFactor: number;
+}
+
+export interface EloCalculationResult {
+  newRating: number;
+  delta: number;
+  expectedScore: number;
+}
+
+export interface MatchRatingResult {
+  playerId: string;
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingDelta: number;
+  kFactor: number;
+  matchResult: "win" | "loss" | "draw";
+}
+
+export interface PlayerStats {
+  eloRating: number;
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  /** wins / (wins + losses), null if no decisive games */
+  winRate: number | null;
+}
+
+export interface PlayerProfile {
+  identity: PlayerIdentity;
+  stats: PlayerStats;
+  /** Last 5 rating_after values, oldest first */
+  ratingTrend: number[];
+}
+
+export interface RatingChange {
+  playerADelta: number;
+  playerBDelta: number;
+  playerARatingAfter: number;
+  playerBRatingAfter: number;
+}
+
 // ─── Scoring Breakdown Types (003-word-engine-scoring) ────────────────
 
 /**

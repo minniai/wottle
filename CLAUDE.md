@@ -504,6 +504,7 @@ Key files:
 - Browser `localStorage` (sensory preferences only); existing Supabase PostgreSQL (the `rounds.started_at` column already exists — just not populated for round 1) (015-sensory-feedback)
 - TypeScript 5.x, Node.js 20, Next.js 16 (App Router) + Supabase JS v2, React 19+, Tailwind CSS 4.x, Zod (016-rematch-post-game-loop)
 - Supabase PostgreSQL — new `rematch_requests` table, `matches.rematch_of` column (016-rematch-post-game-loop)
+- Supabase PostgreSQL — existing `players` table (modified), new `match_ratings` table (017-elo-rating-player-stats)
 
 - TypeScript 5.x, React 19+, Next.js 16 (App Router)
 - Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)

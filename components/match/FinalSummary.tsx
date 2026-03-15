@@ -16,6 +16,7 @@ import {
 import { useRematchNegotiation } from "@/components/match/useRematchNegotiation";
 import { RematchBanner } from "@/components/match/RematchBanner";
 import { RematchInterstitial } from "@/components/match/RematchInterstitial";
+import { PlayerProfileModal } from "@/components/player/PlayerProfileModal";
 
 interface PlayerSummary {
   id: string;
@@ -26,6 +27,9 @@ interface PlayerSummary {
   timeUsedMs: number;
   frozenTileCount: number;
   topWords: TopWord[];
+  ratingBefore?: number;
+  ratingAfter?: number;
+  ratingDelta?: number;
 }
 
 export interface ScoreboardRow {
@@ -105,6 +109,47 @@ function TopWordsList({ words }: { words: TopWord[] }) {
   );
 }
 
+function RatingDeltaDisplay({
+  ratingDelta,
+  ratingAfter,
+}: {
+  ratingDelta?: number;
+  ratingAfter?: number;
+}) {
+  if (ratingDelta === undefined) {
+    return (
+      <p
+        className="mt-1 text-sm text-white/40 italic"
+        data-testid="rating-pending"
+      >
+        Rating update pending
+      </p>
+    );
+  }
+
+  const sign = ratingDelta > 0 ? "+" : "";
+  const color =
+    ratingDelta > 0
+      ? "text-emerald-400"
+      : ratingDelta < 0
+        ? "text-rose-400"
+        : "text-white/60";
+
+  return (
+    <p className="mt-1 text-sm" data-testid="rating-delta">
+      <span className={`font-semibold ${color}`}>
+        {sign}
+        {ratingDelta}
+      </span>
+      {ratingAfter !== undefined && (
+        <span className="ml-2 text-white/50">
+          → {ratingAfter}
+        </span>
+      )}
+    </p>
+  );
+}
+
 type ActiveTab = "overview" | "round-history";
 
 export function FinalSummary({
@@ -123,6 +168,7 @@ export function FinalSummary({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
+  const [profilePlayerId, setProfilePlayerId] = useState<string | null>(null);
 
   const winner = useMemo(() => players.find((player) => player.id === winnerId), [
     players,
@@ -221,6 +267,13 @@ export function FinalSummary({
   }
 
   return (
+    <>
+    {profilePlayerId && (
+      <PlayerProfileModal
+        playerId={profilePlayerId}
+        onClose={() => setProfilePlayerId(null)}
+      />
+    )}
     <section
       className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-slate-950/60 sm:p-8"
       data-testid="final-summary-view"
@@ -384,9 +437,13 @@ export function FinalSummary({
                 : "border-white/10 bg-white/5"
             }`}
           >
-            <p className="text-xs uppercase tracking-wide text-white/60">
+            <button
+              type="button"
+              className="text-xs uppercase tracking-wide text-white/60 hover:text-emerald-300 transition"
+              onClick={() => setProfilePlayerId(player.id)}
+            >
               {player.id === currentPlayerId ? "You" : player.displayName}
-            </p>
+            </button>
             <p className="mt-2 text-4xl font-bold text-white">{player.score}</p>
             <p className="mt-1 text-sm text-white/70">
               Time used: {formatDuration(player.timeUsedMs)}
@@ -394,6 +451,10 @@ export function FinalSummary({
             <p className="mt-1 text-sm text-white/70">
               {player.frozenTileCount} tiles frozen
             </p>
+            <RatingDeltaDisplay
+              ratingDelta={player.ratingDelta}
+              ratingAfter={player.ratingAfter}
+            />
             {player.topWords.length > 0 && (
               <div className="mt-3">
                 <p className="text-xs uppercase tracking-wide text-white/40">
@@ -496,5 +557,6 @@ export function FinalSummary({
         />
       </div>
     </section>
+    </>
   );
 }
