@@ -45,7 +45,7 @@ describe("autoPass synthesis (T010)", () => {
           player_a_id: PLAYER_A,
           player_b_id: PLAYER_B,
           board_seed: "seed-1",
-          player_a_timer_ms: 300_000,
+          player_a_timer_ms: 3_600_000, // 60 min — not expired after 10-min elapsed round
           player_b_timer_ms: 0, // Player B has no time left
           frozen_tiles: {},
         },
