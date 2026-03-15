@@ -9,6 +9,20 @@ vi.mock("@/app/actions/match/requestRematch", () => ({
   requestRematchAction: vi.fn(),
 }));
 
+vi.mock("@/app/actions/match/respondToRematch", () => ({
+  respondToRematchAction: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/browser", () => ({
+  getBrowserSupabaseClient: () => ({
+    channel: () => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn(),
+    }),
+  }),
+}));
+
 import { FinalSummary } from "@/components/match/FinalSummary";
 import type { FinalSummaryProps } from "@/components/match/FinalSummary";
 

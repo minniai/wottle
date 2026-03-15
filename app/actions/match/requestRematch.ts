@@ -4,8 +4,18 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { assertRematchAllowed } from "@/lib/match/resultCalculator";
+import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { writeMatchLog } from "@/lib/match/logWriter";
+import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
+import {
+  fetchRematchRequest,
+  insertRematchRequest,
+  updateRematchRequestStatus,
+} from "@/lib/match/rematchRepository";
+import {
+  detectSimultaneousRematch,
+  validateRematchRequest,
+} from "@/lib/match/rematchService";
 import { bootstrapMatchRecord } from "@/lib/matchmaking/service";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
@@ -50,45 +60,23 @@ async function setPlayersInMatch(playerIds: string[]) {
     .in("player_id", playerIds);
 }
 
-export interface RematchResult {
-  matchId: string;
-}
-
-export async function requestRematchAction(matchId: string): Promise<RematchResult> {
-  const session = await readLobbySession();
-  if (!session) {
-    throw new Error("Authentication required.");
-  }
-
-  const match = await fetchMatch(matchId);
-  assertRematchAllowed(
-    {
-      state: match.state,
-      playerAId: match.player_a_id,
-      playerBId: match.player_b_id,
-    },
-    session.player.id,
-  );
-
-  const opponentId =
-    session.player.id === match.player_a_id
-      ? match.player_b_id
-      : match.player_a_id;
-
+async function acceptRematchInternal(
+  matchId: string,
+  requestId: string,
+  playerAId: string,
+  playerBId: string,
+): Promise<string> {
   const supabase = getServiceRoleClient();
-  await writeMatchLog(supabase, {
-    matchId,
-    eventType: "match.rematch.requested",
-    actorId: session.player.id,
-  });
 
   const newMatchId = await bootstrapMatchRecord(supabase, {
     boardSeed: randomUUID(),
-    playerAId: session.player.id,
-    playerBId: opponentId,
+    playerAId,
+    playerBId,
+    rematchOf: matchId,
   });
 
-  await setPlayersInMatch([session.player.id, opponentId]);
+  await updateRematchRequestStatus(supabase, requestId, "accepted", newMatchId);
+  await setPlayersInMatch([playerAId, playerBId]);
 
   await writeMatchLog(supabase, {
     matchId: newMatchId,
@@ -96,6 +84,90 @@ export async function requestRematchAction(matchId: string): Promise<RematchResu
     metadata: { previousMatchId: matchId },
   });
 
-  return { matchId: newMatchId };
+  await broadcastRematchEvent(matchId, {
+    type: "rematch-accepted",
+    matchId,
+    requesterId: playerAId,
+    status: "accepted",
+    newMatchId,
+  });
+
+  return newMatchId;
 }
 
+export type RematchResult =
+  | { status: "pending" }
+  | { status: "accepted"; matchId: string };
+
+export async function requestRematchAction(
+  matchId: string,
+): Promise<RematchResult> {
+  const session = await readLobbySession();
+  if (!session) {
+    throw new Error("Authentication required.");
+  }
+
+  const playerId = session.player.id;
+
+  assertWithinRateLimit({
+    identifier: playerId,
+    scope: "match:rematch",
+    limit: 5,
+    windowMs: 60_000,
+  });
+
+  const match = await fetchMatch(matchId);
+
+  const opponentId =
+    playerId === match.player_a_id
+      ? match.player_b_id
+      : match.player_a_id;
+
+  const supabase = getServiceRoleClient();
+  const existingRequest = await fetchRematchRequest(supabase, matchId);
+
+  const validationError = validateRematchRequest(
+    match.state,
+    match.player_a_id,
+    match.player_b_id,
+    playerId,
+    existingRequest,
+  );
+
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  // Simultaneous detection: opponent already requested, caller is the responder
+  if (detectSimultaneousRematch(existingRequest, playerId)) {
+    const newMatchId = await acceptRematchInternal(
+      matchId,
+      existingRequest!.id,
+      existingRequest!.requesterId,
+      playerId,
+    );
+    return { status: "accepted", matchId: newMatchId };
+  }
+
+  await writeMatchLog(supabase, {
+    matchId,
+    eventType: "match.rematch.requested",
+    actorId: playerId,
+  });
+
+  const request = await insertRematchRequest(
+    supabase,
+    matchId,
+    playerId,
+    opponentId,
+  );
+
+  await broadcastRematchEvent(matchId, {
+    type: "rematch-request",
+    matchId,
+    requesterId: playerId,
+    status: "pending",
+  });
+
+  return { status: "pending" };
+}

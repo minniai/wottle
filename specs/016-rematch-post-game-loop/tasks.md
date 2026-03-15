@@ -59,20 +59,20 @@
 
 ### Tests (TDD: write first, verify they fail)
 
-- [ ] T014 [P] [US1] Write unit test for `requestRematchAction` normal request path — returns `{ status: "pending" }`, inserts DB row, broadcasts event in `tests/unit/app/actions/requestRematch.test.ts`
-- [ ] T015 [P] [US1] Write unit test for `requestRematchAction` simultaneous detection — existing pending request where caller is responder → returns `{ status: "accepted", matchId }` in `tests/unit/app/actions/requestRematch.test.ts`
-- [ ] T016 [P] [US1] Write unit test for `respondToRematchAction` accept path — returns `{ status: "accepted", matchId }`, creates match with `rematch_of`, broadcasts in `tests/unit/app/actions/respondToRematch.test.ts`
-- [ ] T017 [P] [US1] Write unit test for `respondToRematchAction` wrong responder and already-processed errors in `tests/unit/app/actions/respondToRematch.test.ts`
+- [x] T014 [P] [US1] Write unit test for `requestRematchAction` normal request path — returns `{ status: "pending" }`, inserts DB row, broadcasts event in `tests/unit/app/actions/requestRematch.test.ts`
+- [x] T015 [P] [US1] Write unit test for `requestRematchAction` simultaneous detection — existing pending request where caller is responder → returns `{ status: "accepted", matchId }` in `tests/unit/app/actions/requestRematch.test.ts`
+- [x] T016 [P] [US1] Write unit test for `respondToRematchAction` accept path — returns `{ status: "accepted", matchId }`, creates match with `rematch_of`, broadcasts in `tests/unit/app/actions/respondToRematch.test.ts`
+- [x] T017 [P] [US1] Write unit test for `respondToRematchAction` wrong responder and already-processed errors in `tests/unit/app/actions/respondToRematch.test.ts`
 
 ### Implementation
 
-- [ ] T018 [US1] Rewrite `requestRematchAction` with rate limiting, validation, simultaneous detection, DB insert, and broadcast in `app/actions/match/requestRematch.ts`
-- [ ] T019 [US1] Implement `respondToRematchAction` with accept path — create match, update request, set players in match, broadcast in `app/actions/match/respondToRematch.ts`
-- [ ] T020 [US1] Implement `useRematchNegotiation` hook — idle/requesting/waiting/incoming/accepted/interstitial phases, Realtime subscription, 500ms interstitial timer in `components/match/useRematchNegotiation.ts`
-- [ ] T021 [P] [US1] Create `RematchBanner` component — shows requester name, Accept and Decline buttons, data-testid="rematch-banner" in `components/match/RematchBanner.tsx`
-- [ ] T022 [P] [US1] Create `RematchInterstitial` component — fixed overlay with "Starting new game..." text, data-testid="rematch-interstitial" in `components/match/RematchInterstitial.tsx`
-- [ ] T023 [US1] Integrate `useRematchNegotiation` hook into FinalSummary — replace `useTransition` rematch logic with hook, render RematchBanner when phase=incoming, render RematchInterstitial when phase=interstitial, phase-driven button label in `components/match/FinalSummary.tsx`
-- [ ] T024 [US1] Update existing FinalSummary tests — add mocks for `respondToRematchAction`, `getBrowserSupabaseClient`, verify rematch button renders in `tests/unit/components/FinalSummary.test.tsx`
+- [x] T018 [US1] Rewrite `requestRematchAction` with rate limiting, validation, simultaneous detection, DB insert, and broadcast in `app/actions/match/requestRematch.ts`
+- [x] T019 [US1] Implement `respondToRematchAction` with accept path — create match, update request, set players in match, broadcast in `app/actions/match/respondToRematch.ts`
+- [x] T020 [US1] Implement `useRematchNegotiation` hook — idle/requesting/waiting/incoming/accepted/interstitial phases, Realtime subscription, 500ms interstitial timer in `components/match/useRematchNegotiation.ts`
+- [x] T021 [P] [US1] Create `RematchBanner` component — shows requester name, Accept and Decline buttons, data-testid="rematch-banner" in `components/match/RematchBanner.tsx`
+- [x] T022 [P] [US1] Create `RematchInterstitial` component — fixed overlay with "Starting new game..." text, data-testid="rematch-interstitial" in `components/match/RematchInterstitial.tsx`
+- [x] T023 [US1] Integrate `useRematchNegotiation` hook into FinalSummary — replace `useTransition` rematch logic with hook, render RematchBanner when phase=incoming, render RematchInterstitial when phase=interstitial, phase-driven button label in `components/match/FinalSummary.tsx`
+- [x] T024 [US1] Update existing FinalSummary tests — add mocks for `respondToRematchAction`, `getBrowserSupabaseClient`, verify rematch button renders in `tests/unit/components/FinalSummary.test.tsx`
 
 **Checkpoint**: US1 complete — Player A requests, Player B accepts, both redirect to new match. Simultaneous detection works.
 
