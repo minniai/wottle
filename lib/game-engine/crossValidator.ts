@@ -258,7 +258,6 @@ function violatesFrozenAdjacencyOnSameAxis(
     }
 
     const chars: string[] = [];
-    let hasSameAxisTile = false;
     let cx = startX;
     let cy = startY;
     while (
@@ -267,32 +266,13 @@ function violatesFrozenAdjacencyOnSameAxis(
       frozenTileSet.has(`${cx},${cy}`)
     ) {
       chars.push(board[cy][cx]);
-      const tile = frozenTileMap?.[`${cx},${cy}`];
-      if (tile?.scoredAxes?.includes(wordAxis)) {
-        hasSameAxisTile = true;
-      }
       cx += stepX;
       cy += stepY;
     }
 
-    // If any tile in the run has scoredAxes matching this word's axis,
-    // the run is relevant — trigger the combined check.
-    if (hasSameAxisTile) {
-      return { chars };
-    }
-
-    // Fallback for legacy frozen tiles without scoredAxes:
-    // only apply if the frozen run is itself a valid word
-    // (heuristic: it was likely scored on this axis).
-    const frozenText = chars
-      .join("")
-      .normalize("NFC")
-      .toLowerCase();
-    const frozenReversed = [...frozenText].reverse().join("");
-    if (!dictionary.has(frozenText) && !dictionary.has(frozenReversed)) {
-      return null;
-    }
-
+    // Regardless of scoredAxes or legacy meta, ANY frozen tile physically
+    // adjoined on the same axis is part of the contiguous sequence (FR-014).
+    // Therefore, the sequence must form a valid word.
     return { chars };
   }
 

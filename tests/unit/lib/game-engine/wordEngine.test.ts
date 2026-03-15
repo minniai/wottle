@@ -554,27 +554,25 @@ describe("wordEngine", () => {
 
   // T058a: unfrozen tile safeguard under sequential processing
   test("T058a: freezeTiles respects 24-unfrozen minimum under sequential processing", async () => {
-    // Pre-freeze 74 tiles using ONLY columns 3-9 (to avoid cross-validation
-    // issues with the word at cols 0-2). 7 cols × 10 rows = 70 tiles,
-    // plus 4 more at col 0 rows 0-3 (far from word at row 9, not adjacent).
+    // Pre-freeze 74 tiles far away from the word "búr" at row 9, cols 0-2.
+    // They must not physically touch the word to avoid the physical adjacency combined check.
     const frozenTiles: FrozenTileMap = {};
-    // Freeze cols 3-9, all rows (7 × 10 = 70 tiles)
-    for (let y = 0; y < 10; y++) {
+    // Freeze cols 3-9, rows 0-7 (7 * 8 = 56 tiles)
+    for (let y = 0; y <= 7; y++) {
       for (let x = 3; x <= 9; x++) {
         frozenTiles[`${x},${y}`] = { owner: "player_a" };
       }
     }
-    // Freeze 4 more at col 0, rows 0-3 (far from word at row 9)
-    for (let y = 0; y < 4; y++) {
-      frozenTiles[`0,${y}`] = { owner: "player_a" };
+    // Freeze cols 0-2, rows 0-5 (3 * 6 = 18 tiles) => 56 + 18 = 74 tiles
+    for (let y = 0; y <= 5; y++) {
+      for (let x = 0; x <= 2; x++) {
+        frozenTiles[`${x},${y}`] = { owner: "player_a" };
+      }
     }
     // Verify we have exactly 74 frozen tiles
     const frozenCount = Object.keys(frozenTiles).length;
 
     // Place "búr" at row 9 cols 0-2 (unfrozen area).
-    // Cols 1-2 have no frozen tiles in any row, so no vertical cross-words.
-    // Col 0 rows 0-3 are frozen but rows 4-8 are not, so no contiguous
-    // frozen tiles adjacent to (0,9).
     const board = emptyBoard();
     board[9][0] = "r";
     board[9][1] = "ú";
