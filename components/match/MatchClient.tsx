@@ -110,12 +110,13 @@ export function MatchClient({
   const [showResignDialog, setShowResignDialog] = useState(false);
   const [isResigning, setIsResigning] = useState(false);
 
-  // Animation phase machine for post-round sequential reveal (US1)
-  type AnimationPhase = "idle" | "revealing-player-one" | "revealing-player-two" | "showing-summary";
+  // Animation phase machine for post-round combined recap flash
+  type AnimationPhase = "idle" | "round-recap" | "showing-summary";
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
-  const [pendingSummary, setPendingSummary] = useState<RoundSummary | null>(null);
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Tracks the last summary id that triggered the recap animation (prevents double-fire). */
+  const lastAnimatedRoundRef = useRef<string | null>(null);
   const prefersReducedMotionRef = useRef(
     typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
@@ -141,17 +142,54 @@ export function MatchClient({
     setMatchState(initialState);
   }, [initialState]);
 
-  // Sync summary from polled/realtime state updates.
-  // Guard against re-showing a summary the player already dismissed.
-  // Also guard while reveal animation is playing — onSummary handles that path.
+  // Trigger round-recap animation whenever a new lastSummary arrives (via onState or onSummary).
+  // Using lastSummary as the source-of-truth means the animation fires reliably regardless
+  // of whether the Realtime "round-summary" broadcast or the "state" broadcast arrives first.
   useEffect(() => {
     if (!matchState.lastSummary) return;
-    if (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two") return;
-    const id = `${matchState.lastSummary.matchId}-${matchState.lastSummary.roundNumber}`;
-    if (id !== dismissedSummaryIdRef.current) {
-      setSummary(matchState.lastSummary);
+    if (animationPhase === "round-recap") return;
+
+    const nextSummary = matchState.lastSummary;
+    const id = `${nextSummary.matchId}-${nextSummary.roundNumber}`;
+
+    if (id === dismissedSummaryIdRef.current) return;
+    if (id === lastAnimatedRoundRef.current) return;
+
+    lastAnimatedRoundRef.current = id;
+
+    if (prefersReducedMotionRef.current) {
+      setSummary(nextSummary);
+      setAnimationPhase("showing-summary");
+      return;
     }
-  }, [matchState.lastSummary, animationPhase]);
+
+    const colors = deriveHighlightPlayerColors(
+      nextSummary.words,
+      matchState.timers.playerA.playerId,
+    );
+    setHighlightPlayerColors(colors);
+
+    const sequence = deriveRevealSequence(nextSummary);
+    const opponentMove = sequence.orderedMoves.find(
+      (m) => m.playerId !== currentPlayerId,
+    );
+    setActiveRevealMove(opponentMove ? { from: opponentMove.from, to: opponentMove.to } : null);
+    setActiveRevealHighlights(nextSummary.highlights);
+    setMoveLocked(false);
+    setLockedSwapTiles(null);
+    setAnimationPhase("round-recap");
+
+    if (nextSummary.highlights.length > 0) playWordDiscovery();
+
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => {
+      setAnimationPhase("showing-summary");
+      setSummary(nextSummary);
+    }, 1200);
+    // No cleanup return — animationPhase is a dependency, so cleanup would
+    // clear the timeout when setAnimationPhase("round-recap") triggers re-run.
+    // The ref-based manual clearTimeout above handles timer replacement.
+  }, [matchState.lastSummary, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery]);
 
   // Play match start sound + haptic on mount
   useEffect(() => {
@@ -193,18 +231,6 @@ export function MatchClient({
         applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
-        const colors = deriveHighlightPlayerColors(
-          nextSummary.words,
-          matchState.timers.playerA.playerId,
-        );
-        setHighlightPlayerColors(colors);
-        setPendingSummary(nextSummary);
-        setMatchState((prev) => ({
-          ...prev,
-          scores: nextSummary.totals,
-          lastSummary: nextSummary,
-        }));
-
         // Accumulate round history for in-game panel (US4)
         const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
           roundNumber: nextSummary.roundNumber,
@@ -225,61 +251,12 @@ export function MatchClient({
         setAccumulatedWords((prev) => [...prev, ...newWords]);
         setAccumulatedScores((prev) => [...prev, newScore]);
 
-        if (prefersReducedMotionRef.current) {
-          setAnimationPhase("showing-summary");
-          setSummary(nextSummary);
-          return;
-        }
-
-        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-
-        const sequence = deriveRevealSequence(nextSummary);
-
-        if (sequence.orderedMoves.length === 0) {
-          // No moves — show global highlights briefly before summary
-          setActiveRevealMove(null);
-          setActiveRevealHighlights(nextSummary.highlights);
-          setAnimationPhase("revealing-player-one");
-          highlightTimerRef.current = setTimeout(() => {
-            setAnimationPhase("showing-summary");
-            setSummary(nextSummary);
-          }, 700);
-          return;
-        }
-
-        // Step 1: reveal first submitter's swap + their word highlights
-        const firstMove = sequence.orderedMoves[0];
-        const firstHighlights = nextSummary.words
-          .filter((w) => w.playerId === firstMove.playerId)
-          .map((w) => w.coordinates);
-        setActiveRevealMove({ from: firstMove.from, to: firstMove.to });
-        setActiveRevealHighlights(firstHighlights);
-        setMoveLocked(false);
-        setLockedSwapTiles(null);
-        setAnimationPhase("revealing-player-one");
-        if (firstHighlights.length > 0) playWordDiscovery();
-
-        highlightTimerRef.current = setTimeout(() => {
-          if (sequence.orderedMoves.length > 1) {
-            // Step 2: reveal second submitter's swap + their word highlights
-            const secondMove = sequence.orderedMoves[1];
-            const secondHighlights = nextSummary.words
-              .filter((w) => w.playerId === secondMove.playerId)
-              .map((w) => w.coordinates);
-            setActiveRevealMove({ from: secondMove.from, to: secondMove.to });
-            setActiveRevealHighlights(secondHighlights);
-            setAnimationPhase("revealing-player-two");
-            if (secondHighlights.length > 0) playWordDiscovery();
-            highlightTimerRef.current = setTimeout(() => {
-              setAnimationPhase("showing-summary");
-              setSummary(nextSummary);
-            }, 700);
-          } else {
-            // Single submission — skip player-two reveal
-            setAnimationPhase("showing-summary");
-            setSummary(nextSummary);
-          }
-        }, 700);
+        // Update match state — recap animation triggers via the lastSummary useEffect
+        setMatchState((prev) => ({
+          ...prev,
+          scores: nextSummary.totals,
+          lastSummary: nextSummary,
+        }));
       },
       onError: (error) => {
         console.error(
@@ -433,7 +410,6 @@ export function MatchClient({
       return null;
     });
     setAnimationPhase("idle");
-    setPendingSummary(null);
     setHighlightPlayerColors({});
   }, []);
 
@@ -620,21 +596,22 @@ export function MatchClient({
             showLockBanner={moveLocked}
             lockedTiles={lockedSwapTiles}
             opponentRevealTiles={
-              (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two") && activeRevealMove
+              animationPhase === "round-recap" && activeRevealMove
                 ? [activeRevealMove.from, activeRevealMove.to]
                 : null
             }
             scoredTileHighlights={
-              (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two")
+              animationPhase === "round-recap"
                 ? activeRevealHighlights
                 : []
             }
             highlightPlayerColors={
-              (animationPhase === "revealing-player-one" || animationPhase === "revealing-player-two")
+              animationPhase === "round-recap"
                 ? highlightPlayerColors
                 : {}
             }
-            highlightDurationMs={800}
+            highlightDurationMs={animationPhase === "round-recap" ? 1200 : 800}
+            highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
             onSwapComplete={handleSwapComplete}
             onSwapError={({ message }) => handleSwapError(message)}
             onTileSelect={playTileSelect}
@@ -667,7 +644,7 @@ export function MatchClient({
         {/* Round summary — right of board on >=900px, below on smaller.
              Container always rendered to reserve layout space (no shift). */}
         <div className="match-layout__summary">
-          {animationPhase !== "revealing-player-one" && animationPhase !== "revealing-player-two" && summary && (
+          {animationPhase !== "round-recap" && summary && (
             <RoundSummaryPanel
               summary={summary}
               currentPlayerId={currentPlayerId}

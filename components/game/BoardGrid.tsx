@@ -36,6 +36,8 @@ interface BoardGridProps {
   scoredTileHighlights?: Coordinate[][];
   /** Duration to show scored tile highlights in ms. Default 800. */
   highlightDurationMs?: number;
+  /** CSS animation-delay in ms applied to each scored tile. Use to sequence after swap flash. Default 0. */
+  highlightDelayMs?: number;
   /** Per-tile highlight color map for player-attributed glow. Keys are "x,y" strings, values are CSS color strings. */
   highlightPlayerColors?: Record<string, string>;
   /** When true, scored tile highlights persist until highlightPlayerColors is externally cleared (no auto-clear timer). */
@@ -153,6 +155,7 @@ export function BoardGrid({
   playerSlot,
   scoredTileHighlights = EMPTY_HIGHLIGHTS,
   highlightDurationMs = 800,
+  highlightDelayMs = 0,
   highlightPlayerColors = {},
   persistentHighlight = false,
   disabled = false,
@@ -178,6 +181,7 @@ export function BoardGrid({
       playerSlot={playerSlot}
       scoredTileHighlights={scoredTileHighlights}
       highlightDurationMs={highlightDurationMs}
+      highlightDelayMs={highlightDelayMs}
       highlightPlayerColors={highlightPlayerColors}
       persistentHighlight={persistentHighlight}
       disabled={disabled}
@@ -201,6 +205,7 @@ function BoardGridActive({
   playerSlot,
   scoredTileHighlights = EMPTY_HIGHLIGHTS,
   highlightDurationMs = 800,
+  highlightDelayMs = 0,
   highlightPlayerColors = {},
   persistentHighlight = false,
   disabled = false,
@@ -560,9 +565,15 @@ function BoardGridActive({
               const highlightColor = isScoredHighlight
                 ? highlightPlayerColors[tileKey]
                 : undefined;
-              const tileStyle: CSSProperties | undefined = highlightColor
-                ? { ...frozenStyle, "--highlight-color": highlightColor } as CSSProperties
-                : frozenStyle;
+              const needsDelay = isScoredHighlight && highlightDelayMs > 0;
+              const tileStyle: CSSProperties | undefined =
+                frozenStyle || highlightColor || needsDelay
+                  ? ({
+                      ...frozenStyle,
+                      ...(highlightColor && { "--highlight-color": highlightColor }),
+                      ...(needsDelay && { animationDelay: `${highlightDelayMs}ms` }),
+                    } as CSSProperties)
+                  : undefined;
 
               return (
                 <button

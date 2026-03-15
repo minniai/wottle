@@ -78,7 +78,7 @@ test.describe("Sensory feedback — reduced motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
 
     // The reduced-motion path transitions directly to "showing-summary" without
-    // going through "revealing-player-one" or "revealing-player-two" animation phases.
+    // going through the "round-recap" animation phase.
     // We verify this by checking that there are no board tiles with the reveal class active
     // after a summary appears in CI. Since we can't easily trigger a full match end here,
     // we verify the media query is respected by checking the page doesn't apply
