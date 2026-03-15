@@ -86,15 +86,15 @@
 
 ### Tests (TDD: write first, verify they fail)
 
-- [ ] T025 [P] [US2] Write unit test for `respondToRematchAction` decline path — returns `{ status: "declined" }`, updates DB, broadcasts `rematch-declined` in `tests/unit/app/actions/respondToRematch.test.ts`
-- [ ] T026 [P] [US2] Write unit test for `respondToRematchAction` expired path — request created_at >30s ago → returns `{ status: "expired" }`, updates DB in `tests/unit/app/actions/respondToRematch.test.ts`
+- [x] T025 [P] [US2] Write unit test for `respondToRematchAction` decline path — returns `{ status: "declined" }`, updates DB, broadcasts `rematch-declined` in `tests/unit/app/actions/respondToRematch.test.ts`
+- [x] T026 [P] [US2] Write unit test for `respondToRematchAction` expired path — request created_at >30s ago → returns `{ status: "expired" }`, updates DB in `tests/unit/app/actions/respondToRematch.test.ts`
 
 ### Implementation
 
-- [ ] T027 [US2] Add decline path to `respondToRematchAction` — update status to declined, write match log, broadcast `rematch-declined` in `app/actions/match/respondToRematch.ts`
-- [ ] T028 [US2] Add staleness check to `respondToRematchAction` — if elapsed >30s mark expired, broadcast `rematch-expired` in `app/actions/match/respondToRematch.ts`
-- [ ] T029 [US2] Add 30s client-side timeout to `useRematchNegotiation` — in `waiting` phase, start timer that transitions to `expired` and redirects to lobby after 2s in `components/match/useRematchNegotiation.ts`
-- [ ] T030 [US2] Add `declined` and `expired` phase rendering in FinalSummary — button shows "Opponent declined" or "No response — returning to lobby", disabled state in `components/match/FinalSummary.tsx`
+- [x] T027 [US2] Add decline path to `respondToRematchAction` — update status to declined, write match log, broadcast `rematch-declined` in `app/actions/match/respondToRematch.ts`
+- [x] T028 [US2] Add staleness check to `respondToRematchAction` — if elapsed >30s mark expired, broadcast `rematch-expired` in `app/actions/match/respondToRematch.ts`
+- [x] T029 [US2] Add 30s client-side timeout to `useRematchNegotiation` — in `waiting` phase, start timer that transitions to `expired` and redirects to lobby after 2s in `components/match/useRematchNegotiation.ts`
+- [x] T030 [US2] Add `declined` and `expired` phase rendering in FinalSummary — button shows "Opponent declined" or "No response — returning to lobby", disabled state in `components/match/FinalSummary.tsx`
 
 **Checkpoint**: US2 complete — decline disables button (FR-006), timeout redirects to lobby (FR-008), one-shot enforced (FR-010)
 
