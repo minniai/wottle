@@ -14,13 +14,19 @@
   width: min(100%, var(--board-max-h));
   aspect-ratio: 1;
   flex-shrink: 0;
+  /* container-type enables cqi units so font/gap scale with board width,
+     not viewport width — keeps tiles square in the FinalSummary board too. */
+  container-type: inline-size;
   /* overflow: hidden removed — it was clipping the bottom row of tiles.
      The inner .board-grid uses minmax(0, 1fr) rows so it self-constrains. */
 }
 
 .board-grid {
-  --board-grid-gap: clamp(0.15rem, 1vw + 0.45rem, 1.15rem);
-  --board-grid-font-size: clamp(0.75rem, 1vw + 1.5rem, 3rem);
+  /* cqi = % of board container width — scales correctly whether the board is
+     full-size (game view) or thumbnail-sized (FinalSummary). vw-based values
+     were too large for small boards, causing font overflow that broke squareness. */
+  --board-grid-gap: clamp(0.1rem, 1.1cqi, 0.7rem);
+  --board-grid-font-size: clamp(0.65rem, 5cqi, 2.2rem);
   --board-size: 12;
   display: grid;
   grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
@@ -405,6 +411,7 @@
 .match-layout__board {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0;
   min-width: 0;
 }
@@ -417,11 +424,16 @@
   .match-layout {
     flex-direction: row;
     align-items: flex-start;
+    justify-content: center;
     gap: 1.5rem;
   }
 
   .match-layout__board {
-    flex: 1 1 0%;
+    /* --chrome-height mirrors .board-grid__wrapper so the column is exactly
+       as wide as the board square, keeping the summary panel adjacent. */
+    --chrome-height: 288px;
+    flex: 0 0 auto;
+    width: min(calc(100dvh - var(--chrome-height) - 2rem), calc(100% - 22rem));
   }
 
   .match-layout__summary {
@@ -435,11 +447,8 @@
   .board-grid__wrapper {
     --chrome-height: 310px;
   }
-
-  .board-grid {
-    --board-grid-gap: clamp(0.12rem, 0.9vw, 0.28rem);
-    --board-grid-font-size: clamp(0.7rem, 2.3vw, 1.05rem);
-  }
+  /* font-size and gap removed: cqi-based values in .board-grid already scale
+     correctly with board width, no viewport-based override needed */
 }
 
 @media (max-width: 480px) {
