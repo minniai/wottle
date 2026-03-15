@@ -108,14 +108,14 @@
 
 ### Tests (TDD: write first, verify they fail)
 
-- [ ] T031 [P] [US3] Write unit test for series badge rendering — when `seriesContext` prop has gameNumber>1, badge appears with correct text in `tests/unit/components/FinalSummary.test.tsx`
-- [ ] T032 [P] [US3] Write unit test for series badge absence — when no `seriesContext` or gameNumber=1, no badge renders in `tests/unit/components/FinalSummary.test.tsx`
+- [x] T031 [P] [US3] Write unit test for series badge rendering — when `seriesContext` prop has gameNumber>1, badge appears with correct text in `tests/unit/components/FinalSummary.test.tsx`
+- [x] T032 [P] [US3] Write unit test for series badge absence — when no `seriesContext` or gameNumber=1, no badge renders in `tests/unit/components/FinalSummary.test.tsx`
 
 ### Implementation
 
-- [ ] T033 [US3] Add `seriesContext` optional prop to `FinalSummaryProps` and `seriesBadgeText()` helper function in `components/match/FinalSummary.tsx`
-- [ ] T034 [US3] Render series badge in FinalSummary overview — sky-colored rounded pill with game number and score text, data-testid="series-badge" in `components/match/FinalSummary.tsx`
-- [ ] T035 [US3] Fetch series context in summary page — call `fetchMatchChainForSeries`, `walkRematchChain`, `deriveSeriesContext`, pass as prop to FinalSummary in `app/match/[matchId]/summary/page.tsx`
+- [x] T033 [US3] Add `seriesContext` optional prop to `FinalSummaryProps` and `seriesBadgeText()` helper function in `components/match/FinalSummary.tsx`
+- [x] T034 [US3] Render series badge in FinalSummary overview — sky-colored rounded pill with game number and score text, data-testid="series-badge" in `components/match/FinalSummary.tsx`
+- [x] T035 [US3] Fetch series context in summary page — call `fetchMatchChainForSeries`, `walkRematchChain`, `deriveSeriesContext`, pass as prop to FinalSummary in `app/match/[matchId]/summary/page.tsx`
 
 **Checkpoint**: US3 complete — series badge displays on FinalSummary for Game 2+, correct score tracking up to 10 rematches (SC-004)
 

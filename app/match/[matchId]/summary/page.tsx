@@ -2,9 +2,14 @@ import { redirect } from "next/navigation";
 
 import { FinalSummary } from "@/components/match/FinalSummary";
 import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
+import { fetchMatchChainForSeries } from "@/lib/match/rematchRepository";
+import {
+  deriveSeriesContext,
+  walkRematchChain,
+} from "@/lib/match/rematchService";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import type { FrozenTileMap, MatchEndedReason, ScoreTotals } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, ScoreTotals, SeriesContext } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 
 interface PlayerRecord {
@@ -191,6 +196,22 @@ export default async function MatchSummaryPage({
     playerBDelta: (row.player_b_delta as number | null) ?? 0,
   }));
 
+  // Series context: walk the rematch chain if this match has one
+  let seriesContext: SeriesContext | undefined;
+  const supabaseForSeries = getServiceRoleClient();
+  const chainMatches = await fetchMatchChainForSeries(
+    supabaseForSeries,
+    matchId,
+  );
+  if (chainMatches.length > 1) {
+    const chain = walkRematchChain(chainMatches, matchId);
+    seriesContext = deriveSeriesContext(
+      chainMatches,
+      chain,
+      session!.player.id,
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 py-4 text-white sm:p-6">
       <FinalSummary
@@ -208,6 +229,7 @@ export default async function MatchSummaryPage({
           (summary.match.player_a_timer_ms as number) <= 0 &&
           (summary.match.player_b_timer_ms as number) <= 0
         }
+        seriesContext={seriesContext}
       />
     </main>
   );
