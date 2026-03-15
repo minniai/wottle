@@ -7,13 +7,33 @@ export async function broadcastRematchEvent(
 ): Promise<void> {
   const supabase = getServiceRoleClient();
   const channel = supabase.channel(`match:${matchId}`);
-  const result = await channel.send({
-    type: "broadcast",
-    event: "rematch",
-    payload: event,
-  });
 
-  if (result === "error") {
-    console.error("[Rematch] Failed to broadcast rematch event");
-  }
+  await new Promise<void>((resolve, reject) => {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        channel
+          .send({
+            type: "broadcast",
+            event: "rematch",
+            payload: event,
+          })
+          .then((result) => {
+            if (result === "error") {
+              console.error(
+                "[Rematch] Failed to broadcast rematch event",
+              );
+            }
+            supabase.removeChannel(channel);
+            resolve();
+          });
+      }
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error(
+          `[Rematch] Channel subscription failed: ${status}`,
+        );
+        supabase.removeChannel(channel);
+        reject(new Error(`Channel subscription failed: ${status}`));
+      }
+    });
+  });
 }

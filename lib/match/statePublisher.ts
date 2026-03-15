@@ -10,14 +10,34 @@ export async function publishMatchState(matchId: string) {
   }
 
   const channel = supabase.channel(`match:${matchId}`);
-  const result = await channel.send({
-    type: "broadcast",
-    event: "state",
-    payload: state,
-  });
 
-  if (result === "error") {
-    console.error("[MatchState] Failed to broadcast match snapshot");
-  }
+  await new Promise<void>((resolve) => {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        channel
+          .send({
+            type: "broadcast",
+            event: "state",
+            payload: state,
+          })
+          .then((result) => {
+            if (result === "error") {
+              console.error(
+                "[MatchState] Failed to broadcast match snapshot",
+              );
+            }
+            supabase.removeChannel(channel);
+            resolve();
+          });
+      }
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error(
+          `[MatchState] Channel subscription failed: ${status}`,
+        );
+        supabase.removeChannel(channel);
+        resolve();
+      }
+    });
+  });
 }
 
