@@ -31,6 +31,7 @@ interface MatchBootstrapInput {
   playerAId: string;
   playerBId: string;
   roundLimit?: number;
+  rematchOf?: string;
 }
 
 export interface ActiveMatchSummary {
@@ -145,7 +146,7 @@ export async function bootstrapMatchRecord(
   client: AnyClient,
   input: MatchBootstrapInput
 ): Promise<string> {
-  const payload = {
+  const payload: Record<string, unknown> = {
     id: input.id,
     board_seed: input.boardSeed,
     player_a_id: input.playerAId,
@@ -153,6 +154,10 @@ export async function bootstrapMatchRecord(
     round_limit: input.roundLimit ?? 10,
     state: "pending",
   };
+
+  if (input.rematchOf) {
+    payload.rematch_of = input.rematchOf;
+  }
 
   const { data, error } = await client
     .from("matches")

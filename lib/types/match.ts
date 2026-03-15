@@ -201,6 +201,48 @@ export interface FrozenTile {
 /** Keys are "x,y" coordinate strings. Values indicate ownership. */
 export type FrozenTileMap = Record<string, FrozenTile>;
 
+// ─── Rematch Types (016-rematch-post-game-loop) ──────────────────────
+
+export type RematchRequestStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "expired";
+
+export interface RematchRequest {
+  id: string;
+  matchId: string;
+  requesterId: string;
+  responderId: string;
+  status: RematchRequestStatus;
+  newMatchId: string | null;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export type RematchEventType =
+  | "rematch-request"
+  | "rematch-accepted"
+  | "rematch-declined"
+  | "rematch-expired";
+
+export interface RematchEvent {
+  type: RematchEventType;
+  matchId: string;
+  requesterId: string;
+  status: RematchRequestStatus;
+  newMatchId?: string;
+}
+
+export interface SeriesContext {
+  gameNumber: number;
+  /** Wins for the current player in the series. */
+  currentPlayerWins: number;
+  /** Wins for the opponent in the series. */
+  opponentWins: number;
+  draws: number;
+}
+
 // ─── Scoring Breakdown Types (003-word-engine-scoring) ────────────────
 
 /**
