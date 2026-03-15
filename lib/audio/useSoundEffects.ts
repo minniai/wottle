@@ -94,14 +94,16 @@ export function useSoundEffects(enabled: boolean): SoundEffects {
   useEffect(() => {
     const ctx = ctxRef;
     return () => {
-      ctx.current?.close();
+      if (ctx.current?.state !== "closed") {
+        ctx.current?.close();
+      }
     };
   }, []);
 
   const getCtx = useCallback((): AudioContext | null => {
     if (!enabledRef.current) return null;
     if (typeof AudioContext === "undefined") return null;
-    if (!ctxRef.current) {
+    if (!ctxRef.current || ctxRef.current.state === "closed") {
       ctxRef.current = new AudioContext();
     }
     const ctx = ctxRef.current;
