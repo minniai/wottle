@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 interface PlayerAvatarProps {
   displayName: string;
   avatarUrl: string | null;

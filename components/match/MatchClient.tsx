@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
-import { GameChrome } from "@/components/match/GameChrome";
+import { PlayerPanel } from "@/components/match/PlayerPanel";
 import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
@@ -483,22 +483,25 @@ export function MatchClient({
   // Derive in-game round history from accumulated data (US4)
   const playerAId = matchState.timers.playerA.playerId;
   const playerBId = matchState.timers.playerB.playerId;
+  const playerADisplayName = playerProfiles.playerA.displayName;
+  const playerBDisplayName = playerProfiles.playerB.displayName;
+
   const roundHistory = useMemo(
     () =>
       deriveRoundHistory(
         accumulatedWords,
         accumulatedScores,
         playerAId,
-        playerAId,
+        playerADisplayName,
         playerBId,
-        playerBId,
+        playerBDisplayName,
       ),
-    [accumulatedWords, accumulatedScores, playerAId, playerBId],
+    [accumulatedWords, accumulatedScores, playerAId, playerBId, playerADisplayName, playerBDisplayName],
   );
 
   const usernameMap = useMemo(
-    () => ({ [playerAId]: playerAId, [playerBId]: playerBId }),
-    [playerAId, playerBId],
+    () => ({ [playerAId]: playerADisplayName, [playerBId]: playerBDisplayName }),
+    [playerAId, playerBId, playerADisplayName, playerBDisplayName],
   );
   const biggestSwing = useMemo(() => deriveBiggestSwing(accumulatedScores), [accumulatedScores]);
   const highestWord = useMemo(() => deriveHighestScoringWord(accumulatedWords, usernameMap), [accumulatedWords, usernameMap]);
@@ -576,18 +579,54 @@ export function MatchClient({
       )}
 
       <div className="match-layout">
+        {/* Desktop: left panel (current player) */}
+        <div className="match-layout__panel match-layout__panel--left">
+          <PlayerPanel
+            player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+            gameState={{
+              score: playerScore,
+              timerSeconds: timeLeftSeconds,
+              isPaused,
+              hasSubmitted: currentTimer.status === "paused",
+              currentRound: matchState.currentRound,
+              totalRounds: 10,
+              playerColor: getPlayerColors(playerSlot).hex,
+            }}
+            controls={{
+              scoreDelta,
+              scoreDeltaRound: summary?.roundNumber,
+              roundHistoryCount: roundHistory.length,
+              onHistoryToggle: () => setHistoryOpen((v) => !v),
+              onResign: () => setShowResignDialog(true),
+              resignDisabled:
+                matchState.state === "resolving" ||
+                matchState.state === "completed" ||
+                isResigning,
+            }}
+            variant="full"
+            isDisconnected={matchState.disconnectedPlayerId === currentPlayerId}
+          />
+        </div>
+
         {/* Board area */}
         <div className="match-layout__board">
-          <GameChrome
-            position="opponent"
-            playerName={opponentTimer.playerId}
-            score={opponentScore}
-            timerSeconds={opponentTimeLeft}
-            isPaused={opponentTimer.status !== "running"}
-            hasSubmitted={opponentTimer.status === "paused"}
-            moveCounter={matchState.currentRound}
-            playerColor={getPlayerColors(opponentSlot).hex}
-          />
+          {/* Mobile: compact opponent bar */}
+          <div className="match-layout__compact-top" data-testid="game-chrome-opponent">
+            <PlayerPanel
+              player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+              gameState={{
+                score: opponentScore,
+                timerSeconds: opponentTimeLeft,
+                isPaused: opponentTimer.status !== "running",
+                hasSubmitted: opponentTimer.status === "paused",
+                currentRound: matchState.currentRound,
+                totalRounds: 10,
+                playerColor: getPlayerColors(opponentSlot).hex,
+              }}
+              variant="compact"
+              isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
+            />
+          </div>
 
           <BoardGrid
             grid={matchState.board}
@@ -621,40 +660,53 @@ export function MatchClient({
             onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
           />
 
-          <GameChrome
-            position="player"
-            playerName={currentTimer.playerId}
-            score={playerScore}
-            timerSeconds={timeLeftSeconds}
-            isPaused={isPaused}
-            hasSubmitted={currentTimer.status === "paused"}
-            moveCounter={matchState.currentRound}
-            playerColor={getPlayerColors(playerSlot).hex}
-            scoreDelta={scoreDelta}
-            scoreDeltaRound={summary?.roundNumber}
-            roundHistoryCount={roundHistory.length}
-            onHistoryToggle={() => setHistoryOpen((v) => !v)}
-            onResign={() => setShowResignDialog(true)}
-            resignDisabled={
-              matchState.state === "resolving" ||
-              matchState.state === "completed" ||
-              isResigning
-            }
-          />
+          {/* Mobile: compact player bar */}
+          <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
+            <PlayerPanel
+              player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+              gameState={{
+                score: playerScore,
+                timerSeconds: timeLeftSeconds,
+                isPaused,
+                hasSubmitted: currentTimer.status === "paused",
+                currentRound: matchState.currentRound,
+                totalRounds: 10,
+                playerColor: getPlayerColors(playerSlot).hex,
+              }}
+              variant="compact"
+            />
+          </div>
+
+          {/* Round summary overlay */}
+          {animationPhase !== "round-recap" && summary && (
+            <div className="match-layout__overlay">
+              <RoundSummaryPanel
+                summary={summary}
+                currentPlayerId={currentPlayerId}
+                playerAId={playerAId}
+                onDismiss={handleSummaryDismiss}
+                autoDismissMs={summaryAutoDismissMs}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Round summary — right of board on >=900px, below on smaller.
-             Container always rendered to reserve layout space (no shift). */}
-        <div className="match-layout__summary">
-          {animationPhase !== "round-recap" && summary && (
-            <RoundSummaryPanel
-              summary={summary}
-              currentPlayerId={currentPlayerId}
-              playerAId={playerAId}
-              onDismiss={handleSummaryDismiss}
-              autoDismissMs={summaryAutoDismissMs}
-            />
-          )}
+        {/* Desktop: right panel (opponent) */}
+        <div className="match-layout__panel match-layout__panel--right">
+          <PlayerPanel
+            player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+            gameState={{
+              score: opponentScore,
+              timerSeconds: opponentTimeLeft,
+              isPaused: opponentTimer.status !== "running",
+              hasSubmitted: opponentTimer.status === "paused",
+              currentRound: matchState.currentRound,
+              totalRounds: 10,
+              playerColor: getPlayerColors(opponentSlot).hex,
+            }}
+            variant="full"
+            isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
+          />
         </div>
       </div>
 
