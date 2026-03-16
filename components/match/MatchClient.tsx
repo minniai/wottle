@@ -150,7 +150,7 @@ export function MatchClient({
 
     const isFinal = isCompleted || nextRound > 10;
     const text = isCompleted
-      ? "Game Complete"
+      ? "Rounds Complete"
       : nextRound === 10
         ? "Final Round"
         : `Round ${nextRound}`;
@@ -216,6 +216,9 @@ export function MatchClient({
       // Skip highlight animation entirely
       setMoveLocked(false);
       setLockedSwapTiles(null);
+      if (matchState.state === "completed" || nextSummary.roundNumber >= 10) {
+        setTimeout(() => setFinalRecapDone(true), announceDurationMs);
+      }
       return;
     }
 
@@ -237,9 +240,12 @@ export function MatchClient({
 
     if (nextSummary.highlights.length > 0) playWordDiscovery();
 
+    const isCompleted = matchState.state === "completed" || nextSummary.roundNumber >= 10;
+
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = setTimeout(() => {
       setAnimationPhase("idle");
+      if (isCompleted) setFinalRecapDone(true);
     }, announceDurationMs);
   }, [matchState.lastSummary, matchState.state, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery, showRoundAnnounce]);
 
@@ -250,8 +256,12 @@ export function MatchClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Navigate to final summary when match completes — wait for animations to finish
+  // Navigate to final summary when match completes — wait for all animations to finish
   const matchEndSoundFiredRef = useRef(false);
+  const [finalRecapDone, setFinalRecapDone] = useState(
+    // If already completed on mount (page load), skip waiting for recap
+    initialState.state === "completed",
+  );
   useEffect(() => {
     if (matchState.state !== "completed") return;
 
@@ -262,11 +272,13 @@ export function MatchClient({
       vibrateMatchEnd();
     }
 
-    // Wait for recap animation and round announce to complete before navigating
-    if (animationPhase === "round-recap" || roundAnnounce) return;
+    // Wait for recap to start, play, AND finish before navigating.
+    // finalRecapDone is set to true only after the recap + announce complete,
+    // or immediately if the match was already completed on mount.
+    if (!finalRecapDone) return;
 
     router.push(`/match/${matchId}/summary`);
-  }, [matchId, matchState.state, animationPhase, roundAnnounce, router, playMatchEnd, vibrateMatchEnd]);
+  }, [matchId, matchState.state, finalRecapDone, router, playMatchEnd, vibrateMatchEnd]);
 
   // ── Realtime channel ──────────────────────────────────────────────
   useEffect(() => {
@@ -701,7 +713,8 @@ export function MatchClient({
           {roundAnnounce && (
             <div
               key={`${matchState.currentRound}-${roundAnnounce}`}
-              className={`round-announce${roundAnnounce === "Game Complete" ? " round-announce--final" : ""}`}
+              className={`round-announce${roundAnnounce === "Rounds Complete" ? " round-announce--final" : ""}`}
+              style={{ position: "absolute", top: "50%", left: "50%", zIndex: 25 }}
               data-testid="round-announce"
             >
               {roundAnnounce}
