@@ -15,7 +15,7 @@ import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveRevealSequence } from "@/lib/match/revealSequence";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
-import type { MatchState, RoundSummary, TimerState, Coordinate } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, RoundSummary, TimerState, Coordinate } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
@@ -32,6 +32,7 @@ interface MatchClientProps {
   initialState: MatchState;
   currentPlayerId: string;
   matchId: string;
+  playerProfiles: MatchPlayerProfiles;
   pollIntervalMs?: number;
 }
 
@@ -62,6 +63,7 @@ export function MatchClient({
   initialState,
   currentPlayerId,
   matchId,
+  playerProfiles,
   pollIntervalMs = 3_000,
 }: MatchClientProps) {
   const router = useRouter();

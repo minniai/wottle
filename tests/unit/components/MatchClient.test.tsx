@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
-import type { MatchState, RoundSummary } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, RoundSummary } from "@/lib/types/match";
 import {
   PLAYER_A_HIGHLIGHT,
   PLAYER_B_HIGHLIGHT,
@@ -49,6 +49,11 @@ vi.mock("@/app/actions/match/handleDisconnect", () => ({
   handlePlayerDisconnect: vi.fn(),
 }));
 
+const defaultProfiles: MatchPlayerProfiles = {
+  playerA: { playerId: "player-1", displayName: "Alice", username: "alice", avatarUrl: null, eloRating: 1200 },
+  playerB: { playerId: "player-2", displayName: "Bob", username: "bob", avatarUrl: null, eloRating: 1200 },
+};
+
 function createMatchState(overrides?: Partial<MatchState>): MatchState {
   return {
     matchId: "match-test-123",
@@ -84,6 +89,7 @@ describe("MatchClient layout", () => {
         initialState={state}
         currentPlayerId="player-1"
         matchId="match-test-123"
+        playerProfiles={defaultProfiles}
       />,
     );
 
@@ -120,6 +126,7 @@ describe("MatchClient layout", () => {
         initialState={createMatchState()}
         currentPlayerId="player-1"
         matchId="match-test-123"
+        playerProfiles={defaultProfiles}
       />,
     );
 
@@ -146,6 +153,7 @@ describe("MatchClient layout", () => {
         initialState={createMatchState()}
         currentPlayerId="player-1"
         matchId="match-test-123"
+        playerProfiles={defaultProfiles}
       />,
     );
 
@@ -167,6 +175,7 @@ describe("MatchClient layout", () => {
           initialState={completedState}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -399,6 +408,7 @@ describe("MatchClient animation phase machine (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -419,6 +429,7 @@ describe("MatchClient animation phase machine (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -445,6 +456,7 @@ describe("MatchClient animation phase machine (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -501,6 +513,7 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -522,6 +535,7 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -580,6 +594,7 @@ describe("MatchClient move lock (US1)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -609,6 +624,7 @@ describe("MatchClient move lock (US1)", () => {
           initialState={createMatchState({ currentRound: 3 })}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -659,6 +675,7 @@ describe("MatchClient round-recap flash (US1)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -684,6 +701,7 @@ describe("MatchClient round-recap flash (US1)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -716,6 +734,7 @@ describe("MatchClient dual timeout (US4)", () => {
           initialState={dualTimeoutState}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
