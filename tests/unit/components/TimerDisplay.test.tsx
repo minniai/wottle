@@ -33,7 +33,7 @@ describe("TimerDisplay", () => {
   });
 
   test("applies timer-display--urgent class when < 30s and running", () => {
-    const { container } = render(
+    render(
       <TimerDisplay
         timerSeconds={25}
         isPaused={false}
@@ -43,11 +43,11 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(container.firstChild).toHaveClass("timer-display--urgent");
+    expect(screen.getByTestId("timer-display")).toHaveClass("timer-display--urgent");
   });
 
   test("does NOT apply urgent class when >= 30s", () => {
-    const { container } = render(
+    render(
       <TimerDisplay
         timerSeconds={30}
         isPaused={false}
@@ -57,11 +57,11 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(container.firstChild).not.toHaveClass("timer-display--urgent");
+    expect(screen.getByTestId("timer-display")).not.toHaveClass("timer-display--urgent");
   });
 
   test("does NOT apply urgent class when paused even if < 30s", () => {
-    const { container } = render(
+    render(
       <TimerDisplay
         timerSeconds={15}
         isPaused={true}
@@ -71,10 +71,10 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(container.firstChild).not.toHaveClass("timer-display--urgent");
+    expect(screen.getByTestId("timer-display")).not.toHaveClass("timer-display--urgent");
   });
 
-  test("shows Submitted badge when hasSubmitted is true", () => {
+  test("shows submitted badge when hasSubmitted is true", () => {
     render(
       <TimerDisplay
         timerSeconds={120}
@@ -85,7 +85,23 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByText("Submitted")).toBeInTheDocument();
+    expect(screen.getByTestId("submitted-badge")).toBeInTheDocument();
+    expect(screen.getByText("Move locked")).toBeInTheDocument();
+  });
+
+  test("timer background is amber when hasSubmitted is true", () => {
+    render(
+      <TimerDisplay
+        timerSeconds={120}
+        isPaused={true}
+        hasSubmitted={true}
+        playerColor="#38BDF8"
+        size="lg"
+      />,
+    );
+
+    const timer = screen.getByTestId("timer-display");
+    expect(timer.style.backgroundColor).toBe("rgba(245, 158, 11, 0.85)");
   });
 
   test("shows Expired text when timerSeconds is 0 and not paused", () => {

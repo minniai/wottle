@@ -33,8 +33,7 @@ interface PlayerPanelProps {
   roundHistory?: {
     playerId: string;
     accumulatedWords: WordHistoryRow[];
-    totalRounds: number;
-    currentRound: number;
+    completedRounds: number[];
   };
   variant: "full" | "compact";
   isDisconnected?: boolean;
@@ -136,8 +135,7 @@ function FullPanel({
         <RoundHistoryInline
           playerId={roundHistory.playerId}
           accumulatedWords={roundHistory.accumulatedWords}
-          totalRounds={roundHistory.totalRounds}
-          currentRound={roundHistory.currentRound}
+          completedRounds={roundHistory.completedRounds}
         />
       )}
     </div>

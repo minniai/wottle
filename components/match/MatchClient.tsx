@@ -110,6 +110,8 @@ export function MatchClient({
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Tracks the last summary id that triggered the recap animation (prevents double-fire). */
   const lastAnimatedRoundRef = useRef<string | null>(null);
+  /** Tracks which round numbers have been accumulated into history (prevents duplicates). */
+  const accumulatedRoundsRef = useRef<Set<number>>(new Set());
   const prefersReducedMotionRef = useRef(
     typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
@@ -148,6 +150,29 @@ export function MatchClient({
     if (id === lastAnimatedRoundRef.current) return;
 
     lastAnimatedRoundRef.current = id;
+
+    // Accumulate round history (works regardless of delivery path: onSummary, onState, or poller)
+    if (!accumulatedRoundsRef.current.has(nextSummary.roundNumber)) {
+      accumulatedRoundsRef.current.add(nextSummary.roundNumber);
+      const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
+        roundNumber: nextSummary.roundNumber,
+        playerId: w.playerId,
+        word: w.word,
+        totalPoints: w.totalPoints,
+        lettersPoints: w.lettersPoints,
+        bonusPoints: w.bonusPoints,
+        coordinates: w.coordinates,
+      }));
+      const newScore: ScoreboardRow = {
+        roundNumber: nextSummary.roundNumber,
+        playerAScore: nextSummary.totals.playerA,
+        playerBScore: nextSummary.totals.playerB,
+        playerADelta: nextSummary.deltas.playerA,
+        playerBDelta: nextSummary.deltas.playerB,
+      };
+      setAccumulatedWords((prev) => [...prev, ...newWords]);
+      setAccumulatedScores((prev) => [...prev, newScore]);
+    }
 
     // Derive score delta inline (no overlay to wait for)
     setScoreDelta(deriveScoreDelta(nextSummary, currentPlayerId));
@@ -223,27 +248,7 @@ export function MatchClient({
         applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
-        // Accumulate round history for in-game panel (US4)
-        const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
-          roundNumber: nextSummary.roundNumber,
-          playerId: w.playerId,
-          word: w.word,
-          totalPoints: w.totalPoints,
-          lettersPoints: w.lettersPoints,
-          bonusPoints: w.bonusPoints,
-          coordinates: w.coordinates,
-        }));
-        const newScore: ScoreboardRow = {
-          roundNumber: nextSummary.roundNumber,
-          playerAScore: nextSummary.totals.playerA,
-          playerBScore: nextSummary.totals.playerB,
-          playerADelta: nextSummary.deltas.playerA,
-          playerBDelta: nextSummary.deltas.playerB,
-        };
-        setAccumulatedWords((prev) => [...prev, ...newWords]);
-        setAccumulatedScores((prev) => [...prev, newScore]);
-
-        // Update match state — recap animation triggers via the lastSummary useEffect
+        // Update match state — accumulation + recap animation trigger via the lastSummary useEffect
         setMatchState((prev) => ({
           ...prev,
           scores: nextSummary.totals,
@@ -473,6 +478,10 @@ export function MatchClient({
     () => ({ [playerAId]: playerADisplayName, [playerBId]: playerBDisplayName }),
     [playerAId, playerBId, playerADisplayName, playerBDisplayName],
   );
+  const completedRounds = useMemo(
+    () => accumulatedScores.map((s) => s.roundNumber),
+    [accumulatedScores],
+  );
   const biggestSwing = useMemo(() => deriveBiggestSwing(accumulatedScores), [accumulatedScores]);
   const highestWord = useMemo(() => deriveHighestScoringWord(accumulatedWords, usernameMap), [accumulatedWords, usernameMap]);
 
@@ -576,8 +585,7 @@ export function MatchClient({
             roundHistory={{
               playerId: currentPlayerId,
               accumulatedWords,
-              totalRounds: 10,
-              currentRound: matchState.currentRound,
+              completedRounds,
             }}
             variant="full"
             isDisconnected={matchState.disconnectedPlayerId === currentPlayerId}
@@ -610,7 +618,7 @@ export function MatchClient({
             frozenTiles={matchState.frozenTiles ?? {}}
             playerSlot={playerSlot}
             disabled={moveLocked}
-            showLockBanner={moveLocked}
+            showLockBanner={moveLocked && animationPhase !== "round-recap"}
             lockedTiles={lockedSwapTiles}
             opponentRevealTiles={
               animationPhase === "round-recap" && activeRevealMove
@@ -635,6 +643,15 @@ export function MatchClient({
             onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
             onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
           />
+
+          {animationPhase === "round-recap" && (
+            <div
+              className="round-announce"
+              data-testid="round-announce"
+            >
+              Round {matchState.currentRound}
+            </div>
+          )}
 
           {/* Mobile: compact player bar */}
           <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
@@ -671,8 +688,7 @@ export function MatchClient({
             roundHistory={{
               playerId: opponentTimer.playerId,
               accumulatedWords,
-              totalRounds: 10,
-              currentRound: matchState.currentRound,
+              completedRounds,
             }}
             variant="full"
             isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}

@@ -18,8 +18,10 @@ function timerBackground(
   playerColor: string,
   isPaused: boolean,
   isExpired: boolean,
+  hasSubmitted: boolean,
 ): string {
   if (isExpired) return "rgba(55, 65, 81, 0.9)";
+  if (hasSubmitted) return "rgba(245, 158, 11, 0.85)";
   if (isPaused) return "rgba(107, 114, 128, 0.5)";
   return playerColor;
 }
@@ -33,7 +35,7 @@ export function TimerDisplay({
 }: TimerDisplayProps) {
   const isExpired = timerSeconds <= 0 && !isPaused;
   const isUrgent = timerSeconds < 30 && timerSeconds > 0 && !isPaused;
-  const bg = timerBackground(playerColor, isPaused, isExpired);
+  const bg = timerBackground(playerColor, isPaused, isExpired, hasSubmitted);
 
   const sizeClasses =
     size === "lg"
@@ -41,34 +43,41 @@ export function TimerDisplay({
       : "px-2 py-1 text-lg";
 
   return (
-    <div
-      data-testid="timer-display"
-      className={[
-        "timer-display relative flex items-center justify-center rounded-lg font-mono font-black",
-        sizeClasses,
-        isUrgent ? "timer-display--urgent" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      style={{
-        backgroundColor: isUrgent ? undefined : bg,
-        color: "#fff",
-        minWidth: size === "lg" ? "8rem" : "4.5rem",
-      }}
-    >
-      <span>{formatTime(timerSeconds)}</span>
-
+    <div className="flex flex-col items-center gap-1">
       {hasSubmitted && (
-        <span className="absolute -top-2 right-1 rounded-sm bg-amber-500 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase leading-none text-black">
-          Submitted
+        <span
+          data-testid="submitted-badge"
+          className="rounded-md bg-amber-500 px-2 py-0.5 text-[0.65rem] font-bold uppercase leading-none tracking-wider text-black shadow-md shadow-amber-500/40"
+        >
+          Move locked
         </span>
       )}
+      <div
+        data-testid="timer-display"
+        className={[
+          "timer-display flex items-center justify-center rounded-lg font-mono font-black",
+          sizeClasses,
+          isUrgent ? "timer-display--urgent" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={{
+          backgroundColor: isUrgent ? undefined : bg,
+          color: "#fff",
+          minWidth: size === "lg" ? "8rem" : "4.5rem",
+          ...(hasSubmitted
+            ? { boxShadow: "0 0 0 2px rgba(245, 158, 11, 0.6), 0 0 12px rgba(245, 158, 11, 0.3)" }
+            : {}),
+        }}
+      >
+        <span>{formatTime(timerSeconds)}</span>
 
-      {isExpired && (
-        <span className="ml-2 text-sm font-medium text-red-300">
-          Expired
-        </span>
-      )}
+        {isExpired && (
+          <span className="ml-2 text-sm font-medium text-red-300">
+            Expired
+          </span>
+        )}
+      </div>
     </div>
   );
 }

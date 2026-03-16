@@ -10,15 +10,18 @@ interface RoundEntry {
 interface RoundHistoryInlineProps {
   playerId: string;
   accumulatedWords: WordHistoryRow[];
-  totalRounds: number;
-  currentRound: number;
+  completedRounds: number[];
 }
 
-function groupByRound(
+function buildRounds(
   words: WordHistoryRow[],
   playerId: string,
+  completedRounds: number[],
 ): RoundEntry[] {
   const byRound = new Map<number, WordHistoryRow[]>();
+  for (const r of completedRounds) {
+    byRound.set(r, []);
+  }
   for (const w of words) {
     if (w.playerId !== playerId) continue;
     if (!byRound.has(w.roundNumber)) {
@@ -34,10 +37,9 @@ function groupByRound(
 export function RoundHistoryInline({
   playerId,
   accumulatedWords,
-  totalRounds,
-  currentRound,
+  completedRounds,
 }: RoundHistoryInlineProps) {
-  const rounds = groupByRound(accumulatedWords, playerId);
+  const rounds = buildRounds(accumulatedWords, playerId, completedRounds);
 
   if (rounds.length === 0) {
     return null;
@@ -45,7 +47,7 @@ export function RoundHistoryInline({
 
   return (
     <div
-      className="mt-2 max-h-40 overflow-y-auto"
+      className="mt-2 w-full max-h-40 overflow-y-auto"
       data-testid="round-history-inline"
     >
       {rounds.map((entry) => (
@@ -55,9 +57,6 @@ export function RoundHistoryInline({
         >
           <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-white/40">
             Round {entry.roundNumber}
-            {entry.roundNumber === currentRound - 1 && totalRounds > 1
-              ? ""
-              : ""}
           </p>
           {entry.words.length === 0 ? (
             <p className="text-[0.6rem] italic text-white/30">
