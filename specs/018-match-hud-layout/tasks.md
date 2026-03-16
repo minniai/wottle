@@ -158,9 +158,9 @@
 
 **Purpose**: Remove deprecated code, update skeleton, verify regressions
 
-- [ ] T033 Update `MatchShell` loading skeleton in `components/match/MatchShell.tsx` to match new three-column layout structure (panel placeholders on sides, board skeleton in center)
-- [ ] T034 Remove `GameChrome` component (`components/match/GameChrome.tsx`) and its test file (`tests/unit/components/GameChrome.test.tsx`) — verify no remaining imports
-- [ ] T035 Run full test suite (`pnpm test && pnpm typecheck && pnpm lint`) to verify zero regressions
+- [x] T033 Update `MatchShell` loading skeleton in `components/match/MatchShell.tsx` to match new three-column layout structure (panel placeholders on sides, board skeleton in center)
+- [x] T034 Remove `GameChrome` component (`components/match/GameChrome.tsx`) and its test file (`tests/unit/components/GameChrome.test.tsx`) — verify no remaining imports
+- [x] T035 Run full test suite (`pnpm test && pnpm typecheck && pnpm lint`) to verify zero regressions
 - [ ] T036 Manual visual QA — verify all 17 functional requirements (FR-001 through FR-017) against the spec in a live match between two players
 
 ---
