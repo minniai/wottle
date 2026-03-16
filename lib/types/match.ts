@@ -293,6 +293,23 @@ export interface RatingChange {
   playerBRatingAfter: number;
 }
 
+// ─── Match Player Profiles (018-match-hud-layout) ─────────────────────
+
+/** Snapshot of player identity for display during an active match. */
+export interface MatchPlayerProfile {
+  playerId: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  eloRating: number;
+}
+
+/** Both players' profiles for the match UI. */
+export interface MatchPlayerProfiles {
+  playerA: MatchPlayerProfile;
+  playerB: MatchPlayerProfile;
+}
+
 // ─── Scoring Breakdown Types (003-word-engine-scoring) ────────────────
 
 /**

@@ -5,8 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
-import { GameChrome } from "@/components/match/GameChrome";
-import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
+import { PlayerPanel } from "@/components/match/PlayerPanel";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
@@ -15,7 +14,7 @@ import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveRevealSequence } from "@/lib/match/revealSequence";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
-import type { MatchState, RoundSummary, TimerState, Coordinate } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, TimerState, Coordinate } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
@@ -32,6 +31,7 @@ interface MatchClientProps {
   initialState: MatchState;
   currentPlayerId: string;
   matchId: string;
+  playerProfiles: MatchPlayerProfiles;
   pollIntervalMs?: number;
 }
 
@@ -62,18 +62,11 @@ export function MatchClient({
   initialState,
   currentPlayerId,
   matchId,
+  playerProfiles,
   pollIntervalMs = 3_000,
 }: MatchClientProps) {
   const router = useRouter();
-  const isAutomation =
-    typeof navigator !== "undefined" && navigator.webdriver;
-  const summaryAutoDismissMs = isAutomation ? 15_000 : 0;
   const [matchState, setMatchState] = useState<MatchState>(initialState);
-  const [summary, setSummary] = useState<RoundSummary | null>(
-    initialState.lastSummary ?? null,
-  );
-  /** ID of the summary the player explicitly dismissed — prevents re-flash on safety-poll. */
-  const dismissedSummaryIdRef = useRef<string | null>(null);
   const realtimeDisabled =
     typeof process !== "undefined" &&
     process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true";
@@ -111,17 +104,24 @@ export function MatchClient({
   const [isResigning, setIsResigning] = useState(false);
 
   // Animation phase machine for post-round combined recap flash
-  type AnimationPhase = "idle" | "round-recap" | "showing-summary";
+  type AnimationPhase = "idle" | "round-recap";
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Tracks the last summary id that triggered the recap animation (prevents double-fire). */
   const lastAnimatedRoundRef = useRef<string | null>(null);
+  /** Tracks which round numbers have been accumulated into history (prevents duplicates). */
+  const accumulatedRoundsRef = useRef<Set<number>>(new Set());
   const prefersReducedMotionRef = useRef(
     typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
+
+  // Round announce overlay
+  const [roundAnnounce, setRoundAnnounce] = useState<string | null>(null);
+  const roundAnnounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAnnouncedRoundRef = useRef<number>(0);
 
   /** Ref so the safety-net poller always reads the freshest round. */
   const matchStateRef = useRef(matchState);
@@ -138,6 +138,31 @@ export function MatchClient({
     }));
   }, []);
 
+  /**
+   * Show round announce overlay. `nextRound` is the upcoming round number.
+   * Deduplicates by round number so multiple triggers for the same round are no-ops.
+   */
+  const showRoundAnnounce = useCallback((nextRound: number, isCompleted: boolean) => {
+    // Use negative value for "completed" to distinguish from normal rounds in dedup
+    const dedup = isCompleted ? -1 : nextRound;
+    if (lastAnnouncedRoundRef.current === dedup) return;
+    lastAnnouncedRoundRef.current = dedup;
+
+    const isFinal = isCompleted || nextRound > 10;
+    const text = isCompleted
+      ? "Rounds Complete"
+      : nextRound === 10
+        ? "Final Round"
+        : `Round ${nextRound}`;
+    const durationMs = isFinal ? 2400 : 1200;
+
+    setRoundAnnounce(text);
+    if (roundAnnounceTimerRef.current) clearTimeout(roundAnnounceTimerRef.current);
+    roundAnnounceTimerRef.current = setTimeout(() => {
+      setRoundAnnounce(null);
+    }, durationMs);
+  }, []);
+
   useEffect(() => {
     setMatchState(initialState);
   }, [initialState]);
@@ -152,14 +177,48 @@ export function MatchClient({
     const nextSummary = matchState.lastSummary;
     const id = `${nextSummary.matchId}-${nextSummary.roundNumber}`;
 
-    if (id === dismissedSummaryIdRef.current) return;
     if (id === lastAnimatedRoundRef.current) return;
 
     lastAnimatedRoundRef.current = id;
 
+    // Show round announce overlay (backup — also triggered directly from onSummary callback)
+    showRoundAnnounce(nextSummary.roundNumber + 1, matchState.state === "completed");
+
+    const announceDurationMs = (matchState.state === "completed" || nextSummary.roundNumber >= 10) ? 2400 : 1200;
+
+    // Accumulate round history (works regardless of delivery path: onSummary, onState, or poller)
+    if (!accumulatedRoundsRef.current.has(nextSummary.roundNumber)) {
+      accumulatedRoundsRef.current.add(nextSummary.roundNumber);
+      const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
+        roundNumber: nextSummary.roundNumber,
+        playerId: w.playerId,
+        word: w.word,
+        totalPoints: w.totalPoints,
+        lettersPoints: w.lettersPoints,
+        bonusPoints: w.bonusPoints,
+        coordinates: w.coordinates,
+      }));
+      const newScore: ScoreboardRow = {
+        roundNumber: nextSummary.roundNumber,
+        playerAScore: nextSummary.totals.playerA,
+        playerBScore: nextSummary.totals.playerB,
+        playerADelta: nextSummary.deltas.playerA,
+        playerBDelta: nextSummary.deltas.playerB,
+      };
+      setAccumulatedWords((prev) => [...prev, ...newWords]);
+      setAccumulatedScores((prev) => [...prev, newScore]);
+    }
+
+    // Derive score delta inline (no overlay to wait for)
+    setScoreDelta(deriveScoreDelta(nextSummary, currentPlayerId));
+
     if (prefersReducedMotionRef.current) {
-      setSummary(nextSummary);
-      setAnimationPhase("showing-summary");
+      // Skip highlight animation entirely
+      setMoveLocked(false);
+      setLockedSwapTiles(null);
+      if (matchState.state === "completed" || nextSummary.roundNumber >= 10) {
+        setTimeout(() => setFinalRecapDone(true), announceDurationMs);
+      }
       return;
     }
 
@@ -181,15 +240,14 @@ export function MatchClient({
 
     if (nextSummary.highlights.length > 0) playWordDiscovery();
 
+    const isCompleted = matchState.state === "completed" || nextSummary.roundNumber >= 10;
+
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = setTimeout(() => {
-      setAnimationPhase("showing-summary");
-      setSummary(nextSummary);
-    }, 1200);
-    // No cleanup return — animationPhase is a dependency, so cleanup would
-    // clear the timeout when setAnimationPhase("round-recap") triggers re-run.
-    // The ref-based manual clearTimeout above handles timer replacement.
-  }, [matchState.lastSummary, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery]);
+      setAnimationPhase("idle");
+      if (isCompleted) setFinalRecapDone(true);
+    }, announceDurationMs);
+  }, [matchState.lastSummary, matchState.state, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery, showRoundAnnounce]);
 
   // Play match start sound + haptic on mount
   useEffect(() => {
@@ -198,14 +256,29 @@ export function MatchClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Navigate to final summary when match completes; play match end sound + haptic
+  // Navigate to final summary when match completes — wait for all animations to finish
+  const matchEndSoundFiredRef = useRef(false);
+  const [finalRecapDone, setFinalRecapDone] = useState(
+    // If already completed on mount (page load), skip waiting for recap
+    initialState.state === "completed",
+  );
   useEffect(() => {
-    if (matchState.state === "completed") {
+    if (matchState.state !== "completed") return;
+
+    // Play sound/haptic once
+    if (!matchEndSoundFiredRef.current) {
+      matchEndSoundFiredRef.current = true;
       playMatchEnd();
       vibrateMatchEnd();
-      router.push(`/match/${matchId}/summary`);
     }
-  }, [matchId, matchState.state, router, playMatchEnd, vibrateMatchEnd]);
+
+    // Wait for recap to start, play, AND finish before navigating.
+    // finalRecapDone is set to true only after the recap + announce complete,
+    // or immediately if the match was already completed on mount.
+    if (!finalRecapDone) return;
+
+    router.push(`/match/${matchId}/summary`);
+  }, [matchId, matchState.state, finalRecapDone, router, playMatchEnd, vibrateMatchEnd]);
 
   // ── Realtime channel ──────────────────────────────────────────────
   useEffect(() => {
@@ -231,27 +304,10 @@ export function MatchClient({
         applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
-        // Accumulate round history for in-game panel (US4)
-        const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
-          roundNumber: nextSummary.roundNumber,
-          playerId: w.playerId,
-          word: w.word,
-          totalPoints: w.totalPoints,
-          lettersPoints: w.lettersPoints,
-          bonusPoints: w.bonusPoints,
-          coordinates: w.coordinates,
-        }));
-        const newScore: ScoreboardRow = {
-          roundNumber: nextSummary.roundNumber,
-          playerAScore: nextSummary.totals.playerA,
-          playerBScore: nextSummary.totals.playerB,
-          playerADelta: nextSummary.deltas.playerA,
-          playerBDelta: nextSummary.deltas.playerB,
-        };
-        setAccumulatedWords((prev) => [...prev, ...newWords]);
-        setAccumulatedScores((prev) => [...prev, newScore]);
+        // Trigger round announce immediately (before React render cycle)
+        showRoundAnnounce(nextSummary.roundNumber + 1, false);
 
-        // Update match state — recap animation triggers via the lastSummary useEffect
+        // Update match state — accumulation + recap animation trigger via the lastSummary useEffect
         setMatchState((prev) => ({
           ...prev,
           scores: nextSummary.totals,
@@ -299,6 +355,7 @@ export function MatchClient({
     currentPlayerId,
     disconnectedPlayerId,
     applySnapshot,
+    showRoundAnnounce,
     matchState.timers.playerA.playerId,
     playWordDiscovery,
   ]);
@@ -384,6 +441,12 @@ export function MatchClient({
     setLockedSwapTiles(null);
   }, [matchState.currentRound]);
 
+  // Fallback: announce round when currentRound changes (catches missed summary broadcasts)
+  useEffect(() => {
+    if (matchState.currentRound <= 1) return;
+    showRoundAnnounce(matchState.currentRound, matchState.state === "completed");
+  }, [matchState.currentRound, matchState.state, showRoundAnnounce]);
+
   // Dual timeout detection (US4): both players' timers at zero
   const dualTimeoutDetected =
     matchState.timers.playerA.remainingMs <= 0 &&
@@ -402,28 +465,8 @@ export function MatchClient({
     }
   }, [dualTimeoutDetected, matchState.state, matchId]);
 
-  const handleSummaryDismiss = useCallback(() => {
-    setSummary((prev) => {
-      if (prev) {
-        dismissedSummaryIdRef.current = `${prev.matchId}-${prev.roundNumber}`;
-      }
-      return null;
-    });
-    setAnimationPhase("idle");
-    setHighlightPlayerColors({});
-  }, []);
-
   const playerSlot: "player_a" | "player_b" =
     matchState.timers.playerA.playerId === currentPlayerId ? "player_a" : "player_b";
-
-  // Derive score delta popup data from the latest round summary.
-  useEffect(() => {
-    if (!summary) {
-      setScoreDelta(null);
-      return;
-    }
-    setScoreDelta(deriveScoreDelta(summary, currentPlayerId));
-  }, [summary, currentPlayerId, playerSlot]);
 
   const handleSwapComplete = useCallback(
     ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
@@ -481,22 +524,29 @@ export function MatchClient({
   // Derive in-game round history from accumulated data (US4)
   const playerAId = matchState.timers.playerA.playerId;
   const playerBId = matchState.timers.playerB.playerId;
+  const playerADisplayName = playerProfiles.playerA.displayName;
+  const playerBDisplayName = playerProfiles.playerB.displayName;
+
   const roundHistory = useMemo(
     () =>
       deriveRoundHistory(
         accumulatedWords,
         accumulatedScores,
         playerAId,
-        playerAId,
+        playerADisplayName,
         playerBId,
-        playerBId,
+        playerBDisplayName,
       ),
-    [accumulatedWords, accumulatedScores, playerAId, playerBId],
+    [accumulatedWords, accumulatedScores, playerAId, playerBId, playerADisplayName, playerBDisplayName],
   );
 
   const usernameMap = useMemo(
-    () => ({ [playerAId]: playerAId, [playerBId]: playerBId }),
-    [playerAId, playerBId],
+    () => ({ [playerAId]: playerADisplayName, [playerBId]: playerBDisplayName }),
+    [playerAId, playerBId, playerADisplayName, playerBDisplayName],
+  );
+  const completedRounds = useMemo(
+    () => accumulatedScores.map((s) => s.roundNumber),
+    [accumulatedScores],
   );
   const biggestSwing = useMemo(() => deriveBiggestSwing(accumulatedScores), [accumulatedScores]);
   const highestWord = useMemo(() => deriveHighestScoringWord(accumulatedWords, usernameMap), [accumulatedWords, usernameMap]);
@@ -574,18 +624,59 @@ export function MatchClient({
       )}
 
       <div className="match-layout">
+        {/* Desktop: left panel (current player) */}
+        <div className="match-layout__panel match-layout__panel--left">
+          <PlayerPanel
+            player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+            gameState={{
+              score: playerScore,
+              timerSeconds: timeLeftSeconds,
+              isPaused,
+              hasSubmitted: currentTimer.status === "paused",
+              currentRound: matchState.currentRound,
+              totalRounds: 10,
+              playerColor: getPlayerColors(playerSlot).hex,
+            }}
+            controls={{
+              scoreDelta,
+              scoreDeltaRound: matchState.lastSummary?.roundNumber,
+              roundHistoryCount: roundHistory.length,
+              onHistoryToggle: () => setHistoryOpen((v) => !v),
+              onResign: () => setShowResignDialog(true),
+              resignDisabled:
+                matchState.state === "resolving" ||
+                matchState.state === "completed" ||
+                isResigning,
+            }}
+            roundHistory={{
+              playerId: currentPlayerId,
+              accumulatedWords,
+              completedRounds,
+            }}
+            variant="full"
+            isDisconnected={matchState.disconnectedPlayerId === currentPlayerId}
+          />
+        </div>
+
         {/* Board area */}
         <div className="match-layout__board">
-          <GameChrome
-            position="opponent"
-            playerName={opponentTimer.playerId}
-            score={opponentScore}
-            timerSeconds={opponentTimeLeft}
-            isPaused={opponentTimer.status !== "running"}
-            hasSubmitted={opponentTimer.status === "paused"}
-            moveCounter={matchState.currentRound}
-            playerColor={getPlayerColors(opponentSlot).hex}
-          />
+          {/* Mobile: compact opponent bar */}
+          <div className="match-layout__compact-top" data-testid="game-chrome-opponent">
+            <PlayerPanel
+              player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+              gameState={{
+                score: opponentScore,
+                timerSeconds: opponentTimeLeft,
+                isPaused: opponentTimer.status !== "running",
+                hasSubmitted: opponentTimer.status === "paused",
+                currentRound: matchState.currentRound,
+                totalRounds: 10,
+                playerColor: getPlayerColors(opponentSlot).hex,
+              }}
+              variant="compact"
+              isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
+            />
+          </div>
 
           <BoardGrid
             grid={matchState.board}
@@ -593,7 +684,7 @@ export function MatchClient({
             frozenTiles={matchState.frozenTiles ?? {}}
             playerSlot={playerSlot}
             disabled={moveLocked}
-            showLockBanner={moveLocked}
+            showLockBanner={false}
             lockedTiles={lockedSwapTiles}
             opponentRevealTiles={
               animationPhase === "round-recap" && activeRevealMove
@@ -610,7 +701,7 @@ export function MatchClient({
                 ? highlightPlayerColors
                 : {}
             }
-            highlightDurationMs={animationPhase === "round-recap" ? 1200 : 800}
+            highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
             highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
             onSwapComplete={handleSwapComplete}
             onSwapError={({ message }) => handleSwapError(message)}
@@ -619,40 +710,57 @@ export function MatchClient({
             onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
           />
 
-          <GameChrome
-            position="player"
-            playerName={currentTimer.playerId}
-            score={playerScore}
-            timerSeconds={timeLeftSeconds}
-            isPaused={isPaused}
-            hasSubmitted={currentTimer.status === "paused"}
-            moveCounter={matchState.currentRound}
-            playerColor={getPlayerColors(playerSlot).hex}
-            scoreDelta={scoreDelta}
-            scoreDeltaRound={summary?.roundNumber}
-            roundHistoryCount={roundHistory.length}
-            onHistoryToggle={() => setHistoryOpen((v) => !v)}
-            onResign={() => setShowResignDialog(true)}
-            resignDisabled={
-              matchState.state === "resolving" ||
-              matchState.state === "completed" ||
-              isResigning
-            }
-          />
+          {roundAnnounce && (
+            <div
+              key={`${matchState.currentRound}-${roundAnnounce}`}
+              className={`round-announce${roundAnnounce === "Rounds Complete" ? " round-announce--final" : ""}`}
+              style={{ position: "absolute", top: "50%", left: "50%", zIndex: 25 }}
+              data-testid="round-announce"
+            >
+              {roundAnnounce}
+            </div>
+          )}
+
+          {/* Mobile: compact player bar */}
+          <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
+            <PlayerPanel
+              player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+              gameState={{
+                score: playerScore,
+                timerSeconds: timeLeftSeconds,
+                isPaused,
+                hasSubmitted: currentTimer.status === "paused",
+                currentRound: matchState.currentRound,
+                totalRounds: 10,
+                playerColor: getPlayerColors(playerSlot).hex,
+              }}
+              variant="compact"
+            />
+          </div>
+
         </div>
 
-        {/* Round summary — right of board on >=900px, below on smaller.
-             Container always rendered to reserve layout space (no shift). */}
-        <div className="match-layout__summary">
-          {animationPhase !== "round-recap" && summary && (
-            <RoundSummaryPanel
-              summary={summary}
-              currentPlayerId={currentPlayerId}
-              playerAId={playerAId}
-              onDismiss={handleSummaryDismiss}
-              autoDismissMs={summaryAutoDismissMs}
-            />
-          )}
+        {/* Desktop: right panel (opponent) */}
+        <div className="match-layout__panel match-layout__panel--right">
+          <PlayerPanel
+            player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+            gameState={{
+              score: opponentScore,
+              timerSeconds: opponentTimeLeft,
+              isPaused: opponentTimer.status !== "running",
+              hasSubmitted: opponentTimer.status === "paused",
+              currentRound: matchState.currentRound,
+              totalRounds: 10,
+              playerColor: getPlayerColors(opponentSlot).hex,
+            }}
+            roundHistory={{
+              playerId: opponentTimer.playerId,
+              accumulatedWords,
+              completedRounds,
+            }}
+            variant="full"
+            isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
+          />
         </div>
       </div>
 

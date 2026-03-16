@@ -96,9 +96,9 @@ function TopWordsList({ words }: { words: TopWord[] }) {
 
   return (
     <ul className="mt-2 space-y-1">
-      {words.map((entry) => (
+      {words.map((entry, idx) => (
         <li
-          key={entry.word}
+          key={`${entry.word}-${idx}`}
           className="flex items-center justify-between text-xs text-white/70"
         >
           <span className="font-mono uppercase tracking-wide">{entry.word}</span>

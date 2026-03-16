@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { MatchClient } from "@/components/match/MatchClient";
 import { handlePlayerReconnect } from "@/app/actions/match/handleDisconnect";
-import { loadMatchState } from "@/lib/match/stateLoader";
+import { loadMatchState, loadMatchPlayerProfiles } from "@/lib/match/stateLoader";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -38,12 +38,19 @@ export default async function MatchPage({
     return <div>Match not found</div>;
   }
 
+  const playerProfiles = await loadMatchPlayerProfiles(
+    supabase,
+    matchState.timers.playerA.playerId,
+    matchState.timers.playerB.playerId,
+  );
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 p-6 text-white">
       <MatchClient
         currentPlayerId={session.player.id}
         initialState={matchState}
         matchId={matchId}
+        playerProfiles={playerProfiles}
       />
     </div>
   );

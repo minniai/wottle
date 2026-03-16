@@ -5,6 +5,8 @@ import type { Coordinate } from "@/lib/types/board";
 import { aggregateRoundSummary } from "@/lib/scoring/roundSummary";
 import type {
   MatchPhase,
+  MatchPlayerProfile,
+  MatchPlayerProfiles,
   MatchState,
   RoundSummary,
   ScoreTotals,
@@ -152,6 +154,56 @@ async function loadLatestRoundSummary(
   const previousTotals = await fetchPreviousTotals(client, matchId, summaryRound);
   const wordScores = mapWordScores(wordEntries);
   return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals, playerAId, playerBId);
+}
+
+function mapPlayerRow(
+  row: { id: string; username: string; display_name: string; avatar_url: string | null; elo_rating: number | null },
+): MatchPlayerProfile {
+  return {
+    playerId: row.id,
+    displayName: row.display_name || row.username,
+    username: row.username,
+    avatarUrl: row.avatar_url,
+    eloRating: row.elo_rating ?? 1200,
+  };
+}
+
+function fallbackProfile(playerId: string, label: string): MatchPlayerProfile {
+  return {
+    playerId,
+    displayName: label,
+    username: label,
+    avatarUrl: null,
+    eloRating: 1200,
+  };
+}
+
+export async function loadMatchPlayerProfiles(
+  client: AnyClient,
+  playerAId: string,
+  playerBId: string,
+): Promise<MatchPlayerProfiles> {
+  const { data, error } = await client
+    .from("players")
+    .select("id, username, display_name, avatar_url, elo_rating")
+    .in("id", [playerAId, playerBId]);
+
+  if (error || !data) {
+    console.warn("[MatchState] Failed to load player profiles:", error?.message);
+    return {
+      playerA: fallbackProfile(playerAId, "Player A"),
+      playerB: fallbackProfile(playerBId, "Player B"),
+    };
+  }
+
+  const byId = new Map(data.map((row: any) => [row.id, row]));
+  const rowA = byId.get(playerAId);
+  const rowB = byId.get(playerBId);
+
+  return {
+    playerA: rowA ? mapPlayerRow(rowA) : fallbackProfile(playerAId, "Player A"),
+    playerB: rowB ? mapPlayerRow(rowB) : fallbackProfile(playerBId, "Player B"),
+  };
 }
 
 export async function loadMatchState(
