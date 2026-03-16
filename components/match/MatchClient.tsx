@@ -118,6 +118,11 @@ export function MatchClient({
       window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
 
+  // Round announce overlay
+  const [roundAnnounce, setRoundAnnounce] = useState<string | null>(null);
+  const roundAnnounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAnnouncedRoundRef = useRef<number>(0);
+
   /** Ref so the safety-net poller always reads the freshest round. */
   const matchStateRef = useRef(matchState);
   useEffect(() => {
@@ -131,6 +136,31 @@ export function MatchClient({
       ...snapshot,
       lastSummary: snapshot.lastSummary ?? prev.lastSummary,
     }));
+  }, []);
+
+  /**
+   * Show round announce overlay. `nextRound` is the upcoming round number.
+   * Deduplicates by round number so multiple triggers for the same round are no-ops.
+   */
+  const showRoundAnnounce = useCallback((nextRound: number, isCompleted: boolean) => {
+    // Use negative value for "completed" to distinguish from normal rounds in dedup
+    const dedup = isCompleted ? -1 : nextRound;
+    if (lastAnnouncedRoundRef.current === dedup) return;
+    lastAnnouncedRoundRef.current = dedup;
+
+    const isFinal = isCompleted || nextRound > 10;
+    const text = isCompleted
+      ? "Game Complete"
+      : nextRound === 10
+        ? "Final Round"
+        : `Round ${nextRound}`;
+    const durationMs = isFinal ? 2400 : 1200;
+
+    setRoundAnnounce(text);
+    if (roundAnnounceTimerRef.current) clearTimeout(roundAnnounceTimerRef.current);
+    roundAnnounceTimerRef.current = setTimeout(() => {
+      setRoundAnnounce(null);
+    }, durationMs);
   }, []);
 
   useEffect(() => {
@@ -150,6 +180,11 @@ export function MatchClient({
     if (id === lastAnimatedRoundRef.current) return;
 
     lastAnimatedRoundRef.current = id;
+
+    // Show round announce overlay (backup — also triggered directly from onSummary callback)
+    showRoundAnnounce(nextSummary.roundNumber + 1, matchState.state === "completed");
+
+    const announceDurationMs = (matchState.state === "completed" || nextSummary.roundNumber >= 10) ? 2400 : 1200;
 
     // Accumulate round history (works regardless of delivery path: onSummary, onState, or poller)
     if (!accumulatedRoundsRef.current.has(nextSummary.roundNumber)) {
@@ -205,8 +240,8 @@ export function MatchClient({
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = setTimeout(() => {
       setAnimationPhase("idle");
-    }, 1200);
-  }, [matchState.lastSummary, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery]);
+    }, announceDurationMs);
+  }, [matchState.lastSummary, matchState.state, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery, showRoundAnnounce]);
 
   // Play match start sound + haptic on mount
   useEffect(() => {
@@ -215,14 +250,23 @@ export function MatchClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Navigate to final summary when match completes; play match end sound + haptic
+  // Navigate to final summary when match completes — wait for animations to finish
+  const matchEndSoundFiredRef = useRef(false);
   useEffect(() => {
-    if (matchState.state === "completed") {
+    if (matchState.state !== "completed") return;
+
+    // Play sound/haptic once
+    if (!matchEndSoundFiredRef.current) {
+      matchEndSoundFiredRef.current = true;
       playMatchEnd();
       vibrateMatchEnd();
-      router.push(`/match/${matchId}/summary`);
     }
-  }, [matchId, matchState.state, router, playMatchEnd, vibrateMatchEnd]);
+
+    // Wait for recap animation and round announce to complete before navigating
+    if (animationPhase === "round-recap" || roundAnnounce) return;
+
+    router.push(`/match/${matchId}/summary`);
+  }, [matchId, matchState.state, animationPhase, roundAnnounce, router, playMatchEnd, vibrateMatchEnd]);
 
   // ── Realtime channel ──────────────────────────────────────────────
   useEffect(() => {
@@ -248,6 +292,9 @@ export function MatchClient({
         applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
+        // Trigger round announce immediately (before React render cycle)
+        showRoundAnnounce(nextSummary.roundNumber + 1, false);
+
         // Update match state — accumulation + recap animation trigger via the lastSummary useEffect
         setMatchState((prev) => ({
           ...prev,
@@ -296,6 +343,7 @@ export function MatchClient({
     currentPlayerId,
     disconnectedPlayerId,
     applySnapshot,
+    showRoundAnnounce,
     matchState.timers.playerA.playerId,
     playWordDiscovery,
   ]);
@@ -380,6 +428,12 @@ export function MatchClient({
     setMoveLocked(false);
     setLockedSwapTiles(null);
   }, [matchState.currentRound]);
+
+  // Fallback: announce round when currentRound changes (catches missed summary broadcasts)
+  useEffect(() => {
+    if (matchState.currentRound <= 1) return;
+    showRoundAnnounce(matchState.currentRound, matchState.state === "completed");
+  }, [matchState.currentRound, matchState.state, showRoundAnnounce]);
 
   // Dual timeout detection (US4): both players' timers at zero
   const dualTimeoutDetected =
@@ -618,7 +672,7 @@ export function MatchClient({
             frozenTiles={matchState.frozenTiles ?? {}}
             playerSlot={playerSlot}
             disabled={moveLocked}
-            showLockBanner={moveLocked && animationPhase !== "round-recap"}
+            showLockBanner={false}
             lockedTiles={lockedSwapTiles}
             opponentRevealTiles={
               animationPhase === "round-recap" && activeRevealMove
@@ -635,7 +689,7 @@ export function MatchClient({
                 ? highlightPlayerColors
                 : {}
             }
-            highlightDurationMs={animationPhase === "round-recap" ? 1200 : 800}
+            highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
             highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
             onSwapComplete={handleSwapComplete}
             onSwapError={({ message }) => handleSwapError(message)}
@@ -644,12 +698,13 @@ export function MatchClient({
             onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
           />
 
-          {animationPhase === "round-recap" && (
+          {roundAnnounce && (
             <div
-              className="round-announce"
+              key={`${matchState.currentRound}-${roundAnnounce}`}
+              className={`round-announce${roundAnnounce === "Game Complete" ? " round-announce--final" : ""}`}
               data-testid="round-announce"
             >
-              Round {matchState.currentRound}
+              {roundAnnounce}
             </div>
           )}
 
