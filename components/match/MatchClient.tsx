@@ -275,7 +275,13 @@ export function MatchClient({
     // Wait for recap to start, play, AND finish before navigating.
     // finalRecapDone is set to true only after the recap + announce complete,
     // or immediately if the match was already completed on mount.
-    if (!finalRecapDone) return;
+    if (!finalRecapDone) {
+      // Safety fallback: if the recap timer was cancelled (e.g. channel
+      // re-subscribe during the 2.4 s window), force navigation after 5 s
+      // so we never get stuck on the match page.
+      const fallback = setTimeout(() => setFinalRecapDone(true), 5_000);
+      return () => clearTimeout(fallback);
+    }
 
     router.push(`/match/${matchId}/summary`);
   }, [matchId, matchState.state, finalRecapDone, router, playMatchEnd, vibrateMatchEnd]);
@@ -347,7 +353,6 @@ export function MatchClient({
 
     return () => {
       channel.unsubscribe();
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     };
   }, [
     matchId,
