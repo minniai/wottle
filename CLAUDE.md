@@ -114,7 +114,7 @@ Before implementing any feature:
   - `/lib/types` - Shared TypeScript types
   - `/lib/constants` - Board dimensions, feature flags, app constants
 - `/docs` - PRD, analysis, wordlists
-  - `/docs/wordlist` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
+  - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
 - `/components` - React Client Components
   - `/components/game` - Board, BoardGrid, MoveFeedback, TimerHud
   - `/components/match` - MatchClient, MatchShell, RoundSummaryPanel, FinalSummary, WordHighlightOverlay

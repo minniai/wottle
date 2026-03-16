@@ -22,7 +22,7 @@ import {
   PLAYER_B_OVERLAY,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
-import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
+import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 
 interface BoardGridProps {
   grid?: BoardGridType;

@@ -8,11 +8,11 @@ import type {
 import { logPlaytestInfo } from "@/lib/observability/log";
 import { loadDictionary } from "./dictionary";
 import type { Language } from "@/lib/types/game-config";
-import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
-import { LETTER_SCORING_VALUES_EN } from "@/docs/wordlist/letter_scoring_values_en";
-import { LETTER_SCORING_VALUES_SE } from "@/docs/wordlist/letter_scoring_values_se";
-import { LETTER_SCORING_VALUES_NO } from "@/docs/wordlist/letter_scoring_values_no";
-import { LETTER_SCORING_VALUES_DK } from "@/docs/wordlist/letter_scoring_values_dk";
+import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
+import { LETTER_SCORING_VALUES_EN } from "@/lib/game-engine/letter-values/letter_scoring_values_en";
+import { LETTER_SCORING_VALUES_SE } from "@/lib/game-engine/letter-values/letter_scoring_values_se";
+import { LETTER_SCORING_VALUES_NO } from "@/lib/game-engine/letter-values/letter_scoring_values_no";
+import { LETTER_SCORING_VALUES_DK } from "@/lib/game-engine/letter-values/letter_scoring_values_dk";
 
 const LETTER_VALUES_BY_LANGUAGE: Record<Language, Record<string, number>> = {
   is: LETTER_SCORING_VALUES_IS,
