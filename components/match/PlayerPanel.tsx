@@ -4,6 +4,8 @@ import { PlayerAvatar } from "./PlayerAvatar";
 import { TimerDisplay } from "./TimerDisplay";
 import type { ScoreDelta } from "./ScoreDeltaPopup";
 import { ScoreDeltaPopup } from "./ScoreDeltaPopup";
+import { RoundHistoryInline } from "./RoundHistoryInline";
+import type { WordHistoryRow } from "./FinalSummary";
 
 interface PlayerPanelProps {
   player: {
@@ -28,6 +30,12 @@ interface PlayerPanelProps {
     onResign?: () => void;
     resignDisabled?: boolean;
   };
+  roundHistory?: {
+    playerId: string;
+    accumulatedWords: WordHistoryRow[];
+    totalRounds: number;
+    currentRound: number;
+  };
   variant: "full" | "compact";
   isDisconnected?: boolean;
 }
@@ -37,6 +45,7 @@ function FullPanel({
   gameState,
   controls,
   isDisconnected,
+  roundHistory,
 }: Omit<PlayerPanelProps, "variant">) {
   return (
     <div
@@ -122,6 +131,15 @@ function FullPanel({
           )}
         </div>
       )}
+
+      {roundHistory && (
+        <RoundHistoryInline
+          playerId={roundHistory.playerId}
+          accumulatedWords={roundHistory.accumulatedWords}
+          totalRounds={roundHistory.totalRounds}
+          currentRound={roundHistory.currentRound}
+        />
+      )}
     </div>
   );
 }
@@ -192,6 +210,7 @@ export function PlayerPanel(props: PlayerPanelProps) {
       gameState={props.gameState}
       controls={props.controls}
       isDisconnected={props.isDisconnected}
+      roundHistory={props.roundHistory}
     />
   );
 }

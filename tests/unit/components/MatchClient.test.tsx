@@ -420,7 +420,7 @@ describe("MatchClient animation phase machine (US2)", () => {
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
   });
 
-  test("RoundSummaryPanel IS rendered after 1200ms timer fires", async () => {
+  test("no overlay is rendered after 1200ms — round data appears inline in player panel", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -438,13 +438,14 @@ describe("MatchClient animation phase machine (US2)", () => {
       mockMatchCallbacks.onSummary!(mockRoundSummary);
     });
 
-    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1201);
     });
 
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+    // No overlay
+    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    // Inline round history appears in player panels
+    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
   });
 
   test("scoredTileHighlights passed to BoardGrid is populated from pendingSummary during highlighting phase", async () => {
@@ -504,7 +505,7 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
     });
   });
 
-  test("RoundSummaryPanel renders immediately when prefers-reduced-motion is active (no 800ms wait)", async () => {
+  test("no overlay rendered with reduced motion — inline history appears immediately", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -522,11 +523,12 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
       mockMatchCallbacks.onSummary!(mockRoundSummary);
     });
 
-    // With reduced motion: panel should be visible immediately (no 800ms wait needed)
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+    // No overlay — inline history is shown instead
+    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
   });
 
-  test("animationPhase transitions directly to showing-summary without highlighting when reduced motion is active", async () => {
+  test("highlight animation is skipped when reduced motion is active", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -543,9 +545,6 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
     act(() => {
       mockMatchCallbacks.onSummary!(mockRoundSummary);
     });
-
-    // Panel is visible without advancing timers — confirms no 800ms gate
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
 
     // No tiles should have board-grid__cell--scored class (highlighting phase skipped)
     const scoredTiles = document.querySelectorAll(".board-grid__cell--scored");
@@ -666,7 +665,7 @@ describe("MatchClient round-recap flash (US1)", () => {
     vi.restoreAllMocks();
   });
 
-  test("T014: phases transition idle → round-recap → showing-summary", async () => {
+  test("T014: phases transition idle → round-recap → idle (no overlay)", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -682,14 +681,17 @@ describe("MatchClient round-recap flash (US1)", () => {
 
     act(() => { mockMatchCallbacks.onSummary!(mockRoundSummaryWithMoves); });
 
-    // round-recap phase — no summary panel yet
-    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    // round-recap phase — scored tile highlights are active
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[2 * 10 + 1]).toHaveClass("board-grid__cell--scored");
 
-    // Advance past recap timer (1200ms) → transitions to "showing-summary"
+    // Advance past recap timer (1200ms) → transitions back to idle
     await act(async () => { await vi.advanceTimersByTimeAsync(1201); });
 
-    // showing-summary — summary panel IS shown
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+    // No overlay ever appears
+    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    // Inline history shows the round data
+    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
   });
 
   test("T015: opponent's swapped tiles get opponent-reveal class during round-recap phase", async () => {

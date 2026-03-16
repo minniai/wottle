@@ -468,19 +468,6 @@
   }
 }
 
-/* ─── Board overlay for RoundSummaryPanel ─────────────────────────── */
-
-.match-layout__overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
-  border-radius: 1rem;
-}
-
 /* ─── Timer urgency pulse ─────────────────────────────────────────── */
 
 @keyframes timer-urgency-pulse {

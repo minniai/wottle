@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { PlayerPanel } from "@/components/match/PlayerPanel";
-import { RoundSummaryPanel } from "@/components/match/RoundSummaryPanel";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
@@ -15,7 +14,7 @@ import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveRevealSequence } from "@/lib/match/revealSequence";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
-import type { MatchPlayerProfiles, MatchState, RoundSummary, TimerState, Coordinate } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, TimerState, Coordinate } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
@@ -67,15 +66,7 @@ export function MatchClient({
   pollIntervalMs = 3_000,
 }: MatchClientProps) {
   const router = useRouter();
-  const isAutomation =
-    typeof navigator !== "undefined" && navigator.webdriver;
-  const summaryAutoDismissMs = isAutomation ? 15_000 : 0;
   const [matchState, setMatchState] = useState<MatchState>(initialState);
-  const [summary, setSummary] = useState<RoundSummary | null>(
-    initialState.lastSummary ?? null,
-  );
-  /** ID of the summary the player explicitly dismissed — prevents re-flash on safety-poll. */
-  const dismissedSummaryIdRef = useRef<string | null>(null);
   const realtimeDisabled =
     typeof process !== "undefined" &&
     process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true";
@@ -113,7 +104,7 @@ export function MatchClient({
   const [isResigning, setIsResigning] = useState(false);
 
   // Animation phase machine for post-round combined recap flash
-  type AnimationPhase = "idle" | "round-recap" | "showing-summary";
+  type AnimationPhase = "idle" | "round-recap";
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -154,14 +145,17 @@ export function MatchClient({
     const nextSummary = matchState.lastSummary;
     const id = `${nextSummary.matchId}-${nextSummary.roundNumber}`;
 
-    if (id === dismissedSummaryIdRef.current) return;
     if (id === lastAnimatedRoundRef.current) return;
 
     lastAnimatedRoundRef.current = id;
 
+    // Derive score delta inline (no overlay to wait for)
+    setScoreDelta(deriveScoreDelta(nextSummary, currentPlayerId));
+
     if (prefersReducedMotionRef.current) {
-      setSummary(nextSummary);
-      setAnimationPhase("showing-summary");
+      // Skip highlight animation entirely
+      setMoveLocked(false);
+      setLockedSwapTiles(null);
       return;
     }
 
@@ -185,12 +179,8 @@ export function MatchClient({
 
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = setTimeout(() => {
-      setAnimationPhase("showing-summary");
-      setSummary(nextSummary);
+      setAnimationPhase("idle");
     }, 1200);
-    // No cleanup return — animationPhase is a dependency, so cleanup would
-    // clear the timeout when setAnimationPhase("round-recap") triggers re-run.
-    // The ref-based manual clearTimeout above handles timer replacement.
   }, [matchState.lastSummary, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery]);
 
   // Play match start sound + haptic on mount
@@ -404,28 +394,8 @@ export function MatchClient({
     }
   }, [dualTimeoutDetected, matchState.state, matchId]);
 
-  const handleSummaryDismiss = useCallback(() => {
-    setSummary((prev) => {
-      if (prev) {
-        dismissedSummaryIdRef.current = `${prev.matchId}-${prev.roundNumber}`;
-      }
-      return null;
-    });
-    setAnimationPhase("idle");
-    setHighlightPlayerColors({});
-  }, []);
-
   const playerSlot: "player_a" | "player_b" =
     matchState.timers.playerA.playerId === currentPlayerId ? "player_a" : "player_b";
-
-  // Derive score delta popup data from the latest round summary.
-  useEffect(() => {
-    if (!summary) {
-      setScoreDelta(null);
-      return;
-    }
-    setScoreDelta(deriveScoreDelta(summary, currentPlayerId));
-  }, [summary, currentPlayerId, playerSlot]);
 
   const handleSwapComplete = useCallback(
     ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
@@ -594,7 +564,7 @@ export function MatchClient({
             }}
             controls={{
               scoreDelta,
-              scoreDeltaRound: summary?.roundNumber,
+              scoreDeltaRound: matchState.lastSummary?.roundNumber,
               roundHistoryCount: roundHistory.length,
               onHistoryToggle: () => setHistoryOpen((v) => !v),
               onResign: () => setShowResignDialog(true),
@@ -602,6 +572,12 @@ export function MatchClient({
                 matchState.state === "resolving" ||
                 matchState.state === "completed" ||
                 isResigning,
+            }}
+            roundHistory={{
+              playerId: currentPlayerId,
+              accumulatedWords,
+              totalRounds: 10,
+              currentRound: matchState.currentRound,
             }}
             variant="full"
             isDisconnected={matchState.disconnectedPlayerId === currentPlayerId}
@@ -677,18 +653,6 @@ export function MatchClient({
             />
           </div>
 
-          {/* Round summary overlay */}
-          {animationPhase !== "round-recap" && summary && (
-            <div className="match-layout__overlay">
-              <RoundSummaryPanel
-                summary={summary}
-                currentPlayerId={currentPlayerId}
-                playerAId={playerAId}
-                onDismiss={handleSummaryDismiss}
-                autoDismissMs={summaryAutoDismissMs}
-              />
-            </div>
-          )}
         </div>
 
         {/* Desktop: right panel (opponent) */}
@@ -703,6 +667,12 @@ export function MatchClient({
               currentRound: matchState.currentRound,
               totalRounds: 10,
               playerColor: getPlayerColors(opponentSlot).hex,
+            }}
+            roundHistory={{
+              playerId: opponentTimer.playerId,
+              accumulatedWords,
+              totalRounds: 10,
+              currentRound: matchState.currentRound,
             }}
             variant="full"
             isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
