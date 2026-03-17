@@ -307,7 +307,7 @@ export function FinalSummary({
           </div>
 
           {/* Board */}
-          <div className="relative" style={{ maxWidth: "min(100%, 50dvh)" }}>
+          <div className="relative w-full max-w-[min(100%,50dvh)] flex-1">
             <BoardGridComponent
               grid={board}
               matchId={matchId}
