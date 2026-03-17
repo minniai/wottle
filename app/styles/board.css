@@ -549,22 +549,35 @@
   }
 }
 
-/* ─── Timer urgency pulse ─────────────────────────────────────────── */
+/* ─── Timer state colors ─────────────────────────────────────────── */
 
-@keyframes timer-urgency-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.65; }
+.timer-display--running {
+  background: rgba(22, 163, 74, 0.85); /* green-600 */
 }
 
-.timer-display--urgent {
-  background: rgba(220, 38, 38, 0.85) !important;
-  animation: timer-urgency-pulse 1s ease-in-out infinite;
+.timer-display--paused {
+  background: rgba(234, 138, 0, 0.85); /* orange */
+}
+
+.timer-display--expired {
+  background: rgba(220, 38, 38, 0.9); /* red-600 */
+}
+
+/* ≤15 s — yellow with brightness flash */
+@keyframes timer-low-flash {
+  0%, 100% { background: rgba(234, 179, 8, 0.85); filter: brightness(1); }
+  50%      { background: rgba(250, 204, 21, 1);    filter: brightness(1.35); }
+}
+
+.timer-display--low {
+  animation: timer-low-flash 0.7s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .timer-display--urgent {
+  .timer-display--low {
     animation: none;
-    border: 2px solid #dc2626;
+    background: rgba(234, 179, 8, 0.85);
+    border: 2px solid #ca8a04;
   }
 }
 

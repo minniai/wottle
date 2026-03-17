@@ -83,7 +83,7 @@ function FullPanel({
 
       <div className="relative" data-testid="player-score">
         <span
-          className="text-3xl font-black"
+          className="text-5xl font-black sm:text-6xl"
           style={{ color: gameState.playerColor }}
         >
           {gameState.score}
@@ -184,7 +184,7 @@ function CompactPanel({
 
         <span
           data-testid="player-score"
-          className="text-lg font-black"
+          className="text-2xl font-black"
           style={{ color: gameState.playerColor }}
         >
           {gameState.score}

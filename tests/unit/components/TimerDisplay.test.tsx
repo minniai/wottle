@@ -32,10 +32,10 @@ describe("TimerDisplay", () => {
     expect(screen.getByText("0:00")).toBeInTheDocument();
   });
 
-  test("applies timer-display--urgent class when < 30s and running", () => {
+  test("applies timer-display--low class when <= 15s and running", () => {
     render(
       <TimerDisplay
-        timerSeconds={25}
+        timerSeconds={10}
         isPaused={false}
         hasSubmitted={false}
         playerColor="#38BDF8"
@@ -43,10 +43,12 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByTestId("timer-display")).toHaveClass("timer-display--urgent");
+    expect(screen.getByTestId("timer-display")).toHaveClass(
+      "timer-display--low",
+    );
   });
 
-  test("does NOT apply urgent class when >= 30s", () => {
+  test("applies timer-display--running class when > 15s and running", () => {
     render(
       <TimerDisplay
         timerSeconds={30}
@@ -57,13 +59,15 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByTestId("timer-display")).not.toHaveClass("timer-display--urgent");
+    expect(screen.getByTestId("timer-display")).toHaveClass(
+      "timer-display--running",
+    );
   });
 
-  test("does NOT apply urgent class when paused even if < 30s", () => {
+  test("applies timer-display--paused class when paused", () => {
     render(
       <TimerDisplay
-        timerSeconds={15}
+        timerSeconds={60}
         isPaused={true}
         hasSubmitted={false}
         playerColor="#38BDF8"
@@ -71,7 +75,41 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByTestId("timer-display")).not.toHaveClass("timer-display--urgent");
+    expect(screen.getByTestId("timer-display")).toHaveClass(
+      "timer-display--paused",
+    );
+  });
+
+  test("does NOT apply low class when paused even if <= 15s", () => {
+    render(
+      <TimerDisplay
+        timerSeconds={10}
+        isPaused={true}
+        hasSubmitted={false}
+        playerColor="#38BDF8"
+        size="lg"
+      />,
+    );
+
+    expect(screen.getByTestId("timer-display")).not.toHaveClass(
+      "timer-display--low",
+    );
+  });
+
+  test("applies timer-display--expired class when time is 0", () => {
+    render(
+      <TimerDisplay
+        timerSeconds={0}
+        isPaused={false}
+        hasSubmitted={false}
+        playerColor="#38BDF8"
+        size="lg"
+      />,
+    );
+
+    expect(screen.getByTestId("timer-display")).toHaveClass(
+      "timer-display--expired",
+    );
   });
 
   test("shows submitted badge when hasSubmitted is true", () => {
@@ -87,21 +125,6 @@ describe("TimerDisplay", () => {
 
     expect(screen.getByTestId("submitted-badge")).toBeInTheDocument();
     expect(screen.getByText("Move locked")).toBeInTheDocument();
-  });
-
-  test("timer background is amber when hasSubmitted is true", () => {
-    render(
-      <TimerDisplay
-        timerSeconds={120}
-        isPaused={true}
-        hasSubmitted={true}
-        playerColor="#38BDF8"
-        size="lg"
-      />,
-    );
-
-    const timer = screen.getByTestId("timer-display");
-    expect(timer.style.backgroundColor).toBe("rgba(245, 158, 11, 0.85)");
   });
 
   test("shows Expired text when timerSeconds is 0 and not paused", () => {
