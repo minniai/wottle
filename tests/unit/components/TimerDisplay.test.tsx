@@ -112,7 +112,7 @@ describe("TimerDisplay", () => {
     );
   });
 
-  test("shows submitted badge when hasSubmitted is true", () => {
+  test("does not show submitted badge (orange timer is sufficient)", () => {
     render(
       <TimerDisplay
         timerSeconds={120}
@@ -123,8 +123,8 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByTestId("submitted-badge")).toBeInTheDocument();
-    expect(screen.getByText("Move locked")).toBeInTheDocument();
+    expect(screen.queryByTestId("submitted-badge")).not.toBeInTheDocument();
+    expect(screen.queryByText("Move locked")).not.toBeInTheDocument();
   });
 
   test("shows Expired text when timerSeconds is 0 and not paused", () => {

@@ -41,14 +41,6 @@ export function TimerDisplay({
 
   return (
     <div className="flex flex-col items-center gap-1">
-      {hasSubmitted && (
-        <span
-          data-testid="submitted-badge"
-          className="rounded-md bg-amber-500 px-2 py-0.5 text-[0.65rem] font-bold uppercase leading-none tracking-wider text-black shadow-md shadow-amber-500/40"
-        >
-          Move locked
-        </span>
-      )}
       <div
         data-testid="timer-display"
         className={[
