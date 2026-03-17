@@ -22,7 +22,7 @@ import {
   PLAYER_B_OVERLAY,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
-import { LETTER_SCORING_VALUES_IS } from "@/docs/wordlist/letter_scoring_values_is";
+import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 
 interface BoardGridProps {
   grid?: BoardGridType;
@@ -222,6 +222,7 @@ function BoardGridActive({
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [swappingTiles, setSwappingTiles] = useState<[SelectedTile, SelectedTile] | null>(null);
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
   const [invalidTiles, setInvalidTiles] = useState<[Coordinate, Coordinate] | null>(null);
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -396,6 +397,7 @@ function BoardGridActive({
     const elAtTo = tileRefs.current.get(toKey);
 
     if (!elAtFrom || !elAtTo) {
+      setSwappingTiles(null);
       setIsAnimating(false);
       void handleSwap(from, to);
       return;
@@ -429,6 +431,7 @@ function BoardGridActive({
       elAtFrom.removeEventListener("transitionend", onEnd);
       elAtFrom.classList.remove("board-grid__cell--animating");
       elAtTo.classList.remove("board-grid__cell--animating");
+      setSwappingTiles(null);
       setIsAnimating(false);
       void handleSwap(from, to);
     };
@@ -478,10 +481,33 @@ function BoardGridActive({
         return;
       }
 
+      setSwappingTiles([selected, coordinate]);
       setSelected(null);
       animateSwap(selected, coordinate);
     },
     [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles, onTileSelect, onInvalidMove]
+  );
+
+  // Deselect on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selected) {
+        setSelected(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selected]);
+
+  // Deselect on right-click anywhere
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (selected) {
+        e.preventDefault();
+        setSelected(null);
+      }
+    },
+    [selected]
   );
 
   const boardSize = useMemo(
@@ -490,12 +516,13 @@ function BoardGridActive({
   );
 
   return (
-    <div 
+    <div
       className="board-grid__wrapper"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
+      onContextMenu={handleContextMenu}
       style={{ "--board-scale": boardScale } as React.CSSProperties}
     >
       <div
@@ -545,6 +572,10 @@ function BoardGridActive({
               const isScoredHighlight = persistentHighlight
                 ? !!highlightPlayerColors[tileKey]
                 : activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
+              const isSwapping =
+                swappingTiles !== null &&
+                ((swappingTiles[0].x === colIndex && swappingTiles[0].y === rowIndex) ||
+                  (swappingTiles[1].x === colIndex && swappingTiles[1].y === rowIndex));
               const isLocked =
                 lockedTiles !== null &&
                 ((lockedTiles[0].x === colIndex && lockedTiles[0].y === rowIndex) ||
@@ -591,7 +622,7 @@ function BoardGridActive({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
+                  className={`board-grid__cell${isSelected || isSwapping ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}

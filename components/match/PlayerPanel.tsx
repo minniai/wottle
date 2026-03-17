@@ -96,7 +96,7 @@ function FullPanel({
         )}
       </div>
 
-      <span className="text-xs text-white/40">
+      <span data-testid="round-indicator" className="text-xs text-white/40">
         Round {gameState.currentRound} / {gameState.totalRounds}
       </span>
 
@@ -167,6 +167,13 @@ function CompactPanel({
       </span>
 
       <div className="ml-auto flex items-center gap-2">
+        <span
+          data-testid="round-indicator"
+          className="text-xs text-white/40"
+        >
+          R{gameState.currentRound}
+        </span>
+
         <TimerDisplay
           timerSeconds={gameState.timerSeconds}
           isPaused={gameState.isPaused}
