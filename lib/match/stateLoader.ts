@@ -30,12 +30,16 @@ function mapState(roundState: string | null | undefined, matchState: string): Ma
     return "pending";
   }
 
-  if (
-    roundState === "collecting" ||
-    roundState === "resolving" ||
-    roundState === "completed"
-  ) {
+  if (roundState === "collecting" || roundState === "resolving") {
     return roundState;
+  }
+
+  // A round with state "completed" while the match is still in_progress means
+  // we're between rounds (round finished, next round not yet loaded). Map to
+  // "resolving" rather than "completed" to avoid the client mistaking a
+  // completed *round* for a completed *match* (which triggers "Rounds Complete").
+  if (roundState === "completed") {
+    return "resolving";
   }
 
   // in_progress or any other transient state defaults to collecting
