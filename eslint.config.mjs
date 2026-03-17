@@ -7,6 +7,7 @@ const config = [
       "prd/wordlist",
       "node_modules",
       ".next",
+      ".claude/worktrees",
       "out",
       "dist",
       "build",
