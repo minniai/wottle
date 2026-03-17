@@ -150,12 +150,15 @@ async function loadLatestRoundSummary(
     return null;
   }
 
-  const wordEntries = await fetchWordEntries(client, matchId, round.id);
+  // Parallelize independent queries (both depend on round.id but not each other)
+  const [wordEntries, previousTotals] = await Promise.all([
+    fetchWordEntries(client, matchId, round.id),
+    fetchPreviousTotals(client, matchId, summaryRound),
+  ]);
   if (!wordEntries) {
     return null;
   }
 
-  const previousTotals = await fetchPreviousTotals(client, matchId, summaryRound);
   const wordScores = mapWordScores(wordEntries);
   return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals, playerAId, playerBId);
 }
@@ -271,20 +274,23 @@ export async function loadMatchState(
     match.current_round = 1;
   }
 
-  const { data: round } = await client
-    .from("rounds")
-    .select("id, state, board_snapshot_before, board_snapshot_after, started_at")
-    .eq("match_id", matchId)
-    .eq("round_number", match.current_round)
-    .maybeSingle();
-
+  // Parallelize independent queries (all depend on match but not each other)
   const scoresSnapshotRound = Math.max(match.current_round - 1, 0);
-  const { data: scoreboard } = await client
-    .from("scoreboard_snapshots")
-    .select("player_a_score, player_b_score")
-    .eq("match_id", matchId)
-    .eq("round_number", scoresSnapshotRound)
-    .maybeSingle();
+  const [{ data: round }, { data: scoreboard }, lastSummary] = await Promise.all([
+    client
+      .from("rounds")
+      .select("id, state, board_snapshot_before, board_snapshot_after, started_at")
+      .eq("match_id", matchId)
+      .eq("round_number", match.current_round)
+      .maybeSingle(),
+    client
+      .from("scoreboard_snapshots")
+      .select("player_a_score, player_b_score")
+      .eq("match_id", matchId)
+      .eq("round_number", scoresSnapshotRound)
+      .maybeSingle(),
+    loadLatestRoundSummary(client, matchId, match.current_round, match.player_a_id, match.player_b_id),
+  ]);
 
   const scores: ScoreTotals = scoreboard
     ? {
@@ -295,7 +301,6 @@ export async function loadMatchState(
 
   const board = ensureBoardSnapshot(match.id, match.board_seed, round ?? null);
   const effectiveState = mapState(round?.state ?? null, match.state);
-  const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round, match.player_a_id, match.player_b_id);
 
   // Compute mid-round remaining time from round.started_at when in collecting state
   const roundStartedAt =

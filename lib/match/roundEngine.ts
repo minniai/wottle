@@ -6,6 +6,7 @@ import { boardGridSchema } from "@/lib/types/board";
 import type { MoveRequest } from "@/lib/types/board";
 import { publishMatchState } from "./statePublisher";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
+import { publishRoundSummary, computeWordScoresForRound } from "@/app/actions/match/publishRoundSummary";
 import { trackRoundCompleted } from "@/lib/observability/log";
 import { isClockExpired, computeElapsedMs } from "./clockEnforcer";
 
@@ -252,9 +253,6 @@ export async function advanceRound(matchId: string) {
 
     // 9b. Compute word scores from the board delta
     try {
-        const { computeWordScoresForRound } = await import(
-            "@/app/actions/match/publishRoundSummary"
-        );
         await computeWordScoresForRound(
             matchId,
             round.id,
@@ -269,23 +267,24 @@ export async function advanceRound(matchId: string) {
         console.error("[WordEngine] Failed to compute word scores:", e);
     }
 
-    // 10. Update submission statuses
-    for (const move of acceptedMoves) {
-        await supabase
-            .from("move_submissions")
-            .update({ status: "accepted" })
-            .eq("id", move.id);
-    }
-
-    for (const move of rejectedMoves) {
-        await supabase
-            .from("move_submissions")
-            .update({
-                status: "rejected_invalid",
-                rejection_reason: "Tile conflict with earlier submission",
-            })
-            .eq("id", move.id);
-    }
+    // 10. Update submission statuses (batched in parallel)
+    await Promise.all([
+        ...acceptedMoves.map((move) =>
+            supabase
+                .from("move_submissions")
+                .update({ status: "accepted" })
+                .eq("id", move.id),
+        ),
+        ...rejectedMoves.map((move) =>
+            supabase
+                .from("move_submissions")
+                .update({
+                    status: "rejected_invalid",
+                    rejection_reason: "Tile conflict with earlier submission",
+                })
+                .eq("id", move.id),
+        ),
+    ]);
 
     // 11. Mark round as completed
     await supabase
@@ -350,20 +349,17 @@ export async function advanceRound(matchId: string) {
 
     if (updateError) throw new Error("Failed to update match");
 
-    // 15. Publish round summary
-    try {
-        const { publishRoundSummary } = await import("@/app/actions/match/publishRoundSummary");
-        await publishRoundSummary(matchId, currentRound).catch((e: unknown) => {
-            console.error("Failed to publish round summary:", e);
-        });
-    } catch (e) {
-        console.error("Failed to load publishRoundSummary:", e);
-    }
+    // 15. Publish round summary and match state in parallel
+    const [summaryResult, stateResult] = await Promise.allSettled([
+        publishRoundSummary(matchId, currentRound),
+        publishMatchState(matchId),
+    ]);
 
-    try {
-        await publishMatchState(matchId);
-    } catch (error) {
-        console.error("[MatchState] Failed to broadcast match update:", error);
+    if (summaryResult.status === "rejected") {
+        console.error("Failed to publish round summary:", summaryResult.reason);
+    }
+    if (stateResult.status === "rejected") {
+        console.error("[MatchState] Failed to broadcast match update:", stateResult.reason);
     }
 
     if (isGameOver) {

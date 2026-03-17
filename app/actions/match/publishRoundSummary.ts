@@ -20,56 +20,65 @@ export async function publishRoundSummary(
 ): Promise<RoundSummary | { error: string }> {
     const supabase = getServiceRoleClient();
 
-    // 1. Get round with board snapshots and match player IDs
-    const { data: round, error: roundError } = await supabase
-        .from("rounds")
-        .select("id, board_snapshot_before, board_snapshot_after, match_id")
-        .eq("match_id", matchId)
-        .eq("round_number", roundNumber)
-        .single();
+    // 1. Get round and match player IDs in parallel (independent queries)
+    const [roundResult, matchResult] = await Promise.all([
+        supabase
+            .from("rounds")
+            .select("id, board_snapshot_before, board_snapshot_after, match_id")
+            .eq("match_id", matchId)
+            .eq("round_number", roundNumber)
+            .single(),
+        supabase
+            .from("matches")
+            .select("player_a_id, player_b_id")
+            .eq("id", matchId)
+            .single(),
+    ]);
 
-    if (roundError || !round) {
+    if (roundResult.error || !roundResult.data) {
         return { error: "Round not found" };
     }
-
-    const { data: matchPlayers, error: matchError } = await supabase
-        .from("matches")
-        .select("player_a_id, player_b_id")
-        .eq("id", matchId)
-        .single();
-
-    if (matchError || !matchPlayers) {
+    if (matchResult.error || !matchResult.data) {
         return { error: "Match not found" };
     }
 
-    // 2. Get word score entries for this round
-    const { data: wordEntries, error: wordsError } = await supabase
-        .from("word_score_entries")
-        .select("*")
-        .eq("match_id", matchId)
-        .eq("round_id", round.id);
+    const round = roundResult.data;
+    const matchPlayers = matchResult.data;
 
-    if (wordsError) {
-        return { error: `Failed to fetch word scores: ${wordsError.message}` };
+    // 2. Get word scores, previous totals, and moves in parallel (all depend on round.id but not each other)
+    const [wordsResult, previousSnapshotResult, moveSubmissionsResult] = await Promise.all([
+        supabase
+            .from("word_score_entries")
+            .select("*")
+            .eq("match_id", matchId)
+            .eq("round_id", round.id),
+        supabase
+            .from("scoreboard_snapshots")
+            .select("player_a_score, player_b_score")
+            .eq("match_id", matchId)
+            .eq("round_number", roundNumber - 1)
+            .maybeSingle(),
+        supabase
+            .from("move_submissions")
+            .select("player_id, from_x, from_y, to_x, to_y, submitted_at")
+            .eq("round_id", round.id)
+            .eq("status", "accepted")
+            .order("submitted_at", { ascending: true }),
+    ]);
+
+    if (wordsResult.error) {
+        return { error: `Failed to fetch word scores: ${wordsResult.error.message}` };
     }
 
-    // 3. Get previous score totals (from scoreboard snapshot or compute from all previous rounds)
-    const { data: previousSnapshot } = await supabase
-        .from("scoreboard_snapshots")
-        .select("player_a_score, player_b_score")
-        .eq("match_id", matchId)
-        .eq("round_number", roundNumber - 1)
-        .maybeSingle();
-
-    const previousTotals: ScoreTotals = previousSnapshot
+    const previousTotals: ScoreTotals = previousSnapshotResult.data
         ? {
-              playerA: previousSnapshot.player_a_score,
-              playerB: previousSnapshot.player_b_score,
+              playerA: previousSnapshotResult.data.player_a_score,
+              playerB: previousSnapshotResult.data.player_b_score,
           }
         : { playerA: 0, playerB: 0 };
 
-    // 4. Convert word_score_entries to WordScore format
-    const wordScores: WordScore[] = (wordEntries || []).map((entry) => ({
+    // 3. Convert word_score_entries to WordScore format
+    const wordScores: WordScore[] = (wordsResult.data || []).map((entry) => ({
         playerId: entry.player_id,
         word: entry.word,
         length: entry.length,
@@ -79,13 +88,7 @@ export async function publishRoundSummary(
         coordinates: entry.tiles as Coordinate[],
     }));
 
-    // 5. Fetch accepted moves for opponent move reveal
-    const { data: moveSubmissions } = await supabase
-        .from("move_submissions")
-        .select("player_id, from_x, from_y, to_x, to_y, submitted_at")
-        .eq("round_id", round.id)
-        .eq("status", "accepted")
-        .order("submitted_at", { ascending: true });
+    const { data: moveSubmissions } = moveSubmissionsResult;
 
     const moves: RoundMove[] = (moveSubmissions || []).map((sub) => ({
         playerId: sub.player_id,
@@ -119,18 +122,32 @@ export async function publishRoundSummary(
         // Continue anyway - we'll still publish the summary
     }
 
-    // 8. Publish via Realtime broadcast
+    // 8. Publish via Realtime broadcast (subscribe before send — required by Supabase Cloud)
     const channel = supabase.channel(`match:${matchId}`);
-    const broadcastResult = await channel.send({
-        type: "broadcast",
-        event: "round-summary",
-        payload: summary,
+    await new Promise<void>((resolve) => {
+        channel.subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+                channel
+                    .send({
+                        type: "broadcast",
+                        event: "round-summary",
+                        payload: summary,
+                    })
+                    .then((result) => {
+                        if (result === "error") {
+                            console.error("Failed to broadcast round summary");
+                        }
+                        supabase.removeChannel(channel);
+                        resolve();
+                    });
+            }
+            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                console.error(`[RoundSummary] Channel subscription failed: ${status}`);
+                supabase.removeChannel(channel);
+                resolve();
+            }
+        });
     });
-
-    if (broadcastResult === "error") {
-        console.error("Failed to broadcast round summary");
-        // Still return summary even if broadcast fails
-    }
 
     return summary;
 }
@@ -282,14 +299,29 @@ export async function computeWordScoresForRound(
                     try {
                         const supabase = getServiceRoleClient();
                         const channel = supabase.channel(`match:${matchId}`);
-                        await channel.send({
-                            type: "broadcast",
-                            event: "match-error",
-                            payload: {
-                                error: "Scoring pipeline failed. Match has been cancelled.",
-                                matchId,
-                                roundNumber,
-                            },
+                        await new Promise<void>((resolve) => {
+                            channel.subscribe((status) => {
+                                if (status === "SUBSCRIBED") {
+                                    channel
+                                        .send({
+                                            type: "broadcast",
+                                            event: "match-error",
+                                            payload: {
+                                                error: "Scoring pipeline failed. Match has been cancelled.",
+                                                matchId,
+                                                roundNumber,
+                                            },
+                                        })
+                                        .then(() => {
+                                            supabase.removeChannel(channel);
+                                            resolve();
+                                        });
+                                }
+                                if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                                    supabase.removeChannel(channel);
+                                    resolve();
+                                }
+                            });
                         });
                     } catch {
                         // Best effort — match is already cancelled
