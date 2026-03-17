@@ -309,31 +309,12 @@ export function MatchClient({
         applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
-        // Accumulate round history for in-game panel (US4)
-        const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
-          roundNumber: nextSummary.roundNumber,
-          playerId: w.playerId,
-          word: w.word,
-          totalPoints: w.totalPoints,
-          lettersPoints: w.lettersPoints,
-          bonusPoints: w.bonusPoints,
-          coordinates: w.coordinates,
-        }));
-        const newScore: ScoreboardRow = {
-          roundNumber: nextSummary.roundNumber,
-          playerAScore: nextSummary.totals.playerA,
-          playerBScore: nextSummary.totals.playerB,
-          playerADelta: nextSummary.deltas.playerA,
-          playerBDelta: nextSummary.deltas.playerB,
-        };
-        setAccumulatedWords((prev) => [...prev, ...newWords]);
-        setAccumulatedScores((prev) => [...prev, newScore]);
-
-        // Update match state — recap animation triggers via the lastSummary useEffect
         // Trigger round announce immediately (before React render cycle)
         showRoundAnnounce(nextSummary.roundNumber + 1, false);
 
         // Update match state — accumulation + recap animation trigger via the lastSummary useEffect
+        // (word/score accumulation is handled exclusively in the lastSummary useEffect
+        //  with accumulatedRoundsRef dedup to prevent duplicates)
         setMatchState((prev) => ({
           ...prev,
           scores: nextSummary.totals,
