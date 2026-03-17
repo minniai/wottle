@@ -184,6 +184,11 @@ export function FinalSummary({
   const playerA = players[0];
   const playerB = players[1];
 
+  // Determine slot-based colors: players[0] = player_a (blue), players[1] = player_b (red)
+  const currentIsPlayerA = currentPlayerId === playerA?.id;
+  const currentPlayerColor = currentIsPlayerA ? PLAYER_A_HEX : PLAYER_B_HEX;
+  const opponentColor = currentIsPlayerA ? PLAYER_B_HEX : PLAYER_A_HEX;
+
   const {
     phase: rematchPhase,
     requestRematch: handleRematch,
@@ -284,26 +289,26 @@ export function FinalSummary({
       {/* Board with player HUD panels, matching in-game 3-column layout */}
       {board && (
         <div className="summary-board-layout mb-6" data-testid="final-summary-board">
-          {/* Player A panel */}
+          {/* Left panel: current player (same as in-game) */}
           <div className="summary-board-layout__panel">
             <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-4">
               <PlayerAvatar
-                displayName={playerA?.displayName ?? "Player A"}
+                displayName={currentPlayer?.displayName ?? "You"}
                 avatarUrl={null}
-                playerColor={PLAYER_A_HEX}
+                playerColor={currentPlayerColor}
                 size="md"
               />
               <span className="max-w-[10rem] truncate text-sm font-semibold text-white">
-                {playerA?.displayName ?? "Player A"}
+                {currentPlayer?.displayName ?? "You"}
               </span>
               <span
                 className="font-black"
-                style={{ color: PLAYER_A_HEX, fontSize: "3rem" }}
+                style={{ color: currentPlayerColor, fontSize: "3rem" }}
               >
-                {playerA?.score ?? 0}
+                {currentPlayer?.score ?? 0}
               </span>
               <span className="text-xs text-white/50">
-                Time used: {formatDuration(playerA?.timeUsedMs ?? 0)}
+                Time used: {formatDuration(currentPlayer?.timeUsedMs ?? 0)}
               </span>
             </div>
           </div>
@@ -320,26 +325,26 @@ export function FinalSummary({
             />
           </div>
 
-          {/* Player B panel */}
+          {/* Right panel: opponent (same as in-game) */}
           <div className="summary-board-layout__panel">
             <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-4">
               <PlayerAvatar
-                displayName={playerB?.displayName ?? "Player B"}
+                displayName={opponent?.displayName ?? "Opponent"}
                 avatarUrl={null}
-                playerColor={PLAYER_B_HEX}
+                playerColor={opponentColor}
                 size="md"
               />
               <span className="max-w-[10rem] truncate text-sm font-semibold text-white">
-                {playerB?.displayName ?? "Player B"}
+                {opponent?.displayName ?? "Opponent"}
               </span>
               <span
                 className="font-black"
-                style={{ color: PLAYER_B_HEX, fontSize: "3rem" }}
+                style={{ color: opponentColor, fontSize: "3rem" }}
               >
-                {playerB?.score ?? 0}
+                {opponent?.score ?? 0}
               </span>
               <span className="text-xs text-white/50">
-                Time used: {formatDuration(playerB?.timeUsedMs ?? 0)}
+                Time used: {formatDuration(opponent?.timeUsedMs ?? 0)}
               </span>
             </div>
           </div>
