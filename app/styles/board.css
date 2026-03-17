@@ -452,7 +452,7 @@
 
   .match-layout__panel {
     display: block;
-    width: 14rem;
+    width: 16rem;
     flex-shrink: 0;
   }
 

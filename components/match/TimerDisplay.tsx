@@ -35,9 +35,7 @@ export function TimerDisplay({
   const isLow = timerSeconds > 0 && timerSeconds <= 15 && !isPaused;
 
   const sizeClasses =
-    size === "lg"
-      ? "px-5 py-4 text-4xl sm:text-5xl"
-      : "px-3 py-1.5 text-xl";
+    size === "lg" ? "px-5 py-4" : "px-3 py-1.5";
 
   const stateClass = timerStateClass(isPaused, isExpired, isLow);
 
@@ -61,7 +59,8 @@ export function TimerDisplay({
           .filter(Boolean)
           .join(" ")}
         style={{
-          minWidth: size === "lg" ? "10rem" : "5.5rem",
+          fontSize: size === "lg" ? "3rem" : "1.5rem",
+          minWidth: size === "lg" ? "12rem" : "6rem",
           ...(hasSubmitted
             ? {
                 boxShadow:
