@@ -110,8 +110,6 @@ export function MatchClient({
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Tracks the last summary id that triggered the recap animation (prevents double-fire). */
   const lastAnimatedRoundRef = useRef<string | null>(null);
-  /** Tracks which round numbers have been accumulated into history (prevents duplicates). */
-  const accumulatedRoundsRef = useRef<Set<number>>(new Set());
   const prefersReducedMotionRef = useRef(
     typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
@@ -177,6 +175,7 @@ export function MatchClient({
     const nextSummary = matchState.lastSummary;
     const id = `${nextSummary.matchId}-${nextSummary.roundNumber}`;
 
+    if (id === dismissedSummaryIdRef.current) return;
     if (id === lastAnimatedRoundRef.current) return;
 
     lastAnimatedRoundRef.current = id;
@@ -214,6 +213,8 @@ export function MatchClient({
 
     if (prefersReducedMotionRef.current) {
       // Skip highlight animation entirely
+      setSummary(nextSummary);
+      setAnimationPhase("showing-summary");
       setMoveLocked(false);
       setLockedSwapTiles(null);
       if (matchState.state === "completed" || nextSummary.roundNumber >= 10) {
@@ -245,6 +246,7 @@ export function MatchClient({
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = setTimeout(() => {
       setAnimationPhase("idle");
+      setSummary(nextSummary);
       if (isCompleted) setFinalRecapDone(true);
     }, announceDurationMs);
   }, [matchState.lastSummary, matchState.state, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery, showRoundAnnounce]);
@@ -310,6 +312,27 @@ export function MatchClient({
         applySnapshot(snapshot);
       },
       onSummary: (nextSummary) => {
+        // Accumulate round history for in-game panel (US4)
+        const newWords: WordHistoryRow[] = nextSummary.words.map((w) => ({
+          roundNumber: nextSummary.roundNumber,
+          playerId: w.playerId,
+          word: w.word,
+          totalPoints: w.totalPoints,
+          lettersPoints: w.lettersPoints,
+          bonusPoints: w.bonusPoints,
+          coordinates: w.coordinates,
+        }));
+        const newScore: ScoreboardRow = {
+          roundNumber: nextSummary.roundNumber,
+          playerAScore: nextSummary.totals.playerA,
+          playerBScore: nextSummary.totals.playerB,
+          playerADelta: nextSummary.deltas.playerA,
+          playerBDelta: nextSummary.deltas.playerB,
+        };
+        setAccumulatedWords((prev) => [...prev, ...newWords]);
+        setAccumulatedScores((prev) => [...prev, newScore]);
+
+        // Update match state — recap animation triggers via the lastSummary useEffect
         // Trigger round announce immediately (before React render cycle)
         showRoundAnnounce(nextSummary.roundNumber + 1, false);
 
@@ -469,6 +492,17 @@ export function MatchClient({
       triggerTimeoutCheck(matchId).catch(() => {});
     }
   }, [dualTimeoutDetected, matchState.state, matchId]);
+
+  const handleSummaryDismiss = useCallback(() => {
+    setSummary((prev) => {
+      if (prev) {
+        dismissedSummaryIdRef.current = `${prev.matchId}-${prev.roundNumber}`;
+      }
+      return null;
+    });
+    setAnimationPhase("idle");
+    setHighlightPlayerColors({});
+  }, []);
 
   const playerSlot: "player_a" | "player_b" =
     matchState.timers.playerA.playerId === currentPlayerId ? "player_a" : "player_b";
@@ -726,8 +760,19 @@ export function MatchClient({
             </div>
           )}
 
-          {/* Mobile: compact player bar */}
-          <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
+        {/* Round summary — right of board on >=900px, below on smaller.
+             Container always rendered to reserve layout space (no shift). */}
+        <div className="match-layout__summary">
+          {animationPhase !== "round-recap" && summary && (
+            <RoundSummaryPanel
+              summary={summary}
+              currentPlayerId={currentPlayerId}
+              playerAId={playerAId}
+              onDismiss={handleSummaryDismiss}
+              autoDismissMs={summaryAutoDismissMs}
+         </div> 
+        {/* Mobile: compact player bar */}
+        <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
             <PlayerPanel
               player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
               gameState={{
@@ -740,11 +785,8 @@ export function MatchClient({
                 playerColor: getPlayerColors(playerSlot).hex,
               }}
               variant="compact"
-            />
-          </div>
-
+           />
         </div>
-
         {/* Desktop: right panel (opponent) */}
         <div className="match-layout__panel match-layout__panel--right">
           <PlayerPanel
