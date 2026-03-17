@@ -12,7 +12,10 @@ import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match
 import {
   PLAYER_A_HIGHLIGHT,
   PLAYER_B_HIGHLIGHT,
+  PLAYER_A_HEX,
+  PLAYER_B_HEX,
 } from "@/lib/constants/playerColors";
+import { PlayerAvatar } from "@/components/match/PlayerAvatar";
 import { useRematchNegotiation } from "@/components/match/useRematchNegotiation";
 import { RematchBanner } from "@/components/match/RematchBanner";
 import { RematchInterstitial } from "@/components/match/RematchInterstitial";
@@ -278,17 +281,64 @@ export function FinalSummary({
       className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-slate-950/60 sm:p-8"
       data-testid="final-summary-view"
     >
-      {/* Board rendered outside tab area so it stays visible on both tabs */}
+      {/* Board with player HUD panels, matching in-game layout */}
       {board && (
-        <div className="relative mb-6 mx-auto" style={{ maxWidth: "min(100%, 50dvh)" }} data-testid="final-summary-board">
-          <BoardGridComponent
-            grid={board}
-            matchId={matchId}
-            className="mx-auto pointer-events-none"
-            frozenTiles={frozenTiles}
-            highlightPlayerColors={highlightPlayerColors}
-            persistentHighlight
-          />
+        <div className="mb-6 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center" data-testid="final-summary-board">
+          {/* Player A panel */}
+          <div className="hidden w-40 flex-shrink-0 flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-3 sm:flex">
+            <PlayerAvatar
+              displayName={playerA?.displayName ?? "Player A"}
+              avatarUrl={null}
+              playerColor={PLAYER_A_HEX}
+              size="sm"
+            />
+            <span className="max-w-[9rem] truncate text-sm font-semibold text-white">
+              {playerA?.displayName ?? "Player A"}
+            </span>
+            <span
+              className="font-black"
+              style={{ color: PLAYER_A_HEX, fontSize: "2.5rem" }}
+            >
+              {playerA?.score ?? 0}
+            </span>
+            <span className="text-[0.65rem] text-white/40">
+              Time: {formatDuration(playerA?.timeUsedMs ?? 0)}
+            </span>
+          </div>
+
+          {/* Board */}
+          <div className="relative" style={{ maxWidth: "min(100%, 50dvh)" }}>
+            <BoardGridComponent
+              grid={board}
+              matchId={matchId}
+              className="mx-auto pointer-events-none"
+              frozenTiles={frozenTiles}
+              highlightPlayerColors={highlightPlayerColors}
+              persistentHighlight
+            />
+          </div>
+
+          {/* Player B panel */}
+          <div className="hidden w-40 flex-shrink-0 flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-3 sm:flex">
+            <PlayerAvatar
+              displayName={playerB?.displayName ?? "Player B"}
+              avatarUrl={null}
+              playerColor={PLAYER_B_HEX}
+              size="sm"
+            />
+            <span className="max-w-[9rem] truncate text-sm font-semibold text-white">
+              {playerB?.displayName ?? "Player B"}
+            </span>
+            <span
+              className="font-black"
+              style={{ color: PLAYER_B_HEX, fontSize: "2.5rem" }}
+            >
+              {playerB?.score ?? 0}
+            </span>
+            <span className="text-[0.65rem] text-white/40">
+              Time: {formatDuration(playerB?.timeUsedMs ?? 0)}
+            </span>
+          </div>
         </div>
       )}
       {/* Tab bar */}
