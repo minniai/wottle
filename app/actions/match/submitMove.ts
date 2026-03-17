@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { applySwap } from "@/lib/game-engine/board";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
@@ -175,9 +176,14 @@ export async function submitMove(
         return { error: "Failed to submit move" };
     }
 
-    // 5b. Broadcast state so clients see submitting player's timer paused
-    publishMatchState(matchId).catch((e) => {
-        console.error("Failed to broadcast match state after submit:", e);
+    // 5b. Broadcast state so clients see submitting player's timer paused.
+    // Uses after() to run after response — keeps Vercel function alive at full CPU.
+    after(async () => {
+        try {
+            await publishMatchState(matchId);
+        } catch (e) {
+            console.error("Failed to broadcast match state after submit:", e);
+        }
     });
 
     // 6. Apply swap to current board for optimistic UI feedback
@@ -195,9 +201,16 @@ export async function submitMove(
         swappedBoard = currentBoard;
     }
 
-    // 7. Trigger round advancement check (async - don't block response)
-    advanceRound(matchId).catch((e) => {
-        console.error("Failed to advance round:", e);
+    // 7. Trigger round advancement check.
+    // Uses after() so it runs after the response is sent but keeps the Vercel
+    // serverless function alive at full CPU priority (unlike bare fire-and-forget
+    // which gets throttled, causing ~5s delays).
+    after(async () => {
+        try {
+            await advanceRound(matchId);
+        } catch (e) {
+            console.error("Failed to advance round:", e);
+        }
     });
 
     revalidatePath(`/match/${matchId}`);

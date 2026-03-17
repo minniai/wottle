@@ -86,14 +86,9 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
       await submitSwap(pageA);
       await submitSwap(pageB);
 
-      // Wait for round summary (frozen tiles created after round resolves)
-      const summaryPanel = pageA.getByTestId("round-summary-panel");
-      await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
-
-      // Dismiss summary to resume play
-      await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
+      // Wait for round to resolve and advance — rounds auto-advance after recap animation
       await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(/r2/i, {
-        timeout: 10_000,
+        timeout: 45_000,
       });
 
       // Find the first frozen tile on pageA's board

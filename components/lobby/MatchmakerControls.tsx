@@ -255,7 +255,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
             Queue automatically or send a direct invite to someone in the lobby.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="relative flex flex-wrap gap-3">
           <button
             type="button"
             className="rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"

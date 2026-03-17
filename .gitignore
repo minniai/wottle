@@ -1,5 +1,9 @@
 # worktrees
 /.wts/
+
+# Vercel
+.vercel
+
 # dependencies
 /node_modules
 /.pnp
@@ -37,15 +41,15 @@ dist/
 
 # dotenvx
 
-# Lock files (optional - uncomment if you want to ignore)
- package-lock.json
- yarn.lock
- pnpm-lock.yaml
+# Lock files for other package managers (we use pnpm)
+package-lock.json
+yarn.lock
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.obsidian/
 .DS_Store
 *.suo
 *.ntvs*
@@ -101,3 +105,5 @@ src/utils/supabase/info.tsx
 supabase/.branches
 supabase/.temp
 
+# Claude worktrees
+.claude/worktrees/

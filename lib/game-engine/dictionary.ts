@@ -23,11 +23,11 @@ const LANGUAGE_DICTIONARY_CONFIG: Record<
   Language,
   { file: string; minEntries: number }
 > = {
-  is: { file: "docs/wordlist/word_list_is.txt", minEntries: 2_000_000 },
-  en: { file: "docs/wordlist/word_list_en.txt", minEntries: 10_000 },
-  se: { file: "docs/wordlist/word_list_se.txt", minEntries: 100_000 },
-  no: { file: "docs/wordlist/word_list_no.txt", minEntries: 100_000 },
-  dk: { file: "docs/wordlist/word_list_dk.txt", minEntries: 100_000 },
+  is: { file: "data/wordlists/word_list_is.txt", minEntries: 2_000_000 },
+  en: { file: "data/wordlists/word_list_en.txt", minEntries: 10_000 },
+  se: { file: "data/wordlists/word_list_se.txt", minEntries: 100_000 },
+  no: { file: "data/wordlists/word_list_no.txt", minEntries: 100_000 },
+  dk: { file: "data/wordlists/word_list_dk.txt", minEntries: 100_000 },
 };
 
 /** Per-language singleton caches for loaded dictionaries. */
