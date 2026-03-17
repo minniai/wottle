@@ -69,11 +69,11 @@ async function submitSwap(page: import("@playwright/test").Page): Promise<void> 
 test.describe("word discovery highlights", () => {
   /**
    * Verifies the post-round visual sequence:
-   * scored tiles glow → RoundSummaryPanel deferred → panel appears after glow.
+   * scored tiles glow during recap animation, then round advances.
    *
    * Note: scoring requires the word engine to find a valid Icelandic word.
    * If no word is scored in this round, the highlight phase is skipped entirely,
-   * and we verify only that the summary panel eventually appears.
+   * and we verify only that the round advances.
    */
   test(
     "scored tile glow precedes round summary panel @two-player-playtest",
@@ -92,11 +92,10 @@ test.describe("word discovery highlights", () => {
         await submitSwap(pageB);
 
         // Wait for round to resolve (may take up to 15s in slow CI)
-        // We detect resolution by waiting for either scored tiles OR the summary panel
+        // We detect resolution by waiting for either scored tiles OR the round advancing
         const scoredTileLocator = pageA.locator(".board-grid__cell--scored");
-        const summaryPanelLocator = pageA.getByTestId("round-summary-panel");
 
-        // Poll for up to 15s: either scored tiles appear (highlighting) or panel directly
+        // Poll for up to 15s: either scored tiles appear (highlighting) or round advances
         let scoringOccurred = false;
         try {
           await expect(scoredTileLocator.first()).toBeAttached({ timeout: 15_000 });
@@ -107,9 +106,6 @@ test.describe("word discovery highlights", () => {
         }
 
         if (scoringOccurred) {
-          // Scored tiles are visible: panel must NOT be visible yet (800ms gate)
-          await expect(summaryPanelLocator).not.toBeVisible({ timeout: 200 });
-
           // Verify --highlight-color CSS custom property is set on a scored tile
           const firstScoredTile = scoredTileLocator.first();
           const highlightColor = await firstScoredTile.evaluate((el) =>
@@ -117,17 +113,15 @@ test.describe("word discovery highlights", () => {
           );
           expect(highlightColor).toMatch(/rgba?\(/);
 
-          // After glow: summary panel appears (generous timeout for slow CI)
-          await expect(summaryPanelLocator).toBeVisible({ timeout: 5_000 });
-
-          // Confirm the scored class is removed once panel shows
+          // After glow: scored class clears and round advances
           await expect(scoredTileLocator.first()).not.toBeAttached({
-            timeout: 2_000,
+            timeout: 5_000,
           });
-        } else {
-          // No scoring: panel appears immediately (no highlight phase)
-          await expect(summaryPanelLocator).toBeVisible({ timeout: 20_000 });
         }
+
+        // Round advances automatically (no summary panel to dismiss)
+        const roundIndicator = pageA.getByTestId("game-chrome-player").getByTestId("round-indicator");
+        await expect(roundIndicator).toContainText(/r2/i, { timeout: 20_000 });
       } finally {
         await pageA.close();
         await pageB.close();

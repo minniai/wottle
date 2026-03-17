@@ -1,5 +1,5 @@
 import type { BoardGrid, BoardWord } from "@/lib/types/board";
-import type { FrozenTileMap } from "@/lib/types/match";
+import type { FrozenTileMap, ScoredAxis } from "@/lib/types/match";
 import { BOARD_SIZE } from "@/lib/constants/board";
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 import {
@@ -72,7 +72,7 @@ export function hasCrossWordViolation(
     }
 
     const crossLength = beforeChars.length + 1 + afterChars.length;
-    if (crossLength >= minimumWordLength) {
+    if (crossLength > 1) {
       const crossWord = [
         ...beforeChars,
         board[tile.y][tile.x],
@@ -137,6 +137,7 @@ export function selectOptimalCombination(
         board,
         frozenTileSet,
         dictionary,
+        frozenTiles,
       ),
   );
 
@@ -179,19 +180,23 @@ export function selectOptimalCombination(
  * Check whether a candidate word is adjacent to a frozen scored word
  * on the same axis and the combined sequence is NOT a valid word.
  *
- * Only triggers when the adjacent frozen run is itself a valid
- * dictionary word (i.e., it was scored on this axis). Frozen tiles
- * from perpendicular words that happen to be adjacent are ignored
- * because they were not scored on this axis.
+ * Uses `scoredAxes` metadata on frozen tiles to determine whether an
+ * adjacent tile was scored on the same axis as the candidate word.
+ * Falls back to the valid-word heuristic for legacy frozen tiles
+ * that lack `scoredAxes`.
  */
 function violatesFrozenAdjacencyOnSameAxis(
   word: BoardWord,
   board: BoardGrid,
   frozenTileSet: Set<string>,
   dictionary: Set<string>,
+  frozenTileMap?: FrozenTileMap,
 ): boolean {
   const isHorizontal =
     word.direction === "right" || word.direction === "left";
+  const wordAxis: ScoredAxis = isHorizontal
+    ? "horizontal"
+    : "vertical";
   const dx = isHorizontal ? 1 : 0;
   const dy = isHorizontal ? 0 : 1;
 
@@ -262,17 +267,9 @@ function violatesFrozenAdjacencyOnSameAxis(
       cy += stepY;
     }
 
-    // Only apply if the frozen run is itself a valid word
-    // (i.e., it was scored on this axis, not from a perpendicular word)
-    const frozenText = chars
-      .join("")
-      .normalize("NFC")
-      .toLowerCase();
-    const frozenReversed = [...frozenText].reverse().join("");
-    if (!dictionary.has(frozenText) && !dictionary.has(frozenReversed)) {
-      return null;
-    }
-
+    // Regardless of scoredAxes or legacy meta, ANY frozen tile physically
+    // adjoined on the same axis is part of the contiguous sequence (FR-014).
+    // Therefore, the sequence must form a valid word.
     return { chars };
   }
 

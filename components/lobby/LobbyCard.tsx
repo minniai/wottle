@@ -11,6 +11,8 @@ interface LobbyCardProps {
   tabIndex?: number;
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
   ariaLabel?: string;
+  viewerRating?: number;
+  onUsernameClick?: (playerId: string) => void;
 }
 
 const STATUS_LABELS: Record<PlayerIdentity["status"], string> = {
@@ -28,9 +30,10 @@ const STATUS_STYLES: Record<PlayerIdentity["status"], string> = {
 };
 
 export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(function LobbyCard(
-  { player, isSelf = false, tabIndex = 0, onKeyDown, ariaLabel }: LobbyCardProps,
+  { player, isSelf = false, tabIndex = 0, onKeyDown, ariaLabel, viewerRating, onUsernameClick }: LobbyCardProps,
   ref,
 ) {
+  const displayRating = player.eloRating ?? 1200;
   const statusLabel = STATUS_LABELS[player.status] ?? player.status;
   const statusStyles = STATUS_STYLES[player.status] ?? STATUS_STYLES.available;
 
@@ -50,17 +53,39 @@ export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(function Lob
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-white">
+          <button
+            type="button"
+            className="text-left text-sm font-semibold text-white hover:text-emerald-300 transition"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUsernameClick?.(player.id);
+            }}
+            data-testid="lobby-username-btn"
+          >
             {player.displayName ?? player.username}
-          </p>
+          </button>
           <p className="text-xs text-white/60">@{player.username}</p>
         </div>
-        <span
-          data-testid="lobby-status-pill"
-          className={`rounded-full border px-3 py-1 text-xs font-medium ${statusStyles}`}
-        >
-          {isSelf ? "You" : statusLabel}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            data-testid="lobby-elo-rating"
+            className="font-mono text-xs font-medium text-white/80"
+          >
+            {displayRating}
+          </span>
+          {viewerRating !== undefined && (
+            <EloEloDiffBadge
+              playerRating={displayRating}
+              viewerRating={viewerRating}
+            />
+          )}
+          <span
+            data-testid="lobby-status-pill"
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${statusStyles}`}
+          >
+            {isSelf ? "You" : statusLabel}
+          </span>
+        </div>
       </div>
 
       <dl className="mt-4 text-xs text-white/60">
@@ -76,6 +101,33 @@ export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(function Lob
     </article>
   );
 });
+
+function EloEloDiffBadge({
+  playerRating,
+  viewerRating,
+}: {
+  playerRating: number;
+  viewerRating: number;
+}) {
+  const diff = playerRating - viewerRating;
+  const label =
+    diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "±0";
+  const color =
+    diff > 0
+      ? "text-emerald-400"
+      : diff < 0
+        ? "text-rose-400"
+        : "text-white/60";
+
+  return (
+    <span
+      data-testid="lobby-elo-diff"
+      className={`font-mono text-xs ${color}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 function formatLastSeen(value: string | null | undefined): string {
   if (!value) {

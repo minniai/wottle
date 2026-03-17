@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
-import type { MatchState, RoundSummary } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, RoundSummary } from "@/lib/types/match";
 import {
   PLAYER_A_HIGHLIGHT,
   PLAYER_B_HIGHLIGHT,
@@ -49,6 +49,11 @@ vi.mock("@/app/actions/match/handleDisconnect", () => ({
   handlePlayerDisconnect: vi.fn(),
 }));
 
+const defaultProfiles: MatchPlayerProfiles = {
+  playerA: { playerId: "player-1", displayName: "Alice", username: "alice", avatarUrl: null, eloRating: 1200 },
+  playerB: { playerId: "player-2", displayName: "Bob", username: "bob", avatarUrl: null, eloRating: 1200 },
+};
+
 function createMatchState(overrides?: Partial<MatchState>): MatchState {
   return {
     matchId: "match-test-123",
@@ -84,6 +89,7 @@ describe("MatchClient layout", () => {
         initialState={state}
         currentPlayerId="player-1"
         matchId="match-test-123"
+        playerProfiles={defaultProfiles}
       />,
     );
 
@@ -120,6 +126,7 @@ describe("MatchClient layout", () => {
         initialState={createMatchState()}
         currentPlayerId="player-1"
         matchId="match-test-123"
+        playerProfiles={defaultProfiles}
       />,
     );
 
@@ -146,6 +153,7 @@ describe("MatchClient layout", () => {
         initialState={createMatchState()}
         currentPlayerId="player-1"
         matchId="match-test-123"
+        playerProfiles={defaultProfiles}
       />,
     );
 
@@ -167,6 +175,7 @@ describe("MatchClient layout", () => {
           initialState={completedState}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -374,8 +383,8 @@ const mockRoundSummary: RoundSummary = {
 const mockRoundSummaryWithMoves: RoundSummary = {
   ...mockRoundSummary,
   moves: [
-    { playerId: "player-1", from: { x: 2, y: 3 }, to: { x: 4, y: 3 } },
-    { playerId: "player-2", from: { x: 7, y: 1 }, to: { x: 7, y: 2 } },
+    { playerId: "player-1", from: { x: 2, y: 3 }, to: { x: 4, y: 3 }, submittedAt: "2026-01-01T00:00:00.000Z" },
+    { playerId: "player-2", from: { x: 7, y: 1 }, to: { x: 7, y: 2 }, submittedAt: "2026-01-01T00:00:01.000Z" },
   ],
 };
 
@@ -399,6 +408,7 @@ describe("MatchClient animation phase machine (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -410,7 +420,7 @@ describe("MatchClient animation phase machine (US2)", () => {
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
   });
 
-  test("RoundSummaryPanel IS rendered after 800ms timer fires", async () => {
+  test("no overlay is rendered after 1200ms — round data appears inline in player panel", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -419,6 +429,7 @@ describe("MatchClient animation phase machine (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -427,13 +438,14 @@ describe("MatchClient animation phase machine (US2)", () => {
       mockMatchCallbacks.onSummary!(mockRoundSummary);
     });
 
-    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(801);
+      await vi.advanceTimersByTimeAsync(1201);
     });
 
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+    // No overlay
+    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    // Inline round history appears in player panels
+    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
   });
 
   test("scoredTileHighlights passed to BoardGrid is populated from pendingSummary during highlighting phase", async () => {
@@ -445,6 +457,7 @@ describe("MatchClient animation phase machine (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -492,7 +505,7 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
     });
   });
 
-  test("RoundSummaryPanel renders immediately when prefers-reduced-motion is active (no 800ms wait)", async () => {
+  test("no overlay rendered with reduced motion — inline history appears immediately", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -501,6 +514,7 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -509,11 +523,12 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
       mockMatchCallbacks.onSummary!(mockRoundSummary);
     });
 
-    // With reduced motion: panel should be visible immediately (no 800ms wait needed)
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+    // No overlay — inline history is shown instead
+    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
   });
 
-  test("animationPhase transitions directly to showing-summary without highlighting when reduced motion is active", async () => {
+  test("highlight animation is skipped when reduced motion is active", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -522,6 +537,7 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -529,9 +545,6 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
     act(() => {
       mockMatchCallbacks.onSummary!(mockRoundSummary);
     });
-
-    // Panel is visible without advancing timers — confirms no 800ms gate
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
 
     // No tiles should have board-grid__cell--scored class (highlighting phase skipped)
     const scoredTiles = document.querySelectorAll(".board-grid__cell--scored");
@@ -580,6 +593,7 @@ describe("MatchClient move lock (US1)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -609,6 +623,7 @@ describe("MatchClient move lock (US1)", () => {
           initialState={createMatchState({ currentRound: 3 })}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
@@ -637,9 +652,9 @@ describe("MatchClient move lock (US1)", () => {
   });
 });
 
-// ─── MatchClient opponent reveal tests (US2) ────────────────────────────────
+// ─── MatchClient round-recap flash tests (US1) ───────────────────────────────
 
-describe("MatchClient opponent reveal (US2)", () => {
+describe("MatchClient round-recap flash (US1)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockMatchCallbacks.onSummary = null;
@@ -650,7 +665,7 @@ describe("MatchClient opponent reveal (US2)", () => {
     vi.restoreAllMocks();
   });
 
-  test("T014: phases transition idle → revealing-opponent-move → highlighting → showing-summary", async () => {
+  test("T014: phases transition idle → round-recap → idle (no overlay)", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -659,33 +674,27 @@ describe("MatchClient opponent reveal (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
 
     act(() => { mockMatchCallbacks.onSummary!(mockRoundSummaryWithMoves); });
 
-    // Phase 1: revealing-opponent-move — no scored highlights, no summary panel
+    // round-recap phase — scored tile highlights are active
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[2 * 10 + 1]).toHaveClass("board-grid__cell--scored");
+
+    // Advance past recap timer (1200ms) → transitions back to idle
+    await act(async () => { await vi.advanceTimersByTimeAsync(1201); });
+
+    // No overlay ever appears
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-    const scoredDuringReveal = document.querySelectorAll(".board-grid__cell--scored");
-    expect(scoredDuringReveal).toHaveLength(0);
-
-    // Advance past reveal timer (1000ms) → transitions to "highlighting"
-    await act(async () => { await vi.advanceTimersByTimeAsync(1001); });
-
-    // Phase 2: highlighting — scored highlights ARE active, no summary panel
-    expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-    const scoredDuringHighlight = document.querySelectorAll(".board-grid__cell--scored");
-    expect(scoredDuringHighlight.length).toBeGreaterThan(0);
-
-    // Advance past highlight timer (800ms) → transitions to "showing-summary"
-    await act(async () => { await vi.advanceTimersByTimeAsync(801); });
-
-    // Phase 3: showing-summary — summary panel IS shown
-    expect(screen.getByTestId("round-summary-panel")).toBeInTheDocument();
+    // Inline history shows the round data
+    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
   });
 
-  test("T015: opponent's swapped tiles get opponent-reveal class during reveal phase", async () => {
+  test("T015: opponent's swapped tiles get opponent-reveal class during round-recap phase", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -694,13 +703,14 @@ describe("MatchClient opponent reveal (US2)", () => {
           initialState={createMatchState()}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });
 
     act(() => { mockMatchCallbacks.onSummary!(mockRoundSummaryWithMoves); });
 
-    // Opponent is player-2, their move is (7,1)→(7,2)
+    // currentPlayerId is "player-1", so opponent is "player-2" whose move is (7,1)→(7,2)
     const tiles = screen.getAllByTestId("board-tile");
     expect(tiles[1 * 10 + 7]).toHaveClass("board-grid__cell--opponent-reveal");
     expect(tiles[2 * 10 + 7]).toHaveClass("board-grid__cell--opponent-reveal");
@@ -726,6 +736,7 @@ describe("MatchClient dual timeout (US4)", () => {
           initialState={dualTimeoutState}
           currentPlayerId="player-1"
           matchId="match-test-123"
+          playerProfiles={defaultProfiles}
         />,
       );
     });

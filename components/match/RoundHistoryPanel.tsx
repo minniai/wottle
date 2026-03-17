@@ -66,19 +66,19 @@ function PlayerWordSection({
       <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
         {username}
       </p>
-      {words.length === 0 ? (
-        <p className="mt-1 text-sm text-white/30">No words</p>
-      ) : (
-        <ul
-          role="list"
-          aria-label={`Words scored by ${username} in round ${roundNumber}`}
-          className="mt-1 space-y-1"
-        >
-          {words.map((w, i) => (
+      <ul
+        role="list"
+        aria-label={`Words scored by ${username} in round ${roundNumber}`}
+        className="mt-1 space-y-1"
+      >
+        {words.length === 0 ? (
+          <li className="text-sm text-white/30">No words</li>
+        ) : (
+          words.map((w, i) => (
             <WordRow key={`${w.word}-${i}`} word={w} onWordHover={onWordHover} />
-          ))}
-        </ul>
-      )}
+          ))
+        )}
+      </ul>
     </div>
   );
 }
@@ -94,7 +94,7 @@ function RoundRow({
   playerBUsername: string;
   onWordHover?: (word: WordHistoryRow | null) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const panelId = `round-history-panel-${entry.roundNumber}`;
   const triggerId = `round-history-trigger-${entry.roundNumber}`;
 

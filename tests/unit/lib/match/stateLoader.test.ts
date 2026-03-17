@@ -171,6 +171,42 @@ describe("stateLoader.loadMatchState", () => {
         expect(state!.state).toBe("completed");
     });
 
+    it("maps round state 'completed' to 'resolving' when match is still in_progress (between-round window)", async () => {
+        // When roundEngine marks a round as "completed" but hasn't yet updated
+        // current_round to the next round, the safety poller can load this
+        // intermediate state. The client must NOT see state="completed" (which
+        // would trigger "Rounds Complete" banner mid-game).
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",   // match still going
+                current_round: 1,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 180_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-1",
+                state: "completed",     // round finished, next round not yet created
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "B")),
+                started_at: new Date(Date.now() - 60_000).toISOString(),
+            },
+        );
+
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state).not.toBeNull();
+        // Must NOT be "completed" — the match isn't over, just the round
+        expect(state!.state).not.toBe("completed");
+        expect(state!.state).toBe("resolving");
+    });
+
     it("sets submitting player timer to paused with remaining at submit, other stays running", async () => {
         const roundStartedAt = new Date(Date.now() - 30_000);
         const playerASubmittedAt = new Date(roundStartedAt.getTime() + 20_000); // 20s after round start

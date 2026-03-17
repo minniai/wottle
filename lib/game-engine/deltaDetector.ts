@@ -102,7 +102,6 @@ function hasCrossWordViolation(
       const crossWordReversed = [...crossWord].reverse().join("");
       // OR: valid if readable in either direction
       if (!dictionary.has(crossWord) && !dictionary.has(crossWordReversed)) return true;
-      if (crossLength < minimumWordLength) return true;
     }
   }
 

@@ -1,3 +1,6 @@
+/** Supported dictionary languages. */
+export type Language = 'is' | 'en' | 'se' | 'no' | 'dk';
+
 export interface GameConfig {
   /** The maximum number of rounds to play before the match ends. */
   maxRounds: number;
@@ -11,6 +14,8 @@ export interface GameConfig {
   boardSize: number;
   /** The explicitly permitted directions for reading a primary word. */
   allowedDirections: Array<'horizontal' | 'vertical'>;
+  /** Language code selecting the dictionary and letter-scoring table. */
+  language: Language;
 }
 
 export interface MoveEvaluation {

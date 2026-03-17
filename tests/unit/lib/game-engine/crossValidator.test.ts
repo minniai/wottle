@@ -147,6 +147,75 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
+  // T029b: Rejects word when swapped tile is adjacent to a frozen tile forming a 2-letter cross-sequence
+  // that is NOT in the dictionary.
+  // "rám" creates cross "my" at M+frozen Y — "my" and "ym" are not valid words → violation.
+  test("T029b: rejects word when end tile has 2-letter vertical cross-sequence not in dictionary", () => {
+    const localDict = new Set(["rám"]); // "my"/"ym" not in dict
+    const board = emptyBoard();
+    // "rám" horizontal at row 1: r(5,1) á(6,1) m(7,1)
+    board[1][5] = "r";
+    board[1][6] = "á";
+    board[1][7] = "m";
+    // Frozen "y" at (7,2) — directly below m
+    board[2][7] = "y";
+    const frozenTiles: FrozenTileMap = {
+      "7,2": { owner: "player_b" },
+    };
+
+    const candidates = [hWord("rám", 5, 1)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // m(7,1) + frozen y(7,2) = "my" → not in dictionary → violation → "rám" rejected
+    expect(result).toHaveLength(0);
+  });
+
+  // T029c: Accepts word when it creates a 2-letter cross-sequence that IS a valid dictionary word.
+  // Real-game scenario: "pura" (vertical, up) creates cross "að" at the A tile adjacent to frozen Ð —
+  // "að" is a valid Icelandic word, so "pura" must NOT be rejected.
+  test("T029c: accepts word when 2-letter cross-sequence with frozen tile is a valid dictionary word", () => {
+    const localDict = new Set(["pura", "að"]); // both words valid
+    const board = emptyBoard();
+    // "pura" vertical (direction "up"): tiles at col 2, rows 1–4 (start=(2,4) for "up" direction)
+    board[1][2] = "a";
+    board[2][2] = "r";
+    board[3][2] = "u";
+    board[4][2] = "p";
+    // Frozen "ð" at (3,1) — directly right of a(2,1)
+    board[1][3] = "ð";
+    const frozenTiles: FrozenTileMap = {
+      "3,1": { owner: "player_b" },
+    };
+
+    const candidates = [
+      {
+        text: "pura",
+        displayText: "PURA",
+        direction: "up" as const,
+        start: { x: 2, y: 4 },
+        length: 4,
+        tiles: [{ x: 2, y: 4 }, { x: 2, y: 3 }, { x: 2, y: 2 }, { x: 2, y: 1 }],
+      },
+    ];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // a(2,1) + frozen ð(3,1) = "að" → IS in dictionary → no violation → "pura" accepted
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("pura");
+  });
+
   // T030: Returns empty array when no valid combination exists
   test("T030: returns empty array when no valid combination exists", () => {
     const board = emptyBoard();
@@ -251,12 +320,11 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // A alone: passes (no frozen adjacency on horizontal axis, "qa" cross-word < 3 chars → ignored)
+    // A alone: FAILS — frozen "q" at (0,2) + "a" at (0,3) = "qa" (2 letters) → sub-minimum violation
     // B alone: passes (no frozen adjacency on vertical axis)
-    // {A,B}: tile (0,3) cross = "q"(0,2) + "a"(0,3) + "d"(0,4) + "e"(0,5) = "qade" ∉ dict → rejected
-    // A scores higher (3 letters vs 2) → A selected
+    // Result: only B survives
     expect(result4).toHaveLength(1);
-    expect(result4[0].text).toBe("abc");
+    expect(result4[0].text).toBe("de");
   });
 
   // T033: Prefers superword over subword when both pass cross-validation
@@ -815,4 +883,198 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(1);
     expect(result[0].text).toBe("abc");
   });
+
+  // ─── T049: Physical Adjacency vs scoredAxes ─────────────────────
+
+  // T049: Single frozen tile with scoredAxes adjacent to
+  // a horizontal word — combined invalid → rejected (THE BUG FIX)
+  //
+  // Even if a tile was originally scored on a perpendicular axis (e.g. vertical),
+  // physical adjacency on the horizontal axis means it physically extends
+  // the sequence horizontally. Therefore, the combined sequence MUST be a valid
+  // word, regardless of the tile's scoredAxes metadata.
+  test("T049: rejects horizontal word adjacent to single frozen tile even if scoredAxes is horizontal", () => {
+    const localDict = new Set(["tað"]);
+    const board = emptyBoard();
+    board[0][3] = "a";
+    placeH(board, "tað", 4, 0);
+
+    const frozenTiles: FrozenTileMap = {
+      "3,0": { owner: "player_a", scoredAxes: ["horizontal"] },
+    };
+
+    const candidates = [hWord("tað", 4, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_b",
+    );
+
+    // Combined "atað" ∉ dict → TAÐ rejected
+    expect(result).toHaveLength(0);
+  });
+
+  test("T049b: rejects horizontal word adjacent to single frozen tile even if scoredAxes is vertical", () => {
+    const localDict = new Set(["tað"]);
+    const board = emptyBoard();
+    board[0][3] = "x";
+    placeH(board, "tað", 4, 0);
+
+    const frozenTiles: FrozenTileMap = {
+      "3,0": { owner: "player_a", scoredAxes: ["vertical"] },
+    };
+
+    const candidates = [hWord("tað", 4, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_b",
+    );
+
+    // Combined "xtað" ∉ dict → TAÐ rejected because physically adjacent
+    expect(result).toHaveLength(0);
+  });
+
+  test("T049c: rejects horizontal word adjacent to multi-axis frozen tile", () => {
+    const localDict = new Set(["tað"]);
+    const board = emptyBoard();
+    board[0][3] = "x";
+    placeH(board, "tað", 4, 0);
+
+    const frozenTiles: FrozenTileMap = {
+      "3,0": { owner: "player_a", scoredAxes: ["horizontal", "vertical"] },
+    };
+
+    const candidates = [hWord("tað", 4, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_b",
+    );
+
+    // Combined "xtað" ∉ dict → rejected
+    expect(result).toHaveLength(0);
+  });
+
+  test("T049d: always triggers combined-sequence check when frozen tile is adjacent (legacy, no scoredAxes)", () => {
+    const localDict = new Set(["uma", "xy"]);
+    const board = emptyBoard();
+    placeV(board, "uma", 0, 0);
+    board[3][0] = "x";
+    board[4][0] = "y";
+
+    const frozenTiles: FrozenTileMap = {
+      "0,3": { owner: "player_b" },
+      "0,4": { owner: "player_b" },
+    };
+
+    const candidates = [vWord("uma", 0, 0)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // Adjacent frozen "xy" → combined "umaxy" ∉ dict → rejected
+    expect(result).toHaveLength(0);
+  });
+
+  // T050: NÖS regression — frozen single letter above a new vertical word
+  // must cause the combined run to be validated (the scoring bug reported in
+  // the game: player swapped S to form NÖS but R was frozen above N,
+  // making the full column run RNÖS which is not a valid word).
+  test("T050: rejects vertical word when a single frozen letter above it makes an invalid combined run", () => {
+    // Column x=3: R(frozen, row 1), N(row 2), Ö(row 3), S(row 4)
+    // New word: nös (down, col 3, rows 2-4)
+    // Combined run: R + nös = "rnös" — not a valid word → reject
+    const localDict = new Set(["nös"]);
+    const board = emptyBoard();
+    board[1][3] = "R";
+    board[2][3] = "N";
+    board[3][3] = "Ö";
+    board[4][3] = "S";
+
+    const frozenTiles: FrozenTileMap = {
+      "3,1": { owner: "player_b" }, // R is frozen from a prior round, no scoredAxes
+    };
+
+    const candidates = [vWord("nös", 3, 2)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // R(frozen) + NÖS = "rnös" ∉ dict → nös must be rejected
+    expect(result).toHaveLength(0);
+  });
+
+  // T051: NÖS regression — same scenario but combined run IS a valid word → accept
+  test("T051: accepts vertical word when frozen letter above it makes a valid combined run", () => {
+    // Column x=3: R(frozen, row 1), N(row 2), Ö(row 3), S(row 4)
+    // "rnös" is in this test's dictionary → nös should be accepted
+    const localDict = new Set(["nös", "rnös"]);
+    const board = emptyBoard();
+    board[1][3] = "R";
+    board[2][3] = "N";
+    board[3][3] = "Ö";
+    board[4][3] = "S";
+
+    const frozenTiles: FrozenTileMap = {
+      "3,1": { owner: "player_b" },
+    };
+
+    const candidates = [vWord("nös", 3, 2)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // R(frozen) + NÖS = "rnös" ∈ dict → nös accepted
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("nös");
+  });
+
+  // T052: Single-letter frozen run with no scoredAxes — used to silently
+  // bypass the check (old heuristic bug). Verify fix applies to horizontal too.
+  test("T052: rejects horizontal word when a single frozen letter precedes it making an invalid combined run", () => {
+    // Row y=2: X(frozen, col 1), A(col 2), B(col 3)
+    // New horizontal word: "ab" at (2,2)
+    // Combined: x + ab = "xab" — not a valid word
+    const localDict = new Set(["ab"]);
+    const board = emptyBoard();
+    board[2][1] = "X";
+    board[2][2] = "A";
+    board[2][3] = "B";
+
+    const frozenTiles: FrozenTileMap = {
+      "1,2": { owner: "player_b" }, // single letter, no scoredAxes
+    };
+
+    const candidates = [hWord("ab", 2, 2)];
+    const result = selectOptimalCombination(
+      candidates,
+      board,
+      frozenTiles,
+      localDict,
+      "player_a",
+    );
+
+    // X(frozen) + AB = "xab" ∉ dict → ab rejected
+    expect(result).toHaveLength(0);
+  });
 });
+
