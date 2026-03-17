@@ -286,7 +286,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
             {showInviteModal && (
               <div
                 ref={inviteModalRef}
-                className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-slate-950/60"
+                className="absolute right-0 top-full z-50 mt-2 w-[22rem] rounded-2xl border border-white/10 bg-slate-950 p-5 shadow-2xl shadow-slate-950/60"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={inviteTitleId}

@@ -7,7 +7,7 @@ export default async function LobbyPage() {
   const initialPlayers = session ? await fetchLobbySnapshot() : [];
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 p-6 text-white">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 overflow-x-hidden p-6 text-white">
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-[0.3em] text-emerald-200/80">Phase 3</p>
         <h1 className="text-3xl font-bold text-white sm:text-4xl">Authenticate &amp; Enter Lobby</h1>
