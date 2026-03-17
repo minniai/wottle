@@ -255,7 +255,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
             Queue automatically or send a direct invite to someone in the lobby.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="relative flex flex-wrap gap-3">
           <button
             type="button"
             className="rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
@@ -265,7 +265,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
           >
             {isQueueing ? "Matching…" : "Start Game"}
           </button>
-          <div className="relative">
+          <div>
             <button
               type="button"
               className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
@@ -286,7 +286,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
             {showInviteModal && (
               <div
                 ref={inviteModalRef}
-                className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl shadow-slate-950/60"
+                className="absolute right-0 top-full z-50 mt-2 w-96 max-w-full rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl shadow-slate-950/60"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={inviteTitleId}
