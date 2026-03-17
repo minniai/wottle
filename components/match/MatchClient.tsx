@@ -128,13 +128,23 @@ export function MatchClient({
     matchStateRef.current = matchState;
   }, [matchState]);
 
-  /** Apply a server snapshot into local state, preserving lastSummary. */
+  /** Apply a server snapshot into local state, preserving lastSummary and non-zero scores. */
   const applySnapshot = useCallback((snapshot: MatchState) => {
-    setMatchState((prev) => ({
-      ...prev,
-      ...snapshot,
-      lastSummary: snapshot.lastSummary ?? prev.lastSummary,
-    }));
+    setMatchState((prev) => {
+      // Preserve accumulated scores when the server snapshot reports zeros
+      // (race: round advances before scoreboard_snapshots row is written)
+      const prevTotal = prev.scores.playerA + prev.scores.playerB;
+      const snapTotal = snapshot.scores.playerA + snapshot.scores.playerB;
+      const scores =
+        snapTotal === 0 && prevTotal > 0 ? prev.scores : snapshot.scores;
+
+      return {
+        ...prev,
+        ...snapshot,
+        scores,
+        lastSummary: snapshot.lastSummary ?? prev.lastSummary,
+      };
+    });
   }, []);
 
   /**
