@@ -64,11 +64,10 @@ const OPPONENT_ID = "opponent-1";
  * the same object; `await chain` resolves to `resolvedValue`.
  */
 function makeMockChain(resolvedValue: unknown) {
-  const chain: Record<string, unknown> & { then: typeof Promise.prototype.then } = {
-    then: (
-      onFulfilled?: (v: unknown) => unknown,
-      onRejected?: (e: unknown) => unknown,
-    ) => Promise.resolve(resolvedValue).then(onFulfilled, onRejected),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chain: any = {
+    then: (onFulfilled?: any, onRejected?: any) =>
+      Promise.resolve(resolvedValue).then(onFulfilled, onRejected),
   };
   for (const method of [
     "select",
