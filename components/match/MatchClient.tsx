@@ -454,9 +454,32 @@ export function MatchClient({
     return matchState.timers.playerB;
   }, [currentPlayerId, matchState.timers.playerA, matchState.timers.playerB]);
 
+  // Client-side timer tick: decrement displayed time every second
+  const [timerTick, setTimerTick] = useState(0);
+  const timerSnapshotRef = useRef(Date.now());
+
+  // Reset the tick reference whenever the server sends new timer data
+  useEffect(() => {
+    setTimerTick(0);
+    timerSnapshotRef.current = Date.now();
+  }, [currentTimer.remainingMs, currentTimer.status]);
+
+  useEffect(() => {
+    if (currentTimer.status !== "running" || currentTimer.remainingMs <= 0) {
+      return;
+    }
+    const id = setInterval(() => {
+      const elapsed = Date.now() - timerSnapshotRef.current;
+      setTimerTick(elapsed);
+    }, 200);
+    return () => clearInterval(id);
+  }, [currentTimer.status, currentTimer.remainingMs]);
+
   const timeLeftSeconds = Math.max(
     0,
-    Math.floor(currentTimer.remainingMs / 1000),
+    Math.floor(
+      (currentTimer.remainingMs - (currentTimer.status === "running" ? timerTick : 0)) / 1000,
+    ),
   );
   const isPaused = currentTimer.status !== "running";
 
@@ -541,9 +564,31 @@ export function MatchClient({
       ? matchState.scores.playerA
       : matchState.scores.playerB;
 
+  // Client-side opponent timer tick
+  const [opponentTick, setOpponentTick] = useState(0);
+  const opponentSnapshotRef = useRef(Date.now());
+
+  useEffect(() => {
+    setOpponentTick(0);
+    opponentSnapshotRef.current = Date.now();
+  }, [opponentTimer.remainingMs, opponentTimer.status]);
+
+  useEffect(() => {
+    if (opponentTimer.status !== "running" || opponentTimer.remainingMs <= 0) {
+      return;
+    }
+    const id = setInterval(() => {
+      const elapsed = Date.now() - opponentSnapshotRef.current;
+      setOpponentTick(elapsed);
+    }, 200);
+    return () => clearInterval(id);
+  }, [opponentTimer.status, opponentTimer.remainingMs]);
+
   const opponentTimeLeft = Math.max(
     0,
-    Math.floor(opponentTimer.remainingMs / 1000),
+    Math.floor(
+      (opponentTimer.remainingMs - (opponentTimer.status === "running" ? opponentTick : 0)) / 1000,
+    ),
   );
 
   // Derive in-game round history from accumulated data (US4)
