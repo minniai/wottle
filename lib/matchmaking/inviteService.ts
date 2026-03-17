@@ -344,14 +344,15 @@ export async function startAutoQueue(
 
   // Atomically claim the opponent by updating their status with a condition
   // This prevents race conditions when two players try to match simultaneously
-  const { count } = await client
+  const { data: claimed } = await client
     .from("players")
     .update({ status: "in_match" })
     .eq("id", opponent.id)
-    .eq("status", "matchmaking"); // Only update if still in matchmaking
+    .eq("status", "matchmaking") // Only update if still in matchmaking
+    .select("id");
 
   // If we couldn't claim the opponent (someone else got them first), stay in queue
-  if (!count || count === 0) {
+  if (!claimed || claimed.length === 0) {
     return {
       status: "queued",
       estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS,

@@ -201,6 +201,115 @@ export interface FrozenTile {
 /** Keys are "x,y" coordinate strings. Values indicate ownership. */
 export type FrozenTileMap = Record<string, FrozenTile>;
 
+// ─── Rematch Types (016-rematch-post-game-loop) ──────────────────────
+
+export type RematchRequestStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "expired";
+
+export interface RematchRequest {
+  id: string;
+  matchId: string;
+  requesterId: string;
+  responderId: string;
+  status: RematchRequestStatus;
+  newMatchId: string | null;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export type RematchEventType =
+  | "rematch-request"
+  | "rematch-accepted"
+  | "rematch-declined"
+  | "rematch-expired";
+
+export interface RematchEvent {
+  type: RematchEventType;
+  matchId: string;
+  requesterId: string;
+  status: RematchRequestStatus;
+  newMatchId?: string;
+}
+
+export interface SeriesContext {
+  gameNumber: number;
+  /** Wins for the current player in the series. */
+  currentPlayerWins: number;
+  /** Wins for the opponent in the series. */
+  opponentWins: number;
+  draws: number;
+}
+
+// ─── Elo Rating Types (017-elo-rating-player-stats) ───────────────────
+
+export interface EloCalculationInput {
+  playerRating: number;
+  opponentRating: number;
+  /** 1.0 = win, 0.5 = draw, 0.0 = loss */
+  actualScore: number;
+  /** 32 for new players (<20 games), 16 for established */
+  kFactor: number;
+}
+
+export interface EloCalculationResult {
+  newRating: number;
+  delta: number;
+  expectedScore: number;
+}
+
+export interface MatchRatingResult {
+  playerId: string;
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingDelta: number;
+  kFactor: number;
+  matchResult: "win" | "loss" | "draw";
+}
+
+export interface PlayerStats {
+  eloRating: number;
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  /** wins / (wins + losses), null if no decisive games */
+  winRate: number | null;
+}
+
+export interface PlayerProfile {
+  identity: PlayerIdentity;
+  stats: PlayerStats;
+  /** Last 5 rating_after values, oldest first */
+  ratingTrend: number[];
+}
+
+export interface RatingChange {
+  playerADelta: number;
+  playerBDelta: number;
+  playerARatingAfter: number;
+  playerBRatingAfter: number;
+}
+
+// ─── Match Player Profiles (018-match-hud-layout) ─────────────────────
+
+/** Snapshot of player identity for display during an active match. */
+export interface MatchPlayerProfile {
+  playerId: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  eloRating: number;
+}
+
+/** Both players' profiles for the match UI. */
+export interface MatchPlayerProfiles {
+  playerA: MatchPlayerProfile;
+  playerB: MatchPlayerProfile;
+}
+
 // ─── Scoring Breakdown Types (003-word-engine-scoring) ────────────────
 
 /**

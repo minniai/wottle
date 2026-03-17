@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/server", () => ({ after: vi.fn((fn: () => void) => fn()) }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/rate-limiting/middleware", () => ({ assertWithinRateLimit: vi.fn() }));

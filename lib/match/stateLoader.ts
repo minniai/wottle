@@ -5,6 +5,8 @@ import type { Coordinate } from "@/lib/types/board";
 import { aggregateRoundSummary } from "@/lib/scoring/roundSummary";
 import type {
   MatchPhase,
+  MatchPlayerProfile,
+  MatchPlayerProfiles,
   MatchState,
   RoundSummary,
   ScoreTotals,
@@ -28,12 +30,16 @@ function mapState(roundState: string | null | undefined, matchState: string): Ma
     return "pending";
   }
 
-  if (
-    roundState === "collecting" ||
-    roundState === "resolving" ||
-    roundState === "completed"
-  ) {
+  if (roundState === "collecting" || roundState === "resolving") {
     return roundState;
+  }
+
+  // A round with state "completed" while the match is still in_progress means
+  // we're between rounds (round finished, next round not yet loaded). Map to
+  // "resolving" rather than "completed" to avoid the client mistaking a
+  // completed *round* for a completed *match* (which triggers "Rounds Complete").
+  if (roundState === "completed") {
+    return "resolving";
   }
 
   // in_progress or any other transient state defaults to collecting
@@ -144,14 +150,67 @@ async function loadLatestRoundSummary(
     return null;
   }
 
-  const wordEntries = await fetchWordEntries(client, matchId, round.id);
+  // Parallelize independent queries (both depend on round.id but not each other)
+  const [wordEntries, previousTotals] = await Promise.all([
+    fetchWordEntries(client, matchId, round.id),
+    fetchPreviousTotals(client, matchId, summaryRound),
+  ]);
   if (!wordEntries) {
     return null;
   }
 
-  const previousTotals = await fetchPreviousTotals(client, matchId, summaryRound);
   const wordScores = mapWordScores(wordEntries);
   return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals, playerAId, playerBId);
+}
+
+function mapPlayerRow(
+  row: { id: string; username: string; display_name: string; avatar_url: string | null; elo_rating: number | null },
+): MatchPlayerProfile {
+  return {
+    playerId: row.id,
+    displayName: row.display_name || row.username,
+    username: row.username,
+    avatarUrl: row.avatar_url,
+    eloRating: row.elo_rating ?? 1200,
+  };
+}
+
+function fallbackProfile(playerId: string, label: string): MatchPlayerProfile {
+  return {
+    playerId,
+    displayName: label,
+    username: label,
+    avatarUrl: null,
+    eloRating: 1200,
+  };
+}
+
+export async function loadMatchPlayerProfiles(
+  client: AnyClient,
+  playerAId: string,
+  playerBId: string,
+): Promise<MatchPlayerProfiles> {
+  const { data, error } = await client
+    .from("players")
+    .select("id, username, display_name, avatar_url, elo_rating")
+    .in("id", [playerAId, playerBId]);
+
+  if (error || !data) {
+    console.warn("[MatchState] Failed to load player profiles:", error?.message);
+    return {
+      playerA: fallbackProfile(playerAId, "Player A"),
+      playerB: fallbackProfile(playerBId, "Player B"),
+    };
+  }
+
+  const byId = new Map(data.map((row: any) => [row.id, row]));
+  const rowA = byId.get(playerAId);
+  const rowB = byId.get(playerBId);
+
+  return {
+    playerA: rowA ? mapPlayerRow(rowA) : fallbackProfile(playerAId, "Player A"),
+    playerB: rowB ? mapPlayerRow(rowB) : fallbackProfile(playerBId, "Player B"),
+  };
 }
 
 export async function loadMatchState(
@@ -215,20 +274,23 @@ export async function loadMatchState(
     match.current_round = 1;
   }
 
-  const { data: round } = await client
-    .from("rounds")
-    .select("id, state, board_snapshot_before, board_snapshot_after, started_at")
-    .eq("match_id", matchId)
-    .eq("round_number", match.current_round)
-    .maybeSingle();
-
+  // Parallelize independent queries (all depend on match but not each other)
   const scoresSnapshotRound = Math.max(match.current_round - 1, 0);
-  const { data: scoreboard } = await client
-    .from("scoreboard_snapshots")
-    .select("player_a_score, player_b_score")
-    .eq("match_id", matchId)
-    .eq("round_number", scoresSnapshotRound)
-    .maybeSingle();
+  const [{ data: round }, { data: scoreboard }, lastSummary] = await Promise.all([
+    client
+      .from("rounds")
+      .select("id, state, board_snapshot_before, board_snapshot_after, started_at")
+      .eq("match_id", matchId)
+      .eq("round_number", match.current_round)
+      .maybeSingle(),
+    client
+      .from("scoreboard_snapshots")
+      .select("player_a_score, player_b_score")
+      .eq("match_id", matchId)
+      .eq("round_number", scoresSnapshotRound)
+      .maybeSingle(),
+    loadLatestRoundSummary(client, matchId, match.current_round, match.player_a_id, match.player_b_id),
+  ]);
 
   const scores: ScoreTotals = scoreboard
     ? {
@@ -239,7 +301,6 @@ export async function loadMatchState(
 
   const board = ensureBoardSnapshot(match.id, match.board_seed, round ?? null);
   const effectiveState = mapState(round?.state ?? null, match.state);
-  const lastSummary = await loadLatestRoundSummary(client, matchId, match.current_round, match.player_a_id, match.player_b_id);
 
   // Compute mid-round remaining time from round.started_at when in collecting state
   const roundStartedAt =

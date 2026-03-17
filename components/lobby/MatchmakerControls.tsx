@@ -255,7 +255,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
             Queue automatically or send a direct invite to someone in the lobby.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="relative flex flex-wrap gap-3">
           <button
             type="button"
             className="rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
@@ -265,22 +265,102 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
           >
             {isQueueing ? "Matching…" : "Start Game"}
           </button>
-          <button
-            type="button"
-            className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
-            data-testid="matchmaker-invite-button"
-            onClick={() => setShowInviteModal(true)}
-            disabled={isInviting || presenceStatus !== "ready" || inviteTargets.length === 0}
-            title={
-              presenceStatus !== "ready"
-                ? "Connecting to lobby..."
-                : inviteTargets.length === 0
-                ? "No players available to invite"
-                : undefined
-            }
-          >
-            {isInviting ? "Sending…" : "Invite Player"}
-          </button>
+          <div>
+            <button
+              type="button"
+              className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
+              data-testid="matchmaker-invite-button"
+              onClick={() => setShowInviteModal(true)}
+              disabled={isInviting || presenceStatus !== "ready" || inviteTargets.length === 0}
+              title={
+                presenceStatus !== "ready"
+                  ? "Connecting to lobby..."
+                  : inviteTargets.length === 0
+                  ? "No players available to invite"
+                  : undefined
+              }
+            >
+              {isInviting ? "Sending…" : "Invite Player"}
+            </button>
+
+            {showInviteModal && (
+              <div
+                ref={inviteModalRef}
+                className="absolute right-0 top-full z-50 mt-2 w-96 max-w-full rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl shadow-slate-950/60"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={inviteTitleId}
+                aria-describedby={inviteDescriptionId}
+                tabIndex={-1}
+                style={{ backgroundColor: "rgb(2 6 23)" }}
+              >
+                <header className="flex items-center justify-between">
+                  <div>
+                    <p
+                      id={inviteTitleId}
+                      className="text-sm font-semibold text-white"
+                    >
+                      Invite a tester
+                    </p>
+                    <p
+                      id={inviteDescriptionId}
+                      className="text-xs text-white/70"
+                    >
+                      Select someone currently online.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-white/60 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
+                    onClick={() => setShowInviteModal(false)}
+                    aria-label="Close invite panel"
+                    ref={inviteCloseButtonRef}
+                  >
+                    ×
+                  </button>
+                </header>
+
+                <div
+                  className="mt-4 max-h-60 space-y-3 overflow-y-auto"
+                  data-testid="matchmaker-invite-modal"
+                >
+                  {inviteTargets.length === 0 && (
+                    <p
+                      className="rounded-xl border border-white/10 bg-slate-800 p-3 text-sm text-white/70"
+                      style={{ backgroundColor: "rgb(30 41 59)" }}
+                    >
+                      No available testers right now.
+                    </p>
+                  )}
+                  {inviteTargets.map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800 px-4 py-3 text-sm text-white/80"
+                      data-testid="invite-option"
+                      style={{ backgroundColor: "rgb(30 41 59)" }}
+                    >
+                      <div>
+                        <p className="font-semibold text-white">
+                          {player.displayName}
+                        </p>
+                        <p className="text-xs text-white/60">
+                          @{player.username}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
+                        onClick={() => handleSendInvite(player.id)}
+                        disabled={isInviting}
+                      >
+                        Invite
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -350,71 +430,12 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
         </div>
       )}
 
+      {/* Backdrop to close dropdown when clicking outside */}
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
-          <div
-            ref={inviteModalRef}
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl shadow-slate-950/60"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={inviteTitleId}
-            aria-describedby={inviteDescriptionId}
-            tabIndex={-1}
-            style={{ backgroundColor: "rgb(2 6 23)" }}
-          >
-            <header className="flex items-center justify-between">
-              <div>
-                <p id={inviteTitleId} className="text-lg font-semibold text-white">
-                  Invite a tester
-                </p>
-                <p id={inviteDescriptionId} className="text-xs text-white/70">
-                  Select someone currently online.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="text-white/60 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
-                onClick={() => setShowInviteModal(false)}
-                aria-label="Close invite modal"
-                ref={inviteCloseButtonRef}
-              >
-                ×
-              </button>
-            </header>
-
-            <div
-              className="mt-4 max-h-72 space-y-3 overflow-y-auto"
-              data-testid="matchmaker-invite-modal"
-            >
-              {inviteTargets.length === 0 && (
-                <p className="rounded-xl border border-white/10 bg-slate-800 p-4 text-sm text-white/70" style={{ backgroundColor: "rgb(30 41 59)" }}>
-                  No available testers right now. Try again once someone joins.
-                </p>
-              )}
-              {inviteTargets.map((player) => (
-                <div
-                  key={player.id}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800 p-4 text-sm text-white/80"
-                  data-testid="invite-option"
-                  style={{ backgroundColor: "rgb(30 41 59)" }}
-                >
-                  <div>
-                    <p className="font-semibold text-white">{player.displayName}</p>
-                    <p className="text-xs text-white/60">@{player.username}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="rounded-lg bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
-                    onClick={() => handleSendInvite(player.id)}
-                    disabled={isInviting}
-                  >
-                    Invite
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowInviteModal(false)}
+        />
       )}
     </div>
   );

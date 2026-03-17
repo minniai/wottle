@@ -114,7 +114,7 @@ Before implementing any feature:
   - `/lib/types` - Shared TypeScript types
   - `/lib/constants` - Board dimensions, feature flags, app constants
 - `/docs` - PRD, analysis, wordlists
-  - `/docs/wordlist` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
+  - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
 - `/components` - React Client Components
   - `/components/game` - Board, BoardGrid, MoveFeedback, TimerHud
   - `/components/match` - MatchClient, MatchShell, RoundSummaryPanel, FinalSummary, WordHighlightOverlay
@@ -502,6 +502,10 @@ Key files:
 - N/A — reads existing Supabase tables; no new tables or columns (014-move-playability-improvements)
 - TypeScript 5.x / Node.js 20 + Next.js 16 (App Router), React 19+, Supabase JS v2, Web Audio API (browser-native), Vibration API (browser-native) (015-sensory-feedback)
 - Browser `localStorage` (sensory preferences only); existing Supabase PostgreSQL (the `rounds.started_at` column already exists — just not populated for round 1) (015-sensory-feedback)
+- TypeScript 5.x, Node.js 20, Next.js 16 (App Router) + Supabase JS v2, React 19+, Tailwind CSS 4.x, Zod (016-rematch-post-game-loop)
+- Supabase PostgreSQL — new `rematch_requests` table, `matches.rematch_of` column (016-rematch-post-game-loop)
+- Supabase PostgreSQL — existing `players` table (modified), new `match_ratings` table (017-elo-rating-player-stats)
+- Supabase PostgreSQL — reads existing `players` table (no new tables/columns) (018-match-hud-layout)
 
 - TypeScript 5.x, React 19+, Next.js 16 (App Router)
 - Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)

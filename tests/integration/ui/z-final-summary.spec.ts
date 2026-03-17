@@ -113,12 +113,10 @@ test.describe("Final summary recap", () => {
         const settleMs = round === 1 ? 6_000 : 3_000;
         await pageA.waitForTimeout(settleMs);
         if (round < 10) {
-          const summaryPanel = pageA.getByTestId("round-summary-panel");
-          await expect(summaryPanel).toBeVisible({ timeout: 45_000 });
-          await pageA.getByTestId("round-summary-continue").dispatchEvent("click");
+          // Wait for round to resolve and advance — rounds auto-advance after recap animation
           await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(
             new RegExp(`r${round + 1}`, "i"),
-            { timeout: 5_000 }
+            { timeout: 45_000 }
           );
         }
       }
