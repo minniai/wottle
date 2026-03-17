@@ -469,6 +469,44 @@
   }
 }
 
+/* ─── Final summary board layout (mirrors match-layout) ──────────── */
+
+.summary-board-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-board-layout__panel {
+  display: none;
+}
+
+.summary-board-layout__board {
+  width: 100%;
+  max-width: min(100%, 50dvh);
+}
+
+@media (min-width: 900px) {
+  .summary-board-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .summary-board-layout__panel {
+    display: block;
+    width: 16rem;
+    flex-shrink: 0;
+  }
+
+  .summary-board-layout__board {
+    flex: 1 1 auto;
+    max-width: min(calc(100% - 34rem), 50dvh);
+  }
+}
+
 /* ─── Round announcement overlay (shown during round-recap phase) ─── */
 
 .round-announce {

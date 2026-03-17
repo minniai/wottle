@@ -281,37 +281,39 @@ export function FinalSummary({
       className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-slate-950/60 sm:p-8"
       data-testid="final-summary-view"
     >
-      {/* Board with player HUD panels, matching in-game layout */}
+      {/* Board with player HUD panels, matching in-game 3-column layout */}
       {board && (
-        <div className="mb-6 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center" data-testid="final-summary-board">
+        <div className="summary-board-layout mb-6" data-testid="final-summary-board">
           {/* Player A panel */}
-          <div className="hidden w-40 flex-shrink-0 flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-3 sm:flex">
-            <PlayerAvatar
-              displayName={playerA?.displayName ?? "Player A"}
-              avatarUrl={null}
-              playerColor={PLAYER_A_HEX}
-              size="sm"
-            />
-            <span className="max-w-[9rem] truncate text-sm font-semibold text-white">
-              {playerA?.displayName ?? "Player A"}
-            </span>
-            <span
-              className="font-black"
-              style={{ color: PLAYER_A_HEX, fontSize: "2.5rem" }}
-            >
-              {playerA?.score ?? 0}
-            </span>
-            <span className="text-[0.65rem] text-white/40">
-              Time: {formatDuration(playerA?.timeUsedMs ?? 0)}
-            </span>
+          <div className="summary-board-layout__panel">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-4">
+              <PlayerAvatar
+                displayName={playerA?.displayName ?? "Player A"}
+                avatarUrl={null}
+                playerColor={PLAYER_A_HEX}
+                size="md"
+              />
+              <span className="max-w-[10rem] truncate text-sm font-semibold text-white">
+                {playerA?.displayName ?? "Player A"}
+              </span>
+              <span
+                className="font-black"
+                style={{ color: PLAYER_A_HEX, fontSize: "3rem" }}
+              >
+                {playerA?.score ?? 0}
+              </span>
+              <span className="text-xs text-white/50">
+                Time used: {formatDuration(playerA?.timeUsedMs ?? 0)}
+              </span>
+            </div>
           </div>
 
           {/* Board */}
-          <div className="relative w-full max-w-[min(100%,50dvh)] flex-1">
+          <div className="summary-board-layout__board">
             <BoardGridComponent
               grid={board}
               matchId={matchId}
-              className="mx-auto pointer-events-none"
+              className="pointer-events-none"
               frozenTiles={frozenTiles}
               highlightPlayerColors={highlightPlayerColors}
               persistentHighlight
@@ -319,25 +321,27 @@ export function FinalSummary({
           </div>
 
           {/* Player B panel */}
-          <div className="hidden w-40 flex-shrink-0 flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-3 sm:flex">
-            <PlayerAvatar
-              displayName={playerB?.displayName ?? "Player B"}
-              avatarUrl={null}
-              playerColor={PLAYER_B_HEX}
-              size="sm"
-            />
-            <span className="max-w-[9rem] truncate text-sm font-semibold text-white">
-              {playerB?.displayName ?? "Player B"}
-            </span>
-            <span
-              className="font-black"
-              style={{ color: PLAYER_B_HEX, fontSize: "2.5rem" }}
-            >
-              {playerB?.score ?? 0}
-            </span>
-            <span className="text-[0.65rem] text-white/40">
-              Time: {formatDuration(playerB?.timeUsedMs ?? 0)}
-            </span>
+          <div className="summary-board-layout__panel">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-4">
+              <PlayerAvatar
+                displayName={playerB?.displayName ?? "Player B"}
+                avatarUrl={null}
+                playerColor={PLAYER_B_HEX}
+                size="md"
+              />
+              <span className="max-w-[10rem] truncate text-sm font-semibold text-white">
+                {playerB?.displayName ?? "Player B"}
+              </span>
+              <span
+                className="font-black"
+                style={{ color: PLAYER_B_HEX, fontSize: "3rem" }}
+              >
+                {playerB?.score ?? 0}
+              </span>
+              <span className="text-xs text-white/50">
+                Time used: {formatDuration(playerB?.timeUsedMs ?? 0)}
+              </span>
+            </div>
           </div>
         </div>
       )}
