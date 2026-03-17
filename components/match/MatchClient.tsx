@@ -141,13 +141,13 @@ export function MatchClient({
    * Deduplicates by round number so multiple triggers for the same round are no-ops.
    */
   const showRoundAnnounce = useCallback((nextRound: number, isCompleted: boolean) => {
+    const isFinal = isCompleted || nextRound > 10;
     // Use negative value for "completed" to distinguish from normal rounds in dedup
-    const dedup = isCompleted ? -1 : nextRound;
+    const dedup = isFinal ? -1 : nextRound;
     if (lastAnnouncedRoundRef.current === dedup) return;
     lastAnnouncedRoundRef.current = dedup;
 
-    const isFinal = isCompleted || nextRound > 10;
-    const text = isCompleted
+    const text = isFinal
       ? "Rounds Complete"
       : nextRound === 10
         ? "Final Round"
