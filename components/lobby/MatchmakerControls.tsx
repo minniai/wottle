@@ -286,7 +286,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
             {showInviteModal && (
               <div
                 ref={inviteModalRef}
-                className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-slate-950/60"
+                className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl shadow-slate-950/60"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={inviteTitleId}
@@ -321,7 +321,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
                 </header>
 
                 <div
-                  className="mt-3 max-h-60 space-y-2 overflow-y-auto"
+                  className="mt-4 max-h-60 space-y-3 overflow-y-auto"
                   data-testid="matchmaker-invite-modal"
                 >
                   {inviteTargets.length === 0 && (
@@ -335,7 +335,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
                   {inviteTargets.map((player) => (
                     <div
                       key={player.id}
-                      className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800 p-3 text-sm text-white/80"
+                      className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800 px-4 py-3 text-sm text-white/80"
                       data-testid="invite-option"
                       style={{ backgroundColor: "rgb(30 41 59)" }}
                     >
