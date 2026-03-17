@@ -335,6 +335,7 @@ function BoardGridActive({
           grid: currentGrid,
         });
       } finally {
+        setSwappingTiles(null);
         setIsSubmitting(false);
       }
     },
@@ -397,7 +398,6 @@ function BoardGridActive({
     const elAtTo = tileRefs.current.get(toKey);
 
     if (!elAtFrom || !elAtTo) {
-      setSwappingTiles(null);
       setIsAnimating(false);
       void handleSwap(from, to);
       return;
@@ -431,7 +431,8 @@ function BoardGridActive({
       elAtFrom.removeEventListener("transitionend", onEnd);
       elAtFrom.classList.remove("board-grid__cell--animating");
       elAtTo.classList.remove("board-grid__cell--animating");
-      setSwappingTiles(null);
+      // swappingTiles deliberately NOT cleared here — cleared in handleSwap's
+      // finally block so tiles stay orange (--selected) during the server roundtrip.
       setIsAnimating(false);
       void handleSwap(from, to);
     };
