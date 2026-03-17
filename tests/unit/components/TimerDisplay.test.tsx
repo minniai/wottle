@@ -127,7 +127,7 @@ describe("TimerDisplay", () => {
     expect(screen.queryByText("Move locked")).not.toBeInTheDocument();
   });
 
-  test("shows Expired text when timerSeconds is 0 and not paused", () => {
+  test("does not show Expired text (red 0:00 is sufficient)", () => {
     render(
       <TimerDisplay
         timerSeconds={0}
@@ -138,7 +138,8 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByText("Expired")).toBeInTheDocument();
+    expect(screen.queryByText("Expired")).not.toBeInTheDocument();
+    expect(screen.getByText("0:00")).toBeInTheDocument();
   });
 
   test("uses data-testid timer-display", () => {

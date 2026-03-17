@@ -62,12 +62,6 @@ export function TimerDisplay({
         }}
       >
         <span>{formatTime(timerSeconds)}</span>
-
-        {isExpired && (
-          <span className="ml-2 text-sm font-medium text-red-200">
-            Expired
-          </span>
-        )}
       </div>
     </div>
   );
