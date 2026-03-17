@@ -484,18 +484,41 @@ function BoardGridActive({
     [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles, onTileSelect, onInvalidMove]
   );
 
+  // Deselect on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selected) {
+        setSelected(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selected]);
+
+  // Deselect on right-click anywhere
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (selected) {
+        e.preventDefault();
+        setSelected(null);
+      }
+    },
+    [selected]
+  );
+
   const boardSize = useMemo(
     () => Math.max(colCount, rowCount, 1),
     [colCount, rowCount]
   );
 
   return (
-    <div 
+    <div
       className="board-grid__wrapper"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
+      onContextMenu={handleContextMenu}
       style={{ "--board-scale": boardScale } as React.CSSProperties}
     >
       <div
