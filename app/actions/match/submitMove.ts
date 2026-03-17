@@ -176,9 +176,11 @@ export async function submitMove(
     }
 
     // 5b. Broadcast state so clients see submitting player's timer paused
-    publishMatchState(matchId).catch((e) => {
+    try {
+        await publishMatchState(matchId);
+    } catch (e) {
         console.error("Failed to broadcast match state after submit:", e);
-    });
+    }
 
     // 6. Apply swap to current board for optimistic UI feedback
     // Note: The round's board_snapshot_before won't change until round resolves,
@@ -195,10 +197,14 @@ export async function submitMove(
         swappedBoard = currentBoard;
     }
 
-    // 7. Trigger round advancement check (async - don't block response)
-    advanceRound(matchId).catch((e) => {
+    // 7. Advance round if both players have submitted.
+    // Must be awaited — on Vercel serverless, fire-and-forget background work
+    // is CPU-throttled after the response is sent, causing ~5s delays.
+    try {
+        await advanceRound(matchId);
+    } catch (e) {
         console.error("Failed to advance round:", e);
-    });
+    }
 
     revalidatePath(`/match/${matchId}`);
     return {
