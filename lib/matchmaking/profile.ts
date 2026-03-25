@@ -36,7 +36,10 @@ const usernameSchema = z
   .trim()
   .min(3, "Username must be at least 3 characters long.")
   .max(24, "Username must be fewer than 25 characters.")
-  .regex(/^[A-Za-z0-9_-]+$/, "Use only letters, numbers, underscores, or hyphens.");
+  .regex(
+    /^[A-Za-zÁÐÉÍÓÚÝÞÆÖáðéíóúýþæö0-9_-]+$/,
+    "Use only letters (including Icelandic), numbers, underscores, or hyphens."
+  );
 
 const lobbyStatusSchema = z.enum(["available", "matchmaking", "in_match", "offline"]);
 
