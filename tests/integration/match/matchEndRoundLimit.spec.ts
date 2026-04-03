@@ -20,7 +20,7 @@ vi.mock("@/lib/observability/log", () => ({
 }));
 vi.mock("@/app/actions/match/publishRoundSummary", () => ({
   publishRoundSummary: vi.fn().mockResolvedValue({ ok: true }),
-  computeWordScoresForRound: vi.fn().mockResolvedValue([]),
+  computeWordScoresForRound: vi.fn().mockResolvedValue({ wordScores: [], finalBoard: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")) }),
 }));
 
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";

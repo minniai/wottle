@@ -99,6 +99,7 @@ function computeDeltas(
 function emptyRoundScoreResult(
   durationMs: number,
   frozenTiles: FrozenTileMap,
+  board: BoardGrid,
 ): RoundScoreResult {
   return {
     playerAWords: [],
@@ -107,6 +108,7 @@ function emptyRoundScoreResult(
     newFrozenTiles: frozenTiles,
     wasPartialFreeze: false,
     durationMs,
+    finalBoard: board,
   };
 }
 
@@ -256,7 +258,7 @@ export async function processRoundScoring(params: {
         tilesFrozen: 0,
       },
     });
-    return emptyRoundScoreResult(durationMs, params.frozenTiles);
+    return emptyRoundScoreResult(durationMs, params.frozenTiles, params.boardBefore);
   }
 
   const language = params.language ?? "is";
@@ -330,5 +332,6 @@ export async function processRoundScoring(params: {
     newFrozenTiles: currentFrozenTiles,
     wasPartialFreeze,
     durationMs,
+    finalBoard: currentBoard,
   };
 }

@@ -240,11 +240,13 @@ export async function advanceRound(matchId: string) {
     // This shrinks the window where both clocks appear "paused" (stateLoader sees
     // collecting + both submissions) to < 10ms. Also acts as a write-lock against
     // concurrent advanceRound() calls on the same round.
+    // Note: board_snapshot_after is set AFTER word scoring (step 9c) to reflect
+    // the word engine's final board state, which may differ from boardAfter if
+    // the word engine rejects swaps that touch tiles frozen earlier in the round.
     const { error: updateRoundError } = await supabase
         .from("rounds")
         .update({
             state: "resolving",
-            board_snapshot_after: boardAfter,
             resolution_started_at: new Date().toISOString(),
         })
         .eq("id", round.id);
@@ -252,8 +254,9 @@ export async function advanceRound(matchId: string) {
     if (updateRoundError) throw new Error("Failed to update round state");
 
     // 9b. Compute word scores from the board delta
+    let scoringFinalBoard = boardAfter;
     try {
-        await computeWordScoresForRound(
+        const scoringResult = await computeWordScoresForRound(
             matchId,
             round.id,
             currentRound,
@@ -263,8 +266,19 @@ export async function advanceRound(matchId: string) {
             (match as MatchRow).player_b_id,
             (match as MatchRow).frozen_tiles as Record<string, { owner: string }> ?? {},
         );
+        scoringFinalBoard = scoringResult.finalBoard;
     } catch (e) {
         console.error("[WordEngine] Failed to compute word scores:", e);
+    }
+
+    // 9c. Persist the word engine's authoritative board snapshot.
+    const { error: boardSnapshotError } = await supabase
+        .from("rounds")
+        .update({ board_snapshot_after: scoringFinalBoard })
+        .eq("id", round.id);
+
+    if (boardSnapshotError) {
+        console.error("[RoundEngine] Failed to persist board snapshot:", boardSnapshotError);
     }
 
     // 10. Update submission statuses (batched in parallel)

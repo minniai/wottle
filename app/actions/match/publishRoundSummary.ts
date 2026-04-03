@@ -242,6 +242,11 @@ async function persistFrozenTilesAtomically(
  * Wrapped with retry logic (FR-026): retries up to 3 times on failure.
  * On exhaustion, cancels the match and broadcasts error to both players.
  */
+export interface ScoringPipelineResult {
+    wordScores: WordScore[];
+    finalBoard: BoardGrid;
+}
+
 export async function computeWordScoresForRound(
     matchId: string,
     roundId: string,
@@ -251,7 +256,7 @@ export async function computeWordScoresForRound(
     playerAId: string,
     playerBId: string,
     frozenTiles: Record<string, { owner: string }> = {},
-): Promise<WordScore[]> {
+): Promise<ScoringPipelineResult> {
     try {
         return await withRetry(
             () => executeScoringPipeline(
@@ -331,7 +336,7 @@ export async function computeWordScoresForRound(
         );
     } catch (error) {
         // If retry exhaustion already cancelled the match, return empty scores
-        return [];
+        return { wordScores: [], finalBoard: boardBefore };
     }
 }
 
@@ -347,7 +352,7 @@ async function executeScoringPipeline(
     playerAId: string,
     playerBId: string,
     frozenTiles: Record<string, { owner: string }>,
-): Promise<WordScore[]> {
+): Promise<ScoringPipelineResult> {
     const supabase = getServiceRoleClient();
 
     const { processRoundScoring } = await import("@/lib/game-engine/wordEngine");
@@ -373,7 +378,7 @@ async function executeScoringPipeline(
     const allBreakdowns = [...result.playerAWords, ...result.playerBWords];
 
     if (allBreakdowns.length === 0) {
-        return [];
+        return { wordScores: [], finalBoard: result.finalBoard };
     }
 
     // Persist word scores to word_score_entries table
@@ -409,14 +414,17 @@ async function executeScoringPipeline(
     );
 
     // Convert to WordScore[] format for the round summary pipeline
-    return allBreakdowns.map((bd) => ({
-        playerId: bd.playerId,
-        word: bd.word,
-        length: bd.length,
-        lettersPoints: bd.lettersPoints,
-        bonusPoints: bd.lengthBonus,
-        totalPoints: bd.totalPoints,
-        coordinates: bd.tiles,
-    }));
+    return {
+        wordScores: allBreakdowns.map((bd) => ({
+            playerId: bd.playerId,
+            word: bd.word,
+            length: bd.length,
+            lettersPoints: bd.lettersPoints,
+            bonusPoints: bd.lengthBonus,
+            totalPoints: bd.totalPoints,
+            coordinates: bd.tiles,
+        })),
+        finalBoard: result.finalBoard,
+    };
 }
 

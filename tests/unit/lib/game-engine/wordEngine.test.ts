@@ -776,4 +776,117 @@ describe("wordEngine", () => {
       expect(playerBBur!.totalPoints).toBeGreaterThan(0);
     });
   });
+
+  describe("finalBoard reflects frozen-tile swap rejection (#101)", () => {
+    test("finalBoard does not include rejected swap targeting frozen tile", async () => {
+      const board = emptyBoard();
+      // Row 0: r-ú-b → Player A swaps (0,0)↔(2,0) → "búr"
+      board[0][0] = "r";
+      board[0][1] = "ú";
+      board[0][2] = "b";
+      // Player B wants to swap (1,0)↔(5,5), but (1,0) gets frozen by Player A
+      board[5][5] = "x";
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [
+          {
+            playerId: PLAYER_A,
+            fromX: 0,
+            fromY: 0,
+            toX: 2,
+            toY: 0,
+            submittedAt: "2026-01-01T00:00:00Z",
+          },
+          {
+            playerId: PLAYER_B,
+            fromX: 5,
+            fromY: 5,
+            toX: 1,
+            toY: 0,
+            submittedAt: "2026-01-01T00:00:01Z",
+          },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Player A scored "búr", tiles (0,0)-(2,0) frozen
+      expect(result.playerAWords.length).toBeGreaterThanOrEqual(1);
+      // Player B's swap was rejected (targets frozen tile)
+      expect(result.playerBWords).toHaveLength(0);
+
+      // finalBoard should reflect Player A's swap but NOT Player B's rejected swap
+      // After Player A's swap: (0,0)=b, (2,0)=r
+      expect(result.finalBoard[0][0]).toBe("b");
+      expect(result.finalBoard[0][1]).toBe("ú");
+      expect(result.finalBoard[0][2]).toBe("r");
+      // Player B's swap was rejected, so (1,0) stays "ú" and (5,5) stays "x"
+      expect(result.finalBoard[5][5]).toBe("x");
+    });
+
+    test("finalBoard matches boardBefore when no moves accepted", async () => {
+      const board = emptyBoard("a");
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      expect(result.finalBoard).toEqual(board);
+    });
+
+    test("finalBoard includes both swaps when neither is rejected", async () => {
+      const board = emptyBoard();
+      // Row 0: r-ú-b → Player A swaps (0,0)↔(2,0) → "búr"
+      board[0][0] = "r";
+      board[0][1] = "ú";
+      board[0][2] = "b";
+      // Row 5: r-ú-b → Player B swaps (0,5)↔(2,5) → "búr"
+      board[5][0] = "r";
+      board[5][1] = "ú";
+      board[5][2] = "b";
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [
+          {
+            playerId: PLAYER_A,
+            fromX: 0,
+            fromY: 0,
+            toX: 2,
+            toY: 0,
+            submittedAt: "2026-01-01T00:00:00Z",
+          },
+          {
+            playerId: PLAYER_B,
+            fromX: 0,
+            fromY: 5,
+            toX: 2,
+            toY: 5,
+            submittedAt: "2026-01-01T00:00:01Z",
+          },
+        ],
+        frozenTiles: EMPTY_FROZEN,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      // Both swaps applied: row 0 has b-ú-r, row 5 has b-ú-r
+      expect(result.finalBoard[0][0]).toBe("b");
+      expect(result.finalBoard[0][2]).toBe("r");
+      expect(result.finalBoard[5][0]).toBe("b");
+      expect(result.finalBoard[5][2]).toBe("r");
+    });
+  });
 });

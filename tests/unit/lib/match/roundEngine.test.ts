@@ -9,7 +9,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/app/actions/match/publishRoundSummary", () => ({
     publishRoundSummary: vi.fn().mockResolvedValue({ ok: true }),
-    computeWordScoresForRound: vi.fn().mockResolvedValue([]),
+    computeWordScoresForRound: vi.fn().mockResolvedValue({ wordScores: [], finalBoard: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")) }),
 }));
 
 vi.mock("@/app/actions/match/completeMatch", () => ({

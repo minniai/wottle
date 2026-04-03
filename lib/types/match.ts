@@ -1,4 +1,4 @@
-import type { Coordinate } from "./board";
+import type { BoardGrid, Coordinate } from "./board";
 
 // Re-export Coordinate for convenience
 export type { Coordinate };
@@ -350,4 +350,6 @@ export interface RoundScoreResult {
   wasPartialFreeze: boolean;
   /** Total pipeline duration in milliseconds */
   durationMs: number;
+  /** Final board state after all swaps processed by the word engine (accounts for frozen-tile rejections) */
+  finalBoard: BoardGrid;
 }
