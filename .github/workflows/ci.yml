@@ -13,7 +13,6 @@ env:
   HUSKY: 0
   CI: true
   PNPM_VERSION: 10.28.0
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   lint:
@@ -24,7 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node.js
@@ -47,7 +46,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node.js
@@ -69,7 +68,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node.js
@@ -96,7 +95,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node.js
@@ -129,13 +128,13 @@ jobs:
         # act does not parse multiline YAML path: blocks — prune here instead
         run: rm -rf .next/cache .next/trace
       - name: Upload Next.js build artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
           if-no-files-found: error
           retention-days: 1
-          # .next/ is a hidden directory (dot-prefix); upload-artifact@v4 skips
+          # .next/ is a hidden directory (dot-prefix); upload-artifact skips
           # hidden files by default — include-hidden-files: true is required.
           include-hidden-files: true
 
@@ -170,7 +169,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node.js
@@ -187,7 +186,7 @@ jobs:
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
       - name: Restore Supabase Docker image cache
         id: docker-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/supabase-docker-cache.tar
           key: supabase-docker-${{ runner.os }}-${{ steps.supabase-version.outputs.version }}
@@ -217,7 +216,7 @@ jobs:
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Upload quickstart log
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: quickstart-log
           path: quickstart-log.ndjson
@@ -268,7 +267,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node.js
@@ -285,7 +284,7 @@ jobs:
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
       - name: Restore Supabase Docker image cache
         id: docker-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/supabase-docker-cache.tar
           key: supabase-docker-${{ runner.os }}-${{ steps.supabase-version.outputs.version }}
@@ -295,7 +294,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
@@ -334,7 +333,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
@@ -585,7 +584,7 @@ jobs:
         run: supabase stop || true
       - name: Upload Playwright log
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: quickstart-playwright-${{ matrix.suite }}-log
           path: quickstart-playwright.ndjson
@@ -621,7 +620,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node.js
@@ -638,7 +637,7 @@ jobs:
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
       - name: Restore Supabase Docker image cache
         id: docker-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/supabase-docker-cache.tar
           key: supabase-docker-${{ runner.os }}-${{ steps.supabase-version.outputs.version }}
@@ -680,7 +679,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
@@ -885,7 +884,7 @@ jobs:
         run: supabase stop || true
       - name: Upload perf artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: perf-artifacts
           path: |
