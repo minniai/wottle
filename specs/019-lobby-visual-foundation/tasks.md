@@ -24,12 +24,12 @@
 
 **Purpose**: Brand tokens, typography, shared constants, and lobby-wide CSS scaffolding. Everything below depends on these.
 
-- [ ] T001 Register ç variable font via `next/font/google` (subsets `["latin", "latin-ext"]`, `display: "swap"`, `preload: true`) in `/Users/ari/git/wottle/app/layout.tsx`; expose CSS variable `--font-fraunces` on the `<html>` element.
-- [ ] T002 Extend `theme.extend` in `/Users/ari/git/wottle/tailwind.config.ts` with `brand.{50,100,200,...,950}`, `surface.{0,1,2,3}`, `text.{primary,secondary,muted,inverse}`, `accent.{focus,warning,success}` scales; add `fontFamily.display = ["var(--font-fraunces)", "serif"]`. Leave existing `player.*` and `board.*` scales untouched (FR-003).
-- [ ] T003 [P] Create `/Users/ari/git/wottle/app/styles/lobby.css` with an empty scaffold: imports section, layer for lobby keyframes (to be populated in later phases), and a terminating `@media (prefers-reduced-motion: reduce)` block that resets `animation`/`transition` to `none` on every class in the file. Import it from `/Users/ari/git/wottle/app/globals.css`.
-- [ ] T004 [P] Create `/Users/ari/git/wottle/lib/constants/lobby.ts` exporting `LOBBY_DIRECTORY_CAP = 24`, `LOBBY_STATS_POLL_MS = 10_000`, `HERO_WORD_CYCLE_MS = 5_000`, `HERO_WORD_FLIP_MS = 350`, `HERO_WORD_STAGGER_MS = 40`, `TOAST_DEFAULT_DISMISS_MS = 4_000`.
-- [ ] T005 [P] Create `/Users/ari/git/wottle/lib/ui/tokens.ts` exporting typed accessors for the brand palette (`brandHex`, `surfaceHex`, `textHex`, `accentHex`) that mirror the Tailwind scales. Consumers are components that need hex values for inline styles (generated avatars, canvas).
-- [ ] T006 [P] Add `LobbyMatchesStats` and `ModeSelection` types to `/Users/ari/git/wottle/lib/types/match.ts`. `LobbyMatchesStats = { matchesInProgress: number }`. `ModeSelection = "ranked" | "casual" | "challenge"`.
+- [X] T001 Register Fraunces variable font via `next/font/google` (subsets `["latin", "latin-ext"]`, `display: "swap"`, `preload: true`) in `/Users/ari/git/wottle/app/layout.tsx`; expose CSS variable `--font-fraunces` on the `<html>` element.
+- [X] T002 Extend `theme.extend` in `/Users/ari/git/wottle/tailwind.config.ts` with `brand.{50,100,200,...,950}`, `surface.{0,1,2,3}`, `text.{primary,secondary,muted,inverse}`, `accent.{focus,warning,success}` scales; add `fontFamily.display = ["var(--font-fraunces)", "serif"]`. Leave existing `player.*` and `board.*` scales untouched (FR-003).
+- [X] T003 [P] Create `/Users/ari/git/wottle/app/styles/lobby.css` with an empty scaffold: imports section, layer for lobby keyframes (to be populated in later phases), and a terminating `@media (prefers-reduced-motion: reduce)` block that resets `animation`/`transition` to `none` on every class in the file. Import it from `/Users/ari/git/wottle/app/globals.css`.
+- [X] T004 [P] Create `/Users/ari/git/wottle/lib/constants/lobby.ts` exporting `LOBBY_DIRECTORY_CAP = 24`, `LOBBY_STATS_POLL_MS = 10_000`, `HERO_WORD_CYCLE_MS = 5_000`, `HERO_WORD_FLIP_MS = 350`, `HERO_WORD_STAGGER_MS = 40`, `TOAST_DEFAULT_DISMISS_MS = 4_000`.
+- [X] T005 [P] Create `/Users/ari/git/wottle/lib/ui/tokens.ts` exporting typed accessors for the brand palette (`brandHex`, `surfaceHex`, `textHex`, `accentHex`) that mirror the Tailwind scales. Consumers are components that need hex values for inline styles (generated avatars, canvas).
+- [X] T006 [P] Add `LobbyMatchesStats` and `ModeSelection` types to `/Users/ari/git/wottle/lib/types/match.ts`. `LobbyMatchesStats = { matchesInProgress: number }`. `ModeSelection = "ranked" | "casual" | "challenge"`.
 
 **Checkpoint**: Tokens, fonts, CSS scaffold, and shared types exist. No primitive components yet.
 

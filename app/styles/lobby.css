@@ -1,0 +1,26 @@
+/* Lobby surface — keyframes and transitions for spec 019.
+ *
+ * Conventions mirror app/styles/board.css:
+ *   • GPU-accelerated properties only (transform, opacity)
+ *   • No layout-thrashing properties
+ *   • Terminating prefers-reduced-motion block resets every animation
+ *     / transition declared above this line.
+ *
+ * Later tasks populate this file:
+ *   T020   @keyframes skeleton-shimmer
+ *   T018a  @keyframes status-pulse
+ *   T037   @keyframes hero-tile-flip
+ *          @keyframes hero-tile-cascade-in
+ *   T059   mobile sticky-CTA rules
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-skeleton,
+  .lobby-status-dot--pulse,
+  .lobby-hero-tile,
+  .lobby-hero-cascade,
+  .lobby-cta-hover {
+    animation: none !important;
+    transition: none !important;
+  }
+}

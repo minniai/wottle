@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
+import { Fraunces } from "next/font/google";
 import "./globals.css";
 import "./styles/board.css";
+import "./styles/lobby.css";
 import { featureFlags, isPlaytestUiEnabled } from "@/lib/constants/featureFlags";
 import { GearMenu } from "@/components/ui/GearMenu";
+
+const fraunces = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+  preload: true,
+  variable: "--font-fraunces",
+  axes: ["opsz"],
+});
 
 export const metadata: Metadata = {
   title: "Wottle Board",
@@ -21,7 +31,7 @@ export default function RootLayout({
   ].filter(Boolean);
 
   return (
-    <html lang="en">
+    <html lang="en" className={fraunces.variable}>
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
         <main className="flex min-h-screen flex-col">
           <header className="relative border-b border-white/10 px-6 py-4">
