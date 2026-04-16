@@ -155,15 +155,15 @@
 
 ### Tests for User Story 4 (write first, ensure FAIL)
 
-- [ ] T050 [US4] Add `@axe-core/playwright` as a dev dependency in `/Users/ari/git/wottle/package.json` (pnpm add -D). Create `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` with a logged-out axe scan expecting zero serious/critical violations. The test fails initially because of any residual violations introduced by new primitives.
-- [ ] T051 [P] [US4] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add a "keyboard round-trip" test: tabs from the top of the page through hero → mode pills → Play Now → directory cards → footer, asserting every interactive element receives focus in source order and the focus ring is visible.
-- [ ] T052 [P] [US4] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add a "dialog focus trap" test: triggers Challenge → Dialog opens → Tab cycles within Dialog → Escape closes → focus returns to the triggering card.
+- [X] T050 [US4] Add `@axe-core/playwright` as a dev dependency in `/Users/ari/git/wottle/package.json` (pnpm add -D). Create `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` with a logged-out axe scan expecting zero serious/critical violations. The test fails initially because of any residual violations introduced by new primitives.
+- [X] T051 [P] [US4] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add a "keyboard round-trip" test: tabs from the top of the page through hero → mode pills → Play Now → directory cards → footer, asserting every interactive element receives focus in source order and the focus ring is visible.
+- [X] T052 [P] [US4] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add a "dialog focus trap" test: triggers Challenge → Dialog opens → Tab cycles within Dialog → Escape closes → focus returns to the triggering card.
 
 ### Implementation for User Story 4
 
-- [ ] T053 [US4] Address axe violations surfaced by T050 across primitives and lobby components (missing `aria-label`, contrast issues from token selection, form-label associations in reskin). Each fix points back to the specific component file; run T050 iteratively until zero serious/critical remain.
-- [ ] T054 [US4] Wire `useFocusTrap` into `InviteDialog` paths that were previously missing it and ensure `Dialog` returns focus to the trigger element on close (implemented in T012, verified here under real lobby wiring).
-- [ ] T055 [US4] Add `aria-live="polite"` announcement region to `PlayNowCard` for queue state changes and `aria-live="assertive"` to `InviteDialog` receive variant for invite arrival, without moving focus (FR-029).
+- [X] T053 [US4] Address axe violations surfaced by T050 across primitives and lobby components (missing `aria-label`, contrast issues from token selection, form-label associations in reskin). Each fix points back to the specific component file; run T050 iteratively until zero serious/critical remain.
+- [X] T054 [US4] Wire `useFocusTrap` into `InviteDialog` paths that were previously missing it and ensure `Dialog` returns focus to the trigger element on close (implemented in T012, verified here under real lobby wiring).
+- [X] T055 [US4] Add `aria-live="polite"` announcement region to `PlayNowCard` for queue state changes and `aria-live="assertive"` to `InviteDialog` receive variant for invite arrival, without moving focus (FR-029).
 
 **Checkpoint**: Axe clean on both views. Full flow keyboard-only. Announcements reach screen readers.
 
