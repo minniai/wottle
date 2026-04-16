@@ -203,12 +203,12 @@
 
 ### Tests for User Story 6 (write first, ensure FAIL)
 
-- [ ] T062 [P] [US6] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add a reduced-motion block that launches a context with `reducedMotion: "reduce"`, snapshots the hero word, waits 6 s, asserts the word is unchanged, and asserts `getComputedStyle` returns `animation-name: none` for hero tiles, status pulse dot, skeleton rows, and CTA hover target.
+- [X] T062 [P] [US6] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add a reduced-motion block that launches a context with `reducedMotion: "reduce"`, snapshots the hero word, waits 6 s, asserts the word is unchanged, and asserts `getComputedStyle` returns `animation-name: none` for hero tiles, status pulse dot, skeleton rows, and CTA hover target.
 
 ### Implementation for User Story 6
 
-- [ ] T063 [US6] Verify the `useSyncExternalStore`-backed `matchMedia` guard in `LobbyHero` (T036) actually skips the `setInterval` scheduling under reduced motion. Add a dedicated unit test case in `LobbyHero.spec.tsx` if not already covered by T035.
-- [ ] T064 [US6] Audit `/Users/ari/git/wottle/app/styles/lobby.css` terminating `@media (prefers-reduced-motion: reduce)` block: ensure every keyframe added across US1–US5 is explicitly reset (`animation: none`, `transition: none`) and that static-state visual differentiation remains (e.g., `available` dot still visibly different, even without pulse).
+- [X] T063 [US6] Verify the `useSyncExternalStore`-backed `matchMedia` guard in `LobbyHero` (T036) actually skips the `setInterval` scheduling under reduced motion. Add a dedicated unit test case in `LobbyHero.spec.tsx` if not already covered by T035.
+- [X] T064 [US6] Audit `/Users/ari/git/wottle/app/styles/lobby.css` terminating `@media (prefers-reduced-motion: reduce)` block: ensure every keyframe added across US1–US5 is explicitly reset (`animation: none`, `transition: none`) and that static-state visual differentiation remains (e.g., `available` dot still visibly different, even without pulse).
 
 **Checkpoint**: No ambient or cycling motion under reduced-motion. State changes remain observable.
 
