@@ -5,6 +5,7 @@ import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 
 import { loginAction, type LoginActionState } from "@/app/actions/auth/login";
+import { Button } from "@/components/ui/Button";
 
 interface LobbyLoginFormProps {
   initialUsername?: string;
@@ -19,22 +20,21 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
   useEffect(() => {
     if (state.status === "success") {
       router.refresh();
-      // Short delay to ensure refresh starts before any potential navigation (though we are already on /)
     }
   }, [state.status, router]);
 
   return (
     <form
-      className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/70 p-6 text-sm text-white/70 shadow-2xl shadow-slate-950/50"
+      className="space-y-4 text-sm text-text-secondary"
       action={formAction}
       data-testid="lobby-login-form"
     >
       <div>
         <label
           htmlFor="username"
-          className="text-xs font-semibold uppercase tracking-wide text-white/60"
+          className="text-xs font-semibold uppercase tracking-wide text-text-secondary"
         >
-          Playtest Username
+          Choose a username
         </label>
         <input
           id="username"
@@ -44,19 +44,24 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
           autoComplete="off"
           required
           defaultValue={initialUsername ?? ""}
-          placeholder="e.g. tester_alpha"
+          placeholder="e.g. ari_the_bold"
           maxLength={24}
-          className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          className="mt-2 w-full rounded-lg border border-surface-3 bg-surface-0 px-3 py-2 font-mono text-sm text-text-primary placeholder:text-text-muted focus:border-accent-focus focus:outline-none focus:ring-2 focus:ring-accent-focus/40"
           data-testid="lobby-username-input"
         />
-        <p className="mt-2 text-xs text-white/50">Letters, numbers, underscores, or hyphens only.</p>
+        <p className="mt-2 text-xs text-text-muted">
+          Letters, numbers, underscores, or hyphens only.
+        </p>
       </div>
 
-      {state.status === "error" && state.message && (
-        <div className="rounded-lg border border-rose-400/40 bg-rose-500/10 p-3 text-xs text-rose-100">
+      {state.status === "error" && state.message ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-player-b/40 bg-player-b/10 p-3 text-xs text-rose-100"
+        >
           {state.message}
         </div>
-      )}
+      ) : null}
 
       <SubmitButton />
     </form>
@@ -66,15 +71,14 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
+    <Button
       type="submit"
-      className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-emerald-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/30 transition disabled:cursor-not-allowed disabled:opacity-50"
+      size="lg"
+      className="w-full"
       disabled={pending}
       data-testid="lobby-login-submit"
     >
       {pending ? "Joining…" : "Enter Lobby"}
-    </button>
+    </Button>
   );
 }
-
-

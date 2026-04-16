@@ -108,15 +108,15 @@
 
 ### Tests for User Story 2 (write first, ensure FAIL)
 
-- [ ] T035 [P] [US2] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/lobby/LobbyHero.spec.tsx` covering: wordmark "WOTTLE" rendered with display font class; `ORÐUSTA` subtitle present and labelled as Icelandic counterpart; tile motif renders first word from `heroWords` set; advances to next word after `HERO_WORD_CYCLE_MS`; under simulated `prefers-reduced-motion: reduce` the word does not advance and no CSS animation classes are applied.
+- [X] T035 [P] [US2] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/lobby/LobbyHero.spec.tsx` covering: wordmark "WOTTLE" rendered with display font class; `ORÐUSTA` subtitle present and labelled as Icelandic counterpart; tile motif renders first word from `heroWords` set; advances to next word after `HERO_WORD_CYCLE_MS`; under simulated `prefers-reduced-motion: reduce` the word does not advance and no CSS animation classes are applied.
 
 ### Implementation for User Story 2
 
-- [ ] T036 [US2] Implement `/Users/ari/git/wottle/components/lobby/LobbyHero.tsx`: wordmark + ORÐUSTA subtitle + one-line tagline + tile motif composed of `<span>` glyphs with per-letter flip animation. Uses `useSyncExternalStore` over `window.matchMedia("(prefers-reduced-motion: reduce)")` to gate the `setInterval` that advances the word (research R4). Until T035 passes.
-- [ ] T037 [US2] Add hero keyframes to `/Users/ari/git/wottle/app/styles/lobby.css`: `@keyframes hero-tile-flip` (350 ms rotateX flip), `@keyframes hero-tile-cascade-in` (600 ms stagger on first mount). Ensure terminating reduced-motion block resets them to `none`.
-- [ ] T038 [US2] Update `/Users/ari/git/wottle/components/lobby/LobbyLoginForm.tsx` to consume the new `Button` primitive, `surface.*` and `text.*` tokens, and brand input styling. Remove competing-with-lobby framing; the form is now presentational within `PlayNowCard`'s CTA zone.
-- [ ] T039 [US2] Update `/Users/ari/git/wottle/app/(lobby)/page.tsx` to render `LobbyHero` above `LobbyStatsStrip` for both logged-out and logged-in branches. For logged-out: `PlayNowCard` renders the `LobbyLoginForm` in place of Play Now (per US1 wiring). Add `performance.mark("lobby:lcp-candidate")` on hero mount.
-- [ ] T040 [US2] Remove the "Phase 3 / Authenticate & Enter Lobby" header block and stale `lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]` two-column grid from `/Users/ari/git/wottle/app/(lobby)/page.tsx` (replaced by the new single-flow composition).
+- [X] T036 [US2] Implement `/Users/ari/git/wottle/components/lobby/LobbyHero.tsx`: wordmark + ORÐUSTA subtitle + one-line tagline + tile motif composed of `<span>` glyphs with per-letter flip animation. Uses `useSyncExternalStore` over `window.matchMedia("(prefers-reduced-motion: reduce)")` to gate the `setInterval` that advances the word (research R4). Until T035 passes.
+- [X] T037 [US2] Add hero keyframes to `/Users/ari/git/wottle/app/styles/lobby.css`: `@keyframes hero-tile-flip` (350 ms rotateX flip), `@keyframes hero-tile-cascade-in` (600 ms stagger on first mount). Ensure terminating reduced-motion block resets them to `none`.
+- [X] T038 [US2] Update `/Users/ari/git/wottle/components/lobby/LobbyLoginForm.tsx` to consume the new `Button` primitive, `surface.*` and `text.*` tokens, and brand input styling. Remove competing-with-lobby framing; the form is now presentational within `PlayNowCard`'s CTA zone.
+- [X] T039 [US2] Update `/Users/ari/git/wottle/app/(lobby)/page.tsx` to render `LobbyHero` above `LobbyStatsStrip` for both logged-out and logged-in branches. For logged-out: `PlayNowCard` renders the `LobbyLoginForm` in place of Play Now (per US1 wiring). Add `performance.mark("lobby:lcp-candidate")` on hero mount.
+- [X] T040 [US2] Remove the "Phase 3 / Authenticate & Enter Lobby" header block and stale `lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]` two-column grid from `/Users/ari/git/wottle/app/(lobby)/page.tsx` (replaced by the new single-flow composition).
 
 **Checkpoint**: Logged-out visitors see the branded hero with rotating Icelandic nouns and a one-step sign-in path. Logged-in flow (US1) continues to work.
 
