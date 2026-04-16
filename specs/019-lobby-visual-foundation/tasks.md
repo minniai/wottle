@@ -218,12 +218,12 @@
 
 **Purpose**: Performance gating, token migration cleanup, and observability.
 
-- [ ] T065 [P] Add `@lhci/cli` as dev dependency; create `/Users/ari/git/wottle/.lighthouserc.json` with assertions: `categories:performance >= 0.9`, `largest-contentful-paint < 2000`, `cumulative-layout-shift < 0.05`. Target URL `http://localhost:3000/`.
+- [X] T065 [P] Add `@lhci/cli` as dev dependency; create `/Users/ari/git/wottle/.lighthouserc.json` with assertions: `categories:performance >= 0.9`, `largest-contentful-paint < 2000`, `cumulative-layout-shift < 0.05`. Target URL `http://localhost:3000/`.
 - [ ] T066 Add a Lighthouse CI job to `/Users/ari/git/wottle/.github/workflows/ci.yml` that boots the dev server, runs `lhci autorun`, and gates merge on assertion pass.
-- [ ] T067 [P] Sweep migrated lobby components (`LobbyCard`, `LobbyList`, `LobbyLoginForm`, `app/(lobby)/page.tsx`) for leftover ad-hoc Tailwind literals like `white/10`, `slate-900/40`, `bg-slate-900/60`; replace with semantic `surface.*` / `text.*` / `accent.*` tokens. Reference `/Users/ari/git/wottle/lib/ui/tokens.ts` if inline style is required.
-- [ ] T068 [P] Confirm all performance marks fire once in Chrome DevTools: `lobby:lcp-candidate` (at hero mount) and `lobby:first-interaction` (at first focus inside `PlayNowCard`). Add a dev-only assertion in `/Users/ari/git/wottle/lib/observability/marks.ts` if not already present to prevent regression.
-- [ ] T069 [P] Update `/Users/ari/git/wottle/CLAUDE.md` "Current State" and "Completed Specs" sections to reflect 019 completion once merged; add an "In Progress" entry during implementation.
-- [ ] T070 Run the full regression suite per `/Users/ari/git/wottle/specs/019-lobby-visual-foundation/quickstart.md` §3 and §6: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm exec playwright test`. All green before review.
+- [X] T067 [P] Sweep migrated lobby components (`LobbyCard`, `LobbyList`, `LobbyLoginForm`, `app/(lobby)/page.tsx`) for leftover ad-hoc Tailwind literals like `white/10`, `slate-900/40`, `bg-slate-900/60`; replace with semantic `surface.*` / `text.*` / `accent.*` tokens. Reference `/Users/ari/git/wottle/lib/ui/tokens.ts` if inline style is required.
+- [X] T068 [P] Confirm all performance marks fire once in Chrome DevTools: `lobby:lcp-candidate` (at hero mount) and `lobby:first-interaction` (at first focus inside `PlayNowCard`). Add a dev-only assertion in `/Users/ari/git/wottle/lib/observability/marks.ts` if not already present to prevent regression.
+- [X] T069 [P] Update `/Users/ari/git/wottle/CLAUDE.md` "Current State" and "Completed Specs" sections to reflect 019 completion once merged; add an "In Progress" entry during implementation.
+- [X] T070 Run the full regression suite per `/Users/ari/git/wottle/specs/019-lobby-visual-foundation/quickstart.md` §3 and §6: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm exec playwright test`. All green before review.
 
 ---
 

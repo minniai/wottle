@@ -90,6 +90,9 @@ Before implementing any feature:
 
 **In Progress Spec**: `specs/004-board-ui-animations/` (0/41 tasks complete — board UI animations, scored tile highlights, CSS transforms)
 
+**Recently Shipped** (branch `019-lobby-visual-foundation`, pending merge):
+- `specs/019-lobby-visual-foundation/` — Warm Editorial lobby redesign: Fraunces + Inter via `next/font`, brand/surface/text/accent Tailwind tokens, `components/ui/` primitives layer (Button, Card, Dialog, Avatar, Badge, Skeleton, Toast + ToastProvider), hero with rotating Icelandic nouns anchored by ORÐUSTA, live stats strip + polling matches count, Play Now CTA with Ranked/Casual/Challenge mode pills, directory with generated gradient-initials avatars and per-card Challenge action, Dialog-based invite flow (send + receive variants, bottom-sheet on mobile), 24-card soft cap with "Show all", skeleton + empty states, `prefers-reduced-motion` respected across all keyframes. MatchmakerControls superseded by PlayNowCard + InviteDialog + LobbyStatsStrip.
+
 ## Architecture
 
 ### Directory Structure
