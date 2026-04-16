@@ -5,19 +5,112 @@
  *   • No layout-thrashing properties
  *   • Terminating prefers-reduced-motion block resets every animation
  *     / transition declared above this line.
- *
- * Later tasks populate this file:
- *   T020   @keyframes skeleton-shimmer
- *   T018a  @keyframes status-pulse
- *   T037   @keyframes hero-tile-flip
- *          @keyframes hero-tile-cascade-in
- *   T059   mobile sticky-CTA rules
  */
 
+/* ---- Skeleton shimmer (T020) ---- */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.lobby-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(
+    90deg,
+    rgba(28, 38, 64, 0.4) 0%,
+    rgba(37, 49, 86, 0.75) 50%,
+    rgba(28, 38, 64, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+/* ---- Status pulse (T018a) ---- */
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.lobby-status-dot--pulse {
+  animation: status-pulse 1.6s ease-in-out infinite;
+}
+
+/* ---- Hero word cycle (T037) ---- */
+@keyframes hero-tile-flip {
+  0% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes hero-tile-cascade-in {
+  0% {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.lobby-hero-tile {
+  display: inline-block;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+.lobby-hero-tile--flipping {
+  animation: hero-tile-flip 350ms ease-in-out;
+}
+
+.lobby-hero-cascade {
+  animation: hero-tile-cascade-in 600ms ease-out both;
+}
+
+/* ---- CTA hover lift (FR-025) ---- */
+.lobby-cta-hover {
+  transition: transform 150ms ease-out;
+}
+
+.lobby-cta-hover:hover {
+  transform: translateY(-1px);
+}
+
+/* ---- Mobile sticky CTA (T059) ---- */
+@media (max-width: 639px) {
+  .lobby-playnow-sticky {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 10;
+  }
+}
+
+/* ---- Reduced-motion suppression (FR-026) ---- */
 @media (prefers-reduced-motion: reduce) {
   .lobby-skeleton,
   .lobby-status-dot--pulse,
   .lobby-hero-tile,
+  .lobby-hero-tile--flipping,
   .lobby-hero-cascade,
   .lobby-cta-hover {
     animation: none !important;

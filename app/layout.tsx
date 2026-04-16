@@ -5,6 +5,7 @@ import "./styles/board.css";
 import "./styles/lobby.css";
 import { featureFlags, isPlaytestUiEnabled } from "@/lib/constants/featureFlags";
 import { GearMenu } from "@/components/ui/GearMenu";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 const fraunces = Fraunces({
   subsets: ["latin", "latin-ext"],
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={fraunces.variable}>
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+        <ToastProvider>
         <main className="flex min-h-screen flex-col">
           <header className="relative border-b border-white/10 px-6 py-4">
             <div className="flex items-start justify-between">
@@ -57,6 +59,7 @@ export default function RootLayout({
 
           <div className="flex flex-1 flex-col px-6 py-8">{children}</div>
         </main>
+        </ToastProvider>
       </body>
     </html>
   );

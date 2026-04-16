@@ -43,35 +43,35 @@
 
 ### UI Primitives (TDD — test first, then impl)
 
-- [ ] T007 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Button.spec.tsx` asserting variants (`primary|secondary|ghost|danger`), sizes (`sm|md|lg`), `disabled` attribute, focus ring class, and forwarded `ref`.
-- [ ] T008 Implement `/Users/ari/git/wottle/components/ui/Button.tsx` until T007 passes. Use `React.forwardRef`, object props, Tailwind brand/accent tokens from T002.
-- [ ] T009 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Card.spec.tsx` asserting elevation variants (`0|1|2|3`), interactive variant (focus ring + hover transform), children rendering.
-- [ ] T010 Implement `/Users/ari/git/wottle/components/ui/Card.tsx` until T009 passes.
-- [ ] T011 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Dialog.spec.tsx` asserting `role="dialog"`, `aria-modal="true"`, required `aria-labelledby`, portal target, focus-trap cycling, Escape closes, backdrop click closes, focus returns to trigger on close.
-- [ ] T012 Implement `/Users/ari/git/wottle/components/ui/Dialog.tsx` composing `lib/a11y/useFocusTrap.ts`, rendered via `createPortal` to `document.body`, until T011 passes.
-- [ ] T013 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Avatar.spec.tsx` asserting asset-URL variant, generated-fallback variant (renders initials + gradient background), size variants (`sm|md|lg`), correct `aria-label` derived from `displayName`.
-- [ ] T014 Implement `/Users/ari/git/wottle/components/ui/Avatar.tsx` until T013 passes. Must consume `generateAvatar()` from T016 (adjust ordering if needed).
-- [ ] T015 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/lib/ui/avatarGradient.spec.ts` asserting determinism for the same `playerId`, 1–2-grapheme initials including Icelandic diacritics (`Ö`, `Þ`, combining characters), foreground contrast ≥4.5:1 against gradient midpoint.
-- [ ] T016 Implement `/Users/ari/git/wottle/lib/ui/avatarGradient.ts` (FNV-1a hash → HSL hue pair → gradient; `Intl.Segmenter` for initials; contrast-checked foreground) until T015 passes.
-- [ ] T017 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Badge.spec.tsx` asserting status variants (`available|matchmaking|in_match|offline|info|warning`), correct surface + accent token pairs, text content rendering.
-- [ ] T018 Implement `/Users/ari/git/wottle/components/ui/Badge.tsx` until T017 passes.
-- [ ] T018a [P] Extend T017's Badge spec and T018's implementation to support a `pulse?: boolean` prop (FR-025). When `pulse` is true, Badge applies a `lobby-status-dot--pulse` class that attaches the pulse animation to an inner dot element. Add `@keyframes status-pulse` (1.6 s `opacity: 1 → 0.6 → 1`, GPU-composited via `opacity` only) to `/Users/ari/git/wottle/app/styles/lobby.css`. Assert via spec that `animation-name` resolves to `status-pulse` when `pulse` is true and to `none` when absent or under `prefers-reduced-motion: reduce`. `LobbyCard` (T044) will enable `pulse` for `available` status.
-- [ ] T019 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Skeleton.spec.tsx` asserting rect and circle variants, `aria-hidden="true"`, shimmer class present, reduced-motion class fallback.
-- [ ] T020 Implement `/Users/ari/git/wottle/components/ui/Skeleton.tsx` until T019 passes; add `@keyframes skeleton-shimmer` to `/Users/ari/git/wottle/app/styles/lobby.css`.
-- [ ] T021 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Toast.spec.tsx` asserting `role="status"` (success/info) or `role="alert"` (error), no focus move on mount, auto-dismiss after `autoDismissMs`, manual dismiss button present.
-- [ ] T022 Implement `/Users/ari/git/wottle/components/ui/Toast.tsx` and `/Users/ari/git/wottle/components/ui/ToastProvider.tsx` (global context + queue) until T021 passes. Mount `ToastProvider` in `/Users/ari/git/wottle/app/layout.tsx`.
+- [X] T007 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Button.spec.tsx` asserting variants (`primary|secondary|ghost|danger`), sizes (`sm|md|lg`), `disabled` attribute, focus ring class, and forwarded `ref`.
+- [X] T008 Implement `/Users/ari/git/wottle/components/ui/Button.tsx` until T007 passes. Use `React.forwardRef`, object props, Tailwind brand/accent tokens from T002.
+- [X] T009 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Card.spec.tsx` asserting elevation variants (`0|1|2|3`), interactive variant (focus ring + hover transform), children rendering.
+- [X] T010 Implement `/Users/ari/git/wottle/components/ui/Card.tsx` until T009 passes.
+- [X] T011 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Dialog.spec.tsx` asserting `role="dialog"`, `aria-modal="true"`, required `aria-labelledby`, portal target, focus-trap cycling, Escape closes, backdrop click closes, focus returns to trigger on close.
+- [X] T012 Implement `/Users/ari/git/wottle/components/ui/Dialog.tsx` composing `lib/a11y/useFocusTrap.ts`, rendered via `createPortal` to `document.body`, until T011 passes.
+- [X] T013 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Avatar.spec.tsx` asserting asset-URL variant, generated-fallback variant (renders initials + gradient background), size variants (`sm|md|lg`), correct `aria-label` derived from `displayName`.
+- [X] T014 Implement `/Users/ari/git/wottle/components/ui/Avatar.tsx` until T013 passes. Must consume `generateAvatar()` from T016 (adjust ordering if needed).
+- [X] T015 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/lib/ui/avatarGradient.spec.ts` asserting determinism for the same `playerId`, 1–2-grapheme initials including Icelandic diacritics (`Ö`, `Þ`, combining characters), foreground contrast ≥4.5:1 against gradient midpoint.
+- [X] T016 Implement `/Users/ari/git/wottle/lib/ui/avatarGradient.ts` (FNV-1a hash → HSL hue pair → gradient; `Intl.Segmenter` for initials; contrast-checked foreground) until T015 passes.
+- [X] T017 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Badge.spec.tsx` asserting status variants (`available|matchmaking|in_match|offline|info|warning`), correct surface + accent token pairs, text content rendering.
+- [X] T018 Implement `/Users/ari/git/wottle/components/ui/Badge.tsx` until T017 passes.
+- [X] T018a [P] Extend T017's Badge spec and T018's implementation to support a `pulse?: boolean` prop (FR-025). When `pulse` is true, Badge applies a `lobby-status-dot--pulse` class that attaches the pulse animation to an inner dot element. Add `@keyframes status-pulse` (1.6 s `opacity: 1 → 0.6 → 1`, GPU-composited via `opacity` only) to `/Users/ari/git/wottle/app/styles/lobby.css`. Assert via spec that `animation-name` resolves to `status-pulse` when `pulse` is true and to `none` when absent or under `prefers-reduced-motion: reduce`. `LobbyCard` (T044) will enable `pulse` for `available` status.
+- [X] T019 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Skeleton.spec.tsx` asserting rect and circle variants, `aria-hidden="true"`, shimmer class present, reduced-motion class fallback.
+- [X] T020 Implement `/Users/ari/git/wottle/components/ui/Skeleton.tsx` until T019 passes; add `@keyframes skeleton-shimmer` to `/Users/ari/git/wottle/app/styles/lobby.css`.
+- [X] T021 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/components/ui/Toast.spec.tsx` asserting `role="status"` (success/info) or `role="alert"` (error), no focus move on mount, auto-dismiss after `autoDismissMs`, manual dismiss button present.
+- [X] T022 Implement `/Users/ari/git/wottle/components/ui/Toast.tsx` and `/Users/ari/git/wottle/components/ui/ToastProvider.tsx` (global context + queue) until T021 passes. Mount `ToastProvider` in `/Users/ari/git/wottle/app/layout.tsx`.
 
 ### Pure Helpers (TDD)
 
-- [ ] T023 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/lib/lobby/directoryOrdering.spec.ts` asserting: self always in `visible`; `available` ranks above other statuses; closer `|rating - viewerRating|` ranks higher; most-recently-seen wins ties; `visible.length ≤ cap`; empty input handled; single-player input returns `[self]`.
-- [ ] T024 Implement `/Users/ari/git/wottle/lib/lobby/directoryOrdering.ts` until T023 passes.
-- [ ] T025 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/lib/lobby/heroWords.spec.ts` asserting set includes `ORÐUSTA`, ≥3 additional Icelandic nouns feature at least one of Þ/Æ/Ð/Ö, each word has 4–8 letters, each word's `letters` field survives Icelandic grapheme boundaries.
-- [ ] T026 Implement `/Users/ari/git/wottle/lib/lobby/heroWords.ts` (curated typed tuple per research R6) until T025 passes.
+- [X] T023 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/lib/lobby/directoryOrdering.spec.ts` asserting: self always in `visible`; `available` ranks above other statuses; closer `|rating - viewerRating|` ranks higher; most-recently-seen wins ties; `visible.length ≤ cap`; empty input handled; single-player input returns `[self]`.
+- [X] T024 Implement `/Users/ari/git/wottle/lib/lobby/directoryOrdering.ts` until T023 passes.
+- [X] T025 [P] Write failing Vitest spec at `/Users/ari/git/wottle/tests/unit/lib/lobby/heroWords.spec.ts` asserting set includes `ORÐUSTA`, ≥3 additional Icelandic nouns feature at least one of Þ/Æ/Ð/Ö, each word has 4–8 letters, each word's `letters` field survives Icelandic grapheme boundaries.
+- [X] T026 Implement `/Users/ari/git/wottle/lib/lobby/heroWords.ts` (curated typed tuple per research R6) until T025 passes.
 
 ### Matches-in-Progress Endpoint
 
-- [ ] T027 Write failing integration test at `/Users/ari/git/wottle/tests/integration/api/lobby-stats.spec.ts` asserting `GET /api/lobby/stats/matches-in-progress` returns `{ matchesInProgress: number }`, count is non-negative, respects rate limit on `lobby:stats` scope.
-- [ ] T028 Implement `/Users/ari/git/wottle/app/api/lobby/stats/matches-in-progress/route.ts` (Supabase `select("id", { count: "exact", head: true })` where `status = 'active'`), wire rate limiter, until T027 passes.
+- [X] T027 Write failing integration test at `/Users/ari/git/wottle/tests/integration/api/lobby-stats.spec.ts` asserting `GET /api/lobby/stats/matches-in-progress` returns `{ matchesInProgress: number }`, count is non-negative, respects rate limit on `lobby:stats` scope.
+- [X] T028 Implement `/Users/ari/git/wottle/app/api/lobby/stats/matches-in-progress/route.ts` (Supabase `select("id", { count: "exact", head: true })` where `status = 'active'`), wire rate limiter, until T027 passes.
 
 **Checkpoint**: Primitives library, pure helpers, stats endpoint all green. All user stories can begin in parallel from here.
 
