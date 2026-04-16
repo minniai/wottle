@@ -5,7 +5,6 @@ import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 
 import { loginAction, type LoginActionState } from "@/app/actions/auth/login";
-import { Button } from "@/components/ui/Button";
 
 interface LobbyLoginFormProps {
   initialUsername?: string;
@@ -71,14 +70,13 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button
+    <button
       type="submit"
-      size="lg"
-      className="w-full"
       disabled={pending}
       data-testid="lobby-login-submit"
+      className="lobby-primary-cta inline-flex min-h-[52px] w-full items-center justify-center rounded-xl px-6 py-3 font-display text-base font-semibold tracking-wide focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-focus"
     >
       {pending ? "Joining…" : "Enter Lobby"}
-    </Button>
+    </button>
   );
 }

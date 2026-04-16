@@ -57,7 +57,7 @@ export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(
 
     return (
       <Card
-        elevation={1}
+        elevation={0}
         data-testid="lobby-card"
         data-player-id={player.id}
         data-player-username={player.username}
@@ -68,7 +68,7 @@ export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(
           ariaLabel ??
           `${player.displayName ?? player.username}, ${statusLabel}`
         }
-        className={`space-y-3 ${isSelf ? "ring-2 ring-accent-focus/60" : ""}`}
+        className={`lobby-player-card space-y-3 ${isSelf ? "ring-2 ring-accent-focus/60" : ""}`}
         ref={ref}
       >
         <div className="flex items-start gap-3">

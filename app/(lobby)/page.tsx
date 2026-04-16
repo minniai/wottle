@@ -11,26 +11,36 @@ export default async function LobbyPage() {
   const initialPlayers = session ? await fetchLobbySnapshot() : [];
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 overflow-x-hidden p-6 text-text-primary">
+    <main className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-5 pb-24 pt-6 sm:gap-12 sm:px-8 sm:pb-16 sm:pt-10">
       <LobbyHero />
 
       {session ? (
         <>
           <LobbyStatsStrip />
           <PlayNowCard currentPlayer={session.player} />
-          <LobbyList
-            currentPlayer={session.player}
-            initialPlayers={initialPlayers}
-          />
+          <section className="space-y-4">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-display text-2xl font-semibold text-text-primary">
+                Players online
+              </h2>
+              <p className="text-xs uppercase tracking-[0.3em] text-text-muted">
+                Live lobby
+              </p>
+            </div>
+            <LobbyList
+              currentPlayer={session.player}
+              initialPlayers={initialPlayers}
+            />
+          </section>
         </>
       ) : (
-        <Card elevation={1} className="space-y-4">
+        <Card elevation={0} className="lobby-cta-card space-y-5 p-6 sm:p-8">
           <div>
-            <p className="font-display text-xl font-semibold text-text-primary">
-              Play Now
+            <p className="font-display text-2xl font-semibold text-text-primary sm:text-3xl">
+              Enter the lobby
             </p>
             <p className="text-sm text-text-secondary">
-              Pick a username to enter the lobby and challenge other players.
+              Pick a username to appear to other players and start challenging.
             </p>
           </div>
           <LobbyLoginForm />

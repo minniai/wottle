@@ -128,14 +128,19 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
   };
 
   return (
-    <Card elevation={1} className="space-y-4">
-      <div>
-        <p className="font-display text-xl font-semibold text-text-primary">
-          Play Now
-        </p>
-        <p className="text-sm text-text-secondary">
-          Drop into a ranked match against someone near your rating.
-        </p>
+    <Card elevation={0} className="lobby-cta-card space-y-5 p-6 sm:p-8">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-display text-2xl font-semibold text-text-primary sm:text-3xl">
+            Ready to play?
+          </p>
+          <p className="text-sm text-text-secondary">
+            Drop into a ranked match against someone near your rating.
+          </p>
+        </div>
+        <span className="hidden font-display text-xs uppercase tracking-[0.3em] text-accent-focus/70 sm:inline">
+          {currentPlayer.eloRating ?? 1200} Elo
+        </span>
       </div>
 
       <div
@@ -201,8 +206,8 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
           </Button>
         </div>
       ) : (
-        <Button
-          size="lg"
+        <button
+          type="button"
           onClick={handlePlay}
           onFocus={markFirstInteraction}
           disabled={inMatch || pending}
@@ -210,14 +215,24 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
           aria-label={
             inMatch ? "You are already in a match" : "Play Now"
           }
-          className="lobby-cta-hover w-full"
+          className="lobby-primary-cta inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-6 py-4 font-display text-lg font-semibold tracking-wide focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-focus sm:text-xl"
         >
-          {inMatch
-            ? "Already in a match"
-            : pending
-              ? "Joining…"
-              : `Play Now · ${mode === "ranked" ? "Ranked" : mode}`}
-        </Button>
+          {inMatch ? (
+            "Already in a match"
+          ) : pending ? (
+            "Joining…"
+          ) : (
+            <>
+              Play Now
+              <span aria-hidden="true" className="text-base opacity-70">
+                ·
+              </span>
+              <span className="text-sm font-normal opacity-80">
+                {mode === "ranked" ? "Ranked" : mode}
+              </span>
+            </>
+          )}
+        </button>
       )}
     </Card>
   );

@@ -57,28 +57,38 @@ export function LobbyStatsStrip() {
 
   return (
     <div
-      className="flex flex-wrap items-center gap-3 text-sm text-text-secondary"
+      className="flex flex-wrap items-center gap-x-6 gap-y-3 font-display text-sm text-text-secondary"
       aria-label="Lobby statistics"
     >
-      <span data-testid="lobby-stats-online">
-        <strong className="text-text-primary">{onlineCount}</strong>{" "}
-        {onlineCount === 1 ? "player online" : "players online"}
+      <span
+        data-testid="lobby-stats-online"
+        className="flex items-baseline gap-2"
+      >
+        <strong className="text-3xl font-semibold text-text-primary">
+          {onlineCount}
+        </strong>
+        <span className="text-xs uppercase tracking-[0.25em] text-text-muted">
+          {onlineCount === 1 ? "player online" : "players online"}
+        </span>
       </span>
-      <span aria-hidden="true" className="text-text-muted">
-        ·
-      </span>
-      <span data-testid="lobby-stats-matches">
-        <strong className="text-text-primary">
+      <span
+        aria-hidden="true"
+        className="h-6 w-px bg-text-muted/25"
+      />
+      <span
+        data-testid="lobby-stats-matches"
+        className="flex items-baseline gap-2"
+      >
+        <strong className="text-3xl font-semibold text-text-primary">
           {matchesInProgress === null ? "—" : matchesInProgress}
-        </strong>{" "}
-        in match
+        </strong>
+        <span className="text-xs uppercase tracking-[0.25em] text-text-muted">
+          in match
+        </span>
       </span>
-      <span aria-hidden="true" className="text-text-muted">
-        ·
-      </span>
-      <span data-testid="lobby-connection-mode">
+      <span className="ml-auto" data-testid="lobby-connection-mode">
         <Badge variant={connectionMode === "realtime" ? "info" : "warning"}>
-          {connectionMode === "realtime" ? "Realtime" : "Polling"}
+          {connectionMode === "realtime" ? "Live" : "Polling"}
         </Badge>
       </span>
     </div>

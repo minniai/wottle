@@ -54,27 +54,28 @@ export function LobbyHero() {
   const currentWord = HERO_WORDS[wordIndex] ?? HERO_WORDS[0]!;
 
   return (
-    <header className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="font-display text-4xl font-bold text-text-primary sm:text-5xl">
+    <header className="lobby-hero-halo relative space-y-6 pt-10 sm:pt-16">
+      <div className="space-y-3">
+        <p className="font-display text-xs uppercase tracking-[0.4em] text-accent-focus/80">
+          ORÐUSTA
+        </p>
+        <h1 className="font-display text-6xl font-bold leading-none tracking-tight text-text-primary sm:text-7xl md:text-8xl">
           Wottle
         </h1>
-        <p className="text-sm text-text-secondary">
-          <span className="font-display text-base text-accent-focus">
-            ORÐUSTA
-          </span>{" "}
-          — the Icelandic word duel. Swap tiles, find words, race the clock.
+        <p className="max-w-xl text-base text-text-secondary sm:text-lg">
+          The Icelandic word duel. Swap two tiles, build words your opponent
+          can&apos;t take back, and outrun the chess clock.
         </p>
       </div>
       <div
         data-testid="lobby-hero-motif"
         aria-hidden="true"
-        className="flex flex-wrap gap-1.5"
+        className="flex flex-wrap gap-2 sm:gap-3"
       >
         {currentWord.letters.map((letter, i) => (
           <span
             key={`${wordIndex}-${i}`}
-            className={`lobby-hero-tile lobby-hero-cascade inline-flex h-10 w-10 items-center justify-center rounded-md bg-surface-2 font-display text-lg font-semibold text-text-primary sm:h-12 sm:w-12 sm:text-xl ${
+            className={`lobby-hero-tile lobby-hero-cascade inline-flex h-12 w-12 items-center justify-center rounded-lg font-display text-2xl font-bold text-text-primary sm:h-14 sm:w-14 sm:text-3xl md:h-16 md:w-16 md:text-4xl ${
               prefersReducedMotion ? "" : "lobby-hero-tile--flipping"
             }`}
             style={

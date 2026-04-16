@@ -87,14 +87,14 @@ describe("LobbyStatsStrip", () => {
     );
   });
 
-  test("shows Realtime connection chip when store reports realtime mode", () => {
+  test("shows Live connection chip when store reports realtime mode", () => {
     mockStoreState.connectionMode = "realtime";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ matchesInProgress: 0 })),
     );
     render(<LobbyStatsStrip />);
     expect(screen.getByTestId("lobby-connection-mode").textContent).toMatch(
-      /realtime/i,
+      /live/i,
     );
   });
 
