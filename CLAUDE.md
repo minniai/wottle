@@ -506,6 +506,8 @@ Key files:
 - Supabase PostgreSQL — new `rematch_requests` table, `matches.rematch_of` column (016-rematch-post-game-loop)
 - Supabase PostgreSQL — existing `players` table (modified), new `match_ratings` table (017-elo-rating-player-stats)
 - Supabase PostgreSQL — reads existing `players` table (no new tables/columns) (018-match-hud-layout)
+- TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x (theme extension), `next/font/google` (Fraunces variable + existing Inter), existing `zustand` presence store, existing `lib/a11y/useFocusTrap.ts` and `lib/a11y/rovingFocus.ts`. No Radix/shadcn/Framer Motion added. (019-lobby-visual-foundation)
+- None new. Reads existing `players`, `lobby_presence`, `matches` via already-wired Server Actions and API routes. (019-lobby-visual-foundation)
 
 - TypeScript 5.x, React 19+, Next.js 16 (App Router)
 - Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)
