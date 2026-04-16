@@ -12,7 +12,6 @@ import {
 import { useRouter } from "next/navigation";
 
 import { sendInviteAction, respondInviteAction } from "@/app/actions/matchmaking/sendInvite";
-import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import type { PlayerIdentity } from "@/lib/types/match";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
@@ -41,11 +40,9 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
   const players = useLobbyPresenceStore((state) => state.players);
   const presenceStatus = useLobbyPresenceStore((state) => state.status);
   const updateSelfStatus = useLobbyPresenceStore((state) => state.updateSelfStatus);
-  const [isQueueing, startQueue] = useTransition();
   const [isInviting, startInvite] = useTransition();
   const [isResponding, startRespond] = useTransition();
 
-  const [queueStatus, setQueueStatus] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [incomingInvite, setIncomingInvite] = useState<PendingInvite | null>(null);
@@ -86,7 +83,6 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
       }
       setActiveMatchId(matchId);
       updateSelfStatus("in_match");
-      setQueueStatus(null);
       setIncomingInvite(null);
       setShowInviteModal(false);
       setToast({ tone: "success", message: "Match found. Loading…" });
@@ -105,18 +101,6 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
 
     async function pollMatchmakingState() {
       try {
-        // If we are currently in the queue, retry matchmaking
-        if (queueStatus) {
-          const queueResult = await startQueueAction();
-          if (cancelled) return;
-          
-          if (queueResult.status === "matched" && queueResult.matchId) {
-            handleMatchReady(queueResult.matchId);
-            return;
-          }
-          // If still queued or error, we continue polling other state
-        }
-
         const [inviteResponse, matchResponse] = await Promise.all([
           fetch("/api/lobby/invite", { cache: "no-store" }),
           fetch("/api/match/active", { cache: "no-store" }),
@@ -154,7 +138,7 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [handleMatchReady, queueStatus]);
+  }, [handleMatchReady]);
 
   useEffect(() => {
     if (!toast) {
@@ -163,36 +147,6 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
     const timer = setTimeout(() => setToast(null), 4_000);
     return () => clearTimeout(timer);
   }, [toast]);
-
-  const handleStartQueue = () => {
-    startQueue(async () => {
-      setQueueStatus("looking for an opponent…");
-      const result = await startQueueAction();
-      if (result.status === "matched" && result.matchId) {
-        handleMatchReady(result.matchId);
-        return;
-      }
-
-      if (result.status === "queued") {
-        updateSelfStatus("matchmaking");
-        setQueueStatus("looking… we’ll notify you when a match is ready.");
-        return;
-      }
-
-      if (result.status === "unauthenticated") {
-        setToast({ tone: "error", message: result.message ?? "Please log in." });
-        setQueueStatus(null);
-        return;
-      }
-
-      setQueueStatus(null);
-      updateSelfStatus("available");
-      setToast({
-        tone: "error",
-        message: result.message ?? "Matchmaking failed. Try again.",
-      });
-    });
-  };
 
   const handleSendInvite = (targetId: string) => {
     startInvite(async () => {
@@ -250,21 +204,12 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-base font-semibold text-white">Start a Playtest Match</p>
+          <p className="text-base font-semibold text-white">Invite a player</p>
           <p className="text-xs text-white/60">
-            Queue automatically or send a direct invite to someone in the lobby.
+            Challenge someone specific; or use Play Now above to queue.
           </p>
         </div>
         <div className="relative flex flex-wrap gap-3">
-          <button
-            type="button"
-            className="rounded-full border border-white/20 bg-gradient-to-r from-emerald-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
-            data-testid="matchmaker-start-button"
-            onClick={handleStartQueue}
-            disabled={isQueueing}
-          >
-            {isQueueing ? "Matching…" : "Start Game"}
-          </button>
           <div className="relative">
             <button
               type="button"
@@ -363,17 +308,6 @@ export function MatchmakerControls({ currentPlayer }: MatchmakerControlsProps) {
           </div>
         </div>
       </div>
-
-      {queueStatus && (
-        <p
-          className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-          data-testid="matchmaker-queue-status"
-          role="status"
-          aria-live="polite"
-        >
-          {queueStatus}
-        </p>
-      )}
 
       {incomingInvite && (
         <div

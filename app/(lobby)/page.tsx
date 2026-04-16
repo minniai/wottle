@@ -1,5 +1,7 @@
 import { LobbyList } from "@/components/lobby/LobbyList";
 import { LobbyLoginForm } from "@/components/lobby/LobbyLoginForm";
+import { LobbyStatsStrip } from "@/components/lobby/LobbyStatsStrip";
+import { PlayNowCard } from "@/components/lobby/PlayNowCard";
 import { fetchLobbySnapshot, readLobbySession } from "@/lib/matchmaking/profile";
 
 export default async function LobbyPage() {
@@ -17,20 +19,26 @@ export default async function LobbyPage() {
         </p>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-        {session ? (
-          <LobbyList currentPlayer={session.player} initialPlayers={initialPlayers} />
-        ) : (
+      {session ? (
+        <>
+          <LobbyStatsStrip />
+          <PlayNowCard currentPlayer={session.player} />
+          <LobbyList
+            currentPlayer={session.player}
+            initialPlayers={initialPlayers}
+          />
+        </>
+      ) : (
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
           <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/30 p-6 text-sm text-white/70">
             <p className="text-base font-semibold text-white">Lobby preview</p>
             <p className="mt-2 text-xs text-white/60">
               Enter a username to appear here and see other testers join or leave in real time.
             </p>
           </div>
-        )}
-
-        <LobbyLoginForm initialUsername={session?.player.username} />
-      </section>
+          <LobbyLoginForm />
+        </section>
+      )}
     </main>
   );
 }
