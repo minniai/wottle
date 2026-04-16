@@ -177,19 +177,19 @@
 
 ### Tests for User Story 5 (write first, ensure FAIL)
 
-- [ ] T056 [P] [US5] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add viewport blocks covering the full supported range per FR-031, FR-032, FR-033:
+- [X] T056 [P] [US5] In `/Users/ari/git/wottle/tests/integration/ui/lobby-visual.spec.ts` add viewport blocks covering the full supported range per FR-031, FR-032, FR-033:
   - **Mobile (375 × 812 and 390 × 844)**: assert no horizontal scroll (`document.body.scrollWidth === document.body.clientWidth`), `PlayNowCard` primary button bounding box `bottom` within viewport when scrolled to directory bottom (sticky CTA per FR-031), `InviteDialog` has bottom-sheet class when opened.
   - **Tablet and small desktop (768 × 1024, 1024 × 768)**: assert no horizontal scroll; sticky-CTA rule deactivates (primary button is not position-sticky).
   - **Desktop (1280 × 800 and 1440 × 900)**: assert no horizontal scroll AND — for a logged-in viewer — that the hero region, Play Now CTA region, and first row of the directory are ALL within the initial viewport box (all three elements'`boundingBox().y + boundingBox().height <= window.innerHeight`) per FR-032.
   - **Widescreen (1920 × 1080)**: assert no horizontal scroll.
-- [ ] T057 [P] [US5] In the same mobile viewport block, iterate every element matching `button, a, [role="button"]` inside the lobby and assert bounding box `width >= 44 && height >= 44`.
-- [ ] T058 [P] [US5] Update selector references in `/Users/ari/git/wottle/tests/integration/ui/lobby-presence.spec.ts` for any `data-testid` that moved; add skeleton and empty-state assertions introduced in US3.
+- [X] T057 [P] [US5] In the same mobile viewport block, iterate every element matching `button, a, [role="button"]` inside the lobby and assert bounding box `width >= 44 && height >= 44`.
+- [X] T058 [P] [US5] Update selector references in `/Users/ari/git/wottle/tests/integration/ui/lobby-presence.spec.ts` for any `data-testid` that moved; add skeleton and empty-state assertions introduced in US3.
 
 ### Implementation for User Story 5
 
-- [ ] T059 [US5] Add mobile layout rules to `/Users/ari/git/wottle/app/styles/lobby.css`: single-column below 640 px, `position: sticky; bottom: 0` on `PlayNowCard` primary control region with safe-area-inset-bottom padding via `env(safe-area-inset-bottom)`.
-- [ ] T060 [US5] Add bottom-sheet variant to `/Users/ari/git/wottle/components/ui/Dialog.tsx`: when `bottomSheetOnMobile` prop is true (default), below 640 px the dialog anchors to viewport bottom, slides up with transform, full-width, with safe-area-inset padding. Enable the prop on `InviteDialog` consumption.
-- [ ] T061 [US5] Audit every new interactive element in `PlayNowCard`, `LobbyCard`, `LobbyDirectory`, `InviteDialog`, `LobbyStatsStrip`, `LobbyHero`, and `LobbyLoginForm` for minimum 44×44 hitbox. Apply minimum-size utility classes or `::after` pseudo-element hitboxes where visual size is smaller.
+- [X] T059 [US5] Add mobile layout rules to `/Users/ari/git/wottle/app/styles/lobby.css`: single-column below 640 px, `position: sticky; bottom: 0` on `PlayNowCard` primary control region with safe-area-inset-bottom padding via `env(safe-area-inset-bottom)`.
+- [X] T060 [US5] Add bottom-sheet variant to `/Users/ari/git/wottle/components/ui/Dialog.tsx`: when `bottomSheetOnMobile` prop is true (default), below 640 px the dialog anchors to viewport bottom, slides up with transform, full-width, with safe-area-inset padding. Enable the prop on `InviteDialog` consumption.
+- [X] T061 [US5] Audit every new interactive element in `PlayNowCard`, `LobbyCard`, `LobbyDirectory`, `InviteDialog`, `LobbyStatsStrip`, `LobbyHero`, and `LobbyLoginForm` for minimum 44×44 hitbox. Apply minimum-size utility classes or `::after` pseudo-element hitboxes where visual size is smaller.
 
 **Checkpoint**: Full flow works on 375 × 812 with sticky CTA and bottom-sheet Dialog.
 

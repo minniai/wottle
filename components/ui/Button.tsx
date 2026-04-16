@@ -26,7 +26,8 @@ const SIZE_STYLES: Record<ButtonSize, string> = {
 const BASE_STYLES =
   "inline-flex items-center justify-center rounded-lg font-semibold transition " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 " +
-  "focus-visible:outline-accent-focus disabled:cursor-not-allowed disabled:opacity-50";
+  "focus-visible:outline-accent-focus disabled:cursor-not-allowed disabled:opacity-50 " +
+  "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0";
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = "primary", size = "md", className = "", type = "button", ...rest },

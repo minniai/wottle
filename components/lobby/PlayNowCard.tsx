@@ -146,7 +146,7 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
         {MODE_PILLS.map((pill) => {
           const selected = mode === pill.mode;
           const baseClasses =
-            "rounded-full border px-3 py-1 text-xs font-medium transition";
+            "rounded-full border px-3 py-1 text-xs font-medium transition min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0";
           const stateClasses = pill.enabled
             ? selected
               ? "border-accent-focus bg-accent-focus text-text-inverse"

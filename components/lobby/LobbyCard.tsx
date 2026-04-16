@@ -81,7 +81,7 @@ export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(
           <div className="min-w-0 flex-1">
             <button
               type="button"
-              className="truncate text-left text-sm font-semibold text-text-primary transition hover:text-accent-focus focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-focus"
+              className="min-h-[44px] truncate text-left text-sm font-semibold text-text-primary transition hover:text-accent-focus focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-focus sm:min-h-0"
               onClick={(e) => {
                 e.stopPropagation();
                 onUsernameClick?.(player.id);
