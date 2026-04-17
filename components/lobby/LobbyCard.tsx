@@ -3,7 +3,11 @@
 import { forwardRef } from "react";
 import type { KeyboardEventHandler } from "react";
 
-import type { PlayerIdentity } from "@/lib/types/match";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 
 interface LobbyCardProps {
   player: PlayerIdentity;
@@ -13,96 +17,133 @@ interface LobbyCardProps {
   ariaLabel?: string;
   viewerRating?: number;
   onUsernameClick?: (playerId: string) => void;
+  onChallenge?: (playerId: string) => void;
 }
 
-const STATUS_LABELS: Record<PlayerIdentity["status"], string> = {
+const STATUS_LABELS: Record<LobbyStatus, string> = {
   available: "Available",
   matchmaking: "Matchmaking",
   in_match: "In Match",
   offline: "Offline",
 };
 
-const STATUS_STYLES: Record<PlayerIdentity["status"], string> = {
-  available: "bg-emerald-500/15 text-emerald-200 border-emerald-500/40",
-  matchmaking: "bg-amber-500/15 text-amber-100 border-amber-400/40",
-  in_match: "bg-sky-500/15 text-sky-100 border-sky-400/40",
-  offline: "bg-slate-600/20 text-slate-200 border-slate-600/40",
+const STATUS_BADGE_VARIANT: Record<LobbyStatus, BadgeVariant> = {
+  available: "available",
+  matchmaking: "matchmaking",
+  in_match: "in_match",
+  offline: "offline",
 };
 
-export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(function LobbyCard(
-  { player, isSelf = false, tabIndex = 0, onKeyDown, ariaLabel, viewerRating, onUsernameClick }: LobbyCardProps,
-  ref,
-) {
-  const displayRating = player.eloRating ?? 1200;
-  const statusLabel = STATUS_LABELS[player.status] ?? player.status;
-  const statusStyles = STATUS_STYLES[player.status] ?? STATUS_STYLES.available;
+export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(
+  function LobbyCard(
+    {
+      player,
+      isSelf = false,
+      tabIndex = 0,
+      onKeyDown,
+      ariaLabel,
+      viewerRating,
+      onUsernameClick,
+      onChallenge,
+    },
+    ref,
+  ) {
+    const displayRating = player.eloRating ?? 1200;
+    const statusLabel = STATUS_LABELS[player.status] ?? player.status;
+    const statusVariant = STATUS_BADGE_VARIANT[player.status] ?? "offline";
+    const isAvailable = player.status === "available";
+    const canChallenge = !isSelf && player.status !== "offline";
+    const challengeDisabled = player.status === "in_match";
 
-  return (
-    <article
-      data-testid="lobby-card"
-      data-player-id={player.id}
-      data-player-username={player.username}
-      className={`rounded-xl border border-white/10 bg-slate-900/40 p-4 shadow-lg shadow-slate-950/30 transition hover:border-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/70 ${
-        isSelf ? "ring-2 ring-emerald-500/50" : ""
-      }`}
-      tabIndex={tabIndex}
-      onKeyDown={onKeyDown}
-      role="listitem"
-      aria-label={ariaLabel ?? `${player.displayName ?? player.username}, ${statusLabel}`}
-      ref={ref}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <button
-            type="button"
-            className="text-left text-sm font-semibold text-white hover:text-emerald-300 transition"
-            onClick={(e) => {
-              e.stopPropagation();
-              onUsernameClick?.(player.id);
-            }}
-            data-testid="lobby-username-btn"
-          >
-            {player.displayName ?? player.username}
-          </button>
-          <p className="text-xs text-white/60">@{player.username}</p>
+    return (
+      <Card
+        elevation={0}
+        data-testid="lobby-card"
+        data-player-id={player.id}
+        data-player-username={player.username}
+        tabIndex={tabIndex}
+        onKeyDown={onKeyDown}
+        role="listitem"
+        aria-label={
+          ariaLabel ??
+          `${player.displayName ?? player.username}, ${statusLabel}`
+        }
+        className={`lobby-player-card space-y-3 ${isSelf ? "ring-2 ring-accent-focus/60" : ""}`}
+        ref={ref}
+      >
+        <div className="flex items-start gap-3">
+          <Avatar
+            playerId={player.id}
+            displayName={player.displayName ?? player.username}
+            avatarUrl={player.avatarUrl}
+            size="md"
+          />
+          <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              className="min-h-[44px] truncate text-left text-sm font-semibold text-text-primary transition hover:text-accent-focus focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-focus sm:min-h-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUsernameClick?.(player.id);
+              }}
+              data-testid="lobby-username-btn"
+            >
+              {player.displayName ?? player.username}
+            </button>
+            <p className="truncate text-xs text-text-muted">
+              @{player.username}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              data-testid="lobby-elo-rating"
+              className="font-mono text-xs font-medium text-text-primary"
+            >
+              {displayRating}
+            </span>
+            {viewerRating !== undefined ? (
+              <EloDiffBadge
+                playerRating={displayRating}
+                viewerRating={viewerRating}
+              />
+            ) : null}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            data-testid="lobby-elo-rating"
-            className="font-mono text-xs font-medium text-white/80"
-          >
-            {displayRating}
+
+        <div className="flex items-center justify-between gap-2">
+          <span data-testid="lobby-status-pill">
+            <Badge variant={statusVariant} pulse={isAvailable}>
+              {isSelf ? "You" : statusLabel}
+            </Badge>
           </span>
-          {viewerRating !== undefined && (
-            <EloEloDiffBadge
-              playerRating={displayRating}
-              viewerRating={viewerRating}
-            />
-          )}
-          <span
-            data-testid="lobby-status-pill"
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${statusStyles}`}
-          >
-            {isSelf ? "You" : statusLabel}
-          </span>
+          {canChallenge ? (
+            <Button
+              size="sm"
+              variant={challengeDisabled ? "secondary" : "primary"}
+              disabled={challengeDisabled}
+              aria-disabled={challengeDisabled ? "true" : undefined}
+              aria-label={
+                challengeDisabled
+                  ? `Challenge ${player.displayName ?? player.username} — already in a match`
+                  : `Challenge ${player.displayName ?? player.username}`
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!challengeDisabled) {
+                  onChallenge?.(player.id);
+                }
+              }}
+            >
+              Challenge
+            </Button>
+          ) : null}
         </div>
-      </div>
+      </Card>
+    );
+  },
+);
 
-      <dl className="mt-4 text-xs text-white/60">
-        <div className="flex items-center justify-between">
-          <dt>Last seen</dt>
-          <dd className="font-mono text-white/80">{formatLastSeen(player.lastSeenAt)}</dd>
-        </div>
-        <div className="flex items-center justify-between">
-          <dt>Status</dt>
-          <dd className="capitalize text-white/80">{statusLabel.toLowerCase()}</dd>
-        </div>
-      </dl>
-    </article>
-  );
-});
-
-function EloEloDiffBadge({
+function EloDiffBadge({
   playerRating,
   viewerRating,
 }: {
@@ -110,36 +151,16 @@ function EloEloDiffBadge({
   viewerRating: number;
 }) {
   const diff = playerRating - viewerRating;
-  const label =
-    diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "±0";
+  const label = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "±0";
   const color =
     diff > 0
       ? "text-emerald-400"
       : diff < 0
         ? "text-rose-400"
-        : "text-white/60";
-
+        : "text-text-muted";
   return (
-    <span
-      data-testid="lobby-elo-diff"
-      className={`font-mono text-xs ${color}`}
-    >
+    <span data-testid="lobby-elo-diff" className={`font-mono text-xs ${color}`}>
       {label}
     </span>
   );
 }
-
-function formatLastSeen(value: string | null | undefined): string {
-  if (!value) {
-    return "just now";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "just now";
-  }
-
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-

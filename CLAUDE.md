@@ -90,6 +90,9 @@ Before implementing any feature:
 
 **In Progress Spec**: `specs/004-board-ui-animations/` (0/41 tasks complete — board UI animations, scored tile highlights, CSS transforms)
 
+**Recently Shipped** (branch `019-lobby-visual-foundation`, pending merge):
+- `specs/019-lobby-visual-foundation/` — Warm Editorial lobby redesign: Fraunces + Inter via `next/font`, brand/surface/text/accent Tailwind tokens, `components/ui/` primitives layer (Button, Card, Dialog, Avatar, Badge, Skeleton, Toast + ToastProvider), hero with rotating Icelandic nouns anchored by ORÐUSTA, live stats strip + polling matches count, Play Now CTA with Ranked/Casual/Challenge mode pills, directory with generated gradient-initials avatars and per-card Challenge action, Dialog-based invite flow (send + receive variants, bottom-sheet on mobile), 24-card soft cap with "Show all", skeleton + empty states, `prefers-reduced-motion` respected across all keyframes. MatchmakerControls superseded by PlayNowCard + InviteDialog + LobbyStatsStrip.
+
 ## Architecture
 
 ### Directory Structure
@@ -506,6 +509,8 @@ Key files:
 - Supabase PostgreSQL — new `rematch_requests` table, `matches.rematch_of` column (016-rematch-post-game-loop)
 - Supabase PostgreSQL — existing `players` table (modified), new `match_ratings` table (017-elo-rating-player-stats)
 - Supabase PostgreSQL — reads existing `players` table (no new tables/columns) (018-match-hud-layout)
+- TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x (theme extension), `next/font/google` (Fraunces variable + existing Inter), existing `zustand` presence store, existing `lib/a11y/useFocusTrap.ts` and `lib/a11y/rovingFocus.ts`. No Radix/shadcn/Framer Motion added. (019-lobby-visual-foundation)
+- None new. Reads existing `players`, `lobby_presence`, `matches` via already-wired Server Actions and API routes. (019-lobby-visual-foundation)
 
 - TypeScript 5.x, React 19+, Next.js 16 (App Router)
 - Tailwind CSS 4.x, CSS Animations/Transforms (GPU-accelerated, no Framer Motion)

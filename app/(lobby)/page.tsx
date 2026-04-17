@@ -1,5 +1,9 @@
+import { LobbyHero } from "@/components/lobby/LobbyHero";
 import { LobbyList } from "@/components/lobby/LobbyList";
 import { LobbyLoginForm } from "@/components/lobby/LobbyLoginForm";
+import { LobbyStatsStrip } from "@/components/lobby/LobbyStatsStrip";
+import { PlayNowCard } from "@/components/lobby/PlayNowCard";
+import { Card } from "@/components/ui/Card";
 import { fetchLobbySnapshot, readLobbySession } from "@/lib/matchmaking/profile";
 
 export default async function LobbyPage() {
@@ -7,30 +11,41 @@ export default async function LobbyPage() {
   const initialPlayers = session ? await fetchLobbySnapshot() : [];
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 overflow-x-hidden p-6 text-white">
-      <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.3em] text-emerald-200/80">Phase 3</p>
-        <h1 className="text-3xl font-bold text-white sm:text-4xl">Authenticate &amp; Enter Lobby</h1>
-        <p className="text-sm text-white/70">
-          Log in with a playtest username to appear in the realtime lobby. Stay visible via Supabase
-          presence with automatic polling fallback whenever WebSockets drop.
-        </p>
-      </header>
+    <main className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-5 pb-24 pt-6 sm:gap-12 sm:px-8 sm:pb-16 sm:pt-10">
+      <LobbyHero />
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-        {session ? (
-          <LobbyList currentPlayer={session.player} initialPlayers={initialPlayers} />
-        ) : (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/30 p-6 text-sm text-white/70">
-            <p className="text-base font-semibold text-white">Lobby preview</p>
-            <p className="mt-2 text-xs text-white/60">
-              Enter a username to appear here and see other testers join or leave in real time.
+      {session ? (
+        <>
+          <LobbyStatsStrip />
+          <PlayNowCard currentPlayer={session.player} />
+          <section className="space-y-4">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-display text-2xl font-semibold text-text-primary">
+                Players online
+              </h2>
+              <p className="text-xs uppercase tracking-[0.3em] text-text-muted">
+                Live lobby
+              </p>
+            </div>
+            <LobbyList
+              currentPlayer={session.player}
+              initialPlayers={initialPlayers}
+            />
+          </section>
+        </>
+      ) : (
+        <Card elevation={0} className="lobby-cta-card space-y-5 p-6 sm:p-8">
+          <div>
+            <p className="font-display text-2xl font-semibold text-text-primary sm:text-3xl">
+              Enter the lobby
+            </p>
+            <p className="text-sm text-text-secondary">
+              Pick a username to appear to other players and start challenging.
             </p>
           </div>
-        )}
-
-        <LobbyLoginForm initialUsername={session?.player.username} />
-      </section>
+          <LobbyLoginForm />
+        </Card>
+      )}
     </main>
   );
 }

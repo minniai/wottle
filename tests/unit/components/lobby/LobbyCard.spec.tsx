@@ -83,3 +83,61 @@ describe("LobbyCard Elo display", () => {
     expect(screen.queryByTestId("lobby-elo-diff")).toBeNull();
   });
 });
+
+describe("LobbyCard avatar + badge + challenge (spec 019)", () => {
+  it("renders the generated avatar fallback when avatarUrl is null", () => {
+    render(<LobbyCard player={makePlayer({ avatarUrl: null })} />);
+    expect(screen.getByRole("img", { name: /Test User/i })).toBeInTheDocument();
+  });
+
+  it("renders the asset avatar when avatarUrl is present", () => {
+    render(
+      <LobbyCard
+        player={makePlayer({ avatarUrl: "https://cdn.example/x.png" })}
+      />,
+    );
+    const img = screen
+      .getByRole("img", { name: /Test User/i })
+      .querySelector("img");
+    expect(img?.getAttribute("src")).toBe("https://cdn.example/x.png");
+  });
+
+  it("exposes a Challenge action for non-self available opponents", () => {
+    render(
+      <LobbyCard
+        player={makePlayer({ status: "available" })}
+        isSelf={false}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /challenge/i }),
+    ).not.toBeDisabled();
+  });
+
+  it("omits the Challenge action on the viewer's own card", () => {
+    render(<LobbyCard player={makePlayer()} isSelf />);
+    expect(
+      screen.queryByRole("button", { name: /challenge/i }),
+    ).toBeNull();
+  });
+
+  it("disables the Challenge action with aria-disabled for in_match opponents", () => {
+    render(
+      <LobbyCard
+        player={makePlayer({ status: "in_match" })}
+        isSelf={false}
+      />,
+    );
+    const btn = screen.getByRole("button", { name: /challenge/i });
+    expect(btn.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("renders a status Badge with matching variant", () => {
+    render(
+      <LobbyCard player={makePlayer({ status: "matchmaking" })} />,
+    );
+    expect(screen.getByTestId("lobby-status-pill").textContent).toMatch(
+      /matchmaking/i,
+    );
+  });
+});
