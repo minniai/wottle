@@ -157,13 +157,24 @@ test.describe("Lobby visual foundation — prefers-reduced-motion (FR-026)", () 
     await page.waitForTimeout(6000);
     const after = await page.locator(motifSelector).textContent();
     expect(after).toBe(before);
-    const animationNames = await page.$$eval(
-      ".lobby-skeleton, .lobby-status-dot--pulse, .lobby-hero-tile, .lobby-cta-hover",
-      (nodes) =>
-        nodes.map((n) => getComputedStyle(n).animationName).filter(Boolean),
+    const targetSelectors = [
+      ".lobby-skeleton",
+      ".lobby-status-dot--pulse",
+      ".lobby-hero-tile",
+      ".lobby-primary-cta",
+      ".lobby-player-card",
+    ].join(", ");
+    const targetCount = await page.$$eval(targetSelectors, (nodes) => nodes.length);
+    expect(targetCount).toBeGreaterThan(0);
+    const styles = await page.$$eval(targetSelectors, (nodes) =>
+      nodes.map((n) => {
+        const s = getComputedStyle(n);
+        return { animationName: s.animationName, transitionDuration: s.transitionDuration };
+      }),
     );
-    for (const name of animationNames) {
-      expect(name).toBe("none");
+    for (const s of styles) {
+      expect(s.animationName).toBe("none");
+      expect(s.transitionDuration).toBe("0s");
     }
     await context.close();
   });

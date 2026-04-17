@@ -208,15 +208,6 @@
   animation: hero-tile-cascade-in 600ms ease-out both;
 }
 
-/* ---- CTA hover lift (FR-025) ---- */
-.lobby-cta-hover {
-  transition: transform 150ms ease-out;
-}
-
-.lobby-cta-hover:hover {
-  transform: translateY(-1px);
-}
-
 /* ---- Mobile sticky CTA (T059) ---- */
 @media (max-width: 639px) {
   .lobby-playnow-sticky {
@@ -234,8 +225,19 @@
   .lobby-hero-tile,
   .lobby-hero-tile--flipping,
   .lobby-hero-cascade,
-  .lobby-cta-hover {
+  .lobby-primary-cta,
+  .lobby-player-card {
     animation: none !important;
     transition: none !important;
+  }
+  .lobby-primary-cta:hover:not(:disabled) {
+    transform: none !important;
+    box-shadow:
+      0 10px 32px -8px rgba(232, 182, 76, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  .lobby-player-card:hover {
+    transform: none !important;
   }
 }

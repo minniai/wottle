@@ -215,7 +215,7 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
           aria-label={
             inMatch ? "You are already in a match" : "Play Now"
           }
-          className="lobby-primary-cta inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-6 py-4 font-display text-lg font-semibold tracking-wide focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-focus sm:text-xl"
+          className="lobby-primary-cta lobby-playnow-sticky inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-6 py-4 font-display text-lg font-semibold tracking-wide focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-focus sm:text-xl"
         >
           {inMatch ? (
             "Already in a match"
