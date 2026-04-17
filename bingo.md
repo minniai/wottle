@@ -1,7 +1,0 @@
-# BINGO
-
-Bingó!
-
-## Bongo
-
-Bongó!
