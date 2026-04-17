@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fraunces.variable}>
-      <body className="min-h-screen bg-surface-0 text-text-primary antialiased">
+      <body className="min-h-screen overflow-x-clip bg-surface-0 text-text-primary antialiased">
         <ToastProvider>
           <div className="relative flex min-h-screen flex-col">
             <div className="pointer-events-none absolute right-4 top-4 z-20">
