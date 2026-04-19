@@ -44,7 +44,7 @@ export function TimerDisplay({
       <div
         data-testid="timer-display"
         className={[
-          "timer-display flex items-center justify-center rounded-lg font-mono font-black text-white",
+          "timer-display flex items-center justify-center rounded-lg font-mono font-black text-ink",
           sizeClasses,
           stateClass,
         ]

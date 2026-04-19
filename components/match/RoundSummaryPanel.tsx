@@ -94,7 +94,7 @@ export function RoundSummaryPanel({
     return (
         <div
             ref={panelRef}
-            className="w-full overflow-y-auto rounded-2xl border border-hair-strong bg-paper/95 p-6 shadow-2xl shadow-paper-3/60 backdrop-blur-sm lg:max-h-[calc(100vh-8rem)] lg:sticky lg:top-4"
+            className="w-full overflow-y-auto rounded-2xl border border-hair-strong bg-paper/95 p-6 shadow-wottle-lg backdrop-blur-sm lg:max-h-[calc(100vh-8rem)] lg:sticky lg:top-4"
             data-testid="round-summary-panel"
             role="dialog"
             aria-modal="true"
@@ -213,7 +213,7 @@ export function RoundSummaryPanel({
 function WordScoreRow({ wordScore, isOpponent = false }: { wordScore: WordScore; isOpponent?: boolean }) {
     const baseClasses = isOpponent
         ? "border-hair bg-paper-2 text-ink-3"
-        : "border-emerald-500/30 bg-emerald-500/10 text-white";
+        : "border-emerald-500/30 bg-emerald-500/10 text-ink";
 
     return (
         <div className={`rounded-lg border p-3 ${baseClasses}`}>
