@@ -94,7 +94,7 @@ function reasonLabel(reason: MatchEndedReason) {
 
 function TopWordsList({ words }: { words: TopWord[] }) {
   if (words.length === 0) {
-    return <p className="text-xs text-white/40">No words scored</p>;
+    return <p className="text-xs text-ink-soft">No words scored</p>;
   }
 
   return (
@@ -102,7 +102,7 @@ function TopWordsList({ words }: { words: TopWord[] }) {
       {words.map((entry, idx) => (
         <li
           key={`${entry.word}-${idx}`}
-          className="flex items-center justify-between text-xs text-white/70"
+          className="flex items-center justify-between text-xs text-ink-3"
         >
           <span className="font-mono uppercase tracking-wide">{entry.word}</span>
           <span>{entry.totalPoints} pts</span>
@@ -122,7 +122,7 @@ function RatingDeltaDisplay({
   if (ratingDelta === undefined) {
     return (
       <p
-        className="mt-1 text-sm text-white/40 italic"
+        className="mt-1 text-sm text-ink-soft italic"
         data-testid="rating-pending"
       >
         Rating update pending
@@ -136,7 +136,7 @@ function RatingDeltaDisplay({
       ? "text-emerald-400"
       : ratingDelta < 0
         ? "text-rose-400"
-        : "text-white/60";
+        : "text-ink-soft";
 
   return (
     <p className="mt-1 text-sm" data-testid="rating-delta">
@@ -145,7 +145,7 @@ function RatingDeltaDisplay({
         {ratingDelta}
       </span>
       {ratingAfter !== undefined && (
-        <span className="ml-2 text-white/50">
+        <span className="ml-2 text-ink-soft">
           → {ratingAfter}
         </span>
       )}
@@ -283,22 +283,22 @@ export function FinalSummary({
       />
     )}
     <section
-      className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-slate-950/60 sm:p-8"
-      data-testid="final-summary-view"
+      className="w-full overflow-hidden rounded-3xl border border-hair bg-paper p-3 shadow-2xl shadow-paper/60 sm:p-8"
+      data-testid="final-summary-root"
     >
       {/* Board with player HUD panels, matching in-game 3-column layout */}
       {board && (
         <div className="summary-board-layout mb-6" data-testid="final-summary-board">
           {/* Left panel: current player (same as in-game) */}
           <div className="summary-board-layout__panel">
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-4">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-hair bg-paper-2 p-4">
               <PlayerAvatar
                 displayName={currentPlayer?.displayName ?? "You"}
                 avatarUrl={null}
                 playerColor={currentPlayerColor}
                 size="md"
               />
-              <span className="max-w-[10rem] truncate text-sm font-semibold text-white">
+              <span className="max-w-[10rem] truncate text-sm font-semibold text-ink">
                 {currentPlayer?.displayName ?? "You"}
               </span>
               <span
@@ -307,7 +307,7 @@ export function FinalSummary({
               >
                 {currentPlayer?.score ?? 0}
               </span>
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink-soft">
                 Time used: {formatDuration(currentPlayer?.timeUsedMs ?? 0)}
               </span>
             </div>
@@ -327,14 +327,14 @@ export function FinalSummary({
 
           {/* Right panel: opponent (same as in-game) */}
           <div className="summary-board-layout__panel">
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-gray-900/80 p-4">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-hair bg-paper-2 p-4">
               <PlayerAvatar
                 displayName={opponent?.displayName ?? "Opponent"}
                 avatarUrl={null}
                 playerColor={opponentColor}
                 size="md"
               />
-              <span className="max-w-[10rem] truncate text-sm font-semibold text-white">
+              <span className="max-w-[10rem] truncate text-sm font-semibold text-ink">
                 {opponent?.displayName ?? "Opponent"}
               </span>
               <span
@@ -343,7 +343,7 @@ export function FinalSummary({
               >
                 {opponent?.score ?? 0}
               </span>
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink-soft">
                 Time used: {formatDuration(opponent?.timeUsedMs ?? 0)}
               </span>
             </div>
@@ -351,7 +351,7 @@ export function FinalSummary({
         </div>
       )}
       {/* Tab bar */}
-      <div className="mb-6 flex gap-2 border-b border-white/10 pb-1" role="tablist" aria-label="Match summary">
+      <div className="mb-6 flex gap-2 border-b border-hair pb-1" role="tablist" aria-label="Match summary">
         <button
           type="button"
           role="tab"
@@ -362,7 +362,7 @@ export function FinalSummary({
           className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
             activeTab === "overview"
               ? "border-b-2 border-emerald-400 text-emerald-300"
-              : "text-white/60 hover:text-white/90"
+              : "text-ink-soft hover:text-ink"
           }`}
           data-testid="tab-overview"
         >
@@ -378,7 +378,7 @@ export function FinalSummary({
           className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
             activeTab === "round-history"
               ? "border-b-2 border-emerald-400 text-emerald-300"
-              : "text-white/60 hover:text-white/90"
+              : "text-ink-soft hover:text-ink"
           }`}
           data-testid="tab-round-history"
         >
@@ -397,9 +397,9 @@ export function FinalSummary({
         <p className="text-sm uppercase tracking-[0.3em] text-emerald-200/80">
           Match Complete
         </p>
-        <h1 className="text-3xl font-bold text-white">Final Summary</h1>
+        <h1 className="text-3xl font-bold text-ink">Final Summary</h1>
         <p
-          className="text-white/70"
+          className="text-ink-3"
           data-testid="final-summary-ended-reason"
         >
           {isDualTimeout ? "Both players timed out" : reasonLabel(endedReason)}
@@ -411,12 +411,12 @@ export function FinalSummary({
           <p className="text-sm uppercase tracking-wide text-emerald-200/80">
             Winner
           </p>
-          <p className="text-2xl font-semibold text-white">
+          <p className="text-2xl font-semibold text-ink">
             {winner.displayName}
           </p>
           {endedReason === "forfeit" && (
             <p
-              className="mt-1 text-sm text-white/60"
+              className="mt-1 text-sm text-ink-soft"
               data-testid="final-summary-forfeit-label"
             >
               {winner.id === currentPlayerId
@@ -430,7 +430,7 @@ export function FinalSummary({
           <p className="text-sm uppercase tracking-wide text-sky-200/80">
             Draw
           </p>
-          <p className="text-2xl font-semibold text-white">
+          <p className="text-2xl font-semibold text-ink">
             Both players tied after the final round.
           </p>
         </div>
@@ -475,7 +475,7 @@ export function FinalSummary({
         </button>
         <button
           type="button"
-          className="rounded-2xl border border-white/20 px-5 py-3 text-white transition hover:bg-white/10"
+          className="rounded-2xl border border-hair-strong px-5 py-3 text-ink transition hover:bg-paper-2"
           onClick={() => router.push("/")}
           data-testid="final-summary-back-lobby"
         >
@@ -493,21 +493,21 @@ export function FinalSummary({
             className={`rounded-2xl border p-4 ${
               player.id === winnerId
                 ? "border-emerald-400/40 bg-emerald-500/5"
-                : "border-white/10 bg-white/5"
+                : "border-hair bg-paper-2"
             }`}
           >
             <button
               type="button"
-              className="text-xs uppercase tracking-wide text-white/60 hover:text-emerald-300 transition"
+              className="text-xs uppercase tracking-wide text-ink-soft hover:text-emerald-300 transition"
               onClick={() => setProfilePlayerId(player.id)}
             >
               {player.id === currentPlayerId ? "You" : player.displayName}
             </button>
-            <p className="mt-2 text-4xl font-bold text-white">{player.score}</p>
-            <p className="mt-1 text-sm text-white/70">
+            <p className="mt-2 text-4xl font-bold text-ink">{player.score}</p>
+            <p className="mt-1 text-sm text-ink-3">
               Time used: {formatDuration(player.timeUsedMs)}
             </p>
-            <p className="mt-1 text-sm text-white/70">
+            <p className="mt-1 text-sm text-ink-3">
               {player.frozenTileCount} tiles frozen
             </p>
             <RatingDeltaDisplay
@@ -516,7 +516,7 @@ export function FinalSummary({
             />
             {player.topWords.length > 0 && (
               <div className="mt-3">
-                <p className="text-xs uppercase tracking-wide text-white/40">
+                <p className="text-xs uppercase tracking-wide text-ink-soft">
                   Top words
                 </p>
                 <TopWordsList words={player.topWords} />
@@ -527,20 +527,20 @@ export function FinalSummary({
       </div>
 
       <div
-        className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4"
+        className="mt-8 rounded-2xl border border-hair bg-paper-2 p-4"
         data-testid="final-summary-timers"
       >
-        <h2 className="text-lg font-semibold text-white">Per-round Scoreboard</h2>
+        <h2 className="text-lg font-semibold text-ink">Per-round Scoreboard</h2>
         <div className="mt-4 space-y-2">
           {scoreboard.length === 0 && (
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-ink-soft">
               No scoreboard snapshots recorded for this match.
             </p>
           )}
           {scoreboard.map((row) => (
             <div
               key={row.roundNumber}
-              className="flex items-center justify-between rounded-xl bg-slate-900/60 px-4 py-2 text-sm text-white/80"
+              className="flex items-center justify-between rounded-xl bg-paper-3 px-4 py-2 text-sm text-ink-3"
             >
               <span>Round {row.roundNumber}</span>
               <span>
@@ -552,12 +552,12 @@ export function FinalSummary({
       </div>
 
       <div
-        className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4"
+        className="mt-8 rounded-2xl border border-hair bg-paper-2 p-4"
         data-testid="final-summary-word-history"
       >
-        <h2 className="text-lg font-semibold text-white">Word History</h2>
+        <h2 className="text-lg font-semibold text-ink">Word History</h2>
         {wordHistory.length === 0 ? (
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-ink-soft">
             No words were scored in this match.
           </p>
         ) : (
@@ -567,18 +567,18 @@ export function FinalSummary({
               return (
                 <div
                   key={`${entry.roundNumber}-${entry.word}-${index}`}
-                  className="rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white"
+                  className="rounded-xl border border-hair bg-paper-3 px-4 py-3 text-sm text-ink"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">Round {entry.roundNumber}</span>
-                    <span className="text-white/60">
+                    <span className="text-ink-soft">
                       {entry.totalPoints} pts
                     </span>
                   </div>
                   <p className="text-lg font-mono uppercase tracking-wide">
                     {entry.word}
                   </p>
-                  <p className="text-white/70">
+                  <p className="text-ink-3">
                     {player?.displayName ?? "Unknown"} ·{" "}
                     {entry.lettersPoints} base + {entry.bonusPoints} bonus
                   </p>
@@ -590,7 +590,7 @@ export function FinalSummary({
       </div>
 
       {currentPlayer && (
-        <p className="mt-4 text-sm text-white/60">
+        <p className="mt-4 text-sm text-ink-soft">
           Playing as <span className="font-semibold">{currentPlayer.displayName}</span>
         </p>
       )}

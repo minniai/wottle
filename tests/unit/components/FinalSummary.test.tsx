@@ -168,4 +168,12 @@ describe("FinalSummary", () => {
     );
     expect(screen.queryByTestId("series-badge")).not.toBeInTheDocument();
   });
+
+  it("uses paper surface classes, not dark-mode", () => {
+    render(<FinalSummary {...makeProps()} />);
+    const summary = screen.getByTestId("final-summary-root");
+    expect(summary.className).not.toContain("bg-gray-");
+    expect(summary.className).not.toContain("bg-slate-");
+    expect(summary.className).toMatch(/bg-paper|bg-surface-0/);
+  });
 });
