@@ -106,7 +106,7 @@ test.describe("Round history panel (post-game)", () => {
       }
 
       // Wait for final summary page
-      const summaryView = pageA.getByTestId("final-summary-view");
+      const summaryView = pageA.getByTestId("final-summary-root");
       await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
       // Verify board is rendered on summary page

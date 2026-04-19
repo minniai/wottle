@@ -94,7 +94,7 @@ export function RoundSummaryPanel({
     return (
         <div
             ref={panelRef}
-            className="w-full overflow-y-auto rounded-2xl border border-white/20 bg-slate-900/95 p-6 shadow-2xl shadow-slate-950/60 backdrop-blur-sm lg:max-h-[calc(100vh-8rem)] lg:sticky lg:top-4"
+            className="w-full overflow-y-auto rounded-2xl border border-hair-strong bg-paper/95 p-6 shadow-wottle-lg backdrop-blur-sm lg:max-h-[calc(100vh-8rem)] lg:sticky lg:top-4"
             data-testid="round-summary-panel"
             role="dialog"
             aria-modal="true"
@@ -110,14 +110,14 @@ export function RoundSummaryPanel({
                 role="status"
             />
             <div className="flex items-start justify-between mb-4">
-                <h2 id="round-summary-title" className="text-xl font-bold text-white">
+                <h2 id="round-summary-title" className="text-xl font-bold text-ink">
                     Round {summary.roundNumber} Summary
                 </h2>
                 {onDismiss && (
                     <button
                         type="button"
                         onClick={onDismiss}
-                        className="text-white/60 hover:text-white"
+                        className="text-ink-soft hover:text-ink"
                         aria-label="Close summary"
                     >
                         ×
@@ -158,7 +158,7 @@ export function RoundSummaryPanel({
             </div>
 
             {!hasWords ? (
-                <div className="text-center py-4 text-white/70">
+                <div className="text-center py-4 text-ink-3">
                     <p className="text-sm">No new words scored this round</p>
                 </div>
             ) : (
@@ -166,7 +166,7 @@ export function RoundSummaryPanel({
                     {/* Words List */}
                     {currentPlayerWords.length > 0 && (
                         <div>
-                            <h3 className="text-sm font-semibold text-white mb-3">Your Words</h3>
+                            <h3 className="text-sm font-semibold text-ink mb-3">Your Words</h3>
                             <div className="space-y-2">
                                 {currentPlayerWords.map((word, idx) => (
                                     <WordScoreRow key={`${word.word}-${idx}`} wordScore={word} />
@@ -177,7 +177,7 @@ export function RoundSummaryPanel({
 
                     {opponentWords.length > 0 && (
                         <div>
-                            <h3 className="text-sm font-semibold text-white/70 mb-3">
+                            <h3 className="text-sm font-semibold text-ink-soft mb-3">
                                 Opponent&apos;s Words
                             </h3>
                             <div className="space-y-2">
@@ -212,19 +212,19 @@ export function RoundSummaryPanel({
 
 function WordScoreRow({ wordScore, isOpponent = false }: { wordScore: WordScore; isOpponent?: boolean }) {
     const baseClasses = isOpponent
-        ? "border-white/10 bg-white/5 text-white/80"
-        : "border-emerald-500/30 bg-emerald-500/10 text-white";
+        ? "border-hair bg-paper-2 text-ink-3"
+        : "border-emerald-500/30 bg-emerald-500/10 text-ink";
 
     return (
         <div className={`rounded-lg border p-3 ${baseClasses}`}>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <span className="font-mono text-lg font-bold">{wordScore.word.toUpperCase()}</span>
-                    <span className="text-xs text-white/60">({wordScore.length} letters)</span>
+                    <span className="text-xs text-ink-soft">({wordScore.length} letters)</span>
                 </div>
                 <div className="text-right">
                     <p className="font-bold text-lg">+{wordScore.totalPoints}</p>
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-ink-soft">
                         {wordScore.lettersPoints} + {wordScore.bonusPoints} bonus
                     </p>
                 </div>

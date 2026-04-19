@@ -30,11 +30,11 @@ export function TimerHud({ timeLeft, isPaused, roundNumber, hasSubmitted = false
     const seconds = displayTime % 60;
 
     return (
-        <div className="flex items-center justify-between bg-slate-800 p-4 rounded-lg text-white w-full max-w-md mx-auto mb-4" data-testid="timer-hud">
+        <div className="flex items-center justify-between bg-paper-2 p-4 rounded-lg text-ink w-full max-w-md mx-auto mb-4" data-testid="timer-hud">
             <div className="text-xl font-bold" data-testid="round-indicator">
                 Round {roundNumber}
             </div>
-            <div className={`text-2xl font-mono ${!hasSubmitted ? "text-emerald-400" : "text-slate-400"}`} data-testid="timer-display">
+            <div className={`text-2xl font-mono ${!hasSubmitted ? "text-emerald-400" : "text-ink-soft"}`} data-testid="timer-display">
                 {minutes}:{seconds.toString().padStart(2, "0")}
             </div>
             {isPaused && (

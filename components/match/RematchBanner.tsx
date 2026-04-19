@@ -16,7 +16,7 @@ export function RematchBanner({
       className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4"
       data-testid="rematch-banner"
     >
-      <p className="text-sm font-medium text-white">
+      <p className="text-sm font-medium text-ink">
         {requesterName} wants a rematch!
       </p>
       <div className="mt-3 flex gap-3">
@@ -30,7 +30,7 @@ export function RematchBanner({
         </button>
         <button
           type="button"
-          className="rounded-xl border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+          className="rounded-xl border border-hair-strong px-4 py-2 text-sm font-medium text-ink transition hover:bg-paper-2"
           onClick={onDecline}
           data-testid="rematch-decline"
         >

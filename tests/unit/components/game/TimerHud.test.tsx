@@ -34,6 +34,6 @@ describe("TimerHud", () => {
     render(<TimerHud {...baseProps} hasSubmitted={true} />);
 
     const timerEl = screen.getByTestId("timer-display");
-    expect(timerEl).toHaveClass("text-slate-400");
+    expect(timerEl).toHaveClass("text-ink-soft");
   });
 });

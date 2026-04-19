@@ -93,15 +93,15 @@ export function PlayerProfileModal({
       aria-modal="true"
       aria-label="Player Profile"
     >
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+      <div className="w-full max-w-sm rounded-2xl border border-hair bg-paper p-6 shadow-2xl">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-ink">
             Player Profile
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-white/60 hover:text-white"
+            className="text-ink-soft hover:text-ink"
             aria-label="Close"
           >
             ✕
@@ -109,7 +109,7 @@ export function PlayerProfileModal({
         </div>
 
         {loading && (
-          <p className="mt-4 text-sm text-white/60">Loading...</p>
+          <p className="mt-4 text-sm text-ink-soft">Loading...</p>
         )}
 
         {error && (
@@ -128,22 +128,22 @@ function ProfileContent({ profile }: { profile: PlayerProfile }) {
   return (
     <div className="mt-4 space-y-4">
       <div>
-        <p className="text-sm font-semibold text-white">
+        <p className="text-sm font-semibold text-ink">
           {identity.displayName}
         </p>
-        <p className="text-xs text-white/60">
+        <p className="text-xs text-ink-soft">
           @{identity.username}
         </p>
       </div>
 
       <div className="text-center">
         <p
-          className="text-4xl font-bold text-white"
+          className="text-4xl font-bold text-ink"
           data-testid="profile-elo"
         >
           {stats.eloRating}
         </p>
-        <p className="text-xs text-white/50">Elo Rating</p>
+        <p className="text-xs text-ink-soft">Elo Rating</p>
       </div>
 
       <div
@@ -180,8 +180,8 @@ function StatCell({
 }) {
   return (
     <div>
-      <p className="text-lg font-semibold text-white">{value}</p>
-      <p className="text-xs text-white/50">{label}</p>
+      <p className="text-lg font-semibold text-ink">{value}</p>
+      <p className="text-xs text-ink-soft">{label}</p>
     </div>
   );
 }
@@ -195,15 +195,15 @@ function TrendDisplay({ trend }: { trend: number[] }) {
       ? "text-emerald-400"
       : direction === "down"
         ? "text-rose-400"
-        : "text-white/60";
+        : "text-ink-soft";
 
   return (
     <div data-testid="profile-trend">
-      <p className="text-xs text-white/50">
+      <p className="text-xs text-ink-soft">
         Last {trend.length} games
       </p>
       <div className="mt-1 flex items-center gap-2">
-        <div className="flex gap-1 font-mono text-xs text-white/70">
+        <div className="flex gap-1 font-mono text-xs text-ink-3">
           {trend.map((rating, i) => (
             <span key={i}>{rating}</span>
           ))}

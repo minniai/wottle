@@ -22,7 +22,7 @@ function Toggle({
       className="flex items-center justify-between gap-4"
       style={{ padding: "12px 0" }}
     >
-      <span className="text-sm text-white/80">{label}</span>
+      <span className="text-sm text-ink-3">{label}</span>
       <button
         type="button"
         role="switch"
@@ -49,13 +49,13 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   return (
     <div
-      className="w-64 rounded-2xl border border-white/10 shadow-2xl"
-      style={{ backgroundColor: "#0f172a", padding: "20px 24px" }}
+      className="w-64 rounded-2xl border border-hair shadow-2xl bg-paper"
+      style={{ padding: "20px 24px" }}
       role="dialog"
       aria-label="Settings"
     >
       <h2
-        className="text-sm font-semibold uppercase tracking-wider text-white/40"
+        className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
         style={{ marginBottom: "8px" }}
       >
         Settings

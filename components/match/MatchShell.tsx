@@ -13,7 +13,7 @@ export function MatchShell({
 }: MatchShellProps) {
   return (
     <section
-      className="w-full text-white"
+      className="w-full text-ink"
       data-testid="match-shell"
       data-match-id={matchId}
     >
@@ -24,11 +24,11 @@ export function MatchShell({
 
 function PanelSkeleton() {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-gray-900/80 p-4">
-      <div className="h-12 w-12 animate-pulse rounded-full bg-white/10" />
-      <div className="h-4 w-20 animate-pulse rounded bg-white/10" />
-      <div className="h-12 w-full animate-pulse rounded-lg bg-white/10" />
-      <div className="h-8 w-16 animate-pulse rounded bg-white/10" />
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-hair bg-paper-2 p-4">
+      <div className="h-12 w-12 animate-pulse rounded-full bg-paper-3" />
+      <div className="h-4 w-20 animate-pulse rounded bg-paper-3" />
+      <div className="h-12 w-full animate-pulse rounded-lg bg-paper-3" />
+      <div className="h-8 w-16 animate-pulse rounded bg-paper-3" />
     </div>
   );
 }
@@ -43,10 +43,10 @@ function MatchShellSkeleton() {
       <div className="match-layout__board">
         {/* Mobile compact bar skeleton */}
         <div className="match-layout__compact-top">
-          <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-            <div className="h-8 w-8 animate-pulse rounded-full bg-white/10" />
-            <div className="h-4 w-16 animate-pulse rounded bg-white/10" />
-            <div className="ml-auto h-6 w-14 animate-pulse rounded bg-white/10" />
+          <div className="flex items-center gap-2 rounded-lg bg-paper-2 px-3 py-2">
+            <div className="h-8 w-8 animate-pulse rounded-full bg-paper-3" />
+            <div className="h-4 w-16 animate-pulse rounded bg-paper-3" />
+            <div className="ml-auto h-6 w-14 animate-pulse rounded bg-paper-3" />
           </div>
         </div>
 
@@ -62,10 +62,10 @@ function MatchShellSkeleton() {
 
         {/* Mobile compact bar skeleton */}
         <div className="match-layout__compact-bottom">
-          <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-            <div className="h-8 w-8 animate-pulse rounded-full bg-white/10" />
-            <div className="h-4 w-16 animate-pulse rounded bg-white/10" />
-            <div className="ml-auto h-6 w-14 animate-pulse rounded bg-white/10" />
+          <div className="flex items-center gap-2 rounded-lg bg-paper-2 px-3 py-2">
+            <div className="h-8 w-8 animate-pulse rounded-full bg-paper-3" />
+            <div className="h-4 w-16 animate-pulse rounded bg-paper-3" />
+            <div className="ml-auto h-6 w-14 animate-pulse rounded bg-paper-3" />
           </div>
         </div>
       </div>

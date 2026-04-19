@@ -2,8 +2,50 @@
 @config "../tailwind.config.ts";
 
 :root {
-  color-scheme: dark;
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: light;
+
+  /* Surfaces — warm paper + deep ink */
+  --paper: oklch(0.975 0.012 85);
+  --paper-2: oklch(0.955 0.014 82);
+  --paper-3: oklch(0.925 0.016 80);
+  --ink: oklch(0.22 0.025 258);
+  --ink-2: oklch(0.29 0.027 258);
+  --ink-3: oklch(0.38 0.024 258);
+  --ink-soft: oklch(0.52 0.020 258);
+
+  /* Accent — warm ochre (brand) */
+  --ochre: oklch(0.72 0.13 70);
+  --ochre-deep: oklch(0.58 0.14 60);
+  --ochre-tint: oklch(0.93 0.045 80);
+
+  /* Player colors */
+  --p1: oklch(0.68 0.14 60);
+  --p1-tint: oklch(0.92 0.06 70);
+  --p1-deep: oklch(0.48 0.14 55);
+  --p2: oklch(0.56 0.08 220);
+  --p2-tint: oklch(0.92 0.035 220);
+  --p2-deep: oklch(0.38 0.08 220);
+
+  /* Semantic */
+  --good: oklch(0.62 0.12 150);
+  --warn: oklch(0.70 0.15 40);
+  --bad: oklch(0.58 0.17 25);
+
+  /* Lines */
+  --hair: color-mix(in oklab, var(--ink) 14%, transparent);
+  --hair-strong: color-mix(in oklab, var(--ink) 22%, transparent);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 0 color-mix(in oklab, var(--ink) 8%, transparent);
+  --shadow-md:
+    0 1px 2px color-mix(in oklab, var(--ink) 6%, transparent),
+    0 8px 24px color-mix(in oklab, var(--ink) 10%, transparent);
+  --shadow-lg:
+    0 2px 4px color-mix(in oklab, var(--ink) 8%, transparent),
+    0 20px 60px color-mix(in oklab, var(--ink) 16%, transparent);
+
+  font-family: var(--font-inter, "Inter"), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 html,
@@ -14,5 +56,7 @@ body {
 
 body {
   margin: 0;
-  background: #020617;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }

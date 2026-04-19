@@ -32,6 +32,22 @@ describe("PlayerPanel full variant", () => {
     expect(screen.getByText("Alice Wonderland")).toBeInTheDocument();
   });
 
+  test("full variant uses paper surface and hair border", () => {
+    render(
+      <PlayerPanel
+        player={defaultPlayer}
+        gameState={defaultGameState}
+        variant="full"
+      />,
+    );
+
+    const panel = screen.getByTestId("player-panel");
+    expect(panel.className).toContain("bg-paper");
+    expect(panel.className).toContain("border-hair");
+    expect(panel.className).not.toContain("bg-gray-900");
+    expect(panel.className).not.toContain("border-white/10");
+  });
+
   test("truncates display name longer than 20 characters", () => {
     render(
       <PlayerPanel

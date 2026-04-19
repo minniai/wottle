@@ -36,7 +36,7 @@ export function PlayerAvatar({
   return (
     <div
       data-testid="player-avatar"
-      className="flex items-center justify-center rounded-full font-bold text-white"
+      className="flex items-center justify-center rounded-full font-bold text-ink"
       style={{
         width: `${px}px`,
         height: `${px}px`,
