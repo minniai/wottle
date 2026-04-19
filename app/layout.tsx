@@ -5,6 +5,7 @@ import "./styles/board.css";
 import "./styles/lobby.css";
 import { GearMenu } from "@/components/ui/GearMenu";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { TopBar } from "@/components/ui/TopBar";
 
 const fraunces = Fraunces({
   subsets: ["latin", "latin-ext"],
@@ -38,7 +39,8 @@ export default function RootLayout({
       <body className="min-h-screen overflow-x-clip bg-surface-0 text-text-primary antialiased">
         <ToastProvider>
           <div className="relative flex min-h-screen flex-col">
-            <div className="pointer-events-none absolute right-4 top-4 z-20">
+            <TopBar />
+            <div className="pointer-events-none absolute right-4 top-4 z-30">
               <div className="pointer-events-auto">
                 <GearMenu />
               </div>

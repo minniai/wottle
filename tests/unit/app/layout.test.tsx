@@ -23,4 +23,11 @@ describe("app/layout.tsx font wiring", () => {
       /className=\{`\$\{fraunces\.variable\}[^`]*\$\{jetbrainsMono\.variable\}`\}/,
     );
   });
+
+  test("imports and renders TopBar", () => {
+    expect(layoutSource).toMatch(
+      /import\s*\{\s*TopBar\s*\}\s*from\s*"@\/components\/ui\/TopBar"/,
+    );
+    expect(layoutSource).toMatch(/<TopBar\s*\/>/);
+  });
 });
