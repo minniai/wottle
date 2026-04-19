@@ -149,8 +149,10 @@ describe("selectOptimalCombination", () => {
 
   // T029b: Rejects word when swapped tile is adjacent to frozen tiles forming an
   // N-letter cross-sequence (N = DEFAULT_GAME_CONFIG.minimumWordLength = 3) that is
-  // NOT in the dictionary. The cross-validator's minimum now tracks the global
-  // minimumWordLength — a 2-letter cross is below threshold and is ignored.
+  // NOT in the dictionary. For crosses at or above the minimum length, the
+  // dictionary check applies; for crosses below the minimum (2-letter), the
+  // placement is rejected outright since the sequence cannot satisfy the
+  // 3-letter word rule (see T029c).
   test("T029b: rejects word when end tile has ≥-minimum vertical cross-sequence not in dictionary", () => {
     const localDict = new Set(["rám"]); // "myz"/"zym" not in dict
     const board = emptyBoard();
@@ -181,19 +183,21 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
-  // T029c: Accepts word when it creates a 2-letter cross-sequence that IS a valid dictionary word.
-  // Real-game scenario: "pura" (vertical, up) creates cross "að" at the A tile adjacent to frozen Ð —
-  // "að" is a valid Icelandic word, so "pura" must NOT be rejected.
-  test("T029c: accepts word when 2-letter cross-sequence with frozen tile is a valid dictionary word", () => {
-    const localDict = new Set(["pura", "að"]); // both words valid
+  // T029c: Rejects word when a single frozen tile forms a below-minimum perpendicular
+  // cross-sequence — even if the 2-letter combination happens to be in the dictionary.
+  // Under DEFAULT_GAME_CONFIG.minimumWordLength = 3, any perpendicular sequence whose
+  // length is >= 2 but < 3 is inherently invalid (cannot satisfy the word-length rule).
+  // Real-game scenario (screenshot 2026-04-19): placing PÓLA horizontally below SJÁ
+  // creates the vertical pair "JP" (and "ÁÓ", "AL", "IA"). None of those are valid
+  // 3-letter words because they aren't 3 letters long — PÓLA must be rejected.
+  test("T029c: rejects word when a single frozen tile forms a 2-letter perpendicular cross (below 3-letter minimum)", () => {
+    const localDict = new Set(["pura", "að"]); // "að" is a valid Icelandic word but length < min
     const board = emptyBoard();
-    // "pura" vertical (direction "up"): tiles at col 2, rows 1–4 (start=(2,4) for "up" direction)
     board[1][2] = "a";
     board[2][2] = "r";
     board[3][2] = "u";
     board[4][2] = "p";
-    // Frozen "ð" at (3,1) — directly right of a(2,1)
-    board[1][3] = "ð";
+    board[1][3] = "ð"; // Frozen "ð" directly right of a(2,1) — forms 2-letter cross "að"
     const frozenTiles: FrozenTileMap = {
       "3,1": { owner: "player_b" },
     };
@@ -216,9 +220,9 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // a(2,1) + frozen ð(3,1) = "að" → IS in dictionary → no violation → "pura" accepted
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("pura");
+    // a(2,1) + frozen ð(3,1) = 2-letter cross "að" → below minimumWordLength (3)
+    // → violation → "pura" rejected regardless of dictionary contents
+    expect(result).toHaveLength(0);
   });
 
   // T030: Returns empty array when no valid combination exists

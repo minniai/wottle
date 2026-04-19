@@ -12,9 +12,14 @@ import {
  * with established tiles (frozen tiles + extra scored tiles).
  *
  * For each tile in the word, the perpendicular direction is traced
- * through neighboring established positions. If the resulting
- * cross-sequence (established + tile) is >= 2 chars and not in
- * the dictionary, the word has a violation.
+ * through neighboring established positions.
+ *
+ * Rules (per PRD §1.2, minimumWordLength = 3):
+ *   - cross length 1 → no perpendicular neighbor → no constraint.
+ *   - cross length 2..(minimumWordLength-1) → below the minimum word
+ *     length, inherently not a valid word → violation.
+ *   - cross length >= minimumWordLength → must be in the dictionary
+ *     (in either reading direction) → otherwise violation.
  */
 export function hasCrossWordViolation(
   board: BoardGrid,
@@ -72,22 +77,27 @@ export function hasCrossWordViolation(
     }
 
     const crossLength = beforeChars.length + 1 + afterChars.length;
-    if (crossLength >= minimumWordLength) {
-      const crossWord = [
-        ...beforeChars,
-        board[tile.y][tile.x],
-        ...afterChars,
-      ]
-        .join("")
-        .normalize("NFC")
-        .toLowerCase();
-      const crossWordReversed = [...crossWord].reverse().join("");
-      if (
-        !dictionary.has(crossWord) &&
-        !dictionary.has(crossWordReversed)
-      ) {
-        return true;
-      }
+    if (crossLength === 1) continue; // no perpendicular neighbor — no cross-word
+    if (crossLength < minimumWordLength) {
+      // Any contiguous perpendicular sequence shorter than the minimum word
+      // length is inherently invalid: it cannot satisfy the 3-letter rule
+      // regardless of dictionary contents (PRD §1.2). Reject the placement.
+      return true;
+    }
+    const crossWord = [
+      ...beforeChars,
+      board[tile.y][tile.x],
+      ...afterChars,
+    ]
+      .join("")
+      .normalize("NFC")
+      .toLowerCase();
+    const crossWordReversed = [...crossWord].reverse().join("");
+    if (
+      !dictionary.has(crossWord) &&
+      !dictionary.has(crossWordReversed)
+    ) {
+      return true;
     }
   }
 

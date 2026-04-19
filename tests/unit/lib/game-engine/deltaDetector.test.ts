@@ -130,15 +130,9 @@ describe("deltaDetector", () => {
     expect(land!.playerId).toBe(PLAYER_B);
   });
 
-  // Historical test (pre-019): "reject Player B word when it creates an invalid
-  // same-round cross-word junction with Player A's word" relied on a 2-letter
-  // same-round cross ("bb") triggering rejection. At DEFAULT_GAME_CONFIG
-  // .minimumWordLength = 3 (PRD §1.2), 2-letter crosses are intentionally
-  // ignored, and a 3-letter same-round cross cannot be constructed here because
-  // the cross-validator excludes frozen tiles by design (see deltaDetector.ts
-  // comment at line 452 — cross-word violations check only same-round tiles).
-  // The core "invalid cross rejects word" principle is still exercised by
-  // the rewritten crossValidator T029b / T032b.
+  // Historical test body was removed during earlier refactors. The principle
+  // (same-round cross-word rejection, including 2-letter below-minimum crosses)
+  // is now covered by crossValidator T029b/T029c/T032b.
   test.skip("should reject Player B word when it creates an invalid same-round cross-word junction with Player A's word", () => {});
 
   test("should only score the longest word when a shorter word is a strict sub-word", () => {
@@ -183,14 +177,10 @@ describe("deltaDetector", () => {
     expect(abc).toBeUndefined();
   });
 
-  // Historical test (pre-019): rejected two adjacent parallel same-round words
-  // via 2-letter horizontal crosses ("ad", "be", "cf"). Under
-  // DEFAULT_GAME_CONFIG.minimumWordLength = 3 those crosses fall below the
-  // minimum and are intentionally ignored. Reconstructing a 3-letter
-  // same-round cross for two parallel 3-tile words is impossible with the
-  // single-swap-per-player constraint and the cross-validator's design
-  // decision to exclude frozen tiles from the same-round cross check
-  // (deltaDetector.ts line 452). Principle covered by crossValidator tests.
+  // Historical test body was removed during earlier refactors. The principle
+  // (adjacent same-round words rejected when the cross junctions are invalid,
+  // including 2-letter below-minimum crosses) is covered by crossValidator
+  // T029b/T029c/T032b.
   test.skip("should reject both same-player same-round words when they form invalid adjacent cross-words with each other", () => {});
 
   describe("inline extension validation", () => {
