@@ -53,13 +53,13 @@ export function RoundHistoryInline({
       {rounds.map((entry) => (
         <div
           key={entry.roundNumber}
-          className="border-t border-white/10 py-1.5 first:border-t-0"
+          className="border-t border-hair py-1.5 first:border-t-0"
         >
-          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-white/40">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-ink-soft">
             Round {entry.roundNumber}
           </p>
           {entry.words.length === 0 ? (
-            <p className="text-[0.6rem] italic text-white/30">
+            <p className="text-[0.6rem] italic text-ink-soft/50">
               no words
             </p>
           ) : (
@@ -67,12 +67,12 @@ export function RoundHistoryInline({
               {entry.words.map((w, i) => (
                 <li
                   key={`${w.word}-${i}`}
-                  className="flex items-center justify-between text-[0.7rem] text-white/70"
+                  className="flex items-center justify-between text-[0.7rem] text-ink-3"
                 >
                   <span className="font-mono uppercase tracking-wide">
                     {w.word}
                   </span>
-                  <span className="text-white/50">
+                  <span className="text-ink-soft">
                     +{w.totalPoints}
                   </span>
                 </li>

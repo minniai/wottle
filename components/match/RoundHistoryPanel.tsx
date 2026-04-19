@@ -26,25 +26,25 @@ function WordRow({
 }) {
   return (
     <li
-      className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-white/5"
+      className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-paper-2"
       onMouseEnter={() => onWordHover?.(word)}
       onMouseLeave={() => onWordHover?.(null)}
       onFocus={() => onWordHover?.(word)}
       onBlur={() => onWordHover?.(null)}
       tabIndex={onWordHover ? 0 : undefined}
     >
-      <span className="font-mono uppercase tracking-wide text-white">
+      <span className="font-mono uppercase tracking-wide text-ink">
         {word.word}
       </span>
-      <span className="ml-4 shrink-0 text-white/60">
-        <span className="text-white/40">{word.word.length}L</span>
+      <span className="ml-4 shrink-0 text-ink-soft">
+        <span className="text-ink-soft">{word.word.length}L</span>
         {" · "}
         <span>{word.lettersPoints}</span>
         {word.bonusPoints > 0 && (
           <span className="text-emerald-400"> +{word.bonusPoints}</span>
         )}
         {" = "}
-        <span className="font-semibold text-white">{word.totalPoints} pts</span>
+        <span className="font-semibold text-ink">{word.totalPoints} pts</span>
       </span>
     </li>
   );
@@ -63,7 +63,7 @@ function PlayerWordSection({
 }) {
   return (
     <div className="mt-2">
-      <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
+      <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
         {username}
       </p>
       <ul
@@ -72,7 +72,7 @@ function PlayerWordSection({
         className="mt-1 space-y-1"
       >
         {words.length === 0 ? (
-          <li className="text-sm text-white/30">No words</li>
+          <li className="text-sm text-ink-soft/50">No words</li>
         ) : (
           words.map((w, i) => (
             <WordRow key={`${w.word}-${i}`} word={w} onWordHover={onWordHover} />
@@ -101,28 +101,28 @@ function RoundRow({
   const fmtDelta = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5">
+    <div className="rounded-xl border border-hair bg-paper-2">
       <button
         type="button"
         id={triggerId}
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition hover:bg-white/5"
+        className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition hover:bg-paper-3"
         data-testid={`round-row-${entry.roundNumber}`}
       >
-        <span className="font-semibold text-white">Round {entry.roundNumber}</span>
+        <span className="font-semibold text-ink">Round {entry.roundNumber}</span>
         <span className="flex items-center gap-4 text-sm">
           <span className="text-blue-400">
             {playerAUsername}: {fmtDelta(entry.playerA.delta)}{" "}
-            <span className="text-white/40">({entry.playerA.cumulative})</span>
+            <span className="text-ink-soft">({entry.playerA.cumulative})</span>
           </span>
           <span className="text-red-400">
             {playerBUsername}: {fmtDelta(entry.playerB.delta)}{" "}
-            <span className="text-white/40">({entry.playerB.cumulative})</span>
+            <span className="text-ink-soft">({entry.playerB.cumulative})</span>
           </span>
           <span
-            className={`ml-2 text-white/40 transition-transform ${expanded ? "rotate-180" : ""}`}
+            className={`ml-2 text-ink-soft transition-transform ${expanded ? "rotate-180" : ""}`}
             aria-hidden="true"
           >
             ▾
@@ -135,7 +135,7 @@ function RoundRow({
           id={panelId}
           role="region"
           aria-labelledby={triggerId}
-          className="border-t border-white/10 px-4 pb-4"
+          className="border-t border-hair px-4 pb-4"
         >
           <PlayerWordSection
             username={playerAUsername}
@@ -172,14 +172,14 @@ export function RoundHistoryPanel({
               <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">
                 Biggest swing
               </p>
-              <p className="mt-1 text-sm text-white">
+              <p className="mt-1 text-sm text-ink">
                 Round {biggestSwing.roundNumber}{" "}
-                <span className="text-white/60">(±{biggestSwing.swingAmount} pts)</span>
+                <span className="text-ink-soft">(±{biggestSwing.swingAmount} pts)</span>
               </p>
             </div>
           ) : (
             biggestSwing === null && (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/40" data-testid="callout-no-swing">
+              <div className="rounded-xl border border-hair bg-paper-2 px-4 py-3 text-sm text-ink-soft" data-testid="callout-no-swing">
                 No scoring swings
               </div>
             )
@@ -189,16 +189,16 @@ export function RoundHistoryPanel({
               <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
                 Top word
               </p>
-              <p className="mt-1 font-mono text-sm font-semibold uppercase text-white">
+              <p className="mt-1 font-mono text-sm font-semibold uppercase text-ink">
                 {highestWord.word}
               </p>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-ink-soft">
                 {highestWord.username} · Round {highestWord.roundNumber} · {highestWord.totalPoints} pts
               </p>
             </div>
           ) : (
             highestWord === null && (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/40" data-testid="callout-no-word">
+              <div className="rounded-xl border border-hair bg-paper-2 px-4 py-3 text-sm text-ink-soft" data-testid="callout-no-word">
                 No scored words
               </div>
             )
@@ -207,7 +207,7 @@ export function RoundHistoryPanel({
       )}
 
       {rounds.length === 0 ? (
-        <p className="py-8 text-center text-sm text-white/40" data-testid="round-history-empty">
+        <p className="py-8 text-center text-sm text-ink-soft" data-testid="round-history-empty">
           No rounds completed.
         </p>
       ) : (

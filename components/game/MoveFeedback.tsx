@@ -18,7 +18,7 @@ interface MoveFeedbackProps {
 }
 
 const BASE_CLASSES =
-  "move-feedback relative mt-4 w-full max-w-md rounded-lg border px-5 py-4 text-sm shadow-lg outline-none transition focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900";
+  "move-feedback relative mt-4 w-full max-w-md rounded-lg border px-5 py-4 text-sm shadow-lg outline-none transition focus-visible:ring-2 focus-visible:ring-ink-soft focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
 const SUCCESS_CLASSES = "border-emerald-400/60 bg-emerald-500/10 text-emerald-50";
 const ERROR_CLASSES = "border-rose-500/70 bg-rose-500/15 text-rose-50";
 const DEFAULT_AUTO_HIDE_MS = 6000;
@@ -120,13 +120,13 @@ export function MoveFeedback({
                 {feedback.title ??
                   (feedback.variant === "success" ? "Move accepted" : "Move rejected")}
               </p>
-              <p className="text-sm text-white/80">{feedback.message}</p>
+              <p className="text-sm text-ink-3">{feedback.message}</p>
             </div>
             {onDismiss ? (
               <button
                 type="button"
                 aria-label="Dismiss move feedback"
-                className="ml-2 inline-flex flex-shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs font-medium text-white/80 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                className="ml-2 inline-flex flex-shrink-0 items-center justify-center rounded-md border border-hair-strong bg-paper-2 px-2 py-1 text-xs font-medium text-ink-3 transition hover:bg-paper-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-soft focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
                 data-testid="move-feedback-dismiss"
                 onClick={() => {
                   if (timeoutRef.current) {

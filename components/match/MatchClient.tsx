@@ -827,10 +827,10 @@ export function MatchClient({
 
       {showDebug && (
         <details
-          className="mt-4 rounded-lg border border-white/10 bg-slate-900/50 p-3 text-xs text-white/60"
+          className="mt-4 rounded-lg border border-hair bg-paper-2 p-3 text-xs text-ink-soft"
           data-testid="debug-metadata"
         >
-          <summary className="cursor-pointer text-white/40">
+          <summary className="cursor-pointer text-ink-soft">
             Debug Info
           </summary>
           <dl className="mt-2 grid grid-cols-2 gap-1">
@@ -859,17 +859,17 @@ export function MatchClient({
         >
           <div
             ref={historyOverlayRef}
-            className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-white/10 bg-slate-900 p-4 shadow-2xl sm:rounded-2xl"
+            className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-hair bg-paper p-4 shadow-2xl sm:rounded-2xl"
             role="dialog"
             aria-label="Round history"
             data-testid="history-overlay"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Round History</h2>
+              <h2 className="text-lg font-semibold text-ink">Round History</h2>
               <button
                 type="button"
                 onClick={() => setHistoryOpen(false)}
-                className="rounded-lg px-2 py-1 text-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                className="rounded-lg px-2 py-1 text-sm text-ink-soft transition hover:bg-paper-2 hover:text-ink"
                 aria-label="Close round history"
                 data-testid="history-close"
               >
@@ -895,15 +895,15 @@ export function MatchClient({
           data-testid="resign-dialog-backdrop"
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-2xl border border-hair bg-paper p-6 shadow-2xl"
             role="alertdialog"
             aria-label="Confirm resignation"
             data-testid="resign-dialog"
           >
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-ink">
               Resign?
             </h2>
-            <p className="mt-2 text-sm text-white/70">
+            <p className="mt-2 text-sm text-ink-3">
               Are you sure you want to resign? Your opponent will win.
             </p>
             <div className="mt-6 flex gap-3">
@@ -919,7 +919,7 @@ export function MatchClient({
               <button
                 type="button"
                 onClick={() => setShowResignDialog(false)}
-                className="rounded-xl border border-white/20 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+                className="rounded-xl border border-hair-strong px-4 py-2 text-sm text-ink transition hover:bg-paper-2"
                 data-testid="resign-cancel"
               >
                 Cancel
