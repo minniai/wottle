@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces } from "next/font/google";
+import { Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./styles/board.css";
 import "./styles/lobby.css";
@@ -14,6 +14,14 @@ const fraunces = Fraunces({
   axes: ["opsz"],
 });
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+  preload: true,
+  variable: "--font-jetbrains-mono",
+  weight: ["400", "500"],
+});
+
 export const metadata: Metadata = {
   title: "Wottle — Icelandic word duel",
   description:
@@ -26,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={fraunces.variable}>
+    <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-screen overflow-x-clip bg-surface-0 text-text-primary antialiased">
         <ToastProvider>
           <div className="relative flex min-h-screen flex-col">
