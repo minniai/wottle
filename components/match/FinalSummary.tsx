@@ -283,7 +283,7 @@ export function FinalSummary({
       />
     )}
     <section
-      className="w-full overflow-hidden rounded-3xl border border-hair bg-paper p-3 shadow-2xl shadow-paper/60 sm:p-8"
+      className="w-full overflow-hidden rounded-3xl border border-hair bg-paper p-3 shadow-wottle-lg sm:p-8"
       data-testid="final-summary-root"
     >
       {/* Board with player HUD panels, matching in-game 3-column layout */}

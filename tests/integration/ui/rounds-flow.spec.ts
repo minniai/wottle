@@ -170,7 +170,7 @@ test.describe("Round flow", () => {
       }
 
       // After round 10, should see final summary (navigation + render can be slow in CI/Docker)
-      const summaryView = pageA.getByTestId("final-summary-view");
+      const summaryView = pageA.getByTestId("final-summary-root");
       await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
       // Verify match ended properly

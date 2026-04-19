@@ -100,7 +100,7 @@ test.describe("Match completion — game-over screen (T034)", () => {
         }
 
         // Final summary should be visible
-        const summaryView = pageA.getByTestId("final-summary-view");
+        const summaryView = pageA.getByTestId("final-summary-root");
         await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
         // Winner declaration OR draw banner must be visible

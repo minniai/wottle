@@ -121,7 +121,7 @@ test.describe("Final summary recap", () => {
         }
       }
 
-      const summaryView = pageA.getByTestId("final-summary-view");
+      const summaryView = pageA.getByTestId("final-summary-root");
       await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
       await expect(pageA.getByTestId("final-summary-scoreboard")).toBeVisible();
