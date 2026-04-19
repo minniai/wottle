@@ -39,10 +39,10 @@
   aspect-ratio: 1; /* Grid itself must be square — independent of wrapper height */
   padding: clamp(0.75rem, 1vw, 1rem);
   border-radius: 1rem;
-  background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
+  background: linear-gradient(145deg, color-mix(in oklab, var(--paper) 92%, transparent), color-mix(in oklab, var(--paper) 77%, transparent));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 18px 28px -24px rgba(15, 118, 255, 0.5);
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 8%, transparent),
+    0 18px 28px -24px color-mix(in oklab, var(--p1) 50%, transparent);
 
   transform: scale(var(--board-scale, 1));
   transform-origin: center center;
@@ -62,13 +62,13 @@
   aspect-ratio: 1 / 1;
   min-width: 0;
   border-radius: 0.65rem;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid color-mix(in oklab, var(--ink) 20%, transparent);
   background: radial-gradient(
     circle at 30% 30%,
-    rgba(248, 250, 252, 0.14),
-    rgba(30, 41, 59, 0.85)
+    color-mix(in oklab, var(--paper) 14%, transparent),
+    color-mix(in oklab, var(--paper) 85%, transparent)
   );
-  color: rgba(248, 250, 252, 0.92);
+  color: color-mix(in oklab, var(--paper) 92%, transparent);
   font-weight: 600;
   font-size: var(--board-grid-font-size);
   letter-spacing: 0; /* letter-spacing shifts single chars off-center; no spacing needed on tiles */
@@ -76,8 +76,8 @@
   cursor: pointer;
   overflow: visible; /* Safari: border-radius on <button> implicitly clips — force off */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -4px 12px rgba(15, 23, 42, 0.35);
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 12%, transparent),
+    inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent);
   transition:
     transform 200ms ease-out,
     border-color 150ms ease,
@@ -112,10 +112,10 @@
 
 .board-grid__cell:hover,
 .board-grid__cell:focus-within {
-  border-color: rgba(14, 165, 233, 0.65);
+  border-color: color-mix(in oklab, var(--p1) 65%, transparent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 12px 22px -18px rgba(14, 165, 233, 0.75);
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 18%, transparent),
+    0 12px 22px -18px color-mix(in oklab, var(--p1) 75%, transparent);
   transform: translateY(-1px);
   outline: none;
 }
@@ -127,12 +127,12 @@
 }
 
 .board-grid__cell--selected {
-  background: rgba(251, 146, 60, 0.7) !important;
-  border-color: rgba(251, 146, 60, 0.9);
+  background: color-mix(in oklab, var(--accent) 70%, transparent) !important;
+  border-color: color-mix(in oklab, var(--accent) 90%, transparent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 0 0 3px rgba(251, 146, 60, 0.35),
-    inset 0 -4px 12px rgba(15, 23, 42, 0.35);
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 25%, transparent),
+    0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent),
+    inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent);
 }
 
 /* Opponent move reveal: sky-blue flash then fade (distinct from orange locked tiles) */
@@ -142,29 +142,29 @@
 
 @keyframes opponent-reveal-fade {
   0% {
-    background: rgba(56, 189, 248, 0.75);
+    background: color-mix(in oklab, var(--p1) 75%, transparent);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.3),
-      0 0 0 3px rgba(56, 189, 248, 0.5);
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 30%, transparent),
+      0 0 0 3px color-mix(in oklab, var(--p1) 50%, transparent);
   }
   40% {
-    background: rgba(56, 189, 248, 0.55);
+    background: color-mix(in oklab, var(--p1) 55%, transparent);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      0 0 0 2px rgba(56, 189, 248, 0.3);
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 20%, transparent),
+      0 0 0 2px color-mix(in oklab, var(--p1) 30%, transparent);
   }
   100% {
     background: transparent;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      inset 0 -4px 12px rgba(15, 23, 42, 0.35);
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 12%, transparent),
+      inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .board-grid__cell--opponent-reveal {
     animation: none;
-    background: rgba(56, 189, 248, 0.55);
+    background: color-mix(in oklab, var(--p1) 55%, transparent);
   }
 }
 
@@ -182,15 +182,15 @@
 .board-grid--locked .board-grid__cell:hover,
 .board-grid--locked .board-grid__cell:focus-within {
   transform: none;
-  border-color: rgba(148, 163, 184, 0.2);
+  border-color: color-mix(in oklab, var(--ink) 20%, transparent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -4px 12px rgba(15, 23, 42, 0.35);
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 12%, transparent),
+    inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent);
 }
 
 /* Move lock: orange highlight on swapped tiles until next round (US1) */
 .board-grid__cell--locked {
-  background: rgba(251, 146, 60, 0.7) !important;
+  background: color-mix(in oklab, var(--accent) 70%, transparent) !important;
   cursor: not-allowed;
   opacity: 1 !important;
   filter: none !important;
@@ -210,15 +210,15 @@
   z-index: 20;
   padding: 0.5rem 1.25rem;
   border-radius: 0.75rem;
-  background: rgba(251, 146, 60, 0.85);
-  color: #fff;
+  background: color-mix(in oklab, var(--accent) 85%, transparent);
+  color: var(--paper);
   font-size: clamp(0.75rem, 1vw + 0.3rem, 1rem);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   pointer-events: none;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px color-mix(in oklab, var(--ink) 40%, transparent);
   animation: lock-banner-in 300ms ease-out forwards;
 }
 
@@ -254,8 +254,8 @@
 .board-grid__cell--frozen:focus-within {
   transform: none;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -4px 12px rgba(15, 23, 42, 0.35);
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 12%, transparent),
+    inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent);
 }
 
 /* Scored tile highlight: 700ms player-colored glow (PRD §7.2) */
@@ -266,29 +266,29 @@
 @keyframes scored-tile-highlight {
   0% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      inset 0 -4px 12px rgba(15, 23, 42, 0.35),
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 12%, transparent),
+      inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent),
       0 0 0 0 var(--highlight-color, transparent);
     opacity: 1;
   }
   28% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.3),
-      inset 0 -4px 12px rgba(15, 23, 42, 0.35),
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 30%, transparent),
+      inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent),
       0 0 0 6px var(--highlight-color, transparent);
     opacity: 1;
   }
   71% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.3),
-      inset 0 -4px 12px rgba(15, 23, 42, 0.35),
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 30%, transparent),
+      inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent),
       0 0 0 6px var(--highlight-color, transparent);
     opacity: 1;
   }
   100% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      inset 0 -4px 12px rgba(15, 23, 42, 0.35),
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 12%, transparent),
+      inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent),
       0 0 0 0 var(--highlight-color, transparent);
     opacity: 0.8;
   }
@@ -298,8 +298,8 @@
 .board-grid__cell--scored.board-grid__cell--scored-static {
   animation: none;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -4px 12px rgba(15, 23, 42, 0.35),
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 20%, transparent),
+    inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent),
     0 0 0 2px var(--highlight-color, transparent);
 }
 
@@ -307,8 +307,8 @@
   .board-grid__cell--scored {
     animation: none;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      inset 0 -4px 12px rgba(15, 23, 42, 0.35),
+      inset 0 1px 0 color-mix(in oklab, var(--p1) 20%, transparent),
+      inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent),
       0 0 0 2px var(--highlight-color, transparent);
   }
 }
@@ -337,7 +337,7 @@
   white-space: nowrap;
   font-size: 0.7rem;
   font-weight: 600;
-  color: rgba(52, 211, 153, 0.95);
+  color: color-mix(in oklab, var(--accent-alt) 95%, transparent);
   pointer-events: none;
   animation: score-delta-popup 3s ease-out forwards;
 }
@@ -370,11 +370,11 @@
 /* Invalid swap: shake + red border flash on rejected move */
 .board-grid__cell--invalid {
   animation: invalid-shake 400ms ease-in-out forwards;
-  border-color: rgba(239, 68, 68, 0.9) !important;
+  border-color: color-mix(in oklab, var(--p2) 90%, transparent) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 0 0 2px rgba(239, 68, 68, 0.4),
-    inset 0 -4px 12px rgba(15, 23, 42, 0.35) !important;
+    inset 0 1px 0 color-mix(in oklab, var(--p1) 20%, transparent),
+    0 0 0 2px color-mix(in oklab, var(--p2) 40%, transparent),
+    inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent) !important;
 }
 
 @keyframes invalid-shake {
@@ -407,12 +407,12 @@
 
 .board-grid__error {
   border-radius: 0.75rem;
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.12);
-  color: rgba(254, 226, 226, 0.95);
+  border: 1px solid color-mix(in oklab, var(--p2) 35%, transparent);
+  background: color-mix(in oklab, var(--p2) 12%, transparent);
+  color: color-mix(in oklab, var(--p2) 95%, transparent);
   font-size: 0.9rem;
   padding: 0.75rem 1rem;
-  box-shadow: 0 10px 24px -20px rgba(248, 113, 113, 0.65);
+  box-shadow: 0 10px 24px -20px color-mix(in oklab, var(--p2) 65%, transparent);
 }
 
 /* ─── Three-column match layout (018-match-hud-layout) ──────────────── */
@@ -518,19 +518,19 @@
   z-index: 25;
   padding: 0.75rem 2.5rem;
   border-radius: 1rem;
-  background: rgba(15, 23, 42, 0.92);
-  border: 2px solid rgba(56, 189, 248, 0.4);
-  color: #fff;
+  background: color-mix(in oklab, var(--paper) 92%, transparent);
+  border: 2px solid color-mix(in oklab, var(--p1) 40%, transparent);
+  color: var(--paper);
   font-size: clamp(1.5rem, 4vw + 0.5rem, 2.5rem);
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   pointer-events: none;
   white-space: nowrap;
-  text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+  text-shadow: 0 0 20px color-mix(in oklab, var(--p1) 50%, transparent);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(56, 189, 248, 0.15);
+    0 8px 32px color-mix(in oklab, var(--ink) 60%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--p1) 15%, transparent);
   animation: round-announce 1200ms ease-out forwards;
 }
 
@@ -554,11 +554,11 @@
 }
 
 .round-announce--final {
-  border-color: rgba(52, 211, 153, 0.5);
-  text-shadow: 0 0 24px rgba(52, 211, 153, 0.6);
+  border-color: color-mix(in oklab, var(--accent-alt) 50%, transparent);
+  text-shadow: 0 0 24px color-mix(in oklab, var(--accent-alt) 60%, transparent);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(52, 211, 153, 0.2);
+    0 8px 32px color-mix(in oklab, var(--ink) 60%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--accent-alt) 20%, transparent);
   animation: round-announce-final 2400ms ease-out forwards;
 }
 
@@ -591,21 +591,21 @@
 /* ─── Timer state colors ─────────────────────────────────────────── */
 
 .timer-display--running {
-  background: rgba(22, 163, 74, 0.85); /* green-600 */
+  background: color-mix(in oklab, var(--accent-success) 85%, transparent);
 }
 
 .timer-display--paused {
-  background: rgba(234, 138, 0, 0.85); /* orange */
+  background: color-mix(in oklab, var(--accent-warning) 85%, transparent);
 }
 
 .timer-display--expired {
-  background: rgba(220, 38, 38, 0.9); /* red-600 */
+  background: color-mix(in oklab, var(--p2) 90%, transparent);
 }
 
 /* ≤15 s — yellow with brightness flash */
 @keyframes timer-low-flash {
-  0%, 100% { background: rgba(234, 179, 8, 0.85); filter: brightness(1); }
-  50%      { background: rgba(250, 204, 21, 1);    filter: brightness(1.35); }
+  0%, 100% { background: color-mix(in oklab, var(--accent-warning) 85%, transparent); filter: brightness(1); }
+  50%      { background: color-mix(in oklab, var(--accent-warning) 100%, transparent);  filter: brightness(1.35); }
 }
 
 .timer-display--low {
@@ -615,8 +615,8 @@
 @media (prefers-reduced-motion: reduce) {
   .timer-display--low {
     animation: none;
-    background: rgba(234, 179, 8, 0.85);
-    border: 2px solid #ca8a04;
+    background: color-mix(in oklab, var(--accent-warning) 85%, transparent);
+    border: 2px solid color-mix(in oklab, var(--accent-warning) 100%, transparent);
   }
 }
 
