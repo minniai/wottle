@@ -26,7 +26,7 @@ async function loginPlayer(
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 20_000,
   });
-  await expect(page.getByTestId("matchmaker-controls")).toBeVisible({
+  await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({
     timeout: 10_000,
   });
 }

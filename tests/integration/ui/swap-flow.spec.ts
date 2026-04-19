@@ -37,7 +37,7 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
       .catch(() => false);
     if (!lobbyVisible) await page.goto("/");
     await expect(page.getByTestId("lobby-presence-list")).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByTestId("matchmaker-controls")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({ timeout: 10_000 });
   }
 
   async function submitSwap(page: import("@playwright/test").Page) {

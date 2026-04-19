@@ -22,10 +22,10 @@ async function loginAndStartMatch(
   });
 
   // Then check for matchmaker controls
-  await expect(pageA.getByTestId("matchmaker-controls")).toBeVisible({
+  await expect(pageA.getByTestId("matchmaker-start-button")).toBeVisible({
     timeout: 10_000,
   });
-  await expect(pageB.getByTestId("matchmaker-controls")).toBeVisible({
+  await expect(pageB.getByTestId("matchmaker-start-button")).toBeVisible({
     timeout: 10_000,
   });
 
