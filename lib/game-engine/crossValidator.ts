@@ -72,7 +72,7 @@ export function hasCrossWordViolation(
     }
 
     const crossLength = beforeChars.length + 1 + afterChars.length;
-    if (crossLength > 1) {
+    if (crossLength >= minimumWordLength) {
       const crossWord = [
         ...beforeChars,
         board[tile.y][tile.x],

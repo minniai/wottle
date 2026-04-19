@@ -29,7 +29,7 @@ export function GearMenu() {
         aria-label="Open settings"
         aria-expanded={open}
         onClick={handleToggle}
-        className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

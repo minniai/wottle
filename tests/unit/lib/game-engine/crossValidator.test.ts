@@ -147,20 +147,24 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
-  // T029b: Rejects word when swapped tile is adjacent to a frozen tile forming a 2-letter cross-sequence
-  // that is NOT in the dictionary.
-  // "rám" creates cross "my" at M+frozen Y — "my" and "ym" are not valid words → violation.
-  test("T029b: rejects word when end tile has 2-letter vertical cross-sequence not in dictionary", () => {
-    const localDict = new Set(["rám"]); // "my"/"ym" not in dict
+  // T029b: Rejects word when swapped tile is adjacent to frozen tiles forming an
+  // N-letter cross-sequence (N = DEFAULT_GAME_CONFIG.minimumWordLength = 3) that is
+  // NOT in the dictionary. The cross-validator's minimum now tracks the global
+  // minimumWordLength — a 2-letter cross is below threshold and is ignored.
+  test("T029b: rejects word when end tile has ≥-minimum vertical cross-sequence not in dictionary", () => {
+    const localDict = new Set(["rám"]); // "myz"/"zym" not in dict
     const board = emptyBoard();
     // "rám" horizontal at row 1: r(5,1) á(6,1) m(7,1)
     board[1][5] = "r";
     board[1][6] = "á";
     board[1][7] = "m";
-    // Frozen "y" at (7,2) — directly below m
+    // Frozen "y" at (7,2) and "z" at (7,3) — a 2-frozen run below m forms the
+    // 3-letter vertical cross "myz" (m + y + z).
     board[2][7] = "y";
+    board[3][7] = "z";
     const frozenTiles: FrozenTileMap = {
       "7,2": { owner: "player_b" },
+      "7,3": { owner: "player_b" },
     };
 
     const candidates = [hWord("rám", 5, 1)];
@@ -172,7 +176,8 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // m(7,1) + frozen y(7,2) = "my" → not in dictionary → violation → "rám" rejected
+    // m(7,1) + frozen y(7,2) + frozen z(7,3) = "myz" → not in dictionary →
+    // violation → "rám" rejected
     expect(result).toHaveLength(0);
   });
 
@@ -295,18 +300,22 @@ describe("selectOptimalCombination", () => {
     expect(result3).toHaveLength(0);
   });
 
-  // T032b: word A valid alone, but combining with B creates 3-letter cross-word violation
-  test("T032b: word A valid alone, but word B tiles create cross-word violation for A", () => {
+  // T032b: word A rejected by a minimum-length vertical cross with frozen tiles
+  // (at DEFAULT_GAME_CONFIG.minimumWordLength = 3).
+  test("T032b: word A rejected when frozen run creates an invalid ≥3-letter cross", () => {
     const localDict = new Set(["abc", "de"]);
     const board4 = emptyBoard();
     // Word A: "abc" horizontal at (0,3)-(2,3) — left edge
     placeH(board4, "abc", 0, 3);
     // Word B: "de" vertical at (0,4)-(0,5)
     placeV(board4, "de", 0, 4);
-    // Frozen tile at (0,2)="q" — adjacent above word A's tile (0,3)
+    // Frozen run above word A: "x" at (0,1) + "q" at (0,2) → 3-letter cross
+    // "xqa" with a(0,3). Not in dict → violation → "abc" rejected.
+    board4[1][0] = "x";
     board4[2][0] = "q";
 
     const frozenTiles4: FrozenTileMap = {
+      "0,1": { owner: "player_b" },
       "0,2": { owner: "player_b" },
     };
 
@@ -320,7 +329,7 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    // A alone: FAILS — frozen "q" at (0,2) + "a" at (0,3) = "qa" (2 letters) → sub-minimum violation
+    // A alone: FAILS — frozen run "x,q" + "a" = "xqa" (3 letters) not in dict → violation
     // B alone: passes (no frozen adjacency on vertical axis)
     // Result: only B survives
     expect(result4).toHaveLength(1);

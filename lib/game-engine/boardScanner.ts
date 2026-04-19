@@ -5,7 +5,9 @@ import type {
   Direction,
   ScanResult,
 } from "@/lib/types/board";
+import type { GameConfig } from "@/lib/types/game-config";
 import { BOARD_SIZE } from "@/lib/constants/board";
+import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 
 /** Direction vectors for the 4 canonical directions. */
 const DIRECTION_VECTORS: Array<{
@@ -156,19 +158,23 @@ const ORTHOGONAL_VECTORS: Array<{
  *
  * For each swap coordinate, traces 2 orthogonal axes (horizontal, vertical),
  * extracts the full line through that coordinate, and enumerates ALL valid
- * dictionary subsequences of length ≥2 that include the swap coordinate.
+ * dictionary subsequences whose length meets `config.minimumWordLength`.
  * Both forward and reverse readings are checked.
  *
  * @param board - 10×10 grid of letters
  * @param swapCoordinates - Coordinates involved in the swap
  * @param dictionary - Set of valid words (NFC-normalized, lowercase)
+ * @param config - Game config; `minimumWordLength` governs the minimum subsequence length.
+ *                Defaults to `DEFAULT_GAME_CONFIG` (3 per PRD §1.2).
  * @returns All valid words found through swap coordinates (deduplicated)
  */
 export function scanFromSwapCoordinates(
   board: BoardGrid,
   swapCoordinates: Coordinate[],
   dictionary: Set<string>,
+  config: GameConfig = DEFAULT_GAME_CONFIG,
 ): BoardWord[] {
+  const { minimumWordLength } = config;
   const words: BoardWord[] = [];
   const seen = new Set<string>();
 
@@ -196,11 +202,11 @@ export function scanFromSwapCoordinates(
       );
       if (swapIdx === -1) continue;
 
-      // Enumerate all subsequences of length ≥2 that include swapIdx
+      // Enumerate all subsequences that include swapIdx and meet the minimum length
       for (let start = 0; start <= swapIdx; start++) {
         for (let end = swapIdx + 1; end <= lineLen; end++) {
           const len = end - start;
-          if (len < 2) continue;
+          if (len < minimumWordLength) continue;
 
           // Forward direction
           const fwd = buildBoardWord(chars, coords, start, len, forward);
@@ -236,16 +242,21 @@ export function scanFromSwapCoordinates(
  *
  * Uses 4 canonical directions with forward + reverse reading
  * to cover all 8 directions. Extracts all contiguous subsequences
- * of length 3+ and checks each against the dictionary.
+ * whose length meets `config.minimumWordLength` and checks each
+ * against the dictionary.
  *
  * @param board - 10×10 grid of letters
  * @param dictionary - Set of valid words (NFC-normalized, lowercase)
+ * @param config - Game config; `minimumWordLength` governs the minimum subsequence length.
+ *                Defaults to `DEFAULT_GAME_CONFIG` (3 per PRD §1.2).
  * @returns All valid words found with their coordinates and timing
  */
 export function scanBoard(
   board: BoardGrid,
   dictionary: Set<string>,
+  config: GameConfig = DEFAULT_GAME_CONFIG,
 ): ScanResult {
+  const { minimumWordLength } = config;
   const scannedAt = performance.now();
   const words: BoardWord[] = [];
   const seen = new Set<string>();
@@ -257,12 +268,16 @@ export function scanBoard(
       const { chars, coords } = extractLine(board, x, y, dx, dy);
       const lineLen = chars.length;
 
-      if (lineLen < 3) {
+      if (lineLen < minimumWordLength) {
         continue;
       }
 
-      for (let start = 0; start <= lineLen - 3; start++) {
-        for (let len = 3; len <= lineLen - start; len++) {
+      for (let start = 0; start <= lineLen - minimumWordLength; start++) {
+        for (
+          let len = minimumWordLength;
+          len <= lineLen - start;
+          len++
+        ) {
           // Forward direction
           const fwd = buildBoardWord(chars, coords, start, len, forward);
           const fwdKey = `${fwd.text}:${fwd.direction}:${fwd.start.x},${fwd.start.y}`;

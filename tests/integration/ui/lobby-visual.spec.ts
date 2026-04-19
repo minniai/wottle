@@ -16,7 +16,9 @@ test.describe("Lobby visual foundation — brand + layout", () => {
   test("logged-out hero renders Wottle wordmark and ORÐUSTA", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Wottle" })).toBeVisible();
-    await expect(page.getByText(/ORÐUSTA/)).toBeVisible();
+    // Kicker text exactly "ORÐUSTA" — sr-only status prefixes with "Current hero word:",
+    // so exact match disambiguates automatically.
+    await expect(page.getByText("ORÐUSTA", { exact: true })).toBeVisible();
   });
 
   test("logged-out view passes WCAG 2.1 AA axe scan", async ({ page }) => {

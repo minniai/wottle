@@ -2,6 +2,7 @@ import { describe, expect, test, beforeAll } from "vitest";
 
 import { scanBoard, scanFromSwapCoordinates } from "@/lib/game-engine/boardScanner";
 import { loadDictionary } from "@/lib/game-engine/dictionary";
+import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 import type { BoardGrid } from "@/lib/types/board";
 
 /** Create a 10x10 board filled with a single letter (no valid words). */
@@ -298,14 +299,33 @@ describe("scanFromSwapCoordinates", () => {
     expect(burRow5).toBeUndefined();
   });
 
-  // T021: finds 2-letter words (uses mock dictionary since real dict has no 2-letter entries)
-  test("T021: finds 2-letter words (minimum length 2)", () => {
+  // With DEFAULT_GAME_CONFIG.minimumWordLength = 3 (PRD §1.2) the scanner must NOT
+  // surface 2-letter candidates.
+  test("rejects 2-letter candidates under the default config (minimumWordLength=3)", () => {
     const board = emptyBoard();
     board[0][3] = "a";
     board[0][4] = "b";
 
     const mockDict = new Set(["ab"]);
     const words = scanFromSwapCoordinates(board, [{ x: 3, y: 0 }], mockDict);
+
+    expect(words.find((w) => w.text === "ab")).toBeUndefined();
+  });
+
+  // But the minimum is config-driven: a caller passing minimumWordLength=2 must
+  // re-enable 2-letter scoring end-to-end.
+  test("finds 2-letter words when config.minimumWordLength=2 is passed", () => {
+    const board = emptyBoard();
+    board[0][3] = "a";
+    board[0][4] = "b";
+
+    const mockDict = new Set(["ab"]);
+    const words = scanFromSwapCoordinates(
+      board,
+      [{ x: 3, y: 0 }],
+      mockDict,
+      { ...DEFAULT_GAME_CONFIG, minimumWordLength: 2 },
+    );
 
     const found = words.find((w) => w.text === "ab");
     expect(found).toBeDefined();
