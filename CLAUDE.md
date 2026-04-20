@@ -114,7 +114,7 @@ Before implementing any feature:
 | 1c | HUD classic refresh — `.hud-card`, `MatchCenterChrome`, top-strip + board-row grid | Merged |
 | 1d | Left-rail cards — `HowToPlayCard`, `LegendCard`, `YourMoveCard`, `MatchLeftRail` | Merged |
 | 2 | Post-game redesign — `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch` | Merged |
-| 3 | Lobby finish — `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState`, `InviteToast` + Server Actions | **PR #115 open** |
+| 3 | Lobby finish — `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState`, `InviteToast` + Server Actions | Merged |
 | 4 | Landing + Matchmaking screens | Planned |
 | 5 | Profile (modal + `/profile` page) + rating history | Planned |
 | 6 | Disconnection modal + claim-win Server Action | Planned |
@@ -241,8 +241,8 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Current Test Health
 
-- **113 test files passing on `main`**, **796 tests passing** (2 intentionally skipped), zero failures.
-- Phase 3 branch (PR #115) adds 22 more tests (818 total). CI runs the two-player Playwright specs (`hud-classic`, `left-rail`, `match-surfaces`, `postgame`, `lobby-finish`) in serial mode + `retries: 1` to avoid Realtime contention.
+- **118 test files passing on `main`**, **818 tests passing** (2 intentionally skipped), zero failures.
+- CI runs the two-player Playwright specs (`hud-classic`, `left-rail`, `match-surfaces`, `postgame`, `lobby-finish`) in serial mode + `retries: 1` to avoid Realtime contention.
 - Lint (zero-warnings policy) and typecheck both pass cleanly.
 
 ### Implementation Status by Area
