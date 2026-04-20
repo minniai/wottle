@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -36,5 +36,24 @@ describe("<UserMenu>", () => {
     const chip = screen.getByRole("button", { name: /ari/i });
     expect(chip).toHaveAttribute("aria-haspopup", "menu");
     expect(chip).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("opens the menu on chip click and sets aria-expanded", () => {
+    render(<UserMenu session={session} />);
+    const chip = screen.getByRole("button", { name: /ari/i });
+    fireEvent.click(chip);
+    expect(chip).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(screen.getByText("Signed in as Ari")).toBeInTheDocument();
+  });
+
+  it("closes the menu on Escape and returns focus to the chip", () => {
+    render(<UserMenu session={session} />);
+    const chip = screen.getByRole("button", { name: /ari/i });
+    fireEvent.click(chip);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(chip).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(chip);
   });
 });
