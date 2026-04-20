@@ -36,10 +36,10 @@ export default async function LobbyPage() {
       ) : (
         <Card elevation={0} className="lobby-cta-card space-y-5 p-6 sm:p-8">
           <div>
-            <p className="font-display text-2xl font-semibold text-text-primary sm:text-3xl">
+            <p className="font-display text-2xl font-semibold text-text-inverse sm:text-3xl">
               Enter the lobby
             </p>
-            <p className="text-sm text-text-secondary">
+            <p className="text-sm text-text-inverse/70">
               Pick a username to appear to other players and start challenging.
             </p>
           </div>

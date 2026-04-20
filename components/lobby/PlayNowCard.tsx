@@ -131,10 +131,10 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
     <Card elevation={0} className="lobby-cta-card space-y-5 p-6 sm:p-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-display text-2xl font-semibold text-text-primary sm:text-3xl">
+          <p className="font-display text-2xl font-semibold text-text-inverse sm:text-3xl">
             Ready to play?
           </p>
-          <p className="text-sm text-text-secondary">
+          <p className="text-sm text-text-inverse/70">
             Drop into a ranked match against someone near your rating.
           </p>
         </div>
@@ -194,10 +194,10 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
             data-testid="matchmaker-queue-status"
             role="status"
             aria-live="polite"
-            className="flex-1 rounded-lg border border-accent-focus/30 bg-accent-focus/5 px-4 py-3 text-sm text-text-primary"
+            className="flex-1 rounded-lg border border-accent-focus/30 bg-accent-focus/5 px-4 py-3 text-sm text-text-inverse"
           >
             <p>{statusMessage}</p>
-            <p className="mt-1 text-xs text-text-muted">
+            <p className="mt-1 text-xs text-text-inverse/50">
               {formatElapsed(elapsedSeconds)} elapsed
             </p>
           </div>

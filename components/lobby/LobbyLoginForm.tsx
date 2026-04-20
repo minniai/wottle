@@ -24,14 +24,14 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
 
   return (
     <form
-      className="space-y-4 text-sm text-text-secondary"
+      className="space-y-4 text-sm text-text-inverse/70"
       action={formAction}
       data-testid="lobby-login-form"
     >
       <div>
         <label
           htmlFor="username"
-          className="text-xs font-semibold uppercase tracking-wide text-text-secondary"
+          className="text-xs font-semibold uppercase tracking-wide text-text-inverse/70"
         >
           Choose a username
         </label>
@@ -48,7 +48,7 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
           className="mt-2 w-full rounded-lg border border-surface-3 bg-surface-0 px-3 py-2 font-mono text-sm text-text-primary placeholder:text-text-muted focus:border-accent-focus focus:outline-none focus:ring-2 focus:ring-accent-focus/40"
           data-testid="lobby-username-input"
         />
-        <p className="mt-2 text-xs text-text-muted">
+        <p className="mt-2 text-xs text-text-inverse/50">
           Letters, numbers, underscores, or hyphens only.
         </p>
       </div>

@@ -75,7 +75,7 @@ export function LobbyHero() {
         {currentWord.letters.map((letter, i) => (
           <span
             key={`${wordIndex}-${i}`}
-            className={`lobby-hero-tile lobby-hero-cascade inline-flex h-12 w-12 items-center justify-center rounded-lg font-display text-2xl font-bold text-text-primary sm:h-14 sm:w-14 sm:text-3xl md:h-16 md:w-16 md:text-4xl ${
+            className={`lobby-hero-tile lobby-hero-cascade inline-flex h-12 w-12 items-center justify-center rounded-lg font-display text-2xl font-bold text-text-inverse sm:h-14 sm:w-14 sm:text-3xl md:h-16 md:w-16 md:text-4xl ${
               prefersReducedMotion ? "" : "lobby-hero-tile--flipping"
             }`}
             style={
