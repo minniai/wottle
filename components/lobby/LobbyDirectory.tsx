@@ -2,6 +2,7 @@
 
 import { useState, type KeyboardEvent } from "react";
 
+import { EmptyLobbyState } from "@/components/lobby/EmptyLobbyState";
 import { LobbyCard } from "@/components/lobby/LobbyCard";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -40,37 +41,6 @@ function SkeletonRow() {
   );
 }
 
-function EmptyState() {
-  const copyInviteLink = () => {
-    if (typeof window === "undefined" || !navigator.clipboard) {
-      return;
-    }
-    void navigator.clipboard.writeText(window.location.origin);
-  };
-  return (
-    <div
-      data-testid="lobby-empty-state"
-      className="rounded-2xl border border-dashed border-surface-3 bg-surface-0 p-6 text-center"
-    >
-      <p className="text-sm font-semibold text-text-primary">
-        No other players yet
-      </p>
-      <p className="mt-1 text-xs text-text-secondary">
-        Share the invite link with a friend to start a match.
-      </p>
-      <div className="mt-4">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={copyInviteLink}
-          aria-label="Copy invite link"
-        >
-          Copy invite link
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 export function LobbyDirectory({
   players,
@@ -102,7 +72,16 @@ export function LobbyDirectory({
 
   const others = visible.filter((p) => p.id !== selfId);
   if (others.length === 0 && hidden.length === 0) {
-    return <EmptyState />;
+    return (
+      <EmptyLobbyState
+        onJoinQueue={() => {
+          const btn = document.querySelector(
+            "[data-testid=\"matchmaker-start-button\"]",
+          );
+          if (btn instanceof HTMLElement) btn.focus();
+        }}
+      />
+    );
   }
 
   const rendered = expanded ? [...visible, ...hidden] : visible;

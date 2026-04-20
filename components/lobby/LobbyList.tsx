@@ -1,15 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { respondInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { LobbyDirectory } from "@/components/lobby/LobbyDirectory";
 import {
   InviteDialog,
   type IncomingInvite,
 } from "@/components/lobby/InviteDialog";
+import { InviteToast } from "@/components/lobby/InviteToast";
 import { PlayerProfileModal } from "@/components/player/PlayerProfileModal";
+import { useToast } from "@/components/ui/ToastProvider";
 import { getNextRovingIndex } from "@/lib/a11y/rovingFocus";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import type { PlayerIdentity } from "@/lib/types/match";
@@ -45,6 +48,8 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
 
   const [profilePlayerId, setProfilePlayerId] = useState<string | null>(null);
   const [invite, setInvite] = useState<InviteState>({ kind: "none" });
+  const [, startTransition] = useTransition();
+  const { enqueue } = useToast();
 
   useEffect(() => {
     if (disconnectTimerRef.current) {
@@ -208,6 +213,44 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
     [players],
   );
 
+  const handleAcceptInvite = useCallback(
+    (inviteId: string) => {
+      startTransition(async () => {
+        const result = await respondInviteAction(inviteId, "accepted");
+        if (result.status === "accepted" && result.matchId) {
+          setInvite({ kind: "none" });
+          router.push(`/match/${result.matchId}`);
+          return;
+        }
+        enqueue({
+          tone: "error",
+          title: "Could not accept invite",
+          description: result.message ?? "Try again in a moment.",
+        });
+      });
+    },
+    [router, enqueue],
+  );
+
+  const handleDeclineInvite = useCallback(
+    (inviteId: string) => {
+      startTransition(async () => {
+        const result = await respondInviteAction(inviteId, "declined");
+        if (result.status === "declined") {
+          enqueue({ tone: "info", title: "Invite declined." });
+          setInvite({ kind: "none" });
+          return;
+        }
+        enqueue({
+          tone: "error",
+          title: "Could not decline invite",
+          description: result.message ?? "Try again in a moment.",
+        });
+      });
+    },
+    [enqueue],
+  );
+
   return (
     <>
       {profilePlayerId ? (
@@ -253,11 +296,20 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
       ) : null}
 
       {invite.kind === "receive" ? (
-        <InviteDialog
-          variant="receive"
-          open
+        <InviteToast
+          invite={{
+            inviteId: invite.invite.id,
+            fromDisplayName:
+              invite.invite.sender.displayName ??
+              invite.invite.sender.username ??
+              "Opponent",
+            fromUsername: invite.invite.sender.username ?? "unknown",
+            fromElo: 0,
+            yourElo: currentPlayer.eloRating ?? 0,
+          }}
+          onAccept={handleAcceptInvite}
+          onDecline={handleDeclineInvite}
           onClose={() => setInvite({ kind: "none" })}
-          invite={invite.invite}
         />
       ) : null}
     </>
