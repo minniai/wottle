@@ -814,3 +814,9 @@
   color: var(--bad);
   border-color: color-mix(in oklab, var(--bad) 40%, transparent);
 }
+
+.hud-card__clock--waiting {
+  background: color-mix(in oklab, var(--warn) 16%, var(--paper));
+  color: color-mix(in oklab, var(--warn) 80%, var(--ink));
+  border-color: color-mix(in oklab, var(--warn) 50%, transparent);
+}

@@ -107,3 +107,4 @@ supabase/.temp
 
 # Claude worktrees
 .claude/worktrees/
+wottle-game-design.zip

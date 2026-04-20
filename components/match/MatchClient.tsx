@@ -53,11 +53,12 @@ function formatClockMMSS(seconds: number): string {
 }
 
 function deriveClockState(
-  isRunning: boolean,
+  status: "running" | "paused" | "expired",
   isLow: boolean,
-): "idle" | "active" | "low" {
-  if (isLow) return "low";
-  if (isRunning) return "active";
+): "idle" | "active" | "low" | "waiting" {
+  if (status === "paused") return "waiting";
+  if (status === "expired" || isLow) return "low";
+  if (status === "running") return "active";
   return "idle";
 }
 
@@ -716,27 +717,6 @@ export function MatchClient({
         {/* Desktop: top HUD strip (hidden on mobile) */}
         <div className="match-layout__hud-strip">
           <HudCard
-            slot="opp"
-            avatar={
-              <PlayerAvatar
-                displayName={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
-                avatarUrl={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).avatarUrl}
-                playerColor={getPlayerColors(opponentSlot).hex}
-                size="sm"
-              />
-            }
-            name={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
-            meta={`Opponent · ${(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
-            clock={formatClockMMSS(opponentTimeLeft)}
-            clockState={deriveClockState(opponentTimer.status === "running", opponentTimeLeft < 60)}
-            score={opponentScore}
-          />
-          <MatchCenterChrome
-            currentRound={matchState.currentRound}
-            totalRounds={10}
-            status={centerStatus}
-          />
-          <HudCard
             slot="you"
             avatar={
               <PlayerAvatar
@@ -749,7 +729,7 @@ export function MatchClient({
             name={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
             meta={`You · ${(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
             clock={formatClockMMSS(timeLeftSeconds)}
-            clockState={deriveClockState(!isPaused, timeLeftSeconds < 60)}
+            clockState={deriveClockState(currentTimer.status, timeLeftSeconds < 60)}
             score={playerScore}
           >
             {scoreDelta ? (
@@ -759,6 +739,27 @@ export function MatchClient({
               />
             ) : null}
           </HudCard>
+          <MatchCenterChrome
+            currentRound={matchState.currentRound}
+            totalRounds={10}
+            status={centerStatus}
+          />
+          <HudCard
+            slot="opp"
+            avatar={
+              <PlayerAvatar
+                displayName={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
+                avatarUrl={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).avatarUrl}
+                playerColor={getPlayerColors(opponentSlot).hex}
+                size="sm"
+              />
+            }
+            name={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
+            meta={`Opponent · ${(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
+            clock={formatClockMMSS(opponentTimeLeft)}
+            clockState={deriveClockState(opponentTimer.status, opponentTimeLeft < 60)}
+            score={opponentScore}
+          />
         </div>
 
         <div className="match-layout__board-row">
