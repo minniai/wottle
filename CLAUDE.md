@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap tiles on a 10x10 board to form Icelandic words, with chess-clock tension and spatial tile-freezing strategy.
 
-**Current State**: Specs `002-two-player-playtest` (infrastructure) and `003-word-engine-scoring` (word finding, scoring, frozen tiles) are complete. Spec `004-board-ui-animations` is specified but not yet implemented (41 tasks pending). The core gameplay loop (swap → find words → score → freeze) is fully functional. See `docs/project-analysis-2026-02-14.md` for the original gap analysis.
+**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Nineteen Speckit specs have shipped, and the Warm Editorial visual redesign is in progress: Phases 1a–3 of the design proposal (theme flip, match surfaces, HUD classic, left-rail cards, post-game redesign, lobby finish) have shipped or are in open PRs. See `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md` for the redesign master plan and `docs/superpowers/plans/` for the per-phase implementation plans.
 
 ## Essential Commands
 
@@ -84,14 +84,40 @@ Before implementing any feature:
 2. Check existing specs in `specs/` for patterns
 3. Use appropriate Speckit command for the phase
 
-**Completed Specs**:
-- `specs/002-two-player-playtest/` (All 52 tasks complete — infrastructure milestone)
-- `specs/003-word-engine-scoring/` (All 52 tasks complete — word engine, scoring, frozen tiles)
+**Completed Specs** (all merged to `main`):
+- `001-e2e-board-scaffold` — initial board + swap scaffold
+- `002-two-player-playtest` — infrastructure milestone (52 tasks)
+- `003-word-engine-scoring` — word engine, scoring, frozen tiles (52 tasks)
+- `004-ci-pipeline-refactor` — GitHub Actions pipeline
+- `005-board-ui-animations` — tile swap + scored-tile highlight animations
+- `006-match-completion` — server-authoritative clock enforcement, match end, `FinalSummary`
+- `007-server-authoritative-timer` — timer refactor driven by `rounds.started_at`
+- `008-score-delta-popup` — round-end delta breakdown popup
+- `009-game-rules-config` — rule constants + feature flags
+- `010-word-discovery-highlights` — player-colored scored-tile glow
+- `011-board-ui-polish` — tile-grid visual polish
+- `012-round-history-and-game-recap` — accumulated round history panel
+- `013-scoring-change` — PRD-compliant scoring (length bonus, combo bonus)
+- `014-move-playability-improvements` — invalid-move feedback + shake animation
+- `015-sensory-feedback` — Web Audio + Vibration API, prefers-reduced-motion
+- `016-rematch-post-game-loop` — rematch negotiation, series tracking
+- `017-elo-rating-player-stats` — Elo calculation, lobby rating display, profile modal
+- `018-match-hud-layout` — 3-column match layout + compact mobile bars
+- `019-lobby-visual-foundation` — Warm Editorial lobby (Fraunces/Inter, ui primitives, hero, stats strip, PlayNowCard, LobbyDirectory, InviteDialog, skeleton/empty states)
 
-**In Progress Spec**: `specs/004-board-ui-animations/` (0/41 tasks complete — board UI animations, scored tile highlights, CSS transforms)
+**Warm Editorial Redesign** — visual reimagining of the entire app per the Claude Design prototype. Design doc: `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md`. Per-phase plans in `docs/superpowers/plans/`.
 
-**Recently Shipped** (branch `019-lobby-visual-foundation`, pending merge):
-- `specs/019-lobby-visual-foundation/` — Warm Editorial lobby redesign: Fraunces + Inter via `next/font`, brand/surface/text/accent Tailwind tokens, `components/ui/` primitives layer (Button, Card, Dialog, Avatar, Badge, Skeleton, Toast + ToastProvider), hero with rotating Icelandic nouns anchored by ORÐUSTA, live stats strip + polling matches count, Play Now CTA with Ranked/Casual/Challenge mode pills, directory with generated gradient-initials avatars and per-card Challenge action, Dialog-based invite flow (send + receive variants, bottom-sheet on mobile), 24-card soft cap with "Show all", skeleton + empty states, `prefers-reduced-motion` respected across all keyframes. MatchmakerControls superseded by PlayNowCard + InviteDialog + LobbyStatsStrip.
+| Phase | Scope | Status |
+|---|---|---|
+| 1a | OKLCH theme flip (light mode) + TopBar + JetBrains Mono | Merged |
+| 1b | Match surfaces — letterpress tiles, A–J/1–10 coord labels, `RoundPipBar`, `TilesClaimedCard` | Merged |
+| 1c | HUD classic refresh — `.hud-card`, `MatchCenterChrome`, top-strip + board-row grid | Merged |
+| 1d | Left-rail cards — `HowToPlayCard`, `LegendCard`, `YourMoveCard`, `MatchLeftRail` | Merged |
+| 2 | Post-game redesign — `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch` | Merged |
+| 3 | Lobby finish — `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState`, `InviteToast` + Server Actions | **PR #115 open** |
+| 4 | Landing + Matchmaking screens | Planned |
+| 5 | Profile (modal + `/profile` page) + rating history | Planned |
+| 6 | Disconnection modal + claim-win Server Action | Planned |
 
 ## Architecture
 
@@ -119,10 +145,12 @@ Before implementing any feature:
 - `/docs` - PRD, analysis, wordlists
   - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
 - `/components` - React Client Components
-  - `/components/game` - Board, BoardGrid, MoveFeedback, TimerHud
-  - `/components/match` - MatchClient, MatchShell, RoundSummaryPanel, FinalSummary, WordHighlightOverlay
-  - `/components/lobby` - LobbyList, LobbyLoginForm, MatchmakerControls
-- `/app/styles` - Board CSS (GPU-accelerated animations, scored tile highlights)
+  - `/components/game` — `Board`, `BoardGrid`, `BoardCoordLabels`, `MoveFeedback`, `TimerHud`, `usePinchZoom`
+  - `/components/match` — core match client (`MatchClient`, `MatchShell`), HUD (`HudCard`, `MatchCenterChrome`, `RoundPipBar`), panels (`PlayerPanel`, `PlayerAvatar`, `TimerDisplay`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `RoundHistoryInline`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`)
+  - `/components/lobby` — `LobbyHero`, `LobbyList`, `LobbyDirectory`, `LobbyCard`, `LobbyLoginForm`, `LobbyStatsStrip`, `PlayNowCard`, `InviteDialog`, `InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` *(`InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` ship with Phase 3 / PR #115)*
+  - `/components/ui` — shared primitives: `Avatar`, `Badge`, `Button`, `Card`, `Dialog`, `GearMenu`, `SettingsPanel`, `Skeleton`, `Toast`, `ToastProvider`, `TopBar`
+  - `/components/player` — `PlayerProfileModal` (lobby → player drill-in)
+- `/app/styles` — Board + lobby CSS (GPU-accelerated animations, letterpress tiles, `.hud-card`, `.match-layout__hud-strip` / `--board-row` / `--rail--left|right`, ambient lobby background)
 
 ### Key Architectural Patterns
 
@@ -213,33 +241,38 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Current Test Health
 
-- **44 test files passing** (39 unit/contract + 5 integration), **zero failures**
-- **238 individual tests pass**
-- Lint and typecheck both pass cleanly
+- **113 test files passing on `main`**, **796 tests passing** (2 intentionally skipped), zero failures.
+- Phase 3 branch (PR #115) adds 22 more tests (818 total). CI runs the two-player Playwright specs (`hud-classic`, `left-rail`, `match-surfaces`, `postgame`, `lobby-finish`) in serial mode + `retries: 1` to avoid Realtime contention.
+- Lint (zero-warnings policy) and typecheck both pass cleanly.
 
 ### Implementation Status by Area
 
 | Area              | Status      | Notes                                                                           |
 | ----------------- | ----------- | ------------------------------------------------------------------------------- |
-| Auth & Lobby      | Complete    | Login, presence, realtime, polling fallback                                     |
+| Auth & Lobby      | Complete    | Login, presence + 60s heartbeat, realtime + polling fallback                    |
 | Matchmaking       | Complete    | Direct invites, auto-queue, match bootstrap                                     |
 | Round Engine      | Complete    | State machine, conflict resolution, 10-round cycle                              |
 | Realtime          | Complete    | WebSocket channels + HTTP polling fallback                                      |
 | Reconnection      | Complete    | 10s window, timer pause, state restoration                                      |
 | Rate Limiting     | Complete    | 5/min auth, 30/min moves, 429 responses                                         |
-| Accessibility     | Complete    | Focus traps, aria-live, keyboard nav, WCAG 2.1 A                                |
+| Accessibility     | Complete    | Focus traps, aria-live, keyboard nav, 44×44 touch targets, WCAG 2.1 AA axe clean |
 | Observability     | Complete    | Structured logs, perf marks, analytics hooks                                    |
 | Word Finding      | Complete    | Set-based dictionary (3.74M entries), 8-directional scanner, delta detection    |
 | Scoring           | Complete    | PRD-compliant formula, length bonus, combo bonuses, unique word tracking        |
 | Frozen Tiles      | Complete    | Freeze tracking, swap validation, visual overlay, >=24 unfrozen safeguard       |
-| Board Animations  | Spec Only   | Spec 004 defined (41 tasks), CSS scored-tile-highlight keyframe exists          |
-| Server Timer      | Partial     | Client-side display exists, server-authoritative enforcement incomplete         |
+| Board Animations  | Complete    | Tile-swap FLIP, scored-tile glow, invalid-move shake, round-recap sequence      |
+| Server Timer      | Complete    | `rounds.started_at`-based enforcement, timeout-pass synthesis (spec 007)        |
+| Elo + Ratings     | Complete    | `match_ratings` written on match end, ±N rating deltas in post-game (spec 017)  |
+| Rematch           | Complete    | `rematch_requests` table, 30s invite TTL, series tracking (spec 016)            |
+| Theme (visual)    | Phase 1–3   | OKLCH light-mode, HUD classic, post-game redesign, lobby cards (PR #115)        |
 
 ### Remaining Gaps
 
-1. **Board UI Animations**: Spec 004 defines comprehensive tile swap animations, scored tile effects, and combo celebrations — not yet implemented beyond a basic CSS keyframe.
-2. **Server-Authoritative Timer**: Clock state is client-only; server-side enforcement and drift prevention not yet built.
-3. **Legacy Endpoints**: `api/board`, `api/swap`, `actions/getBoard`, `actions/swapTiles` remain from early prototyping.
+1. **Warm Editorial Phase 4** — dedicated Landing (`/`) + Matchmaking (`/matchmaking`) screens; routing change to pull the login form off `/lobby`.
+2. **Warm Editorial Phase 5** — player Profile modal and full `/profile` page with rating-history chart, word cloud, match history.
+3. **Warm Editorial Phase 6** — centered disconnection modal with 90s countdown + `claimWin` Server Action (currently just a text banner).
+4. **Legacy Endpoints** — `api/board`, `api/swap`, `actions/getBoard.ts`, `actions/swapTiles.ts` remain from early prototyping and should be removed in a cleanup pass.
+5. **Unused `PlayerPanel` full variant** — Phase 1c stopped mounting it on desktop; the code path still powers `RoundHistoryInline` surfaces. Audit and delete once verified unused.
 
 ## Code Standards
 
@@ -440,43 +473,36 @@ Playtest configuration:
 
 ## Next Steps (Recommended Priority Order)
 
-### P0 — Board UI Animations: Spec 004 (In Progress)
+### P0 — Warm Editorial Phase 4: Landing + Matchmaking screens
 
-Use `/speckit.implement` to execute `specs/004-board-ui-animations/tasks.md` (41 tasks). Scope:
+Dedicated `/` landing (username form → `/lobby`) and `/matchmaking` (ring spinner, rating-window expansion, found / starting states). Requires minor routing changes to pull the login form off `/lobby`.
 
-1. **Tile Swap Animations**: CSS transform-based swap transitions (GPU-accelerated)
-2. **Scored Tile Highlights**: 3-second highlight animation on scored tiles (keyframe exists in `app/styles/board.css`)
-3. **Combo Celebrations**: Visual feedback for multi-word combos
-4. **Frozen Tile Overlays**: Enhanced visual treatment for frozen tiles
-5. **Performance**: All animations via CSS transforms/opacity (no layout thrashing)
+### P1 — Warm Editorial Phase 5: Profile modal + `/profile` page
 
-### P1 — Server-Authoritative Timer
+- `PlayerProfileDialog` opens from `LobbyDirectory` card clicks; shows sparkline + form chips + Challenge CTA.
+- `/profile` full page with sidebar, stats grid, SVG rating chart, word cloud, match history.
+- New Server Action `getPlayerProfile(handle)` aggregating stats + rating history (start derived from `match_ratings`; migrate to dedicated `rating_history` table only if the derivation gets expensive).
 
-- Store clock state server-side (currently client-only display)
-- Pause on swap submission, resume on next round
-- Enforce time expiration preventing further moves
-- Clock sync to prevent client drift
+### P2 — Warm Editorial Phase 6: Disconnection modal + claim-win
 
-### P2 — Quality & Polish
+- Replace the current text banner with a centered modal (pulse indicator, 90s countdown, Keep-waiting / Claim-win buttons).
+- New Server Action `claimWin(matchId)` — forfeits the opponent once `last_seen_at ≥ 90s`, awards the caller the truncated-score win, broadcasts match-completed via Realtime.
 
-- Clean up legacy endpoints (`api/board`, `api/swap`, `actions/getBoard`, `actions/swapTiles`)
-- Board generation enhancement (seeded words, anti-clustering)
-- Production config (`next.config.js` security headers, `.nvmrc`, `engines` field)
-- Re-establish conventional commit discipline (add commitlint hook)
+### P3 — Legacy Cleanup + Production Readiness
 
-### P3 — Production Readiness
-
-- Vercel deployment configuration
-- Supabase Cloud project setup
-- Sentry error tracking + APM
-- Mobile responsiveness validation
+- Remove legacy endpoints: `api/board`, `api/swap`, `actions/getBoard.ts`, `actions/swapTiles.ts`.
+- Audit + delete the unused `PlayerPanel` full variant once `RoundHistoryInline` is confirmed not to need it.
+- Board generation enhancement (seeded words, anti-clustering).
+- Production config (`next.config.ts` security headers, `.nvmrc`, `engines` field).
+- Sentry error tracking + APM, Vercel production config, Supabase Cloud project setup.
+- Re-establish conventional commit discipline (add commitlint hook).
 
 ## Word Engine Architecture (Spec 003)
 
 The word engine pipeline runs server-side during round resolution:
 
 ```txt
-1. Dictionary loads on first use → Set of ~2.76M Icelandic inflected forms
+1. Dictionary loads on first use → Set of ~3.74M Icelandic inflected forms (full BÍN fresh, 1+ chars)
 2. Board Scanner → 8-directional scan (H, V, 4 diagonals) for 3+ letter words
 3. Delta Detector → Compares pre-swap vs post-swap boards to find newly formed words
 4. Scorer → Per-word: base (letter values) + length bonus (word_length - 2) * 5
