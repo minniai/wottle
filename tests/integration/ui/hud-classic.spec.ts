@@ -39,6 +39,8 @@ async function loginPlayer(
   });
 }
 
+test.describe.configure({ mode: "serial", retries: 1 });
+
 test.describe("@hud-classic Phase 1c HUD", () => {
   test("top strip shows two HUD cards and a centre chrome", async ({
     browser,

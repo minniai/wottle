@@ -17,13 +17,14 @@ interface BadgeProps {
 
 const VARIANT_STYLES: Record<BadgeVariant, string> = {
   available:
-    "border-accent-success/40 bg-accent-success/15 text-emerald-200",
+    "border-good/40 bg-good/15 text-good",
   matchmaking:
-    "border-accent-warning/40 bg-accent-warning/15 text-amber-100",
-  in_match: "border-player-a/40 bg-player-a/15 text-sky-100",
-  offline: "border-surface-3 bg-surface-2 text-text-muted",
-  info: "border-accent-focus/40 bg-accent-focus/15 text-brand-100",
-  warning: "border-accent-warning/40 bg-accent-warning/15 text-amber-100",
+    "border-warn/50 bg-warn/20 text-[color-mix(in_oklab,var(--warn)_80%,var(--ink))]",
+  in_match: "border-p1/40 bg-p1/15 text-p1-deep",
+  offline: "border-hair-strong bg-paper-3 text-ink-soft",
+  info: "border-ochre/40 bg-ochre/15 text-ochre-deep",
+  warning:
+    "border-warn/50 bg-warn/20 text-[color-mix(in_oklab,var(--warn)_80%,var(--ink))]",
 };
 
 export function Badge({

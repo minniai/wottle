@@ -21,9 +21,9 @@ interface ToastProps {
 }
 
 const TONE_STYLES: Record<ToastTone, string> = {
-  success: "border-accent-success/40 bg-accent-success/10 text-emerald-100",
-  error: "border-player-b/40 bg-player-b/10 text-rose-100",
-  info: "border-accent-focus/40 bg-accent-focus/10 text-brand-100",
+  success: "border-good/40 bg-good/10 text-good",
+  error: "border-bad/50 bg-bad/10 text-bad",
+  info: "border-ochre/40 bg-ochre/10 text-ochre-deep",
 };
 
 export function Toast({ message, onDismiss }: ToastProps) {

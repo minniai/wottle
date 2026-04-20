@@ -56,7 +56,7 @@ export function LobbyLoginForm({ initialUsername }: LobbyLoginFormProps) {
       {state.status === "error" && state.message ? (
         <div
           role="alert"
-          className="rounded-lg border border-player-b/40 bg-player-b/10 p-3 text-xs text-rose-100"
+          className="rounded-lg border border-bad/50 bg-bad/10 p-3 text-xs text-bad"
         >
           {state.message}
         </div>
