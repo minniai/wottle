@@ -20,6 +20,13 @@ import { useRematchNegotiation } from "@/components/match/useRematchNegotiation"
 import { RematchBanner } from "@/components/match/RematchBanner";
 import { RematchInterstitial } from "@/components/match/RematchInterstitial";
 import { PlayerProfileModal } from "@/components/player/PlayerProfileModal";
+import { PostGameVerdict } from "@/components/match/PostGameVerdict";
+import {
+  PostGameScoreboard,
+  type ScoreboardEntry,
+} from "@/components/match/PostGameScoreboard";
+import { RoundByRoundChart } from "@/components/match/RoundByRoundChart";
+import { WordsOfMatch } from "@/components/match/WordsOfMatch";
 
 interface PlayerSummary {
   id: string;
@@ -223,6 +230,63 @@ export function FinalSummary({
   const biggestSwing = useMemo(() => deriveBiggestSwing(scoreboard), [scoreboard]);
   const highestWord = useMemo(() => deriveHighestScoringWord(wordHistory, usernameMap), [wordHistory, usernameMap]);
 
+  const totalDurationMs = useMemo(
+    () => players.reduce((acc, p) => Math.max(acc, p.timeUsedMs), 0),
+    [players],
+  );
+
+  const outcome: "win" | "loss" | "draw" = useMemo(() => {
+    if (!winnerId) return "draw";
+    return winnerId === currentPlayerId ? "win" : "loss";
+  }, [winnerId, currentPlayerId]);
+
+  const pointMargin = useMemo(() => {
+    const scores = players.map((p) => p.score);
+    if (scores.length < 2) return 0;
+    return Math.abs(scores[0] - scores[1]);
+  }, [players]);
+
+  const wordCountByPlayer = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const w of wordHistory) {
+      counts.set(w.playerId, (counts.get(w.playerId) ?? 0) + 1);
+    }
+    return counts;
+  }, [wordHistory]);
+
+  const bestWordByPlayer = useMemo(() => {
+    const best = new Map<string, WordHistoryRow>();
+    for (const w of wordHistory) {
+      const prev = best.get(w.playerId);
+      if (!prev || w.totalPoints > prev.totalPoints) {
+        best.set(w.playerId, w);
+      }
+    }
+    return best;
+  }, [wordHistory]);
+
+  const scoreboardEntries = useMemo<
+    [ScoreboardEntry, ScoreboardEntry] | null
+  >(() => {
+    if (!playerA || !playerB) return null;
+    const toEntry = (
+      player: PlayerSummary,
+      slot: "player_a" | "player_b",
+    ): ScoreboardEntry => ({
+      id: player.id,
+      displayName: player.displayName,
+      slot,
+      score: player.score,
+      wordsCount: wordCountByPlayer.get(player.id) ?? 0,
+      frozenTileCount: player.frozenTileCount,
+      bestWord: bestWordByPlayer.get(player.id)?.word ?? null,
+      ratingDelta: player.ratingDelta,
+      isCurrentPlayer: player.id === currentPlayerId,
+      isWinner: player.id === winnerId,
+    });
+    return [toEntry(playerA, "player_a"), toEntry(playerB, "player_b")];
+  }, [playerA, playerB, wordCountByPlayer, bestWordByPlayer, currentPlayerId, winnerId]);
+
   const handleWordHover = (word: WordHistoryRow | null) => {
     if (!word) {
       setHighlightPlayerColors({});
@@ -393,207 +457,96 @@ export function FinalSummary({
         aria-labelledby="tab-overview"
         hidden={activeTab !== "overview"}
       >
-      <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.3em] text-emerald-200/80">
-          Match Complete
-        </p>
-        <h1 className="text-3xl font-bold text-ink">Final Summary</h1>
-        <p
-          className="text-ink-3"
-          data-testid="final-summary-ended-reason"
-        >
-          {isDualTimeout ? "Both players timed out" : reasonLabel(endedReason)}
-        </p>
-      </header>
-
-      {winner ? (
-        <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
-          <p className="text-sm uppercase tracking-wide text-emerald-200/80">
-            Winner
-          </p>
-          <p className="text-2xl font-semibold text-ink">
-            {winner.displayName}
-          </p>
-          {endedReason === "forfeit" && (
-            <p
-              className="mt-1 text-sm text-ink-soft"
-              data-testid="final-summary-forfeit-label"
-            >
-              {winner.id === currentPlayerId
-                ? "Your opponent resigned"
-                : "You resigned"}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="mt-6 rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4">
-          <p className="text-sm uppercase tracking-wide text-sky-200/80">
-            Draw
-          </p>
-          <p className="text-2xl font-semibold text-ink">
-            Both players tied after the final round.
-          </p>
-        </div>
-      )}
-
-      {rematchPhase === "interstitial" && <RematchInterstitial />}
-
-      {seriesBadgeText() && (
-        <p
-          className="mt-4 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-200"
-          data-testid="series-badge"
-        >
-          {seriesBadgeText()}
-        </p>
-      )}
-
-      {rematchPhase === "incoming" && requesterName && (
-        <div className="mt-4">
-          <RematchBanner
-            requesterName={requesterName}
-            onAccept={acceptRematch}
-            onDecline={declineRematch}
-          />
-        </div>
-      )}
-
-      {rematchError && (
-        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
-          {rematchError}
-        </p>
-      )}
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          type="button"
-          className="rounded-2xl bg-emerald-500 px-5 py-3 text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
-          onClick={handleRematch}
-          disabled={isRematchDisabled}
-          data-testid="final-summary-rematch"
-        >
-          {rematchButtonLabel()}
-        </button>
-        <button
-          type="button"
-          className="rounded-2xl border border-hair-strong px-5 py-3 text-ink transition hover:bg-paper-2"
-          onClick={() => router.push("/")}
-          data-testid="final-summary-back-lobby"
-        >
-          Back to Lobby
-        </button>
-      </div>
-
-      <div
-        className="mt-6 grid gap-4 md:grid-cols-2"
-        data-testid="final-summary-scoreboard"
-      >
-        {players.map((player) => (
-          <div
-            key={player.id}
-            className={`rounded-2xl border p-4 ${
-              player.id === winnerId
-                ? "border-emerald-400/40 bg-emerald-500/5"
-                : "border-hair bg-paper-2"
-            }`}
-          >
-            <button
-              type="button"
-              className="text-xs uppercase tracking-wide text-ink-soft hover:text-emerald-300 transition"
-              onClick={() => setProfilePlayerId(player.id)}
-            >
-              {player.id === currentPlayerId ? "You" : player.displayName}
-            </button>
-            <p className="mt-2 text-4xl font-bold text-ink">{player.score}</p>
-            <p className="mt-1 text-sm text-ink-3">
-              Time used: {formatDuration(player.timeUsedMs)}
-            </p>
-            <p className="mt-1 text-sm text-ink-3">
-              {player.frozenTileCount} tiles frozen
-            </p>
-            <RatingDeltaDisplay
-              ratingDelta={player.ratingDelta}
-              ratingAfter={player.ratingAfter}
+        <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+          <section className="min-w-0 space-y-6">
+            <PostGameVerdict
+              outcome={outcome}
+              totalRounds={scoreboard.length}
+              durationMs={totalDurationMs}
+              pointMargin={pointMargin}
+              opponentName={opponent?.displayName ?? "Opponent"}
+              reasonLabel={
+                isDualTimeout ? "Both players timed out" : reasonLabel(endedReason)
+              }
             />
-            {player.topWords.length > 0 && (
-              <div className="mt-3">
-                <p className="text-xs uppercase tracking-wide text-ink-soft">
-                  Top words
-                </p>
-                <TopWordsList words={player.topWords} />
+
+            {endedReason === "forfeit" && winner && (
+              <p
+                className="text-sm text-ink-soft"
+                data-testid="final-summary-forfeit-label"
+              >
+                {winner.id === currentPlayerId
+                  ? "Your opponent resigned"
+                  : "You resigned"}
+              </p>
+            )}
+
+            {rematchPhase === "interstitial" && <RematchInterstitial />}
+
+            {seriesBadgeText() && (
+              <p
+                className="rounded-xl border border-hair-strong bg-paper-2 px-4 py-2 text-sm font-medium text-ink-3"
+                data-testid="series-badge"
+              >
+                {seriesBadgeText()}
+              </p>
+            )}
+
+            {rematchPhase === "incoming" && requesterName && (
+              <RematchBanner
+                requesterName={requesterName}
+                onAccept={acceptRematch}
+                onDecline={declineRematch}
+              />
+            )}
+
+            {rematchError && (
+              <p className="rounded-xl border border-bad/50 bg-bad/10 p-3 text-sm text-bad">
+                {rematchError}
+              </p>
+            )}
+
+            {scoreboardEntries && (
+              <div data-testid="final-summary-scoreboard">
+                <PostGameScoreboard entries={scoreboardEntries} />
               </div>
             )}
-          </div>
-        ))}
-      </div>
 
-      <div
-        className="mt-8 rounded-2xl border border-hair bg-paper-2 p-4"
-        data-testid="final-summary-timers"
-      >
-        <h2 className="text-lg font-semibold text-ink">Per-round Scoreboard</h2>
-        <div className="mt-4 space-y-2">
-          {scoreboard.length === 0 && (
-            <p className="text-sm text-ink-soft">
-              No scoreboard snapshots recorded for this match.
-            </p>
-          )}
-          {scoreboard.map((row) => (
-            <div
-              key={row.roundNumber}
-              className="flex items-center justify-between rounded-xl bg-paper-3 px-4 py-2 text-sm text-ink-3"
-            >
-              <span>Round {row.roundNumber}</span>
-              <span>
-                {row.playerAScore}–{row.playerBScore}
-              </span>
+            <div>
+              <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+                Round by round
+              </p>
+              <RoundByRoundChart rounds={scoreboard} />
             </div>
-          ))}
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="rounded-2xl bg-ink px-5 py-3 text-paper transition hover:bg-ink-2 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={handleRematch}
+                disabled={isRematchDisabled}
+                data-testid="final-summary-rematch"
+              >
+                {rematchButtonLabel()}
+              </button>
+              <button
+                type="button"
+                className="rounded-2xl border border-hair-strong px-5 py-3 text-ink transition hover:bg-paper-2"
+                onClick={() => router.push("/")}
+                data-testid="final-summary-back-lobby"
+              >
+                Back to Lobby
+              </button>
+            </div>
+          </section>
+
+          <aside className="min-w-0 space-y-6">
+            <WordsOfMatch
+              wordHistory={wordHistory}
+              playerASlotId={playerA?.id ?? ""}
+            />
+          </aside>
         </div>
-      </div>
-
-      <div
-        className="mt-8 rounded-2xl border border-hair bg-paper-2 p-4"
-        data-testid="final-summary-word-history"
-      >
-        <h2 className="text-lg font-semibold text-ink">Word History</h2>
-        {wordHistory.length === 0 ? (
-          <p className="mt-2 text-sm text-ink-soft">
-            No words were scored in this match.
-          </p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {wordHistory.map((entry, index) => {
-              const player = players.find((p) => p.id === entry.playerId);
-              return (
-                <div
-                  key={`${entry.roundNumber}-${entry.word}-${index}`}
-                  className="rounded-xl border border-hair bg-paper-3 px-4 py-3 text-sm text-ink"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">Round {entry.roundNumber}</span>
-                    <span className="text-ink-soft">
-                      {entry.totalPoints} pts
-                    </span>
-                  </div>
-                  <p className="text-lg font-mono uppercase tracking-wide">
-                    {entry.word}
-                  </p>
-                  <p className="text-ink-3">
-                    {player?.displayName ?? "Unknown"} ·{" "}
-                    {entry.lettersPoints} base + {entry.bonusPoints} bonus
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {currentPlayer && (
-        <p className="mt-4 text-sm text-ink-soft">
-          Playing as <span className="font-semibold">{currentPlayer.displayName}</span>
-        </p>
-      )}
       </div>{/* end overview tab panel */}
 
       {/* Round History tab panel */}
