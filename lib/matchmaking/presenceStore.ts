@@ -177,13 +177,19 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
                 finalPlayers = merged;
               }
               
+              const isRealtime = source === "realtime";
               return {
                 players: applyLobbyEvent(state.players, {
                   type: "sync",
                   players: finalPlayers,
                 }),
                 status: "ready",
-                connectionMode: source === "poller" ? "polling" : "realtime",
+                connectionMode: isRealtime ? "realtime" : "polling",
+                // When Realtime recovers (after a prior CHANNEL_ERROR set
+                // status=error + error=…), clear the stale error banner so
+                // the UI reflects the live-again state.
+                error: isRealtime ? null : state.error,
+                reconnecting: isRealtime ? false : state.reconnecting,
                 lastEventAt: Date.now(),
               };
             });
@@ -221,7 +227,11 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         {
           key: self.id,
           poller: fetchPollingSnapshot,
-          pollIntervalMs: 500,
+          // 2 s matches MatchClient's safety-net cadence. Was 500 ms back when
+          // the poller ran unconditionally as the primary transport; now that
+          // it only runs while Realtime is down, there's no UX win from
+          // polling 4× faster and we'd rather not hammer /api/lobby/players.
+          pollIntervalMs: 2_000,
         }
       );
 
