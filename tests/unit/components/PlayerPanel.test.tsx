@@ -48,7 +48,7 @@ describe("PlayerPanel full variant", () => {
     expect(panel.className).not.toContain("border-white/10");
   });
 
-  test("full variant renders a RoundPipBar for progress", () => {
+  test("full variant renders 'Round N / M' text (pip bar moved to MatchCenterChrome)", () => {
     render(
       <PlayerPanel
         player={defaultPlayer}
@@ -56,8 +56,8 @@ describe("PlayerPanel full variant", () => {
         variant="full"
       />,
     );
-    expect(screen.getByLabelText("Round 7 of 10")).toBeInTheDocument();
-    expect(screen.queryByText("Round 7 / 10")).not.toBeInTheDocument();
+    expect(screen.getByText("Round 7 / 10")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Round 7 of 10")).not.toBeInTheDocument();
   });
 
   test("truncates display name longer than 20 characters", () => {
@@ -111,7 +111,7 @@ describe("PlayerPanel full variant", () => {
       />,
     );
 
-    expect(screen.getByLabelText(/Round 3 of 10/)).toBeInTheDocument();
+    expect(screen.getByText("Round 3 / 10")).toBeInTheDocument();
   });
 
   test("renders timer display", () => {
