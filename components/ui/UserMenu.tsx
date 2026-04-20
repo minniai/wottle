@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth/logout";
 import { Avatar } from "@/components/ui/Avatar";
+import { LogoutConfirmDialog } from "@/components/ui/LogoutConfirmDialog";
 import type { LobbySession } from "@/lib/matchmaking/profile";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 
@@ -16,6 +17,7 @@ export function UserMenu({ session }: UserMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const chipRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -111,7 +113,14 @@ export function UserMenu({ session }: UserMenuProps) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => void performLogout(false)}
+            onClick={() => {
+              if (player.status === "in_match") {
+                setOpen(false);
+                setConfirmOpen(true);
+              } else {
+                void performLogout(false);
+              }
+            }}
             disabled={pending}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-player-b hover:bg-paper-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-focus disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -120,6 +129,16 @@ export function UserMenu({ session }: UserMenuProps) {
           </button>
         </div>
       ) : null}
+
+      <LogoutConfirmDialog
+        open={confirmOpen}
+        pending={pending}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={async () => {
+          await performLogout(true);
+          setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

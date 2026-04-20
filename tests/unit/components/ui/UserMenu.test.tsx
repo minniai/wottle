@@ -65,4 +65,36 @@ describe("<UserMenu>", () => {
 
     await waitFor(() => expect(logoutAction).toHaveBeenCalledWith({}));
   });
+
+  it("opens the confirm dialog for an in_match player and defers the server call", () => {
+    vi.mocked(logoutAction).mockClear();
+    const inMatchSession = {
+      ...session,
+      player: { ...session.player, status: "in_match" as const },
+    };
+    render(<UserMenu session={inMatchSession} />);
+    fireEvent.click(screen.getByRole("button", { name: /ari/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /sign out/i }));
+
+    expect(screen.getByText("Sign out now?")).toBeInTheDocument();
+    expect(logoutAction).not.toHaveBeenCalled();
+  });
+
+  it("calls logoutAction with resignActiveMatch=true after confirming", async () => {
+    vi.mocked(logoutAction).mockClear();
+    const inMatchSession = {
+      ...session,
+      player: { ...session.player, status: "in_match" as const },
+    };
+    render(<UserMenu session={inMatchSession} />);
+    fireEvent.click(screen.getByRole("button", { name: /ari/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /sign out/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /sign out & forfeit/i }),
+    );
+
+    await waitFor(() =>
+      expect(logoutAction).toHaveBeenCalledWith({ resignActiveMatch: true }),
+    );
+  });
 });
