@@ -452,27 +452,55 @@
 
 @media (min-width: 900px) {
   .match-layout {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: center;
+    display: grid;
+    grid-template-rows: auto 1fr;
     gap: 1rem;
   }
 
-  .match-layout__panel {
-    display: block;
-    width: 16rem;
-    flex-shrink: 0;
+  .match-layout__hud-strip {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.125rem;
+    align-items: center;
+  }
+
+  .match-layout__board-row {
+    display: grid;
+    grid-template-columns: 18rem auto 20rem;
+    gap: 1.5rem;
+    align-items: start;
+    justify-content: center;
+  }
+
+  .match-layout__rail--left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .match-layout__rail--right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
   }
 
   .match-layout__board {
     --chrome-height: 48px;
     flex: 0 0 auto;
-    width: min(calc(100dvh - var(--chrome-height) - 2rem), calc(100% - 30rem));
+    width: min(calc(100dvh - var(--chrome-height) - 2rem), 38rem);
   }
 
   /* Hide compact bars on desktop */
   .match-layout__compact-top,
   .match-layout__compact-bottom {
+    display: none;
+  }
+
+  /* Legacy left/right panel classes — no longer rendered by MatchClient,
+     but kept so stray consumers render as hidden rather than breaking. */
+  .match-layout__panel {
     display: none;
   }
 }
