@@ -72,4 +72,94 @@ describe("logoutAction", () => {
     expect(expireLobbyPresence).toHaveBeenCalledWith(expect.anything(), "player-1");
     expect(deleteCookie).toHaveBeenCalledWith("wottle-playtest-session");
   });
+
+  it("does not resign when the opt-in flag is absent", async () => {
+    vi.mocked(readLobbySession).mockResolvedValue({
+      token: "t",
+      issuedAt: 0,
+      player: {
+        id: "player-1",
+        username: "ari",
+        displayName: "Ari",
+        status: "in_match",
+        lastSeenAt: "",
+      },
+    } as any);
+
+    await logoutAction();
+
+    expect(resignMatch).not.toHaveBeenCalled();
+  });
+
+  it("resigns the active match when opted in and a match is live", async () => {
+    const { findActiveMatchForPlayer } = await import("@/lib/matchmaking/service");
+    vi.mocked(findActiveMatchForPlayer).mockResolvedValueOnce({
+      id: "match-42",
+      state: "in_progress",
+      created_at: "2026-04-20T00:00:00Z",
+    } as any);
+    vi.mocked(readLobbySession).mockResolvedValue({
+      token: "t",
+      issuedAt: 0,
+      player: {
+        id: "player-1",
+        username: "ari",
+        displayName: "Ari",
+        status: "in_match",
+        lastSeenAt: "",
+      },
+    } as any);
+
+    const result = await logoutAction({ resignActiveMatch: true });
+
+    expect(resignMatch).toHaveBeenCalledWith("match-42");
+    expect(result.resignedMatchId).toBe("match-42");
+  });
+
+  it("continues with teardown when resignMatch throws", async () => {
+    const { findActiveMatchForPlayer } = await import("@/lib/matchmaking/service");
+    vi.mocked(findActiveMatchForPlayer).mockResolvedValueOnce({
+      id: "match-42",
+      state: "in_progress",
+      created_at: "2026-04-20T00:00:00Z",
+    } as any);
+    vi.mocked(resignMatch).mockRejectedValueOnce(new Error("match ended"));
+    vi.mocked(readLobbySession).mockResolvedValue({
+      token: "t",
+      issuedAt: 0,
+      player: {
+        id: "player-1",
+        username: "ari",
+        displayName: "Ari",
+        status: "in_match",
+        lastSeenAt: "",
+      },
+    } as any);
+
+    const result = await logoutAction({ resignActiveMatch: true });
+
+    expect(deleteCookie).toHaveBeenCalled();
+    expect(result.resignedMatchId).toBeNull();
+  });
+
+  it("skips resign when no active match is found", async () => {
+    const { findActiveMatchForPlayer } = await import("@/lib/matchmaking/service");
+    vi.mocked(findActiveMatchForPlayer).mockResolvedValueOnce(null);
+    vi.mocked(readLobbySession).mockResolvedValue({
+      token: "t",
+      issuedAt: 0,
+      player: {
+        id: "player-1",
+        username: "ari",
+        displayName: "Ari",
+        status: "available",
+        lastSeenAt: "",
+      },
+    } as any);
+
+    const result = await logoutAction({ resignActiveMatch: true });
+
+    expect(resignMatch).not.toHaveBeenCalled();
+    expect(result.resignedMatchId).toBeNull();
+  });
 });

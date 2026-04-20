@@ -5,8 +5,12 @@ import "server-only";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
+import { resignMatch } from "@/app/actions/match/resignMatch";
 import { readLobbySession, SESSION_COOKIE_NAME } from "@/lib/matchmaking/profile";
-import { expireLobbyPresence } from "@/lib/matchmaking/service";
+import {
+  expireLobbyPresence,
+  findActiveMatchForPlayer,
+} from "@/lib/matchmaking/service";
 import { forgetPresence } from "@/lib/matchmaking/presenceCache";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -20,7 +24,7 @@ export interface LogoutResult {
 }
 
 export async function logoutAction(
-  _input: LogoutInput = {},
+  input: LogoutInput = {},
 ): Promise<LogoutResult> {
   const session = await readLobbySession();
   if (!session) {
@@ -30,6 +34,22 @@ export async function logoutAction(
   const playerId = session.player.id;
   const supabase = getServiceRoleClient();
 
+  let resignedMatchId: string | null = null;
+  if (input.resignActiveMatch) {
+    const activeMatch = await findActiveMatchForPlayer(supabase, playerId);
+    if (activeMatch) {
+      try {
+        await resignMatch(activeMatch.id);
+        resignedMatchId = activeMatch.id;
+      } catch (error) {
+        console.warn(
+          "[logoutAction] resignMatch failed, continuing with logout",
+          error,
+        );
+      }
+    }
+  }
+
   await expireLobbyPresence(supabase, playerId);
   forgetPresence(playerId);
 
@@ -37,5 +57,5 @@ export async function logoutAction(
   cookieStore.delete(SESSION_COOKIE_NAME);
 
   revalidatePath("/", "layout");
-  return { status: "signed-out", resignedMatchId: null };
+  return { status: "signed-out", resignedMatchId };
 }
