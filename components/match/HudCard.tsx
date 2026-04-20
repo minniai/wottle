@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-type ClockState = "idle" | "active" | "low";
+type ClockState = "idle" | "active" | "low" | "waiting";
 
 interface HudCardProps {
   slot: "you" | "opp";
@@ -29,7 +29,9 @@ export function HudCard({
       ? "hud-card__clock--active"
       : clockState === "low"
         ? "hud-card__clock--low"
-        : "";
+        : clockState === "waiting"
+          ? "hud-card__clock--waiting"
+          : "";
 
   return (
     <div data-testid="hud-card" className={`hud-card ${slotClass}`}>

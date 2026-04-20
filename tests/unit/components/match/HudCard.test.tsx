@@ -83,6 +83,21 @@ describe("HudCard", () => {
     expect(screen.getByTestId("hud-card-clock").className).toContain(
       "hud-card__clock--low",
     );
+
+    rerender(
+      <HudCard
+        slot="you"
+        avatar={<div />}
+        name="Y"
+        meta="m"
+        clock="1:22"
+        clockState="waiting"
+        score={0}
+      />,
+    );
+    expect(screen.getByTestId("hud-card-clock").className).toContain(
+      "hud-card__clock--waiting",
+    );
   });
 
   test("renders children below identity block when provided", () => {
