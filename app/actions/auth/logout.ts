@@ -12,6 +12,7 @@ import {
   findActiveMatchForPlayer,
 } from "@/lib/matchmaking/service";
 import { forgetPresence } from "@/lib/matchmaking/presenceCache";
+import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export interface LogoutInput {
@@ -32,6 +33,15 @@ export async function logoutAction(
   }
 
   const playerId = session.player.id;
+
+  assertWithinRateLimit({
+    identifier: playerId,
+    scope: "auth:logout",
+    limit: 10,
+    windowMs: 60_000,
+    errorMessage: "Too many sign-out attempts. Please wait.",
+  });
+
   const supabase = getServiceRoleClient();
 
   let resignedMatchId: string | null = null;

@@ -162,4 +162,29 @@ describe("logoutAction", () => {
     expect(resignMatch).not.toHaveBeenCalled();
     expect(result.resignedMatchId).toBeNull();
   });
+
+  it("rate-limits against the auth:logout scope", async () => {
+    vi.mocked(readLobbySession).mockResolvedValue({
+      token: "t",
+      issuedAt: 0,
+      player: {
+        id: "player-1",
+        username: "ari",
+        displayName: "Ari",
+        status: "available",
+        lastSeenAt: "",
+      },
+    } as any);
+
+    await logoutAction();
+
+    expect(assertWithinRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identifier: "player-1",
+        scope: "auth:logout",
+        limit: 10,
+        windowMs: 60_000,
+      }),
+    );
+  });
 });
