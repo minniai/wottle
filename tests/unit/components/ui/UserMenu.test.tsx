@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -15,6 +15,7 @@ vi.mock("@/lib/matchmaking/presenceStore", () => ({
 }));
 
 import { UserMenu } from "@/components/ui/UserMenu";
+import { logoutAction } from "@/app/actions/auth/logout";
 
 const session = {
   token: "t",
@@ -55,5 +56,13 @@ describe("<UserMenu>", () => {
     expect(chip).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(document.activeElement).toBe(chip);
+  });
+
+  it("calls logoutAction without the resign flag for an available user", async () => {
+    render(<UserMenu session={session} />);
+    fireEvent.click(screen.getByRole("button", { name: /ari/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /sign out/i }));
+
+    await waitFor(() => expect(logoutAction).toHaveBeenCalledWith({}));
   });
 });

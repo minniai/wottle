@@ -1,16 +1,22 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { logoutAction } from "@/app/actions/auth/logout";
 import { Avatar } from "@/components/ui/Avatar";
 import type { LobbySession } from "@/lib/matchmaking/profile";
+import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 
 export interface UserMenuProps {
   session: LobbySession;
 }
 
 export function UserMenu({ session }: UserMenuProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
   const chipRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const { player } = session;
@@ -48,6 +54,29 @@ export function UserMenu({ session }: UserMenuProps) {
     };
   }, [open, close]);
 
+  const performLogout = useCallback(
+    async (resignActiveMatch: boolean) => {
+      setPending(true);
+      try {
+        await logoutAction(
+          resignActiveMatch ? { resignActiveMatch: true } : {},
+        );
+      } catch (error) {
+        console.error("[UserMenu] logout failed", error);
+      } finally {
+        useLobbyPresenceStore.getState().disconnect();
+        setPending(false);
+        setOpen(false);
+        if (pathname?.startsWith("/match/")) {
+          router.push("/lobby");
+        } else {
+          router.refresh();
+        }
+      }
+    },
+    [pathname, router],
+  );
+
   return (
     <div className="relative">
       <button
@@ -82,10 +111,9 @@ export function UserMenu({ session }: UserMenuProps) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => {
-              /* wired in next task */
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-player-b hover:bg-paper-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-focus"
+            onClick={() => void performLogout(false)}
+            disabled={pending}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-player-b hover:bg-paper-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-focus disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOutIcon />
             Sign out
