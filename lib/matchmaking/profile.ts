@@ -4,7 +4,11 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { listCachedPresence, rememberPresence } from "./presenceCache";
-import { upsertLobbyPresence, upsertPlayerIdentity } from "./service";
+import {
+  findActiveMatchForPlayer,
+  upsertLobbyPresence,
+  upsertPlayerIdentity,
+} from "./service";
 import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -218,6 +222,51 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
   const cachedPlayers = listCachedPresence();
 
   return sortPlayers(dedupePlayers([...players, ...cachedPlayers]));
+}
+
+// Heal `players.status` when it's stuck at "in_match" but no pending or
+// in_progress match exists for the player. Root cause mirrors issue #117:
+// lib/match/roundEngine.ts updates matches.state then calls
+// completeMatchInternal() in a separate pass; if the second call errors or
+// the process dies, players.status stays "in_match" forever. That stale row
+// shows up in /api/lobby/players and fights the realtime-tracked value
+// (status="available" from the session cookie) every ~500ms poll, so the
+// PlayNowCard button visibly oscillates between "Play Now" and
+// "Already in a match".
+export async function healStuckInMatchStatus(playerId: string): Promise<void> {
+  const supabase = getServiceRoleClient();
+  const { data: player } = await supabase
+    .from("players")
+    .select("status")
+    .eq("id", playerId)
+    .maybeSingle();
+
+  if (player?.status !== "in_match") {
+    return;
+  }
+
+  const activeMatch = await findActiveMatchForPlayer(supabase, playerId).catch(
+    () => null,
+  );
+  if (activeMatch) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("players")
+    .update({ status: "available", last_seen_at: new Date().toISOString() })
+    .eq("id", playerId)
+    .eq("status", "in_match");
+
+  if (error) {
+    console.error(
+      JSON.stringify({
+        event: "player.status.heal.failed",
+        playerId,
+        error: error.message,
+      }),
+    );
+  }
 }
 
 function encodeSession(session: LobbySession): string {

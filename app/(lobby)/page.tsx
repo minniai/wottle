@@ -8,10 +8,18 @@ import { PlayNowCard } from "@/components/lobby/PlayNowCard";
 import { RecentGamesCard } from "@/components/lobby/RecentGamesCard";
 import { TopOfBoardCard } from "@/components/lobby/TopOfBoardCard";
 import { Card } from "@/components/ui/Card";
-import { fetchLobbySnapshot, readLobbySession } from "@/lib/matchmaking/profile";
+import {
+  fetchLobbySnapshot,
+  healStuckInMatchStatus,
+  readLobbySession,
+} from "@/lib/matchmaking/profile";
 
 export default async function LobbyPage() {
   const session = await readLobbySession();
+
+  if (session) {
+    await healStuckInMatchStatus(session.player.id);
+  }
 
   const [initialPlayers, topPlayersResult, recentGamesResult] = session
     ? await Promise.all([
