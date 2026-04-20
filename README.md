@@ -31,25 +31,6 @@ Wottle is a local-first prototype of a board game experience. The current focus 
 
 The project follows a spec-driven development workflow using GitHub Spec-kit.
 
-### Current Spec: `002-two-player-playtest`
-
-This spec focuses on enabling a two-player game loop.
-
-**Completed Phases:**
-
-- **Phase 1: Setup**: Environment and CI configuration.
-- **Phase 2: Foundational**: Database schema, RLS policies, domain types, and realtime helpers.
-- **Phase 3: User Story 1 (Login/Lobby)**: Authentication, lobby presence, and UI.
-- **Phase 4: User Story 2 (Matchmaking)**: Invites, queueing, and match initialization.
-
-**Next Phase:**
-
-- **Phase 5: User Story 3 (Submit Rounds & Resolve Moves)**:
-  - Implementing the 10-round state machine.
-  - Handling move submissions and validation.
-  - Synchronizing game state between players.
-  - Implementing the timer HUD.
-
 ## Key Entities
 
 - **PlayerIdentity**: User profile and session.
