@@ -677,3 +677,98 @@
   grid-row: 2;
   min-width: 0;
 }
+
+/* ─── HUD card (Phase 1c) ───────────────────────────────────────────── */
+
+.hud-card {
+  position: relative;
+  padding: 16px 18px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.hud-card--you::after,
+.hud-card--opp::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  pointer-events: none;
+}
+
+.hud-card--you::after {
+  background: var(--p1);
+}
+
+.hud-card--opp::after {
+  background: var(--p2);
+}
+
+.hud-card__identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hud-card__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.1;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-card__meta {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.hud-card__score {
+  margin-left: auto;
+  font-family: var(--font-fraunces), serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-card__clock {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-card__clock--active {
+  background: color-mix(in oklab, var(--good) 15%, var(--paper));
+  color: color-mix(in oklab, var(--good) 80%, var(--ink));
+  border-color: color-mix(in oklab, var(--good) 40%, transparent);
+}
+
+.hud-card__clock--low {
+  background: color-mix(in oklab, var(--bad) 12%, var(--paper));
+  color: var(--bad);
+  border-color: color-mix(in oklab, var(--bad) 40%, transparent);
+}
