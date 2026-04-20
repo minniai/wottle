@@ -32,7 +32,10 @@ export default async function LobbyPage() {
     ]);
 
   return (
-    <main className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-5 pb-24 pt-6 sm:gap-12 sm:px-8 sm:pb-16 sm:pt-10">
+    <main
+      data-testid="lobby-shell"
+      className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-5 pb-24 pt-6 sm:gap-12 sm:px-8 sm:pb-16 sm:pt-10"
+    >
       <LobbyHero />
       <LobbyStatsStrip selfId={session.player.id} />
       <PlayNowCard currentPlayer={session.player} />
