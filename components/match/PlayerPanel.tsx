@@ -2,7 +2,6 @@
 
 import { PlayerAvatar } from "./PlayerAvatar";
 import { TimerDisplay } from "./TimerDisplay";
-import { RoundPipBar } from "./RoundPipBar";
 import type { ScoreDelta } from "./ScoreDeltaPopup";
 import { ScoreDeltaPopup } from "./ScoreDeltaPopup";
 import { RoundHistoryInline } from "./RoundHistoryInline";
@@ -97,12 +96,9 @@ function FullPanel({
         )}
       </div>
 
-      <div data-testid="round-indicator" className="w-full px-4">
-        <RoundPipBar
-          current={gameState.currentRound}
-          total={gameState.totalRounds}
-        />
-      </div>
+      <span data-testid="round-indicator" className="text-xs text-ink-soft">
+        Round {gameState.currentRound} / {gameState.totalRounds}
+      </span>
 
       {isDisconnected && (
         <span className="rounded bg-red-900/60 px-2 py-0.5 text-xs font-medium text-red-300">

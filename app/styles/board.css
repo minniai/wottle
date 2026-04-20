@@ -444,6 +444,20 @@
   display: none;
 }
 
+/* Phase 1c desktop layout pieces — hidden on mobile; desktop
+   media query below re-enables them with the grid/flex rules. */
+.match-layout__hud-strip,
+.match-layout__rail--left,
+.match-layout__rail--right {
+  display: none;
+}
+
+.match-layout__board-row {
+  /* On mobile the board-row is a plain block so the nested
+     board area flows beneath the compact top bar naturally. */
+  display: block;
+}
+
 /* Mobile compact bars (visible by default) */
 .match-layout__compact-top,
 .match-layout__compact-bottom {
@@ -452,27 +466,55 @@
 
 @media (min-width: 900px) {
   .match-layout {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: center;
+    display: grid;
+    grid-template-rows: auto 1fr;
     gap: 1rem;
   }
 
-  .match-layout__panel {
-    display: block;
-    width: 16rem;
-    flex-shrink: 0;
+  .match-layout__hud-strip {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.125rem;
+    align-items: center;
+  }
+
+  .match-layout__board-row {
+    display: grid;
+    grid-template-columns: 18rem auto 20rem;
+    gap: 1.5rem;
+    align-items: start;
+    justify-content: center;
+  }
+
+  .match-layout__rail--left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .match-layout__rail--right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
   }
 
   .match-layout__board {
     --chrome-height: 48px;
     flex: 0 0 auto;
-    width: min(calc(100dvh - var(--chrome-height) - 2rem), calc(100% - 30rem));
+    width: min(calc(100dvh - var(--chrome-height) - 2rem), 38rem);
   }
 
   /* Hide compact bars on desktop */
   .match-layout__compact-top,
   .match-layout__compact-bottom {
+    display: none;
+  }
+
+  /* Legacy left/right panel classes — no longer rendered by MatchClient,
+     but kept so stray consumers render as hidden rather than breaking. */
+  .match-layout__panel {
     display: none;
   }
 }
@@ -676,4 +718,99 @@
   grid-column: 2;
   grid-row: 2;
   min-width: 0;
+}
+
+/* ─── HUD card (Phase 1c) ───────────────────────────────────────────── */
+
+.hud-card {
+  position: relative;
+  padding: 16px 18px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.hud-card--you::after,
+.hud-card--opp::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  pointer-events: none;
+}
+
+.hud-card--you::after {
+  background: var(--p1);
+}
+
+.hud-card--opp::after {
+  background: var(--p2);
+}
+
+.hud-card__identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hud-card__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.1;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-card__meta {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.hud-card__score {
+  margin-left: auto;
+  font-family: var(--font-fraunces), serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-card__clock {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-card__clock--active {
+  background: color-mix(in oklab, var(--good) 15%, var(--paper));
+  color: color-mix(in oklab, var(--good) 80%, var(--ink));
+  border-color: color-mix(in oklab, var(--good) 40%, transparent);
+}
+
+.hud-card__clock--low {
+  background: color-mix(in oklab, var(--bad) 12%, var(--paper));
+  color: var(--bad);
+  border-color: color-mix(in oklab, var(--bad) 40%, transparent);
 }

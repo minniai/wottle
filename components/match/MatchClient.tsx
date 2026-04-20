@@ -6,9 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { PlayerPanel } from "@/components/match/PlayerPanel";
+import { PlayerAvatar } from "@/components/match/PlayerAvatar";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
 import { TilesClaimedCard } from "@/components/match/TilesClaimedCard";
+import { HudCard } from "@/components/match/HudCard";
+import { MatchCenterChrome } from "@/components/match/MatchCenterChrome";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
+import { ScoreDeltaPopup } from "@/components/match/ScoreDeltaPopup";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
@@ -40,6 +44,22 @@ const POLL_ENDPOINT = (matchId: string) => `/api/match/${matchId}/state`;
 
 /** Interval for the background safety-net poller (runs alongside Realtime). */
 const SAFETY_POLL_INTERVAL_MS = 2_000;
+
+function formatClockMMSS(seconds: number): string {
+  const clamped = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(clamped / 60);
+  const s = clamped % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function deriveClockState(
+  isRunning: boolean,
+  isLow: boolean,
+): "idle" | "active" | "low" {
+  if (isLow) return "low";
+  if (isRunning) return "active";
+  return "idle";
+}
 
 /**
  * Fetch the latest match state from the REST endpoint.
@@ -547,6 +567,13 @@ export function MatchClient({
   const opponentSlot: "player_a" | "player_b" =
     playerSlot === "player_a" ? "player_b" : "player_a";
 
+  const centerStatus: "your-move" | "waiting" | "resolving" =
+    matchState.state === "resolving"
+      ? "resolving"
+      : currentTimer.status === "paused"
+        ? "waiting"
+        : "your-move";
+
   const playerScore =
     playerSlot === "player_a"
       ? matchState.scores.playerA
@@ -686,147 +713,178 @@ export function MatchClient({
       )}
 
       <div className="match-layout">
-        {/* Desktop: left panel (current player) */}
-        <div className="match-layout__panel match-layout__panel--left flex flex-col gap-3">
-          <PlayerPanel
-            player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
-            gameState={{
-              score: playerScore,
-              timerSeconds: timeLeftSeconds,
-              isPaused,
-              hasSubmitted: currentTimer.status === "paused",
-              currentRound: matchState.currentRound,
-              totalRounds: 10,
-              playerColor: getPlayerColors(playerSlot).hex,
-            }}
-            controls={{
-              scoreDelta,
-              scoreDeltaRound: matchState.lastSummary?.roundNumber,
-              roundHistoryCount: roundHistory.length,
-              onHistoryToggle: () => setHistoryOpen((v) => !v),
-              onResign: () => setShowResignDialog(true),
-              resignDisabled:
-                matchState.state === "resolving" ||
-                matchState.state === "completed" ||
-                isResigning,
-            }}
-            roundHistory={{
-              playerId: currentPlayerId,
-              accumulatedWords,
-              completedRounds,
-            }}
-            variant="full"
-            isDisconnected={matchState.disconnectedPlayerId === currentPlayerId}
+        {/* Desktop: top HUD strip (hidden on mobile) */}
+        <div className="match-layout__hud-strip">
+          <HudCard
+            slot="opp"
+            avatar={
+              <PlayerAvatar
+                displayName={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
+                avatarUrl={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).avatarUrl}
+                playerColor={getPlayerColors(opponentSlot).hex}
+                size="sm"
+              />
+            }
+            name={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
+            meta={`Opponent · ${(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
+            clock={formatClockMMSS(opponentTimeLeft)}
+            clockState={deriveClockState(opponentTimer.status === "running", opponentTimeLeft < 60)}
+            score={opponentScore}
           />
-          <TilesClaimedCard
-            frozenTiles={matchState.frozenTiles ?? {}}
-            currentPlayerSlot={playerSlot}
+          <MatchCenterChrome
+            currentRound={matchState.currentRound}
+            totalRounds={10}
+            status={centerStatus}
           />
+          <HudCard
+            slot="you"
+            avatar={
+              <PlayerAvatar
+                displayName={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
+                avatarUrl={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).avatarUrl}
+                playerColor={getPlayerColors(playerSlot).hex}
+                size="sm"
+              />
+            }
+            name={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
+            meta={`You · ${(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
+            clock={formatClockMMSS(timeLeftSeconds)}
+            clockState={deriveClockState(!isPaused, timeLeftSeconds < 60)}
+            score={playerScore}
+          >
+            {scoreDelta ? (
+              <ScoreDeltaPopup
+                key={matchState.lastSummary?.roundNumber}
+                delta={scoreDelta}
+              />
+            ) : null}
+          </HudCard>
         </div>
 
-        {/* Board area */}
-        <div className="match-layout__board">
-          {/* Mobile: compact opponent bar */}
-          <div className="match-layout__compact-top" data-testid="game-chrome-opponent">
-            <PlayerPanel
-              player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
-              gameState={{
-                score: opponentScore,
-                timerSeconds: opponentTimeLeft,
-                isPaused: opponentTimer.status !== "running",
-                hasSubmitted: opponentTimer.status === "paused",
-                currentRound: matchState.currentRound,
-                totalRounds: 10,
-                playerColor: getPlayerColors(opponentSlot).hex,
-              }}
-              variant="compact"
-              isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
-            />
-          </div>
-
-          <BoardGrid
-            grid={matchState.board}
-            matchId={matchId}
-            frozenTiles={matchState.frozenTiles ?? {}}
-            playerSlot={playerSlot}
-            disabled={moveLocked}
-            showLockBanner={false}
-            lockedTiles={lockedSwapTiles}
-            opponentRevealTiles={
-              animationPhase === "round-recap" && activeRevealMove
-                ? [activeRevealMove.from, activeRevealMove.to]
-                : null
-            }
-            scoredTileHighlights={
-              animationPhase === "round-recap"
-                ? activeRevealHighlights
-                : []
-            }
-            highlightPlayerColors={
-              animationPhase === "round-recap"
-                ? highlightPlayerColors
-                : {}
-            }
-            highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
-            highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
-            onSwapComplete={handleSwapComplete}
-            onSwapError={({ message }) => handleSwapError(message)}
-            onTileSelect={playTileSelect}
-            onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
-            onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
+        <div className="match-layout__board-row">
+          {/* Left rail placeholder — Phase 1d fills it */}
+          <div
+            data-testid="match-layout-rail-left"
+            className="match-layout__rail--left"
           />
 
-          {roundAnnounce && (
-            <div
-              key={`${matchState.currentRound}-${roundAnnounce}`}
-              className={`round-announce${roundAnnounce === "Rounds Complete" ? " round-announce--final" : ""}`}
-              style={{ position: "absolute", top: "50%", left: "50%", zIndex: 25 }}
-              data-testid="round-announce"
-            >
-              {roundAnnounce}
+          <div className="match-layout__board">
+            {/* Mobile: compact opponent bar */}
+            <div className="match-layout__compact-top" data-testid="game-chrome-opponent">
+              <PlayerPanel
+                player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+                gameState={{
+                  score: opponentScore,
+                  timerSeconds: opponentTimeLeft,
+                  isPaused: opponentTimer.status !== "running",
+                  hasSubmitted: opponentTimer.status === "paused",
+                  currentRound: matchState.currentRound,
+                  totalRounds: 10,
+                  playerColor: getPlayerColors(opponentSlot).hex,
+                }}
+                variant="compact"
+                isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
+              />
             </div>
-          )}
 
-          {/* Mobile: compact player bar */}
-          <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
-            <PlayerPanel
-              player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
-              gameState={{
-                score: playerScore,
-                timerSeconds: timeLeftSeconds,
-                isPaused,
-                hasSubmitted: currentTimer.status === "paused",
-                currentRound: matchState.currentRound,
-                totalRounds: 10,
-                playerColor: getPlayerColors(playerSlot).hex,
-              }}
-              variant="compact"
+            <BoardGrid
+              grid={matchState.board}
+              matchId={matchId}
+              frozenTiles={matchState.frozenTiles ?? {}}
+              playerSlot={playerSlot}
+              disabled={moveLocked}
+              showLockBanner={false}
+              lockedTiles={lockedSwapTiles}
+              opponentRevealTiles={
+                animationPhase === "round-recap" && activeRevealMove
+                  ? [activeRevealMove.from, activeRevealMove.to]
+                  : null
+              }
+              scoredTileHighlights={
+                animationPhase === "round-recap"
+                  ? activeRevealHighlights
+                  : []
+              }
+              highlightPlayerColors={
+                animationPhase === "round-recap"
+                  ? highlightPlayerColors
+                  : {}
+              }
+              highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
+              highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
+              onSwapComplete={handleSwapComplete}
+              onSwapError={({ message }) => handleSwapError(message)}
+              onTileSelect={playTileSelect}
+              onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
+              onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
             />
+
+            {roundAnnounce && (
+              <div
+                key={`${matchState.currentRound}-${roundAnnounce}`}
+                className={`round-announce${roundAnnounce === "Rounds Complete" ? " round-announce--final" : ""}`}
+                style={{ position: "absolute", top: "50%", left: "50%", zIndex: 25 }}
+                data-testid="round-announce"
+              >
+                {roundAnnounce}
+              </div>
+            )}
+
+            {/* Mobile: compact player bar */}
+            <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
+              <PlayerPanel
+                player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
+                gameState={{
+                  score: playerScore,
+                  timerSeconds: timeLeftSeconds,
+                  isPaused,
+                  hasSubmitted: currentTimer.status === "paused",
+                  currentRound: matchState.currentRound,
+                  totalRounds: 10,
+                  playerColor: getPlayerColors(playerSlot).hex,
+                }}
+                variant="compact"
+              />
+            </div>
           </div>
 
-        </div>
-
-        {/* Desktop: right panel (opponent) */}
-        <div className="match-layout__panel match-layout__panel--right">
-          <PlayerPanel
-            player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
-            gameState={{
-              score: opponentScore,
-              timerSeconds: opponentTimeLeft,
-              isPaused: opponentTimer.status !== "running",
-              hasSubmitted: opponentTimer.status === "paused",
-              currentRound: matchState.currentRound,
-              totalRounds: 10,
-              playerColor: getPlayerColors(opponentSlot).hex,
-            }}
-            roundHistory={{
-              playerId: opponentTimer.playerId,
-              accumulatedWords,
-              completedRounds,
-            }}
-            variant="full"
-            isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
-          />
+          {/* Right rail — current-player-side widgets */}
+          <div
+            data-testid="match-layout-rail-right"
+            className="match-layout__rail--right"
+          >
+            <TilesClaimedCard
+              frozenTiles={matchState.frozenTiles ?? {}}
+              currentPlayerSlot={playerSlot}
+            />
+            <div className="flex gap-2">
+              {roundHistory.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  className="flex-1 rounded-lg border border-hair-strong px-3 py-2 text-sm text-ink-soft hover:bg-paper-2 hover:text-ink"
+                  data-testid="hud-history-button"
+                  aria-label="Round history"
+                >
+                  History ({roundHistory.length})
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowResignDialog(true)}
+                disabled={
+                  matchState.state === "resolving" ||
+                  matchState.state === "completed" ||
+                  isResigning
+                }
+                className="flex-1 rounded-lg border border-red-400/50 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-40"
+                data-testid="hud-resign-button"
+                aria-label="Resign match"
+              >
+                Resign
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
