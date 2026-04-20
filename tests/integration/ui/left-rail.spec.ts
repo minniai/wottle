@@ -39,6 +39,8 @@ async function loginPlayer(
   });
 }
 
+test.describe.configure({ mode: "serial", retries: 1 });
+
 test.describe("@left-rail Phase 1d instructional cards", () => {
   test("renders How to play, Legend, and Your move cards", async ({
     browser,

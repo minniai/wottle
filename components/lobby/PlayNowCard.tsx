@@ -154,9 +154,9 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
             "rounded-full border px-3 py-1 text-xs font-medium transition min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0";
           const stateClasses = pill.enabled
             ? selected
-              ? "border-accent-focus bg-accent-focus text-text-inverse"
-              : "border-surface-3 bg-surface-2 text-text-primary hover:border-accent-focus"
-            : "cursor-not-allowed border-surface-2 bg-surface-1 text-text-muted";
+              ? "border-ink bg-ink text-paper"
+              : "border-hair-strong bg-paper text-ink hover:border-ochre-deep"
+            : "cursor-not-allowed border-hair bg-paper-2 text-ink-soft";
           return (
             <button
               key={pill.mode}

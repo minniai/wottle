@@ -14,11 +14,17 @@ export function TopBar() {
           word · battle
         </span>
       </div>
-      <nav className="flex items-center gap-5 text-[13px] text-ink-3">
-        <Link href="/lobby" className="hover:text-ink">
+      <nav className="flex items-center gap-2 text-[13px] text-ink-3 sm:gap-5">
+        <Link
+          href="/lobby"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 hover:text-ink sm:min-h-0 sm:min-w-0 sm:px-0"
+        >
           Lobby
         </Link>
-        <Link href="/profile" className="hover:text-ink">
+        <Link
+          href="/profile"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 hover:text-ink sm:min-h-0 sm:min-w-0 sm:px-0"
+        >
           Profile
         </Link>
       </nav>

@@ -36,6 +36,8 @@ async function loginPlayer(
   });
 }
 
+test.describe.configure({ mode: "serial", retries: 1 });
+
 test.describe("@match-surfaces Phase 1b visuals", () => {
   test("board edges show A-J and 1-10 coord labels", async ({ browser }) => {
     const contextA = await browser.newContext();

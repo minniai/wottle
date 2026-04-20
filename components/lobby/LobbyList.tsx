@@ -231,7 +231,7 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
         {error ? (
           <div
             role="alert"
-            className="rounded-xl border border-player-b/40 bg-player-b/10 p-4 text-xs text-rose-100"
+            className="rounded-xl border border-bad/50 bg-bad/10 p-4 text-xs text-bad"
           >
             <p className="font-semibold">Presence unavailable</p>
             <p className="mt-1">{error}</p>
