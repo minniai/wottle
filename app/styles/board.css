@@ -444,6 +444,20 @@
   display: none;
 }
 
+/* Phase 1c desktop layout pieces — hidden on mobile; desktop
+   media query below re-enables them with the grid/flex rules. */
+.match-layout__hud-strip,
+.match-layout__rail--left,
+.match-layout__rail--right {
+  display: none;
+}
+
+.match-layout__board-row {
+  /* On mobile the board-row is a plain block so the nested
+     board area flows beneath the compact top bar naturally. */
+  display: block;
+}
+
 /* Mobile compact bars (visible by default) */
 .match-layout__compact-top,
 .match-layout__compact-bottom {

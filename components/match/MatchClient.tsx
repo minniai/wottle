@@ -714,7 +714,7 @@ export function MatchClient({
 
       <div className="match-layout">
         {/* Desktop: top HUD strip (hidden on mobile) */}
-        <div className="match-layout__hud-strip hidden lg:grid">
+        <div className="match-layout__hud-strip">
           <HudCard
             slot="opp"
             avatar={
@@ -765,7 +765,7 @@ export function MatchClient({
           {/* Left rail placeholder — Phase 1d fills it */}
           <div
             data-testid="match-layout-rail-left"
-            className="match-layout__rail--left hidden lg:flex"
+            className="match-layout__rail--left"
           />
 
           <div className="match-layout__board">
@@ -851,7 +851,7 @@ export function MatchClient({
           {/* Right rail — current-player-side widgets */}
           <div
             data-testid="match-layout-rail-right"
-            className="match-layout__rail--right hidden lg:flex"
+            className="match-layout__rail--right"
           >
             <TilesClaimedCard
               frozenTiles={matchState.frozenTiles ?? {}}
