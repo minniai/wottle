@@ -78,37 +78,73 @@ function makeProps(overrides?: Partial<FinalSummaryProps>): FinalSummaryProps {
 describe("FinalSummary", () => {
   it("T032: renders frozen tile count for each player", () => {
     render(<FinalSummary {...makeProps()} />);
-    // Player A has 5 frozen tiles
-    expect(screen.getByText(/5 tiles frozen/i)).toBeInTheDocument();
+    // Player A has 5 frozen tiles — shown as "5 frozen" in PostGameScoreboard
+    expect(screen.getByText(/5 frozen/i)).toBeInTheDocument();
     // Player B has 3 frozen tiles
-    expect(screen.getByText(/3 tiles frozen/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 frozen/i)).toBeInTheDocument();
   });
 
   it("T032: renders top words for each player", () => {
-    render(<FinalSummary {...makeProps()} />);
-    // Player A's top words
-    expect(screen.getByText("búr")).toBeInTheDocument();
-    expect(screen.getByText("lag")).toBeInTheDocument();
-    // Player B's top words
-    expect(screen.getByText("fár")).toBeInTheDocument();
+    render(
+      <FinalSummary
+        {...makeProps({
+          wordHistory: [
+            {
+              roundNumber: 1,
+              playerId: "player-a",
+              word: "BÚR",
+              totalPoints: 20,
+              lettersPoints: 15,
+              bonusPoints: 5,
+              coordinates: [],
+            },
+            {
+              roundNumber: 2,
+              playerId: "player-a",
+              word: "LAG",
+              totalPoints: 15,
+              lettersPoints: 10,
+              bonusPoints: 5,
+              coordinates: [],
+            },
+            {
+              roundNumber: 1,
+              playerId: "player-b",
+              word: "FÁR",
+              totalPoints: 18,
+              lettersPoints: 12,
+              bonusPoints: 6,
+              coordinates: [],
+            },
+          ],
+        })}
+      />,
+    );
+    // Words appear in WordsOfMatch word list (may also appear in scoreboard best-word)
+    expect(screen.getAllByText("BÚR").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("LAG").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("FÁR").length).toBeGreaterThanOrEqual(1);
   });
 
   it("T032: renders winner banner when there is a winner", () => {
     render(<FinalSummary {...makeProps()} />);
-    expect(screen.getByText("Winner")).toBeInTheDocument();
-    // Winner banner shows the winner's display name; there may be multiple
-    // occurrences of "Player A" (winner banner + "Playing as" footer)
+    // currentPlayerId="player-a" is the winner → PostGameVerdict shows "Victory."
+    expect(screen.getByTestId("post-game-verdict")).toBeInTheDocument();
+    expect(screen.getByText("Victory.")).toBeInTheDocument();
+    // Winner's display name appears in PostGameScoreboard
     expect(screen.getAllByText("Player A").length).toBeGreaterThanOrEqual(1);
   });
 
   it("T032: renders ended reason correctly for round_limit", () => {
     render(<FinalSummary {...makeProps()} />);
-    expect(screen.getByTestId("final-summary-ended-reason")).toHaveTextContent("10 rounds completed");
+    // Reason label now rendered as text inside PostGameVerdict
+    expect(screen.getByText("10 rounds completed")).toBeInTheDocument();
   });
 
   it("T032: renders ended reason correctly for timeout", () => {
     render(<FinalSummary {...makeProps({ endedReason: "timeout" })} />);
-    expect(screen.getByTestId("final-summary-ended-reason")).toHaveTextContent("Time expired");
+    // Reason label now rendered as text inside PostGameVerdict
+    expect(screen.getByText("Time expired")).toBeInTheDocument();
   });
 
   it("T031: renders series badge when seriesContext has gameNumber > 1", () => {
