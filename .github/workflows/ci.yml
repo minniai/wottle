@@ -342,12 +342,20 @@ jobs:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
       - name: Build Next.js app (act fallback — download was skipped)
+        # Under act: quickstart already ran and wrote real Supabase values
+        # to .env.local. Next.js autoloads .env.local at build time, so the
+        # anon key baked into the client bundle is the real one.
+        #
+        # We *do* override NEXT_PUBLIC_SUPABASE_URL to host.docker.internal
+        # so Firefox/Chromium inside the container can actually reach host
+        # Supabase (localhost:54321 would point at the container's own
+        # loopback). Without this, the browser WebSocket handshake to
+        # Realtime fails with 403 and every two-player test times out.
         if: ${{ env.ACT }}
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+          NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
@@ -696,12 +704,20 @@ jobs:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
       - name: Build Next.js app (act fallback — download was skipped)
+        # Under act: quickstart already ran and wrote real Supabase values
+        # to .env.local. Next.js autoloads .env.local at build time, so the
+        # anon key baked into the client bundle is the real one.
+        #
+        # We *do* override NEXT_PUBLIC_SUPABASE_URL to host.docker.internal
+        # so Firefox/Chromium inside the container can actually reach host
+        # Supabase (localhost:54321 would point at the container's own
+        # loopback). Without this, the browser WebSocket handshake to
+        # Realtime fails with 403 and every two-player test times out.
         if: ${{ env.ACT }}
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+          NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
