@@ -687,7 +687,7 @@ export function MatchClient({
 
       <div className="match-layout">
         {/* Desktop: left panel (current player) */}
-        <div className="match-layout__panel match-layout__panel--left">
+        <div className="match-layout__panel match-layout__panel--left flex flex-col gap-3">
           <PlayerPanel
             player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
             gameState={{
@@ -717,6 +717,10 @@ export function MatchClient({
             }}
             variant="full"
             isDisconnected={matchState.disconnectedPlayerId === currentPlayerId}
+          />
+          <TilesClaimedCard
+            frozenTiles={matchState.frozenTiles ?? {}}
+            currentPlayerSlot={playerSlot}
           />
         </div>
 
@@ -803,7 +807,7 @@ export function MatchClient({
         </div>
 
         {/* Desktop: right panel (opponent) */}
-        <div className="match-layout__panel match-layout__panel--right flex flex-col gap-3">
+        <div className="match-layout__panel match-layout__panel--right">
           <PlayerPanel
             player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
             gameState={{
@@ -822,10 +826,6 @@ export function MatchClient({
             }}
             variant="full"
             isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
-          />
-          <TilesClaimedCard
-            frozenTiles={matchState.frozenTiles ?? {}}
-            currentPlayerSlot={playerSlot}
           />
         </div>
       </div>
