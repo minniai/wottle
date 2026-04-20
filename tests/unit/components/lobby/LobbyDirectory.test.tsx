@@ -48,9 +48,9 @@ describe("LobbyDirectory", () => {
         onChallenge={noop}
       />,
     );
-    expect(screen.getByTestId("lobby-empty-state")).toBeInTheDocument();
+    expect(screen.getByTestId("empty-lobby-state")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /copy.*invite/i }),
+      screen.getByRole("button", { name: /join the queue/i }),
     ).toBeInTheDocument();
   });
 
