@@ -63,6 +63,8 @@ interface BoardGridProps {
   onValidSwap?: () => void;
   /** Called when a swap is rejected or a frozen tile is clicked (for audio feedback). */
   onInvalidMove?: () => void;
+  /** Fired whenever the currently-selected first tile changes (null when deselected). */
+  onSelectionChange?: (selection: Coordinate | null) => void;
 }
 
 type SelectedTile = {
@@ -167,6 +169,7 @@ export function BoardGrid({
   onTileSelect,
   onValidSwap,
   onInvalidMove,
+  onSelectionChange,
 }: BoardGridProps) {
   if (!grid || grid.length === 0) {
     return <BoardGridSkeleton className={className} />;
@@ -193,6 +196,7 @@ export function BoardGrid({
       onTileSelect={onTileSelect}
       onValidSwap={onValidSwap}
       onInvalidMove={onInvalidMove}
+      onSelectionChange={onSelectionChange}
     />
   );
 }
@@ -217,10 +221,15 @@ function BoardGridActive({
   onTileSelect,
   onValidSwap,
   onInvalidMove,
+  onSelectionChange,
 }: BoardGridProps & { grid: BoardGridType }) {
   const [currentGrid, setCurrentGrid] = useState<BoardGridType>(grid);
   const [selected, setSelected] = useState<SelectedTile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    onSelectionChange?.(selected);
+  }, [selected, onSelectionChange]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [swappingTiles, setSwappingTiles] = useState<[SelectedTile, SelectedTile] | null>(null);
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
