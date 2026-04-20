@@ -4,6 +4,10 @@ const config = [
   ...next,
   {
     ignores: [
+      // Static HTML/JSX design prototype — not production code. The prototype
+      // script tags load primitives into global scope, which ESLint correctly
+      // reports as undefined — but it's a reference artifact, not source.
+      "docs/design_documentation/**",
       "prd/wordlist",
       "node_modules",
       ".next",
