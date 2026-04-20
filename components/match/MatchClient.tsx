@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { PlayerPanel } from "@/components/match/PlayerPanel";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
+import { TilesClaimedCard } from "@/components/match/TilesClaimedCard";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
@@ -802,7 +803,7 @@ export function MatchClient({
         </div>
 
         {/* Desktop: right panel (opponent) */}
-        <div className="match-layout__panel match-layout__panel--right">
+        <div className="match-layout__panel match-layout__panel--right flex flex-col gap-3">
           <PlayerPanel
             player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
             gameState={{
@@ -821,6 +822,10 @@ export function MatchClient({
             }}
             variant="full"
             isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
+          />
+          <TilesClaimedCard
+            frozenTiles={matchState.frozenTiles ?? {}}
+            currentPlayerSlot={playerSlot}
           />
         </div>
       </div>
