@@ -1,0 +1,93 @@
+/* =========================================================
+   Light i18n — English / Icelandic
+   ========================================================= */
+const I18N = {
+  en: {
+    brandTag: "Word · battle",
+    playNow: "Play now",
+    lobby: "Lobby",
+    landing: "Landing",
+    matchmaking: "Matchmaking",
+    inMatch: "In match",
+    postGame: "Post‑game",
+    profile: "Profile",
+    tweaks: "Tweaks",
+    goodEvening: "Good evening,",
+    whoWillItBe: "Who will it be?",
+    pickPlayer: "Pick a player from the floor below to challenge directly, or press",
+    andWellPair: "and we'll pair you by rating.",
+    theFloor: "The floor",
+    yourRecentGames: "Your recent games",
+    topOfBoard: "Top of the board",
+    round: "Round",
+    yourMove: "YOUR MOVE · SWAP TWO TILES",
+    waiting: "WAITING FOR OPPONENT",
+    challenge: "Challenge",
+    available: "Available",
+    queueing: "Queueing",
+    inGame: "In game",
+    yourRating: "Your rating",
+    record: "Record",
+    longestWord: "Longest word",
+    today: "Today",
+    playersOnline: "players online",
+    matchesInProgress: "matches in progress",
+    all: "All",
+    inQueue: "In queue",
+    playing: "Playing",
+    ranked: "Ranked",
+    casual: "Casual",
+    challengeBtn: "Challenge",
+    liveLobby: "Live lobby",
+  },
+  is: {
+    brandTag: "Orða · barátta",
+    playNow: "Byrja leik",
+    lobby: "Leikgólf",
+    landing: "Forsíða",
+    matchmaking: "Mótherji",
+    inMatch: "Í leik",
+    postGame: "Eftir leik",
+    profile: "Notandi",
+    tweaks: "Stillingar",
+    goodEvening: "Gott kvöld,",
+    whoWillItBe: "Hver verður það?",
+    pickPlayer: "Veldu leikmann af gólfinu hér að neðan til að skora á, eða smelltu á",
+    andWellPair: "og við pörum þig eftir stigum.",
+    theFloor: "Leikgólfið",
+    yourRecentGames: "Nýlegir leikir",
+    topOfBoard: "Efst á stigatöflu",
+    round: "Umferð",
+    yourMove: "ÞINN LEIKUR · SKIPTU TVEIMUR STÖFUM",
+    waiting: "BÍÐ EFTIR MÓTHERJA",
+    challenge: "Skora á",
+    available: "Laus",
+    queueing: "Í biðröð",
+    inGame: "Í leik",
+    yourRating: "Þín stig",
+    record: "Ferill",
+    longestWord: "Lengsta orð",
+    today: "Í dag",
+    playersOnline: "leikmenn á netinu",
+    matchesInProgress: "leikir í gangi",
+    all: "Allir",
+    inQueue: "Í biðröð",
+    playing: "Í leik",
+    ranked: "Stigaleikur",
+    casual: "Frjálst",
+    challengeBtn: "Skora á",
+    liveLobby: "Leikgólf í beinni",
+  },
+};
+function t(lang, key) {
+  return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+}
+
+Object.assign(window, { I18N, t });
+
+// Brand names per language
+const BRAND = {
+  en: { name: "Wottle", tagline: "word · battle" },
+  is: { name: "Orðusta", tagline: "orða · orrusta" },
+};
+window.BRAND = BRAND;

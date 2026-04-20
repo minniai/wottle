@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wottle — Print</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  html, body { background: var(--paper); margin: 0; }
+  body { font-family: var(--sans); }
+  .page {
+    width: 1440px;
+    min-height: 900px;
+    margin: 0 auto 40px;
+    background: var(--paper);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 40px rgba(0,0,0,0.08);
+    break-inside: avoid;
+    break-after: page;
+  }
+  .page:last-child { break-after: auto; }
+  .page-label {
+    position: absolute;
+    top: 18px; left: 24px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    z-index: 20;
+  }
+  .page-meta {
+    position: absolute;
+    top: 18px; right: 24px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    z-index: 20;
+  }
+  .page .app-shell { min-height: auto; }
+  .page .topbar { display: none; }
+  .page .tweaks { display: none !important; }
+
+  /* Match-screen HUDs get more room */
+  .page.tall { min-height: 1080px; }
+
+  /* Overlays need relative match area */
+  .page .screen { position: relative; }
+
+  @page {
+    size: 1500px 980px;
+    margin: 0;
+  }
+  @media print {
+    html, body {
+      background: #fff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      margin: 0;
+      box-shadow: none;
+      break-after: page;
+      page-break-after: always;
+    }
+    .page:last-child { break-after: auto; page-break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="doc"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script src="i18n.js"></script>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="screens/Landing.jsx"></script>
+<script type="text/babel" src="screens/Profile.jsx"></script>
+<script type="text/babel" src="screens/ProfilePage.jsx"></script>
+<script type="text/babel" src="screens/Overlays.jsx"></script>
+<script type="text/babel" src="screens/HudVariants.jsx"></script>
+<script type="text/babel" src="screens/Lobby.jsx"></script>
+<script type="text/babel" src="screens/Matchmaking.jsx"></script>
+<script type="text/babel" src="screens/Match.jsx"></script>
+<script type="text/babel" src="screens/PostGame.jsx"></script>
+
+<script type="text/babel">
+/* =========================================================
+   Print document — renders each screen as its own page
+   ========================================================= */
+
+// Set CSS vars for default player colors (App.jsx does this normally)
+(function setVars() {
+  const r = document.documentElement;
+  r.style.setProperty("--p1", "oklch(0.68 0.14 60)");
+  r.style.setProperty("--p1-tint", "oklch(0.92 0.06 70)");
+  r.style.setProperty("--p1-deep", "oklch(0.48 0.14 55)");
+  r.style.setProperty("--p2", "oklch(0.56 0.08 220)");
+  r.style.setProperty("--p2-tint", "oklch(0.92 0.035 220)");
+  r.style.setProperty("--p2-deep", "oklch(0.38 0.08 220)");
+  r.style.setProperty("--tile-size", "52px");
+})();
+
+function Page({ label, meta, tall = false, tileStyle, lobbyVariant, children }) {
+  const cls = [
+    "page",
+    tall ? "tall" : "",
+    tileStyle ? `tiles-${tileStyle}` : "",
+    lobbyVariant ? `lobby-${lobbyVariant}` : "",
+  ].filter(Boolean).join(" ");
+  return (
+    <div className={cls}>
+      <div className="page-label">{label}</div>
+      {meta && <div className="page-meta">{meta}</div>}
+      <div className="app-shell">{children}</div>
+    </div>
+  );
+}
+
+function PrintDoc() {
+  return (
+    <div>
+      {/* 1 · Landing */}
+      <Page label="01 · Landing" meta="Wottle · Warm Editorial">
+        <LandingScreen goTo={() => {}} />
+      </Page>
+
+      {/* 2 · Lobby (classic) */}
+      <Page label="02 · Lobby — Classic" meta="Hero + player floor" tall>
+        <LobbyScreen goTo={() => {}} onInvite={() => {}} onPeek={() => {}} />
+      </Page>
+
+      {/* 3 · Lobby — Arena */}
+      <Page label="03 · Lobby — Arena (variant)" meta="Dark cinematic" lobbyVariant="arena" tall>
+        <LobbyScreen goTo={() => {}} onInvite={() => {}} onPeek={() => {}} />
+      </Page>
+
+      {/* 4 · Lobby — Minimal */}
+      <Page label="04 · Lobby — Minimal (variant)" meta="Big centered CTA" lobbyVariant="minimal" tall>
+        <LobbyScreen goTo={() => {}} onInvite={() => {}} onPeek={() => {}} />
+      </Page>
+
+      {/* 5 · Empty lobby */}
+      <Page label="05 · Empty lobby state" meta="Nobody online">
+        <div className="screen">
+          <div className="hero" style={{ padding: "64px 48px 40px" }}>
+            <div className="hero-inner" style={{ gridTemplateColumns: "1fr" }}>
+              <div>
+                <div className="eyebrow">Live lobby · 0 players online</div>
+                <h1 style={{ fontSize: "clamp(48px, 6vw, 80px)", margin: "14px 0 0" }}>
+                  Good evening,<br/>
+                  <em style={{ fontStyle: "normal", color: "var(--ochre-deep)" }}>Ásta.</em>
+                </h1>
+              </div>
+            </div>
+          </div>
+          <div className="section">
+            <EmptyLobbyState goTo={() => {}} />
+          </div>
+        </div>
+      </Page>
+
+      {/* 6 · Matchmaking */}
+      <Page label="06 · Matchmaking" meta="Expanding rating search">
+        <MatchmakingScreen goTo={() => {}} />
+      </Page>
+
+      {/* 7 · In match — Classic HUD */}
+      <Page label="07 · In match — Classic HUD" meta="Letterpress tiles · Balanced frozen" tall>
+        <MatchScreen goTo={() => {}} hudVariant="classic" tileStyle="letterpress" />
+      </Page>
+
+      {/* 8 · In match — Chess clock HUD */}
+      <Page label="08 · In match — Chess-clock HUD (variant)" meta="Large tabular timer" tall>
+        <MatchScreen goTo={() => {}} hudVariant="chess" tileStyle="letterpress" />
+      </Page>
+
+      {/* 9 · In match — Top/bottom HUD + dimensional tiles */}
+      <Page label="09 · In match — Top/bottom HUD · Dimensional tiles (variant)" meta="Scrabble tile treatment" tileStyle="dimensional" tall>
+        <MatchScreen goTo={() => {}} hudVariant="topbottom" tileStyle="dimensional" />
+      </Page>
+
+      {/* 10 · In match — Paper tiles */}
+      <Page label="10 · In match — Paper / crossword tiles (variant)" meta="Flat grid aesthetic" tileStyle="paper" tall>
+        <MatchScreen goTo={() => {}} hudVariant="classic" tileStyle="paper" />
+      </Page>
+
+      {/* 11 · In match — Disconnection */}
+      <Page label="11 · In match — Disconnection state" meta="Opponent dropped · 90s wait" tall>
+        <MatchScreen goTo={() => {}} hudVariant="classic" tileStyle="letterpress" showDisconnect={true} />
+      </Page>
+
+      {/* 12 · Post-game */}
+      <Page label="12 · Post-game" meta="Verdict + round breakdown" tall>
+        <PostGameScreen goTo={() => {}} />
+      </Page>
+
+      {/* 13 · Profile page */}
+      <Page label="13 · Profile — full page" meta="Rating chart · word cloud · history" tall>
+        <ProfilePage goTo={() => {}} />
+      </Page>
+
+      {/* 14 · Overlays reference sheet */}
+      <Page label="14 · Overlays & states reference" meta="Toast · profile modal · invite dialog">
+        <div style={{ padding: "60px 48px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "start" }}>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 14 }}>Invite-received toast</div>
+            <div style={{ position: "relative", height: 220, background: "var(--paper-2)", border: "1px solid var(--hair)", borderRadius: 12, padding: 16 }}>
+              <div style={{ position: "absolute", top: 16, right: 16 }}>
+                <div className="invite-toast" style={{ position: "static" }}>
+                  <div className="toast-head">
+                    <Avatar name="Ragnar Þ." slot="p2" size={34} />
+                    <div>
+                      <div className="toast-eyebrow">Challenge received</div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)", marginTop: 2 }}>Ragnar Þórsson</div>
+                    </div>
+                  </div>
+                  <div className="toast-body">
+                    <span className="toast-name">Ranked</span> · 10 rounds · your rating <b className="mono">1,728</b> vs <b className="mono">1,802</b>.
+                  </div>
+                  <div className="toast-actions">
+                    <button className="btn btn-ghost btn-sm" style={{ flex: 1 }}>Decline</button>
+                    <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>Accept →</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 14 }}>Disconnection card</div>
+            <div style={{ background: "var(--paper-2)", border: "1px solid var(--hair)", borderRadius: 12, padding: 40, display: "flex", justifyContent: "center" }}>
+              <div className="disc-card" style={{ boxShadow: "var(--shadow-md)" }}>
+                <div className="disc-pulse"><div className="disc-dot" /></div>
+                <div>
+                  <div className="eyebrow" style={{ color: "var(--warn)", marginBottom: 6 }}>Connection lost</div>
+                  <h3 style={{ margin: 0, fontFamily: "var(--display)", fontStyle: "italic", fontWeight: 400, fontSize: 24, color: "var(--ink)" }}>
+                    Sigríður P. dropped out.
+                  </h3>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.6, margin: 0, maxWidth: "28ch" }}>
+                  The match is paused. We'll wait up to 90 seconds for them to reconnect, or you can claim the win.
+                </p>
+                <div className="mono" style={{ fontSize: 26, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>0:42</div>
+                <div style={{ display: "flex", gap: 8, width: "100%" }}>
+                  <button className="btn btn-ghost btn-sm" style={{ flex: 1 }}>Keep waiting</button>
+                  <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>Claim win</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Page>
+
+      {/* 15 · Icelandic build */}
+      <Page label="15 · Orðusta — Icelandic build" meta="Same design · IS copy" tall>
+        <IcelandicLobby />
+      </Page>
+
+      {/* 16 · Design system summary */}
+      <Page label="16 · Design system · summary" meta="Wottle · Warm Editorial">
+        <DesignSystemSheet />
+      </Page>
+    </div>
+  );
+}
+
+function IcelandicLobby() {
+  // Shallow IS version of the lobby hero for print
+  return (
+    <div className="screen">
+      <div className="hero">
+        <div className="hero-inner">
+          <div>
+            <div className="eyebrow">Leikgólf í beinni · 12 leikmenn · 4 leikir í gangi</div>
+            <h1>
+              Gott kvöld,<br/>
+              <em>Ásta.</em><br/>
+              Hver verður það?
+            </h1>
+            <p className="hero-sub">
+              Veldu leikmann af gólfinu hér að neðan til að skora á, eða smelltu á <b>Byrja leik</b> og við pörum þig eftir stigum.
+            </p>
+            <div className="row" style={{ marginTop: 28, gap: 10 }}>
+              <button className="btn btn-primary" style={{ padding: "14px 22px" }}>◆ Byrja leik</button>
+              <div className="chip-row" style={{ marginLeft: 8 }}>
+                <Chip on>Stigaleikur</Chip>
+                <Chip>Frjálst</Chip>
+                <Chip>Áskorun</Chip>
+              </div>
+            </div>
+          </div>
+          <div className="hero-stats">
+            <div className="stat-row"><span className="stat-k">Þín stig</span><span className="stat-v">1.728</span></div>
+            <div className="stat-row"><span className="stat-k">Ferill</span><span className="stat-v">146-112-14</span></div>
+            <div className="stat-row"><span className="stat-k">Lengsta orð</span><span className="stat-v" style={{ fontSize: 22 }}>SKÓGURINN</span></div>
+            <div className="stat-row"><span className="stat-k">Í dag</span><span className="stat-v">+24</span></div>
+          </div>
+        </div>
+      </div>
+      <div className="section">
+        <div className="section-head">
+          <div>
+            <h2>Leikgólfið</h2>
+            <div className="meta" style={{ marginTop: 4 }}>12 leikmenn · uppfært í beinni</div>
+          </div>
+          <div className="chip-row">
+            <Chip on>Allir</Chip><Chip>Lausir</Chip><Chip>Í biðröð</Chip><Chip>Í leik</Chip>
+          </div>
+        </div>
+        <div className="lobby-grid">
+          {LOBBY_PLAYERS.slice(0, 6).map(p => {
+            const slot = p.handle.length % 2 === 0 ? "p1" : "p2";
+            return (
+              <div key={p.handle} className="player-card">
+                <div className="player-card-top">
+                  <Avatar name={p.name} slot={slot} />
+                  <div>
+                    <div className="player-name">{p.name}</div>
+                    <div className="player-handle">@{p.handle} · {p.elo}</div>
+                  </div>
+                </div>
+                <div className="player-meta">
+                  <span><span className="dot-status" /> {p.status === "available" ? "Laus" : p.status === "queueing" ? "Í biðröð" : "Í leik"}</span>
+                  <span>S <b>{p.wins}</b></span>
+                </div>
+                {p.status === "available" && <button className="btn btn-ghost btn-sm">Skora á →</button>}
+                {p.status === "queueing" && <button className="btn btn-accent btn-sm">Taka í biðröð →</button>}
+                {p.status === "in-game" && <button className="btn btn-ghost btn-sm" disabled style={{ opacity: 0.5 }}>Fylgjast með (brátt)</button>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DesignSystemSheet() {
+  const Swatch = ({ name, v, sub }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px dashed var(--hair)" }}>
+      <div style={{ width: 44, height: 44, borderRadius: 8, background: v, border: "1px solid var(--hair-strong)" }} />
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>{name}</div>
+        <div className="mono" style={{ fontSize: 10, color: "var(--ink-soft)" }}>{sub}</div>
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ padding: "50px 48px" }}>
+      <div className="eyebrow">Wottle · Design system</div>
+      <h1 style={{ fontFamily: "var(--display)", fontStyle: "italic", fontWeight: 400, fontSize: 56, margin: "8px 0 32px", color: "var(--ink)" }}>
+        Warm <em style={{ fontStyle: "normal", color: "var(--ochre-deep)" }}>editorial.</em>
+      </h1>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 40 }}>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Type</div>
+          <div style={{ fontFamily: "var(--display)", fontStyle: "italic", fontSize: 44, lineHeight: 1.05, color: "var(--ink)" }}>Fraunces</div>
+          <div className="mono muted" style={{ fontSize: 11, marginBottom: 18 }}>Display · italic 400/500</div>
+          <div style={{ fontFamily: "var(--sans)", fontSize: 22, fontWeight: 500, color: "var(--ink)" }}>Inter</div>
+          <div className="mono muted" style={{ fontSize: 11, marginBottom: 18 }}>UI · 400/500/600/700</div>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 16, color: "var(--ink)" }}>JetBrains Mono</div>
+          <div className="mono muted" style={{ fontSize: 11 }}>Numeric · eyebrow labels</div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Palette</div>
+          <Swatch name="Paper" v="oklch(0.975 0.012 85)" sub="surface · cream" />
+          <Swatch name="Ink" v="oklch(0.22 0.025 258)" sub="foreground · navy" />
+          <Swatch name="Ochre" v="oklch(0.58 0.14 60)" sub="accent · you · p1" />
+          <Swatch name="Slate-teal" v="oklch(0.56 0.08 220)" sub="opponent · p2" />
+          <Swatch name="Good" v="oklch(0.62 0.12 150)" sub="active clock" />
+          <Swatch name="Warn" v="oklch(0.70 0.15 40)" sub="disconnect" />
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Tile system</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div className="tile" style={{ width: 60, height: 60, fontSize: 32 }}>A<span className="val">1</span></div>
+            <div className="tile selected" style={{ width: 60, height: 60, fontSize: 32 }}>B<span className="val">6</span></div>
+            <div className="tile frozen-p1" style={{ width: 60, height: 60, fontSize: 32 }}>C<span className="val">2</span></div>
+            <div className="tile frozen-p2" style={{ width: 60, height: 60, fontSize: 32 }}>Þ<span className="val">4</span></div>
+            <div className="tile frozen-both" style={{ width: 60, height: 60, fontSize: 32 }}>Ö<span className="val">7</span></div>
+            <div className="tile hint" style={{ width: 60, height: 60, fontSize: 32 }}>E<span className="val">1</span></div>
+          </div>
+          <div className="mono muted" style={{ fontSize: 10, marginTop: 10, lineHeight: 1.6 }}>
+            Neutral · selected · you-frozen · opponent-frozen · shared · hint
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Mount
+const root = ReactDOM.createRoot(document.getElementById("doc"));
+root.render(<PrintDoc />);
+
+// Auto-print after fonts + Babel + render settle
+async function go() {
+  try { await document.fonts.ready; } catch (e) {}
+  await new Promise(r => setTimeout(r, 900));
+  window.print();
+}
+go();
+</script>
+
+</body>
+</html>
