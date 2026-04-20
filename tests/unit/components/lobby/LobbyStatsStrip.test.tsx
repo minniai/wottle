@@ -40,13 +40,47 @@ afterEach(() => {
 });
 
 describe("LobbyStatsStrip", () => {
-  test("renders the online count derived from presence store", () => {
+  test("renders the online count excluding the current player", () => {
     mockStoreState.players = makePlayers(3);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ matchesInProgress: 0 })),
     );
-    render(<LobbyStatsStrip />);
+    render(<LobbyStatsStrip selfId="not-in-list" />);
     expect(screen.getByTestId("lobby-stats-online").textContent).toContain("3");
+  });
+
+  test("subtracts the current player from the online count", () => {
+    mockStoreState.players = makePlayers(3);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ matchesInProgress: 0 })),
+    );
+    render(<LobbyStatsStrip selfId="p0" />);
+    const text = screen.getByTestId("lobby-stats-online").textContent ?? "";
+    expect(text).toContain("2");
+    expect(text).toContain("players online");
+  });
+
+  test("shows 0 players online when the viewer is alone in the lobby", () => {
+    mockStoreState.players = makePlayers(1);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ matchesInProgress: 0 })),
+    );
+    render(<LobbyStatsStrip selfId="p0" />);
+    const text = screen.getByTestId("lobby-stats-online").textContent ?? "";
+    expect(text).toContain("0");
+    expect(text).toContain("players online");
+  });
+
+  test("uses singular copy when exactly one other player is online", () => {
+    mockStoreState.players = makePlayers(2);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ matchesInProgress: 0 })),
+    );
+    render(<LobbyStatsStrip selfId="p0" />);
+    const text = screen.getByTestId("lobby-stats-online").textContent ?? "";
+    expect(text).toContain("1");
+    expect(text).toContain("player online");
+    expect(text).not.toContain("players online");
   });
 
   test("renders matches-in-progress count from the fetched payload", async () => {
@@ -54,7 +88,7 @@ describe("LobbyStatsStrip", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ matchesInProgress: 7 })),
     );
-    render(<LobbyStatsStrip />);
+    render(<LobbyStatsStrip selfId="self" />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
@@ -71,7 +105,7 @@ describe("LobbyStatsStrip", () => {
         new Response(JSON.stringify({ matchesInProgress: 4 })),
       )
       .mockResolvedValueOnce(new Response("boom", { status: 500 }));
-    render(<LobbyStatsStrip />);
+    render(<LobbyStatsStrip selfId="self" />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
@@ -92,7 +126,7 @@ describe("LobbyStatsStrip", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ matchesInProgress: 0 })),
     );
-    render(<LobbyStatsStrip />);
+    render(<LobbyStatsStrip selfId="self" />);
     expect(screen.getByTestId("lobby-connection-mode").textContent).toMatch(
       /live/i,
     );
@@ -103,7 +137,7 @@ describe("LobbyStatsStrip", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ matchesInProgress: 0 })),
     );
-    render(<LobbyStatsStrip />);
+    render(<LobbyStatsStrip selfId="self" />);
     expect(screen.getByTestId("lobby-connection-mode").textContent).toMatch(
       /polling/i,
     );

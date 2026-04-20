@@ -37,7 +37,7 @@ export default async function LobbyPage() {
 
       {session ? (
         <>
-          <LobbyStatsStrip />
+          <LobbyStatsStrip selfId={session.player.id} />
           <PlayNowCard currentPlayer={session.player} />
           <section className="space-y-4">
             <div className="flex items-baseline justify-between">

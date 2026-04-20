@@ -25,7 +25,11 @@ async function fetchMatchesCount(): Promise<number | null> {
   }
 }
 
-export function LobbyStatsStrip() {
+interface LobbyStatsStripProps {
+  selfId: string;
+}
+
+export function LobbyStatsStrip({ selfId }: LobbyStatsStripProps) {
   const players = useLobbyPresenceStore((state) => state.players);
   const connectionMode = useLobbyPresenceStore(
     (state) => state.connectionMode,
@@ -53,7 +57,10 @@ export function LobbyStatsStrip() {
     };
   }, []);
 
-  const onlineCount = players.length;
+  // Exclude the viewer so this count matches the `LobbyDirectory` empty-state
+  // condition (which also excludes self) and the prototype's empty-lobby
+  // screen, which shows "0 players online" when the viewer is alone.
+  const onlineCount = players.filter((player) => player.id !== selfId).length;
 
   return (
     <div
