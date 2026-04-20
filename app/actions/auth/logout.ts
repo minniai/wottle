@@ -4,6 +4,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { ZodError } from "zod";
 
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { readLobbySession, SESSION_COOKIE_NAME } from "@/lib/matchmaking/profile";
@@ -12,7 +13,10 @@ import {
   findActiveMatchForPlayer,
 } from "@/lib/matchmaking/service";
 import { forgetPresence } from "@/lib/matchmaking/presenceCache";
-import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
+import {
+  assertWithinRateLimit,
+  RateLimitExceededError,
+} from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export interface LogoutInput {
@@ -52,6 +56,8 @@ export async function logoutAction(
         await resignMatch(activeMatch.id);
         resignedMatchId = activeMatch.id;
       } catch (error) {
+        if (error instanceof RateLimitExceededError) throw error;
+        if (error instanceof ZodError) throw error;
         console.warn(
           "[logoutAction] resignMatch failed, continuing with logout",
           error,
@@ -64,7 +70,7 @@ export async function logoutAction(
   forgetPresence(playerId);
 
   const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE_NAME);
+  cookieStore.delete({ name: SESSION_COOKIE_NAME, path: "/" });
 
   revalidatePath("/", "layout");
   return { status: "signed-out", resignedMatchId };
