@@ -341,6 +341,13 @@ jobs:
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
+      - name: Build Next.js app (act fallback — download was skipped)
+        if: ${{ env.ACT }}
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
@@ -688,6 +695,13 @@ jobs:
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
+      - name: Build Next.js app (act fallback — download was skipped)
+        if: ${{ env.ACT }}
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
