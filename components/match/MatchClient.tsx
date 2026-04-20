@@ -30,6 +30,7 @@ import { useSensoryPreferences } from "@/lib/preferences/useSensoryPreferences";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { MatchShell } from "./MatchShell";
+import { MatchLeftRail } from "@/components/match/MatchLeftRail";
 
 
 interface MatchClientProps {
@@ -116,6 +117,7 @@ export function MatchClient({
   // Move lock state (US1): after swap, board is locked until next round
   const [moveLocked, setMoveLocked] = useState(false);
   const [lockedSwapTiles, setLockedSwapTiles] = useState<[Coordinate, Coordinate] | null>(null);
+  const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
 
   // Sequential reveal state (US1): active player's swap tiles and highlights during reveal phases
   const [activeRevealMove, setActiveRevealMove] = useState<{ from: Coordinate; to: Coordinate } | null>(null);
@@ -767,7 +769,12 @@ export function MatchClient({
           <div
             data-testid="match-layout-rail-left"
             className="match-layout__rail--left"
-          />
+          >
+            <MatchLeftRail
+              selection={selectedTile}
+              submittedMove={moveLocked ? lockedSwapTiles : null}
+            />
+          </div>
 
           <div className="match-layout__board">
             {/* Mobile: compact opponent bar */}
@@ -818,6 +825,7 @@ export function MatchClient({
               onTileSelect={playTileSelect}
               onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
               onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
+              onSelectionChange={setSelectedTile}
             />
 
             {roundAnnounce && (
