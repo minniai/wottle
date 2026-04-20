@@ -128,6 +128,9 @@ jobs:
         # act does not parse multiline YAML path: blocks — prune here instead
         run: rm -rf .next/cache .next/trace
       - name: Upload Next.js build artifact
+        # Skip under act: upload-artifact@v7 sends a protobuf field
+        # (mime_type) that act's built-in artifact server rejects.
+        if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
@@ -215,7 +218,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Upload quickstart log
-        if: always()
+        if: ${{ always() && !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: quickstart-log
@@ -333,6 +336,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
+        if: ${{ !env.ACT }}
         uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
@@ -583,7 +587,7 @@ jobs:
         if: always()
         run: supabase stop || true
       - name: Upload Playwright log
-        if: always()
+        if: ${{ always() && !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: quickstart-playwright-${{ matrix.suite }}-log
@@ -679,6 +683,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
+        if: ${{ !env.ACT }}
         uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
@@ -883,7 +888,7 @@ jobs:
         if: always()
         run: supabase stop || true
       - name: Upload perf artifacts
-        if: always()
+        if: ${{ always() && !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: perf-artifacts
