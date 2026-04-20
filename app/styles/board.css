@@ -241,10 +241,15 @@
   }
 }
 
-/* Frozen tile: overlay behind text, no hover lift, letter stays readable */
+/* Frozen tile: overlay behind text, no hover lift, letter stays readable.
+ * Clear the letterpress linear-gradient so the inline `backgroundColor` set
+ * by React (FROZEN_COLORS[owner], a semi-transparent player tint) paints
+ * on top of the paper surface instead of being hidden behind the opaque
+ * gradient. Letterpress box-shadows still apply for the pressed-in feel. */
 .board-grid__cell--frozen {
   position: relative;
   cursor: not-allowed;
+  background-image: none;
 }
 
 .board-grid__cell--frozen .board-grid__tile {
