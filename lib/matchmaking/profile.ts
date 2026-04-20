@@ -233,37 +233,52 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
 // (status="available" from the session cookie) every ~500ms poll, so the
 // PlayNowCard button visibly oscillates between "Play Now" and
 // "Already in a match".
+//
+// This runs on every lobby page load, so it must NEVER throw — the lobby
+// page crashing for a transient DB blip would be worse than leaving a stale
+// status in place. All errors are swallowed and logged.
 export async function healStuckInMatchStatus(playerId: string): Promise<void> {
-  const supabase = getServiceRoleClient();
-  const { data: player } = await supabase
-    .from("players")
-    .select("status")
-    .eq("id", playerId)
-    .maybeSingle();
+  try {
+    const supabase = getServiceRoleClient();
+    const { data: player, error: selectError } = await supabase
+      .from("players")
+      .select("status")
+      .eq("id", playerId)
+      .maybeSingle();
 
-  if (player?.status !== "in_match") {
-    return;
-  }
+    if (selectError || player?.status !== "in_match") {
+      return;
+    }
 
-  const activeMatch = await findActiveMatchForPlayer(supabase, playerId).catch(
-    () => null,
-  );
-  if (activeMatch) {
-    return;
-  }
+    const activeMatch = await findActiveMatchForPlayer(
+      supabase,
+      playerId,
+    ).catch(() => null);
+    if (activeMatch) {
+      return;
+    }
 
-  const { error } = await supabase
-    .from("players")
-    .update({ status: "available", last_seen_at: new Date().toISOString() })
-    .eq("id", playerId)
-    .eq("status", "in_match");
+    const { error } = await supabase
+      .from("players")
+      .update({ status: "available", last_seen_at: new Date().toISOString() })
+      .eq("id", playerId)
+      .eq("status", "in_match");
 
-  if (error) {
+    if (error) {
+      console.error(
+        JSON.stringify({
+          event: "player.status.heal.failed",
+          playerId,
+          error: error.message,
+        }),
+      );
+    }
+  } catch (error) {
     console.error(
       JSON.stringify({
-        event: "player.status.heal.failed",
+        event: "player.status.heal.threw",
         playerId,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }),
     );
   }
