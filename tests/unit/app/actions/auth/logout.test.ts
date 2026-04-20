@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({
-  getServiceRoleClient: vi.fn(),
+  getServiceRoleClient: vi.fn(() => ({})),
 }));
 vi.mock("@/lib/matchmaking/profile", () => ({
   readLobbySession: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-const deleteCookie = vi.fn();
+const { deleteCookie } = vi.hoisted(() => ({ deleteCookie: vi.fn() }));
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ delete: deleteCookie }),
 }));
@@ -51,5 +51,25 @@ describe("logoutAction", () => {
     expect(expireLobbyPresence).not.toHaveBeenCalled();
     expect(resignMatch).not.toHaveBeenCalled();
     expect(deleteCookie).not.toHaveBeenCalled();
+  });
+
+  it("clears presence row, presence cache, and session cookie for an active session", async () => {
+    vi.mocked(readLobbySession).mockResolvedValue({
+      token: "t",
+      issuedAt: 0,
+      player: {
+        id: "player-1",
+        username: "ari",
+        displayName: "Ari",
+        status: "available",
+        lastSeenAt: "",
+      },
+    } as any);
+
+    const result = await logoutAction();
+
+    expect(result).toEqual({ status: "signed-out", resignedMatchId: null });
+    expect(expireLobbyPresence).toHaveBeenCalledWith(expect.anything(), "player-1");
+    expect(deleteCookie).toHaveBeenCalledWith("wottle-playtest-session");
   });
 });
