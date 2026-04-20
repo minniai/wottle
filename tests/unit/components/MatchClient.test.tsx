@@ -420,7 +420,7 @@ describe("MatchClient animation phase machine (US2)", () => {
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
   });
 
-  test("no overlay is rendered after 1200ms — round data appears inline in player panel", async () => {
+  test("no overlay is rendered after 1200ms — animation phase transitions back to idle", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -444,8 +444,9 @@ describe("MatchClient animation phase machine (US2)", () => {
 
     // No overlay
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-    // Inline round history appears in player panels
-    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
+    // Animation phase returned to idle — scored tile highlights cleared
+    const scoredTiles = document.querySelectorAll(".board-grid__cell--scored");
+    expect(scoredTiles).toHaveLength(0);
   });
 
   test("scoredTileHighlights passed to BoardGrid is populated from pendingSummary during highlighting phase", async () => {
@@ -505,7 +506,7 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
     });
   });
 
-  test("no overlay rendered with reduced motion — inline history appears immediately", async () => {
+  test("no overlay rendered with reduced motion — animation phase skipped immediately", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -523,9 +524,11 @@ describe("MatchClient reduced-motion bypass (US3)", () => {
       mockMatchCallbacks.onSummary!(mockRoundSummary);
     });
 
-    // No overlay — inline history is shown instead
+    // No overlay — reduced motion skips the animation phase entirely
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
+    // No scored tiles because highlighting phase was bypassed
+    const scoredTiles = document.querySelectorAll(".board-grid__cell--scored");
+    expect(scoredTiles).toHaveLength(0);
   });
 
   test("highlight animation is skipped when reduced motion is active", async () => {
@@ -690,8 +693,9 @@ describe("MatchClient round-recap flash (US1)", () => {
 
     // No overlay ever appears
     expect(screen.queryByTestId("round-summary-panel")).not.toBeInTheDocument();
-    // Inline history shows the round data
-    expect(screen.getAllByTestId("round-history-inline").length).toBeGreaterThan(0);
+    // Animation phase returned to idle — scored tile highlights cleared
+    const scoredTilesAfter = document.querySelectorAll(".board-grid__cell--scored");
+    expect(scoredTilesAfter).toHaveLength(0);
   });
 
   test("T015: opponent's swapped tiles get opponent-reveal class during round-recap phase", async () => {
