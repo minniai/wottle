@@ -43,6 +43,44 @@ let trackedPlayerId: string | null = null;
 let trackedPlayer: PlayerIdentity | null = null;
 let trackedConnectionId: string | null = null;
 
+// Presence heartbeat — POSTs to /api/lobby/presence on an interval so the
+// server-side `lobby_presence.expires_at` keeps rolling forward. Without it,
+// the row written at login expires after PRESENCE_TTL_SECONDS (default 300s)
+// and the player drops out of every other client's lobby view.
+const HEARTBEAT_INTERVAL_MS = 60_000;
+let heartbeatHandle: ReturnType<typeof setInterval> | null = null;
+
+async function sendHeartbeat(): Promise<void> {
+  try {
+    await fetch("/api/lobby/presence", {
+      method: "POST",
+      keepalive: true,
+      cache: "no-store",
+    });
+  } catch (error) {
+    // Silent — the next interval tick will retry. Log so we see persistent
+    // network failures in devtools.
+    console.warn("[presenceStore] Heartbeat failed:", error);
+  }
+}
+
+function startHeartbeat(): void {
+  stopHeartbeat();
+  // Fire one immediate heartbeat so a just-logged-in client refreshes the
+  // DB-side expires_at straight away rather than waiting a full minute.
+  void sendHeartbeat();
+  heartbeatHandle = setInterval(() => {
+    void sendHeartbeat();
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+function stopHeartbeat(): void {
+  if (heartbeatHandle) {
+    clearInterval(heartbeatHandle);
+    heartbeatHandle = null;
+  }
+}
+
 export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   players: [],
   status: "idle",
@@ -67,6 +105,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
 
     if (!self) {
       console.log("[presenceStore] No self provided, disconnecting");
+      stopHeartbeat();
       disconnectActiveSubscription();
       set({
         status: "idle",
@@ -197,6 +236,8 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         lastSeenAt: new Date().toISOString(),
       });
 
+      startHeartbeat();
+
       set({
         status: "ready",
         connectionMode: "realtime",
@@ -218,6 +259,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   },
   disconnect() {
     console.log("[presenceStore] disconnect() called, trackedPlayerId:", trackedPlayerId);
+    stopHeartbeat();
     disconnectActiveSubscription();
 
     // Clean up presence record from database
