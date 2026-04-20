@@ -7,6 +7,7 @@ import type {
   MoveRequest,
   MoveResult,
 } from "@/lib/types/board";
+import { BoardCoordLabels } from "./BoardCoordLabels";
 import { BoardGrid } from "./BoardGrid";
 import {
   MoveFeedback,
@@ -95,12 +96,14 @@ export function Board({ initialGrid, matchId }: BoardProps) {
 
   return (
     <div className="space-y-4">
-      <BoardGrid
-        grid={grid}
-        matchId={matchId}
-        onSwapComplete={handleSwapComplete}
-        onSwapError={handleSwapError}
-      />
+      <BoardCoordLabels>
+        <BoardGrid
+          grid={grid}
+          matchId={matchId}
+          onSwapComplete={handleSwapComplete}
+          onSwapError={handleSwapError}
+        />
+      </BoardCoordLabels>
       <MoveFeedback feedback={feedback} onDismiss={dismissFeedback} />
     </div>
   );

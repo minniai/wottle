@@ -48,6 +48,18 @@ describe("PlayerPanel full variant", () => {
     expect(panel.className).not.toContain("border-white/10");
   });
 
+  test("full variant renders a RoundPipBar for progress", () => {
+    render(
+      <PlayerPanel
+        player={defaultPlayer}
+        gameState={{ ...defaultGameState, currentRound: 7, totalRounds: 10 }}
+        variant="full"
+      />,
+    );
+    expect(screen.getByLabelText("Round 7 of 10")).toBeInTheDocument();
+    expect(screen.queryByText("Round 7 / 10")).not.toBeInTheDocument();
+  });
+
   test("truncates display name longer than 20 characters", () => {
     render(
       <PlayerPanel
@@ -99,8 +111,7 @@ describe("PlayerPanel full variant", () => {
       />,
     );
 
-    expect(screen.getByText(/Round 3/)).toBeInTheDocument();
-    expect(screen.getByText(/10/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Round 3 of 10/)).toBeInTheDocument();
   });
 
   test("renders timer display", () => {
