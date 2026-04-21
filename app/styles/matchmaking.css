@@ -1,0 +1,31 @@
+.match-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 220px;
+  height: 220px;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--paper), var(--paper)) padding-box,
+    conic-gradient(
+      from 0deg,
+      var(--ochre-deep) 0deg,
+      transparent 140deg,
+      transparent 220deg,
+      var(--ochre-deep) 360deg
+    ) border-box;
+  animation: match-ring-spin 1.8s linear infinite;
+}
+
+@keyframes match-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-ring {
+    animation: none;
+  }
+}

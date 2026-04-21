@@ -109,11 +109,22 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          # Placeholder values — no live Supabase instance at build time.
-          # NEXT_PUBLIC_* vars are inlined into the client bundle by Next.js;
-          # the real values are injected at runtime via .env.local in playwright/perf-gate.
+          # NEXT_PUBLIC_* are inlined into the client bundle at build time,
+          # so they cannot be swapped in later at runtime. The downstream
+          # playwright / perf-gate jobs run Supabase via the CLI, which
+          # always issues the same deterministic local anon key (derived
+          # from a fixed JWT secret shipped with the CLI). Baking that exact
+          # value here makes the client bundle authenticate successfully
+          # against the local Supabase Realtime/Auth endpoints — otherwise
+          # every browser-side WebSocket handshake fails with 403, Realtime
+          # falls back to polling, and the resulting "Polling" / "Presence
+          # unavailable" UI trips the axe WCAG contrast check while two-
+          # player matchmaking tests time out.
+          #
+          # This is the published Supabase CLI local anon JWT; it is not a
+          # secret and does not grant access to any deployed project.
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
       - name: Verify build output
         run: |
           echo "=== .next/ contents ==="
@@ -342,12 +353,20 @@ jobs:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
       - name: Build Next.js app (act fallback — download was skipped)
+        # Under act: quickstart already ran and wrote real Supabase values
+        # to .env.local. Next.js autoloads .env.local at build time, so the
+        # anon key baked into the client bundle is the real one.
+        #
+        # We *do* override NEXT_PUBLIC_SUPABASE_URL to host.docker.internal
+        # so Firefox/Chromium inside the container can actually reach host
+        # Supabase (localhost:54321 would point at the container's own
+        # loopback). Without this, the browser WebSocket handshake to
+        # Realtime fails with 403 and every two-player test times out.
         if: ${{ env.ACT }}
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+          NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
@@ -696,12 +715,20 @@ jobs:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
       - name: Build Next.js app (act fallback — download was skipped)
+        # Under act: quickstart already ran and wrote real Supabase values
+        # to .env.local. Next.js autoloads .env.local at build time, so the
+        # anon key baked into the client bundle is the real one.
+        #
+        # We *do* override NEXT_PUBLIC_SUPABASE_URL to host.docker.internal
+        # so Firefox/Chromium inside the container can actually reach host
+        # Supabase (localhost:54321 would point at the container's own
+        # loopback). Without this, the browser WebSocket handshake to
+        # Realtime fails with 403 and every two-player test times out.
         if: ${{ env.ACT }}
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+          NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
