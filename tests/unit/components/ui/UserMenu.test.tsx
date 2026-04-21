@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
@@ -12,6 +12,17 @@ vi.mock("@/app/actions/auth/logout", () => ({
 }));
 vi.mock("@/lib/matchmaking/presenceStore", () => ({
   useLobbyPresenceStore: { getState: () => ({ disconnect: vi.fn() }) },
+}));
+
+const setSoundEnabled = vi.fn();
+const setHapticsEnabled = vi.fn();
+const sensoryState = {
+  preferences: { soundEnabled: true, hapticsEnabled: false },
+  setSoundEnabled,
+  setHapticsEnabled,
+};
+vi.mock("@/lib/preferences/useSensoryPreferences", () => ({
+  useSensoryPreferences: () => sensoryState,
 }));
 
 import { UserMenu } from "@/components/ui/UserMenu";
@@ -32,6 +43,12 @@ const session = {
 };
 
 describe("<UserMenu>", () => {
+  beforeEach(() => {
+    setSoundEnabled.mockClear();
+    setHapticsEnabled.mockClear();
+    sensoryState.preferences = { soundEnabled: true, hapticsEnabled: false };
+  });
+
   it("renders the chip as an expandable button with the displayName", () => {
     render(<UserMenu session={session} />);
     const chip = screen.getByRole("button", { name: /ari/i });
@@ -96,5 +113,37 @@ describe("<UserMenu>", () => {
     await waitFor(() =>
       expect(logoutAction).toHaveBeenCalledWith({ resignActiveMatch: true }),
     );
+  });
+
+  it("renders sound + haptics toggles reflecting current preferences", () => {
+    render(<UserMenu session={session} />);
+    fireEvent.click(screen.getByRole("button", { name: /ari/i }));
+
+    const sound = screen.getByRole("menuitemcheckbox", {
+      name: /sound effects/i,
+    });
+    const haptics = screen.getByRole("menuitemcheckbox", {
+      name: /haptic feedback/i,
+    });
+    expect(sound).toHaveAttribute("aria-checked", "true");
+    expect(haptics).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("toggles sound effects off when clicked while enabled", () => {
+    render(<UserMenu session={session} />);
+    fireEvent.click(screen.getByRole("button", { name: /ari/i }));
+    fireEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: /sound effects/i }),
+    );
+    expect(setSoundEnabled).toHaveBeenCalledWith(false);
+  });
+
+  it("toggles haptic feedback on when clicked while disabled", () => {
+    render(<UserMenu session={session} />);
+    fireEvent.click(screen.getByRole("button", { name: /ari/i }));
+    fireEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: /haptic feedback/i }),
+    );
+    expect(setHapticsEnabled).toHaveBeenCalledWith(true);
   });
 });
