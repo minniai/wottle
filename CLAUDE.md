@@ -115,7 +115,8 @@ Before implementing any feature:
 | 1d | Left-rail cards — `HowToPlayCard`, `LegendCard`, `YourMoveCard`, `MatchLeftRail` | Merged |
 | 2 | Post-game redesign — `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch` | Merged |
 | 3 | Lobby finish — `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState`, `InviteToast` + Server Actions | Merged |
-| 4 | Landing + Matchmaking screens | Planned |
+| 4a | Landing screen — dedicated `/` route, `LandingScreen` + `LandingTileVignette`, lobby login form removed | In progress |
+| 4b | Matchmaking screen — dedicated `/matchmaking` route, ring + found/starting phases | Planned |
 | 5 | Profile (modal + `/profile` page) + rating history | Planned |
 | 6 | Disconnection modal + claim-win Server Action | Planned |
 
@@ -147,7 +148,8 @@ Before implementing any feature:
 - `/components` - React Client Components
   - `/components/game` — `Board`, `BoardGrid`, `BoardCoordLabels`, `MoveFeedback`, `TimerHud`, `usePinchZoom`
   - `/components/match` — core match client (`MatchClient`, `MatchShell`), HUD (`HudCard`, `MatchCenterChrome`, `RoundPipBar`), panels (`PlayerPanel`, `PlayerAvatar`, `TimerDisplay`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `RoundHistoryInline`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`)
-  - `/components/lobby` — `LobbyHero`, `LobbyList`, `LobbyDirectory`, `LobbyCard`, `LobbyLoginForm`, `LobbyStatsStrip`, `PlayNowCard`, `InviteDialog`, `InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` *(`InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` ship with Phase 3 / PR #115)*
+  - `/components/lobby` — `LobbyHero`, `LobbyList`, `LobbyDirectory`, `LobbyCard`, `LobbyStatsStrip`, `PlayNowCard`, `InviteDialog`, `InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` *(`InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` ship with Phase 3 / PR #115)*
+  - `/components/landing` — `LandingScreen`, `LandingTileVignette` *(Phase 4a)*
   - `/components/ui` — shared primitives: `Avatar`, `Badge`, `Button`, `Card`, `Dialog`, `GearMenu`, `SettingsPanel`, `Skeleton`, `Toast`, `ToastProvider`, `TopBar`
   - `/components/player` — `PlayerProfileModal` (lobby → player drill-in)
 - `/app/styles` — Board + lobby CSS (GPU-accelerated animations, letterpress tiles, `.hud-card`, `.match-layout__hud-strip` / `--board-row` / `--rail--left|right`, ambient lobby background)
