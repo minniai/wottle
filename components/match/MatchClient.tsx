@@ -267,8 +267,13 @@ export function MatchClient({
     );
     setActiveRevealMove(opponentMove ? { from: opponentMove.from, to: opponentMove.to } : null);
     setActiveRevealHighlights(nextSummary.highlights);
-    setMoveLocked(false);
-    setLockedSwapTiles(null);
+    // Intentionally keep moveLocked / lockedSwapTiles set through the whole
+    // round-recap window. Clearing them here races with the `state` broadcast
+    // that carries the post-swap board: when `round-summary` arrives first,
+    // unlocking immediately makes BoardGrid re-sync its optimistic grid to
+    // the stale pre-swap `grid` prop for a split second before the post-swap
+    // state lands. Unlocking after announceDurationMs (below) ensures the
+    // new matchState.board has settled before the grid sync runs.
     setAnimationPhase("round-recap");
 
     if (nextSummary.highlights.length > 0) playWordDiscovery();
@@ -278,6 +283,8 @@ export function MatchClient({
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     highlightTimerRef.current = setTimeout(() => {
       setAnimationPhase("idle");
+      setMoveLocked(false);
+      setLockedSwapTiles(null);
       if (isCompleted) setFinalRecapDone(true);
     }, announceDurationMs);
   }, [matchState.lastSummary, matchState.state, animationPhase, currentPlayerId, matchState.timers.playerA.playerId, playWordDiscovery, showRoundAnnounce]);
