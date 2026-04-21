@@ -50,4 +50,30 @@ describe("RoundByRoundChart", () => {
     const a = screen.getAllByTestId("round-chart-bar--a")[0];
     expect(a.style.height).toBe("0px");
   });
+
+  test("renders a zero baseline at maxHeightPx from the top of the bar area", () => {
+    render(<RoundByRoundChart rounds={sampleRounds} maxHeightPx={140} />);
+    const zero = screen.getByTestId("round-chart-zero-line");
+    expect(zero.style.top).toBe("140px");
+  });
+
+  test("renders the delta as a label inside each non-zero bar", () => {
+    render(<RoundByRoundChart rounds={sampleRounds} />);
+    const firstA = screen.getAllByTestId("round-chart-bar--a")[0];
+    const firstB = screen.getAllByTestId("round-chart-bar--b")[0];
+    expect(within(firstA).getByText("22")).toBeInTheDocument();
+    expect(within(firstB).getByText("15")).toBeInTheDocument();
+  });
+
+  test("omits the delta label when the delta is zero", () => {
+    render(
+      <RoundByRoundChart
+        rounds={[
+          { roundNumber: 1, playerAScore: 0, playerBScore: 10, playerADelta: 0, playerBDelta: 10 },
+        ]}
+      />,
+    );
+    const barA = screen.getAllByTestId("round-chart-bar--a")[0];
+    expect(within(barA).queryByText("0")).not.toBeInTheDocument();
+  });
 });
