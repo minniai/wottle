@@ -3,6 +3,7 @@ import { Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./styles/board.css";
 import "./styles/lobby.css";
+import "./styles/matchmaking.css";
 import { GearMenu } from "@/components/ui/GearMenu";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { TopBar } from "@/components/ui/TopBar";
