@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { BoardCoordLabels } from "@/components/game/BoardCoordLabels";
 import { BoardGrid } from "@/components/game/BoardGrid";
 import { PlayerPanel } from "@/components/match/PlayerPanel";
 import { PlayerAvatar } from "@/components/match/PlayerAvatar";
@@ -802,38 +803,40 @@ export function MatchClient({
               />
             </div>
 
-            <BoardGrid
-              grid={matchState.board}
-              matchId={matchId}
-              frozenTiles={matchState.frozenTiles ?? {}}
-              playerSlot={playerSlot}
-              disabled={moveLocked}
-              showLockBanner={false}
-              lockedTiles={lockedSwapTiles}
-              opponentRevealTiles={
-                animationPhase === "round-recap" && activeRevealMove
-                  ? [activeRevealMove.from, activeRevealMove.to]
-                  : null
-              }
-              scoredTileHighlights={
-                animationPhase === "round-recap"
-                  ? activeRevealHighlights
-                  : []
-              }
-              highlightPlayerColors={
-                animationPhase === "round-recap"
-                  ? highlightPlayerColors
-                  : {}
-              }
-              highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
-              highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
-              onSwapComplete={handleSwapComplete}
-              onSwapError={({ message }) => handleSwapError(message)}
-              onTileSelect={playTileSelect}
-              onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
-              onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
-              onSelectionChange={setSelectedTile}
-            />
+            <BoardCoordLabels>
+              <BoardGrid
+                grid={matchState.board}
+                matchId={matchId}
+                frozenTiles={matchState.frozenTiles ?? {}}
+                playerSlot={playerSlot}
+                disabled={moveLocked}
+                showLockBanner={false}
+                lockedTiles={lockedSwapTiles}
+                opponentRevealTiles={
+                  animationPhase === "round-recap" && activeRevealMove
+                    ? [activeRevealMove.from, activeRevealMove.to]
+                    : null
+                }
+                scoredTileHighlights={
+                  animationPhase === "round-recap"
+                    ? activeRevealHighlights
+                    : []
+                }
+                highlightPlayerColors={
+                  animationPhase === "round-recap"
+                    ? highlightPlayerColors
+                    : {}
+                }
+                highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
+                highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
+                onSwapComplete={handleSwapComplete}
+                onSwapError={({ message }) => handleSwapError(message)}
+                onTileSelect={playTileSelect}
+                onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
+                onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
+                onSelectionChange={setSelectedTile}
+              />
+            </BoardCoordLabels>
 
             {roundAnnounce && (
               <div

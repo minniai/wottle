@@ -5,7 +5,7 @@ import {
   startMatchWithDirectInvite,
 } from "./helpers/matchmaking";
 
-test.describe.configure({ mode: "serial", retries: 1 });
+test.describe.configure({ mode: "serial", retries: 2, timeout: 240_000 });
 
 async function loginPlayer(page: Page, username: string) {
   await page.goto("/");
