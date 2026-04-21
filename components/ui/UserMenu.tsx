@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { LogoutConfirmDialog } from "@/components/ui/LogoutConfirmDialog";
 import type { LobbySession } from "@/lib/matchmaking/profile";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
+import { useSensoryPreferences } from "@/lib/preferences/useSensoryPreferences";
 
 export interface UserMenuProps {
   session: LobbySession;
@@ -22,6 +23,8 @@ export function UserMenu({ session }: UserMenuProps) {
   const chipRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const { player } = session;
+  const { preferences, setSoundEnabled, setHapticsEnabled } =
+    useSensoryPreferences();
 
   const close = useCallback(() => {
     setOpen(false);
@@ -104,11 +107,22 @@ export function UserMenu({ session }: UserMenuProps) {
           ref={menuRef}
           role="menu"
           aria-label="Account"
-          className="absolute right-0 top-full z-40 mt-2 w-[220px] overflow-hidden rounded-md border border-hair bg-paper/95 shadow-lg backdrop-blur-md"
+          className="absolute right-0 top-full z-40 mt-2 w-64 overflow-hidden rounded-md border border-hair bg-paper/95 shadow-lg backdrop-blur-md"
         >
           <div className="px-3 pt-3 pb-2 font-display text-[14px] italic leading-tight text-ink-soft">
             Signed in as {player.displayName}
           </div>
+          <div className="border-t border-hair" aria-hidden />
+          <ToggleMenuItem
+            label="Sound effects"
+            checked={preferences.soundEnabled}
+            onChange={setSoundEnabled}
+          />
+          <ToggleMenuItem
+            label="Haptic feedback"
+            checked={preferences.hapticsEnabled}
+            onChange={setHapticsEnabled}
+          />
           <div className="border-t border-hair" aria-hidden />
           <button
             type="button"
@@ -179,5 +193,41 @@ function LogOutIcon() {
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
+  );
+}
+
+interface ToggleMenuItemProps {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}
+
+function ToggleMenuItem({ label, checked, onChange }: ToggleMenuItemProps) {
+  return (
+    <button
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] text-ink-3 hover:bg-paper-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-focus"
+    >
+      <span>{label}</span>
+      <span
+        aria-hidden="true"
+        className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-hair transition-colors"
+        style={{
+          backgroundColor: checked
+            ? "oklch(0.62 0.12 150)" /* --good */
+            : "color-mix(in oklab, var(--ink) 8%, transparent)",
+        }}
+      >
+        <span
+          className="inline-block h-3.5 w-3.5 rounded-full bg-paper shadow-sm transition-transform"
+          style={{
+            transform: checked ? "translateX(1.1rem)" : "translateX(0.15rem)",
+          }}
+        />
+      </span>
+    </button>
   );
 }
