@@ -108,8 +108,8 @@ test.describe("@hud-classic Phase 1c HUD", () => {
       const cards = pageA.getByTestId("hud-card");
       const firstClass = await cards.nth(0).getAttribute("class");
       const secondClass = await cards.nth(1).getAttribute("class");
-      expect(firstClass).toMatch(/hud-card--opp/);
-      expect(secondClass).toMatch(/hud-card--you/);
+      expect(firstClass).toMatch(/hud-card--you/);
+      expect(secondClass).toMatch(/hud-card--opp/);
     } finally {
       await pageA.close();
       await pageB.close();
