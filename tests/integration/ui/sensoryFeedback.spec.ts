@@ -12,10 +12,10 @@ import { generateTestUsername } from "./helpers/matchmaking";
  */
 
 async function loginAs(page: Page, username: string) {
-  const input = page.getByTestId("lobby-username-input");
+  const input = page.getByTestId("landing-username-input");
   await expect(input).toBeVisible({ timeout: 10_000 });
   await input.fill(username);
-  await page.getByTestId("lobby-login-submit").click();
+  await page.getByTestId("landing-login-submit").click();
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 20_000,
   });

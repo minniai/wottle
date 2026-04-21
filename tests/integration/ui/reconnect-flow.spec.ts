@@ -8,10 +8,10 @@ async function loginAndStartMatch(
 ) {
   await Promise.all([pageA.goto("/"), pageB.goto("/")]);
 
-  await pageA.getByTestId("lobby-username-input").fill(userA);
-  await pageA.getByTestId("lobby-login-submit").click();
-  await pageB.getByTestId("lobby-username-input").fill(userB);
-  await pageB.getByTestId("lobby-login-submit").click();
+  await pageA.getByTestId("landing-username-input").fill(userA);
+  await pageA.getByTestId("landing-login-submit").click();
+  await pageB.getByTestId("landing-username-input").fill(userB);
+  await pageB.getByTestId("landing-login-submit").click();
 
   // Wait for lobby list to appear (indicates login completed and page re-rendered)
   await expect(pageA.getByTestId("lobby-presence-list")).toBeVisible({
@@ -75,8 +75,8 @@ test.describe("Reconnect flow", () => {
       const newContextA = await browser.newContext();
       const newPageA = await newContextA.newPage();
       await newPageA.goto("/");
-      await newPageA.getByTestId("lobby-username-input").fill("reconnect-alpha");
-      await newPageA.getByTestId("lobby-login-submit").click();
+      await newPageA.getByTestId("landing-username-input").fill("reconnect-alpha");
+      await newPageA.getByTestId("landing-login-submit").click();
 
       // Player A should be able to rejoin the match
       // The match page should restore state from database

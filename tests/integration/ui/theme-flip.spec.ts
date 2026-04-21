@@ -4,18 +4,23 @@ test.describe("@theme-flip Warm Editorial theme", () => {
   test("lobby body background resolves to the paper token", async ({
     page,
   }) => {
-    await page.goto("/lobby");
-    const bodyBg = await page.evaluate(() =>
-      window.getComputedStyle(document.body).backgroundColor,
-    );
-    // OKLCH may serialize as an rgb(…) or oklch(…) depending on browser.
-    // Either way, lightness should be high — not the old #0B1220 navy.
-    expect(bodyBg).not.toMatch(/^rgb\(\s*11,\s*18,\s*32\s*\)$/);
-    expect(bodyBg).not.toBe("rgb(11, 18, 32)");
-    // Parse the colour, assert lightness > 0.8 via a simple heuristic:
-    const [, r = "0", g = "0", b = "0"] =
-      bodyBg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/) ?? [];
-    const luminance = 0.2126 * +r + 0.7152 * +g + 0.0722 * +b;
+    // `/lobby` redirects unauthenticated visitors to `/`; either page pulls
+    // the body background from globals.css so the assertion is the same.
+    await page.goto("/");
+    // Sample the paint colour via canvas so we don't care whether
+    // getComputedStyle serialises as rgb(…) or oklch(…) — canvas.fillStyle
+    // resolves any CSS colour into an 8-bit pixel.
+    const luminance = await page.evaluate(() => {
+      const bg = window.getComputedStyle(document.body).backgroundColor;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return 0;
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    });
     expect(luminance).toBeGreaterThan(200);
   });
 

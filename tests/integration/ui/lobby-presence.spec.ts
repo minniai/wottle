@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 
 async function loginAs(page: import("@playwright/test").Page, username: string) {
   await page.goto("/");
-  const input = page.getByTestId("lobby-username-input");
+  const input = page.getByTestId("landing-username-input");
   await expect(input).toBeVisible();
   await input.fill(username);
 
   // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
   // and the form component calls router.refresh() on success.
-  await page.getByTestId("lobby-login-submit").click();
+  await page.getByTestId("landing-login-submit").click();
 
   // Wait for the lobby list to appear after router.refresh() re-renders the page.
   // Do NOT use page.reload() here: it unmounts React, which triggers the

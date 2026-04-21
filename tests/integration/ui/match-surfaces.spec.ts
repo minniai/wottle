@@ -15,8 +15,8 @@ async function loginPlayer(
   username: string,
 ) {
   await page.goto("/");
-  await page.getByTestId("lobby-username-input").fill(username);
-  await page.getByTestId("lobby-login-submit").click();
+  await page.getByTestId("landing-username-input").fill(username);
+  await page.getByTestId("landing-login-submit").click();
   await page.waitForTimeout(1500);
 
   const lobbyVisible = await page

@@ -10,11 +10,11 @@ async function loginPlayer(
   username: string,
 ) {
   await page.goto("/");
-  await page.getByTestId("lobby-username-input").fill(username);
+  await page.getByTestId("landing-username-input").fill(username);
 
   // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
   // and the form component calls router.refresh() on success.
-  await page.getByTestId("lobby-login-submit").click();
+  await page.getByTestId("landing-login-submit").click();
 
   // Wait for the Server Action to complete and cookie to settle
   await page.waitForTimeout(1500);
