@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { FinalSummary } from "@/components/match/FinalSummary";
 import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
 import { fetchMatchChainForSeries } from "@/lib/match/rematchRepository";
+import { determineMatchWinner } from "@/lib/match/resultCalculator";
 import {
   deriveSeriesContext,
   walkRematchChain,
@@ -224,6 +225,52 @@ export default async function MatchSummaryPage({
     playerBDelta: (row.player_b_delta as number | null) ?? 0,
   }));
 
+  // Heal winnerId if the match row was persisted completed with winner_id=null.
+  // Root cause: lib/match/roundEngine.ts writes `state: "completed"` to matches
+  // in one UPDATE, then calls completeMatchInternal() which writes winner_id
+  // in a SECOND UPDATE. If the second update errors (caught + logged on
+  // roundEngine line 383–385) or the process dies between the two writes, the
+  // DB row is stuck in completed+null and FinalSummary shows "Draw." even when
+  // the scores are clearly decisive (see GitHub issue #117).
+  //
+  // We recompute the winner from the latest scoreboard snapshot + frozen-tile
+  // counts (same data determineMatchWinner uses at match-end) and use that for
+  // rendering. We also fire-and-forget the correct winner_id back to the DB so
+  // the next read of this match row is fast and Elo/rematch code sees the
+  // healed value.
+  let healedWinnerId: string | null = summary.match.winner_id ?? null;
+  if (healedWinnerId === null) {
+    const recomputed = determineMatchWinner(
+      summary.finalScores,
+      summary.match.player_a_id,
+      summary.match.player_b_id,
+      frozenTileCounts,
+    );
+    if (recomputed.winnerId) {
+      healedWinnerId = recomputed.winnerId;
+      const supabaseForHeal = getServiceRoleClient();
+      void supabaseForHeal
+        .from("matches")
+        .update({
+          winner_id: recomputed.winnerId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", matchId)
+        .is("winner_id", null)
+        .then(({ error }) => {
+          if (error) {
+            console.error(
+              JSON.stringify({
+                event: "match.winner_id.heal.failed",
+                matchId,
+                error: error.message,
+              }),
+            );
+          }
+        });
+    }
+  }
+
   // Series context: walk the rematch chain if this match has one
   let seriesContext: SeriesContext | undefined;
   const supabaseForSeries = getServiceRoleClient();
@@ -245,7 +292,7 @@ export default async function MatchSummaryPage({
       <FinalSummary
         currentPlayerId={session!.player.id}
         matchId={matchId}
-        winnerId={summary.match.winner_id}
+        winnerId={healedWinnerId}
         endedReason={(summary.match.ended_reason as MatchEndedReason) ?? "round_limit"}
         players={players}
         scoreboard={scoreboard}

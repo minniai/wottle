@@ -75,6 +75,18 @@ if [ "${ACT_SKIP_DOCKER_CHECK:-}" = "1" ]; then
     ACT_EXTRA_ARGS+=(--env "QUICKSTART_SKIP_DOCKER_CHECK=1")
 fi
 
+# Under act, Supabase (whether started by the host or by quickstart-in-act)
+# always binds to the host's 127.0.0.1:54321 via the mounted Docker socket.
+# From inside the act container, 127.0.0.1 is the container's own loopback —
+# not the host — so any Supabase client (Next.js server action, service-role
+# upserts, etc.) must reach it via host.docker.internal instead.
+#
+# The workflow's "Start Next.js server" step honors ACT_SUPABASE_URL_OVERRIDE
+# at runtime (.github/workflows/ci.yml), so we set it unconditionally here.
+# Without this override, server-side fetch() to Supabase fails with
+# "TypeError: fetch failed" and login never persists.
+ACT_EXTRA_ARGS+=(--env "ACT_SUPABASE_URL_OVERRIDE=${ACT_SUPABASE_URL_OVERRIDE:-http://host.docker.internal:54321}")
+
 # By default, we do NOT pass .env.local credentials to act.
 # This forces quickstart inside act to start its own Supabase instance,
 # which is more reliable because:
@@ -120,7 +132,12 @@ echo "" >&2
 
 # Execute act with original args plus any extra args
 # Use ${arr[@]+"${arr[@]}"} pattern to handle empty arrays with set -u
-# Enforce --concurrent-jobs 1 to avoid port collisions in matrix jobs
+# --concurrent-jobs 1 serializes distinct jobs but does NOT serialize matrix
+# replicas of the same job (known act limitation). When running the playwright
+# job without specifying a matrix value, both baseline and playtest replicas
+# will try to bind :3000 and one hits EADDRINUSE. Workaround: invoke with an
+# explicit matrix filter, e.g.
+#   bash scripts/act.sh -j playwright --matrix suite:playtest
 # Container options:
 #   --pid=host: Allow cleanup scripts to see and kill ghost processes on the host
 #   --add-host: Allow containers to resolve host.docker.internal to the host IP

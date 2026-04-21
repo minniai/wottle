@@ -81,7 +81,7 @@ export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(
           <div className="min-w-0 flex-1">
             <button
               type="button"
-              className="min-h-[44px] truncate text-left text-sm font-semibold text-text-primary transition hover:text-accent-focus focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-focus sm:min-h-0"
+              className="min-h-[44px] truncate text-left text-sm font-semibold text-text-inverse transition hover:text-ochre focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-focus sm:min-h-0"
               onClick={(e) => {
                 e.stopPropagation();
                 onUsernameClick?.(player.id);
@@ -90,14 +90,14 @@ export const LobbyCard = forwardRef<HTMLDivElement, LobbyCardProps>(
             >
               {player.displayName ?? player.username}
             </button>
-            <p className="truncate text-xs text-text-muted">
+            <p className="truncate text-xs text-text-inverse/50">
               @{player.username}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
             <span
               data-testid="lobby-elo-rating"
-              className="font-mono text-xs font-medium text-text-primary"
+              className="font-mono text-xs font-medium text-text-inverse"
             >
               {displayRating}
             </span>

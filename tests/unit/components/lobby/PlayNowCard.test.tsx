@@ -1,22 +1,15 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { PlayerIdentity } from "@/lib/types/match";
 
-const startQueueMock = vi.fn();
 const pushMock = vi.fn();
 
 const mockStoreState: {
   players: PlayerIdentity[];
-  updateSelfStatus: (...args: unknown[]) => void;
 } = {
   players: [],
-  updateSelfStatus: vi.fn(),
 };
-
-vi.mock("@/app/actions/matchmaking/startQueue", () => ({
-  startQueueAction: (...args: unknown[]) => startQueueMock(...args),
-}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
@@ -44,17 +37,15 @@ function seedSelf(status: PlayerIdentity["status"] = "available") {
 
 beforeEach(() => {
   mockStoreState.players = [];
-  mockStoreState.updateSelfStatus = vi.fn();
-  startQueueMock.mockReset();
   pushMock.mockReset();
 });
 
 afterEach(() => {
-  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("PlayNowCard", () => {
-  test("Ranked is pre-selected on mount", () => {
+  test("Ranked mode pill is pre-selected (static)", () => {
     render(<PlayNowCard currentPlayer={SELF} />);
     expect(
       screen.getByTestId("mode-pill-ranked").getAttribute("aria-pressed"),
@@ -78,29 +69,10 @@ describe("PlayNowCard", () => {
     expect(btn.textContent?.toLowerCase()).toContain("play now");
   });
 
-  test("queuing: after activation shows status region with legacy test id and elapsed readout", async () => {
-    startQueueMock.mockResolvedValue({ status: "queued" });
+  test("clicking Play Now navigates to /matchmaking", () => {
     render(<PlayNowCard currentPlayer={SELF} />);
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("matchmaker-start-button"));
-    });
-    expect(screen.getByTestId("matchmaker-queue-status")).toBeInTheDocument();
-    expect(screen.getByTestId("matchmaker-queue-status").textContent).toMatch(
-      /elapsed/i,
-    );
-  });
-
-  test("cancelable: cancel control clears the queue state", async () => {
-    startQueueMock.mockResolvedValue({ status: "queued" });
-    render(<PlayNowCard currentPlayer={SELF} />);
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("matchmaker-start-button"));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    });
-    expect(screen.queryByTestId("matchmaker-queue-status")).toBeNull();
-    expect(screen.getByTestId("matchmaker-start-button")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("matchmaker-start-button"));
+    expect(pushMock).toHaveBeenCalledWith("/matchmaking");
   });
 
   test("disabled-while-in-match: Play Now is disabled with accessible explanation", () => {
@@ -109,5 +81,13 @@ describe("PlayNowCard", () => {
     const btn = screen.getByTestId("matchmaker-start-button");
     expect(btn).toBeDisabled();
     expect(btn.getAttribute("aria-label")?.toLowerCase()).toContain("already");
+    expect(btn.textContent?.toLowerCase()).toContain("already in a match");
+  });
+
+  test("disabled click does not navigate", () => {
+    seedSelf("in_match");
+    render(<PlayNowCard currentPlayer={SELF} />);
+    fireEvent.click(screen.getByTestId("matchmaker-start-button"));
+    expect(pushMock).not.toHaveBeenCalled();
   });
 });

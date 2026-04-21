@@ -3,7 +3,7 @@ import { Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./styles/board.css";
 import "./styles/lobby.css";
-import { GearMenu } from "@/components/ui/GearMenu";
+import "./styles/matchmaking.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { TopBar } from "@/components/ui/TopBar";
 
@@ -40,11 +40,6 @@ export default function RootLayout({
         <ToastProvider>
           <div className="relative flex min-h-screen flex-col">
             <TopBar />
-            <div className="pointer-events-none absolute right-4 top-4 z-30">
-              <div className="pointer-events-auto">
-                <GearMenu />
-              </div>
-            </div>
             {children}
           </div>
         </ToastProvider>

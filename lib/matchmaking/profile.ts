@@ -4,7 +4,11 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { listCachedPresence, rememberPresence } from "./presenceCache";
-import { upsertLobbyPresence, upsertPlayerIdentity } from "./service";
+import {
+  findActiveMatchForPlayer,
+  upsertLobbyPresence,
+  upsertPlayerIdentity,
+} from "./service";
 import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -21,7 +25,7 @@ export interface LobbySession {
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
-const SESSION_COOKIE_NAME = "wottle-playtest-session";
+export const SESSION_COOKIE_NAME = "wottle-playtest-session";
 const SESSION_TTL_SECONDS = 4 * 60 * 60;
 // Increased from 30s to 5 minutes for more reliable presence tracking in CI
 const PRESENCE_TTL_SECONDS = Number(
@@ -218,6 +222,66 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
   const cachedPlayers = listCachedPresence();
 
   return sortPlayers(dedupePlayers([...players, ...cachedPlayers]));
+}
+
+// Heal `players.status` when it's stuck at "in_match" but no pending or
+// in_progress match exists for the player. Root cause mirrors issue #117:
+// lib/match/roundEngine.ts updates matches.state then calls
+// completeMatchInternal() in a separate pass; if the second call errors or
+// the process dies, players.status stays "in_match" forever. That stale row
+// shows up in /api/lobby/players and fights the realtime-tracked value
+// (status="available" from the session cookie) every ~500ms poll, so the
+// PlayNowCard button visibly oscillates between "Play Now" and
+// "Already in a match".
+//
+// This runs on every lobby page load, so it must NEVER throw — the lobby
+// page crashing for a transient DB blip would be worse than leaving a stale
+// status in place. All errors are swallowed and logged.
+export async function healStuckInMatchStatus(playerId: string): Promise<void> {
+  try {
+    const supabase = getServiceRoleClient();
+    const { data: player, error: selectError } = await supabase
+      .from("players")
+      .select("status")
+      .eq("id", playerId)
+      .maybeSingle();
+
+    if (selectError || player?.status !== "in_match") {
+      return;
+    }
+
+    const activeMatch = await findActiveMatchForPlayer(
+      supabase,
+      playerId,
+    ).catch(() => null);
+    if (activeMatch) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("players")
+      .update({ status: "available", last_seen_at: new Date().toISOString() })
+      .eq("id", playerId)
+      .eq("status", "in_match");
+
+    if (error) {
+      console.error(
+        JSON.stringify({
+          event: "player.status.heal.failed",
+          playerId,
+          error: error.message,
+        }),
+      );
+    }
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "player.status.heal.threw",
+        playerId,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+  }
 }
 
 function encodeSession(session: LobbySession): string {

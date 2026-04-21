@@ -37,6 +37,23 @@ describe("resultCalculator", () => {
       expect(result.isDraw).toBe(false);
     });
 
+    // Regression for GitHub issue #117: a 56 vs 96 match was rendering as
+    // "Draw." because the match row was persisted with winner_id=null.
+    // The summary page now re-runs determineMatchWinner from the latest
+    // scoreboard snapshot + frozen counts when winner_id is null; this test
+    // documents the expected math for the exact scores from the bug report.
+    it("issue #117: 56 vs 96 is a decisive player B win, not a draw", () => {
+      const result = determineMatchWinner(
+        { playerA: 56, playerB: 96 },
+        playerAId,
+        playerBId,
+        noFrozen,
+      );
+      expect(result.winnerId).toBe(playerBId);
+      expect(result.loserId).toBe(playerAId);
+      expect(result.isDraw).toBe(false);
+    });
+
     it("returns draw when scores match and frozen tiles are equal", () => {
       const result = determineMatchWinner(
         { playerA: 100, playerB: 100 },

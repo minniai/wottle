@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-export function TopBar() {
+import { UserMenu } from "@/components/ui/UserMenu";
+import { readLobbySession } from "@/lib/matchmaking/profile";
+
+export async function TopBar() {
+  const session = await readLobbySession();
+
   return (
     <header
       data-testid="topbar"
@@ -27,6 +32,12 @@ export function TopBar() {
         >
           Profile
         </Link>
+        {session ? (
+          <>
+            <span className="hidden h-5 w-px bg-hair sm:inline-block" aria-hidden />
+            <UserMenu session={session} />
+          </>
+        ) : null}
       </nav>
     </header>
   );
