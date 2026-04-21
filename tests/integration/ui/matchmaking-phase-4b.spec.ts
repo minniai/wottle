@@ -4,6 +4,15 @@ import { generateTestUsername } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 
+// The matchmaking queue is a single server-side pool shared across Playwright
+// projects. Running this spec on both chromium and playtest-firefox causes
+// cross-project races: chromium's queued player matches firefox's queued
+// player, breaking the cancel flow. Scope to chromium only.
+test.skip(
+  ({ browserName }) => browserName !== "chromium",
+  "Phase 4b matchmaking smoke runs on chromium only — shared server queue",
+);
+
 async function loginNewPlayer(context: BrowserContext) {
   const page = await context.newPage();
   const username = generateTestUsername("mm4b");
