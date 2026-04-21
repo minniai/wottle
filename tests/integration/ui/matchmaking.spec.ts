@@ -5,10 +5,10 @@ async function loginAndAwaitMatchmaker(
   username: string
 ) {
   await page.goto("/");
-  const input = page.getByTestId("lobby-username-input");
+  const input = page.getByTestId("landing-username-input");
   await expect(input).toBeVisible();
   await input.fill(username);
-  await page.getByTestId("lobby-login-submit").click();
+  await page.getByTestId("landing-login-submit").click();
 
   await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({
     timeout: 10_000,

@@ -3,23 +3,23 @@ import { expect, test, type Page } from "@playwright/test";
 
 async function loginAs(page: Page, username: string) {
   await page.goto("/");
-  const input = page.getByTestId("lobby-username-input");
+  const input = page.getByTestId("landing-username-input");
   await expect(input).toBeVisible();
   await input.fill(username);
-  await page.getByTestId("lobby-login-submit").click();
+  await page.getByTestId("landing-login-submit").click();
   await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
     timeout: 20_000,
   });
 }
 
 test.describe("Lobby visual foundation — brand + layout", () => {
-  test("logged-out hero renders Wottle wordmark and ORÐUSTA", async ({ page }) => {
+  test("logged-out landing renders the Warm Editorial hero", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Wottle" })).toBeVisible();
-    // Kicker is a <p> with exact "ORÐUSTA"; the motif <div> also has that
-    // textContent (letter tiles) and the sr-only status prefixes with
-    // "Current hero word:", so scope to paragraphs + exact match.
-    await expect(page.locator('p:text-is("ORÐUSTA")')).toBeVisible();
+    // Phase 4a moved the logged-out entry to the `/` landing page.
+    await expect(
+      page.getByRole("heading", { name: /Play with\s+letters\./i }),
+    ).toBeVisible();
+    await expect(page.getByText(/A real-time word duel/i)).toBeVisible();
   });
 
   test("logged-out view passes WCAG 2.1 AA axe scan", async ({ page }) => {
@@ -153,7 +153,9 @@ test.describe("Lobby visual foundation — prefers-reduced-motion (FR-026)", () 
       reducedMotion: "reduce",
     });
     const page = await context.newPage();
-    await page.goto("/");
+    // LobbyHero only renders on the authenticated /lobby page (Phase 4a moved
+    // the logged-out entry to `/`). Log in first so the hero motif exists.
+    await loginAs(page, "reduced-motion");
     const motifSelector = '[data-testid="lobby-hero-motif"]';
     await page.waitForSelector(motifSelector);
     const before = await page.locator(motifSelector).textContent();
