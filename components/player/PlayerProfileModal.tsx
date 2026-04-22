@@ -1,228 +1,171 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useEffect, useId, useState } from "react";
+
 import { getPlayerProfile } from "@/app/actions/player/getPlayerProfile";
+import { Avatar } from "@/components/ui/Avatar";
+import { Dialog } from "@/components/ui/Dialog";
+import { ProfileActions } from "@/components/player/ProfileActions";
+import { ProfileFormChips } from "@/components/player/ProfileFormChips";
+import { ProfileSparkline } from "@/components/player/ProfileSparkline";
 import type { PlayerProfile } from "@/lib/types/match";
-
-type ProfileState = {
-  profile: PlayerProfile | null;
-  loading: boolean;
-  error: string | null;
-};
-
-type ProfileAction =
-  | { type: "loading" }
-  | { type: "loaded"; profile: PlayerProfile }
-  | { type: "error"; error: string };
-
-function profileReducer(
-  _state: ProfileState,
-  action: ProfileAction,
-): ProfileState {
-  switch (action.type) {
-    case "loading":
-      return { profile: null, loading: true, error: null };
-    case "loaded":
-      return { profile: action.profile, loading: false, error: null };
-    case "error":
-      return { profile: null, loading: false, error: action.error };
-  }
-}
 
 interface PlayerProfileModalProps {
   playerId: string;
+  viewerId: string;
   onClose: () => void;
+  onChallenge: (playerId: string) => void;
 }
 
 export function PlayerProfileModal({
   playerId,
+  viewerId,
   onClose,
+  onChallenge,
 }: PlayerProfileModalProps) {
-  const [state, dispatch] = useReducer(profileReducer, {
-    profile: null,
-    loading: true,
-    error: null,
-  });
-  const backdropRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const [profile, setProfile] = useState<PlayerProfile | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    dispatch({ type: "loading" });
-
-    getPlayerProfile(playerId).then((result) => {
+    (async () => {
+      const result = await getPlayerProfile(playerId);
       if (cancelled) return;
       if (result.status === "ok" && result.profile) {
-        dispatch({ type: "loaded", profile: result.profile });
+        setProfile(result.profile);
       } else {
-        dispatch({
-          type: "error",
-          error: result.error ?? "Player not found.",
-        });
+        setError(result.error ?? "Unable to load profile.");
       }
-    });
-
+    })();
     return () => {
       cancelled = true;
     };
   }, [playerId]);
 
-  const { profile, loading, error } = state;
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === backdropRef.current) onClose();
-    },
-    [onClose],
-  );
-
-  useEffect(() => {
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  const isSelf = viewerId === playerId;
+  const firstName =
+    profile?.identity.displayName?.split(/\s+/)[0] ??
+    profile?.identity.username ??
+    "Player";
 
   return (
-    <div
-      ref={backdropRef}
-      onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      data-testid="player-profile-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Player Profile"
-    >
-      <div className="w-full max-w-sm rounded-2xl border border-hair bg-paper p-6 shadow-2xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">
-            Player Profile
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-ink-soft hover:text-ink"
-            aria-label="Close"
-          >
-            ✕
-          </button>
+    <Dialog open onClose={onClose} ariaLabelledBy={titleId}>
+      {profile ? (
+        <div
+          data-testid="player-profile-modal"
+          className="flex flex-col gap-6"
+        >
+          <header className="flex items-start gap-4">
+            <Avatar
+              playerId={profile.identity.id}
+              displayName={profile.identity.displayName ?? profile.identity.username}
+              avatarUrl={profile.identity.avatarUrl}
+              size="lg"
+            />
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-soft">
+                {isSelf ? "Your profile" : "Player profile"}
+              </p>
+              <h2
+                id={titleId}
+                className="font-display text-3xl font-semibold italic text-ink"
+              >
+                {profile.identity.displayName}
+              </h2>
+              <p className="font-mono text-[11px] text-ink-soft">
+                @{profile.identity.username}
+              </p>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatTile
+              label="Rating"
+              value={profile.stats.eloRating}
+              emphasised
+            />
+            <StatTile label="Wins" value={profile.stats.wins} />
+            <StatTile label="Losses" value={profile.stats.losses} />
+            <BestWordTile bestWord={profile.bestWord} />
+          </div>
+
+          <ProfileSparkline
+            ratings={profile.ratingHistory.map((r) => r.rating)}
+            peak={profile.peakRating}
+            current={profile.stats.eloRating}
+          />
+
+          <ProfileFormChips form={profile.form} />
+
+          <ProfileActions
+            firstName={firstName}
+            isSelf={isSelf}
+            onChallenge={() => onChallenge(playerId)}
+            onClose={onClose}
+          />
         </div>
+      ) : error ? (
+        <div role="alert" data-testid="player-profile-modal-error">
+          <p id={titleId} className="font-display text-lg text-bad">
+            Unable to load profile
+          </p>
+          <p className="mt-2 text-sm text-ink-3">{error}</p>
+        </div>
+      ) : (
+        <div data-testid="player-profile-modal-loading">
+          <p id={titleId} className="font-display text-lg text-ink">
+            Loading profile…
+          </p>
+        </div>
+      )}
+    </Dialog>
+  );
+}
 
-        {loading && (
-          <p className="mt-4 text-sm text-ink-soft">Loading...</p>
-        )}
-
-        {error && (
-          <p className="mt-4 text-sm text-rose-400">{error}</p>
-        )}
-
-        {profile && <ProfileContent profile={profile} />}
-      </div>
+function StatTile({
+  label,
+  value,
+  emphasised,
+}: {
+  label: string;
+  value: number | string;
+  emphasised?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-hair bg-paper-2 p-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-soft">
+        {label}
+      </p>
+      <p
+        className={`mt-1 font-display text-2xl font-semibold ${
+          emphasised ? "text-ochre-deep" : "text-ink"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
 
-function ProfileContent({ profile }: { profile: PlayerProfile }) {
-  const { identity, stats, ratingTrend } = profile;
-
+function BestWordTile({ bestWord }: { bestWord: PlayerProfile["bestWord"] }) {
   return (
-    <div className="mt-4 space-y-4">
-      <div>
-        <p className="text-sm font-semibold text-ink">
-          {identity.displayName}
-        </p>
-        <p className="text-xs text-ink-soft">
-          @{identity.username}
-        </p>
-      </div>
-
-      <div className="text-center">
-        <p
-          className="text-4xl font-bold text-ink"
-          data-testid="profile-elo"
-        >
-          {stats.eloRating}
-        </p>
-        <p className="text-xs text-ink-soft">Elo Rating</p>
-      </div>
-
-      <div
-        className="grid grid-cols-5 gap-2 text-center"
-        data-testid="profile-stats"
-      >
-        <StatCell label="Games" value={stats.gamesPlayed} />
-        <StatCell label="Wins" value={stats.wins} />
-        <StatCell label="Losses" value={stats.losses} />
-        <StatCell label="Draws" value={stats.draws} />
-        <StatCell
-          label="Win %"
-          value={
-            stats.winRate !== null
-              ? `${Math.round(stats.winRate * 100)}%`
-              : "—"
-          }
-        />
-      </div>
-
-      {ratingTrend.length > 0 && (
-        <TrendDisplay trend={ratingTrend} />
+    <div className="rounded-xl border border-hair bg-paper-2 p-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-soft">
+        Best word
+      </p>
+      {bestWord ? (
+        <>
+          <p className="mt-1 font-display text-xl font-semibold text-ink">
+            {bestWord.word}
+          </p>
+          <p className="font-mono text-[10px] text-ink-soft">
+            {bestWord.points} pts
+          </p>
+        </>
+      ) : (
+        <p className="mt-1 font-display text-xl text-ink-soft">—</p>
       )}
     </div>
   );
-}
-
-function StatCell({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div>
-      <p className="text-lg font-semibold text-ink">{value}</p>
-      <p className="text-xs text-ink-soft">{label}</p>
-    </div>
-  );
-}
-
-function TrendDisplay({ trend }: { trend: number[] }) {
-  const direction = deriveTrendDirection(trend);
-  const arrow =
-    direction === "up" ? "↑" : direction === "down" ? "↓" : "→";
-  const color =
-    direction === "up"
-      ? "text-emerald-400"
-      : direction === "down"
-        ? "text-rose-400"
-        : "text-ink-soft";
-
-  return (
-    <div data-testid="profile-trend">
-      <p className="text-xs text-ink-soft">
-        Last {trend.length} games
-      </p>
-      <div className="mt-1 flex items-center gap-2">
-        <div className="flex gap-1 font-mono text-xs text-ink-3">
-          {trend.map((rating, i) => (
-            <span key={i}>{rating}</span>
-          ))}
-        </div>
-        <span className={`text-lg font-bold ${color}`}>
-          {arrow}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function deriveTrendDirection(
-  trend: number[],
-): "up" | "down" | "stable" {
-  if (trend.length < 2) return "stable";
-  const first = trend[0];
-  const last = trend[trend.length - 1];
-  if (last > first) return "up";
-  if (last < first) return "down";
-  return "stable";
 }
