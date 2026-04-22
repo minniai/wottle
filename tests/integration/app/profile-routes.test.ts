@@ -38,7 +38,7 @@ const FAKE_PROFILE = {
     username: "ari",
     displayName: "Ari",
     avatarUrl: null,
-    status: "available",
+    status: "available" as const,
     lastSeenAt: "2026-01-01T00:00:00Z",
     eloRating: 1234,
   },
@@ -50,11 +50,11 @@ const FAKE_PROFILE = {
     draws: 0,
     winRate: 1,
   },
-  ratingTrend: [],
+  ratingTrend: [] as number[],
   bestWord: null,
-  form: [],
+  form: [] as ("W" | "L" | "D")[],
   peakRating: 1234,
-  ratingHistory: [],
+  ratingHistory: [] as { recordedAt: string; rating: number }[],
 };
 
 describe("/profile route", () => {
