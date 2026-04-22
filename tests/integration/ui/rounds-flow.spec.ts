@@ -173,10 +173,9 @@ test.describe("Round flow", () => {
       const summaryView = pageA.getByTestId("final-summary-root");
       await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
-      // Verify match ended properly
-      await expect(pageA.getByTestId("final-summary-ended-reason")).toContainText(
-        /round/i
-      );
+      // Verify match ended properly. Phase 2 redesign moved the ended-reason
+      // text inside the post-game-verdict card as `reasonLabel`.
+      await expect(pageA.getByTestId("post-game-verdict")).toContainText(/round/i);
     } finally {
       await pageA.close();
       await pageB.close();

@@ -250,13 +250,17 @@ jobs:
           - playtest
     timeout-minutes: 45
     env:
-      APP_PORT: 3000
+      # Per-matrix port so parallel runs (e.g. under `act`, which reuses host
+      # networking for matrix jobs) don't collide on port 3000. In real GitHub
+      # Actions each matrix job gets its own runner so the value is cosmetic,
+      # but it keeps the two environments symmetric.
+      APP_PORT: ${{ matrix.suite == 'playtest' && '3100' || '3000' }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
       RATE_LIMIT_DISABLED_SCOPES: "auth:login"
       RATE_LIMIT_DISABLE_ALL: "1"
       PLAYTEST_SESSION_SECURE: "false"
-      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ matrix.suite == 'playtest' && '3100' || '3000' }}
       # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
     steps:
       - name: Install Docker CLI (for act compatibility)
@@ -604,13 +608,24 @@ jobs:
             kill $NODE_PID 2>/dev/null || true
             rm .next-node-pid
           fi
-          # Targeted kill of any remaining server on this port
-          if command -v lsof &> /dev/null; then
-            lsof -ti :${APP_PORT:-3000} | xargs kill -9 2>/dev/null || true
+          # Targeted kill of any remaining server on this port. Skip under act:
+          # `act` shares host networking across parallel matrix jobs, so `lsof`
+          # on port 3000/3100 can see the sibling matrix job's server and the
+          # broad `pkill -f next.*start.*PORT` can match it too — killing the
+          # other job mid-test. Real CI runners are isolated so this is a no-op
+          # there.
+          if [ -z "$ACT" ]; then
+            if command -v lsof &> /dev/null; then
+              lsof -ti :${APP_PORT:-3000} | xargs kill -9 2>/dev/null || true
+            fi
+            pkill -f "next.*start.*${APP_PORT:-3000}" 2>/dev/null || true
           fi
-          pkill -f "next.*start.*${APP_PORT:-3000}" 2>/dev/null || true
       - name: Stop Supabase stack
-        if: always()
+        # Skip under act: both matrix jobs share the host's Supabase stack
+        # (ACT_USE_HOST_SUPABASE=1), so whichever job finishes first would stop
+        # Supabase mid-run for the other. On real CI each job owns its own
+        # Supabase container and this step runs normally.
+        if: ${{ always() && !env.ACT }}
         run: supabase stop || true
       - name: Upload Playwright log
         if: ${{ always() && !env.ACT }}

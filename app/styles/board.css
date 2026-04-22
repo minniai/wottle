@@ -693,6 +693,13 @@
   grid-template-columns: auto 1fr;
   grid-template-rows: auto 1fr;
   gap: 0.25rem 0.25rem;
+  /* Anchor the outer width so `1fr` has something to resolve against. Without
+     this, the grid collapses to the `auto` column's ~16px content width inside
+     the `align-items: center` flex parent, which shrinks every board cell
+     below 44px and lets the .board-grid__cell::after hitbox (min 44px) overlap
+     neighboring rows — breaking click routing in Playwright. */
+  width: 100%;
+  min-width: 0;
 }
 .board-coords__top {
   grid-column: 2;

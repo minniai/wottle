@@ -90,7 +90,13 @@ async function submitSwap(page: import("@playwright/test").Page): Promise<void> 
 }
 
 test.describe("Round summary inline", () => {
-  test("shows inline round history and score delta after round resolves @two-player-playtest", async ({
+  // Phase 1c stopped mounting the PlayerPanel full variant that carried
+  // RoundHistoryInline (see CLAUDE.md "Unused PlayerPanel full variant"),
+  // so `round-history-inline` no longer appears in the live DOM. The overlay
+  // history (`hud-history-button` → `history-overlay` → `round-history-panel`)
+  // is covered by round-history.spec.ts. Unskip or rewrite against the
+  // overlay once the inline surface is either restored or fully removed.
+  test.skip("shows inline round history and score delta after round resolves @two-player-playtest", async ({
     browser,
   }) => {
     const contextA = await browser.newContext();

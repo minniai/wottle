@@ -103,24 +103,24 @@ test.describe("Match completion — game-over screen (T034)", () => {
         const summaryView = pageA.getByTestId("final-summary-root");
         await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
-        // Winner declaration OR draw banner must be visible
-        const hasWinner = await pageA.getByText("Winner").isVisible().catch(() => false);
-        const hasDraw = await pageA.getByText("Draw").isVisible().catch(() => false);
-        expect(hasWinner || hasDraw).toBe(true);
+        // Verdict banner must show one of Victory / Defeat / Draw (Phase 2 redesign).
+        const verdict = pageA.getByTestId("post-game-verdict");
+        await expect(verdict).toBeVisible();
+        await expect(verdict).toContainText(/Victory\.|Defeat\.|Draw\./);
 
-        // Ended reason shown
-        await expect(pageA.getByTestId("final-summary-ended-reason")).toContainText(
-          /10 rounds completed/i,
-        );
+        // Ended reason now lives inside the verdict card ("reasonLabel" prop).
+        await expect(verdict).toContainText(/10 rounds completed/i);
 
         // Scoreboard present
         await expect(pageA.getByTestId("final-summary-scoreboard")).toBeVisible();
 
-        // Word history section present (may be empty if no words scored)
-        await expect(pageA.getByTestId("final-summary-word-history")).toBeVisible();
+        // Words-of-match section present (replaces legacy final-summary-word-history).
+        await expect(pageA.getByTestId("words-of-match")).toBeVisible();
 
-        // Both players see "tiles frozen" text in the player cards (count may be 0)
-        const frozenTexts = await pageA.getByText(/tiles frozen/i).all();
+        // Both player cards in the PostGameScoreboard show "N frozen" (Phase 2
+        // replaced the legacy "tiles frozen" label with the compact "N frozen"
+        // inline stat). Count should be one per player card.
+        const frozenTexts = await pageA.getByText(/\d+ frozen/i).all();
         expect(frozenTexts.length).toBeGreaterThanOrEqual(1);
 
         // Action buttons present
