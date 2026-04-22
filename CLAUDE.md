@@ -276,8 +276,8 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Remaining Gaps
 
-1. **Legacy Endpoints** — `api/board`, `api/swap`, `actions/getBoard.ts`, `actions/swapTiles.ts` remain from early prototyping and should be removed in a cleanup pass.
-2. **Unused `PlayerPanel` full variant** — Phase 1c stopped mounting it on desktop; the code path still powers `RoundHistoryInline` surfaces. Audit and delete once verified unused.
+1. **Unused `PlayerPanel` full variant** — Phase 1c stopped mounting it on desktop; the code path still powers `RoundHistoryInline` surfaces. Audit and delete once verified unused.
+2. **Legacy `boards` table** — singleton board from the original prototype (`supabase/migrations/20251105001_init.sql`) still exists in the schema and is seeded by `scripts/supabase/seed.ts`; no runtime code reads it anymore. A follow-up migration can drop the table + its seed/reset/verify wiring.
 
 ## Code Standards
 
@@ -480,8 +480,8 @@ Playtest configuration:
 
 ### P0 — Legacy Cleanup + Production Readiness
 
-- Remove legacy endpoints: `api/board`, `api/swap`, `actions/getBoard.ts`, `actions/swapTiles.ts`.
 - Audit + delete the unused `PlayerPanel` full variant once `RoundHistoryInline` is confirmed not to need it.
+- Drop the legacy `boards` singleton table + its seed/reset/verify wiring.
 - Board generation enhancement (seeded words, anti-clustering).
 - Production config (`next.config.ts` security headers, `.nvmrc`, `engines` field).
 - Sentry error tracking + APM, Vercel production config, Supabase Cloud project setup.
