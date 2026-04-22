@@ -117,8 +117,8 @@ Before implementing any feature:
 | 3 | Lobby finish — `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState`, `InviteToast` + Server Actions | Merged |
 | 4a | Landing screen — dedicated `/` route, `LandingScreen` + `LandingTileVignette`, lobby login form removed | Merged |
 | 4b | Matchmaking screen — dedicated `/matchmaking` route, ring + found/starting phases | Merged |
-| 5a | Profile modal refresh — sparkline, best word, form chips, Challenge CTA | In progress |
-| 5b | `/profile` + `/profile/[handle]` pages + rating chart + word cloud | Planned |
+| 5a | Profile modal refresh — sparkline, best word, form chips, Challenge CTA | Merged |
+| 5b | `/profile` + `/profile/[handle]` pages + rating chart + word cloud | In progress |
 | 6 | Disconnection modal + claim-win Server Action | Planned |
 
 ## Architecture
@@ -133,6 +133,7 @@ Before implementing any feature:
   - `/app/(landing)` - Landing page (unauthenticated `/`)
   - `/app/(lobby)` - Lobby page (`/lobby`)
   - `/app/matchmaking` - Matchmaking screen (searching / found / starting phases)
+  - `/app/profile` - Own profile + `[handle]` public profile page
   - `/app/match/[matchId]` - Match page with dynamic routing
 - `/lib` - Business logic and utilities
   - `/lib/game-engine` - **Board mechanics + Word Engine** (mutations, swaps, dictionary, board scanner, delta detection, scoring, frozen tiles)
@@ -156,6 +157,7 @@ Before implementing any feature:
   - `/components/matchmaking` — `MatchmakingClient`, `MatchRing`, `MatchmakingVsBlock` *(Phase 4b)*
   - `/components/ui` — shared primitives: `Avatar`, `Badge`, `Button`, `Card`, `Dialog`, `GearMenu`, `SettingsPanel`, `Skeleton`, `Toast`, `ToastProvider`, `TopBar`
   - `/components/player` — `PlayerProfileModal`, `ProfileSparkline`, `ProfileFormChips`, `ProfileActions` *(Phase 5a refresh)*
+  - `/components/profile` — `ProfileSidebar`, `ProfileRatingChart`, `ProfileWordCloud`, `ProfileMatchHistoryList`, `ProfilePage` *(Phase 5b)*
 - `/app/styles` — Board + lobby CSS (GPU-accelerated animations, letterpress tiles, `.hud-card`, `.match-layout__hud-strip` / `--board-row` / `--rail--left|right`, ambient lobby background)
 
 ### Key Architectural Patterns
