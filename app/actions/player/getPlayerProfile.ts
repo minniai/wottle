@@ -5,7 +5,13 @@ import "server-only";
 import { z } from "zod";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import type { PlayerProfile, PlayerIdentity } from "@/lib/types/match";
+import type {
+  PlayerProfile,
+  PlayerIdentity,
+  BestWord,
+  MatchResult,
+  RatingHistoryEntry,
+} from "@/lib/types/match";
 
 const inputSchema = z.object({
   playerId: z.string().uuid(),
@@ -55,6 +61,55 @@ export async function getPlayerProfile(
     .map((row) => row.rating_after as number)
     .reverse();
 
+  // Full rating history, oldest first (also used to compute peak).
+  const { data: ratingRows } = await supabase
+    .from("match_ratings")
+    .select("rating_after, created_at")
+    .eq("player_id", parsed.data.playerId)
+    .order("created_at", { ascending: true });
+
+  const ratingHistory: RatingHistoryEntry[] = (ratingRows ?? []).map((row) => ({
+    recordedAt: row.created_at as string,
+    rating: row.rating_after as number,
+  }));
+
+  const peakRating = ratingHistory.reduce(
+    (max, entry) => Math.max(max, entry.rating),
+    player.elo_rating as number,
+  );
+
+  // Last 10 match results → W/L/D (newest first).
+  const { data: formRows } = await supabase
+    .from("match_ratings")
+    .select("match_result, created_at")
+    .eq("player_id", parsed.data.playerId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const RESULT_MAP: Record<"win" | "loss" | "draw", MatchResult> = {
+    win: "W",
+    loss: "L",
+    draw: "D",
+  };
+  const form: MatchResult[] = (formRows ?? []).map(
+    (row) => RESULT_MAP[row.match_result as "win" | "loss" | "draw"],
+  );
+
+  // Best word = single highest-points row the player has produced.
+  const { data: bestWordRows } = await supabase
+    .from("word_score_entries")
+    .select("word, total_points")
+    .eq("player_id", parsed.data.playerId)
+    .order("total_points", { ascending: false })
+    .limit(1);
+
+  const bestWord: BestWord | null = bestWordRows?.[0]
+    ? {
+        word: bestWordRows[0].word as string,
+        points: bestWordRows[0].total_points as number,
+      }
+    : null;
+
   const wins = player.wins as number;
   const losses = player.losses as number;
   const decisiveGames = wins + losses;
@@ -85,6 +140,10 @@ export async function getPlayerProfile(
             : null,
       },
       ratingTrend,
+      bestWord,
+      form,
+      peakRating,
+      ratingHistory,
     },
   };
 }
