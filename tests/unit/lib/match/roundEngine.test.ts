@@ -16,6 +16,13 @@ vi.mock("@/app/actions/match/completeMatch", () => ({
     completeMatchInternal: vi.fn().mockResolvedValue({ matchId: "match-1" }),
 }));
 
+// publishMatchState hits `supabase.channel`/`removeChannel`, which the row-only
+// mocked client doesn't expose. Its internal 2s subscribe timeout otherwise
+// surfaces as an uncaught exception after the test exits.
+vi.mock("@/lib/match/statePublisher", () => ({
+    publishMatchState: vi.fn().mockResolvedValue(undefined),
+}));
+
 type SubmissionRow = {
     id: string;
     player_id: string;
@@ -392,11 +399,13 @@ describe("roundEngine.advanceRound", () => {
         expect(roundsInsert).not.toHaveBeenCalled();
     });
 
-    // Regression guard: step 15 broadcasts must be fire-and-forget, so
-    // completeMatchInternal runs even when publishRoundSummary hangs. This was
-    // the root cause of stuck round 10: awaiting the Realtime broadcast stalled
-    // the whole pipeline whenever the local channel subscribe timed out.
-    it("calls completeMatchInternal even when publishRoundSummary never resolves", async () => {
+    // Regression guard: for game-over, publishRoundSummary is awaited so its
+    // `scoreboard_snapshots` upsert finishes before Vercel terminates the
+    // function (that's why round 10 was missing from the chart). If it
+    // REJECTS, completeMatchInternal must still run — the match-level writes
+    // are authoritative, broadcasts are best-effort. An outer 3s timeout in
+    // `advanceRound` additionally protects against a pathological hang.
+    it("calls completeMatchInternal when publishRoundSummary rejects on game-over", async () => {
         const { publishRoundSummary } = await import(
             "@/app/actions/match/publishRoundSummary"
         );
@@ -404,9 +413,8 @@ describe("roundEngine.advanceRound", () => {
             "@/app/actions/match/completeMatch"
         );
         vi.mocked(completeMatchInternal).mockClear();
-        // Make the broadcast hang forever — the old implementation would block here.
-        vi.mocked(publishRoundSummary).mockImplementationOnce(
-            () => new Promise(() => {}),
+        vi.mocked(publishRoundSummary).mockImplementationOnce(() =>
+            Promise.reject(new Error("broadcast failed")),
         );
 
         setupSupabase(
@@ -446,7 +454,56 @@ describe("roundEngine.advanceRound", () => {
         );
         expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "round_limit");
 
-        // Restore the mock so downstream tests don't see a hanging promise.
+        // Restore the mock so downstream tests see a normal resolve.
+        vi.mocked(publishRoundSummary).mockResolvedValue({ ok: true } as never);
+    });
+
+    // Regression guard: for NON-terminal rounds, step 15 stays fire-and-forget,
+    // so advanceRound completes even when publishRoundSummary hangs.
+    it("completes non-terminal round advance even when publishRoundSummary never resolves", async () => {
+        const { publishRoundSummary } = await import(
+            "@/app/actions/match/publishRoundSummary"
+        );
+        vi.mocked(publishRoundSummary).mockImplementationOnce(
+            () => new Promise(() => {}),
+        );
+
+        setupSupabase(
+            [
+                {
+                    id: "sub-a",
+                    player_id: "player-a",
+                    from_x: 0,
+                    from_y: 0,
+                    to_x: 0,
+                    to_y: 1,
+                    submitted_at: "2026-01-01T00:00:00Z",
+                    status: "pending",
+                },
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: "2026-01-01T00:00:01Z",
+                    status: "pending",
+                },
+            ],
+            { current_round: 3 },
+        );
+
+        const result = await advanceRound("match-1");
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: "advanced",
+                nextRound: 4,
+                isGameOver: false,
+            }),
+        );
+
         vi.mocked(publishRoundSummary).mockResolvedValue({ ok: true } as never);
     });
 

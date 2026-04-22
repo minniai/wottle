@@ -3,7 +3,10 @@ import "server-only";
 import { boardGridSchema } from "@/lib/types/board";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
-import { computeWordScoresForRound } from "@/app/actions/match/publishRoundSummary";
+import {
+    computeWordScoresForRound,
+    publishRoundSummary,
+} from "@/app/actions/match/publishRoundSummary";
 import { publishMatchState } from "./statePublisher";
 import { resolveConflicts } from "./conflictResolver";
 import { computeElapsedMs } from "./clockEnforcer";
@@ -75,6 +78,13 @@ export async function recoverStuckRound(matchId: string): Promise<void> {
     // Shape C — match already completed but winner not set.
     if (match.state === "completed") {
         if (!match.winner_id) {
+            // `publishRoundSummary` writes `scoreboard_snapshots` (upsert on
+            // `match_id,round_number`). When `advanceRound`'s fire-and-forget
+            // broadcast in step 15 was killed by Vercel function termination
+            // before it could run, the final round is missing from the chart.
+            // match.current_round is already one past the last played round
+            // (11 after round 10), so backfill current_round - 1.
+            await ensureScoreboardSnapshot(supabase, matchId, match.current_round - 1);
             await runCompleteMatch(matchId, "round_limit");
         }
         return;
@@ -92,6 +102,10 @@ export async function recoverStuckRound(matchId: string): Promise<void> {
     }
 
     if (roundCompleted && match.state === "in_progress") {
+        // Ensure the chart has an entry for the round that just finished —
+        // `publishRoundSummary` writes `scoreboard_snapshots` (upsert), which
+        // the summary page's round-by-round chart reads from.
+        await ensureScoreboardSnapshot(supabase, matchId, match.current_round);
         await finalizeCompletedRound(supabase, match, round);
     }
 
@@ -285,5 +299,33 @@ async function runCompleteMatch(
         await completeMatchInternal(matchId, reason);
     } catch (error) {
         console.error("[recoverStuckRound] completeMatchInternal failed:", error);
+    }
+}
+
+/**
+ * Write `scoreboard_snapshots` for a round if it's missing. `publishRoundSummary`
+ * reads `word_score_entries`, aggregates via `aggregateRoundSummary`, and
+ * upserts the snapshot; when the entry is already there we skip to avoid a
+ * duplicate Realtime broadcast.
+ */
+async function ensureScoreboardSnapshot(
+    supabase: Supabase,
+    matchId: string,
+    roundNumber: number,
+): Promise<void> {
+    if (roundNumber < 1) return;
+
+    const { data } = await supabase
+        .from("scoreboard_snapshots")
+        .select("round_number")
+        .eq("match_id", matchId)
+        .eq("round_number", roundNumber)
+        .maybeSingle();
+    if (data) return;
+
+    try {
+        await publishRoundSummary(matchId, roundNumber);
+    } catch (error) {
+        console.error("[recoverStuckRound] publishRoundSummary failed:", error);
     }
 }
