@@ -116,8 +116,9 @@ Before implementing any feature:
 | 2 | Post-game redesign — `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch` | Merged |
 | 3 | Lobby finish — `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState`, `InviteToast` + Server Actions | Merged |
 | 4a | Landing screen — dedicated `/` route, `LandingScreen` + `LandingTileVignette`, lobby login form removed | Merged |
-| 4b | Matchmaking screen — dedicated `/matchmaking` route, ring + found/starting phases | In progress |
-| 5 | Profile (modal + `/profile` page) + rating history | Planned |
+| 4b | Matchmaking screen — dedicated `/matchmaking` route, ring + found/starting phases | Merged |
+| 5a | Profile modal refresh — sparkline, best word, form chips, Challenge CTA | In progress |
+| 5b | `/profile` + `/profile/[handle]` pages + rating chart + word cloud | Planned |
 | 6 | Disconnection modal + claim-win Server Action | Planned |
 
 ## Architecture
@@ -154,7 +155,7 @@ Before implementing any feature:
   - `/components/landing` — `LandingScreen`, `LandingTileVignette` *(Phase 4a)*
   - `/components/matchmaking` — `MatchmakingClient`, `MatchRing`, `MatchmakingVsBlock` *(Phase 4b)*
   - `/components/ui` — shared primitives: `Avatar`, `Badge`, `Button`, `Card`, `Dialog`, `GearMenu`, `SettingsPanel`, `Skeleton`, `Toast`, `ToastProvider`, `TopBar`
-  - `/components/player` — `PlayerProfileModal` (lobby → player drill-in)
+  - `/components/player` — `PlayerProfileModal`, `ProfileSparkline`, `ProfileFormChips`, `ProfileActions` *(Phase 5a refresh)*
 - `/app/styles` — Board + lobby CSS (GPU-accelerated animations, letterpress tiles, `.hud-card`, `.match-layout__hud-strip` / `--board-row` / `--rail--left|right`, ambient lobby background)
 
 ### Key Architectural Patterns
