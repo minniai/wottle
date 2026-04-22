@@ -7,19 +7,34 @@ export interface CountdownState {
   expired: boolean;
 }
 
+interface State {
+  start: number;
+  remaining: number;
+}
+
 export function useCountdown(startSeconds: number): CountdownState {
-  const [remaining, setRemaining] = useState(startSeconds);
+  const [state, setState] = useState<State>({
+    start: startSeconds,
+    remaining: startSeconds,
+  });
+
+  // Derived-state reset: when the prop changes, React calls setState during
+  // render, bails the current render, and restarts with the new state.
+  // See https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  if (state.start !== startSeconds) {
+    setState({ start: startSeconds, remaining: startSeconds });
+  }
 
   useEffect(() => {
-    setRemaining(startSeconds);
-    if (startSeconds <= 0) return;
-
+    if (state.remaining <= 0) return;
     const id = setInterval(() => {
-      setRemaining((prev) => (prev > 0 ? prev - 1 : 0));
+      setState((prev) => ({
+        ...prev,
+        remaining: prev.remaining > 0 ? prev.remaining - 1 : 0,
+      }));
     }, 1_000);
-
     return () => clearInterval(id);
-  }, [startSeconds]);
+  }, [state.remaining]);
 
-  return { remaining, expired: remaining <= 0 };
+  return { remaining: state.remaining, expired: state.remaining <= 0 };
 }

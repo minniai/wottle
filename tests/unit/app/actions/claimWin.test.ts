@@ -14,6 +14,7 @@ import { claimWinAction } from "@/app/actions/match/claimWin";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 import { getDisconnectedAt } from "@/app/actions/match/handleDisconnect";
 import { readLobbySession } from "@/lib/matchmaking/profile";
+import { resetRateLimitStoreForTests } from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const MATCH_ID = "00000000-0000-0000-0000-000000000001";
@@ -56,6 +57,7 @@ function buildSupabase(matchData: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetRateLimitStoreForTests();
   vi.mocked(readLobbySession).mockResolvedValue(SESSION as never);
   vi.mocked(getServiceRoleClient).mockReturnValue(
     buildSupabase({
@@ -148,13 +150,35 @@ describe("claimWinAction", () => {
     expect(remaining).toBeLessThan(61_000);
   });
 
-  test("returns ok and calls completeMatchInternal when opponent disconnected 95s ago", async () => {
+  test("returns ok and forces caller as winner when opponent disconnected 95s ago", async () => {
     vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 95_000);
 
     const result = await claimWinAction(MATCH_ID);
 
     expect(result.status).toBe("ok");
     expect((result as { status: "ok"; matchId: string }).matchId).toBe(MATCH_ID);
-    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "disconnect");
+    // Caller (PLAYER_A) must be passed as forcedWinnerId so they win
+    // unconditionally, regardless of the live scoreboard.
+    expect(completeMatchInternal).toHaveBeenCalledWith(
+      MATCH_ID,
+      "disconnect",
+      PLAYER_A,
+    );
+  });
+
+  test("returns rate_limited on the second call within the same minute", async () => {
+    vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 95_000);
+
+    const first = await claimWinAction(MATCH_ID);
+    expect(first.status).toBe("ok");
+
+    const second = await claimWinAction(MATCH_ID);
+    expect(second.status).toBe("rate_limited");
+    expect(
+      (second as { status: "rate_limited"; retryAfterSeconds: number })
+        .retryAfterSeconds,
+    ).toBeGreaterThan(0);
+    // completeMatchInternal only runs for the first call.
+    expect(completeMatchInternal).toHaveBeenCalledTimes(1);
   });
 });

@@ -9,6 +9,10 @@ import {
   getDisconnectedAt,
 } from "@/app/actions/match/handleDisconnect";
 import { readLobbySession } from "@/lib/matchmaking/profile";
+import {
+  assertWithinRateLimit,
+  RateLimitExceededError,
+} from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export type ClaimWinResult =
@@ -18,6 +22,7 @@ export type ClaimWinResult =
   | { status: "already_completed"; matchId: string }
   | { status: "forbidden" }
   | { status: "unauthenticated" }
+  | { status: "rate_limited"; retryAfterSeconds: number }
   | { status: "error"; message: string };
 
 const inputSchema = z.object({ matchId: z.string().uuid() });
@@ -28,6 +33,24 @@ export async function claimWinAction(
   const session = await readLobbySession();
   if (!session) {
     return { status: "unauthenticated" };
+  }
+
+  try {
+    assertWithinRateLimit({
+      identifier: session.player.id,
+      scope: "match:claim-win",
+      limit: 1,
+      windowMs: 60_000,
+      errorMessage: "Slow down — you can only claim one win per minute.",
+    });
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return {
+        status: "rate_limited",
+        retryAfterSeconds: error.retryAfterSeconds,
+      };
+    }
+    throw error;
   }
 
   const parsed = inputSchema.safeParse({ matchId });
@@ -72,7 +95,7 @@ export async function claimWinAction(
       };
     }
 
-    await completeMatchInternal(parsed.data.matchId, "disconnect");
+    await completeMatchInternal(parsed.data.matchId, "disconnect", selfId);
     return { status: "ok", matchId: parsed.data.matchId };
   } catch (error) {
     return {

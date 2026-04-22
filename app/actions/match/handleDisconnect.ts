@@ -203,5 +203,18 @@ async function finalizeMatchOnDisconnectTimeout(
   disconnectedPlayerId: string,
 ): Promise<void> {
   const { completeMatchInternal } = await import("./completeMatch");
-  await completeMatchInternal(matchId, "disconnect");
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("player_a_id, player_b_id")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  const nonDisconnectedId = match
+    ? match.player_a_id === disconnectedPlayerId
+      ? match.player_b_id
+      : match.player_a_id
+    : undefined;
+
+  await completeMatchInternal(matchId, "disconnect", nonDisconnectedId);
 }
