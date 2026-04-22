@@ -256,7 +256,12 @@ export function LobbyList({ currentPlayer, initialPlayers }: LobbyListProps) {
       {profilePlayerId ? (
         <PlayerProfileModal
           playerId={profilePlayerId}
+          viewerId={currentPlayer.id}
           onClose={() => setProfilePlayerId(null)}
+          onChallenge={(playerId) => {
+            setProfilePlayerId(null);
+            handleChallenge(playerId);
+          }}
         />
       ) : null}
 

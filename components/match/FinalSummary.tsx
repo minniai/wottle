@@ -343,7 +343,11 @@ export function FinalSummary({
     {profilePlayerId && (
       <PlayerProfileModal
         playerId={profilePlayerId}
+        viewerId={currentPlayerId}
         onClose={() => setProfilePlayerId(null)}
+        // Post-game drill-in: Challenge is a no-op. Rematch lives in a separate
+        // flow; clicking Challenge from post-game would surprise users.
+        onChallenge={() => setProfilePlayerId(null)}
       />
     )}
     <section
