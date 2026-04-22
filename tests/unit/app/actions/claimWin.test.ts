@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
-vi.mock("@/app/actions/match/handleDisconnect", () => ({
+vi.mock("@/lib/match/disconnectStore", () => ({
   getDisconnectedAt: vi.fn(),
-  RECONNECT_WINDOW_MS_EXPORT: 90_000,
+  RECONNECT_WINDOW_MS: 90_000,
 }));
 vi.mock("@/app/actions/match/completeMatch", () => ({
   completeMatchInternal: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock("@/app/actions/match/completeMatch", () => ({
 
 import { claimWinAction } from "@/app/actions/match/claimWin";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
-import { getDisconnectedAt } from "@/app/actions/match/handleDisconnect";
+import { getDisconnectedAt } from "@/lib/match/disconnectStore";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { resetRateLimitStoreForTests } from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";

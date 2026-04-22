@@ -5,9 +5,9 @@ import { z } from "zod";
 
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 import {
-  RECONNECT_WINDOW_MS_EXPORT,
+  RECONNECT_WINDOW_MS,
   getDisconnectedAt,
-} from "@/app/actions/match/handleDisconnect";
+} from "@/lib/match/disconnectStore";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import {
   assertWithinRateLimit,
@@ -88,10 +88,10 @@ export async function claimWinAction(
     }
 
     const elapsed = Date.now() - disconnectedAt;
-    if (elapsed < RECONNECT_WINDOW_MS_EXPORT) {
+    if (elapsed < RECONNECT_WINDOW_MS) {
       return {
         status: "too_early",
-        remainingMs: RECONNECT_WINDOW_MS_EXPORT - elapsed,
+        remainingMs: RECONNECT_WINDOW_MS - elapsed,
       };
     }
 

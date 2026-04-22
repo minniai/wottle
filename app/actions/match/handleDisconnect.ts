@@ -5,17 +5,12 @@ import "server-only";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { writeMatchLog } from "@/lib/match/logWriter";
-
-const RECONNECT_WINDOW_MS = 90_000; // 90 seconds per Phase 6 disconnect-modal spec
-
-interface DisconnectRecord {
-  matchId: string;
-  playerId: string;
-  disconnectedAt: string;
-}
-
-// In-memory store for tracking disconnects (in production, use Redis or database)
-const disconnectStore = new Map<string, DisconnectRecord>();
+import {
+  RECONNECT_WINDOW_MS,
+  clearDisconnect,
+  getDisconnectRecord,
+  recordDisconnect,
+} from "@/lib/match/disconnectStore";
 
 export async function handlePlayerDisconnect(matchId: string, playerId: string): Promise<void> {
   const session = await readLobbySession();
@@ -47,23 +42,15 @@ export async function handlePlayerDisconnect(matchId: string, playerId: string):
     return;
   }
 
-  // Record disconnect time
-  const disconnectKey = `${matchId}:${playerId}`;
-  disconnectStore.set(disconnectKey, {
-    matchId,
-    playerId,
-    disconnectedAt: new Date().toISOString(),
-  });
+  recordDisconnect(matchId, playerId);
 
   // Broadcast disconnect state to all clients
   await publishMatchStateWithDisconnect(matchId, playerId);
 
   // Schedule timeout check (in production, use a proper job queue)
   setTimeout(async () => {
-    const record = disconnectStore.get(disconnectKey);
-    if (record) {
-      // Player did not reconnect within 90 seconds
-      disconnectStore.delete(disconnectKey);
+    if (clearDisconnect(matchId, playerId)) {
+      // Player did not reconnect within the window → finalize the match.
       await finalizeMatchOnDisconnectTimeout(supabase, matchId, playerId);
     }
   }, RECONNECT_WINDOW_MS);
@@ -107,33 +94,31 @@ export async function handlePlayerReconnect(matchId: string, playerId: string): 
     return;
   }
 
-  // Check if player was disconnected
-  const disconnectKey = `${matchId}:${playerId}`;
-  const record = disconnectStore.get(disconnectKey);
+  const record = getDisconnectRecord(matchId, playerId);
+  if (!record) {
+    return;
+  }
 
-  if (record) {
-    const disconnectTime = new Date(record.disconnectedAt).getTime();
-    const now = Date.now();
-    const elapsed = now - disconnectTime;
+  const disconnectTime = new Date(record.disconnectedAt).getTime();
+  const elapsed = Date.now() - disconnectTime;
 
-    if (elapsed < RECONNECT_WINDOW_MS) {
-      // Player reconnected within window - clear disconnect state
-      disconnectStore.delete(disconnectKey);
-      await publishMatchStateWithDisconnect(matchId, null); // Clear disconnect state
+  if (elapsed < RECONNECT_WINDOW_MS) {
+    // Reconnected inside the window — clear state and broadcast.
+    clearDisconnect(matchId, playerId);
+    await publishMatchStateWithDisconnect(matchId, null);
 
-      await writeMatchLog(supabase, {
-        matchId,
-        eventType: "reconnect",
-        metadata: {
-          playerId,
-          reconnectedAt: new Date().toISOString(),
-          elapsedMs: elapsed,
-        },
-      });
-    } else {
-      // Too late - match already finalized
-      disconnectStore.delete(disconnectKey);
-    }
+    await writeMatchLog(supabase, {
+      matchId,
+      eventType: "reconnect",
+      metadata: {
+        playerId,
+        reconnectedAt: new Date().toISOString(),
+        elapsedMs: elapsed,
+      },
+    });
+  } else {
+    // Too late — the timeout already fired; clear to keep the store tidy.
+    clearDisconnect(matchId, playerId);
   }
 }
 
@@ -178,24 +163,6 @@ async function loadMatchStateWithDisconnect(
     disconnectedPlayerId: null,
   };
 }
-
-/**
- * Returns the timestamp (ms since epoch) when the player first lost their
- * connection for this match, or null if they are currently connected.
- *
- * Used by claimWinAction to check whether the 90s window has elapsed.
- */
-export function getDisconnectedAt(
-  matchId: string,
-  playerId: string,
-): number | null {
-  const key = `${matchId}:${playerId}`;
-  const record = disconnectStore.get(key);
-  if (!record) return null;
-  return new Date(record.disconnectedAt).getTime();
-}
-
-export const RECONNECT_WINDOW_MS_EXPORT = RECONNECT_WINDOW_MS;
 
 async function finalizeMatchOnDisconnectTimeout(
   supabase: ReturnType<typeof getServiceRoleClient>,
