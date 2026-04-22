@@ -23,9 +23,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock Supabase browser client
+// Mock Supabase browser client — removeChannel is invoked on cleanup
 vi.mock("@/lib/supabase/browser", () => ({
-  getBrowserSupabaseClient: () => ({}),
+  getBrowserSupabaseClient: () => ({
+    removeChannel: vi.fn(),
+  }),
 }));
 
 // Mock realtime channel — captures onSummary for phase machine tests
@@ -33,7 +35,12 @@ vi.mock("@/lib/realtime/matchChannel", () => ({
   subscribeToMatchChannel: (
     _client: unknown,
     _matchId: string,
-    callbacks: { onSummary: (summary: RoundSummary) => void; onState?: (state: MatchState) => void },
+    callbacks: {
+      onSummary: (summary: RoundSummary) => void;
+      onState?: (state: MatchState) => void;
+      onOpponentLeave?: (presence: { playerId: string }) => void;
+      presenceKey?: string;
+    },
   ) => {
     mockMatchCallbacks.onSummary = callbacks.onSummary;
     mockMatchCallbacks.onState = callbacks.onState ?? null;

@@ -14,6 +14,8 @@ import type {
 } from "@/lib/types/match";
 import { generateBoard } from "@/scripts/supabase/generateBoard";
 import { computeElapsedMs, computeRemainingMs } from "./clockEnforcer";
+import { getDisconnectRecord } from "./disconnectStore";
+import { isHeartbeatStale } from "./heartbeatStore";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -463,6 +465,30 @@ export async function loadMatchState(
     playerBStatus = "running";
   }
 
+  // Surface disconnect state in the polled snapshot. Two complementary signals:
+  //   1. `disconnectStore` — populated by `handlePlayerDisconnect` when the
+  //      disconnecting client *does* manage to notify us (sendBeacon, system
+  //      CLOSED handler).
+  //   2. Heartbeat staleness — covers the cases where the client never gets to
+  //      notify us (Playwright `context.close`, browser crash, network drop).
+  //      Each `/state` poll updates the caller's heartbeat; the surviving
+  //      side detects the other's silence here on the very next poll.
+  // Only flags the match as in-progress (completed matches don't need it).
+  const disconnectFromStore =
+    getDisconnectRecord(match.id, match.player_a_id)?.playerId ??
+    getDisconnectRecord(match.id, match.player_b_id)?.playerId ??
+    null;
+
+  let disconnectFromHeartbeat: string | null = null;
+  if (effectiveState !== "completed") {
+    if (isHeartbeatStale(match.id, match.player_a_id)) {
+      disconnectFromHeartbeat = match.player_a_id;
+    } else if (isHeartbeatStale(match.id, match.player_b_id)) {
+      disconnectFromHeartbeat = match.player_b_id;
+    }
+  }
+  const disconnectedPlayerId = disconnectFromStore ?? disconnectFromHeartbeat;
+
   return {
     matchId: match.id,
     board,
@@ -483,6 +509,7 @@ export async function loadMatchState(
     scores,
     lastSummary,
     frozenTiles: (match as any).frozen_tiles ?? {},
+    disconnectedPlayerId,
   };
 }
 

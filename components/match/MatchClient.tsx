@@ -210,6 +210,20 @@ export function MatchClient({
     setMatchState(initialState);
   }, [initialState]);
 
+  // Sync the matchState's disconnectedPlayerId (which can be set by Realtime
+  // onState OR by polling via applySnapshot) into the dedicated state field
+  // that the modal and reconnect UI read from. The Realtime onState handler
+  // also calls setDisconnectedPlayerId directly, but polling paths don't —
+  // this effect closes the gap so the modal renders even when Realtime is
+  // unavailable.
+  useEffect(() => {
+    const fromSnapshot = matchState.disconnectedPlayerId ?? null;
+    setDisconnectedPlayerId((prev) => (prev === fromSnapshot ? prev : fromSnapshot));
+    if (fromSnapshot && fromSnapshot !== currentPlayerId) {
+      setIsReconnecting(false);
+    }
+  }, [matchState.disconnectedPlayerId, currentPlayerId]);
+
   // Trigger round-recap animation whenever a new lastSummary arrives (via onState or onSummary).
   // Using lastSummary as the source-of-truth means the animation fires reliably regardless
   // of whether the Realtime "round-summary" broadcast or the "state" broadcast arrives first.
@@ -344,6 +358,7 @@ export function MatchClient({
 
     const client = getBrowserSupabaseClient();
     const channel = subscribeToMatchChannel(client, matchId, {
+      presenceKey: currentPlayerId,
       onState: (snapshot) => {
         if (snapshot.disconnectedPlayerId) {
           setDisconnectedPlayerId(snapshot.disconnectedPlayerId);
@@ -371,6 +386,19 @@ export function MatchClient({
           scores: nextSummary.totals,
           lastSummary: nextSummary,
         }));
+      },
+      // Opponent's WebSocket dropped (tab close, crash, network drop). Supabase
+      // Realtime emits a presence "leave" to every other subscriber, so the
+      // surviving client (us) is responsible for telling the server — the
+      // disconnecting client can't be trusted to fire a fetch on its way out.
+      onOpponentLeave: ({ playerId: opponentId }) => {
+        setDisconnectedPlayerId(opponentId);
+        void handlePlayerDisconnect(matchId, opponentId).catch((error) => {
+          console.error(
+            "[MatchClient] Failed to notify server of opponent disconnect:",
+            error,
+          );
+        });
       },
       onError: (error) => {
         console.error(
@@ -404,7 +432,13 @@ export function MatchClient({
     });
 
     return () => {
-      channel.unsubscribe();
+      // Use removeChannel (not just unsubscribe) so the server-side join state
+      // for `match:${matchId}` is fully released. Plain unsubscribe leaves the
+      // channel cached on the SupabaseClient, and a re-subscribe (e.g. React
+      // StrictMode double-mount in dev) collides with the prior server-side
+      // join — the second subscribe stalls at TIMED_OUT and presence never
+      // joins, so opponent-leave events never fire.
+      void client.removeChannel(channel);
     };
   }, [
     matchId,
@@ -416,6 +450,24 @@ export function MatchClient({
     matchState.timers.playerA.playerId,
     playWordDiscovery,
   ]);
+
+  // ── pagehide → sendBeacon disconnect notification ────────────────
+  // Best-effort: tells the server "I'm leaving" before the tab dies. Note that
+  // some test runners (e.g. Playwright `BrowserContext.close()`) force-kill
+  // the page without firing pagehide, so detection ALSO falls back to the
+  // server-side heartbeat staleness check in `loadMatchState`.
+  useEffect(() => {
+    const notifyDisconnect = () => {
+      if (typeof navigator === "undefined" || !navigator.sendBeacon) {
+        return;
+      }
+      navigator.sendBeacon(`/api/match/${matchId}/disconnect`);
+    };
+    window.addEventListener("pagehide", notifyDisconnect);
+    return () => {
+      window.removeEventListener("pagehide", notifyDisconnect);
+    };
+  }, [matchId]);
 
   // ── Primary polling (only when Realtime is confirmed down) ────────
   useEffect(() => {
@@ -466,8 +518,13 @@ export function MatchClient({
       const roundAdvanced = snapshot.currentRound > current.currentRound;
       const matchCompleted =
         snapshot.state === "completed" && current.state !== "completed";
+      // Also apply when disconnect state flips — this is the only signal
+      // when Realtime broadcasts aren't reaching the surviving client.
+      const disconnectChanged =
+        (snapshot.disconnectedPlayerId ?? null) !==
+        (current.disconnectedPlayerId ?? null);
 
-      if (roundAdvanced || matchCompleted) {
+      if (roundAdvanced || matchCompleted || disconnectChanged) {
         applySnapshot(snapshot);
       }
     };
