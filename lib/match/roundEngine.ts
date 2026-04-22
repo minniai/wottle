@@ -354,6 +354,7 @@ export async function advanceRound(matchId: string) {
 
     if (isGameOver) {
         updatePayload.state = "completed";
+        updatePayload.completed_at = new Date().toISOString();
     }
 
     const { error: updateError } = await supabase
