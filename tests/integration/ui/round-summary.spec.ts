@@ -90,45 +90,6 @@ async function submitSwap(page: import("@playwright/test").Page): Promise<void> 
 }
 
 test.describe("Round summary inline", () => {
-  // Phase 1c stopped mounting the PlayerPanel full variant that carried
-  // RoundHistoryInline (see CLAUDE.md "Unused PlayerPanel full variant"),
-  // so `round-history-inline` no longer appears in the live DOM. The overlay
-  // history (`hud-history-button` → `history-overlay` → `round-history-panel`)
-  // is covered by round-history.spec.ts. Unskip or rewrite against the
-  // overlay once the inline surface is either restored or fully removed.
-  test.skip("shows inline round history and score delta after round resolves @two-player-playtest", async ({
-    browser,
-  }) => {
-    const contextA = await browser.newContext();
-    const contextB = await browser.newContext();
-    const pageA = await contextA.newPage();
-    const pageB = await contextB.newPage();
-
-    try {
-      const userA = generateTestUsername("summary-alpha");
-      const userB = generateTestUsername("summary-beta");
-      await loginAndStartMatch(pageA, pageB, userA, userB);
-
-      // Submit moves for round 1
-      await submitSwap(pageA);
-      await submitSwap(pageB);
-
-      // Wait for round to resolve and advance — rounds auto-advance after recap animation
-      const roundIndicator = pageA.getByTestId("game-chrome-player").getByTestId("round-indicator");
-      await expect(roundIndicator).toContainText(/r2/i, { timeout: 45_000 });
-
-      // Inline round history should show round 1 data in the player panel
-      const inlineHistory = pageA.getByTestId("round-history-inline").first();
-      await expect(inlineHistory).toBeVisible({ timeout: 5_000 });
-      await expect(inlineHistory).toContainText(/round 1/i);
-    } finally {
-      await pageA.close();
-      await pageB.close();
-      await contextA.close();
-      await contextB.close();
-    }
-  });
-
   // T011: score-delta-popup appears after round resolves
   test("T011: score-delta-popup and round-summary-panel coexist after round @two-player-playtest", async ({
     browser,

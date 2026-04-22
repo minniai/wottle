@@ -151,7 +151,7 @@ Before implementing any feature:
   - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
 - `/components` - React Client Components
   - `/components/game` — `Board`, `BoardGrid`, `BoardCoordLabels`, `MoveFeedback`, `TimerHud`, `usePinchZoom`
-  - `/components/match` — core match client (`MatchClient`, `MatchShell`), HUD (`HudCard`, `MatchCenterChrome`, `RoundPipBar`), panels (`PlayerPanel`, `PlayerAvatar`, `TimerDisplay`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `RoundHistoryInline`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`), disconnect (`DisconnectionModal`, `useCountdown` — Phase 6)
+  - `/components/match` — core match client (`MatchClient`, `MatchShell`), HUD (`HudCard`, `MatchCenterChrome`, `RoundPipBar`), panels (`PlayerPanel`, `PlayerAvatar`, `TimerDisplay`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`), disconnect (`DisconnectionModal`, `useCountdown` — Phase 6)
   - `/components/lobby` — `LobbyHero`, `LobbyList`, `LobbyDirectory`, `LobbyCard`, `LobbyStatsStrip`, `PlayNowCard`, `InviteDialog`, `InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` *(`InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` ship with Phase 3 / PR #115)*
   - `/components/landing` — `LandingScreen`, `LandingTileVignette` *(Phase 4a)*
   - `/components/matchmaking` — `MatchmakingClient`, `MatchRing`, `MatchmakingVsBlock` *(Phase 4b)*
@@ -276,8 +276,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Remaining Gaps
 
-1. **Unused `PlayerPanel` full variant** — Phase 1c stopped mounting it on desktop; the code path still powers `RoundHistoryInline` surfaces. Audit and delete once verified unused.
-2. **Legacy `boards` table** — singleton board from the original prototype (`supabase/migrations/20251105001_init.sql`) still exists in the schema and is seeded by `scripts/supabase/seed.ts`; no runtime code reads it anymore. A follow-up migration can drop the table + its seed/reset/verify wiring.
+1. **Legacy `boards` table** — singleton board from the original prototype (`supabase/migrations/20251105001_init.sql`) still exists in the schema and is seeded by `scripts/supabase/seed.ts`; no runtime code reads it anymore. A follow-up migration can drop the table + its seed/reset/verify wiring.
 
 ## Code Standards
 
@@ -480,7 +479,6 @@ Playtest configuration:
 
 ### P0 — Legacy Cleanup + Production Readiness
 
-- Audit + delete the unused `PlayerPanel` full variant once `RoundHistoryInline` is confirmed not to need it.
 - Drop the legacy `boards` singleton table + its seed/reset/verify wiring.
 - Board generation enhancement (seeded words, anti-clustering).
 - Production config (`next.config.ts` security headers, `.nvmrc`, `engines` field).

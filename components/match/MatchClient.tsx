@@ -874,7 +874,6 @@ export function MatchClient({
                   totalRounds: 10,
                   playerColor: getPlayerColors(opponentSlot).hex,
                 }}
-                variant="compact"
                 isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
               />
             </div>
@@ -938,7 +937,6 @@ export function MatchClient({
                   totalRounds: 10,
                   playerColor: getPlayerColors(playerSlot).hex,
                 }}
-                variant="compact"
               />
             </div>
           </div>
