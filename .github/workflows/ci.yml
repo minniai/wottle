@@ -141,7 +141,7 @@ jobs:
       - name: Upload Next.js build artifact
         # Skip under act: upload-artifact@v7 sends a protobuf field
         # (mime_type) that act's built-in artifact server rejects.
-        if: ${{ !env.ACT }}
+        if: ${{ env.ACT != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
@@ -229,7 +229,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Upload quickstart log
-        if: ${{ always() && !env.ACT }}
+        if: ${{ always() && env.ACT != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: quickstart-log
@@ -351,7 +351,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
-        if: ${{ !env.ACT }}
+        if: ${{ env.ACT != 'true' }}
         uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
@@ -366,7 +366,7 @@ jobs:
         # Supabase (localhost:54321 would point at the container's own
         # loopback). Without this, the browser WebSocket handshake to
         # Realtime fails with 403 and every two-player test times out.
-        if: ${{ env.ACT }}
+        if: ${{ env.ACT == 'true' }}
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
@@ -625,10 +625,10 @@ jobs:
         # (ACT_USE_HOST_SUPABASE=1), so whichever job finishes first would stop
         # Supabase mid-run for the other. On real CI each job owns its own
         # Supabase container and this step runs normally.
-        if: ${{ always() && !env.ACT }}
+        if: ${{ always() && env.ACT != 'true' }}
         run: supabase stop || true
       - name: Upload Playwright log
-        if: ${{ always() && !env.ACT }}
+        if: ${{ always() && env.ACT != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: quickstart-playwright-${{ matrix.suite }}-log
@@ -724,7 +724,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
-        if: ${{ !env.ACT }}
+        if: ${{ env.ACT != 'true' }}
         uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
@@ -739,7 +739,7 @@ jobs:
         # Supabase (localhost:54321 would point at the container's own
         # loopback). Without this, the browser WebSocket handshake to
         # Realtime fails with 403 and every two-player test times out.
-        if: ${{ env.ACT }}
+        if: ${{ env.ACT == 'true' }}
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: 1
@@ -930,9 +930,15 @@ jobs:
           }
           echo "✓ Server is ready!"
       - name: Run Artillery scenario
-        run: pnpm exec artillery run --target "http://127.0.0.1:${APP_PORT:-3000}" --output artillery-swap.json tests/perf/swap.yml
-      - name: Assert swap latency thresholds
-        run: pnpm exec tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json
+        # tests/perf/swap.yml is legacy — it hits /api/board and /api/swap, which were
+        # removed with the two-player match refactor. round-resolution.yml is the modern
+        # move-latency gate against /api/match/[matchId]/move.
+        run: pnpm exec artillery run --target "http://127.0.0.1:${APP_PORT:-3000}" --output artillery-round-resolution.json tests/perf/round-resolution.yml
+      - name: Assert move-submission latency thresholds
+        env:
+          SWAP_LATENCY_THRESHOLD_MS: "200"
+          SWAP_LATENCY_MIN_SAMPLE: "20"
+        run: pnpm exec tsx scripts/perf/assert-artillery-thresholds.ts artillery-round-resolution.json
       - name: Stop Next.js server
         if: always()
         run: |
@@ -944,12 +950,12 @@ jobs:
         if: always()
         run: supabase stop || true
       - name: Upload perf artifacts
-        if: ${{ always() && !env.ACT }}
+        if: ${{ always() && env.ACT != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: perf-artifacts
           path: |
             quickstart-perf.ndjson
             perf-next.log
-            artillery-swap.json
+            artillery-round-resolution.json
           if-no-files-found: warn

@@ -15,6 +15,14 @@ test.skip(
   "Phase 6 disconnect-modal runs on chromium only",
 );
 
+// Realtime WebSocket handshake from the act container to host Supabase routinely
+// exceeds BROADCAST_SUBSCRIBE_TIMEOUT_MS, so disconnect broadcasts never land.
+// Verified on real CI.
+test.skip(
+  () => process.env.ACT === "true",
+  "Realtime broadcasts unreliable under act — runs on real CI",
+);
+
 async function loginAs(context: BrowserContext, prefix: string) {
   const page = await context.newPage();
   const username = generateTestUsername(prefix);

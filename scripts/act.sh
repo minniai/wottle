@@ -87,6 +87,11 @@ fi
 # "TypeError: fetch failed" and login never persists.
 ACT_EXTRA_ARGS+=(--env "ACT_SUPABASE_URL_OVERRIDE=${ACT_SUPABASE_URL_OVERRIDE:-http://host.docker.internal:54321}")
 
+# Explicitly surface ACT=true to the expression context so `if: ${{ env.ACT == 'true' }}`
+# guards deterministically skip steps incompatible with act (e.g. upload-artifact@v7,
+# download-artifact@v8 — act's artifact server rejects the protobuf `mime_type` field).
+ACT_EXTRA_ARGS+=(--env "ACT=true")
+
 # By default, we do NOT pass .env.local credentials to act.
 # This forces quickstart inside act to start its own Supabase instance,
 # which is more reliable because:

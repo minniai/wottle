@@ -15,6 +15,14 @@ import {
   startMatchWithDirectInvite,
 } from "./helpers/matchmaking";
 
+// Under act, Realtime broadcasts routinely exceed BROADCAST_SUBSCRIBE_TIMEOUT_MS,
+// which races match completion (double rating-insert) and post-game lobby rerender.
+// Verified on real CI.
+test.skip(
+  () => process.env.ACT === "true",
+  "Realtime broadcasts unreliable under act — runs on real CI",
+);
+
 async function loginPlayer(
   page: import("@playwright/test").Page,
   username: string,
