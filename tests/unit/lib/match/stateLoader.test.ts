@@ -7,18 +7,32 @@ vi.mock("@/scripts/supabase/generateBoard", () => ({
     Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
   ),
 }));
+// Mocked so the self-heal background trigger doesn't hit the real engine.
+vi.mock("@/lib/match/roundEngine", () => ({
+  advanceRound: vi.fn().mockResolvedValue({ status: "waiting", received: 2 }),
+}));
 
-import { loadMatchState } from "@/lib/match/stateLoader";
+import {
+  loadMatchState,
+  __resetSelfHealTrackerForTests,
+} from "@/lib/match/stateLoader";
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import { advanceRound } from "@/lib/match/roundEngine";
 
 const PLAYER_A = "player-a";
 const PLAYER_B = "player-b";
 const MATCH_ID = "match-timer-test";
 
+type SubmissionFixture = {
+    player_id: string;
+    submitted_at: string;
+    status?: string;
+};
+
 function makeMockClient(
     matchData: Record<string, unknown>,
     roundData: Record<string, unknown> | null,
-    submissionsData: { player_id: string; submitted_at: string }[] | null = null,
+    submissionsData: SubmissionFixture[] | null = null,
 ) {
     const matchChain = {
         eq: vi.fn().mockReturnThis(),
@@ -242,5 +256,144 @@ describe("stateLoader.loadMatchState", () => {
         expect(state!.timers.playerB.status).toBe("running");
         expect(state!.timers.playerB.remainingMs).toBeGreaterThan(148_000);
         expect(state!.timers.playerB.remainingMs).toBeLessThanOrEqual(150_000);
+    });
+});
+
+describe("stateLoader self-heal (stuck collecting round)", () => {
+    beforeEach(() => {
+        vi.mocked(advanceRound).mockClear();
+        __resetSelfHealTrackerForTests();
+    });
+
+    function makeStuckClient() {
+        const roundStartedAt = new Date(Date.now() - 5_000);
+        return makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 110_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+            },
+            [
+                { player_id: PLAYER_A, submitted_at: new Date(roundStartedAt.getTime() + 1_000).toISOString(), status: "pending" },
+                { player_id: PLAYER_B, submitted_at: new Date(roundStartedAt.getTime() + 2_000).toISOString(), status: "pending" },
+            ],
+        );
+    }
+
+    it("triggers advanceRound when the collecting round has 2 non-timeout submissions", async () => {
+        const mockClient = makeStuckClient();
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+
+        // Self-heal is fire-and-forget. Yield to the microtask queue so the
+        // async IIFE that wraps `await import(...).advanceRound()` can run.
+        await new Promise((r) => setImmediate(r));
+
+        expect(advanceRound).toHaveBeenCalledTimes(1);
+        expect(advanceRound).toHaveBeenCalledWith(MATCH_ID);
+    });
+
+    it("does NOT trigger advanceRound when only one player has submitted", async () => {
+        const roundStartedAt = new Date(Date.now() - 5_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 110_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+            },
+            [
+                { player_id: PLAYER_A, submitted_at: roundStartedAt.toISOString(), status: "pending" },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(advanceRound).not.toHaveBeenCalled();
+    });
+
+    it("does NOT trigger advanceRound when the one real submission is paired with a synthetic timeout", async () => {
+        // timeout submissions shouldn't count as a real second submission —
+        // the round engine will re-synthesize if needed.
+        const roundStartedAt = new Date(Date.now() - 5_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 110_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+            },
+            [
+                { player_id: PLAYER_A, submitted_at: roundStartedAt.toISOString(), status: "pending" },
+                { player_id: PLAYER_B, submitted_at: roundStartedAt.toISOString(), status: "timeout" },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(advanceRound).not.toHaveBeenCalled();
+    });
+
+    it("dedupes concurrent stuck-state polls so advanceRound is called at most once in flight", async () => {
+        // Make advanceRound slow so the dedup window stays open across both calls.
+        let resolveAdvance: () => void = () => {};
+        vi.mocked(advanceRound).mockImplementationOnce(
+            () => new Promise((r) => { resolveAdvance = () => r({ status: "advanced", nextRound: 11, isGameOver: true, acceptedMoves: 0, rejectedMoves: 0 } as never); }),
+        );
+
+        const mockClient = makeStuckClient();
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await Promise.all([
+            loadMatchState(mockClient as never, MATCH_ID),
+            loadMatchState(mockClient as never, MATCH_ID),
+            loadMatchState(mockClient as never, MATCH_ID),
+        ]);
+        await new Promise((r) => setImmediate(r));
+
+        expect(advanceRound).toHaveBeenCalledTimes(1);
+        resolveAdvance();
     });
 });

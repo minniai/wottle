@@ -364,18 +364,22 @@ export async function advanceRound(matchId: string) {
 
     if (updateError) throw new Error("Failed to update match");
 
-    // 15. Publish round summary and match state in parallel
-    const [summaryResult, stateResult] = await Promise.allSettled([
+    // 15. Publish round summary and match state — fire-and-forget.
+    // Broadcast delivery is best-effort; clients have a 2s safety poll and
+    // loadMatchState self-heals on read, so the authoritative DB writes above
+    // are what matter. Awaiting here previously stalled step 16 by up to 20s
+    // whenever the Realtime channel subscribe timed out in local dev.
+    void Promise.allSettled([
         publishRoundSummary(matchId, currentRound),
         publishMatchState(matchId),
-    ]);
-
-    if (summaryResult.status === "rejected") {
-        console.error("Failed to publish round summary:", summaryResult.reason);
-    }
-    if (stateResult.status === "rejected") {
-        console.error("[MatchState] Failed to broadcast match update:", stateResult.reason);
-    }
+    ]).then(([summaryResult, stateResult]) => {
+        if (summaryResult.status === "rejected") {
+            console.error("Failed to publish round summary:", summaryResult.reason);
+        }
+        if (stateResult.status === "rejected") {
+            console.error("[MatchState] Failed to broadcast match update:", stateResult.reason);
+        }
+    });
 
     if (isGameOver) {
         const endReason = nextRound > 10 ? "round_limit" : "timeout";

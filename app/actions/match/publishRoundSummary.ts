@@ -10,6 +10,9 @@ import type { RoundSummary, RoundMove, WordScore, ScoreTotals, FrozenTileMap } f
 import type { Coordinate } from "@/lib/types/board";
 import type { BoardGrid } from "@/lib/types/board";
 
+/** Matches statePublisher.ts — see that file for rationale. */
+const BROADCAST_SUBSCRIBE_TIMEOUT_MS = 2_000;
+
 /**
  * Publish round summary after a round is completed.
  * This assembles word scores, calculates totals, persists snapshots, and broadcasts via Realtime.
@@ -122,10 +125,24 @@ export async function publishRoundSummary(
         // Continue anyway - we'll still publish the summary
     }
 
-    // 8. Publish via Realtime broadcast (subscribe before send — required by Supabase Cloud)
+    // 8. Publish via Realtime broadcast (subscribe before send — required by Supabase Cloud).
+    // Bounded by BROADCAST_SUBSCRIBE_TIMEOUT_MS — see statePublisher.ts for the rationale.
     const channel = supabase.channel(`match:${matchId}`);
+    let settled = false;
     await new Promise<void>((resolve) => {
+        const timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            console.error(
+                `[RoundSummary] Channel subscribe timed out after ${BROADCAST_SUBSCRIBE_TIMEOUT_MS}ms; giving up on broadcast`,
+            );
+            supabase.removeChannel(channel);
+            resolve();
+        }, BROADCAST_SUBSCRIBE_TIMEOUT_MS);
+
         channel.subscribe((status) => {
+            if (settled) return;
+
             if (status === "SUBSCRIBED") {
                 channel
                     .send({
@@ -134,14 +151,21 @@ export async function publishRoundSummary(
                         payload: summary,
                     })
                     .then((result) => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
                         if (result === "error") {
                             console.error("Failed to broadcast round summary");
                         }
                         supabase.removeChannel(channel);
                         resolve();
                     });
+                return;
             }
+
             if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                settled = true;
+                clearTimeout(timer);
                 console.error(`[RoundSummary] Channel subscription failed: ${status}`);
                 supabase.removeChannel(channel);
                 resolve();
