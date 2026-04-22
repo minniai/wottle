@@ -52,7 +52,7 @@ describe("LobbyCard Elo display", () => {
     );
     const diff = screen.getByTestId("lobby-elo-diff");
     expect(diff).toHaveTextContent("+170");
-    expect(diff.className).toContain("text-emerald");
+    expect(diff.className).toContain("text-good");
   });
 
   it("should render negative Elo difference in red", () => {
@@ -64,7 +64,7 @@ describe("LobbyCard Elo display", () => {
     );
     const diff = screen.getByTestId("lobby-elo-diff");
     expect(diff).toHaveTextContent("-170");
-    expect(diff.className).toContain("text-rose");
+    expect(diff.className).toContain("text-bad");
   });
 
   it("should render zero Elo difference as neutral", () => {
