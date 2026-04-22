@@ -6,7 +6,7 @@ import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { writeMatchLog } from "@/lib/match/logWriter";
 
-const RECONNECT_WINDOW_MS = 10_000; // 10 seconds fixed constant per FR-012
+const RECONNECT_WINDOW_MS = 90_000; // 90 seconds per Phase 6 disconnect-modal spec
 
 interface DisconnectRecord {
   matchId: string;
@@ -62,7 +62,7 @@ export async function handlePlayerDisconnect(matchId: string, playerId: string):
   setTimeout(async () => {
     const record = disconnectStore.get(disconnectKey);
     if (record) {
-      // Player did not reconnect within 10 seconds
+      // Player did not reconnect within 90 seconds
       disconnectStore.delete(disconnectKey);
       await finalizeMatchOnDisconnectTimeout(supabase, matchId, playerId);
     }
@@ -179,11 +179,42 @@ async function loadMatchStateWithDisconnect(
   };
 }
 
+/**
+ * Returns the timestamp (ms since epoch) when the player first lost their
+ * connection for this match, or null if they are currently connected.
+ *
+ * Used by claimWinAction to check whether the 90s window has elapsed.
+ */
+export function getDisconnectedAt(
+  matchId: string,
+  playerId: string,
+): number | null {
+  const key = `${matchId}:${playerId}`;
+  const record = disconnectStore.get(key);
+  if (!record) return null;
+  return new Date(record.disconnectedAt).getTime();
+}
+
+export const RECONNECT_WINDOW_MS_EXPORT = RECONNECT_WINDOW_MS;
+
 async function finalizeMatchOnDisconnectTimeout(
   supabase: ReturnType<typeof getServiceRoleClient>,
   matchId: string,
   disconnectedPlayerId: string,
 ): Promise<void> {
   const { completeMatchInternal } = await import("./completeMatch");
-  await completeMatchInternal(matchId, "disconnect");
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("player_a_id, player_b_id")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  const nonDisconnectedId = match
+    ? match.player_a_id === disconnectedPlayerId
+      ? match.player_b_id
+      : match.player_a_id
+    : undefined;
+
+  await completeMatchInternal(matchId, "disconnect", nonDisconnectedId);
 }

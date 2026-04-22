@@ -118,8 +118,8 @@ Before implementing any feature:
 | 4a | Landing screen — dedicated `/` route, `LandingScreen` + `LandingTileVignette`, lobby login form removed | Merged |
 | 4b | Matchmaking screen — dedicated `/matchmaking` route, ring + found/starting phases | Merged |
 | 5a | Profile modal refresh — sparkline, best word, form chips, Challenge CTA | Merged |
-| 5b | `/profile` + `/profile/[handle]` pages + rating chart + word cloud | In progress |
-| 6 | Disconnection modal + claim-win Server Action | Planned |
+| 5b | `/profile` + `/profile/[handle]` pages + rating chart + word cloud | Merged |
+| 6 | Disconnection modal + claim-win Server Action | In progress |
 
 ## Architecture
 
@@ -151,7 +151,7 @@ Before implementing any feature:
   - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
 - `/components` - React Client Components
   - `/components/game` — `Board`, `BoardGrid`, `BoardCoordLabels`, `MoveFeedback`, `TimerHud`, `usePinchZoom`
-  - `/components/match` — core match client (`MatchClient`, `MatchShell`), HUD (`HudCard`, `MatchCenterChrome`, `RoundPipBar`), panels (`PlayerPanel`, `PlayerAvatar`, `TimerDisplay`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `RoundHistoryInline`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`)
+  - `/components/match` — core match client (`MatchClient`, `MatchShell`), HUD (`HudCard`, `MatchCenterChrome`, `RoundPipBar`), panels (`PlayerPanel`, `PlayerAvatar`, `TimerDisplay`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `RoundHistoryInline`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`), disconnect (`DisconnectionModal`, `useCountdown` — Phase 6)
   - `/components/lobby` — `LobbyHero`, `LobbyList`, `LobbyDirectory`, `LobbyCard`, `LobbyStatsStrip`, `PlayNowCard`, `InviteDialog`, `InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` *(`InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` ship with Phase 3 / PR #115)*
   - `/components/landing` — `LandingScreen`, `LandingTileVignette` *(Phase 4a)*
   - `/components/matchmaking` — `MatchmakingClient`, `MatchRing`, `MatchmakingVsBlock` *(Phase 4b)*
@@ -261,8 +261,8 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 | Matchmaking       | Complete    | Direct invites, auto-queue, match bootstrap                                     |
 | Round Engine      | Complete    | State machine, conflict resolution, 10-round cycle                              |
 | Realtime          | Complete    | WebSocket channels + HTTP polling fallback                                      |
-| Reconnection      | Complete    | 10s window, timer pause, state restoration                                      |
-| Rate Limiting     | Complete    | 5/min auth, 30/min moves, 429 responses                                         |
+| Reconnection      | Complete    | 90s window, DisconnectionModal + claim-win CTA (Phase 6)                        |
+| Rate Limiting     | Complete    | 5/min auth, 30/min moves, 1/min claim-win, 429 responses                        |
 | Accessibility     | Complete    | Focus traps, aria-live, keyboard nav, 44×44 touch targets, WCAG 2.1 AA axe clean |
 | Observability     | Complete    | Structured logs, perf marks, analytics hooks                                    |
 | Word Finding      | Complete    | Set-based dictionary (3.74M entries), 8-directional scanner, delta detection    |
@@ -276,11 +276,8 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Remaining Gaps
 
-1. **Warm Editorial Phase 4** — dedicated Landing (`/`) + Matchmaking (`/matchmaking`) screens; routing change to pull the login form off `/lobby`.
-2. **Warm Editorial Phase 5** — player Profile modal and full `/profile` page with rating-history chart, word cloud, match history.
-3. **Warm Editorial Phase 6** — centered disconnection modal with 90s countdown + `claimWin` Server Action (currently just a text banner).
-4. **Legacy Endpoints** — `api/board`, `api/swap`, `actions/getBoard.ts`, `actions/swapTiles.ts` remain from early prototyping and should be removed in a cleanup pass.
-5. **Unused `PlayerPanel` full variant** — Phase 1c stopped mounting it on desktop; the code path still powers `RoundHistoryInline` surfaces. Audit and delete once verified unused.
+1. **Legacy Endpoints** — `api/board`, `api/swap`, `actions/getBoard.ts`, `actions/swapTiles.ts` remain from early prototyping and should be removed in a cleanup pass.
+2. **Unused `PlayerPanel` full variant** — Phase 1c stopped mounting it on desktop; the code path still powers `RoundHistoryInline` surfaces. Audit and delete once verified unused.
 
 ## Code Standards
 
@@ -368,9 +365,9 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 **Disconnect Handling:**
 
-- Player marked disconnected in match state
-- Other player sees banner
-- Reconnection clears flag
+- Player marked disconnected in match state (realtime broadcast)
+- Other player sees centered `DisconnectionModal` with 90s countdown + Claim win CTA (Phase 6)
+- Reconnection within 90s clears the flag; past 90s `claimWinAction` or the auto-finalise awards the non-disconnected player (forced-winner path on `completeMatchInternal`)
 
 ## Key Entities
 
@@ -481,22 +478,7 @@ Playtest configuration:
 
 ## Next Steps (Recommended Priority Order)
 
-### P0 — Warm Editorial Phase 4: Landing + Matchmaking screens
-
-Dedicated `/` landing (username form → `/lobby`) and `/matchmaking` (ring spinner, rating-window expansion, found / starting states). Requires minor routing changes to pull the login form off `/lobby`.
-
-### P1 — Warm Editorial Phase 5: Profile modal + `/profile` page
-
-- `PlayerProfileDialog` opens from `LobbyDirectory` card clicks; shows sparkline + form chips + Challenge CTA.
-- `/profile` full page with sidebar, stats grid, SVG rating chart, word cloud, match history.
-- New Server Action `getPlayerProfile(handle)` aggregating stats + rating history (start derived from `match_ratings`; migrate to dedicated `rating_history` table only if the derivation gets expensive).
-
-### P2 — Warm Editorial Phase 6: Disconnection modal + claim-win
-
-- Replace the current text banner with a centered modal (pulse indicator, 90s countdown, Keep-waiting / Claim-win buttons).
-- New Server Action `claimWin(matchId)` — forfeits the opponent once `last_seen_at ≥ 90s`, awards the caller the truncated-score win, broadcasts match-completed via Realtime.
-
-### P3 — Legacy Cleanup + Production Readiness
+### P0 — Legacy Cleanup + Production Readiness
 
 - Remove legacy endpoints: `api/board`, `api/swap`, `actions/getBoard.ts`, `actions/swapTiles.ts`.
 - Audit + delete the unused `PlayerPanel` full variant once `RoundHistoryInline` is confirmed not to need it.

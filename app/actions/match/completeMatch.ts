@@ -100,6 +100,7 @@ async function resetPlayerStatuses(
 export async function completeMatchInternal(
   matchId: string,
   reason: MatchEndedReason,
+  forcedWinnerId?: string,
 ): Promise<CompleteMatchResult> {
   const supabase = getServiceRoleClient();
   const match = await fetchMatch(supabase, matchId);
@@ -120,7 +121,24 @@ export async function completeMatchInternal(
   const frozenCounts = computeFrozenTileCountByPlayer(
     (match.frozen_tiles as FrozenTileMap) ?? {},
   );
-  const result = determineMatchWinner(scores, match.player_a_id, match.player_b_id, frozenCounts);
+  // Disconnect flows award the still-connected / claiming player regardless of
+  // score: loss of connection is treated as forfeit per Phase 6 spec §6.
+  const result =
+    forcedWinnerId !== undefined
+      ? {
+          winnerId: forcedWinnerId,
+          loserId:
+            forcedWinnerId === match.player_a_id
+              ? match.player_b_id
+              : match.player_a_id,
+          isDraw: false,
+        }
+      : determineMatchWinner(
+          scores,
+          match.player_a_id,
+          match.player_b_id,
+          frozenCounts,
+        );
 
   await supabase
     .from("matches")
