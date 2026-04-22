@@ -50,14 +50,14 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
     <Card elevation={0} className="lobby-cta-card space-y-5 p-6 sm:p-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-display text-2xl font-semibold text-text-inverse sm:text-3xl">
+          <p className="font-display text-2xl font-semibold text-text-primary sm:text-3xl">
             Ready to play?
           </p>
-          <p className="text-sm text-text-inverse/70">
+          <p className="text-sm text-text-secondary">
             Drop into a ranked match against someone near your rating.
           </p>
         </div>
-        <span className="hidden font-display text-xs uppercase tracking-[0.3em] text-accent-focus/70 sm:inline">
+        <span className="hidden font-display text-xs uppercase tracking-[0.3em] text-ochre-deep sm:inline">
           {currentPlayer.eloRating ?? 1200} Elo
         </span>
       </div>
