@@ -17,6 +17,44 @@ import { computeElapsedMs, computeRemainingMs } from "./clockEnforcer";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
+/**
+ * Matches currently being self-healed via background `advanceRound` trigger.
+ * Gate against concurrent polls all firing advanceRound for the same stuck
+ * round — the first one wins; the rest skip until it finishes (or fails).
+ */
+const pendingSelfHeals = new Set<string>();
+
+/**
+ * Stuck-round self-heal: when a client polls /state and we detect the round
+ * is still in `collecting` despite both players having submitted, fire
+ * `advanceRound(matchId)` in the background. `advanceRound` itself re-checks
+ * round state at its top and exits early if resolution is already in flight,
+ * so this is safe to call liberally.
+ *
+ * This is the primary backstop against the "stuck round 10" bug: if the
+ * post-submit `after()` hook drops the advancement for any reason, the
+ * client's next 2s safety poll will re-trigger it via this path.
+ */
+function triggerAdvanceInBackground(matchId: string): void {
+  if (pendingSelfHeals.has(matchId)) return;
+  pendingSelfHeals.add(matchId);
+  void (async () => {
+    try {
+      const { advanceRound } = await import("./roundEngine");
+      await advanceRound(matchId);
+    } catch (error) {
+      console.error("[stateLoader] self-heal advanceRound failed:", error);
+    } finally {
+      pendingSelfHeals.delete(matchId);
+    }
+  })();
+}
+
+/** @internal — test hook to reset the dedup set between runs. */
+export function __resetSelfHealTrackerForTests(): void {
+  pendingSelfHeals.clear();
+}
+
 function mapState(roundState: string | null | undefined, matchState: string): MatchPhase {
   // Match-level terminal states take precedence — a timeout or abandon can end the
   // match while the current round is still in "collecting" state (never advanced).
@@ -324,14 +362,25 @@ export async function loadMatchState(
   } else if (effectiveState === "collecting" && roundStartedAt && round?.id) {
     const { data: submissions } = await client
       .from("move_submissions")
-      .select("player_id, submitted_at")
+      .select("player_id, submitted_at, status")
       .eq("round_id", round.id);
 
+    const typedSubs = (submissions ?? []) as Array<{
+      player_id: string;
+      submitted_at: string;
+      status: string;
+    }>;
+
+    // Self-heal: if both players have real (non-timeout) submissions but the
+    // round hasn't advanced, fire advanceRound in the background. This closes
+    // the race where submitMove's `after()` hook drops the advancement.
+    const nonTimeoutSubs = typedSubs.filter((s) => s.status !== "timeout");
+    if (nonTimeoutSubs.length >= 2) {
+      triggerAdvanceInBackground(matchId);
+    }
+
     const subByPlayer = new Map<string, Date>(
-      (submissions ?? []).map((s: { player_id: string; submitted_at: string }) => [
-        s.player_id,
-        new Date(s.submitted_at),
-      ]),
+      typedSubs.map((s) => [s.player_id, new Date(s.submitted_at)]),
     );
     const submittedAtA = subByPlayer.get(match.player_a_id);
     const submittedAtB = subByPlayer.get(match.player_b_id);

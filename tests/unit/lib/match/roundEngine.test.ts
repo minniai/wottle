@@ -392,6 +392,64 @@ describe("roundEngine.advanceRound", () => {
         expect(roundsInsert).not.toHaveBeenCalled();
     });
 
+    // Regression guard: step 15 broadcasts must be fire-and-forget, so
+    // completeMatchInternal runs even when publishRoundSummary hangs. This was
+    // the root cause of stuck round 10: awaiting the Realtime broadcast stalled
+    // the whole pipeline whenever the local channel subscribe timed out.
+    it("calls completeMatchInternal even when publishRoundSummary never resolves", async () => {
+        const { publishRoundSummary } = await import(
+            "@/app/actions/match/publishRoundSummary"
+        );
+        const { completeMatchInternal } = await import(
+            "@/app/actions/match/completeMatch"
+        );
+        vi.mocked(completeMatchInternal).mockClear();
+        // Make the broadcast hang forever — the old implementation would block here.
+        vi.mocked(publishRoundSummary).mockImplementationOnce(
+            () => new Promise(() => {}),
+        );
+
+        setupSupabase(
+            [
+                {
+                    id: "sub-a",
+                    player_id: "player-a",
+                    from_x: 0,
+                    from_y: 0,
+                    to_x: 0,
+                    to_y: 1,
+                    submitted_at: "2026-01-01T00:00:00Z",
+                    status: "pending",
+                },
+                {
+                    id: "sub-b",
+                    player_id: "player-b",
+                    from_x: 5,
+                    from_y: 5,
+                    to_x: 5,
+                    to_y: 6,
+                    submitted_at: "2026-01-01T00:00:01Z",
+                    status: "pending",
+                },
+            ],
+            { current_round: 10 },
+        );
+
+        const result = await advanceRound("match-1");
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: "advanced",
+                nextRound: 11,
+                isGameOver: true,
+            }),
+        );
+        expect(completeMatchInternal).toHaveBeenCalledWith("match-1", "round_limit");
+
+        // Restore the mock so downstream tests don't see a hanging promise.
+        vi.mocked(publishRoundSummary).mockResolvedValue({ ok: true } as never);
+    });
+
     // T013: createNextRound sets started_at
     it("T013: creates next round with started_at set to current server timestamp", async () => {
         setupSupabase([
