@@ -24,6 +24,8 @@ import type { MatchPlayerProfiles, MatchState, TimerState, Coordinate } from "@/
 import { getPlayerColors } from "@/lib/constants/playerColors";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
+import { claimWinAction } from "@/app/actions/match/claimWin";
+import { DisconnectionModal } from "@/components/match/DisconnectionModal";
 import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
@@ -102,6 +104,13 @@ export function MatchClient({
   const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<
     string | null
   >(null);
+  // Phase 6 — disconnection modal state. disconnectStartedAt anchors the 90s
+  // countdown on the wall clock when the opponent first drops.
+  const [disconnectStartedAt, setDisconnectStartedAt] = useState<number | null>(
+    null,
+  );
+  const [showDisconnectModal, setShowDisconnectModal] = useState(true);
+  const [isClaimingWin, setIsClaimingWin] = useState(false);
 
   // In-game round history accumulation (US4)
   const [accumulatedWords, setAccumulatedWords] = useState<WordHistoryRow[]>([]);
@@ -567,6 +576,40 @@ export function MatchClient({
     }
   }, [matchId]);
 
+  const handleClaimWin = useCallback(async () => {
+    setIsClaimingWin(true);
+    try {
+      const result = await claimWinAction(matchId);
+      if (result.status === "ok" || result.status === "already_completed") {
+        // Realtime broadcast will drive both clients to the post-game screen.
+        return;
+      }
+      if (result.status === "too_early") {
+        setSwapError(
+          `Opponent still has ${Math.ceil(result.remainingMs / 1000)}s to reconnect.`,
+        );
+      } else if (result.status === "rate_limited") {
+        setSwapError(
+          `Too many claim attempts. Try again in ${result.retryAfterSeconds}s.`,
+        );
+      } else if (result.status === "not_disconnected") {
+        setSwapError("Your opponent is still connected.");
+      } else if (result.status === "forbidden") {
+        setSwapError("You are not a participant in this match.");
+      } else if (result.status === "unauthenticated") {
+        setSwapError("Please log in again.");
+      } else if (result.status === "error") {
+        setSwapError(result.message);
+      }
+    } catch (e) {
+      setSwapError(
+        e instanceof Error ? e.message : "Failed to claim win.",
+      );
+    } finally {
+      setIsClaimingWin(false);
+    }
+  }, [matchId]);
+
   // Derive opponent timer
   const opponentTimer: TimerState = useMemo(() => {
     if (matchState.timers.playerA.playerId === currentPlayerId) {
@@ -574,6 +617,22 @@ export function MatchClient({
     }
     return matchState.timers.playerA;
   }, [currentPlayerId, matchState.timers.playerA, matchState.timers.playerB]);
+
+  // Phase 6 — capture the wall-clock moment the opponent drops so the modal's
+  // countdown stays in sync across re-renders. Clears when the opponent
+  // reconnects (disconnectedPlayerId flips back to null).
+  const opponentDisconnected =
+    disconnectedPlayerId !== null &&
+    disconnectedPlayerId === opponentTimer.playerId;
+  useEffect(() => {
+    if (opponentDisconnected && disconnectStartedAt === null) {
+      setDisconnectStartedAt(Date.now());
+      setShowDisconnectModal(true);
+    } else if (!opponentDisconnected && disconnectStartedAt !== null) {
+      setDisconnectStartedAt(null);
+      setShowDisconnectModal(true);
+    }
+  }, [opponentDisconnected, disconnectStartedAt]);
 
   const opponentSlot: "player_a" | "player_b" =
     playerSlot === "player_a" ? "player_b" : "player_a";
@@ -685,16 +744,33 @@ export function MatchClient({
 
   return (
     <MatchShell matchId={matchId}>
-      {isReconnecting && (
+      {isReconnecting && disconnectedPlayerId === currentPlayerId && (
         <div
           className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200"
           data-testid="reconnect-banner"
         >
-          {disconnectedPlayerId === currentPlayerId
-            ? "Reconnecting... Please wait."
-            : "Opponent disconnected. Waiting for reconnection..."}
+          Reconnecting... Please wait.
         </div>
       )}
+
+      {opponentDisconnected &&
+      showDisconnectModal &&
+      disconnectStartedAt !== null &&
+      matchState.state !== "completed" ? (
+        <DisconnectionModal
+          opponentDisplayName={
+            (opponentSlot === "player_a"
+              ? playerProfiles.playerA
+              : playerProfiles.playerB
+            ).displayName
+          }
+          disconnectedAt={disconnectStartedAt}
+          windowMs={90_000}
+          onClose={() => setShowDisconnectModal(false)}
+          onClaimWin={handleClaimWin}
+          isClaiming={isClaimingWin}
+        />
+      ) : null}
 
       {usePolling && !isReconnecting && (
         <div
