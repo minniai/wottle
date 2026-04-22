@@ -50,6 +50,37 @@ function triggerAdvanceInBackground(matchId: string): void {
   })();
 }
 
+/**
+ * Extended self-heal: roll forward a round-advance that stalled *after*
+ * entering the resolving/completed phase. `advanceRound`'s early-exit guard
+ * (`round.state !== "collecting"`) means it can't recover these shapes, so we
+ * delegate to `recoverStuckRound` which knows how to finish the pipeline
+ * idempotently. Shares the same dedup set as advance self-heal — only one
+ * background repair is ever in flight per match.
+ */
+function triggerRecoveryInBackground(matchId: string): void {
+  if (pendingSelfHeals.has(matchId)) return;
+  pendingSelfHeals.add(matchId);
+  void (async () => {
+    try {
+      const { recoverStuckRound } = await import("./recoverStuckRound");
+      await recoverStuckRound(matchId);
+    } catch (error) {
+      console.error("[stateLoader] self-heal recoverStuckRound failed:", error);
+    } finally {
+      pendingSelfHeals.delete(matchId);
+    }
+  })();
+}
+
+/**
+ * How long a round may sit in `resolving` before we assume `advanceRound`
+ * crashed mid-pipeline. The happy path takes <1s; 10s is well past any
+ * legitimate run and matches the Realtime-subscribe timeout replaced in PR
+ * #151.
+ */
+const RESOLVING_STALENESS_THRESHOLD_MS = 10_000;
+
 /** @internal — test hook to reset the dedup set between runs. */
 export function __resetSelfHealTrackerForTests(): void {
   pendingSelfHeals.clear();
@@ -267,7 +298,8 @@ export async function loadMatchState(
         player_b_id,
         player_a_timer_ms,
         player_b_timer_ms,
-        frozen_tiles
+        frozen_tiles,
+        winner_id
       `,
     )
     .eq("id", matchId)
@@ -317,7 +349,7 @@ export async function loadMatchState(
   const [{ data: round }, { data: scoreboard }, lastSummary] = await Promise.all([
     client
       .from("rounds")
-      .select("id, state, board_snapshot_before, board_snapshot_after, started_at")
+      .select("id, state, board_snapshot_before, board_snapshot_after, started_at, resolution_started_at")
       .eq("match_id", matchId)
       .eq("round_number", match.current_round)
       .maybeSingle(),
@@ -339,6 +371,29 @@ export async function loadMatchState(
 
   const board = ensureBoardSnapshot(match.id, match.board_seed, round ?? null);
   const effectiveState = mapState(round?.state ?? null, match.state);
+
+  // Extended self-heal dispatch: PR #151's self-heal only covers stuck
+  // "collecting" rounds. `advanceRound` can still stall *after* flipping the
+  // round to "resolving" — step 10 Promise.all throw, Vercel `after()` hook
+  // termination, word engine OOM on the 3.74M-entry dictionary, etc. Round
+  // 10 is terminal (no follow-up submit to retry), so these partial-advance
+  // shapes are what currently leave the match stuck after PR #151. Each
+  // branch hands off to `recoverStuckRound` which rolls forward idempotently.
+  const resolutionStartedAt =
+    round?.resolution_started_at
+      ? new Date(round.resolution_started_at as string)
+      : null;
+  const isResolvingStale =
+    round?.state === "resolving"
+    && resolutionStartedAt !== null
+    && Date.now() - resolutionStartedAt.getTime() > RESOLVING_STALENESS_THRESHOLD_MS;
+  const isPostRoundStall =
+    round?.state === "completed" && match.state === "in_progress";
+  const isMatchMissingWinner =
+    match.state === "completed" && !(match as { winner_id?: string | null }).winner_id;
+  if (isResolvingStale || isPostRoundStall || isMatchMissingWinner) {
+    triggerRecoveryInBackground(matchId);
+  }
 
   // Compute mid-round remaining time from round.started_at when in collecting state
   const roundStartedAt =
