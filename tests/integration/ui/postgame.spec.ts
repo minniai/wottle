@@ -59,9 +59,7 @@ test.describe("@postgame Phase 2 post-game redesign", () => {
 
       // Resign to reach the post-game screen deterministically.
       await pageA.getByTestId("hud-resign-button").click();
-      // The resign dialog has a confirm "Resign" button — click the last one
-      // (the dialog button, not the HUD trigger).
-      await pageA.getByRole("button", { name: /^Resign$/i }).last().click();
+      await pageA.getByTestId("resign-confirm").click();
 
       await expect(pageA.getByTestId("final-summary-root")).toBeVisible({
         timeout: 20_000,
@@ -73,7 +71,9 @@ test.describe("@postgame Phase 2 post-game redesign", () => {
       await expect(
         pageA.getByTestId("final-summary-scoreboard"),
       ).toBeVisible();
-      await expect(pageA.getByTestId("round-by-round-chart")).toBeVisible();
+      // Chart mounts but has zero height when the match ends on round 1 with
+      // no rounds played, so check the component is attached rather than visible.
+      await expect(pageA.getByTestId("round-by-round-chart")).toBeAttached();
     } finally {
       await pageA.close();
       await pageB.close();

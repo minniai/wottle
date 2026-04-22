@@ -125,9 +125,12 @@ test.describe("Final summary recap", () => {
       await expect(summaryView).toBeVisible({ timeout: 30_000 });
 
       await expect(pageA.getByTestId("final-summary-scoreboard")).toBeVisible();
-      await expect(pageA.getByTestId("final-summary-word-history")).toBeVisible();
-      await expect(pageA.getByTestId("final-summary-timers")).toBeVisible();
-      await expect(pageA.getByTestId("final-summary-ended-reason")).toContainText(/round/i);
+      // Phase 2 redesign: word history → `words-of-match`; standalone timers
+      // section is gone (duration now lives inside post-game-verdict as
+      // "Match complete · N rounds · Mm SSs"); ended reason is also inside
+      // post-game-verdict as `reasonLabel`.
+      await expect(pageA.getByTestId("words-of-match")).toBeVisible();
+      await expect(pageA.getByTestId("post-game-verdict")).toContainText(/round/i);
 
       await expect(pageA.getByTestId("final-summary-rematch")).toBeVisible();
       await expect(pageA.getByTestId("final-summary-back-lobby")).toBeVisible();
