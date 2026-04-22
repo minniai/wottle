@@ -11,6 +11,9 @@ vi.mock("@/scripts/supabase/generateBoard", () => ({
 vi.mock("@/lib/match/roundEngine", () => ({
   advanceRound: vi.fn().mockResolvedValue({ status: "waiting", received: 2 }),
 }));
+vi.mock("@/lib/match/recoverStuckRound", () => ({
+  recoverStuckRound: vi.fn().mockResolvedValue(undefined),
+}));
 
 import {
   loadMatchState,
@@ -18,6 +21,7 @@ import {
 } from "@/lib/match/stateLoader";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { advanceRound } from "@/lib/match/roundEngine";
+import { recoverStuckRound } from "@/lib/match/recoverStuckRound";
 
 const PLAYER_A = "player-a";
 const PLAYER_B = "player-b";
@@ -76,6 +80,9 @@ function makeMockClient(
 describe("stateLoader.loadMatchState", () => {
     beforeEach(() => {
         vi.mocked(getServiceRoleClient).mockReset();
+        vi.mocked(advanceRound).mockClear();
+        vi.mocked(recoverStuckRound).mockClear();
+        __resetSelfHealTrackerForTests();
     });
 
     // T022: stateLoader computes mid-round remaining time from round.started_at
@@ -262,6 +269,7 @@ describe("stateLoader.loadMatchState", () => {
 describe("stateLoader self-heal (stuck collecting round)", () => {
     beforeEach(() => {
         vi.mocked(advanceRound).mockClear();
+        vi.mocked(recoverStuckRound).mockClear();
         __resetSelfHealTrackerForTests();
     });
 
@@ -395,5 +403,180 @@ describe("stateLoader self-heal (stuck collecting round)", () => {
 
         expect(advanceRound).toHaveBeenCalledTimes(1);
         resolveAdvance();
+    });
+});
+
+describe("stateLoader self-heal (stuck resolving / post-round / missing winner)", () => {
+    beforeEach(() => {
+        vi.mocked(advanceRound).mockClear();
+        vi.mocked(recoverStuckRound).mockClear();
+        __resetSelfHealTrackerForTests();
+    });
+
+    const BOARD = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A"));
+
+    it("does NOT trigger recovery when round has been in 'resolving' for less than the staleness threshold", async () => {
+        // resolution_started_at 3s ago — advanceRound's happy path is <1s but 10s
+        // grace window means this isn't stuck yet.
+        const roundStartedAt = new Date(Date.now() - 5_000);
+        const resolutionStartedAt = new Date(Date.now() - 3_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 110_000,
+                winner_id: null,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "resolving",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+                resolution_started_at: resolutionStartedAt.toISOString(),
+            },
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(recoverStuckRound).not.toHaveBeenCalled();
+        expect(advanceRound).not.toHaveBeenCalled();
+    });
+
+    it("triggers recovery when round has been in 'resolving' longer than the staleness threshold", async () => {
+        const roundStartedAt = new Date(Date.now() - 20_000);
+        const resolutionStartedAt = new Date(Date.now() - 15_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 110_000,
+                winner_id: null,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "resolving",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+                resolution_started_at: resolutionStartedAt.toISOString(),
+            },
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(recoverStuckRound).toHaveBeenCalledTimes(1);
+        expect(recoverStuckRound).toHaveBeenCalledWith(MATCH_ID);
+    });
+
+    it("triggers recovery when round.state='completed' but match.state='in_progress' (post-round stall)", async () => {
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 110_000,
+                winner_id: null,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "completed",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: BOARD,
+                started_at: new Date(Date.now() - 30_000).toISOString(),
+                resolution_started_at: new Date(Date.now() - 25_000).toISOString(),
+            },
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(recoverStuckRound).toHaveBeenCalledTimes(1);
+        expect(recoverStuckRound).toHaveBeenCalledWith(MATCH_ID);
+    });
+
+    it("triggers recovery when match.state='completed' but winner_id is null", async () => {
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "completed",
+                current_round: 11,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 0,
+                player_b_timer_ms: 0,
+                winner_id: null,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "completed",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: BOARD,
+                started_at: new Date(Date.now() - 60_000).toISOString(),
+                resolution_started_at: new Date(Date.now() - 55_000).toISOString(),
+            },
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(recoverStuckRound).toHaveBeenCalledTimes(1);
+        expect(recoverStuckRound).toHaveBeenCalledWith(MATCH_ID);
+    });
+
+    it("does NOT trigger recovery when match.state='completed' and winner_id is set", async () => {
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "completed",
+                current_round: 11,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 0,
+                player_b_timer_ms: 0,
+                winner_id: PLAYER_A,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "completed",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: BOARD,
+                started_at: new Date(Date.now() - 60_000).toISOString(),
+                resolution_started_at: new Date(Date.now() - 55_000).toISOString(),
+            },
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(recoverStuckRound).not.toHaveBeenCalled();
     });
 });
