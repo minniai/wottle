@@ -10,6 +10,8 @@ import { publishRoundSummary, computeWordScoresForRound } from "@/app/actions/ma
 import { trackRoundCompleted } from "@/lib/observability/log";
 import { isClockExpired, computeElapsedMs } from "./clockEnforcer";
 
+const PUBLISH_SUMMARY_OUTER_TIMEOUT_MS = 3_000;
+
 type MatchRow = {
     id: string;
     current_round: number;
@@ -364,30 +366,62 @@ export async function advanceRound(matchId: string) {
 
     if (updateError) throw new Error("Failed to update match");
 
-    // 15. Publish round summary and match state — fire-and-forget.
-    // Broadcast delivery is best-effort; clients have a 2s safety poll and
-    // loadMatchState self-heals on read, so the authoritative DB writes above
-    // are what matter. Awaiting here previously stalled step 16 by up to 20s
-    // whenever the Realtime channel subscribe timed out in local dev.
-    void Promise.allSettled([
-        publishRoundSummary(matchId, currentRound),
-        publishMatchState(matchId),
-    ]).then(([summaryResult, stateResult]) => {
-        if (summaryResult.status === "rejected") {
-            console.error("Failed to publish round summary:", summaryResult.reason);
-        }
-        if (stateResult.status === "rejected") {
-            console.error("[MatchState] Failed to broadcast match update:", stateResult.reason);
-        }
-    });
-
+    // 15. Publish round summary and match state.
+    // For non-terminal rounds: fire-and-forget. Broadcast delivery is
+    // best-effort; clients have a 2s safety poll and `loadMatchState`
+    // self-heals on read, so the authoritative DB writes above are what
+    // matter. Awaiting stalled step 16 by up to 20s whenever the Realtime
+    // subscribe timed out (pre-PR #151).
+    //
+    // For terminal rounds (game over): await `publishRoundSummary`. It
+    // writes `scoreboard_snapshots` via `recordScoreSnapshot` (upsert), and
+    // that row is what the summary page's round-by-round chart reads. After
+    // step 16 (`completeMatchInternal`) finishes and the function returns,
+    // Vercel can terminate the `after()` hook; a fire-and-forget
+    // `publishRoundSummary` was getting killed mid-flight, leaving round 10
+    // missing from the chart. The 2s subscribe timeout inside
+    // `publishRoundSummary` bounds the added latency.
     if (isGameOver) {
+        // Bounded await: `publishRoundSummary` has an internal 2s Realtime
+        // subscribe timeout; this outer 3s guard protects the pipeline from a
+        // pathological Supabase hang (or a pinned Promise in tests).
+        await Promise.race([
+            publishRoundSummary(matchId, currentRound).catch((error) => {
+                console.error("Failed to publish round summary:", error);
+            }),
+            new Promise<void>((resolve) =>
+                setTimeout(() => {
+                    console.error(
+                        "[RoundSummary] outer timeout 3000ms; continuing to completeMatchInternal",
+                    );
+                    resolve();
+                }, PUBLISH_SUMMARY_OUTER_TIMEOUT_MS),
+            ),
+        ]);
+        // publishMatchState stays fire-and-forget — `completeMatchInternal`
+        // calls it again on its own, so the final state broadcast is covered.
+        void publishMatchState(matchId).catch((error) => {
+            console.error("[MatchState] Failed to broadcast match update:", error);
+        });
+
         const endReason = nextRound > 10 ? "round_limit" : "timeout";
         try {
             await completeMatchInternal(matchId, endReason);
         } catch (error) {
             console.error("[MatchState] Failed to finalize match:", error);
         }
+    } else {
+        void Promise.allSettled([
+            publishRoundSummary(matchId, currentRound),
+            publishMatchState(matchId),
+        ]).then(([summaryResult, stateResult]) => {
+            if (summaryResult.status === "rejected") {
+                console.error("Failed to publish round summary:", summaryResult.reason);
+            }
+            if (stateResult.status === "rejected") {
+                console.error("[MatchState] Failed to broadcast match update:", stateResult.reason);
+            }
+        });
     }
 
     trackRoundCompleted({

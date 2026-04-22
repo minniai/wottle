@@ -9,6 +9,7 @@ vi.mock("@/app/actions/match/publishRoundSummary", () => ({
         wordScores: [],
         finalBoard: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
     }),
+    publishRoundSummary: vi.fn().mockResolvedValue({ ok: true }),
 }));
 vi.mock("@/lib/match/statePublisher", () => ({
     publishMatchState: vi.fn().mockResolvedValue(undefined),
@@ -17,7 +18,10 @@ vi.mock("@/lib/match/statePublisher", () => ({
 import { recoverStuckRound } from "@/lib/match/recoverStuckRound";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
-import { computeWordScoresForRound } from "@/app/actions/match/publishRoundSummary";
+import {
+    computeWordScoresForRound,
+    publishRoundSummary,
+} from "@/app/actions/match/publishRoundSummary";
 import { publishMatchState } from "@/lib/match/statePublisher";
 
 const MATCH_ID = "match-stuck";
@@ -62,9 +66,18 @@ interface BuildClientOpts {
     round?: RoundRow;
     submissions?: SubmissionRow[];
     existingWordEntries?: Array<{ id: string }>;
+    /** Scoreboard snapshots already persisted for the round. `null` (default) =
+     *  missing → recovery should call publishRoundSummary. */
+    existingSnapshot?: { round_number: number } | null;
 }
 
-function buildMockClient({ match, round, submissions = [], existingWordEntries = [] }: BuildClientOpts) {
+function buildMockClient({
+    match,
+    round,
+    submissions = [],
+    existingWordEntries = [],
+    existingSnapshot = null,
+}: BuildClientOpts) {
     // Track writes for assertions
     const matchUpdates: Array<Record<string, unknown>> = [];
     const roundUpdates: Array<Record<string, unknown>> = [];
@@ -114,6 +127,14 @@ function buildMockClient({ match, round, submissions = [], existingWordEntries =
                 select: vi.fn(() => ({
                     eq: vi.fn().mockReturnThis(),
                     limit: vi.fn().mockResolvedValue({ data: existingWordEntries, error: null }),
+                })),
+            };
+        }
+        if (table === "scoreboard_snapshots") {
+            return {
+                select: vi.fn(() => ({
+                    eq: vi.fn().mockReturnThis(),
+                    maybeSingle: vi.fn().mockResolvedValue({ data: existingSnapshot, error: null }),
                 })),
             };
         }
@@ -196,6 +217,7 @@ describe("recoverStuckRound", () => {
         vi.mocked(getServiceRoleClient).mockReset();
         vi.mocked(completeMatchInternal).mockClear();
         vi.mocked(computeWordScoresForRound).mockClear();
+        vi.mocked(publishRoundSummary).mockClear();
         vi.mocked(publishMatchState).mockClear();
     });
 
@@ -219,6 +241,8 @@ describe("recoverStuckRound", () => {
             expect(roundUpdates.some((u) => u.state === "completed")).toBe(true);
             // Match advanced to completed (round 10 is terminal)
             expect(matchUpdates.some((u) => u.state === "completed" && u.current_round === 11)).toBe(true);
+            // scoreboard_snapshots written via publishRoundSummary before completeMatchInternal
+            expect(publishRoundSummary).toHaveBeenCalledWith(MATCH_ID, 10);
             // completeMatchInternal called with round_limit
             expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
         });
@@ -235,12 +259,14 @@ describe("recoverStuckRound", () => {
             await recoverStuckRound(MATCH_ID);
 
             expect(computeWordScoresForRound).not.toHaveBeenCalled();
+            // Snapshot still missing → publishRoundSummary backfills it
+            expect(publishRoundSummary).toHaveBeenCalledWith(MATCH_ID, 10);
             expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
         });
     });
 
     describe("shape B: round completed but match still in_progress", () => {
-        it("advances match to completed when current_round is 10, calls completeMatchInternal with round_limit", async () => {
+        it("advances match to completed when current_round is 10, calls publishRoundSummary + completeMatchInternal", async () => {
             const { client, matchUpdates } = buildMockClient({
                 match: baseMatch({ current_round: 10 }),
                 round: baseRound({ state: "completed" }),
@@ -256,6 +282,23 @@ describe("recoverStuckRound", () => {
             const updatedMatch = matchUpdates.find((u) => u.state === "completed");
             expect(updatedMatch?.player_a_timer_ms).toBe(119_000);
             expect(updatedMatch?.player_b_timer_ms).toBe(108_000);
+            // scoreboard_snapshots backfilled before the match is finalised
+            expect(publishRoundSummary).toHaveBeenCalledWith(MATCH_ID, 10);
+            expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
+        });
+
+        it("skips publishRoundSummary when scoreboard_snapshots already exists for the round", async () => {
+            const { client } = buildMockClient({
+                match: baseMatch({ current_round: 10 }),
+                round: baseRound({ state: "completed" }),
+                submissions: baseSubmissions("accepted"),
+                existingSnapshot: { round_number: 10 },
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(publishRoundSummary).not.toHaveBeenCalled();
             expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
         });
 
@@ -272,11 +315,13 @@ describe("recoverStuckRound", () => {
             expect(completeMatchInternal).not.toHaveBeenCalled();
             // Match updated to next round (current_round=6) but not completed
             expect(matchUpdates.some((u) => u.current_round === 6 && u.state !== "completed")).toBe(true);
+            // And the snapshot for round 5 gets backfilled for the chart
+            expect(publishRoundSummary).toHaveBeenCalledWith(MATCH_ID, 5);
         });
     });
 
     describe("shape C: match completed but winner_id null", () => {
-        it("calls completeMatchInternal to fill in winner_id", async () => {
+        it("backfills round-10 scoreboard_snapshots then calls completeMatchInternal", async () => {
             const { client } = buildMockClient({
                 match: baseMatch({ state: "completed", winner_id: null, current_round: 11 }),
             });
@@ -284,10 +329,26 @@ describe("recoverStuckRound", () => {
 
             await recoverStuckRound(MATCH_ID);
 
+            // match.current_round is 11 (post-game-over); the "last played"
+            // round is 10 — that's where a missing snapshot would live.
+            expect(publishRoundSummary).toHaveBeenCalledWith(MATCH_ID, 10);
             expect(completeMatchInternal).toHaveBeenCalledTimes(1);
             expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
             // Scoring should NOT be re-run
             expect(computeWordScoresForRound).not.toHaveBeenCalled();
+        });
+
+        it("skips publishRoundSummary in shape C when scoreboard_snapshots for the last round already exists", async () => {
+            const { client } = buildMockClient({
+                match: baseMatch({ state: "completed", winner_id: null, current_round: 11 }),
+                existingSnapshot: { round_number: 10 },
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(publishRoundSummary).not.toHaveBeenCalled();
+            expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
         });
 
         it("is a no-op when match is completed and winner_id is already set", async () => {
@@ -299,6 +360,7 @@ describe("recoverStuckRound", () => {
             await recoverStuckRound(MATCH_ID);
 
             expect(completeMatchInternal).not.toHaveBeenCalled();
+            expect(publishRoundSummary).not.toHaveBeenCalled();
             expect(matchUpdates).toHaveLength(0);
             expect(roundUpdates).toHaveLength(0);
         });
