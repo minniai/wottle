@@ -1115,8 +1115,8 @@ export function MatchClient({
             </div>
             <RoundHistoryPanel
               rounds={roundHistory}
-              playerAUsername={playerAId}
-              playerBUsername={playerBId}
+              playerAUsername={playerADisplayName}
+              playerBUsername={playerBDisplayName}
               scores={accumulatedScores}
               wordHistory={accumulatedWords}
               biggestSwing={biggestSwing}
