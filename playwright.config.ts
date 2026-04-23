@@ -31,14 +31,13 @@ export default defineConfig({
     {
       name: "playtest-firefox",
       use: { ...devices["Desktop Firefox"], baseURL },
-      timeout: 300_000, // First test has cold-start; presence can take 3+ min in act/Docker
+      timeout: 300_000, // First test has cold-start; presence settles can be slow.
     },
   ],
   use: {
     baseURL,
   },
-  // In CI the server is started by the workflow; avoid double-starting which
-  // can cause port collisions when running under act or with other services.
+  // In CI the server is started by the workflow; avoid double-starting.
   webServer: process.env.CI
     ? undefined
     : {

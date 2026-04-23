@@ -10,23 +10,20 @@ describe("runPreflight", () => {
   const baseEnv = { ...process.env };
   delete baseEnv.SUPABASE_ACCESS_TOKEN;
   delete baseEnv.QUICKSTART_SKIP_TOKEN_CHECK;
-  delete baseEnv.ACT; // Ensure ACT is not set from act container
 
   beforeEach(() => {
     process.env = { ...baseEnv };
     delete process.env.SUPABASE_ACCESS_TOKEN;
     delete process.env.QUICKSTART_SKIP_TOKEN_CHECK;
-    delete process.env.ACT;
   });
 
   test("fails when Docker is unavailable", async () => {
     await expect(
       runPreflight({
-        env: { 
-          SUPABASE_ACCESS_TOKEN: "token", 
+        env: {
+          SUPABASE_ACCESS_TOKEN: "token",
           NODE_ENV: "test",
           QUICKSTART_SKIP_TOKEN_CHECK: "",
-          ACT: undefined, // Explicitly unset ACT to test Docker failure
         },
         run: (command) => {
           if (command === "docker") {
@@ -38,16 +35,16 @@ describe("runPreflight", () => {
     ).rejects.toThrow(/docker/i);
   });
 
-  test("skips Docker check when running inside act container", async () => {
+  test("skips Docker check when QUICKSTART_SKIP_DOCKER_CHECK=1", async () => {
     const result = await runPreflight({
-      env: { 
-        SUPABASE_ACCESS_TOKEN: "token", 
+      env: {
+        SUPABASE_ACCESS_TOKEN: "token",
         NODE_ENV: "test",
-        ACT: "true", // Simulate running inside act
+        QUICKSTART_SKIP_DOCKER_CHECK: "1",
       },
       run: (command) => {
         if (command === "docker") {
-          return FAILURE("docker unavailable"); // Docker would fail
+          return FAILURE("docker unavailable");
         }
         return SUCCESS;
       },
@@ -56,10 +53,10 @@ describe("runPreflight", () => {
     expect(result.status).toBe("pass");
     expect(result.checks).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ 
-          name: "docker", 
+        expect.objectContaining({
+          name: "docker",
           status: "pass",
-          detail: "running inside act container",
+          detail: "explicitly skipped",
         }),
       ])
     );
