@@ -340,7 +340,16 @@ export async function advanceRound(matchId: string) {
     const bothTimersExhausted = newPlayerATimerMs === 0 && newPlayerBTimerMs === 0;
     const isGameOver = nextRound > 10 || bothTimersExhausted;
 
-    // 13. Create next round if not game over
+    // 13. Create next round if not game over.
+    //
+    // Use the word engine's `scoringFinalBoard` as the next round's starting
+    // snapshot — NOT the raw `boardAfter`. They diverge whenever a same-round
+    // move is rejected mid-pipeline because an earlier player's word froze
+    // tiles the later move would have touched. `boardAfter` applies every
+    // accepted swap blindly; `scoringFinalBoard` reflects the word engine's
+    // freeze-aware final state, which is also what we persist to round N's
+    // `board_snapshot_after`. Using `boardAfter` here would leave round N+1
+    // showing letters from a swap that "didn't actually happen" — see #130.
     if (!isGameOver) {
         const { error: nextRoundError } = await supabase
             .from("rounds")
@@ -348,7 +357,7 @@ export async function advanceRound(matchId: string) {
                 match_id: matchId,
                 round_number: nextRound,
                 state: "collecting",
-                board_snapshot_before: boardAfter,
+                board_snapshot_before: scoringFinalBoard,
                 started_at: new Date().toISOString(),
             });
 
