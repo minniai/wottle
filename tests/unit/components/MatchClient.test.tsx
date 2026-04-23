@@ -794,6 +794,57 @@ describe("MatchClient disconnection modal guard", () => {
   });
 });
 
+// ─── Round history display names (issue #135) ──────────────────────────────
+
+describe("MatchClient round history panel", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockMatchCallbacks.onSummary = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("renders player display names (not GUIDs) in the round history popup (issue #135)", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    // Populate accumulated round history via a summary broadcast.
+    act(() => {
+      mockMatchCallbacks.onSummary!(mockRoundSummary);
+    });
+
+    // Let the recap animation finish so the History button renders.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1300);
+    });
+
+    const historyButton = screen.getByTestId("hud-history-button");
+    await act(async () => {
+      fireEvent.click(historyButton);
+    });
+
+    const panel = screen.getByTestId("round-history-panel");
+    // Display names should appear; raw player GUIDs should not.
+    expect(panel.textContent).toContain("Alice");
+    expect(panel.textContent).toContain("Bob");
+    expect(panel.textContent).not.toContain("player-1");
+    expect(panel.textContent).not.toContain("player-2");
+  });
+});
+
 // ─── MatchClient dual timeout tests (US4) ──────────────────────────────────
 
 describe("MatchClient dual timeout (US4)", () => {
