@@ -30,6 +30,21 @@ async function waitForMatch(page: Page) {
   await expect(page.getByTestId("board-grid")).toBeVisible({ timeout: 15_000 });
 }
 
+// Playwright's `ctxB.close()` force-kills the browser context, so the
+// `pagehide` → `sendBeacon` path wired in MatchClient doesn't reliably reach
+// the server. Production users hit `/api/match/:id/disconnect` via the beacon
+// on tab teardown; we replicate that explicitly here so the test isn't racing
+// the teardown.
+async function notifyServerOfDisconnect(page: Page) {
+  const match = page.url().match(/\/match\/([0-9a-f-]+)/);
+  if (!match) return;
+  const [, matchId] = match;
+  await page.evaluate(
+    (id) => fetch(`/api/match/${id}/disconnect`, { method: "POST", keepalive: true }),
+    matchId,
+  );
+}
+
 test.describe("@disconnect-modal Phase 6", () => {
   test("opponent disconnect shows modal with Claim win disabled during countdown", async ({
     browser,
@@ -49,6 +64,7 @@ test.describe("@disconnect-modal Phase 6", () => {
 
       // Player B disconnects — closing the context tears down the Realtime
       // channel, which the server observes and broadcasts.
+      await notifyServerOfDisconnect(b.page);
       await ctxB.close();
 
       // Modal should render on A within a few seconds.
@@ -80,6 +96,7 @@ test.describe("@disconnect-modal Phase 6", () => {
       });
       await Promise.all([waitForMatch(a.page), waitForMatch(b.page)]);
 
+      await notifyServerOfDisconnect(b.page);
       await ctxB.close();
 
       const modal = a.page.getByTestId("disconnection-modal");
