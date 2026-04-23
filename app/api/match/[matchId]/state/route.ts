@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { loadMatchState } from "@/lib/match/stateLoader";
-import { recordHeartbeat } from "@/lib/match/heartbeatStore";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = {
@@ -22,11 +21,6 @@ export async function GET(
       { status: 401, headers: NO_CACHE_HEADERS },
     );
   }
-
-  // Record this poll as a heartbeat — loadMatchState uses heartbeat staleness
-  // to detect when the *other* player has disappeared without sending a
-  // graceful disconnect notification.
-  recordHeartbeat(matchId, session.player.id);
 
   const supabase = getServiceRoleClient();
   const state = await loadMatchState(supabase, matchId);
