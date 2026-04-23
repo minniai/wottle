@@ -87,8 +87,6 @@ jobs:
     name: Build Next.js
     runs-on: ubuntu-latest
     # container: node:lts keeps pnpm+Node behaviour identical to lint/typecheck/test.
-    # Without this, act runs the job directly in the platform image (no inner container)
-    # which causes pnpm install → next build to produce no .next/ output.
     container: node:lts
     needs: test
     steps:
@@ -136,12 +134,8 @@ jobs:
           fi
           echo "BUILD_ID: $(cat .next/BUILD_ID)"
       - name: Prune build artifact (remove incremental cache and trace)
-        # act does not parse multiline YAML path: blocks — prune here instead
         run: rm -rf .next/cache .next/trace
       - name: Upload Next.js build artifact
-        # Skip under act: upload-artifact@v7 sends a protobuf field
-        # (mime_type) that act's built-in artifact server rejects.
-        if: ${{ env.ACT != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
@@ -155,31 +149,11 @@ jobs:
   quickstart:
     name: Supabase Quickstart
     runs-on: ubuntu-latest
-    # Note: No container here - needs Docker access for Supabase
-    # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
+    # No container: this job needs host Docker access for Supabase.
     timeout-minutes: 30
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
-      - name: Install Docker CLI (for act compatibility)
-        # Only needed when running with act using node:lts platform
-        # In GitHub Actions, Docker is available on the runner
-        run: |
-          if command -v docker &> /dev/null; then
-            echo "Docker CLI already available"
-            docker --version
-            # Ensure lsof is available on the host/runner if possible
-            if ! command -v lsof &> /dev/null && command -v apt-get &> /dev/null; then
-              apt-get update && apt-get install -y lsof
-            fi
-          else
-            # Install Docker CLI and lsof for Debian-based images (node:lts)
-            # Try apt-get first (faster), fallback to official installer
-            (apt-get update && apt-get install -y docker.io lsof) || \
-            (curl -fsSL https://get.docker.com | sh && apt-get install -y lsof) || \
-            (echo "Error: Could not install prerequisites" && exit 1)
-            docker --version
-          fi
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
@@ -229,7 +203,7 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Upload quickstart log
-        if: ${{ always() && env.ACT != 'true' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: quickstart-log
@@ -239,8 +213,7 @@ jobs:
   playwright:
     name: Playwright UI (${{ matrix.suite }})
     runs-on: ubuntu-latest
-    # Note: No container here - needs Docker access for Supabase
-    # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
+    # No container: this job needs host Docker access for Supabase.
     needs: build
     strategy:
       fail-fast: false
@@ -250,10 +223,6 @@ jobs:
           - playtest
     timeout-minutes: 45
     env:
-      # Per-matrix port so parallel runs (e.g. under `act`, which reuses host
-      # networking for matrix jobs) don't collide on port 3000. In real GitHub
-      # Actions each matrix job gets its own runner so the value is cosmetic,
-      # but it keeps the two environments symmetric.
       APP_PORT: ${{ matrix.suite == 'playtest' && '3100' || '3000' }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
@@ -261,27 +230,7 @@ jobs:
       RATE_LIMIT_DISABLE_ALL: "1"
       PLAYTEST_SESSION_SECURE: "false"
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ matrix.suite == 'playtest' && '3100' || '3000' }}
-      # PLAYTEST_PRESENCE_TTL_SECONDS removed - using code default of 300s
     steps:
-      - name: Install Docker CLI (for act compatibility)
-        # Only needed when running with act using node:lts platform
-        # In GitHub Actions, Docker is available on the runner
-        run: |
-          if command -v docker &> /dev/null; then
-            echo "Docker CLI already available"
-            docker --version
-            # Ensure lsof is available on the host/runner if possible
-            if ! command -v lsof &> /dev/null && command -v apt-get &> /dev/null; then
-              apt-get update && apt-get install -y lsof
-            fi
-          else
-            # Install Docker CLI and lsof for Debian-based images (node:lts)
-            # Try apt-get first (faster), fallback to official installer
-            (apt-get update && apt-get install -y docker.io lsof) || \
-            (curl -fsSL https://get.docker.com | sh && apt-get install -y lsof) || \
-            (echo "Error: Could not install prerequisites" && exit 1)
-            docker --version
-          fi
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
@@ -351,26 +300,10 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
-        if: ${{ env.ACT != 'true' }}
         uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
-      - name: Build Next.js app (act fallback — download was skipped)
-        # Under act: quickstart already ran and wrote real Supabase values
-        # to .env.local. Next.js autoloads .env.local at build time, so the
-        # anon key baked into the client bundle is the real one.
-        #
-        # We *do* override NEXT_PUBLIC_SUPABASE_URL to host.docker.internal
-        # so Firefox/Chromium inside the container can actually reach host
-        # Supabase (localhost:54321 would point at the container's own
-        # loopback). Without this, the browser WebSocket handshake to
-        # Realtime fails with 403 and every two-player test times out.
-        if: ${{ env.ACT == 'true' }}
-        run: pnpm build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-          NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
@@ -451,14 +384,11 @@ jobs:
           # Use setsid to create a new session and prevent zombie processes
           echo "Starting server with CI=${CI} and PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}"
           echo "Supabase URL (.env.local): ${NEXT_PUBLIC_SUPABASE_URL:-NOT_SET}"
-          echo "Supabase URL override (ACT_SUPABASE_URL_OVERRIDE): ${ACT_SUPABASE_URL_OVERRIDE:-NOT_SET}"
           echo "Service Role Key present: ${SUPABASE_SERVICE_ROLE_KEY:+yes}"
-          # Export all required env vars explicitly - setsid/bash -c may not inherit them in act/Docker
-          # Supabase vars are loaded from .env.local, CI vars from workflow env
-          # Override Supabase URL if ACT_SUPABASE_URL_OVERRIDE is set (for act/Docker networking)
+          # Export required env vars explicitly — setsid/bash -c doesn't inherit them.
           setsid bash -c "export CI=${CI}; \
             export PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}; \
-            [ -n \"\${ACT_SUPABASE_URL_OVERRIDE}\" ] && export NEXT_PUBLIC_SUPABASE_URL=\"\${ACT_SUPABASE_URL_OVERRIDE}\" || export NEXT_PUBLIC_SUPABASE_URL='${NEXT_PUBLIC_SUPABASE_URL}'; \
+            export NEXT_PUBLIC_SUPABASE_URL='${NEXT_PUBLIC_SUPABASE_URL}'; \
             export NEXT_PUBLIC_SUPABASE_ANON_KEY='${NEXT_PUBLIC_SUPABASE_ANON_KEY}'; \
             export SUPABASE_ANON_KEY='${SUPABASE_ANON_KEY}'; \
             export SUPABASE_SERVICE_ROLE_KEY='${SUPABASE_SERVICE_ROLE_KEY}'; \
@@ -608,27 +538,16 @@ jobs:
             kill $NODE_PID 2>/dev/null || true
             rm .next-node-pid
           fi
-          # Targeted kill of any remaining server on this port. Skip under act:
-          # `act` shares host networking across parallel matrix jobs, so `lsof`
-          # on port 3000/3100 can see the sibling matrix job's server and the
-          # broad `pkill -f next.*start.*PORT` can match it too — killing the
-          # other job mid-test. Real CI runners are isolated so this is a no-op
-          # there.
-          if [ -z "$ACT" ]; then
-            if command -v lsof &> /dev/null; then
-              lsof -ti :${APP_PORT:-3000} | xargs kill -9 2>/dev/null || true
-            fi
-            pkill -f "next.*start.*${APP_PORT:-3000}" 2>/dev/null || true
+          # Targeted kill of any remaining server on this port.
+          if command -v lsof &> /dev/null; then
+            lsof -ti :${APP_PORT:-3000} | xargs kill -9 2>/dev/null || true
           fi
+          pkill -f "next.*start.*${APP_PORT:-3000}" 2>/dev/null || true
       - name: Stop Supabase stack
-        # Skip under act: both matrix jobs share the host's Supabase stack
-        # (ACT_USE_HOST_SUPABASE=1), so whichever job finishes first would stop
-        # Supabase mid-run for the other. On real CI each job owns its own
-        # Supabase container and this step runs normally.
-        if: ${{ always() && env.ACT != 'true' }}
+        if: ${{ always() }}
         run: supabase stop || true
       - name: Upload Playwright log
-        if: ${{ always() && env.ACT != 'true' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: quickstart-playwright-${{ matrix.suite }}-log
@@ -638,8 +557,7 @@ jobs:
   perf-gate:
     name: Perf Gate (Artillery)
     runs-on: ubuntu-latest
-    # Note: No container here - needs Docker access for Supabase
-    # For act: Run with -P ubuntu-latest=node:lts to use Node.js image
+    # No container: this job needs host Docker access for Supabase.
     needs: build
     timeout-minutes: 45
     env:
@@ -647,21 +565,6 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QUICKSTART_DISABLE_STOP: "1"
     steps:
-      - name: Install Docker CLI (for act compatibility)
-        # Only needed when running with act using node:lts platform
-        # In GitHub Actions, Docker is available on the runner
-        run: |
-          if command -v docker &> /dev/null; then
-            echo "Docker CLI already available"
-            docker --version
-          else
-            # Install Docker CLI for Debian-based images (node:lts)
-            # Try apt-get first (faster), fallback to official installer
-            (apt-get update && apt-get install -y docker.io) || \
-            (curl -fsSL https://get.docker.com | sh) || \
-            (echo "Error: Could not install Docker CLI" && exit 1)
-            docker --version
-          fi
       - name: Checkout
         uses: actions/checkout@v5
       - name: Setup PNPM
@@ -724,26 +627,10 @@ jobs:
           fi
           docker save $IMAGES -o /tmp/supabase-docker-cache.tar || echo "Warning: Failed to save docker images"
       - name: Download Next.js build artifact
-        if: ${{ env.ACT != 'true' }}
         uses: actions/download-artifact@v8
         with:
           name: next-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: .next/
-      - name: Build Next.js app (act fallback — download was skipped)
-        # Under act: quickstart already ran and wrote real Supabase values
-        # to .env.local. Next.js autoloads .env.local at build time, so the
-        # anon key baked into the client bundle is the real one.
-        #
-        # We *do* override NEXT_PUBLIC_SUPABASE_URL to host.docker.internal
-        # so Firefox/Chromium inside the container can actually reach host
-        # Supabase (localhost:54321 would point at the container's own
-        # loopback). Without this, the browser WebSocket handshake to
-        # Realtime fails with 403 and every two-player test times out.
-        if: ${{ env.ACT == 'true' }}
-        run: pnpm build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-          NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
       - name: Verify build artifact integrity
         run: |
           if [ ! -f .next/BUILD_ID ]; then
@@ -825,7 +712,7 @@ jobs:
           set +a
           # Start the server directly with proper signal handling
           # Use setsid to create a new session and prevent zombie processes
-          setsid bash -c "[ -n \"\${ACT_SUPABASE_URL_OVERRIDE}\" ] && export NEXT_PUBLIC_SUPABASE_URL=\"\${ACT_SUPABASE_URL_OVERRIDE}\"; echo \$\$ > .perf-next-pid; exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > perf-next.log 2>&1 &
+          setsid bash -c "echo \$\$ > .perf-next-pid; exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > perf-next.log 2>&1 &
           # Wait for server to initialize
           sleep 5
           # Check process state
@@ -950,7 +837,7 @@ jobs:
         if: always()
         run: supabase stop || true
       - name: Upload perf artifacts
-        if: ${{ always() && env.ACT != 'true' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: perf-artifacts

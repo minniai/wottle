@@ -13,13 +13,6 @@ test.skip(
   "Phase 4b matchmaking smoke runs on chromium only — shared server queue",
 );
 
-// Under act, matchmaking broadcasts routinely exceed BROADCAST_SUBSCRIBE_TIMEOUT_MS,
-// so the match-ring render is timing-flaky. Verified on real CI.
-test.skip(
-  () => process.env.ACT === "true",
-  "Realtime broadcasts unreliable under act — runs on real CI",
-);
-
 async function loginNewPlayer(context: BrowserContext) {
   const page = await context.newPage();
   const username = generateTestUsername("mm4b");
