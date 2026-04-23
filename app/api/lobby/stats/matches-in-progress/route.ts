@@ -13,7 +13,7 @@ export async function GET() {
     const { count, error } = await supabase
       .from("matches")
       .select("id", { count: "exact", head: true })
-      .eq("status", "active");
+      .eq("state", "in_progress");
 
     if (error) {
       console.error("Failed to count matches-in-progress", error);
