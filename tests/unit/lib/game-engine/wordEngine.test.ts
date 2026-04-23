@@ -125,6 +125,89 @@ describe("wordEngine", () => {
     expect(result.deltas.playerB).toBe(0);
   });
 
+  describe("issue #136: BÆN + BÁS adjacent to perpendicular-axis frozen tiles", () => {
+    function makeBoardWithFrozenNeighbor(): BoardGrid {
+      const board = emptyBoard("X");
+      // Letters that complete BÆN horizontally and BÁS vertically once B
+      // lands at (2,2).
+      board[2][3] = "Æ"; // (3,2)
+      board[2][4] = "N"; // (4,2)
+      board[3][2] = "Á"; // (2,3)
+      board[4][2] = "S"; // (2,4)
+      // Source tile for the swap.
+      board[9][9] = "B";
+      // A neighbor letter on the same row as BÆN, frozen from a prior
+      // VERTICAL word the opponent scored. Without scoredAxes-aware
+      // checks this single tile blocked both BÆN (same-axis combined
+      // "DBÆN" not a word) and BÁS (B's perpendicular cross "DB" was
+      // a 2-letter sequence below the minimum word length).
+      board[2][1] = "D"; // (1,2)
+      return board;
+    }
+
+    test("scores both BÆN and BÁS even when a perpendicular-axis frozen tile sits adjacent (issue #136)", async () => {
+      const board = makeBoardWithFrozenNeighbor();
+      const frozenTiles: FrozenTileMap = {
+        "1,2": { owner: PLAYER_B, scoredAxes: ["vertical"] },
+      };
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [
+          {
+            playerId: PLAYER_A,
+            fromX: 9,
+            fromY: 9,
+            toX: 2,
+            toY: 2,
+            submittedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      const words = result.playerAWords.map((w) => w.word);
+      expect(words).toContain("bæn");
+      expect(words).toContain("bás");
+    });
+
+    test("still rejects when the adjacent frozen tile WAS scored on the same axis (combined sequence must be a word)", async () => {
+      const board = makeBoardWithFrozenNeighbor();
+      // Same D, but this time it was scored on a horizontal word that
+      // ends at (1,2). Placing BÆN to its right extends that horizontal
+      // sequence into "DBÆN" which is not a word — must reject.
+      const frozenTiles: FrozenTileMap = {
+        "1,2": { owner: PLAYER_B, scoredAxes: ["horizontal"] },
+      };
+
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [
+          {
+            playerId: PLAYER_A,
+            fromX: 9,
+            fromY: 9,
+            toX: 2,
+            toY: 2,
+            submittedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+
+      const words = result.playerAWords.map((w) => w.word);
+      expect(words).not.toContain("bæn");
+    });
+  });
+
   // T053: zero-move round returns empty result
   describe("zero accepted moves round", () => {
     test("should return zero deltas when acceptedMoves is empty", async () => {

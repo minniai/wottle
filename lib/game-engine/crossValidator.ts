@@ -20,6 +20,14 @@ import {
  *     length, inherently not a valid word → violation.
  *   - cross length >= minimumWordLength → must be in the dictionary
  *     (in either reading direction) → otherwise violation.
+ *
+ * When `frozenTileMap` is provided, frozen tiles only participate in
+ * the cross sequence if their `scoredAxes` includes the cross-axis. A
+ * tile that was scored only on a parallel axis is treated as an
+ * incidental adjacency, not an extension of a perpendicular word — so
+ * it doesn't trigger the cross-word constraint. See issue #136.
+ * Same-round `extraTileSet` tiles always count (they're still being
+ * cross-validated mutually within the subset).
  */
 export function hasCrossWordViolation(
   board: BoardGrid,
@@ -27,15 +35,28 @@ export function hasCrossWordViolation(
   frozenTileSet: Set<string>,
   dictionary: Set<string>,
   extraTileSet: Set<string> = new Set(),
+  frozenTileMap?: FrozenTileMap,
 ): boolean {
   const { minimumWordLength } = DEFAULT_GAME_CONFIG;
   const isHorizontal =
     word.direction === "right" || word.direction === "left";
   const dx = isHorizontal ? 0 : 1;
   const dy = isHorizontal ? 1 : 0;
+  const crossAxis: ScoredAxis = isHorizontal ? "vertical" : "horizontal";
 
-  const isEstablished = (x: number, y: number) =>
-    frozenTileSet.has(`${x},${y}`) || extraTileSet.has(`${x},${y}`);
+  const isEstablished = (x: number, y: number) => {
+    const key = `${x},${y}`;
+    if (extraTileSet.has(key)) return true;
+    if (!frozenTileSet.has(key)) return false;
+    // When scoredAxes metadata is available, only count the frozen tile
+    // as established for the cross-axis if it was actually scored on
+    // that axis. Tiles without metadata (legacy) keep the strict
+    // behavior so existing matches don't change shape.
+    if (!frozenTileMap) return true;
+    const meta = frozenTileMap[key];
+    if (!meta || !meta.scoredAxes) return true;
+    return meta.scoredAxes.includes(crossAxis);
+  };
 
   for (const tile of word.tiles) {
     const tileKey = `${tile.x},${tile.y}`;
@@ -133,7 +154,9 @@ export function selectOptimalCombination(
   const frozenTileSet = new Set(Object.keys(frozenTiles));
 
   // Step 1: Filter candidates that fail cross-validation against
-  // frozen tiles alone (no other candidates considered)
+  // frozen tiles alone (no other candidates considered).
+  // `frozenTiles` is forwarded so cross-word checks can consult
+  // `scoredAxes` and skip incidental cross-axis adjacencies (issue #136).
   const viable = candidates.filter(
     (word) =>
       !hasCrossWordViolation(
@@ -141,6 +164,8 @@ export function selectOptimalCombination(
         word,
         frozenTileSet,
         dictionary,
+        new Set(),
+        frozenTiles,
       ) &&
       !violatesFrozenAdjacencyOnSameAxis(
         word,
@@ -171,7 +196,7 @@ export function selectOptimalCombination(
     if (!hasNoSameAxisConflict(subset)) continue;
 
     // Step 3b: Verify mutual cross-validation within the subset
-    if (isSubsetValid(subset, board, frozenTileSet, dictionary)) {
+    if (isSubsetValid(subset, board, frozenTileSet, dictionary, frozenTiles)) {
       const totalScore = subset.reduce(
         (sum, word) => sum + scoreWord(word),
         0,
@@ -250,6 +275,20 @@ function violatesFrozenAdjacencyOnSameAxis(
 
   return false;
 
+  function isPartOfSameAxisRun(x: number, y: number): boolean {
+    const key = `${x},${y}`;
+    if (!frozenTileSet.has(key)) return false;
+    // When scoredAxes metadata is available, only count the frozen tile
+    // as continuing the candidate's own-axis sequence if it was actually
+    // scored on that axis. A tile scored only on a perpendicular axis
+    // is an incidental neighbor — placing a new word next to it doesn't
+    // extend any existing same-axis word. See issue #136.
+    if (!frozenTileMap) return true;
+    const meta = frozenTileMap[key];
+    if (!meta || !meta.scoredAxes) return true;
+    return meta.scoredAxes.includes(wordAxis);
+  }
+
   function collectFrozenRun(
     startX: number,
     startY: number,
@@ -259,7 +298,7 @@ function violatesFrozenAdjacencyOnSameAxis(
     if (
       startX < 0 || startX >= BOARD_SIZE ||
       startY < 0 || startY >= BOARD_SIZE ||
-      !frozenTileSet.has(`${startX},${startY}`)
+      !isPartOfSameAxisRun(startX, startY)
     ) {
       return null;
     }
@@ -270,16 +309,13 @@ function violatesFrozenAdjacencyOnSameAxis(
     while (
       cx >= 0 && cx < BOARD_SIZE &&
       cy >= 0 && cy < BOARD_SIZE &&
-      frozenTileSet.has(`${cx},${cy}`)
+      isPartOfSameAxisRun(cx, cy)
     ) {
       chars.push(board[cy][cx]);
       cx += stepX;
       cy += stepY;
     }
 
-    // Regardless of scoredAxes or legacy meta, ANY frozen tile physically
-    // adjoined on the same axis is part of the contiguous sequence (FR-014).
-    // Therefore, the sequence must form a valid word.
     return { chars };
   }
 
@@ -371,6 +407,7 @@ function isSubsetValid(
   board: BoardGrid,
   frozenTileSet: Set<string>,
   dictionary: Set<string>,
+  frozenTileMap?: FrozenTileMap,
 ): boolean {
   for (let i = 0; i < subset.length; i++) {
     // Build extra tile set from all OTHER words in the subset
@@ -389,6 +426,7 @@ function isSubsetValid(
         frozenTileSet,
         dictionary,
         extraTiles,
+        frozenTileMap,
       )
     ) {
       return false;

@@ -929,7 +929,14 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
-  test("T049b: rejects horizontal word adjacent to single frozen tile even if scoredAxes is vertical", () => {
+  test("T049b: ALLOWS horizontal word adjacent to a frozen tile scored only on a perpendicular axis (issue #136)", () => {
+    // A frozen tile with scoredAxes=["vertical"] was placed by a vertical
+    // word. Horizontally it's an incidental neighbor — placing a new
+    // horizontal word next to it does NOT extend any prior horizontal
+    // word, so the combined-sequence check should not fire. Previously
+    // this rejected the placement and prevented valid 3-letter words
+    // (e.g. BÆN, BÁS) from scoring whenever a frozen perpendicular-axis
+    // tile happened to sit adjacent. See issue #136.
     const localDict = new Set(["tað"]);
     const board = emptyBoard();
     board[0][3] = "x";
@@ -948,8 +955,8 @@ describe("selectOptimalCombination", () => {
       "player_b",
     );
 
-    // Combined "xtað" ∉ dict → TAÐ rejected because physically adjacent
-    expect(result).toHaveLength(0);
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("tað");
   });
 
   test("T049c: rejects horizontal word adjacent to multi-axis frozen tile", () => {
