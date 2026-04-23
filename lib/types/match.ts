@@ -13,6 +13,9 @@ export interface PlayerIdentity {
   status: LobbyStatus;
   lastSeenAt: string;
   eloRating?: number | null;
+  /** ISO timestamp — when the player row was first created. Optional so
+   *  existing lobby/presence loaders that don't fetch it stay compatible. */
+  createdAt?: string;
 }
 
 export type TimerStatus = "running" | "paused" | "expired";

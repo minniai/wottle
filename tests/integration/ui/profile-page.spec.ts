@@ -57,7 +57,12 @@ test.describe("@profile-page Phase 5b profile pages", () => {
     await expect(viewerPage.getByTestId("profile-page")).toBeVisible({
       timeout: 10_000,
     });
-    await expect(viewerPage.getByText(`@${seedUsername}`)).toBeVisible();
+    // Handle appears inside the sidebar identity line.
+    await expect(viewerPage.getByTestId("profile-handle")).toContainText(
+      `@${seedUsername}`,
+    );
+    // And since the viewer is not the seed, the Challenge CTA is rendered.
+    await expect(viewerPage.getByTestId("challenge-cta")).toBeVisible();
   });
 
   test("/profile/ghost renders 'No such player' for unknown handle", async () => {

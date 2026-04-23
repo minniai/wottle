@@ -1,0 +1,79 @@
+/* Warm Editorial profile utilities — shared by /profile and /profile/[handle]. */
+
+.profile-card {
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.profile-card__head h3 {
+  font-family: var(--font-fraunces, "Fraunces"), serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.profile-card__head-meta {
+  font-family: var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.profile-stats-frame {
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.profile-stats-frame > * {
+  padding: 16px 18px;
+}
+
+.profile-stats-frame > * + * {
+  border-left: 1px solid var(--hair);
+}
+
+@media (max-width: 640px) {
+  .profile-stats-frame > * + * {
+    border-left: none;
+    border-top: 1px solid var(--hair);
+  }
+  .profile-stats-frame > *:nth-child(even) {
+    border-left: 1px solid var(--hair);
+  }
+  .profile-stats-frame > *:nth-child(3),
+  .profile-stats-frame > *:nth-child(4) {
+    border-top: 1px solid var(--hair);
+  }
+}
+
+.profile-eyebrow {
+  font-family: var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+}
+
+.profile-rating-card {
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  padding: 14px;
+}

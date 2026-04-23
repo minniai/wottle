@@ -43,20 +43,28 @@ const PROFILE = {
 } as PlayerProfile;
 
 describe("ProfilePage", () => {
-  test("mounts sidebar + chart + cloud + matches", () => {
-    render(<ProfilePage profile={PROFILE} words={[]} matches={[]} />);
+  test("mounts sidebar + chart + cloud + matches inside panel cards", () => {
+    render(<ProfilePage profile={PROFILE} words={[]} matches={[]} isSelf />);
     expect(screen.getByTestId("profile-page")).toBeInTheDocument();
     expect(screen.getByTestId("stub-sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-rating")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-words")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-history")).toBeInTheDocument();
     expect(screen.getByTestId("stub-chart")).toBeInTheDocument();
     expect(screen.getByTestId("stub-cloud")).toBeInTheDocument();
     expect(screen.getByTestId("stub-matches")).toBeInTheDocument();
   });
 
-  test("renders at-a-glance stats grid with win-rate percentage", () => {
-    render(<ProfilePage profile={PROFILE} words={[]} matches={[]} />);
-    expect(screen.getByText(/63%|62%/)).toBeInTheDocument(); // 5/8 = 62.5% rounds to 63
+  test("renders at-a-glance stats grid with combined W·L·D record", () => {
+    render(<ProfilePage profile={PROFILE} words={[]} matches={[]} isSelf />);
     expect(screen.getByText("9")).toBeInTheDocument(); // games played
-    expect(screen.getByText("5")).toBeInTheDocument(); // wins
+    expect(screen.getByText("5–3–1")).toBeInTheDocument(); // W·L·D
+    expect(screen.getByText(/63%|62%/)).toBeInTheDocument(); // 5/8 → 63%
     expect(screen.getByText("1250")).toBeInTheDocument(); // peak rating
+  });
+
+  test("renders 'At a glance' eyebrow label", () => {
+    render(<ProfilePage profile={PROFILE} words={[]} matches={[]} isSelf />);
+    expect(screen.getByText("At a glance")).toBeInTheDocument();
   });
 });

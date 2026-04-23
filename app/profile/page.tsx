@@ -34,6 +34,7 @@ export default async function OwnProfilePage() {
       profile={profileResult.profile}
       words={bestWordsResult.words ?? []}
       matches={recentGamesResult.games ?? []}
+      isSelf
     />
   );
 }
