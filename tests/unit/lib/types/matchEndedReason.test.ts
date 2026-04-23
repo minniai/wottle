@@ -18,4 +18,8 @@ describe("MatchEndedReason type", () => {
   it("includes forfeit as a valid value", () => {
     expectTypeOf<"forfeit">().toMatchTypeOf<MatchEndedReason>();
   });
+
+  it("includes abandoned as a valid value", () => {
+    expectTypeOf<"abandoned">().toMatchTypeOf<MatchEndedReason>();
+  });
 });
