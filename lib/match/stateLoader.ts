@@ -13,7 +13,7 @@ import type {
   WordScore,
 } from "@/lib/types/match";
 import { generateBoard } from "@/scripts/supabase/generateBoard";
-import { computeElapsedMs, computeRemainingMs } from "./clockEnforcer";
+import { computeElapsedMs, computeRemainingMs, isClockExpired } from "./clockEnforcer";
 import { getDisconnectRecord } from "./disconnectStore";
 
 type AnyClient = SupabaseClient<any, any, any>;
@@ -432,6 +432,20 @@ export async function loadMatchState(
     // the race where submitMove's `after()` hook drops the advancement.
     const nonTimeoutSubs = typedSubs.filter((s) => s.status !== "timeout");
     if (nonTimeoutSubs.length >= 2) {
+      triggerAdvanceInBackground(matchId);
+    }
+
+    // Self-heal for issue #175: when both clocks have expired and fewer than
+    // two real submissions exist, no client input will ever call advanceRound
+    // (the submitMove path rejects flagged players; the current-round
+    // triggerTimeoutCheck only fires on the client's own countdown, which
+    // stops ticking once both reach zero). The 2s safety poll on every
+    // active client lands here, so we trigger advanceRound ourselves — its
+    // both-flagged branch will then complete the match.
+    const bothClocksExpired =
+      isClockExpired(roundStartedAt, storedA) &&
+      isClockExpired(roundStartedAt, storedB);
+    if (bothClocksExpired && nonTimeoutSubs.length < 2) {
       triggerAdvanceInBackground(matchId);
     }
 

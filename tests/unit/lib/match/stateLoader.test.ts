@@ -384,6 +384,114 @@ describe("stateLoader self-heal (stuck collecting round)", () => {
         expect(advanceRound).not.toHaveBeenCalled();
     });
 
+    // Regression for issue #175: when both players' clocks have expired but
+    // neither submitted, no client input fires advanceRound and the match
+    // sits on the board forever. The polled state endpoint must self-heal
+    // by triggering advanceRound so the both-flagged branch can complete
+    // the match.
+    it("triggers advanceRound when both players' clocks are expired with no submissions", async () => {
+        // Round started 10s ago; stored timers 1s each → both server-expired.
+        const roundStartedAt = new Date(Date.now() - 10_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 1_000,
+                player_b_timer_ms: 1_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+            },
+            [],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(advanceRound).toHaveBeenCalledTimes(1);
+        expect(advanceRound).toHaveBeenCalledWith(MATCH_ID);
+    });
+
+    it("triggers advanceRound when both clocks are expired with one pending submission", async () => {
+        // One player submitted before flagging, the other never did and their
+        // clock ran out. advanceRound's both-flagged branch must still resolve.
+        const roundStartedAt = new Date(Date.now() - 10_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 1_000,
+                player_b_timer_ms: 1_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+            },
+            [
+                { player_id: PLAYER_A, submitted_at: roundStartedAt.toISOString(), status: "pending" },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(advanceRound).toHaveBeenCalledTimes(1);
+    });
+
+    it("does NOT trigger advanceRound when only one player's clock has expired", async () => {
+        // Player A flagged (1s timer, 10s elapsed); Player B still has time.
+        // The normal timeout-pass synthesis inside advanceRound handles this
+        // path when the surviving player submits — the idle safety net must
+        // not fire prematurely and cancel the round on the live player.
+        const roundStartedAt = new Date(Date.now() - 10_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 10,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 1_000,
+                player_b_timer_ms: 120_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-10",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
+                board_snapshot_after: null,
+                started_at: roundStartedAt.toISOString(),
+            },
+            [],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        await loadMatchState(mockClient as never, MATCH_ID);
+        await new Promise((r) => setImmediate(r));
+
+        expect(advanceRound).not.toHaveBeenCalled();
+    });
+
     it("dedupes concurrent stuck-state polls so advanceRound is called at most once in flight", async () => {
         // Make advanceRound slow so the dedup window stays open across both calls.
         let resolveAdvance: () => void = () => {};
