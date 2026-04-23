@@ -827,3 +827,35 @@
   color: color-mix(in oklab, var(--warn) 80%, var(--ink));
   border-color: color-mix(in oklab, var(--warn) 50%, transparent);
 }
+
+.hud-card__avatar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ─── Symmetrical match HUD (issue #171) ─────────────────────────────
+   In the in-match top strip, mirror the opp card so the score sits
+   closest to centre and the player name + avatar to the outer edge.
+   Scoped to .match-layout__hud-strip so PostGameScoreboard (which
+   reuses .hud-card with flex-col) is unaffected. */
+.match-layout__hud-strip .hud-card--opp .hud-card__score {
+  order: 1;
+  margin-left: 0;
+}
+.match-layout__hud-strip .hud-card--opp .hud-card__clock {
+  order: 2;
+}
+.match-layout__hud-strip .hud-card--opp .hud-card__identity {
+  order: 3;
+  margin-left: auto;
+  align-items: flex-end;
+  text-align: right;
+}
+.match-layout__hud-strip .hud-card--opp .hud-card__avatar {
+  order: 4;
+}
+.match-layout__hud-strip .hud-card--opp::after {
+  left: auto;
+  right: 0;
+}

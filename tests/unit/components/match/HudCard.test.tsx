@@ -100,6 +100,23 @@ describe("HudCard", () => {
     );
   });
 
+  test("wraps the avatar in a .hud-card__avatar element so order/positioning rules can target it (issue #171)", () => {
+    render(
+      <HudCard
+        slot="opp"
+        avatar={<div data-testid="avatar-inner" />}
+        name="Opponent"
+        meta="m"
+        clock="0:00"
+        score={0}
+      />,
+    );
+    const avatarWrapper = screen
+      .getByTestId("avatar-inner")
+      .closest(".hud-card__avatar");
+    expect(avatarWrapper).not.toBeNull();
+  });
+
   test("renders children below identity block when provided", () => {
     render(
       <HudCard
