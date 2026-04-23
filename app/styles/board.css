@@ -788,7 +788,6 @@
 }
 
 .hud-card__score {
-  margin-left: auto;
   font-family: var(--font-fraunces), serif;
   font-style: italic;
   font-weight: 500;
@@ -798,6 +797,9 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* `margin-left: auto` lives on the clock so clock + score stay grouped at
+   the inner edge of the card (closest to centre). Originally on __score,
+   which left clock bunched with the name on the outer edge. See #171. */
 .hud-card__clock {
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
   font-size: 15px;
@@ -808,6 +810,7 @@
   background: var(--paper-2);
   border: 1px solid var(--hair);
   font-variant-numeric: tabular-nums;
+  margin-left: auto;
 }
 
 .hud-card__clock--active {
@@ -841,10 +844,13 @@
    reuses .hud-card with flex-col) is unaffected. */
 .match-layout__hud-strip .hud-card--opp .hud-card__score {
   order: 1;
-  margin-left: 0;
 }
+/* Clock's default `margin-left: auto` is wrong for opp — it would push
+   clock away from score and split the inner cluster. Reset to 0 so
+   score + clock stay glued together at the inner edge. */
 .match-layout__hud-strip .hud-card--opp .hud-card__clock {
   order: 2;
+  margin-left: 0;
 }
 .match-layout__hud-strip .hud-card--opp .hud-card__identity {
   order: 3;
