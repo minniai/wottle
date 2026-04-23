@@ -25,9 +25,25 @@ export default async function LobbyPage() {
   const [initialPlayers, topPlayersResult, recentGamesResult] =
     await Promise.all([
       fetchLobbySnapshot(),
-      getTopPlayers({ limit: 6 }).catch(() => ({ players: [] })),
+      getTopPlayers({ limit: 6 }).catch((error) => {
+        console.error(
+          JSON.stringify({
+            event: "lobby.top_players.failed",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+        return { players: [] };
+      }),
       getRecentGames({ playerId: session.player.id, limit: 6 }).catch(
-        () => ({ games: [] }),
+        (error) => {
+          console.error(
+            JSON.stringify({
+              event: "lobby.recent_games.failed",
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          );
+          return { games: [] };
+        },
       ),
     ]);
 
