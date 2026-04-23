@@ -119,7 +119,10 @@ export function ProfileSidebar({ profile, isSelf }: ProfileSidebarProps) {
           <h1 className="mt-1 font-display text-[42px] font-normal italic leading-[1.05] text-ink">
             {profile.identity.displayName}
           </h1>
-          <p className="mt-1 font-mono text-[12px] text-ink-soft">
+          <p
+            data-testid="profile-handle"
+            className="mt-1 font-mono text-[12px] text-ink-soft"
+          >
             @{profile.identity.username}
             {memberSince ? ` · member since ${memberSince}` : null}
           </p>
