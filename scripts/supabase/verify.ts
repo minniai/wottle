@@ -47,6 +47,7 @@ export async function verifySupabase(options: VerifyOptions = {}): Promise<Verif
         supabase.from("rounds").select("id").limit(1),
         supabase.from("move_submissions").select("id").limit(1),
         supabase.from("match_logs").select("id").limit(1),
+        supabase.from("match_heartbeats").select("match_id").limit(1),
       ]);
 
       const failed = checks.find((result) => result.error);

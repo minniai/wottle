@@ -1,4 +1,205 @@
 {
-  "generatedAt": "1970-01-01T00:00:00.000Z",
-  "policies": []
+  "generatedAt": "2026-04-23T18:39:37.557Z",
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "boards",
+      "policyname": "anon_read_boards",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(auth.role() = 'anon'::text)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "boards",
+      "policyname": "service_all_boards",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "(auth.role() = 'service_role'::text)",
+      "with_check": "(auth.role() = 'service_role'::text)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lobby_presence",
+      "policyname": "lobby_presence_delete_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "DELETE",
+      "qual": "(player_id = auth.uid())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lobby_presence",
+      "policyname": "lobby_presence_insert_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(player_id = auth.uid())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lobby_presence",
+      "policyname": "lobby_presence_select_authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lobby_presence",
+      "policyname": "lobby_presence_update_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(player_id = auth.uid())",
+      "with_check": "(player_id = auth.uid())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "match_heartbeats",
+      "policyname": "match_heartbeats_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM matches m\n  WHERE ((m.id = match_heartbeats.match_id) AND ((m.player_a_id = auth.uid()) OR (m.player_b_id = auth.uid())))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "match_invitations",
+      "policyname": "match_invitations_insert_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(sender_id = auth.uid())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "match_invitations",
+      "policyname": "match_invitations_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((sender_id = auth.uid()) OR (recipient_id = auth.uid()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "match_invitations",
+      "policyname": "match_invitations_update_recipient",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(recipient_id = auth.uid())",
+      "with_check": "(recipient_id = auth.uid())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "match_logs",
+      "policyname": "match_logs_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM matches m\n  WHERE ((m.id = match_logs.match_id) AND ((m.player_a_id = auth.uid()) OR (m.player_b_id = auth.uid())))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "matches",
+      "policyname": "matches_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((player_a_id = auth.uid()) OR (player_b_id = auth.uid()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "move_submissions",
+      "policyname": "move_submissions_insert_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(player_id = auth.uid())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "move_submissions",
+      "policyname": "move_submissions_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM (rounds r\n     JOIN matches m ON ((m.id = r.match_id)))\n  WHERE ((r.id = move_submissions.round_id) AND ((m.player_a_id = auth.uid()) OR (m.player_b_id = auth.uid())))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "moves",
+      "policyname": "service_all_moves",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "(auth.role() = 'service_role'::text)",
+      "with_check": "(auth.role() = 'service_role'::text)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "players",
+      "policyname": "players_select_authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "players",
+      "policyname": "players_update_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(id = auth.uid())",
+      "with_check": "(id = auth.uid())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "rounds",
+      "policyname": "rounds_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM matches m\n  WHERE ((m.id = rounds.match_id) AND ((m.player_a_id = auth.uid()) OR (m.player_b_id = auth.uid())))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "scoreboard_snapshots",
+      "policyname": "scoreboard_snapshots_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM matches m\n  WHERE ((m.id = scoreboard_snapshots.match_id) AND ((m.player_a_id = auth.uid()) OR (m.player_b_id = auth.uid())))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "word_score_entries",
+      "policyname": "word_score_entries_select_participants",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM matches m\n  WHERE ((m.id = word_score_entries.match_id) AND ((m.player_a_id = auth.uid()) OR (m.player_b_id = auth.uid())))))",
+      "with_check": null
+    }
+  ]
 }

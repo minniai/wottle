@@ -15,6 +15,7 @@ import type {
 import { generateBoard } from "@/scripts/supabase/generateBoard";
 import { computeElapsedMs, computeRemainingMs, isClockExpired } from "./clockEnforcer";
 import { getDisconnectRecord } from "./disconnectStore";
+import { findStaleParticipant } from "./heartbeatRepository";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -300,7 +301,8 @@ export async function loadMatchState(
         player_a_timer_ms,
         player_b_timer_ms,
         frozen_tiles,
-        winner_id
+        winner_id,
+        created_at
       `,
     )
     .eq("id", matchId)
@@ -478,17 +480,38 @@ export async function loadMatchState(
     playerBStatus = "running";
   }
 
-  // Surface disconnect state in the polled snapshot. Sourced from
-  // `disconnectStore`, which is populated by `handlePlayerDisconnect` when the
-  // disconnecting client notifies us via sendBeacon, the Realtime `system:
-  // CLOSED` handler, or the surviving client's `onOpponentLeave` presence
-  // callback. The previous heartbeat-staleness fallback was removed in the
-  // hotfix for issue #161 — the per-process Map gave inconsistent results
-  // across serverless instances and produced flickering false positives.
-  const disconnectedPlayerId =
+  // Surface disconnect state in the polled snapshot. Two sources are
+  // consulted in order:
+  //   1. `disconnectStore` — in-memory, populated by `handlePlayerDisconnect`
+  //      when the disconnecting client notifies us via `sendBeacon`, the
+  //      Realtime `system: CLOSED` handler, or the surviving client's
+  //      `onOpponentLeave` presence callback. Fast path for the common
+  //      tab-close / resign-connection cases.
+  //   2. `match_heartbeats` — shared-store fallback (issue #164). Every
+  //      /state poll upserts the caller's row; a participant with a
+  //      heartbeat older than HEARTBEAT_STALE_MS is marked disconnected.
+  //      Catches the case where the network dropped without firing any of
+  //      the signals above and is instance-independent on Vercel.
+  //
+  // The previous in-memory heartbeat was per-process and false-positived
+  // on Vercel multi-instance (issue #161 / #163 hotfix). The shared
+  // Postgres row resolves that.
+  const inMemoryDisconnect =
     getDisconnectRecord(match.id, match.player_a_id)?.playerId ??
     getDisconnectRecord(match.id, match.player_b_id)?.playerId ??
     null;
+
+  const staleFromHeartbeat =
+    match.state === "in_progress" && (match as { created_at?: string }).created_at
+      ? await findStaleParticipant(client, {
+          matchId: match.id,
+          playerAId: match.player_a_id,
+          playerBId: match.player_b_id,
+          matchCreatedAt: new Date((match as { created_at: string }).created_at),
+        })
+      : null;
+
+  const disconnectedPlayerId = inMemoryDisconnect ?? staleFromHeartbeat;
 
   return {
     matchId: match.id,

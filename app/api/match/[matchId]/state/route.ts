@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { loadMatchState } from "@/lib/match/stateLoader";
+import { recordHeartbeat } from "@/lib/match/heartbeatRepository";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = {
@@ -43,6 +44,11 @@ export async function GET(
       { status: 403, headers: NO_CACHE_HEADERS },
     );
   }
+
+  // Record the caller's liveness heartbeat on every poll (issue #164).
+  // Fire-and-forget so the state response doesn't wait on the upsert;
+  // recordHeartbeat swallows errors and logs them.
+  void recordHeartbeat(supabase, matchId, playerId);
 
   return NextResponse.json(state, { status: 200, headers: NO_CACHE_HEADERS });
 }

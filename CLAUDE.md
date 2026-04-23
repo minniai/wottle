@@ -367,6 +367,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 - Player marked disconnected in match state (realtime broadcast)
 - Other player sees centered `DisconnectionModal` with 90s countdown + Claim win CTA (Phase 6)
 - Reconnection within 90s clears the flag; past 90s `claimWinAction` or the auto-finalise awards the non-disconnected player (forced-winner path on `completeMatchInternal`)
+- Detection has two layers: (1) fast path via `disconnectStore` (in-memory, populated by `pagehide`/`sendBeacon`, Realtime `system: CLOSED`, or `onOpponentLeave` presence leave); (2) shared-store safety net via `match_heartbeats` upserted on every `/api/match/[matchId]/state` poll — `loadMatchState` surfaces the stale player after `HEARTBEAT_STALE_MS` (10s) with a grace window for match launch (issue #164).
 
 ## Key Entities
 

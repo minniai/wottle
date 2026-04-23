@@ -33,10 +33,13 @@ type SubmissionFixture = {
     status?: string;
 };
 
+type HeartbeatFixture = { player_id: string; last_seen_at: string };
+
 function makeMockClient(
     matchData: Record<string, unknown>,
     roundData: Record<string, unknown> | null,
     submissionsData: SubmissionFixture[] | null = null,
+    heartbeatsData: HeartbeatFixture[] | null = null,
 ) {
     const matchChain = {
         eq: vi.fn().mockReturnThis(),
@@ -55,6 +58,11 @@ function makeMockClient(
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue(submissionsResponse),
     };
+    const heartbeatsResponse = { data: heartbeatsData ?? [], error: null };
+    const heartbeatsSelectChain = {
+        eq: vi.fn().mockResolvedValue(heartbeatsResponse),
+    };
+    const heartbeatsUpsert = vi.fn().mockResolvedValue({ error: null });
 
     return {
         from: vi.fn((table: string) => {
@@ -66,6 +74,10 @@ function makeMockClient(
             if (table === "move_submissions") return moveSubmissionsChain;
             if (table === "scoreboard_snapshots") return { select: vi.fn(() => scoreboardChain) };
             if (table === "word_score_entries") return { select: vi.fn(() => ({ eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
+            if (table === "match_heartbeats") return {
+                select: vi.fn(() => heartbeatsSelectChain),
+                upsert: heartbeatsUpsert,
+            };
             return {
                 select: vi.fn(() => ({
                     eq: vi.fn().mockReturnThis(),
@@ -686,5 +698,161 @@ describe("stateLoader self-heal (stuck resolving / post-round / missing winner)"
         await new Promise((r) => setImmediate(r));
 
         expect(recoverStuckRound).not.toHaveBeenCalled();
+    });
+});
+
+describe("stateLoader heartbeat-based disconnect detection (issue #164)", () => {
+    const BOARD = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A"));
+
+    beforeEach(() => {
+        vi.mocked(advanceRound).mockClear();
+        vi.mocked(recoverStuckRound).mockClear();
+        __resetSelfHealTrackerForTests();
+    });
+
+    it("surfaces the opponent as disconnectedPlayerId when their heartbeat is stale past the grace window", async () => {
+        const matchCreatedAt = new Date(Date.now() - 60_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 3,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 250_000,
+                player_b_timer_ms: 240_000,
+                winner_id: null,
+                frozen_tiles: {},
+                created_at: matchCreatedAt.toISOString(),
+            },
+            {
+                id: "round-3",
+                state: "collecting",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: null,
+                started_at: new Date(Date.now() - 5_000).toISOString(),
+            },
+            null,
+            [
+                // Player A is live (1s ago); Player B went silent 30s ago.
+                { player_id: PLAYER_A, last_seen_at: new Date(Date.now() - 1_000).toISOString() },
+                { player_id: PLAYER_B, last_seen_at: new Date(Date.now() - 30_000).toISOString() },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state!.disconnectedPlayerId).toBe(PLAYER_B);
+    });
+
+    it("does NOT surface a disconnected player when both heartbeats are fresh", async () => {
+        const matchCreatedAt = new Date(Date.now() - 60_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 3,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 250_000,
+                player_b_timer_ms: 240_000,
+                winner_id: null,
+                frozen_tiles: {},
+                created_at: matchCreatedAt.toISOString(),
+            },
+            {
+                id: "round-3",
+                state: "collecting",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: null,
+                started_at: new Date(Date.now() - 5_000).toISOString(),
+            },
+            null,
+            [
+                { player_id: PLAYER_A, last_seen_at: new Date(Date.now() - 1_500).toISOString() },
+                { player_id: PLAYER_B, last_seen_at: new Date(Date.now() - 1_200).toISOString() },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state!.disconnectedPlayerId).toBeNull();
+    });
+
+    it("does NOT flag missing heartbeats inside the grace window after match creation", async () => {
+        // Match is 2s old → both players may still be mid-first-poll. Avoid
+        // flickering a disconnect modal during the natural join latency.
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 1,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 300_000,
+                player_b_timer_ms: 300_000,
+                winner_id: null,
+                frozen_tiles: {},
+                created_at: new Date(Date.now() - 2_000).toISOString(),
+            },
+            {
+                id: "round-1",
+                state: "collecting",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: null,
+                started_at: new Date(Date.now() - 1_000).toISOString(),
+            },
+            null,
+            [],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state!.disconnectedPlayerId).toBeNull();
+    });
+
+    it("skips the heartbeat query for completed matches", async () => {
+        // No heartbeat read should happen once the match is over — completed
+        // matches don't poll anymore and a stale heartbeat would incorrectly
+        // flag the winner as disconnected on the post-game screen.
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "completed",
+                current_round: 11,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 10_000,
+                player_b_timer_ms: 0,
+                winner_id: PLAYER_A,
+                frozen_tiles: {},
+                created_at: new Date(Date.now() - 60_000).toISOString(),
+            },
+            {
+                id: "round-10",
+                state: "completed",
+                board_snapshot_before: BOARD,
+                board_snapshot_after: BOARD,
+                started_at: new Date(Date.now() - 30_000).toISOString(),
+                resolution_started_at: new Date(Date.now() - 25_000).toISOString(),
+            },
+            null,
+            [
+                // Even with a stale heartbeat on record, completed state wins.
+                { player_id: PLAYER_B, last_seen_at: new Date(Date.now() - 60_000).toISOString() },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state!.disconnectedPlayerId).toBeNull();
     });
 });

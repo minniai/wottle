@@ -25,6 +25,7 @@ const TABLES = [
   "word_score_entries",
   "scoreboard_snapshots",
   "match_logs",
+  "match_heartbeats",
 ];
 
 async function fetchPolicies() {
