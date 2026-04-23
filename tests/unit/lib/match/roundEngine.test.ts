@@ -134,10 +134,26 @@ describe("roundEngine.advanceRound", () => {
 
         moveSubmissionsInsert = vi.fn().mockResolvedValue({ error: null });
 
-        const roundsUpdateEq = vi.fn().mockResolvedValue({ error: null });
+        // Rounds update supports both shapes:
+        //  - `.update(x).eq('id', X)` (awaited directly)  — steps 9c, 11
+        //  - `.update(x).eq('id', X).eq('state', 'collecting').select('id')`
+        //    — step 9.5 CAS lock (returns { data: [...], error }).
+        // The chain is both thenable (for the non-CAS path) and has `.eq`
+        // returning itself + `.select` returning a resolved CAS result.
+        const makeRoundsUpdateChain = () => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn().mockImplementation(() => chain);
+            chain.select = vi
+                .fn()
+                .mockResolvedValue({ data: [{ id: "round-1" }], error: null });
+            (chain as { then: unknown }).then = (
+                onFulfilled: (v: { error: null }) => unknown,
+            ) => Promise.resolve({ error: null }).then(onFulfilled);
+            return chain;
+        };
         const roundsUpdate = vi.fn((payload) => {
             updateCalls.push({ table: "rounds", payload });
-            return { eq: roundsUpdateEq };
+            return makeRoundsUpdateChain();
         });
 
         roundsInsert = vi.fn().mockResolvedValue({ error: null });
@@ -907,5 +923,79 @@ describe("roundEngine.advanceRound", () => {
         expect(timerUpdate.payload.player_a_timer_ms).toBe(270_000);
         // player-b took 45s → 300000 - 45000 = 255000
         expect(timerUpdate.payload.player_b_timer_ms).toBe(255_000);
+    });
+
+    // Regression for issue #177: two concurrent advanceRound() callers (e.g.
+    // both players' `after()` hooks firing in parallel) would both pass the
+    // step 3 `round.state === 'collecting'` gate and both run the scoring
+    // pipeline, producing duplicate word_score_entries rows and doubled
+    // deltas. The fix makes step 9.5 a compare-and-swap on the rounds row;
+    // the loser of the CAS must exit cleanly before scoring.
+    it("exits cleanly when another caller already transitioned the round to resolving", async () => {
+        const { advanceRound } = await import("@/lib/match/roundEngine");
+        const { computeWordScoresForRound } = await import(
+            "@/app/actions/match/publishRoundSummary"
+        );
+
+        setupSupabase([
+            {
+                id: "sub-a",
+                player_id: "player-a",
+                from_x: 0,
+                from_y: 0,
+                to_x: 0,
+                to_y: 1,
+                submitted_at: "2025-01-01T00:00:00Z",
+                status: "pending",
+            },
+            {
+                id: "sub-b",
+                player_id: "player-b",
+                from_x: 5,
+                from_y: 5,
+                to_x: 5,
+                to_y: 6,
+                submitted_at: "2025-01-01T00:00:01Z",
+                status: "pending",
+            },
+        ]);
+
+        // Override the rounds `update` to simulate the CAS losing — no row
+        // matched because a concurrent caller already flipped state away
+        // from 'collecting'.
+        const client = getServiceRoleClient();
+        const originalFrom = (client as { from: (t: string) => unknown }).from;
+        (client as { from: (t: string) => unknown }).from = vi.fn(
+            (table: string) => {
+                const base = (originalFrom as (t: string) => unknown)(table);
+                if (table !== "rounds") return base;
+                return {
+                    ...(base as object),
+                    update: vi.fn(() => {
+                        const chain: Record<string, unknown> = {};
+                        chain.eq = vi.fn().mockImplementation(() => chain);
+                        chain.select = vi
+                            .fn()
+                            .mockResolvedValue({ data: [], error: null });
+                        (chain as { then: unknown }).then = (
+                            onFulfilled: (v: { error: null }) => unknown,
+                        ) => Promise.resolve({ error: null }).then(onFulfilled);
+                        return chain;
+                    }),
+                };
+            },
+        );
+
+        const computeSpy = vi.mocked(computeWordScoresForRound);
+        computeSpy.mockClear();
+
+        const result = await advanceRound("match-1");
+
+        expect(result).toEqual({
+            status: "not_advancing",
+            reason: "Round already being resolved",
+        });
+        // Critical: scoring pipeline must NOT run when CAS is lost.
+        expect(computeSpy).not.toHaveBeenCalled();
     });
 });

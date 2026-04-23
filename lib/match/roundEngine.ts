@@ -239,21 +239,32 @@ export async function advanceRound(matchId: string) {
     }
 
     // 9.5. Mark round as resolving immediately after board computation, before word scoring.
-    // This shrinks the window where both clocks appear "paused" (stateLoader sees
-    // collecting + both submissions) to < 10ms. Also acts as a write-lock against
-    // concurrent advanceRound() calls on the same round.
+    // Uses a conditional (compare-and-swap) update on `state = 'collecting'`
+    // to serialize concurrent advanceRound() callers — both players submitting
+    // near-simultaneously queue two `after()` advanceRound() hooks, and without
+    // the CAS both pass the `state === 'collecting'` check at step 3 and both
+    // run the scoring pipeline, producing duplicate word_score_entries rows
+    // (issue #177).
     // Note: board_snapshot_after is set AFTER word scoring (step 9c) to reflect
     // the word engine's final board state, which may differ from boardAfter if
     // the word engine rejects swaps that touch tiles frozen earlier in the round.
-    const { error: updateRoundError } = await supabase
+    const { data: resolvingRows, error: updateRoundError } = await supabase
         .from("rounds")
         .update({
             state: "resolving",
             resolution_started_at: new Date().toISOString(),
         })
-        .eq("id", round.id);
+        .eq("id", round.id)
+        .eq("state", "collecting")
+        .select("id");
 
     if (updateRoundError) throw new Error("Failed to update round state");
+
+    // CAS lost: another advanceRound() call already transitioned this round.
+    // Exit cleanly — the winning caller will finish scoring and advance.
+    if (!resolvingRows || resolvingRows.length === 0) {
+        return { status: "not_advancing", reason: "Round already being resolved" };
+    }
 
     // 9b. Compute word scores from the board delta
     let scoringFinalBoard = boardAfter;

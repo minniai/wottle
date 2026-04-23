@@ -405,7 +405,22 @@ async function executeScoringPipeline(
         return { wordScores: [], finalBoard: result.finalBoard };
     }
 
-    // Persist word scores to word_score_entries table
+    // Persist word scores to word_score_entries table.
+    // Delete any existing rows for this round first so retries (and any
+    // stray concurrent caller that slipped past the rounds-state CAS) stay
+    // idempotent — `word_score_entries` has no UNIQUE constraint, so a bare
+    // INSERT would stack duplicate rows and double the round delta (#177).
+    const { error: deleteError } = await supabase
+        .from("word_score_entries")
+        .delete()
+        .eq("round_id", roundId);
+
+    if (deleteError) {
+        throw new Error(
+            `Failed to clear prior word scores: ${deleteError.message}`,
+        );
+    }
+
     const entries = allBreakdowns.map((bd) => ({
         match_id: matchId,
         round_id: roundId,
