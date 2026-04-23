@@ -54,4 +54,23 @@ describe("ProfileMatchHistoryList", () => {
     render(<ProfileMatchHistoryList matches={[]} />);
     expect(screen.getByText(/No recent matches/i)).toBeInTheDocument();
   });
+
+  test("renders words-found count per row", () => {
+    render(<ProfileMatchHistoryList matches={ROWS} />);
+    expect(screen.getByTestId("match-history-words-m1")).toHaveTextContent(
+      "7 words",
+    );
+    expect(screen.getByTestId("match-history-words-m2")).toHaveTextContent(
+      "2 words",
+    );
+  });
+
+  test("renders a Replay link (placeholder) per row", () => {
+    render(<ProfileMatchHistoryList matches={ROWS} />);
+    const replayLinks = screen.getAllByText(/Replay →/);
+    expect(replayLinks).toHaveLength(2);
+    replayLinks.forEach((el) =>
+      expect(el).toHaveAttribute("aria-disabled", "true"),
+    );
+  });
 });

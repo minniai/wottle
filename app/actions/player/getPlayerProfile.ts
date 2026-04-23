@@ -41,7 +41,7 @@ export async function getPlayerProfile(
   const { data: player, error: playerError } = await supabase
     .from("players")
     .select(
-      "id, username, display_name, avatar_url, status, last_seen_at, elo_rating, games_played, wins, losses, draws",
+      "id, username, display_name, avatar_url, status, last_seen_at, created_at, elo_rating, games_played, wins, losses, draws",
     )
     .eq("id", parsed.data.playerId)
     .single();
@@ -121,6 +121,7 @@ export async function getPlayerProfile(
     avatarUrl: player.avatar_url as string | null,
     status: player.status as PlayerIdentity["status"],
     lastSeenAt: player.last_seen_at as string,
+    createdAt: (player.created_at as string | null) ?? undefined,
     eloRating: player.elo_rating as number,
   };
 

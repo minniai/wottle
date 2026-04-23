@@ -2,6 +2,7 @@ import { getRecentGames } from "@/app/actions/match/getRecentGames";
 import { getBestWords } from "@/app/actions/player/getBestWords";
 import { getPlayerProfileByHandle } from "@/app/actions/player/getPlayerProfileByHandle";
 import { ProfilePage } from "@/components/profile/ProfilePage";
+import { readLobbySession } from "@/lib/matchmaking/profile";
 
 interface Params {
   handle: string;
@@ -37,19 +38,23 @@ export default async function PublicProfilePage({
     );
   }
 
-  const [bestWordsResult, recentGamesResult] = await Promise.all([
+  const [bestWordsResult, recentGamesResult, session] = await Promise.all([
     getBestWords(profileResult.profile.identity.id, 12),
     getRecentGames({
       playerId: profileResult.profile.identity.id,
       limit: 10,
     }),
+    readLobbySession(),
   ]);
+
+  const isSelf = session?.player.id === profileResult.profile.identity.id;
 
   return (
     <ProfilePage
       profile={profileResult.profile}
       words={bestWordsResult.words ?? []}
       matches={recentGamesResult.games ?? []}
+      isSelf={isSelf}
     />
   );
 }

@@ -34,6 +34,7 @@ const PLAYER_ROW = {
   avatar_url: null,
   status: "available",
   last_seen_at: "2026-04-22T10:00:00Z",
+  created_at: "2025-03-10T08:00:00Z",
   elo_rating: 1234,
   games_played: 7,
   wins: 4,

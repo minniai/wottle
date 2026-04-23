@@ -14,7 +14,7 @@ export function ProfileWordCloud({ words }: ProfileWordCloudProps) {
     return (
       <div
         data-testid="profile-word-cloud"
-        className="rounded-xl border border-hair bg-paper-2 px-4 py-6 text-center text-sm text-ink-soft"
+        className="px-2 py-4 text-center text-sm text-ink-soft"
       >
         No scored words yet.
       </div>
@@ -24,7 +24,7 @@ export function ProfileWordCloud({ words }: ProfileWordCloudProps) {
   return (
     <div
       data-testid="profile-word-cloud"
-      className="flex flex-wrap items-baseline gap-x-3 gap-y-2"
+      className="flex flex-wrap items-baseline gap-x-3.5 gap-y-2"
     >
       {words.map((w, i) => {
         const isTopThree = i < 3;
@@ -33,10 +33,13 @@ export function ProfileWordCloud({ words }: ProfileWordCloudProps) {
           <span
             key={`${w.word}-${i}`}
             data-testid="word-cloud-item"
-            className={`font-display font-semibold ${colorClass}`}
+            className={`font-display font-semibold italic ${colorClass}`}
             style={{ fontSize: `${fontSizeFor(w.points)}px` }}
           >
             {w.word}
+            <sub className="ml-[3px] font-mono text-[10px] not-italic text-ink-soft">
+              +{w.points}
+            </sub>
           </span>
         );
       })}

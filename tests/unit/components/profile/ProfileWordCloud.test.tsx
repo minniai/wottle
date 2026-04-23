@@ -44,4 +44,11 @@ describe("ProfileWordCloud", () => {
     expect(screen.getByText(/No scored words/i)).toBeInTheDocument();
     expect(screen.queryAllByTestId("word-cloud-item")).toHaveLength(0);
   });
+
+  test("renders a mono point-value subscript beside each word", () => {
+    render(<ProfileWordCloud words={[{ word: "KAFFI", points: 42 }]} />);
+    const item = screen.getByTestId("word-cloud-item");
+    expect(item.textContent).toContain("+42");
+    expect(item.querySelector("sub")).not.toBeNull();
+  });
 });

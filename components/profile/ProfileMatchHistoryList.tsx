@@ -32,7 +32,7 @@ export function ProfileMatchHistoryList({ matches }: ProfileMatchHistoryListProp
     return (
       <div
         data-testid="profile-match-history"
-        className="rounded-xl border border-hair bg-paper-2 px-4 py-6 text-center text-sm text-ink-soft"
+        className="px-2 py-4 text-center text-sm text-ink-soft"
       >
         No recent matches.
       </div>
@@ -41,13 +41,13 @@ export function ProfileMatchHistoryList({ matches }: ProfileMatchHistoryListProp
   return (
     <ul
       data-testid="profile-match-history"
-      className="flex flex-col divide-y divide-hair rounded-xl border border-hair bg-paper"
+      className="flex flex-col divide-y divide-hair"
     >
       {matches.map((m) => (
         <li
           key={m.matchId}
           data-testid="match-history-row"
-          className="flex items-center gap-4 px-4 py-3"
+          className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0"
         >
           <span
             data-testid={`match-history-chip-${m.matchId}`}
@@ -55,17 +55,26 @@ export function ProfileMatchHistoryList({ matches }: ProfileMatchHistoryListProp
           >
             {CHIP_LABEL[m.result]}
           </span>
-          <span className="min-w-0 flex-1 truncate font-mono text-sm text-ink">
-            @{m.opponentUsername}
+          <span className="min-w-0 flex-1 truncate text-sm text-ink">
+            vs <b className="font-semibold">@{m.opponentUsername}</b>
           </span>
           <span className="font-mono text-sm text-ink">
-            {m.yourScore} – {m.opponentScore}
+            {m.yourScore}–{m.opponentScore}
+          </span>
+          <span
+            data-testid={`match-history-words-${m.matchId}`}
+            className="font-mono text-[11px] text-ink-soft"
+          >
+            {m.wordsFound} words
           </span>
           <span className="font-mono text-[11px] text-ink-soft">
             {relativeTime(m.completedAt)}
           </span>
-          <span className="font-mono text-[11px] text-ink-soft/60">
-            Replay → (soon)
+          <span
+            aria-disabled="true"
+            className="ml-auto font-mono text-[11px] text-ink-soft/60"
+          >
+            Replay →
           </span>
         </li>
       ))}

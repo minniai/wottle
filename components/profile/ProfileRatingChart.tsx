@@ -5,18 +5,18 @@ interface ProfileRatingChartProps {
 }
 
 const VIEWBOX_W = 600;
-const VIEWBOX_H = 220;
+const VIEWBOX_H = 180;
 const PAD_X = 24;
-const PAD_Y = 16;
+const PAD_Y = 14;
 
 export function ProfileRatingChart({ history }: ProfileRatingChartProps) {
   if (history.length === 0) {
     return (
       <div
         data-testid="profile-rating-chart"
-        className="flex h-[220px] w-full items-center justify-center rounded-xl border border-hair bg-paper-2 text-sm text-ink-soft"
+        className="flex h-[180px] w-full items-center justify-center text-sm text-ink-soft"
       >
-        No rated matches yet.
+        No rated matches in the last 30 days.
       </div>
     );
   }
@@ -30,7 +30,7 @@ export function ProfileRatingChart({ history }: ProfileRatingChartProps) {
     history.length > 1 ? (VIEWBOX_W - PAD_X * 2) / (history.length - 1) : 0;
 
   const points = history.map((h, i) => {
-    const x = PAD_X + i * xStep;
+    const x = history.length > 1 ? PAD_X + i * xStep : VIEWBOX_W / 2;
     const y =
       VIEWBOX_H - PAD_Y - ((h.rating - min) / range) * (VIEWBOX_H - PAD_Y * 2);
     return { x, y, rating: h.rating };
@@ -55,14 +55,9 @@ export function ProfileRatingChart({ history }: ProfileRatingChartProps) {
       role="img"
       aria-label="Rating history chart"
       viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
-      className="h-[220px] w-full rounded-xl border border-hair bg-paper-2"
+      preserveAspectRatio="none"
+      className="block h-[180px] w-full"
     >
-      <defs>
-        <linearGradient id="rating-chart-grad" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="var(--ochre-deep)" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="var(--ochre-deep)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
       {gridYs.map((y) => (
         <line
           key={y}
@@ -70,11 +65,12 @@ export function ProfileRatingChart({ history }: ProfileRatingChartProps) {
           x2={VIEWBOX_W - PAD_X}
           y1={y}
           y2={y}
-          stroke="var(--hair)"
-          strokeDasharray="3 4"
+          stroke="currentColor"
+          strokeOpacity={0.08}
+          strokeDasharray="2 4"
         />
       ))}
-      <path d={areaD} fill="url(#rating-chart-grad)" />
+      <path d={areaD} fill="var(--ochre-tint)" opacity={0.7} />
       <path
         d={lineD}
         fill="none"
@@ -83,7 +79,14 @@ export function ProfileRatingChart({ history }: ProfileRatingChartProps) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={endpoint.x} cy={endpoint.y} r={5} fill="var(--ochre-deep)" />
+      <circle
+        cx={endpoint.x}
+        cy={endpoint.y}
+        r={5}
+        fill="var(--ochre-deep)"
+        stroke="var(--paper)"
+        strokeWidth={2}
+      />
     </svg>
   );
 }

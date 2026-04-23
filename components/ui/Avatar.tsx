@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 import { generateAvatar } from "@/lib/ui/avatarGradient";
 
-export type AvatarSize = "sm" | "md" | "lg";
+export type AvatarSize = "sm" | "md" | "lg" | "xl";
 
 interface AvatarProps {
   playerId: string;
@@ -16,6 +16,7 @@ const SIZE_STYLES: Record<AvatarSize, string> = {
   sm: "h-8 w-8 text-xs",
   md: "h-12 w-12 text-sm",
   lg: "h-16 w-16 text-base",
+  xl: "h-[180px] w-[180px] text-[72px] font-display italic",
 };
 
 export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
