@@ -104,6 +104,17 @@ export function MatchClient({
   const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<
     string | null
   >(null);
+  /**
+   * Mirrors `disconnectedPlayerId` so the Realtime channel useEffect can read
+   * the current value without listing it in deps. Listing it caused the channel
+   * to be torn down + remounted on every flip; the teardown emits a presence
+   * "leave" to the opponent, who then fires `onOpponentLeave` and triggers
+   * a cascading round-trip flicker. See discussion under issue #161.
+   */
+  const disconnectedPlayerIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    disconnectedPlayerIdRef.current = disconnectedPlayerId;
+  }, [disconnectedPlayerId]);
   // Phase 6 — disconnection modal state. disconnectStartedAt anchors the 90s
   // countdown on the wall clock when the opponent first drops.
   const [disconnectStartedAt, setDisconnectStartedAt] = useState<number | null>(
@@ -366,7 +377,7 @@ export function MatchClient({
             snapshot.disconnectedPlayerId !== currentPlayerId,
           );
         } else if (
-          disconnectedPlayerId &&
+          disconnectedPlayerIdRef.current &&
           snapshot.disconnectedPlayerId === null
         ) {
           setIsReconnecting(false);
@@ -444,7 +455,6 @@ export function MatchClient({
     matchId,
     usePolling,
     currentPlayerId,
-    disconnectedPlayerId,
     applySnapshot,
     showRoundAnnounce,
     matchState.timers.playerA.playerId,
@@ -681,7 +691,21 @@ export function MatchClient({
   const opponentDisconnected =
     disconnectedPlayerId !== null &&
     disconnectedPlayerId === opponentTimer.playerId;
+  // Only count active play states. `pending`, `completed`, and `abandoned`
+  // must never trigger the disconnect modal — match-end navigation triggers
+  // a presence "leave" on the opponent's channel which would otherwise flash
+  // the modal during the 1-frame window before the completed snapshot
+  // commits (see follow-up to issue #161).
+  const isMatchActive =
+    matchState.state === "collecting" || matchState.state === "resolving";
   useEffect(() => {
+    if (!isMatchActive) {
+      // Drop any modal state we may have queued — once the match is past
+      // active play we never want to open the modal regardless of late
+      // disconnect signals.
+      if (disconnectStartedAt !== null) setDisconnectStartedAt(null);
+      return;
+    }
     if (opponentDisconnected && disconnectStartedAt === null) {
       setDisconnectStartedAt(Date.now());
       setShowDisconnectModal(true);
@@ -689,7 +713,7 @@ export function MatchClient({
       setDisconnectStartedAt(null);
       setShowDisconnectModal(true);
     }
-  }, [opponentDisconnected, disconnectStartedAt]);
+  }, [opponentDisconnected, disconnectStartedAt, isMatchActive]);
 
   const opponentSlot: "player_a" | "player_b" =
     playerSlot === "player_a" ? "player_b" : "player_a";
@@ -813,7 +837,7 @@ export function MatchClient({
       {opponentDisconnected &&
       showDisconnectModal &&
       disconnectStartedAt !== null &&
-      matchState.state !== "completed" ? (
+      isMatchActive ? (
         <DisconnectionModal
           opponentDisplayName={
             (opponentSlot === "player_a"
