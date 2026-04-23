@@ -728,6 +728,72 @@ describe("MatchClient round-recap flash (US1)", () => {
   });
 });
 
+// ─── DisconnectionModal end-of-match guard (issue #161 follow-up) ──────────
+
+describe("MatchClient disconnection modal guard", () => {
+  beforeEach(() => {
+    mockMatchCallbacks.onState = null;
+  });
+
+  test("does not render the disconnection modal when state is 'completed', even if a snapshot reports an opponent disconnect", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    // Simulate the round-end race: a state snapshot arrives carrying both
+    // `state: "completed"` AND a non-null `disconnectedPlayerId`.
+    act(() => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          state: "completed",
+          disconnectedPlayerId: "player-2",
+        }),
+      );
+    });
+
+    expect(
+      screen.queryByTestId("disconnection-modal"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("does not render the disconnection modal when state is 'pending'", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState({ state: "pending" })}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    act(() => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          state: "pending",
+          disconnectedPlayerId: "player-2",
+        }),
+      );
+    });
+
+    expect(
+      screen.queryByTestId("disconnection-modal"),
+    ).not.toBeInTheDocument();
+  });
+});
+
 // ─── MatchClient dual timeout tests (US4) ──────────────────────────────────
 
 describe("MatchClient dual timeout (US4)", () => {
