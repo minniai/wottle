@@ -827,7 +827,7 @@ export function MatchClient({
     <MatchShell matchId={matchId}>
       {isReconnecting && disconnectedPlayerId === currentPlayerId && (
         <div
-          className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200"
+          className="mt-4 rounded-2xl border border-warn/50 bg-warn/20 p-4 text-sm text-[color-mix(in_oklab,var(--warn)_80%,var(--ink))]"
           data-testid="reconnect-banner"
         >
           Reconnecting... Please wait.
@@ -855,7 +855,7 @@ export function MatchClient({
 
       {usePolling && !isReconnecting && (
         <div
-          className="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200"
+          className="mt-4 rounded-2xl border border-warn/50 bg-warn/20 p-4 text-sm text-[color-mix(in_oklab,var(--warn)_80%,var(--ink))]"
           data-testid="polling-fallback-banner"
         >
           Realtime connection lost. Falling back to polling updates.
@@ -864,7 +864,7 @@ export function MatchClient({
 
       {dualTimeoutDetected && matchState.state !== "completed" && (
         <div
-          className="mt-4 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-sm font-semibold text-red-200"
+          className="mt-4 rounded-2xl border border-bad/50 bg-bad/10 p-4 text-center text-sm font-semibold text-bad"
           data-testid="dual-timeout-overlay"
         >
           Both players timed out
@@ -873,7 +873,7 @@ export function MatchClient({
 
       {(pollError || swapError) && (
         <div
-          className="mt-2 rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm text-red-200"
+          className="mt-2 rounded-xl border border-bad/50 bg-bad/10 px-4 py-2 text-sm text-bad"
           data-testid="round-alert"
         >
           {swapError ?? pollError}
