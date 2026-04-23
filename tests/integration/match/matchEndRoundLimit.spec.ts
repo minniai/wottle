@@ -173,7 +173,20 @@ function setupAdvanceRoundMocks() {
       if (table === "rounds")
         return {
           select: vi.fn(() => roundChain),
-          update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          // Rounds update has two call shapes in roundEngine (see PR #177):
+          //  - `.update(x).eq("id", X)` awaited directly (steps 9c, 11)
+          //  - `.update(x).eq("id", X).eq("state", "collecting").select("id")` — step 9.5 CAS
+          update: vi.fn().mockImplementation(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi
+              .fn()
+              .mockResolvedValue({ data: [{ id: "round-10" }], error: null });
+            (chain as { then: unknown }).then = (
+              onFulfilled: (v: { error: null }) => unknown,
+            ) => Promise.resolve({ error: null }).then(onFulfilled);
+            return chain;
+          }),
           insert: vi.fn().mockResolvedValue({ error: null }),
         };
       if (table === "move_submissions")
