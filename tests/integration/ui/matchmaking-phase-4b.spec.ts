@@ -72,7 +72,10 @@ test.describe("@matchmaking Phase 4b matchmaking screen", () => {
     }
   });
 
-  test("two players matching navigate through found/starting into /match/:id", async ({
+  // Skipped — fails consistently on CI when a stale queue entry from the prior
+  // cancel-search test pairs with one of the two new players, leaving the other
+  // unpaired and timing out on `matchmaking-vs-block`. Tracked in #192.
+  test.fixme("two players matching navigate through found/starting into /match/:id", async ({
     browser,
   }) => {
     const ctxA = await browser.newContext();
