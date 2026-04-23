@@ -35,7 +35,7 @@ export function HudCard({
 
   return (
     <div data-testid="hud-card" className={`hud-card ${slotClass}`}>
-      {avatar}
+      <div className="hud-card__avatar">{avatar}</div>
       <div className="hud-card__identity">
         <span className="hud-card__name" title={name}>
           {name}
