@@ -266,6 +266,59 @@ describe("roundEngine.advanceRound", () => {
         );
     });
 
+    it("seeds the next round with the word engine's finalBoard, not the raw post-swap board (issue #130)", async () => {
+        // Regression test for #130: when a same-round move is rejected by the
+        // word engine because an earlier move's word froze tiles it would have
+        // touched, the next round's `board_snapshot_before` must reflect the
+        // freeze-aware finalBoard — NOT the raw `boardAfter` produced by
+        // sequentially applying every accepted move. Using `boardAfter` would
+        // leave the next round showing letters from a swap that was effectively
+        // dropped, producing the visual "I scored ÝÚP" confusion.
+        const { computeWordScoresForRound } = await import(
+            "@/app/actions/match/publishRoundSummary"
+        );
+        // A distinctive marker board the test can recognise — every cell "Z".
+        const markerFinalBoard = Array.from({ length: 10 }, () =>
+            Array.from({ length: 10 }, () => "Z"),
+        );
+        vi.mocked(computeWordScoresForRound).mockResolvedValueOnce({
+            wordScores: [],
+            finalBoard: markerFinalBoard,
+        });
+
+        setupSupabase([
+            {
+                id: "sub-a",
+                player_id: "player-a",
+                from_x: 0,
+                from_y: 0,
+                to_x: 0,
+                to_y: 1,
+                submitted_at: "2025-01-01T00:00:00Z",
+                status: "pending",
+            },
+            {
+                id: "sub-b",
+                player_id: "player-b",
+                from_x: 5,
+                from_y: 5,
+                to_x: 5,
+                to_y: 6,
+                submitted_at: "2025-01-01T00:00:01Z",
+                status: "pending",
+            },
+        ]);
+
+        await advanceRound("match-1");
+
+        expect(roundsInsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                round_number: 2,
+                board_snapshot_before: markerFinalBoard,
+            }),
+        );
+    });
+
     it("marks conflicting submissions as rejected_invalid", async () => {
         const sharedMove = {
             from_x: 0,
