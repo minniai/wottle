@@ -1,12 +1,16 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const getMock = vi.fn();
+const eqMock = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
   getServiceRoleClient: () => ({
     from: () => ({
       select: () => ({
-        eq: (..._args: unknown[]) => getMock(),
+        eq: (column: string, value: unknown) => {
+          eqMock(column, value);
+          return getMock();
+        },
       }),
     }),
   }),
@@ -14,6 +18,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 afterEach(() => {
   getMock.mockReset();
+  eqMock.mockReset();
 });
 
 describe("GET /api/lobby/stats/matches-in-progress", () => {
@@ -27,6 +32,7 @@ describe("GET /api/lobby/stats/matches-in-progress", () => {
     const body = (await res.json()) as { matchesInProgress: number };
     expect(body.matchesInProgress).toBe(7);
     expect(res.headers.get("cache-control")).toContain("no-store");
+    expect(eqMock).toHaveBeenCalledWith("state", "in_progress");
   });
 
   test("returns 0 when Supabase count is null", async () => {
