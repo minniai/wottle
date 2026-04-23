@@ -38,6 +38,7 @@ export type MatchEndedReason =
   | "timeout"
   | "disconnect"
   | "forfeit"
+  | "abandoned"
   | "error";
 
 export type ClockCheckResult = { allowed: true } | { allowed: false; remainingMs: number };

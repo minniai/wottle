@@ -67,8 +67,30 @@ The project follows a spec-driven development workflow using GitHub Spec-kit.
 | `NEXT_PUBLIC_ENABLE_PLAYTEST_MATCH` | Set to `true` to surface match summary preview UI                  | _unset_ (false)                      |
 | `PLAYTEST_SESSION_SECURE`           | Force secure cookies (`true`/`false`); override for local Playwright | auto (`true` in production)          |
 | `RATE_LIMIT_DISABLED_SCOPES`        | Comma-separated list of scopes to bypass (e.g., `auth:login`)      | _unset_                              |
+| `CRON_SECRET`                       | Shared secret for `/api/cron/*` routes; must match Postgres `app.cron_secret` setting | _unset_ (required in prod)           |
 
 Tweak the playtest-related values when simulating heavier loads; e.g., increase `PLAYTEST_MAX_CONCURRENT_MATCHES` when running soak tests on a beefier Supabase instance, or lower `PLAYTEST_INVITE_EXPIRY_SECONDS` to keep the lobby tidy during short feedback sessions.
+
+### pg_cron sweep (production / Supabase Cloud)
+
+Migration `20260423001_sweep_stale_matches.sql` registers a 30-second pg_cron job that POSTs `/api/cron/sweep-stale-matches` to auto-finalise matches stuck `in_progress` with no live presence on either side (issue #180). After deploying:
+
+1. Set `CRON_SECRET` in the Vercel project env (any random value).
+2. In the Supabase SQL editor, configure the matching Postgres settings:
+   ```sql
+   alter database postgres set app.app_url = 'https://wottle.example.com';
+   alter database postgres set app.cron_secret = 'same-value-as-CRON_SECRET';
+   ```
+3. Verify the job is firing:
+   ```sql
+   select start_time, status, return_message
+   from cron.job_run_details
+   where jobname = 'sweep-stale-matches'
+   order by start_time desc
+   limit 5;
+   ```
+
+The local Supabase Docker image keeps pg_cron loaded, but the schedule body uses `current_setting(..., true)` so missing `app.app_url` / `app.cron_secret` resolve to NULL and `net.http_post` no-ops harmlessly. The `find_orphaned_matches()` SQL function is portable and is safe to invoke directly for ad-hoc cleanup.
 
 ## Scripts
 

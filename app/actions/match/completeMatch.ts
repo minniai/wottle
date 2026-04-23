@@ -105,12 +105,16 @@ export async function completeMatchInternal(
   const supabase = getServiceRoleClient();
   const match = await fetchMatch(supabase, matchId);
 
-  if (match.state === "completed" && match.winner_id) {
+  if (match.state === "completed") {
+    const existingWinner = match.winner_id;
     return {
       matchId,
-      winnerId: match.winner_id,
-      loserId:
-        match.winner_id === match.player_a_id ? match.player_b_id : match.player_a_id,
+      winnerId: existingWinner,
+      loserId: existingWinner
+        ? existingWinner === match.player_a_id
+          ? match.player_b_id
+          : match.player_a_id
+        : null,
       isDraw: false,
       scores: await fetchLatestScores(supabase, matchId),
       endedReason: (match.ended_reason as MatchEndedReason) ?? reason,
@@ -123,22 +127,26 @@ export async function completeMatchInternal(
   );
   // Disconnect flows award the still-connected / claiming player regardless of
   // score: loss of connection is treated as forfeit per Phase 6 spec §6.
+  // Abandoned matches (sweep-finalised with no live presence on either side)
+  // record no winner — there is no reliable signal for who "should" have won.
   const result =
-    forcedWinnerId !== undefined
-      ? {
-          winnerId: forcedWinnerId,
-          loserId:
-            forcedWinnerId === match.player_a_id
-              ? match.player_b_id
-              : match.player_a_id,
-          isDraw: false,
-        }
-      : determineMatchWinner(
-          scores,
-          match.player_a_id,
-          match.player_b_id,
-          frozenCounts,
-        );
+    reason === "abandoned"
+      ? { winnerId: null, loserId: null, isDraw: false }
+      : forcedWinnerId !== undefined
+        ? {
+            winnerId: forcedWinnerId,
+            loserId:
+              forcedWinnerId === match.player_a_id
+                ? match.player_b_id
+                : match.player_a_id,
+            isDraw: false,
+          }
+        : determineMatchWinner(
+            scores,
+            match.player_a_id,
+            match.player_b_id,
+            frozenCounts,
+          );
 
   await supabase
     .from("matches")
@@ -150,24 +158,27 @@ export async function completeMatchInternal(
     })
     .eq("id", matchId);
 
-  // Calculate and persist Elo rating changes
+  // Calculate and persist Elo rating changes — skip for abandoned matches
+  // since no winner means no meaningful rating delta.
   let ratingChanges: RatingChange | undefined;
-  try {
-    ratingChanges = await applyRatingChanges(
-      supabase,
-      matchId,
-      match.player_a_id,
-      match.player_b_id,
-      result,
-    );
-  } catch (err) {
-    console.error(
-      JSON.stringify({
-        event: "rating.update.error",
+  if (reason !== "abandoned") {
+    try {
+      ratingChanges = await applyRatingChanges(
+        supabase,
         matchId,
-        error: err instanceof Error ? err.message : String(err),
-      }),
-    );
+        match.player_a_id,
+        match.player_b_id,
+        result,
+      );
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          event: "rating.update.error",
+          matchId,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
   }
 
   await resetPlayerStatuses(supabase, [match.player_a_id, match.player_b_id]);
