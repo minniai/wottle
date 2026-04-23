@@ -148,7 +148,7 @@ describe("wordEngine", () => {
     test("scores both BÆN and BÁS even when a perpendicular-axis frozen tile sits adjacent (issue #136)", async () => {
       const board = makeBoardWithFrozenNeighbor();
       const frozenTiles: FrozenTileMap = {
-        "1,2": { owner: PLAYER_B, scoredAxes: ["vertical"] },
+        "1,2": { owner: "player_b", scoredAxes: ["vertical"] },
       };
 
       const result = await processRoundScoring({
@@ -181,7 +181,7 @@ describe("wordEngine", () => {
       // ends at (1,2). Placing BÆN to its right extends that horizontal
       // sequence into "DBÆN" which is not a word — must reject.
       const frozenTiles: FrozenTileMap = {
-        "1,2": { owner: PLAYER_B, scoredAxes: ["horizontal"] },
+        "1,2": { owner: "player_b", scoredAxes: ["horizontal"] },
       };
 
       const result = await processRoundScoring({
