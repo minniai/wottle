@@ -87,6 +87,7 @@ describe("verifySupabase instrumentation", () => {
       "rounds",
       "move_submissions",
       "match_logs",
+      "match_heartbeats",
     ]);
     expect(stub.history.boardSelectColumns).toEqual(["board_id"]);
     expect(stub.history.boardSelectFilters).toEqual([
