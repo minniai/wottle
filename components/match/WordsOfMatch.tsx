@@ -18,7 +18,7 @@ export function WordsOfMatch({
   return (
     <div
       data-testid="words-of-match"
-      className="rounded-xl border border-hair bg-paper shadow-wottle-sm"
+      className="rounded-xl border border-hair bg-paper shadow-wottle-sm h-full"
     >
       <div className="flex items-baseline justify-between border-b border-hair px-4 py-3">
         <h3 className="font-display text-[18px] italic text-ink">
@@ -34,7 +34,7 @@ export function WordsOfMatch({
         </p>
       ) : (
         <div
-          style={{ maxHeight: `${maxHeightPx}px` }}
+          style={{ height: "100%" }}
           className="overflow-y-auto"
         >
           {sorted.map((row, idx) => {
@@ -44,7 +44,7 @@ export function WordsOfMatch({
               <div
                 key={`${row.roundNumber}-${row.word}-${idx}`}
                 data-testid="words-of-match-row"
-                className={`flex items-center gap-3 border-b border-hair/60 px-4 py-2.5 last:border-b-0 ${slotClass}`}
+                className={`flex items-center gap-3 border-b border-hair/60 px-4 py-2.5 ${slotClass}`}
               >
                 <span className="font-display text-[17px] font-medium tracking-[0.02em]">
                   {row.word}
