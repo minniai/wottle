@@ -1,5 +1,5 @@
 import type { BoardGrid, BoardWord } from "@/lib/types/board";
-import type { FrozenTileMap } from "@/lib/types/match";
+import type { FrozenTileMap, ScoredAxis } from "@/lib/types/match";
 import { BOARD_SIZE } from "@/lib/constants/board";
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 import {
@@ -141,6 +141,125 @@ export function hasCrossWordViolation(
 }
 
 /**
+ * Does a candidate word physically abut a prior same-axis scored run
+ * such that the combined sequence is not a dict word?
+ *
+ * Enforces the standalone invariant (game_rules §3.5, I7) across
+ * rounds: a scored word must end at an unscored tile or the board
+ * edge, or — if it meets another scored word head-on on the same
+ * axis — the combined sequence must itself be a dict word. The
+ * within-round version lives in `hasNoSameAxisConflict`; this one
+ * catches the cross-round case (issue #200, ÖRLTEL / ÞESSINÓK /
+ * NEFÞEMA pattern).
+ *
+ * Uses `scoredAxes` metadata when available: a frozen tile extends
+ * the new word's axis iff it was previously scored on that axis.
+ * Legacy tiles without `scoredAxes` fall back to a physical-run
+ * heuristic: the extension counts only if the contiguous frozen run
+ * is itself a dict word (meaning it was almost certainly scored on
+ * this axis). This preserves #136 (Þ scored vertically, adjacent to
+ * horizontal BÆN, does not extend a horizontal scored run) and #195
+ * (cross-axis per-letter coverage is independent).
+ */
+function violatesFrozenAdjacencyOnSameAxis(
+  word: BoardWord,
+  board: BoardGrid,
+  frozenTileSet: Set<string>,
+  frozenTileMap: FrozenTileMap,
+  dictionary: Set<string>,
+): boolean {
+  const isHorizontal =
+    word.direction === "right" || word.direction === "left";
+  const wordAxis: ScoredAxis = isHorizontal ? "horizontal" : "vertical";
+  const dx = isHorizontal ? 1 : 0;
+  const dy = isHorizontal ? 0 : 1;
+
+  const sortedTiles = [...word.tiles].sort((a, b) =>
+    isHorizontal ? a.x - b.x : a.y - b.y,
+  );
+  const first = sortedTiles[0];
+  const last = sortedTiles[sortedTiles.length - 1];
+  const wordChars = sortedTiles.map((t) => board[t.y][t.x]);
+
+  const beforeRun = collectFrozenRun(first.x - dx, first.y - dy, -dx, -dy);
+  const afterRun = collectFrozenRun(last.x + dx, last.y + dy, dx, dy);
+
+  if (beforeRun && isInvalidCombined(beforeRun, true)) return true;
+  if (afterRun && isInvalidCombined(afterRun, false)) return true;
+
+  if (beforeRun && afterRun) {
+    const full = [
+      ...[...beforeRun.chars].reverse(),
+      ...wordChars,
+      ...afterRun.chars,
+    ];
+    if (!isDictWord(full)) return true;
+  }
+
+  return false;
+
+  function isDictWord(chars: string[]): boolean {
+    const text = chars.join("").normalize("NFC").toLowerCase();
+    const reversed = [...text].reverse().join("");
+    return dictionary.has(text) || dictionary.has(reversed);
+  }
+
+  function isSameAxisFrozen(x: number, y: number): boolean {
+    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return false;
+    if (!frozenTileSet.has(`${x},${y}`)) return false;
+    const meta = frozenTileMap[`${x},${y}`];
+    // Legacy frozen tiles without scoredAxes: count as same-axis and
+    // let the dict-gate on the frozen run decide.
+    if (!meta || !meta.scoredAxes) return true;
+    return meta.scoredAxes.includes(wordAxis);
+  }
+
+  function hasScoredAxes(x: number, y: number): boolean {
+    const meta = frozenTileMap[`${x},${y}`];
+    return Boolean(meta?.scoredAxes);
+  }
+
+  function collectFrozenRun(
+    startX: number,
+    startY: number,
+    stepX: number,
+    stepY: number,
+  ): { chars: string[]; allHaveScoredAxes: boolean } | null {
+    if (!isSameAxisFrozen(startX, startY)) return null;
+
+    const chars: string[] = [];
+    let allHaveScoredAxes = true;
+    let cx = startX;
+    let cy = startY;
+    while (isSameAxisFrozen(cx, cy)) {
+      chars.push(board[cy][cx]);
+      if (!hasScoredAxes(cx, cy)) allHaveScoredAxes = false;
+      cx += stepX;
+      cy += stepY;
+    }
+    return { chars, allHaveScoredAxes };
+  }
+
+  function isInvalidCombined(
+    run: { chars: string[]; allHaveScoredAxes: boolean },
+    isBefore: boolean,
+  ): boolean {
+    // Legacy gate: when any tile in the frozen run lacks scoredAxes,
+    // only treat the run as a prior same-axis scored word if its
+    // letters form a dict word. Single letters (never dict words) are
+    // skipped — this preserves #136 where a single Þ is a perpendicular
+    // incidental neighbor, not an extension.
+    if (!run.allHaveScoredAxes) {
+      if (!isDictWord(run.chars)) return false;
+    }
+    const combined = isBefore
+      ? [...[...run.chars].reverse(), ...wordChars]
+      : [...wordChars, ...run.chars];
+    return !isDictWord(combined);
+  }
+}
+
+/**
  * Calculate total score for a word (letter points + length bonus).
  */
 function scoreWord(word: BoardWord): number {
@@ -187,7 +306,15 @@ export function selectOptimalCombination(
 
     if (!hasNoSameAxisConflict(subset)) continue;
 
-    if (isSubsetValid(subset, board, frozenTileSet, dictionary)) {
+    if (
+      isSubsetValid(
+        subset,
+        board,
+        frozenTileSet,
+        frozenTiles,
+        dictionary,
+      )
+    ) {
       const totalScore = subset.reduce(
         (sum, word) => sum + scoreWord(word),
         0,
@@ -270,6 +397,7 @@ function isSubsetValid(
   subset: BoardWord[],
   board: BoardGrid,
   frozenTileSet: Set<string>,
+  frozenTileMap: FrozenTileMap,
   dictionary: Set<string>,
 ): boolean {
   for (let i = 0; i < subset.length; i++) {
@@ -289,6 +417,18 @@ function isSubsetValid(
         frozenTileSet,
         dictionary,
         extraTiles,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      violatesFrozenAdjacencyOnSameAxis(
+        subset[i],
+        board,
+        frozenTileSet,
+        frozenTileMap,
+        dictionary,
       )
     ) {
       return false;

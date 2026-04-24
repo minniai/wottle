@@ -175,13 +175,12 @@ describe("wordEngine", () => {
       expect(words).toContain("bás");
     });
 
-    test("still scores BÆN when the adjacent frozen tile was scored on the same axis (per-letter rule, issue #195)", async () => {
+    test("rejects BÆN when the adjacent frozen tile was scored on the same (horizontal) axis (#200)", async () => {
       const board = makeBoardWithFrozenNeighbor();
-      // Same D, but this time it was scored on a horizontal word that
-      // ends at (1,2). The combined same-axis run "DBÆN" is not a dict
-      // word, but under the per-letter rule (issue #195) each letter of
-      // the new word only needs SOME valid covering sub-run — and
-      // "bæn" covers b, æ, n. Scored.
+      // D at (1,2) scored horizontally in a prior round. Placing BÆN
+      // horizontally next to it concatenates two same-axis scored
+      // sequences into "DBÆN", which is not a dict word — the
+      // cross-round standalone invariant (§3.5 / I7) rejects BÆN.
       const frozenTiles: FrozenTileMap = {
         "1,2": { owner: "player_b", scoredAxes: ["horizontal"] },
       };
@@ -206,7 +205,7 @@ describe("wordEngine", () => {
       });
 
       const words = result.playerAWords.map((w) => w.word);
-      expect(words).toContain("bæn");
+      expect(words).not.toContain("bæn");
     });
   });
 
