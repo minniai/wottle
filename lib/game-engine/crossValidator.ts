@@ -1,5 +1,5 @@
 import type { BoardGrid, BoardWord } from "@/lib/types/board";
-import type { FrozenTileMap, ScoredAxis } from "@/lib/types/match";
+import type { FrozenTileMap } from "@/lib/types/match";
 import { BOARD_SIZE } from "@/lib/constants/board";
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 import {
@@ -8,26 +8,56 @@ import {
 } from "./scorer";
 
 /**
- * Check whether a word creates an invalid perpendicular cross-word
- * with established tiles (frozen tiles + extra scored tiles).
+ * Does `runChars` contain a dictionary word of length >=
+ * `minLen` that includes the tile at `tileIdx`?
  *
- * For each tile in the word, the perpendicular direction is traced
- * through neighboring established positions.
+ * This is the per-letter coverage check: each letter of a
+ * newly-scored word must sit inside some valid sub-run in every
+ * direction where it has scored neighbors (issue #195).
+ */
+function runContainsValidSubRunCoveringIndex(
+  runChars: string[],
+  tileIdx: number,
+  dictionary: Set<string>,
+  minLen: number,
+): boolean {
+  const runLen = runChars.length;
+  if (runLen < minLen) return false;
+  for (let start = 0; start <= tileIdx; start++) {
+    const minEnd = Math.max(tileIdx + 1, start + minLen);
+    for (let end = minEnd; end <= runLen; end++) {
+      const sub = runChars
+        .slice(start, end)
+        .join("")
+        .normalize("NFC")
+        .toLowerCase();
+      if (dictionary.has(sub)) return true;
+      const rev = [...sub].reverse().join("");
+      if (dictionary.has(rev)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Check whether a candidate word creates an invalid perpendicular
+ * scored run through any of its tiles.
  *
- * Rules (per PRD §1.2, minimumWordLength = 3):
- *   - cross length 1 → no perpendicular neighbor → no constraint.
- *   - cross length 2..(minimumWordLength-1) → below the minimum word
- *     length, inherently not a valid word → violation.
- *   - cross length >= minimumWordLength → must be in the dictionary
- *     (in either reading direction) → otherwise violation.
+ * Rule (issue #195): for each tile of the candidate, trace the
+ * maximal contiguous scored run on the cross-axis through that
+ * tile. Every frozen tile physically on the board counts, regardless
+ * of which axis it was originally scored on — this is about the
+ * physical board state, not metadata. The run is OK iff:
+ *   - length 1 (no scored neighbors), OR
+ *   - contains a dict-valid sub-run of length >= `minimumWordLength`
+ *     that includes this tile.
+ * A run of length 2..(minimumWordLength-1) is always a violation:
+ * it cannot contain any sub-run of length >= `minimumWordLength`.
  *
- * When `frozenTileMap` is provided, frozen tiles only participate in
- * the cross sequence if their `scoredAxes` includes the cross-axis. A
- * tile that was scored only on a parallel axis is treated as an
- * incidental adjacency, not an extension of a perpendicular word — so
- * it doesn't trigger the cross-word constraint. See issue #136.
- * Same-round `extraTileSet` tiles always count (they're still being
- * cross-validated mutually within the subset).
+ * Replaces the pre-#185 "combined run must itself be a dict word"
+ * rule (too strict — rejected BÆN/BÁS in #136) and the #185
+ * `scoredAxes`-based skip (too lenient — admitted "ML", "NÐ",
+ * "TKH", etc. in #195).
  */
 export function hasCrossWordViolation(
   board: BoardGrid,
@@ -35,27 +65,16 @@ export function hasCrossWordViolation(
   frozenTileSet: Set<string>,
   dictionary: Set<string>,
   extraTileSet: Set<string> = new Set(),
-  frozenTileMap?: FrozenTileMap,
 ): boolean {
   const { minimumWordLength } = DEFAULT_GAME_CONFIG;
   const isHorizontal =
     word.direction === "right" || word.direction === "left";
   const dx = isHorizontal ? 0 : 1;
   const dy = isHorizontal ? 1 : 0;
-  const crossAxis: ScoredAxis = isHorizontal ? "vertical" : "horizontal";
 
   const isEstablished = (x: number, y: number) => {
     const key = `${x},${y}`;
-    if (extraTileSet.has(key)) return true;
-    if (!frozenTileSet.has(key)) return false;
-    // When scoredAxes metadata is available, only count the frozen tile
-    // as established for the cross-axis if it was actually scored on
-    // that axis. Tiles without metadata (legacy) keep the strict
-    // behavior so existing matches don't change shape.
-    if (!frozenTileMap) return true;
-    const meta = frozenTileMap[key];
-    if (!meta || !meta.scoredAxes) return true;
-    return meta.scoredAxes.includes(crossAxis);
+    return extraTileSet.has(key) || frozenTileSet.has(key);
   };
 
   for (const tile of word.tiles) {
@@ -97,26 +116,22 @@ export function hasCrossWordViolation(
       fy += dy;
     }
 
-    const crossLength = beforeChars.length + 1 + afterChars.length;
-    if (crossLength === 1) continue; // no perpendicular neighbor — no cross-word
-    if (crossLength < minimumWordLength) {
-      // Any contiguous perpendicular sequence shorter than the minimum word
-      // length is inherently invalid: it cannot satisfy the 3-letter rule
-      // regardless of dictionary contents (PRD §1.2). Reject the placement.
-      return true;
-    }
-    const crossWord = [
+    const runChars = [
       ...beforeChars,
       board[tile.y][tile.x],
       ...afterChars,
-    ]
-      .join("")
-      .normalize("NFC")
-      .toLowerCase();
-    const crossWordReversed = [...crossWord].reverse().join("");
+    ];
+    const tileIdx = beforeChars.length;
+    const runLen = runChars.length;
+    if (runLen === 1) continue; // no scored neighbor — no constraint
+    if (runLen < minimumWordLength) return true;
     if (
-      !dictionary.has(crossWord) &&
-      !dictionary.has(crossWordReversed)
+      !runContainsValidSubRunCoveringIndex(
+        runChars,
+        tileIdx,
+        dictionary,
+        minimumWordLength,
+      )
     ) {
       return true;
     }
@@ -137,66 +152,42 @@ function scoreWord(word: BoardWord): number {
  * the global cross-validation invariant (FR-014, FR-014a).
  *
  * Algorithm:
- * 1. Filter candidates that fail cross-validation against frozen tiles alone
- * 2. Generate all subsets of remaining candidates
- * 3. For each subset, verify mutual cross-validation consistency
- * 4. Return the subset with the maximum total score
+ * 1. Generate all non-empty subsets of candidates.
+ * 2. For each subset, verify mutual cross-validation consistency.
+ * 3. Return the subset with the maximum total score.
+ *
+ * No individual pre-filter: a candidate's per-letter coverage can
+ * depend on another candidate in the same round (BÁS in #136 relies
+ * on BÆN's tiles to reach a length-3+ horizontal scored run that
+ * contains BÆN). Defer all cross-validation to the subset stage so
+ * mutual extras are available.
  */
 export function selectOptimalCombination(
   candidates: BoardWord[],
   board: BoardGrid,
   frozenTiles: FrozenTileMap,
   dictionary: Set<string>,
-  playerSlot: "player_a" | "player_b",
+  _playerSlot: "player_a" | "player_b",
 ): BoardWord[] {
   if (candidates.length === 0) return [];
 
   const frozenTileSet = new Set(Object.keys(frozenTiles));
 
-  // Step 1: Filter candidates that fail cross-validation against
-  // frozen tiles alone (no other candidates considered).
-  // `frozenTiles` is forwarded so cross-word checks can consult
-  // `scoredAxes` and skip incidental cross-axis adjacencies (issue #136).
-  const viable = candidates.filter(
-    (word) =>
-      !hasCrossWordViolation(
-        board,
-        word,
-        frozenTileSet,
-        dictionary,
-        new Set(),
-        frozenTiles,
-      ) &&
-      !violatesFrozenAdjacencyOnSameAxis(
-        word,
-        board,
-        frozenTileSet,
-        dictionary,
-        frozenTiles,
-      ),
-  );
-
-  if (viable.length === 0) return [];
-
-  // Step 2: Generate all non-empty subsets and find the best valid one
   let bestSubset: BoardWord[] = [];
   let bestScore = -1;
 
-  const n = viable.length;
-  // Brute-force: enumerate all 2^n - 1 non-empty subsets
+  const n = candidates.length;
   for (let mask = 1; mask < (1 << n); mask++) {
     const subset: BoardWord[] = [];
     for (let i = 0; i < n; i++) {
       if (mask & (1 << i)) {
-        subset.push(viable[i]);
+        subset.push(candidates[i]);
       }
     }
 
-    // Step 3a: Skip subsets with same-axis overlap or adjacency
     if (!hasNoSameAxisConflict(subset)) continue;
 
-    // Step 3b: Verify mutual cross-validation within the subset
-    if (isSubsetValid(subset, board, frozenTileSet, dictionary, frozenTiles)) {
+    if (isSubsetValid(subset, board, frozenTileSet, dictionary)) {
       const totalScore = subset.reduce(
         (sum, word) => sum + scoreWord(word),
         0,
@@ -209,133 +200,6 @@ export function selectOptimalCombination(
   }
 
   return bestSubset;
-}
-
-/**
- * Check whether a candidate word is adjacent to a frozen scored word
- * on the same axis and the combined sequence is NOT a valid word.
- *
- * Uses `scoredAxes` metadata on frozen tiles to determine whether an
- * adjacent tile was scored on the same axis as the candidate word.
- * Falls back to the valid-word heuristic for legacy frozen tiles
- * that lack `scoredAxes`.
- */
-function violatesFrozenAdjacencyOnSameAxis(
-  word: BoardWord,
-  board: BoardGrid,
-  frozenTileSet: Set<string>,
-  dictionary: Set<string>,
-  frozenTileMap?: FrozenTileMap,
-): boolean {
-  const isHorizontal =
-    word.direction === "right" || word.direction === "left";
-  const wordAxis: ScoredAxis = isHorizontal
-    ? "horizontal"
-    : "vertical";
-  const dx = isHorizontal ? 1 : 0;
-  const dy = isHorizontal ? 0 : 1;
-
-  // Get axis-sorted tiles
-  const sortedTiles = [...word.tiles].sort((a, b) =>
-    isHorizontal ? a.x - b.x : a.y - b.y,
-  );
-  const first = sortedTiles[0];
-  const last = sortedTiles[sortedTiles.length - 1];
-
-  const wordChars = sortedTiles.map((t) => board[t.y][t.x]);
-
-  // Collect frozen runs on each side
-  const beforeRun = collectFrozenRun(
-    first.x - dx, first.y - dy, -dx, -dy,
-  );
-  const afterRun = collectFrozenRun(
-    last.x + dx, last.y + dy, dx, dy,
-  );
-
-  // Check each side independently
-  if (beforeRun && isInvalidCombined(beforeRun, true)) return true;
-  if (afterRun && isInvalidCombined(afterRun, false)) return true;
-
-  // Sandwich check: both sides have frozen runs, validate full sequence
-  if (beforeRun && afterRun) {
-    const full = [
-      ...beforeRun.chars.slice().reverse(),
-      ...wordChars,
-      ...afterRun.chars,
-    ];
-    const fullText = full
-      .join("")
-      .normalize("NFC")
-      .toLowerCase();
-    const fullReversed = [...fullText].reverse().join("");
-    if (!dictionary.has(fullText) && !dictionary.has(fullReversed)) {
-      return true;
-    }
-  }
-
-  return false;
-
-  function isPartOfSameAxisRun(x: number, y: number): boolean {
-    const key = `${x},${y}`;
-    if (!frozenTileSet.has(key)) return false;
-    // When scoredAxes metadata is available, only count the frozen tile
-    // as continuing the candidate's own-axis sequence if it was actually
-    // scored on that axis. A tile scored only on a perpendicular axis
-    // is an incidental neighbor — placing a new word next to it doesn't
-    // extend any existing same-axis word. See issue #136.
-    if (!frozenTileMap) return true;
-    const meta = frozenTileMap[key];
-    if (!meta || !meta.scoredAxes) return true;
-    return meta.scoredAxes.includes(wordAxis);
-  }
-
-  function collectFrozenRun(
-    startX: number,
-    startY: number,
-    stepX: number,
-    stepY: number,
-  ): { chars: string[] } | null {
-    if (
-      startX < 0 || startX >= BOARD_SIZE ||
-      startY < 0 || startY >= BOARD_SIZE ||
-      !isPartOfSameAxisRun(startX, startY)
-    ) {
-      return null;
-    }
-
-    const chars: string[] = [];
-    let cx = startX;
-    let cy = startY;
-    while (
-      cx >= 0 && cx < BOARD_SIZE &&
-      cy >= 0 && cy < BOARD_SIZE &&
-      isPartOfSameAxisRun(cx, cy)
-    ) {
-      chars.push(board[cy][cx]);
-      cx += stepX;
-      cy += stepY;
-    }
-
-    return { chars };
-  }
-
-  function isInvalidCombined(
-    run: { chars: string[] },
-    isBefore: boolean,
-  ): boolean {
-    const combined = isBefore
-      ? [...[...run.chars].reverse(), ...wordChars]
-      : [...wordChars, ...run.chars];
-    const combinedText = combined
-      .join("")
-      .normalize("NFC")
-      .toLowerCase();
-    const combinedReversed = [...combinedText].reverse().join("");
-    return (
-      !dictionary.has(combinedText) &&
-      !dictionary.has(combinedReversed)
-    );
-  }
 }
 
 /**
@@ -407,7 +271,6 @@ function isSubsetValid(
   board: BoardGrid,
   frozenTileSet: Set<string>,
   dictionary: Set<string>,
-  frozenTileMap?: FrozenTileMap,
 ): boolean {
   for (let i = 0; i < subset.length; i++) {
     // Build extra tile set from all OTHER words in the subset
@@ -426,7 +289,6 @@ function isSubsetValid(
         frozenTileSet,
         dictionary,
         extraTiles,
-        frozenTileMap,
       )
     ) {
       return false;
