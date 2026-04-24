@@ -65,12 +65,20 @@ describe("ProfileMatchHistoryList", () => {
     );
   });
 
-  test("renders a Replay link (placeholder) per row", () => {
+  test("each row links to the match summary page", () => {
     render(<ProfileMatchHistoryList matches={ROWS} />);
-    const replayLinks = screen.getAllByText(/Replay →/);
-    expect(replayLinks).toHaveLength(2);
-    replayLinks.forEach((el) =>
-      expect(el).toHaveAttribute("aria-disabled", "true"),
-    );
+    const links = screen
+      .getAllByTestId("match-history-row")
+      .map((li) => li.querySelector("a"));
+    expect(links[0]).toHaveAttribute("href", "/match/m1/summary");
+    expect(links[1]).toHaveAttribute("href", "/match/m2/summary");
+  });
+
+  test("row link carries a descriptive aria-label", () => {
+    render(<ProfileMatchHistoryList matches={ROWS} />);
+    const link = screen.getByRole("link", {
+      name: /View match vs birna, Win 42[–-]18/,
+    });
+    expect(link).toBeInTheDocument();
   });
 });
