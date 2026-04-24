@@ -83,15 +83,15 @@ Perpendicular new words (one horizontal, one vertical) may share exactly one til
 
 The standalone invariant (§3.5) also applies **across rounds**, and the rule is purely physical: a new word *W* on axis *a* must not be physically adjacent — at either endpoint along *a* — to a **frozen** tile, unless the maximal contiguous same-axis scored run containing *W*'s tiles is itself a dict word.
 
-Formal statement: let *t* be a tile immediately adjacent to *W*'s first or last tile along axis *a*. If *t* is frozen, trace the maximal contiguous frozen run *E* outward from *W* along *a*. *W* is valid only if the full concatenation `E_before ⧺ W ⧺ E_after` (NFC-normalized, lowercased, either forward or reversed) is in the dictionary.
+Formal statement: let *E_before* be the maximal contiguous run of **frozen** tiles preceding *W*'s first tile along axis *a*, read outward from *W* (possibly empty — empty when *W*'s first tile is at the board edge or its predecessor is unfrozen). Let *E_after* be the analogous run following *W*'s last tile. If *E_before* and *E_after* are both empty, the rule is trivially satisfied. Otherwise, *W* is valid only if the concatenation `E_before ⧺ W ⧺ E_after` — NFC-normalized, lowercased, read forward or reversed — is in the dictionary.
 
-`scoredAxes` is **not** consulted. "Frozen" is the only signal that matters. This works because in a real game a frozen tile cannot exist in isolation on its axis: if a tile is frozen, it was part of a ≥ `minimumWordLength` scored word, so the other tiles of that prior word are also frozen, and those tiles sit somewhere along the same axis as the prior word.
+"Frozen" here means frozen **before this round**. Tiles of other candidate words in the same round's subset are handled separately by §3.5 (`hasNoSameAxisConflict`) and §4 (cross-axis per-letter coverage, which treats same-round candidates as "extra established" tiles). `scoredAxes` is **not** consulted. Physical frozen state is the only signal that matters. This works because in a real game a frozen tile cannot exist in isolation on its axis: if a tile is frozen, it was part of a prior ≥ `minimumWordLength` scored word, so the other tiles of that prior word are also frozen and contiguous on the axis of that prior word.
 
-**Accepts** (real #136, preserved): Player swaps `B` into `(2,2)` to form horizontal `BÆN`. The adjacent `Þ` at `(1,2)` is **unfrozen** (plain letter, never scored). Unfrozen tiles never trigger this rule → `BÆN` scores.
+**Accepts** (real #136, preserved): Player swaps `B` into `(2,2)` to form horizontal `BÆN`. The adjacent `Þ` at `(1,2)` is **unfrozen** (plain letter, never scored). *E_before* and *E_after* are both empty → rule satisfied → `BÆN` scores.
 
-**Rejects** (issue #200, `ÖRLTEL`): Frozen `Ö`, `R`, `L` at column 1 rows 1–3 (from a prior vertical `ÖRL`). Player scores vertical `TEL` at rows 4–6. The same-axis frozen extension is `ÖRL`. Combined run `ÖRLTEL` is not a dict word → `TEL` is rejected.
+**Rejects** (issue #200, `ÖRLTEL`): Frozen `Ö`, `R`, `L` at column 1 rows 1–3 (from a prior vertical `ÖRL`). Player scores vertical `TEL` at rows 4–6. *E_before* = `ÖRL`, *E_after* = empty. Combined run `ÖRLTEL` is not a dict word → `TEL` is rejected.
 
-**Rejects** (issue #200, `NMÚL`): Frozen `N` at `(5,3)` (from any prior scoring, horizontal or vertical — does not matter). Player scores vertical `MÚL` at `(5,4)`–`(5,6)`. The same-axis frozen extension is `N`. Combined run `NMÚL` is not a dict word → `MÚL` is rejected.
+**Rejects** (issue #200, `NMÚL`): Frozen `N` at `(5,3)` (from any prior scoring — horizontal or vertical, does not matter). Player scores vertical `MÚL` at `(5,4)`–`(5,6)`. *E_before* = `N`, *E_after* = empty. Combined run `NMÚL` is not a dict word → `MÚL` is rejected.
 
 ### 3.6 Per-letter coverage
 
@@ -130,7 +130,7 @@ A candidate scoring event that violates this condition for any tile of the new w
 
 **Accepts** (real #136): Player swaps `B` into `(2,2)`, forming `BÆN` at cols 2–4 row 2. The adjacent `Þ` at `(1,2)` is unfrozen (just a plain letter on the board). The cross-axis check for each of `B`/`Æ`/`N` sees no frozen neighbors → per-letter coverage trivially holds. **`BÆN` scores.** (The same-axis standalone check — §3.5a — also sees no frozen neighbor on the horizontal axis and does not fire.)
 
-**Rejects** (issue #195, "ML" at `(7,0)`): Frozen `M` at `(7,0)`, scored earlier on a vertical word. Player attempts a vertical scoring through `L` at `(8,0)`. After the hypothetical freeze, row 0 would have the scored run `M L` (length 2). No sub-run of length ≥ 3 fits. Per-letter coverage fails for the new tile `L`. **The candidate is rejected.**
+**Rejects** (issue #195, "ML" at `(7,0)`): Frozen `M` at `(7,0)` (physical state; `scoredAxes` is irrelevant to this check). Player attempts a vertical scoring through `L` at `(8,0)`. After the hypothetical freeze, row 0 would have the scored run `M L` (length 2). No sub-run of length ≥ 3 fits. Per-letter coverage fails for the new tile `L`. **The candidate is rejected.**
 
 ### 4.4 Why `scoredAxes` doesn't gate validation
 
@@ -248,7 +248,9 @@ For a candidate *W* on axis *a*:
 3. If both extensions are empty → no adjacency, return OK.
 4. Otherwise, build the full run `beforeChars ⧺ W ⧺ afterChars` and accept only if the resulting string (or its reverse), NFC-normalized and lowercased, is in the dictionary.
 
-The check is purely physical — `scoredAxes` is not consulted. In a real game a frozen tile cannot be an "isolated perpendicular scored neighbor" on its axis: a frozen tile was part of a prior ≥ `minimumWordLength` scored word, and the other tiles of that word are also frozen, contiguous, on the same axis as that prior word. An unfrozen adjacent letter (like `Þ` in the real #136) never triggers the check.
+The check is purely physical — `scoredAxes` is not consulted. The check also uses only `frozenTileSet` (prior-round frozen state); **same-round candidate tiles are not treated as frozen extensions**. Cross-word interactions between candidates in the same subset are handled by `hasNoSameAxisConflict` (§3.5, same-axis pairs) and by `hasCrossWordViolation` (§7.3, which receives the other candidates' tiles as `extraTileSet`).
+
+In a real game a frozen tile cannot be an "isolated perpendicular scored neighbor" on its axis: a frozen tile was part of a prior ≥ `minimumWordLength` scored word, and the other tiles of that word are also frozen, contiguous, on the same axis as that prior word. An unfrozen adjacent letter (like `Þ` in the real #136) never triggers the check.
 
 ### 7.5 The coverage helper (`runContainsValidSubRunCoveringIndex`)
 
