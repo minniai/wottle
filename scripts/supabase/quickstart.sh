@@ -82,13 +82,19 @@ function start_supabase_with_retry() {
     retry_count=$((retry_count + 1))
     local wait_seconds=$((2 ** retry_count)) # Exponential backoff: 2, 4, 8, 16 seconds
     echo "Supabase start attempt $retry_count failed, waiting ${wait_seconds}s before retry..." >&2
+    # Clean up containers a partial start may have left behind, otherwise the
+    # next attempt hits "address already in use" on the Supabase DB port.
+    "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
     sleep "$wait_seconds"
   done
 
   if [[ "$start_success" != "true" ]]; then
-    echo "Supabase start failed after $max_retries attempts. Trying to stop and restart..." >&2
+    echo "Supabase start failed after $max_retries attempts. Force-cleaning and retrying..." >&2
     "$SUPABASE_BIN" stop >/dev/null 2>&1 || true
-    sleep 2
+    # Last resort: kill any container still bound to the Supabase DB port
+    # that Supabase CLI's own stop missed (can happen after an aborted start).
+    docker ps --filter "publish=54322" -q | xargs -r docker kill >/dev/null 2>&1 || true
+    sleep 3
     "$SUPABASE_BIN" start >/dev/null || {
       emit_json "supabase.quickstart.error" "message" "Supabase start failed. Ensure Docker is running and accessible."
       exit 1
