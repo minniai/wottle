@@ -111,7 +111,7 @@ test.describe("word discovery highlights", () => {
           const highlightColor = await firstScoredTile.evaluate((el) =>
             getComputedStyle(el).getPropertyValue("--highlight-color").trim(),
           );
-          expect(highlightColor).toMatch(/rgba?\(/);
+          expect(highlightColor).toMatch(/^(rgba?|oklch)\(/);
 
           // After glow: scored class clears and round advances
           await expect(scoredTileLocator.first()).not.toBeAttached({
