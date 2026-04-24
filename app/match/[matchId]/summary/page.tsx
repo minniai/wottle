@@ -153,10 +153,11 @@ export default async function MatchSummaryPage({
     redirect(`/match/${matchId}`);
   }
 
+  // Completed match summaries are readable by any authenticated user. When the
+  // viewer is not one of the two participants, FinalSummary renders in
+  // spectator mode (third-person labels, Rematch / rating UI hidden).
   const participantIds = [summary.match.player_a_id, summary.match.player_b_id];
-  if (!participantIds.includes(session!.player.id)) {
-    redirect("/");
-  }
+  const isSpectator = !participantIds.includes(session!.player.id);
 
   const frozenTileCounts = computeFrozenTileCountByPlayer(
     (summary.match.frozen_tiles as FrozenTileMap) ?? {},
@@ -305,6 +306,7 @@ export default async function MatchSummaryPage({
           (summary.match.player_b_timer_ms as number) <= 0
         }
         seriesContext={seriesContext}
+        isSpectator={isSpectator}
       />
     </main>
   );

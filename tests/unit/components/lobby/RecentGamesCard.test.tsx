@@ -76,4 +76,20 @@ describe("RecentGamesCard", () => {
     render(<RecentGamesCard games={[]} />);
     expect(screen.getByText(/No recent games/i)).toBeInTheDocument();
   });
+
+  test("each row links to the match summary page", () => {
+    render(<RecentGamesCard games={games} />);
+    const rows = screen.getAllByTestId("recent-game-row");
+    expect(rows[0]).toHaveAttribute("href", "/match/m-1/summary");
+    expect(rows[1]).toHaveAttribute("href", "/match/m-2/summary");
+    expect(rows[2]).toHaveAttribute("href", "/match/m-3/summary");
+  });
+
+  test("row link carries a descriptive aria-label", () => {
+    render(<RecentGamesCard games={games} />);
+    const link = screen.getByRole("link", {
+      name: /View match vs halli, Win 312[–-]278/,
+    });
+    expect(link).toBeInTheDocument();
+  });
 });

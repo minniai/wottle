@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { RecentGameRow } from "@/lib/types/lobby";
 
 interface RecentGamesCardProps {
@@ -8,6 +10,12 @@ const RESULT_LABEL: Record<"win" | "loss" | "draw", string> = {
   win: "W",
   loss: "L",
   draw: "D",
+};
+
+const RESULT_WORD: Record<"win" | "loss" | "draw", string> = {
+  win: "Win",
+  loss: "Loss",
+  draw: "Draw",
 };
 
 const RESULT_STYLE: Record<"win" | "loss" | "draw", string> = {
@@ -50,10 +58,12 @@ export function RecentGamesCard({ games }: RecentGamesCardProps) {
       ) : (
         <div>
           {games.map((g) => (
-            <div
+            <Link
               key={g.matchId}
+              href={`/match/${g.matchId}/summary`}
               data-testid="recent-game-row"
-              className="grid items-center gap-3 border-b border-hair/60 px-4 py-2.5 last:border-b-0"
+              aria-label={`View match vs ${g.opponentUsername}, ${RESULT_WORD[g.result]} ${g.yourScore}–${g.opponentScore}, ${relativeTime(g.completedAt)}`}
+              className="group grid items-center gap-3 border-b border-hair/60 px-4 py-2.5 transition-colors last:border-b-0 hover:bg-paper-2 focus-visible:bg-paper-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
               style={{
                 gridTemplateColumns: "34px 1fr auto auto auto",
               }}
@@ -75,7 +85,7 @@ export function RecentGamesCard({ games }: RecentGamesCardProps) {
               <span className="font-mono text-[11px] text-ink-soft">
                 {relativeTime(g.completedAt)}
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       )}

@@ -76,6 +76,12 @@ export interface FinalSummaryProps {
   isDualTimeout?: boolean;
   /** Series context for rematch chains (game number, score). */
   seriesContext?: SeriesContext;
+  /**
+   * True when the viewer is not a participant (spectator mode). Hides
+   * participant-only controls (Rematch, rating delta) and switches the
+   * verdict / panel labels to third-person using the two players' names.
+   */
+  isSpectator?: boolean;
 }
 
 function formatDuration(ms: number) {
@@ -174,6 +180,7 @@ export function FinalSummary({
   frozenTiles,
   isDualTimeout = false,
   seriesContext,
+  isSpectator = false,
 }: FinalSummaryProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
@@ -185,15 +192,21 @@ export function FinalSummary({
     winnerId,
   ]);
 
-  const currentPlayer = players.find((player) => player.id === currentPlayerId);
-  const opponent = players.find((player) => player.id !== currentPlayerId);
-
   const playerA = players[0];
   const playerB = players[1];
 
+  // Spectator view always renders player_a on the left, player_b on the right.
+  // Participant view puts the viewer on the left ("you") and the other on the right.
+  const currentPlayer = isSpectator
+    ? playerA
+    : players.find((player) => player.id === currentPlayerId);
+  const opponent = isSpectator
+    ? playerB
+    : players.find((player) => player.id !== currentPlayerId);
+
   // Slot-based colors resolve to design tokens via lib/constants/playerColors:
   // players[0] = player_a (warm ochre, --p1), players[1] = player_b (design blue, --p2).
-  const currentIsPlayerA = currentPlayerId === playerA?.id;
+  const currentIsPlayerA = isSpectator || currentPlayerId === playerA?.id;
   const currentPlayerColor = currentIsPlayerA ? PLAYER_A_HEX : PLAYER_B_HEX;
   const opponentColor = currentIsPlayerA ? PLAYER_B_HEX : PLAYER_A_HEX;
 
@@ -236,10 +249,14 @@ export function FinalSummary({
     [players],
   );
 
+  // Participant: outcome is viewer-relative (win / loss / draw).
+  // Spectator: outcome is from player_a's POV so the verdict color mapping
+  // (win → --p1, loss → --p2) stays correct against the subject-name headline.
   const outcome: "win" | "loss" | "draw" = useMemo(() => {
     if (!winnerId) return "draw";
-    return winnerId === currentPlayerId ? "win" : "loss";
-  }, [winnerId, currentPlayerId]);
+    const subjectId = isSpectator ? playerA?.id : currentPlayerId;
+    return winnerId === subjectId ? "win" : "loss";
+  }, [winnerId, currentPlayerId, isSpectator, playerA?.id]);
 
   const pointMargin = useMemo(() => {
     const scores = players.map((p) => p.score);
@@ -473,9 +490,10 @@ export function FinalSummary({
               reasonLabel={
                 isDualTimeout ? "Both players timed out" : reasonLabel(endedReason)
               }
+              subjectName={isSpectator ? playerA?.displayName : undefined}
             />
 
-            {endedReason === "forfeit" && winner && (
+            {!isSpectator && endedReason === "forfeit" && winner && (
               <p
                 className="text-sm text-ink-soft"
                 data-testid="final-summary-forfeit-label"
@@ -486,7 +504,7 @@ export function FinalSummary({
               </p>
             )}
 
-            {rematchPhase === "interstitial" && <RematchInterstitial />}
+            {!isSpectator && rematchPhase === "interstitial" && <RematchInterstitial />}
 
             {seriesBadgeText() && (
               <p
@@ -497,7 +515,7 @@ export function FinalSummary({
               </p>
             )}
 
-            {rematchPhase === "incoming" && requesterName && (
+            {!isSpectator && rematchPhase === "incoming" && requesterName && (
               <RematchBanner
                 requesterName={requesterName}
                 onAccept={acceptRematch}
@@ -505,7 +523,7 @@ export function FinalSummary({
               />
             )}
 
-            {rematchError && (
+            {!isSpectator && rematchError && (
               <p className="rounded-xl border border-bad/50 bg-bad/10 p-3 text-sm text-bad">
                 {rematchError}
               </p>
@@ -525,18 +543,24 @@ export function FinalSummary({
             </div>
 
             <div className="flex flex-wrap gap-3">
+              {!isSpectator && (
+                <button
+                  type="button"
+                  className="rounded-2xl bg-ink px-5 py-3 text-paper transition hover:bg-ink-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={handleRematch}
+                  disabled={isRematchDisabled}
+                  data-testid="final-summary-rematch"
+                >
+                  {rematchButtonLabel()}
+                </button>
+              )}
               <button
                 type="button"
-                className="rounded-2xl bg-ink px-5 py-3 text-paper transition hover:bg-ink-2 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={handleRematch}
-                disabled={isRematchDisabled}
-                data-testid="final-summary-rematch"
-              >
-                {rematchButtonLabel()}
-              </button>
-              <button
-                type="button"
-                className="rounded-2xl border border-hair-strong px-5 py-3 text-ink transition hover:bg-paper-2"
+                className={
+                  isSpectator
+                    ? "rounded-2xl bg-ink px-5 py-3 text-paper transition hover:bg-ink-2"
+                    : "rounded-2xl border border-hair-strong px-5 py-3 text-ink transition hover:bg-paper-2"
+                }
                 onClick={() => router.push("/")}
                 data-testid="final-summary-back-lobby"
               >
