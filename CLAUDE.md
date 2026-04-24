@@ -60,6 +60,10 @@ pnpm exec playwright test --grep "test name"
 pnpm test:integration -- path/to/integration-test.spec.ts
 ```
 
+## Game Rules Spec (MANDATORY READING BEFORE SCORING CHANGES)
+
+**Any change to `lib/game-engine/*`, `lib/match/roundEngine.ts`, `lib/match/stateMachine.ts`, `lib/scoring/*`, or `lib/constants/game-config.ts` MUST be checked against `docs/prd_and_requirements/wottle_game_rules.md`.** That document is the authoritative specification of Wottle's rules, the per-letter coverage rule (§4), the scoring formula (§5), the validation algorithm (§7), the board invariants (§8), and the regression log (§10). Scoring bugs are the most frequent class of regression in this codebase and each prior one is documented in §10 — read that table before editing the cross-validator. If the implementation and the spec disagree, update the spec in the same PR as the code change and add a regression test naming the invariant it pins.
+
 ## Speckit Workflow (MANDATORY)
 
 This project uses **Speckit** for spec-driven development. All feature work MUST follow this workflow:
@@ -488,12 +492,14 @@ Playtest configuration:
 
 ## Word Engine Architecture (Spec 003)
 
+> **Authoritative rules reference: [`docs/prd_and_requirements/wottle_game_rules.md`](docs/prd_and_requirements/wottle_game_rules.md).** The summary below is operational; the spec is normative.
+
 The word engine pipeline runs server-side during round resolution:
 
 ```txt
 1. Dictionary loads on first use → Set of ~3.74M Icelandic inflected forms (full BÍN fresh, 1+ chars)
-2. Board Scanner → 8-directional scan (H, V, 4 diagonals) for 3+ letter words
-3. Delta Detector → Compares pre-swap vs post-swap boards to find newly formed words
+2. Board Scanner → 4-orthogonal scan from swap coords (both readings per axis) for 3+ letter words
+3. Cross-Validator → selectOptimalCombination enumerates subsets; per-letter coverage rule (game_rules §4)
 4. Scorer → Per-word: base (letter values) + length bonus (word_length - 2) * 5
 5. Combo Bonus → Multi-word bonus per player per round
 6. Unique Word Tracking → Duplicate words (same player, prior rounds) score 0

@@ -1,6 +1,16 @@
-# Word Scoring Rules (As Implemented)
+***
 
-This document describes **how words are scored in Wottle** based on the current implementation. It is aimed at humans who need to understand the rules and verify behavior. For the formal specification, see `specs/003-word-engine-scoring/spec.md`.
+> **⚠️ SUPERSEDED — March 2026 narrative, kept for history.**
+>
+> The authoritative scoring specification is now **[`docs/prd_and_requirements/wottle_game_rules.md`](../prd_and_requirements/wottle_game_rules.md)**. That document includes the per-letter coverage rule (§4, introduced in PR #198 / issue #195), the enforcement algorithm (§7), the board invariants (§8), and the regression log (§10).
+>
+> This note predates the per-letter coverage rule and the PR #185/#195 sequence. Do not use it as a reference for code changes; use the spec. Details below are retained only so the reasoning in old issues still makes sense.
+
+---
+
+# Word Scoring Rules (As Implemented, circa 2026-03-03)
+
+This document describes **how words are scored in Wottle** based on the implementation as of March 2026. It is aimed at humans who need to understand the rules and verify behavior. For the formal specification, see `specs/003-word-engine-scoring/spec.md`.
 
 ---
 
