@@ -175,11 +175,13 @@ describe("wordEngine", () => {
       expect(words).toContain("bás");
     });
 
-    test("still rejects when the adjacent frozen tile WAS scored on the same axis (combined sequence must be a word)", async () => {
+    test("still scores BÆN when the adjacent frozen tile was scored on the same axis (per-letter rule, issue #195)", async () => {
       const board = makeBoardWithFrozenNeighbor();
       // Same D, but this time it was scored on a horizontal word that
-      // ends at (1,2). Placing BÆN to its right extends that horizontal
-      // sequence into "DBÆN" which is not a word — must reject.
+      // ends at (1,2). The combined same-axis run "DBÆN" is not a dict
+      // word, but under the per-letter rule (issue #195) each letter of
+      // the new word only needs SOME valid covering sub-run — and
+      // "bæn" covers b, æ, n. Scored.
       const frozenTiles: FrozenTileMap = {
         "1,2": { owner: "player_b", scoredAxes: ["horizontal"] },
       };
@@ -204,7 +206,7 @@ describe("wordEngine", () => {
       });
 
       const words = result.playerAWords.map((w) => w.word);
-      expect(words).not.toContain("bæn");
+      expect(words).toContain("bæn");
     });
   });
 
@@ -970,6 +972,77 @@ describe("wordEngine", () => {
       expect(result.finalBoard[0][2]).toBe("r");
       expect(result.finalBoard[5][0]).toBe("b");
       expect(result.finalBoard[5][2]).toBe("r");
+    });
+  });
+
+  describe("issue #195: no below-min or uncovered scored runs", () => {
+    // The invalid scored runs reported in #195 all share a structure:
+    // a newly-scored tile ends up in a contiguous scored run whose
+    // every sub-run of length >= minimumWordLength that includes the
+    // new tile is NOT in the dictionary. The pipeline must refuse to
+    // score a word that would create such a state.
+
+    function makeNosBoardWithLeftNeighbor(
+      leftLetter: string | undefined,
+    ): BoardGrid {
+      const board = emptyBoard();
+      if (leftLetter !== undefined) board[2][2] = leftLetter;
+      board[2][3] = "q"; // pre-swap placeholder at (3,2)
+      board[3][3] = "ö";
+      board[4][3] = "s";
+      board[9][9] = "n"; // swap source
+      return board;
+    }
+
+    const nosSwap = {
+      playerId: PLAYER_A,
+      fromX: 9,
+      fromY: 9,
+      toX: 3,
+      toY: 2,
+      submittedAt: "2026-01-01T00:00:00Z",
+    };
+
+    test("baseline: vertical 'nös' scores fine when the cross-axis neighbor is unscored", async () => {
+      // Confirms the scan + scoring pipeline actually reaches 'nös' in
+      // this setup — otherwise the rejection test below would pass
+      // vacuously.
+      const board = makeNosBoardWithLeftNeighbor("x");
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [nosSwap],
+        frozenTiles: EMPTY_FROZEN, // (2,2) NOT frozen
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+      expect(result.playerAWords.map((w) => w.word)).toContain("nös");
+    });
+
+    test("rejects vertical 'nös' when the horizontal cross-axis neighbor is a frozen tile (creates a 2-letter scored run below minimumWordLength)", async () => {
+      // Same board as the baseline, but (2,2) is frozen with
+      // scoredAxes=["vertical"]. Scoring 'nös' would leave row 2 with
+      // a 2-letter frozen run "xn" — below minimumWordLength and no
+      // covering sub-run. Per the issue-#195 rule this placement must
+      // be rejected. (Post-#185 incorrectly skipped 'x' on the
+      // horizontal cross-check because its scoredAxes didn't include
+      // "horizontal", letting "nös" score and creating the invalid
+      // state.)
+      const board = makeNosBoardWithLeftNeighbor("x");
+      const frozenTiles: FrozenTileMap = {
+        "2,2": { owner: "player_b", scoredAxes: ["vertical"] },
+      };
+      const result = await processRoundScoring({
+        matchId: MATCH_ID,
+        roundId: ROUND_ID,
+        boardBefore: board,
+        acceptedMoves: [nosSwap],
+        frozenTiles,
+        playerAId: PLAYER_A,
+        playerBId: PLAYER_B,
+      });
+      expect(result.playerAWords.map((w) => w.word)).not.toContain("nös");
     });
   });
 });
