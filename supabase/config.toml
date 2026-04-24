@@ -23,3 +23,10 @@ file_size_limit = "50MiB"
 
 [analytics]
 enabled = false
+
+# Edge Runtime (Deno) hosts Supabase Edge Functions. This project ships no
+# Edge Functions (no supabase/functions/ directory), so leaving the service
+# on only costs startup time and a flaky health check in CI — its 502 has
+# aborted `pnpm quickstart` on the Artillery Perf Gate runs.
+[edge_runtime]
+enabled = false
