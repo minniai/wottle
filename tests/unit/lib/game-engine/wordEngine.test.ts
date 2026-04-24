@@ -125,8 +125,8 @@ describe("wordEngine", () => {
     expect(result.deltas.playerB).toBe(0);
   });
 
-  describe("issue #136: BÆN + BÁS adjacent to perpendicular-axis frozen tiles", () => {
-    function makeBoardWithFrozenNeighbor(): BoardGrid {
+  describe("issue #136: BÆN + BÁS next to unfrozen neighbors", () => {
+    function makeBoardWithUnfrozenNeighbor(): BoardGrid {
       const board = emptyBoard("X");
       // Letters that complete BÆN horizontally and BÁS vertically once B
       // lands at (2,2).
@@ -136,20 +136,19 @@ describe("wordEngine", () => {
       board[4][2] = "S"; // (2,4)
       // Source tile for the swap.
       board[9][9] = "B";
-      // A neighbor letter on the same row as BÆN, frozen from a prior
-      // VERTICAL word the opponent scored. Without scoredAxes-aware
-      // checks this single tile blocked both BÆN (same-axis combined
-      // "DBÆN" not a word) and BÁS (B's perpendicular cross "DB" was
-      // a 2-letter sequence below the minimum word length).
+      // A neighbor letter on the same row as BÆN. In the real #136
+      // screenshot this tile is UNFROZEN — so the same-axis standalone
+      // check does not fire. Unfrozen neighbors can never extend a
+      // scored run (only frozen tiles can).
       board[2][1] = "D"; // (1,2)
       return board;
     }
 
-    test("scores both BÆN and BÁS even when a perpendicular-axis frozen tile sits adjacent (issue #136)", async () => {
-      const board = makeBoardWithFrozenNeighbor();
-      const frozenTiles: FrozenTileMap = {
-        "1,2": { owner: "player_b", scoredAxes: ["vertical"] },
-      };
+    test("scores both BÆN and BÁS when the adjacent tile is unfrozen (real #136 scenario)", async () => {
+      const board = makeBoardWithUnfrozenNeighbor();
+      // Empty frozenTiles — D at (1,2) is unfrozen, just like Þ in the
+      // real #136 screenshot.
+      const frozenTiles: FrozenTileMap = {};
 
       const result = await processRoundScoring({
         matchId: MATCH_ID,
@@ -175,12 +174,11 @@ describe("wordEngine", () => {
       expect(words).toContain("bás");
     });
 
-    test("rejects BÆN when the adjacent frozen tile was scored on the same (horizontal) axis (#200)", async () => {
-      const board = makeBoardWithFrozenNeighbor();
-      // D at (1,2) scored horizontally in a prior round. Placing BÆN
-      // horizontally next to it concatenates two same-axis scored
-      // sequences into "DBÆN", which is not a dict word — the
-      // cross-round standalone invariant (§3.5 / I7) rejects BÆN.
+    test("rejects BÆN when the adjacent tile is frozen and the combined run is not a dict word (#200)", async () => {
+      const board = makeBoardWithUnfrozenNeighbor();
+      // D at (1,2) is frozen. The physical same-axis scored run after
+      // BÆN freezes would be "DBÆN", which is not a dict word — the
+      // cross-round standalone invariant (§3.5a / I7a) rejects BÆN.
       const frozenTiles: FrozenTileMap = {
         "1,2": { owner: "player_b", scoredAxes: ["horizontal"] },
       };

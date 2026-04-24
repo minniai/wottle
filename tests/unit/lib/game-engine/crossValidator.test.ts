@@ -919,22 +919,21 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
-  test("T049b: ALLOWS horizontal word adjacent to a frozen tile scored only on a perpendicular axis (issue #136)", () => {
-    // A frozen tile with scoredAxes=["vertical"] was placed by a vertical
-    // word. Horizontally it's an incidental neighbor — placing a new
-    // horizontal word next to it does NOT extend any prior horizontal
-    // word, so the combined-sequence check should not fire. Previously
-    // this rejected the placement and prevented valid 3-letter words
-    // (e.g. BÆN, BÁS) from scoring whenever a frozen perpendicular-axis
-    // tile happened to sit adjacent. See issue #136.
+  test("T049b (real #136): accepts horizontal word adjacent to an UNFROZEN tile on the same axis", () => {
+    // The actual #136 scenario: Þ at (1,2) is an ordinary unfrozen
+    // tile, not a scored one. An unfrozen neighbor never triggers the
+    // same-axis standalone check, so BÆN / BÁS score normally.
+    // Previous synthetic formulations of this test had Þ frozen with
+    // scoredAxes=["vertical"] — a physically impossible configuration
+    // (a vertical scored word of ≥ 3 tiles would freeze more than one
+    // tile). See T049b-synth for what happens if such a configuration
+    // did exist.
     const localDict = new Set(["tað"]);
     const board = emptyBoard();
-    board[0][3] = "x";
+    board[0][3] = "x"; // unfrozen neighbor
     placeH(board, "tað", 4, 0);
 
-    const frozenTiles: FrozenTileMap = {
-      "3,0": { owner: "player_a", scoredAxes: ["vertical"] },
-    };
+    const frozenTiles: FrozenTileMap = {};
 
     const candidates = [hWord("tað", 4, 0)];
     const result = selectOptimalCombination(
@@ -1000,11 +999,10 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
-  // T050: NÖS regression — under the per-letter rule (issue #195), a
-  // new word sitting directly below a frozen single letter is allowed
-  // as long as the new word itself covers its letters. The combined
-  // run need not be a dict word.
-  test("T050: allows vertical word when a single frozen letter above it extends the run but nös itself covers its letters", () => {
+  // T050 (#200): rejects new word that physically concatenates with a
+  // frozen neighbor on the same axis, regardless of the frozen tile's
+  // scoredAxes, when the combined run isn't a dict word.
+  test("T050 (#200): rejects vertical word when a frozen letter above it extends the physical run into a non-dict combined sequence", () => {
     const localDict = new Set(["nös"]);
     const board = emptyBoard();
     board[1][3] = "R";
@@ -1025,8 +1023,8 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("nös");
+    // Physical same-axis run "RNÖS" is not a dict word → reject.
+    expect(result).toHaveLength(0);
   });
 
   // T051: NÖS regression — same scenario but combined run IS a valid word → accept
@@ -1058,11 +1056,10 @@ describe("selectOptimalCombination", () => {
     expect(result[0].text).toBe("nös");
   });
 
-  // T052: Same-axis frozen letter precedes the new word — under the
-  // per-letter rule the new word covers its own letters and the combined
-  // run need not be a dict word. Contrived 2-letter candidate; the real
-  // scanner would never emit one.
-  test("T052: allows horizontal word when a single frozen letter precedes it (per-letter rule)", () => {
+  // T052 (#200): same structure as the NMÚL / SMÁD reports — a single
+  // frozen letter immediately abutting the new word on its own axis
+  // creates a non-dict combined run and must be rejected.
+  test("T052 (#200): rejects horizontal word when a single frozen letter precedes it and combined run is not a dict word", () => {
     const localDict = new Set(["ab"]);
     const board = emptyBoard();
     board[2][1] = "X";
@@ -1082,8 +1079,8 @@ describe("selectOptimalCombination", () => {
       "player_a",
     );
 
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("ab");
+    // Physical same-axis run "XAB" is not a dict word → reject.
+    expect(result).toHaveLength(0);
   });
 
   // ─── Issue #200: cross-round same-axis standalone invariant ─────
@@ -1197,9 +1194,10 @@ describe("selectOptimalCombination", () => {
     expect(result[0].text).toBe("þema");
   });
 
-  test("T057 (#136 regression): accepts horizontal word adjacent to a perpendicular-axis-only frozen tile (NMÚL-shape, BÆN-shape)", () => {
-    // Frozen N at (5,3) scored only horizontally — does NOT extend the
-    // new vertical word MÚL on its own (vertical) axis.
+  test("T057 (#200): rejects vertical word MÚL when a frozen N above it forms the non-dict combined run NMÚL (exact bug from #200)", () => {
+    // The NMÚL case from issue #200. It does not matter which axis N
+    // was originally scored on — the physical same-axis scored run
+    // after MÚL freezes is "NMÚL", which is not a dict word. Reject.
     const localDict = new Set(["múl"]);
     const board = emptyBoard();
     board[3][5] = "n";
@@ -1218,8 +1216,7 @@ describe("selectOptimalCombination", () => {
       "player_b",
     );
 
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("múl");
+    expect(result).toHaveLength(0);
   });
 
   test("T058 (#200): rejects candidate sandwiched between two prior same-axis scored words whose combined sequence is not dict", () => {
