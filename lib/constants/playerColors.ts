@@ -1,20 +1,26 @@
 import type { PlayerSlot } from "@/lib/types/match";
 
-// --- Hex base colors ---
-export const PLAYER_A_HEX = "#38BDF8"; // sky-400 (brighter blue for dark backgrounds)
-export const PLAYER_B_HEX = "#EF4444"; // red-500
+// Player slot colors — single source of truth, resolves to the OKLCH design
+// tokens defined in app/globals.css (--p1 = warm ochre / "player A",
+// --p2 = design blue / "player B"). String values are usable in inline styles
+// (`style={{ color }}`, `backgroundColor: playerColor`) where the browser
+// resolves the var at paint time. Keeping the var indirection means a future
+// theme flip retunes every player surface in one place.
 
-// --- Frozen tile overlays (40% opacity) ---
-export const PLAYER_A_OVERLAY = "rgba(56, 189, 248, 0.4)";
-export const PLAYER_B_OVERLAY = "rgba(239, 68, 68, 0.4)";
+export const PLAYER_A_HEX = "var(--p1)";
+export const PLAYER_B_HEX = "var(--p2)";
 
-// --- Scored tile highlights (60% opacity) ---
-export const PLAYER_A_HIGHLIGHT = "rgba(56, 189, 248, 0.6)";
-export const PLAYER_B_HIGHLIGHT = "rgba(239, 68, 68, 0.6)";
+// Frozen-tile overlays (40% alpha)
+export const PLAYER_A_OVERLAY = "oklch(0.68 0.14 60 / 0.4)";
+export const PLAYER_B_OVERLAY = "oklch(0.56 0.08 220 / 0.4)";
 
-// --- Both-player gradient (split diagonal) ---
+// Scored-tile highlights (60% alpha)
+export const PLAYER_A_HIGHLIGHT = "oklch(0.68 0.14 60 / 0.6)";
+export const PLAYER_B_HIGHLIGHT = "oklch(0.56 0.08 220 / 0.6)";
+
+// Both-player gradient (split diagonal) for shared / contested tiles
 export const BOTH_GRADIENT =
-  "linear-gradient(135deg, rgba(56, 189, 248, 0.4) 50%, rgba(239, 68, 68, 0.4) 50%)";
+  "linear-gradient(135deg, oklch(0.68 0.14 60 / 0.4) 50%, oklch(0.56 0.08 220 / 0.4) 50%)";
 
 export interface PlayerColorSet {
   hex: string;
