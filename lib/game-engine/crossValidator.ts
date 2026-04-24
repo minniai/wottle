@@ -141,6 +141,77 @@ export function hasCrossWordViolation(
 }
 
 /**
+ * Does the candidate word's axis physically abut frozen tiles, and
+ * is the resulting maximal same-axis scored run not a dict word?
+ *
+ * Enforces the standalone invariant (game_rules §3.5a / I7a) across
+ * rounds: a scored word must end at an unfrozen tile or the board
+ * edge, or — if it meets another scored word head-on on the same
+ * axis — the full combined scored run must itself be a dict word.
+ * The within-round counterpart lives in `hasNoSameAxisConflict`.
+ *
+ * Purely physical — ignores `scoredAxes`. A candidate whose start or
+ * end tile is adjacent to a frozen tile on the same axis is extending
+ * the physically scored run. In a real game, an isolated perpendicular
+ * frozen neighbor does not exist: if a tile is frozen, it was part of
+ * a ≥ `minimumWordLength` scored word, so its in-line neighbors on
+ * the axis of that prior word are also frozen. Unfrozen letters
+ * physically adjacent to a new word (e.g. `Þ` next to `BÆN` in #136)
+ * do not trigger this check because they are not frozen.
+ */
+function violatesFrozenAdjacencyOnSameAxis(
+  word: BoardWord,
+  board: BoardGrid,
+  frozenTileSet: Set<string>,
+  dictionary: Set<string>,
+): boolean {
+  const isHorizontal =
+    word.direction === "right" || word.direction === "left";
+  const dx = isHorizontal ? 1 : 0;
+  const dy = isHorizontal ? 0 : 1;
+
+  const sortedTiles = [...word.tiles].sort((a, b) =>
+    isHorizontal ? a.x - b.x : a.y - b.y,
+  );
+  const first = sortedTiles[0];
+  const last = sortedTiles[sortedTiles.length - 1];
+  const wordChars = sortedTiles.map((t) => board[t.y][t.x]);
+
+  const beforeChars: string[] = [];
+  let bx = first.x - dx;
+  let by = first.y - dy;
+  while (
+    bx >= 0 && bx < BOARD_SIZE &&
+    by >= 0 && by < BOARD_SIZE &&
+    frozenTileSet.has(`${bx},${by}`)
+  ) {
+    beforeChars.unshift(board[by][bx]);
+    bx -= dx;
+    by -= dy;
+  }
+
+  const afterChars: string[] = [];
+  let fx = last.x + dx;
+  let fy = last.y + dy;
+  while (
+    fx >= 0 && fx < BOARD_SIZE &&
+    fy >= 0 && fy < BOARD_SIZE &&
+    frozenTileSet.has(`${fx},${fy}`)
+  ) {
+    afterChars.push(board[fy][fx]);
+    fx += dx;
+    fy += dy;
+  }
+
+  if (beforeChars.length === 0 && afterChars.length === 0) return false;
+
+  const fullRun = [...beforeChars, ...wordChars, ...afterChars];
+  const fullText = fullRun.join("").normalize("NFC").toLowerCase();
+  const reversed = [...fullText].reverse().join("");
+  return !dictionary.has(fullText) && !dictionary.has(reversed);
+}
+
+/**
  * Calculate total score for a word (letter points + length bonus).
  */
 function scoreWord(word: BoardWord): number {
@@ -289,6 +360,17 @@ function isSubsetValid(
         frozenTileSet,
         dictionary,
         extraTiles,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      violatesFrozenAdjacencyOnSameAxis(
+        subset[i],
+        board,
+        frozenTileSet,
+        dictionary,
       )
     ) {
       return false;
