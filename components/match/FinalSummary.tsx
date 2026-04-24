@@ -140,9 +140,9 @@ function RatingDeltaDisplay({
   const sign = ratingDelta > 0 ? "+" : "";
   const color =
     ratingDelta > 0
-      ? "text-emerald-400"
+      ? "text-good"
       : ratingDelta < 0
-        ? "text-rose-400"
+        ? "text-bad"
         : "text-ink-soft";
 
   return (
@@ -191,7 +191,8 @@ export function FinalSummary({
   const playerA = players[0];
   const playerB = players[1];
 
-  // Determine slot-based colors: players[0] = player_a (blue), players[1] = player_b (red)
+  // Slot-based colors resolve to design tokens via lib/constants/playerColors:
+  // players[0] = player_a (warm ochre, --p1), players[1] = player_b (design blue, --p2).
   const currentIsPlayerA = currentPlayerId === playerA?.id;
   const currentPlayerColor = currentIsPlayerA ? PLAYER_A_HEX : PLAYER_B_HEX;
   const opponentColor = currentIsPlayerA ? PLAYER_B_HEX : PLAYER_A_HEX;

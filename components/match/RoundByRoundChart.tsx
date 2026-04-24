@@ -60,7 +60,7 @@ export function RoundByRoundChart({
                   style={{ height: `${aH}px` }}
                 >
                   {row.playerADelta > 0 && aH >= LABEL_MIN_BAR_PX ? (
-                    <span className="absolute inset-x-0 top-0.5 text-center font-mono text-[9px] leading-none text-white/90">
+                    <span className="absolute inset-x-0 top-0.5 text-center font-mono text-[9px] leading-none text-ink/90">
                       {row.playerADelta}
                     </span>
                   ) : null}
@@ -77,7 +77,7 @@ export function RoundByRoundChart({
                   style={{ height: `${bH}px` }}
                 >
                   {row.playerBDelta > 0 && bH >= LABEL_MIN_BAR_PX ? (
-                    <span className="absolute inset-x-0 bottom-0.5 text-center font-mono text-[9px] leading-none text-white/90">
+                    <span className="absolute inset-x-0 bottom-0.5 text-center font-mono text-[9px] leading-none text-ink/90">
                       {row.playerBDelta}
                     </span>
                   ) : null}

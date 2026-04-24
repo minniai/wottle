@@ -1,4 +1,5 @@
 import { PlayerAvatar } from "@/components/match/PlayerAvatar";
+import { getPlayerColors } from "@/lib/constants/playerColors";
 
 type Slot = "player_a" | "player_b";
 
@@ -19,11 +20,6 @@ interface PostGameScoreboardProps {
   entries: [ScoreboardEntry, ScoreboardEntry];
 }
 
-const SLOT_COLOR_HEX: Record<Slot, string> = {
-  player_a: "oklch(0.68 0.14 60)",
-  player_b: "oklch(0.56 0.08 220)",
-};
-
 function ratingLabel(delta: number | undefined): string {
   if (delta === undefined) return "Rating pending";
   if (delta === 0) return "±0 rating";
@@ -37,6 +33,7 @@ function Card({ entry }: { entry: ScoreboardEntry }) {
     entry.slot === "player_a" ? "hud-card hud-card--you" : "hud-card hud-card--opp";
   const scoreClass =
     entry.slot === "player_a" ? "text-p1-deep" : "text-p2-deep";
+  const { hex: avatarColor } = getPlayerColors(entry.slot);
 
   return (
     <div
@@ -47,7 +44,7 @@ function Card({ entry }: { entry: ScoreboardEntry }) {
         <PlayerAvatar
           displayName={entry.displayName}
           avatarUrl={null}
-          playerColor={SLOT_COLOR_HEX[entry.slot]}
+          playerColor={avatarColor}
           size="md"
         />
         <div className="flex min-w-0 flex-col">
