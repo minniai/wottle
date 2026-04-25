@@ -207,14 +207,17 @@
 }
 
 /* Move lock: highlight on swapped tiles until next round (US1).
- * Uses the active player's hue via `--locked-bg` (set inline by BoardGrid
- * per `playerSlot`); falls back to the original ochre treatment when no
- * player slot is provided (e.g. read-only previews). */
+ * Uses the active player's hue via `--locked-bg` (light tint) plus
+ * `--locked-border` (deep border), mirroring the selected-state treatment
+ * so the swap reads as a *lift* rather than a darken. Falls back to the
+ * legacy ochre treatment when no player slot is provided. */
 .board-grid__cell--locked {
   background: var(
     --locked-bg,
     color-mix(in oklab, var(--ochre) 70%, transparent)
   ) !important;
+  border-color: var(--locked-border, color-mix(in oklab, var(--ochre) 90%, transparent));
+  border-width: 2px;
   cursor: not-allowed;
   opacity: 1 !important;
   filter: none !important;
@@ -222,6 +225,30 @@
 
 .board-grid__cell--locked:hover,
 .board-grid__cell--locked:focus-within {
+  transform: none;
+}
+
+/* Opponent's revealed swap (issue #210 follow-up): same lift treatment as
+ * own-locked, but reads `--opponent-locked-bg` / `--opponent-locked-border`
+ * so the tiles persist in the opponent's identity color until the round
+ * resolves. Click is blocked at the JS layer (see BoardGrid handleTileClick). */
+.board-grid__cell--opponent-locked {
+  background: var(
+    --opponent-locked-bg,
+    color-mix(in oklab, var(--ochre) 70%, transparent)
+  ) !important;
+  border-color: var(
+    --opponent-locked-border,
+    color-mix(in oklab, var(--ochre) 90%, transparent)
+  );
+  border-width: 2px;
+  cursor: not-allowed;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.board-grid__cell--opponent-locked:hover,
+.board-grid__cell--opponent-locked:focus-within {
   transform: none;
 }
 

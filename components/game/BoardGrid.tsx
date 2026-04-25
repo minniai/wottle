@@ -25,7 +25,9 @@ import {
   PLAYER_B_SELECTED_BG,
   PLAYER_B_SELECTED_BORDER,
   PLAYER_A_LOCKED_BG,
+  PLAYER_A_LOCKED_BORDER,
   PLAYER_B_LOCKED_BG,
+  PLAYER_B_LOCKED_BORDER,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
@@ -57,6 +59,13 @@ interface BoardGridProps {
   lockedTiles?: [Coordinate, Coordinate] | null;
   /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
   opponentRevealTiles?: [Coordinate, Coordinate] | null;
+  /**
+   * Coordinates of the opponent's mid-round revealed swap. Rendered in the
+   * opponent's identity color (opposite slot of `playerSlot`) and held until
+   * the round resolves. Clicks on these tiles are blocked — they're locked
+   * for the rest of the round (issue #210 follow-up).
+   */
+  opponentLockedTiles?: [Coordinate, Coordinate] | null;
   /**
    * When set, BoardGrid runs the FLIP swap animation for the given (from, to)
    * exactly once per `key`. Used by MatchClient (issue #210) to animate the
@@ -142,12 +151,22 @@ const SELECTED_BORDER_COLORS = {
 };
 
 /** Per-player locked-tile color (issue #209 follow-up): keeps the
- * post-submission swap highlight in the active player's hue instead of
- * reverting to the legacy ochre fallback. */
+ * post-submission swap highlight in the active player's hue. The deep
+ * border lifts the tile (matches the selected-state treatment) rather
+ * than darkening it. Used both for the local player's own swap and for
+ * the opponent's mid-round revealed swap (with the opposite slot's vars). */
 const LOCKED_BG_COLORS = {
   player_a: PLAYER_A_LOCKED_BG,
   player_b: PLAYER_B_LOCKED_BG,
 };
+const LOCKED_BORDER_COLORS = {
+  player_a: PLAYER_A_LOCKED_BORDER,
+  player_b: PLAYER_B_LOCKED_BORDER,
+};
+
+function oppositeSlot(slot: "player_a" | "player_b"): "player_a" | "player_b" {
+  return slot === "player_a" ? "player_b" : "player_a";
+}
 
 function isTileInHighlights(
   colIndex: number,
@@ -198,6 +217,7 @@ export function BoardGrid({
   showLockBanner = false,
   lockedTiles = null,
   opponentRevealTiles = null,
+  opponentLockedTiles = null,
   externalSwap = null,
   onSwapComplete,
   onSwapError,
@@ -226,6 +246,7 @@ export function BoardGrid({
       showLockBanner={showLockBanner}
       lockedTiles={lockedTiles}
       opponentRevealTiles={opponentRevealTiles}
+      opponentLockedTiles={opponentLockedTiles}
       externalSwap={externalSwap}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
@@ -252,6 +273,7 @@ function BoardGridActive({
   showLockBanner = false,
   lockedTiles = null,
   opponentRevealTiles = null,
+  opponentLockedTiles = null,
   externalSwap = null,
   onSwapComplete,
   onSwapError,
@@ -542,6 +564,19 @@ function BoardGridActive({
     animateSwap(externalSwap.from, externalSwap.to, () => {});
   }, [externalSwap, animateSwap, grid]);
 
+  // If the opponent's revealed swap covers a tile the user has selected, drop
+  // the selection — that tile is now locked for the rest of the round.
+  useEffect(() => {
+    if (!selected || !opponentLockedTiles) return;
+    const [a, b] = opponentLockedTiles;
+    if (
+      (selected.x === a.x && selected.y === a.y) ||
+      (selected.x === b.x && selected.y === b.y)
+    ) {
+      setSelected(null);
+    }
+  }, [opponentLockedTiles, selected]);
+
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
       if (isSubmitting || isAnimating || disabled) {
@@ -549,6 +584,19 @@ function BoardGridActive({
       }
 
       const coordinate = { x: colIndex, y: rowIndex } as SelectedTile;
+
+      // Opponent's mid-round revealed swap locks those tiles for the rest
+      // of the round (issue #210 follow-up).
+      const isOpponentLockedTarget =
+        opponentLockedTiles !== null &&
+        ((opponentLockedTiles[0].x === coordinate.x &&
+          opponentLockedTiles[0].y === coordinate.y) ||
+          (opponentLockedTiles[1].x === coordinate.x &&
+            opponentLockedTiles[1].y === coordinate.y));
+      if (isOpponentLockedTarget) {
+        onInvalidMove?.();
+        return;
+      }
 
       if (!selected) {
         onTileSelect?.();
@@ -583,7 +631,7 @@ function BoardGridActive({
       setSelected(null);
       animateSwap(selected, coordinate);
     },
-    [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles, onTileSelect, onInvalidMove]
+    [animateSwap, isSubmitting, isAnimating, disabled, selected, frozenTiles, opponentLockedTiles, onTileSelect, onInvalidMove]
   );
 
   // Deselect on Escape key
@@ -682,6 +730,10 @@ function BoardGridActive({
                 opponentRevealTiles !== null &&
                 ((opponentRevealTiles[0].x === colIndex && opponentRevealTiles[0].y === rowIndex) ||
                   (opponentRevealTiles[1].x === colIndex && opponentRevealTiles[1].y === rowIndex));
+              const isOpponentLocked =
+                opponentLockedTiles !== null &&
+                ((opponentLockedTiles[0].x === colIndex && opponentLockedTiles[0].y === rowIndex) ||
+                  (opponentLockedTiles[1].x === colIndex && opponentLockedTiles[1].y === rowIndex));
               const isInvalid =
                 invalidTiles !== null &&
                 ((invalidTiles[0].x === colIndex && invalidTiles[0].y === rowIndex) ||
@@ -708,12 +760,24 @@ function BoardGridActive({
                   : undefined;
               const lockedBgColor =
                 playerSlot && isLocked ? LOCKED_BG_COLORS[playerSlot] : undefined;
+              const lockedBorderColor =
+                playerSlot && isLocked ? LOCKED_BORDER_COLORS[playerSlot] : undefined;
+              const opponentSlot = playerSlot ? oppositeSlot(playerSlot) : undefined;
+              const opponentLockedBgColor =
+                opponentSlot && isOpponentLocked
+                  ? LOCKED_BG_COLORS[opponentSlot]
+                  : undefined;
+              const opponentLockedBorderColor =
+                opponentSlot && isOpponentLocked
+                  ? LOCKED_BORDER_COLORS[opponentSlot]
+                  : undefined;
               const tileStyle: CSSProperties | undefined =
                 frozenStyle ||
                 highlightColor ||
                 needsDelay ||
                 selectedBgColor ||
-                lockedBgColor
+                lockedBgColor ||
+                opponentLockedBgColor
                   ? ({
                       ...frozenStyle,
                       ...(highlightColor && { "--highlight-color": highlightColor }),
@@ -721,6 +785,13 @@ function BoardGridActive({
                       ...(selectedBgColor && { "--selected-bg": selectedBgColor }),
                       ...(selectedBorderColor && { "--selected-border": selectedBorderColor }),
                       ...(lockedBgColor && { "--locked-bg": lockedBgColor }),
+                      ...(lockedBorderColor && { "--locked-border": lockedBorderColor }),
+                      ...(opponentLockedBgColor && {
+                        "--opponent-locked-bg": opponentLockedBgColor,
+                      }),
+                      ...(opponentLockedBorderColor && {
+                        "--opponent-locked-border": opponentLockedBorderColor,
+                      }),
                     } as CSSProperties)
                   : undefined;
 
@@ -740,7 +811,7 @@ function BoardGridActive({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected || isSwapping ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
+                  className={`board-grid__cell${isSelected || isSwapping ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isOpponentLocked ? " board-grid__cell--opponent-locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}

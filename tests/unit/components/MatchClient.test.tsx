@@ -922,6 +922,77 @@ describe("MatchClient opponent move reveal (issue #210)", () => {
       "board-grid__cell--opponent-reveal",
     );
   });
+
+  test("opponent's revealed swap tiles stay marked as opponent-locked until the round resolves", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState({ board: distinctBoard() })}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    // Opponent submits mid-round.
+    await act(async () => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          board: distinctBoard(),
+          pendingMoves: [
+            {
+              playerId: "player-2",
+              from: { x: 2, y: 3 },
+              to: { x: 4, y: 3 },
+              submittedAt: "2026-01-01T00:00:01.000Z",
+            },
+          ],
+        }),
+      );
+    });
+
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[3 * 10 + 2]).toHaveClass("board-grid__cell--opponent-locked");
+    expect(tiles[3 * 10 + 4]).toHaveClass("board-grid__cell--opponent-locked");
+
+    // Subsequent broadcasts during the same round must keep the class on.
+    await act(async () => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          board: distinctBoard(),
+          pendingMoves: [
+            {
+              playerId: "player-2",
+              from: { x: 2, y: 3 },
+              to: { x: 4, y: 3 },
+              submittedAt: "2026-01-01T00:00:01.000Z",
+            },
+          ],
+        }),
+      );
+    });
+    expect(tiles[3 * 10 + 2]).toHaveClass("board-grid__cell--opponent-locked");
+
+    // Round resolves → currentRound increments → tiles release.
+    await act(async () => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          board: distinctBoard(),
+          currentRound: 2,
+          pendingMoves: [],
+        }),
+      );
+    });
+    expect(tiles[3 * 10 + 2]).not.toHaveClass(
+      "board-grid__cell--opponent-locked",
+    );
+    expect(tiles[3 * 10 + 4]).not.toHaveClass(
+      "board-grid__cell--opponent-locked",
+    );
+  });
 });
 
 // ─── DisconnectionModal end-of-match guard (issue #161 follow-up) ──────────

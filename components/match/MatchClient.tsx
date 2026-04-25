@@ -153,6 +153,11 @@ export function MatchClient({
   const [externalSwap, setExternalSwap] = useState<
     { from: Coordinate; to: Coordinate; key: string } | null
   >(null);
+  // The opponent's revealed swap tiles, held in the opponent's identity color
+  // and click-locked until the round resolves (issue #210 follow-up).
+  const [opponentSwapTiles, setOpponentSwapTiles] = useState<
+    [Coordinate, Coordinate] | null
+  >(null);
   const animatedOpponentMoveKeysRef = useRef<Set<string>>(new Set());
 
   // Resign state
@@ -611,15 +616,18 @@ export function MatchClient({
   useEffect(() => {
     setMoveLocked(false);
     setLockedSwapTiles(null);
-    // Issue #210 — drop the externally-driven swap and forget which opponent
-    // moves were animated; the next round starts with a clean slate.
+    // Issue #210 — drop the externally-driven swap, the persistent opponent-
+    // color tiles, and forget which opponent moves were animated; the next
+    // round starts with a clean slate.
     setExternalSwap(null);
+    setOpponentSwapTiles(null);
     animatedOpponentMoveKeysRef.current = new Set();
   }, [matchState.currentRound]);
 
   // Issue #210 — when a state snapshot carries a new opponent pendingMove,
   // surface it to BoardGrid as an externalSwap so the FLIP animates the
-  // opponent's swap immediately on the current player's board.
+  // opponent's swap immediately on the current player's board, and pin the
+  // tiles in the opponent's identity color until the round resolves.
   useEffect(() => {
     const opponentPlayerId =
       currentPlayerId === matchState.timers.playerA.playerId
@@ -637,6 +645,7 @@ export function MatchClient({
       to: opponentMove.to,
       key,
     });
+    setOpponentSwapTiles([opponentMove.from, opponentMove.to]);
   }, [
     matchState.pendingMoves,
     currentPlayerId,
@@ -1024,6 +1033,7 @@ export function MatchClient({
                 disabled={moveLocked}
                 showLockBanner={false}
                 lockedTiles={lockedSwapTiles}
+                opponentLockedTiles={opponentSwapTiles}
                 opponentRevealTiles={
                   animationPhase === "round-recap" && activeRevealMove
                     ? [activeRevealMove.from, activeRevealMove.to]
