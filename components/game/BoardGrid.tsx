@@ -20,6 +20,10 @@ import type { FrozenTileMap } from "@/lib/types/match";
 import {
   PLAYER_A_OVERLAY,
   PLAYER_B_OVERLAY,
+  PLAYER_A_SELECTED_BG,
+  PLAYER_A_SELECTED_BORDER,
+  PLAYER_B_SELECTED_BG,
+  PLAYER_B_SELECTED_BORDER,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
@@ -113,6 +117,19 @@ const EMPTY_HIGHLIGHTS: Coordinate[][] = [];
 const FROZEN_COLORS = {
   player_a: PLAYER_A_OVERLAY,
   player_b: PLAYER_B_OVERLAY,
+};
+
+/** Per-player selected-tile colors (issue #209): the click-to-pick highlight
+ * uses the active player's identity color in a deep shade with a dark border,
+ * so it stays distinct from scored/frozen tiles which already use the lighter
+ * shades of the same hue. */
+const SELECTED_BG_COLORS = {
+  player_a: PLAYER_A_SELECTED_BG,
+  player_b: PLAYER_B_SELECTED_BG,
+};
+const SELECTED_BORDER_COLORS = {
+  player_a: PLAYER_A_SELECTED_BORDER,
+  player_b: PLAYER_B_SELECTED_BORDER,
 };
 
 function isTileInHighlights(
@@ -607,12 +624,25 @@ function BoardGridActive({
                 ? highlightPlayerColors[tileKey]
                 : undefined;
               const needsDelay = isScoredHighlight && highlightDelayMs > 0;
+              // Selected-tile colors are scoped to tiles currently in the
+              // selected or swapping state so unrelated tiles don't carry
+              // unused CSS vars (issue #209).
+              const selectedBgColor =
+                playerSlot && (isSelected || isSwapping)
+                  ? SELECTED_BG_COLORS[playerSlot]
+                  : undefined;
+              const selectedBorderColor =
+                playerSlot && (isSelected || isSwapping)
+                  ? SELECTED_BORDER_COLORS[playerSlot]
+                  : undefined;
               const tileStyle: CSSProperties | undefined =
-                frozenStyle || highlightColor || needsDelay
+                frozenStyle || highlightColor || needsDelay || selectedBgColor
                   ? ({
                       ...frozenStyle,
                       ...(highlightColor && { "--highlight-color": highlightColor }),
                       ...(needsDelay && { animationDelay: `${highlightDelayMs}ms` }),
+                      ...(selectedBgColor && { "--selected-bg": selectedBgColor }),
+                      ...(selectedBorderColor && { "--selected-border": selectedBorderColor }),
                     } as CSSProperties)
                   : undefined;
 
