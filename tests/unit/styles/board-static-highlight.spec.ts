@@ -69,4 +69,34 @@ describe("board.css — static highlight rule", () => {
       ).toBe(true);
     }
   });
+
+  it("does not change border-width or border (the cell's border-box must not grow)", () => {
+    // Even with `box-sizing: border-box`, changing the rendered border between
+    // states made the board visibly elongate in the user's environment. To
+    // guarantee no growth, the static rule must not touch any border property.
+    expect(
+      /border-width\s*:/.test(rule),
+      `static rule changes border-width — board elongates on hover`,
+    ).toBe(false);
+    expect(
+      /(^|[^-])border\s*:/.test(rule),
+      `static rule changes the border shorthand — board elongates on hover`,
+    ).toBe(false);
+    expect(
+      /border-color\s*:/.test(rule),
+      `static rule changes border-color — even color-only changes can trigger sub-pixel reflow in some browsers`,
+    ).toBe(false);
+  });
+
+  it("paints a prominent inset ring so the highlight is visible without an outer shadow", () => {
+    const value = extractBoxShadow(rule);
+    const layers = splitShadowLayers(value!);
+    const innerRing = layers.find((l) =>
+      /^inset\s+0\s+0\s+0\s+2px/.test(l),
+    );
+    expect(
+      innerRing,
+      `expected an inset 2px ring layer for the dark edge`,
+    ).toBeDefined();
+  });
 });

@@ -324,26 +324,28 @@
 }
 
 /* Static highlight for hover-driven word highlights (no animation, persists
- * while hovered). Bright player-color fill + dark border so the hovered
- * word reads clearly even when the page is busy with other state
- * (issue #209 follow-up). The dark border is derived from the highlight
- * color via color-mix so it adapts to whichever player owns the word.
+ * while hovered). Bright player-color fill + a dark inset ring that reads
+ * as a thicker border without actually changing the cell's border CSS
+ * (issue #208 follow-up).
  *
- * Important: every shadow layer is `inset` so highlighting cannot grow the
- * tile beyond its border-box. An outer-spread shadow caused the board to
- * appear to expand under the cursor, shifting the page below (issue #208
- * follow-up). The bright fill + 2px dark border carry the visual weight on
- * their own. */
+ * Why no border-width / border-color override: changing the rendered border
+ * between states elongated the board under the cursor in the user's
+ * environment, even with `box-sizing: border-box`. We keep the border
+ * property identical to the base cell and paint the dark edge with an
+ * `inset 0 0 0 2px` shadow that sits over the existing 1px border. Result:
+ * no layout property of the tile changes when highlighted, the board's
+ * footprint is locked, and the dark ring is darker (40% ink mix) for
+ * stronger contrast against the bright fill. */
 .board-grid__cell--scored.board-grid__cell--scored-static {
   animation: none;
   background: var(--highlight-color, transparent) !important;
-  border-color: color-mix(
-    in oklab,
-    var(--highlight-color, var(--ochre-deep)),
-    var(--ink) 35%
-  );
-  border-width: 2px;
   box-shadow:
+    inset 0 0 0 2px
+      color-mix(
+        in oklab,
+        var(--highlight-color, var(--ochre-deep)),
+        var(--ink) 40%
+      ),
     inset 0 1px 0 color-mix(in oklab, var(--paper) 60%, transparent),
     inset 0 -4px 12px color-mix(in oklab, var(--ink) 12%, transparent);
 }
