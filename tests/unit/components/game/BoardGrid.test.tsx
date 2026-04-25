@@ -829,4 +829,221 @@ describe("BoardGrid locked tile player colors (issue #209 follow-up)", () => {
   });
 });
 
+describe("BoardGrid externalSwap (issue #210)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        const col = Number(this.getAttribute("data-col") ?? 0);
+        const row = Number(this.getAttribute("data-row") ?? 0);
+        const size = 50;
+        return {
+          top: row * size,
+          left: col * size,
+          bottom: row * size + size,
+          right: col * size + size,
+          width: size,
+          height: size,
+          x: col * size,
+          y: row * size,
+          toJSON: () => ({}),
+        };
+      },
+    );
+    // submitSwapRequest must NEVER be called for an external swap.
+    vi.spyOn(globalThis, "fetch").mockImplementation(() => {
+      throw new Error(
+        "external swap must not call fetch — that is the local-submission path",
+      );
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  function buildDistinctGrid(): BoardGridType {
+    return Array.from({ length: BOARD_SIZE }, (_, row) =>
+      Array.from({ length: BOARD_SIZE }, (_, col) =>
+        String.fromCharCode("A".charCodeAt(0) + row * BOARD_SIZE + col),
+      ),
+    );
+  }
+
+  test("a new externalSwap key swaps tile letters and animates without submitting", async () => {
+    const grid = buildDistinctGrid();
+    const { rerender } = render(
+      <BoardGrid grid={grid} matchId="test-match-id" externalSwap={null} />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // Only compare the first character — the rest of textContent includes the
+    // letter score value and the sr-only "Row X, column Y, letter Z" label,
+    // both of which intentionally update with the new letter at that position.
+    const initialAt0 = tiles[0].textContent?.charAt(0);
+    const initialAt1 = tiles[1].textContent?.charAt(0);
+    expect(initialAt0).not.toBe(initialAt1);
+
+    await act(async () => {
+      rerender(
+        <BoardGrid
+          grid={grid}
+          matchId="test-match-id"
+          externalSwap={{
+            from: { x: 0, y: 0 },
+            to: { x: 1, y: 0 },
+            key: "opp-1",
+          }}
+        />,
+      );
+    });
+
+    // Letters swapped in the rendered DOM.
+    expect(tiles[0].textContent?.charAt(0)).toBe(initialAt1);
+    expect(tiles[1].textContent?.charAt(0)).toBe(initialAt0);
+    // FLIP animation class applied to both tiles.
+    expect(tiles[0].classList.contains("board-grid__cell--animating")).toBe(
+      true,
+    );
+    expect(tiles[1].classList.contains("board-grid__cell--animating")).toBe(
+      true,
+    );
+  });
+
+  test("re-rendering with the same externalSwap key does NOT re-trigger the swap", async () => {
+    const grid = buildDistinctGrid();
+    const externalSwap = {
+      from: { x: 0, y: 0 },
+      to: { x: 1, y: 0 },
+      key: "opp-1",
+    };
+
+    const { rerender } = render(
+      <BoardGrid grid={grid} matchId="test-match-id" externalSwap={null} />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // Only compare the first character — the rest of textContent includes the
+    // letter score value and the sr-only "Row X, column Y, letter Z" label,
+    // both of which intentionally update with the new letter at that position.
+    const initialAt0 = tiles[0].textContent?.charAt(0);
+    const initialAt1 = tiles[1].textContent?.charAt(0);
+
+    await act(async () => {
+      rerender(
+        <BoardGrid grid={grid} matchId="test-match-id" externalSwap={externalSwap} />,
+      );
+    });
+
+    // After first render: swapped.
+    expect(tiles[0].textContent?.charAt(0)).toBe(initialAt1);
+    expect(tiles[1].textContent?.charAt(0)).toBe(initialAt0);
+
+    // Re-render with the SAME key (e.g., another MatchState broadcast for the
+    // same pending move). Should NOT swap again — would be a double-swap.
+    await act(async () => {
+      rerender(
+        <BoardGrid grid={grid} matchId="test-match-id" externalSwap={externalSwap} />,
+      );
+    });
+
+    expect(tiles[0].textContent?.charAt(0)).toBe(initialAt1);
+    expect(tiles[1].textContent?.charAt(0)).toBe(initialAt0);
+  });
+
+  test("the applied external swap survives subsequent grid prop re-syncs", async () => {
+    const grid = buildDistinctGrid();
+    const { rerender } = render(
+      <BoardGrid grid={grid} matchId="test-match-id" externalSwap={null} />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // Only compare the first character — the rest of textContent includes the
+    // letter score value and the sr-only "Row X, column Y, letter Z" label,
+    // both of which intentionally update with the new letter at that position.
+    const initialAt0 = tiles[0].textContent?.charAt(0);
+    const initialAt1 = tiles[1].textContent?.charAt(0);
+
+    await act(async () => {
+      rerender(
+        <BoardGrid
+          grid={grid}
+          matchId="test-match-id"
+          externalSwap={{
+            from: { x: 0, y: 0 },
+            to: { x: 1, y: 0 },
+            key: "opp-1",
+          }}
+        />,
+      );
+    });
+    expect(tiles[0].textContent?.charAt(0)).toBe(initialAt1);
+
+    // Server re-broadcasts MatchState during collecting — `grid` prop is the
+    // SAME pre-swap board (the server has not applied any swap yet). The
+    // applied opponent swap must persist across this re-sync, otherwise the
+    // tiles would visibly snap back.
+    const sameGrid = grid.map((row) => [...row]) as BoardGridType;
+    await act(async () => {
+      rerender(
+        <BoardGrid
+          grid={sameGrid}
+          matchId="test-match-id"
+          externalSwap={{
+            from: { x: 0, y: 0 },
+            to: { x: 1, y: 0 },
+            key: "opp-1",
+          }}
+        />,
+      );
+    });
+
+    expect(tiles[0].textContent?.charAt(0)).toBe(initialAt1);
+    expect(tiles[1].textContent?.charAt(0)).toBe(initialAt0);
+  });
+
+  test("clearing externalSwap to null releases the apply, letting grid prop drive currentGrid", async () => {
+    const grid = buildDistinctGrid();
+    const { rerender } = render(
+      <BoardGrid grid={grid} matchId="test-match-id" externalSwap={null} />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    // Only compare the first character — the rest of textContent includes the
+    // letter score value and the sr-only "Row X, column Y, letter Z" label,
+    // both of which intentionally update with the new letter at that position.
+    const initialAt0 = tiles[0].textContent?.charAt(0);
+    const initialAt1 = tiles[1].textContent?.charAt(0);
+
+    // Apply an external swap.
+    await act(async () => {
+      rerender(
+        <BoardGrid
+          grid={grid}
+          matchId="test-match-id"
+          externalSwap={{
+            from: { x: 0, y: 0 },
+            to: { x: 1, y: 0 },
+            key: "opp-1",
+          }}
+        />,
+      );
+    });
+    expect(tiles[0].textContent?.charAt(0)).toBe(initialAt1);
+
+    // Round advances: parent supplies a fresh grid (here we reuse pre-swap
+    // for simplicity) and clears externalSwap. The pre-swap layout should
+    // be restored — no ghost swap retained.
+    await act(async () => {
+      rerender(
+        <BoardGrid grid={grid} matchId="test-match-id" externalSwap={null} />,
+      );
+    });
+
+    expect(tiles[0].textContent?.charAt(0)).toBe(initialAt0);
+    expect(tiles[1].textContent?.charAt(0)).toBe(initialAt1);
+  });
+});
+
 

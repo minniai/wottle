@@ -57,6 +57,13 @@ interface BoardGridProps {
   lockedTiles?: [Coordinate, Coordinate] | null;
   /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
   opponentRevealTiles?: [Coordinate, Coordinate] | null;
+  /**
+   * When set, BoardGrid runs the FLIP swap animation for the given (from, to)
+   * exactly once per `key`. Used by MatchClient (issue #210) to animate the
+   * opponent's swap mid-round without going through the local-click submit
+   * path. Set back to `null` to release the applied swap.
+   */
+  externalSwap?: { from: Coordinate; to: Coordinate; key: string } | null;
   onSwapComplete?: (details: { move: MoveRequest; result: MoveResult }) => void;
   onSwapError?: (details: {
     move: MoveRequest;
@@ -191,6 +198,7 @@ export function BoardGrid({
   showLockBanner = false,
   lockedTiles = null,
   opponentRevealTiles = null,
+  externalSwap = null,
   onSwapComplete,
   onSwapError,
   onTileSelect,
@@ -218,6 +226,7 @@ export function BoardGrid({
       showLockBanner={showLockBanner}
       lockedTiles={lockedTiles}
       opponentRevealTiles={opponentRevealTiles}
+      externalSwap={externalSwap}
       onSwapComplete={onSwapComplete}
       onSwapError={onSwapError}
       onTileSelect={onTileSelect}
@@ -243,6 +252,7 @@ function BoardGridActive({
   showLockBanner = false,
   lockedTiles = null,
   opponentRevealTiles = null,
+  externalSwap = null,
   onSwapComplete,
   onSwapError,
   onTileSelect,
@@ -275,13 +285,31 @@ function BoardGridActive({
     }
   }, [grid]);
 
+  // The most recently applied opponent swap. Held until `externalSwap`
+  // becomes null (parent signals the round transitioned). Re-applied on top
+  // of any incoming `grid` prop so a re-broadcast of the pre-swap board
+  // doesn't snap the opponent's tiles back (issue #210).
+  const appliedExternalSwapRef = useRef<{
+    from: Coordinate;
+    to: Coordinate;
+    key: string;
+  } | null>(null);
+
   useEffect(() => {
     // Skip sync while board is move-locked — the optimistic swap in
     // currentGrid must persist.  The Realtime broadcast during "collecting"
     // carries board_snapshot_before (the pre-swap board) which would revert
     // the visual swap.  When disabled flips back to false (round advances)
     // the latest grid prop is applied.
-    if (!disabled) {
+    if (disabled) return;
+    const applied = appliedExternalSwapRef.current;
+    if (applied) {
+      const next = grid.map((row) => [...row]) as BoardGridType;
+      const tmp = next[applied.from.y][applied.from.x];
+      next[applied.from.y][applied.from.x] = next[applied.to.y][applied.to.x];
+      next[applied.to.y][applied.to.x] = tmp;
+      setCurrentGrid(next);
+    } else {
       setCurrentGrid(grid);
     }
   }, [grid, disabled]);
@@ -378,23 +406,31 @@ function BoardGridActive({
     [currentGrid, matchId, onSwapComplete, onSwapError, onValidSwap, onInvalidMove]
   );
 
-  // FLIP animation state: stored position deltas from before the grid swap
+  // FLIP animation state: stored position deltas from before the grid swap.
+  // `onComplete` runs after the animation settles — usually the server submit
+  // for local clicks, or a no-op for an externally-driven (opponent) swap.
   const flipRef = useRef<{
     from: SelectedTile;
     to: SelectedTile;
     dx: number;
     dy: number;
+    onComplete: () => void;
   } | null>(null);
 
   const animateSwap = useCallback(
-    (from: SelectedTile, to: SelectedTile) => {
+    (from: SelectedTile, to: SelectedTile, onComplete?: () => void) => {
+      // Default completion is the local-click submission path. The external
+      // (opponent) reveal path passes a no-op so the swap doesn't get
+      // re-submitted to the server (issue #210).
+      const completeFn = onComplete ?? (() => void handleSwap(from, to));
+
       const fromKey = `${from.x},${from.y}`;
       const toKey = `${to.x},${to.y}`;
       const fromEl = tileRefs.current.get(fromKey);
       const toEl = tileRefs.current.get(toKey);
 
       if (!fromEl || !toEl) {
-        void handleSwap(from, to);
+        completeFn();
         return;
       }
 
@@ -405,7 +441,7 @@ function BoardGridActive({
       const dy = toRect.top - fromRect.top;
 
       // Store FLIP data for useLayoutEffect
-      flipRef.current = { from, to, dx, dy };
+      flipRef.current = { from, to, dx, dy, onComplete: completeFn };
 
       // LAST: swap grid data immediately (optimistic local update)
       setCurrentGrid((prev) => {
@@ -426,7 +462,7 @@ function BoardGridActive({
     if (!flip) return;
     flipRef.current = null;
 
-    const { from, to, dx, dy } = flip;
+    const { from, to, dx, dy, onComplete } = flip;
     // After grid swap, the tile that WAS at `from` is now at `to` and vice versa
     const fromKey = `${from.x},${from.y}`;
     const toKey = `${to.x},${to.y}`;
@@ -435,7 +471,7 @@ function BoardGridActive({
 
     if (!elAtFrom || !elAtTo) {
       setIsAnimating(false);
-      void handleSwap(from, to);
+      onComplete();
       return;
     }
 
@@ -470,7 +506,7 @@ function BoardGridActive({
       // swappingTiles deliberately NOT cleared here — cleared in handleSwap's
       // finally block so tiles stay orange (--selected) during the server roundtrip.
       setIsAnimating(false);
-      void handleSwap(from, to);
+      onComplete();
     };
 
     const onEnd = (e: TransitionEvent) => {
@@ -479,7 +515,32 @@ function BoardGridActive({
     elAtFrom.addEventListener("transitionend", onEnd);
     // Fallback if transitionend doesn't fire (reduced motion, dx=0)
     setTimeout(cleanup, 300);
-  }, [currentGrid, handleSwap]);
+  }, [currentGrid]);
+
+  // Issue #210: drive the FLIP animation for an externally-supplied swap
+  // (the opponent's mid-round move). Each `externalSwap.key` runs exactly
+  // once; clearing to `null` releases the held apply and re-syncs the
+  // displayed grid to the latest server snapshot.
+  useEffect(() => {
+    if (!externalSwap) {
+      // Toggling from set → null means the round transitioned; re-sync to the
+      // server's grid so any locally applied swap is dropped. We do this
+      // explicitly here (rather than rely on the grid-sync effect re-running)
+      // because the parent often passes the same `grid` reference.
+      if (appliedExternalSwapRef.current) {
+        appliedExternalSwapRef.current = null;
+        setCurrentGrid(grid);
+      }
+      return;
+    }
+    if (appliedExternalSwapRef.current?.key === externalSwap.key) return;
+    appliedExternalSwapRef.current = {
+      from: externalSwap.from,
+      to: externalSwap.to,
+      key: externalSwap.key,
+    };
+    animateSwap(externalSwap.from, externalSwap.to, () => {});
+  }, [externalSwap, animateSwap, grid]);
 
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {

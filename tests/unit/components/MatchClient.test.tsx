@@ -728,6 +728,202 @@ describe("MatchClient round-recap flash (US1)", () => {
   });
 });
 
+// ─── Issue #210: opponent's swap reveals immediately mid-round ───────────────
+
+describe("MatchClient opponent move reveal (issue #210)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockMatchCallbacks.onSummary = null;
+    mockMatchCallbacks.onState = null;
+    // BoardGrid's FLIP needs measurable bounding rects to apply the animating
+    // class and call setCurrentGrid. Provide distinct positions per tile.
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        const col = Number(this.getAttribute("data-col") ?? 0);
+        const row = Number(this.getAttribute("data-row") ?? 0);
+        const size = 50;
+        return {
+          top: row * size,
+          left: col * size,
+          bottom: row * size + size,
+          right: col * size + size,
+          width: size,
+          height: size,
+          x: col * size,
+          y: row * size,
+          toJSON: () => ({}),
+        };
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  function distinctBoard(): string[][] {
+    return Array.from({ length: 10 }, (_, row) =>
+      Array.from({ length: 10 }, (_, col) =>
+        String.fromCharCode("A".charCodeAt(0) + ((row * 10 + col) % 26)),
+      ),
+    );
+  }
+
+  test("opponent pendingMove triggers a mid-round swap on the current player's board", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    const initialState = createMatchState({ board: distinctBoard() });
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={initialState}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    const tiles = screen.getAllByTestId("board-tile");
+    const beforeAt2_3 = tiles[3 * 10 + 2].textContent?.charAt(0);
+    const beforeAt4_3 = tiles[3 * 10 + 4].textContent?.charAt(0);
+    expect(beforeAt2_3).not.toBe(beforeAt4_3);
+
+    // Server pushes a state snapshot in which the OPPONENT (player-2) has a
+    // pending swap (2,3) ↔ (4,3). The current player should see the swap
+    // animate mid-round.
+    await act(async () => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          board: distinctBoard(),
+          pendingMoves: [
+            {
+              playerId: "player-2",
+              from: { x: 2, y: 3 },
+              to: { x: 4, y: 3 },
+              submittedAt: "2026-01-01T00:00:01.000Z",
+            },
+          ],
+        }),
+      );
+    });
+
+    expect(tiles[3 * 10 + 2].textContent?.charAt(0)).toBe(beforeAt4_3);
+    expect(tiles[3 * 10 + 4].textContent?.charAt(0)).toBe(beforeAt2_3);
+  });
+
+  test("the current player's OWN pendingMove is NOT animated again on their own board", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    const initialState = createMatchState({ board: distinctBoard() });
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={initialState}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    const tiles = screen.getAllByTestId("board-tile");
+    const beforeAt2_3 = tiles[3 * 10 + 2].textContent?.charAt(0);
+    const beforeAt4_3 = tiles[3 * 10 + 4].textContent?.charAt(0);
+
+    // The current player's own pendingMove already animated locally via
+    // handleSwap. Re-broadcasting it via state should NOT trigger another
+    // FLIP on their own board.
+    await act(async () => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          board: distinctBoard(),
+          pendingMoves: [
+            {
+              playerId: "player-1",
+              from: { x: 2, y: 3 },
+              to: { x: 4, y: 3 },
+              submittedAt: "2026-01-01T00:00:00.000Z",
+            },
+          ],
+        }),
+      );
+    });
+
+    expect(tiles[3 * 10 + 2].textContent?.charAt(0)).toBe(beforeAt2_3);
+    expect(tiles[3 * 10 + 4].textContent?.charAt(0)).toBe(beforeAt4_3);
+  });
+
+  test("recap suppresses the opponent-reveal class for moves already animated mid-round", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState({ board: distinctBoard() })}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    // Step 1: opponent submits mid-round; state carries the pendingMove.
+    const opponentSubmittedAt = "2026-01-01T00:00:01.000Z";
+    await act(async () => {
+      mockMatchCallbacks.onState!(
+        createMatchState({
+          board: distinctBoard(),
+          pendingMoves: [
+            {
+              playerId: "player-2",
+              from: { x: 7, y: 1 },
+              to: { x: 7, y: 2 },
+              submittedAt: opponentSubmittedAt,
+            },
+          ],
+        }),
+      );
+    });
+
+    // Step 2: round resolves; round-summary references the SAME move.
+    const summaryWithMatchingMove: RoundSummary = {
+      ...mockRoundSummary,
+      moves: [
+        {
+          playerId: "player-1",
+          from: { x: 2, y: 3 },
+          to: { x: 4, y: 3 },
+          submittedAt: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          playerId: "player-2",
+          from: { x: 7, y: 1 },
+          to: { x: 7, y: 2 },
+          submittedAt: opponentSubmittedAt,
+        },
+      ],
+    };
+    await act(async () => {
+      mockMatchCallbacks.onSummary!(summaryWithMatchingMove);
+    });
+
+    // The opponent-reveal class would have been added by the recap on the
+    // opponent's tiles (7,1) and (7,2). Because we already animated that move
+    // via the mid-round pendingMove broadcast, the recap must NOT replay it.
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[1 * 10 + 7]).not.toHaveClass(
+      "board-grid__cell--opponent-reveal",
+    );
+    expect(tiles[2 * 10 + 7]).not.toHaveClass(
+      "board-grid__cell--opponent-reveal",
+    );
+  });
+});
+
 // ─── DisconnectionModal end-of-match guard (issue #161 follow-up) ──────────
 
 describe("MatchClient disconnection modal guard", () => {
