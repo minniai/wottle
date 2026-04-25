@@ -18,7 +18,9 @@ import {
   PLAYER_B_SELECTED_BG,
   PLAYER_B_SELECTED_BORDER,
   PLAYER_A_LOCKED_BG,
+  PLAYER_A_LOCKED_BORDER,
   PLAYER_B_LOCKED_BG,
+  PLAYER_B_LOCKED_BORDER,
 } from "@/lib/constants/playerColors";
 
 /**
@@ -826,6 +828,139 @@ describe("BoardGrid locked tile player colors (issue #209 follow-up)", () => {
 
     const tiles = screen.getAllByTestId("board-tile");
     expect(tiles[5].style.getPropertyValue("--locked-bg")).toBe("");
+  });
+
+  test("locked tiles also carry --locked-border so the tile lifts rather than darkens", () => {
+    const grid = createGrid();
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_a"
+        lockedTiles={[{ x: 0, y: 0 }, { x: 1, y: 0 }]}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[0].style.getPropertyValue("--locked-border")).toBe(
+      PLAYER_A_LOCKED_BORDER,
+    );
+    expect(tiles[1].style.getPropertyValue("--locked-border")).toBe(
+      PLAYER_A_LOCKED_BORDER,
+    );
+  });
+});
+
+describe("BoardGrid opponentLockedTiles (issue #210 follow-up)", () => {
+  function createDistinctGrid(): BoardGridType {
+    return Array.from({ length: BOARD_SIZE }, (_, row) =>
+      Array.from({ length: BOARD_SIZE }, (_, col) =>
+        String.fromCharCode("A".charCodeAt(0) + (row * BOARD_SIZE + col) % 26),
+      ),
+    );
+  }
+
+  test("renders opponent-locked class with the OPPOSITE slot's locked colors", () => {
+    const grid = createDistinctGrid();
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_a"
+        opponentLockedTiles={[{ x: 2, y: 3 }, { x: 4, y: 3 }]}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    const tileA = tiles[3 * BOARD_SIZE + 2];
+    const tileB = tiles[3 * BOARD_SIZE + 4];
+    expect(tileA).toHaveClass("board-grid__cell--opponent-locked");
+    expect(tileB).toHaveClass("board-grid__cell--opponent-locked");
+    expect(tileA.style.getPropertyValue("--opponent-locked-bg")).toBe(
+      PLAYER_B_LOCKED_BG,
+    );
+    expect(tileA.style.getPropertyValue("--opponent-locked-border")).toBe(
+      PLAYER_B_LOCKED_BORDER,
+    );
+    expect(tileB.style.getPropertyValue("--opponent-locked-bg")).toBe(
+      PLAYER_B_LOCKED_BG,
+    );
+  });
+
+  test("from player_b's perspective, opponent-locked uses player_a's colors", () => {
+    const grid = createDistinctGrid();
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_b"
+        opponentLockedTiles={[{ x: 0, y: 0 }, { x: 1, y: 0 }]}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[0].style.getPropertyValue("--opponent-locked-bg")).toBe(
+      PLAYER_A_LOCKED_BG,
+    );
+    expect(tiles[0].style.getPropertyValue("--opponent-locked-border")).toBe(
+      PLAYER_A_LOCKED_BORDER,
+    );
+  });
+
+  test("clicks on opponent-locked tiles do not start a selection or submit a swap", () => {
+    const grid = createDistinctGrid();
+    const onTileSelect = vi.fn();
+    const onInvalidMove = vi.fn();
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
+      throw new Error("opponent-locked clicks must not hit the network");
+    });
+
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_a"
+        opponentLockedTiles={[{ x: 2, y: 3 }, { x: 4, y: 3 }]}
+        onTileSelect={onTileSelect}
+        onInvalidMove={onInvalidMove}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    fireEvent.click(tiles[3 * BOARD_SIZE + 2]);
+
+    expect(onTileSelect).not.toHaveBeenCalled();
+    expect(onInvalidMove).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  test("a selected tile is deselected if the opponent's swap covers it", () => {
+    const grid = createDistinctGrid();
+    const { rerender } = render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_a"
+        opponentLockedTiles={null}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    const target = tiles[3 * BOARD_SIZE + 2];
+    fireEvent.click(target);
+    expect(target.getAttribute("aria-selected")).toBe("true");
+
+    rerender(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_a"
+        opponentLockedTiles={[{ x: 2, y: 3 }, { x: 4, y: 3 }]}
+      />,
+    );
+
+    expect(tiles[3 * BOARD_SIZE + 2].getAttribute("aria-selected")).toBe("false");
   });
 });
 

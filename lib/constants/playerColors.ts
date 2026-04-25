@@ -38,13 +38,15 @@ export const PLAYER_A_SELECTED_BORDER = "oklch(0.48 0.14 55)";
 export const PLAYER_B_SELECTED_BG = "oklch(0.86 0.04 220 / 0.85)";
 export const PLAYER_B_SELECTED_BORDER = "oklch(0.38 0.08 220)";
 
-// Locked-tile colors (post-submission swap highlight): keep the player's
-// identity hue at the same 70% saturation the original ochre used, so the
-// "I just swapped these" cue stays strong but follows the active player's
-// color. Without this, Player B's tiles flipped from blue (selected) back
-// to orange (legacy --ochre fallback) on submit.
-export const PLAYER_A_LOCKED_BG = "oklch(0.68 0.14 60 / 0.7)";
-export const PLAYER_B_LOCKED_BG = "oklch(0.56 0.08 220 / 0.7)";
+// Locked-tile colors (post-submission swap highlight): a *light* tint on the
+// tile body with a *deep* border, mirroring the selected-state treatment so
+// the swap cue lifts the tile rather than darkening it. Used both for the
+// current player's own swap (`lockedTiles`) and for the opponent's revealed
+// swap (`opponentLockedTiles`, where the opposite slot's vars are applied).
+export const PLAYER_A_LOCKED_BG = "oklch(0.92 0.06 70 / 0.85)";
+export const PLAYER_A_LOCKED_BORDER = "oklch(0.48 0.14 55)";
+export const PLAYER_B_LOCKED_BG = "oklch(0.86 0.04 220 / 0.85)";
+export const PLAYER_B_LOCKED_BORDER = "oklch(0.38 0.08 220)";
 
 // Both-player gradient (split diagonal) for shared / contested tiles
 export const BOTH_GRADIENT =
