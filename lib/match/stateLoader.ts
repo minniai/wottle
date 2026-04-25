@@ -8,6 +8,7 @@ import type {
   MatchPlayerProfile,
   MatchPlayerProfiles,
   MatchState,
+  PendingMove,
   RoundSummary,
   ScoreTotals,
   WordScore,
@@ -411,6 +412,7 @@ export async function loadMatchState(
   let playerBRemainingMs: number;
   let playerAStatus: "running" | "paused" | "expired";
   let playerBStatus: "running" | "paused" | "expired";
+  let pendingMoves: PendingMove[] = [];
 
   if (match.state === "completed") {
     playerARemainingMs = storedA;
@@ -420,13 +422,17 @@ export async function loadMatchState(
   } else if (effectiveState === "collecting" && roundStartedAt && round?.id) {
     const { data: submissions } = await client
       .from("move_submissions")
-      .select("player_id, submitted_at, status")
+      .select("player_id, submitted_at, status, from_x, from_y, to_x, to_y")
       .eq("round_id", round.id);
 
     const typedSubs = (submissions ?? []) as Array<{
       player_id: string;
       submitted_at: string;
       status: string;
+      from_x: number;
+      from_y: number;
+      to_x: number;
+      to_y: number;
     }>;
 
     // Self-heal: if both players have real (non-timeout) submissions but the
@@ -473,6 +479,19 @@ export async function loadMatchState(
       playerBRemainingMs = computeRemainingMs(roundStartedAt, storedB);
       playerBStatus = "running";
     }
+
+    // Issue #210: surface live submissions so the opponent's board can animate
+    // the swap immediately rather than waiting for round resolution. Only
+    // populated during `collecting`; cleared automatically once the round
+    // transitions because this branch no longer runs.
+    pendingMoves = typedSubs
+      .filter((s) => s.status !== "timeout")
+      .map((s) => ({
+        playerId: s.player_id,
+        from: { x: s.from_x, y: s.from_y },
+        to: { x: s.to_x, y: s.to_y },
+        submittedAt: s.submitted_at,
+      }));
   } else {
     playerARemainingMs = roundStartedAt ? computeRemainingMs(roundStartedAt, storedA) : storedA;
     playerBRemainingMs = roundStartedAt ? computeRemainingMs(roundStartedAt, storedB) : storedB;
@@ -534,6 +553,7 @@ export async function loadMatchState(
     lastSummary,
     frozenTiles: (match as any).frozen_tiles ?? {},
     disconnectedPlayerId,
+    pendingMoves,
   };
 }
 

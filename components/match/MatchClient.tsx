@@ -144,6 +144,17 @@ export function MatchClient({
   const [activeRevealMove, setActiveRevealMove] = useState<{ from: Coordinate; to: Coordinate } | null>(null);
   const [activeRevealHighlights, setActiveRevealHighlights] = useState<Coordinate[][]>([]);
 
+  // Issue #210 — opponent's swap reveal mid-round.
+  // `externalSwap` is passed to BoardGrid to drive the FLIP animation when a
+  // new opponent pendingMove arrives via state broadcast. Each move's
+  // `submittedAt` becomes a stable key so the same move isn't re-animated
+  // across re-renders. The "already animated" set is also consulted by the
+  // round-recap effect to suppress the duplicate sky-blue glow.
+  const [externalSwap, setExternalSwap] = useState<
+    { from: Coordinate; to: Coordinate; key: string } | null
+  >(null);
+  const animatedOpponentMoveKeysRef = useRef<Set<string>>(new Set());
+
   // Resign state
   const [showResignDialog, setShowResignDialog] = useState(false);
   const [isResigning, setIsResigning] = useState(false);
@@ -300,7 +311,21 @@ export function MatchClient({
     const opponentMove = sequence.orderedMoves.find(
       (m) => m.playerId !== currentPlayerId,
     );
-    setActiveRevealMove(opponentMove ? { from: opponentMove.from, to: opponentMove.to } : null);
+    // Issue #210 — if the opponent's move was already animated mid-round
+    // via the externalSwap pipeline, suppress the recap's sky-blue glow on
+    // those tiles so the player doesn't see the same swap twice. Highlights
+    // and the summary popup still play normally.
+    const opponentMoveKey = opponentMove
+      ? `${opponentMove.playerId}-${opponentMove.submittedAt}`
+      : null;
+    const opponentMoveAlreadyAnimated =
+      opponentMoveKey !== null &&
+      animatedOpponentMoveKeysRef.current.has(opponentMoveKey);
+    setActiveRevealMove(
+      opponentMoveAlreadyAnimated || !opponentMove
+        ? null
+        : { from: opponentMove.from, to: opponentMove.to },
+    );
     setActiveRevealHighlights(nextSummary.highlights);
     // Intentionally keep moveLocked / lockedSwapTiles set through the whole
     // round-recap window. Clearing them here races with the `state` broadcast
@@ -586,7 +611,38 @@ export function MatchClient({
   useEffect(() => {
     setMoveLocked(false);
     setLockedSwapTiles(null);
+    // Issue #210 — drop the externally-driven swap and forget which opponent
+    // moves were animated; the next round starts with a clean slate.
+    setExternalSwap(null);
+    animatedOpponentMoveKeysRef.current = new Set();
   }, [matchState.currentRound]);
+
+  // Issue #210 — when a state snapshot carries a new opponent pendingMove,
+  // surface it to BoardGrid as an externalSwap so the FLIP animates the
+  // opponent's swap immediately on the current player's board.
+  useEffect(() => {
+    const opponentPlayerId =
+      currentPlayerId === matchState.timers.playerA.playerId
+        ? matchState.timers.playerB.playerId
+        : matchState.timers.playerA.playerId;
+    const opponentMove = matchState.pendingMoves?.find(
+      (m) => m.playerId === opponentPlayerId,
+    );
+    if (!opponentMove) return;
+    const key = `${opponentMove.playerId}-${opponentMove.submittedAt}`;
+    if (animatedOpponentMoveKeysRef.current.has(key)) return;
+    animatedOpponentMoveKeysRef.current.add(key);
+    setExternalSwap({
+      from: opponentMove.from,
+      to: opponentMove.to,
+      key,
+    });
+  }, [
+    matchState.pendingMoves,
+    currentPlayerId,
+    matchState.timers.playerA.playerId,
+    matchState.timers.playerB.playerId,
+  ]);
 
   // Fallback: announce round when currentRound changes (catches missed summary broadcasts)
   useEffect(() => {
@@ -985,6 +1041,7 @@ export function MatchClient({
                 }
                 highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
                 highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
+                externalSwap={externalSwap}
                 onSwapComplete={handleSwapComplete}
                 onSwapError={({ message }) => handleSwapError(message)}
                 onTileSelect={playTileSelect}

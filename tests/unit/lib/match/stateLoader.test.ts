@@ -31,6 +31,10 @@ type SubmissionFixture = {
     player_id: string;
     submitted_at: string;
     status?: string;
+    from_x?: number;
+    from_y?: number;
+    to_x?: number;
+    to_y?: number;
 };
 
 type HeartbeatFixture = { player_id: string; last_seen_at: string };
@@ -275,6 +279,93 @@ describe("stateLoader.loadMatchState", () => {
         expect(state!.timers.playerB.status).toBe("running");
         expect(state!.timers.playerB.remainingMs).toBeGreaterThan(148_000);
         expect(state!.timers.playerB.remainingMs).toBeLessThanOrEqual(150_000);
+    });
+
+    // Issue #210: pending move coordinates are surfaced on MatchState during
+    // collecting so the opponent's board can animate the swap immediately.
+    it("populates pendingMoves with from/to coords for accepted submissions in collecting", async () => {
+        const roundStartedAt = new Date(Date.now() - 10_000).toISOString();
+        const submittedAt = new Date(Date.now() - 5_000).toISOString();
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 1,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 180_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-1",
+                state: "collecting",
+                board_snapshot_before: Array.from({ length: 10 }, () =>
+                    Array.from({ length: 10 }, () => "A"),
+                ),
+                board_snapshot_after: null,
+                started_at: roundStartedAt,
+            },
+            [
+                {
+                    player_id: PLAYER_A,
+                    submitted_at: submittedAt,
+                    status: "pending",
+                    from_x: 3,
+                    from_y: 4,
+                    to_x: 4,
+                    to_y: 4,
+                },
+            ],
+        );
+
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state).not.toBeNull();
+        expect(state!.pendingMoves).toBeDefined();
+        expect(state!.pendingMoves).toHaveLength(1);
+        expect(state!.pendingMoves![0]).toEqual({
+            playerId: PLAYER_A,
+            from: { x: 3, y: 4 },
+            to: { x: 4, y: 4 },
+            submittedAt,
+        });
+    });
+
+    it("omits pendingMoves outside the collecting phase", async () => {
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID,
+                state: "in_progress",
+                current_round: 1,
+                board_seed: "seed-1",
+                player_a_id: PLAYER_A,
+                player_b_id: PLAYER_B,
+                player_a_timer_ms: 120_000,
+                player_b_timer_ms: 180_000,
+                frozen_tiles: {},
+            },
+            {
+                id: "round-1",
+                state: "resolving",
+                board_snapshot_before: Array.from({ length: 10 }, () =>
+                    Array.from({ length: 10 }, () => "A"),
+                ),
+                board_snapshot_after: null,
+                started_at: new Date().toISOString(),
+            },
+            [],
+        );
+
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state).not.toBeNull();
+        expect(state!.pendingMoves ?? []).toEqual([]);
     });
 });
 

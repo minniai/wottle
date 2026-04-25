@@ -77,6 +77,20 @@ export interface RoundMove {
   submittedAt: string;
 }
 
+/**
+ * A player's in-flight swap, broadcast on `MatchState` while the round is
+ * still collecting. Lets the opponent's board animate the move immediately
+ * (issue #210) instead of waiting for round resolution. Cleared when the
+ * round transitions out of `collecting`.
+ */
+export interface PendingMove {
+  playerId: string;
+  from: Coordinate;
+  to: Coordinate;
+  /** ISO timestamp from move_submissions.submitted_at. */
+  submittedAt: string;
+}
+
 export interface RoundSummary {
   matchId: string;
   roundNumber: number;
@@ -103,6 +117,8 @@ export interface MatchState {
   disconnectedPlayerId?: string | null;
   /** Frozen tile map for visual rendering and swap validation */
   frozenTiles?: FrozenTileMap;
+  /** In-flight swaps for the current round. Populated only during `collecting`. */
+  pendingMoves?: PendingMove[];
 }
 
 export type SubmissionStatus =
