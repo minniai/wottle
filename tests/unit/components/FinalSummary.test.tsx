@@ -212,4 +212,25 @@ describe("FinalSummary", () => {
     expect(summary.className).not.toContain("bg-slate-");
     expect(summary.className).toMatch(/bg-paper|bg-surface-0/);
   });
+
+  it("makes the board sticky on the round-history tab so it stays visible while scrolling", async () => {
+    const board = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A"));
+    render(
+      <FinalSummary
+        {...makeProps({
+          board,
+        })}
+      />,
+    );
+
+    const boardWrapper = screen.getByTestId("final-summary-board");
+    // Default tab is "overview" — board does not need to be sticky there.
+    expect(boardWrapper.className).not.toMatch(/sticky/);
+
+    // Switching to round-history should sticky-pin the board so the user can
+    // scroll the round list without losing the board context.
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.click(screen.getByTestId("tab-round-history"));
+    expect(boardWrapper.className).toMatch(/sticky/);
+  });
 });

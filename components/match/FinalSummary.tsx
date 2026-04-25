@@ -9,9 +9,8 @@ import { BoardGrid as BoardGridComponent } from "@/components/game/BoardGrid";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
+import { derivePostGameHighlightColors } from "@/components/match/derivePostGameHighlightColors";
 import {
-  PLAYER_A_HIGHLIGHT,
-  PLAYER_B_HIGHLIGHT,
   PLAYER_A_HEX,
   PLAYER_B_HEX,
 } from "@/lib/constants/playerColors";
@@ -310,15 +309,9 @@ export function FinalSummary({
       setHighlightPlayerColors({});
       return;
     }
-    const colors: Record<string, string> = {};
-    for (const word of words) {
-      const color =
-        word.playerId === playerA?.id ? PLAYER_A_HIGHLIGHT : PLAYER_B_HIGHLIGHT;
-      for (const coord of word.coordinates) {
-        colors[`${coord.x},${coord.y}`] = color;
-      }
-    }
-    setHighlightPlayerColors(colors);
+    setHighlightPlayerColors(
+      derivePostGameHighlightColors(words, frozenTiles ?? {}, playerA?.id ?? ""),
+    );
   };
 
   const isRematchDisabled =
@@ -377,7 +370,14 @@ export function FinalSummary({
     >
       {/* Board with player HUD panels, matching in-game 3-column layout */}
       {board && (
-        <div className="summary-board-layout mb-6" data-testid="final-summary-board">
+        <div
+          className={`summary-board-layout mb-6${
+            activeTab === "round-history"
+              ? " sticky top-0 z-10 bg-paper pt-1 pb-3"
+              : ""
+          }`}
+          data-testid="final-summary-board"
+        >
           {/* Left panel: current player (same as in-game) */}
           <div className="summary-board-layout__panel">
             <div className="flex flex-col items-center gap-2 rounded-xl border border-hair bg-paper-2 p-4">

@@ -14,9 +14,17 @@ export const PLAYER_B_HEX = "var(--p2)";
 export const PLAYER_A_OVERLAY = "oklch(0.68 0.14 60 / 0.4)";
 export const PLAYER_B_OVERLAY = "oklch(0.56 0.08 220 / 0.4)";
 
-// Scored-tile highlights (60% alpha)
+// Scored-tile highlights (60% alpha) — used by the in-match round-recap
+// animation where tiles flash briefly on a paper-coloured board.
 export const PLAYER_A_HIGHLIGHT = "oklch(0.68 0.14 60 / 0.6)";
 export const PLAYER_B_HIGHLIGHT = "oklch(0.56 0.08 220 / 0.6)";
+
+// Post-game hover highlights (issue #208 follow-up): brighter than the
+// scored/frozen layers so hovering a round/word in history *lifts* the
+// tile rather than darkening it. Higher OKLCH lightness keeps these
+// readable against both the cream paper and the player frozen overlays.
+export const PLAYER_A_HOVER_HIGHLIGHT = "oklch(0.88 0.10 70 / 0.9)";
+export const PLAYER_B_HOVER_HIGHLIGHT = "oklch(0.82 0.07 220 / 0.9)";
 
 // Selected-tile colors (issue #209): player-identity hue rendered as a *light*
 // tint on the tile body with a *deep* solid border, so the click-to-pick
