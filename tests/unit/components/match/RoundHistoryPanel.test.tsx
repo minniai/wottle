@@ -212,3 +212,108 @@ describe("RoundHistoryPanel — empty", () => {
   });
 });
 
+describe("RoundHistoryPanel — Warm Editorial callouts (issue #209 follow-up)", () => {
+  test("biggest swing favoring player A is tinted in player A's color, not green/red", () => {
+    render(
+      <RoundHistoryPanel
+        rounds={sampleRounds}
+        playerAUsername="Ásta"
+        playerBUsername="Sigríður"
+        playerASlotId="player-a"
+        biggestSwing={{
+          roundNumber: 2,
+          swingAmount: 18,
+          favoredPlayerId: "player-a",
+        }}
+      />,
+    );
+
+    const callout = screen.getByTestId("callout-biggest-swing");
+    // Player A → p1 family (warm ochre)
+    expect(callout.className).toMatch(/(?:^|\s)(?:border-|bg-|text-)p1(?:-deep)?\b/);
+    // No legacy semantic colors
+    expect(callout.className).not.toMatch(/\bwarn\b/);
+    expect(callout.className).not.toMatch(/\bgood\b/);
+    expect(callout.className).not.toMatch(/(emerald|rose|amber|red|green)-\d/);
+  });
+
+  test("biggest swing favoring player B is tinted in player B's color", () => {
+    render(
+      <RoundHistoryPanel
+        rounds={sampleRounds}
+        playerAUsername="Ásta"
+        playerBUsername="Sigríður"
+        playerASlotId="player-a"
+        biggestSwing={{
+          roundNumber: 1,
+          swingAmount: 12,
+          favoredPlayerId: "player-b",
+        }}
+      />,
+    );
+
+    const callout = screen.getByTestId("callout-biggest-swing");
+    expect(callout.className).toMatch(/(?:^|\s)(?:border-|bg-|text-)p2(?:-deep)?\b/);
+  });
+
+  test("top word scored by player A uses player A color tint", () => {
+    render(
+      <RoundHistoryPanel
+        rounds={sampleRounds}
+        playerAUsername="Ásta"
+        playerBUsername="Sigríður"
+        playerASlotId="player-a"
+        highestWord={{
+          word: "búr",
+          totalPoints: 20,
+          playerId: "player-a",
+          username: "Ásta",
+          roundNumber: 1,
+        }}
+      />,
+    );
+
+    const callout = screen.getByTestId("callout-highest-word");
+    expect(callout.className).toMatch(/(?:^|\s)(?:border-|bg-|text-)p1(?:-deep)?\b/);
+    expect(callout.className).not.toMatch(/\bgood\b/);
+    expect(callout.className).not.toMatch(/(emerald|green|amber)-\d/);
+  });
+
+  test("top word scored by player B uses player B color tint", () => {
+    render(
+      <RoundHistoryPanel
+        rounds={sampleRounds}
+        playerAUsername="Ásta"
+        playerBUsername="Sigríður"
+        playerASlotId="player-a"
+        highestWord={{
+          word: "lag",
+          totalPoints: 24,
+          playerId: "player-b",
+          username: "Sigríður",
+          roundNumber: 1,
+        }}
+      />,
+    );
+
+    const callout = screen.getByTestId("callout-highest-word");
+    expect(callout.className).toMatch(/(?:^|\s)(?:border-|bg-|text-)p2(?:-deep)?\b/);
+  });
+});
+
+describe("RoundHistoryPanel — scrollable rounds list (issue #209 follow-up)", () => {
+  test("rounds list is constrained with max-height + overflow so expanding doesn't grow the page", () => {
+    render(
+      <RoundHistoryPanel
+        rounds={sampleRounds}
+        playerAUsername="Ásta"
+        playerBUsername="Sigríður"
+      />,
+    );
+
+    const list = screen.getByTestId("round-history-list");
+    expect(list.className).toMatch(/\bmax-h-/);
+    expect(list.className).toMatch(/\boverflow-y-auto\b/);
+  });
+});
+
