@@ -305,15 +305,18 @@ export function FinalSummary({
     return [toEntry(playerA, "player_a"), toEntry(playerB, "player_b")];
   }, [playerA, playerB, wordCountByPlayer, bestWordByPlayer, currentPlayerId, winnerId]);
 
-  const handleWordHover = (word: WordHistoryRow | null) => {
-    if (!word) {
+  const handleHighlight = (words: WordHistoryRow[] | null) => {
+    if (!words || words.length === 0) {
       setHighlightPlayerColors({});
       return;
     }
-    const color = word.playerId === playerA?.id ? PLAYER_A_HIGHLIGHT : PLAYER_B_HIGHLIGHT;
     const colors: Record<string, string> = {};
-    for (const coord of word.coordinates) {
-      colors[`${coord.x},${coord.y}`] = color;
+    for (const word of words) {
+      const color =
+        word.playerId === playerA?.id ? PLAYER_A_HIGHLIGHT : PLAYER_B_HIGHLIGHT;
+      for (const coord of word.coordinates) {
+        colors[`${coord.x},${coord.y}`] = color;
+      }
     }
     setHighlightPlayerColors(colors);
   };
@@ -594,7 +597,7 @@ export function FinalSummary({
           wordHistory={wordHistory}
           biggestSwing={biggestSwing}
           highestWord={highestWord}
-          onWordHover={handleWordHover}
+          onHighlight={handleHighlight}
         />
       </div>
     </section>
