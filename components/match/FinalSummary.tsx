@@ -450,7 +450,7 @@ export function FinalSummary({
           onClick={() => setActiveTab("overview")}
           className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
             activeTab === "overview"
-              ? "border-b-2 border-emerald-400 text-emerald-300"
+              ? "border-b-2 border-ochre-deep text-ochre-deep"
               : "text-ink-soft hover:text-ink"
           }`}
           data-testid="tab-overview"
@@ -466,7 +466,7 @@ export function FinalSummary({
           onClick={() => setActiveTab("round-history")}
           className={`rounded-t-xl px-4 py-2 text-sm font-medium transition ${
             activeTab === "round-history"
-              ? "border-b-2 border-emerald-400 text-emerald-300"
+              ? "border-b-2 border-ochre-deep text-ochre-deep"
               : "text-ink-soft hover:text-ink"
           }`}
           data-testid="tab-round-history"
@@ -593,6 +593,7 @@ export function FinalSummary({
           rounds={roundHistory}
           playerAUsername={playerA?.displayName ?? "Player A"}
           playerBUsername={playerB?.displayName ?? "Player B"}
+          playerASlotId={playerA?.id}
           scores={scoreboard}
           wordHistory={wordHistory}
           biggestSwing={biggestSwing}

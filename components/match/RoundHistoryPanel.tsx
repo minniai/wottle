@@ -10,6 +10,10 @@ interface RoundHistoryPanelProps {
   rounds: RoundHistoryEntry[];
   playerAUsername: string;
   playerBUsername: string;
+  /** Player A's playerId — lets us tint the "Top word" callout in the
+   *  scoring player's color (issue #209 follow-up). When omitted, the
+   *  callout falls back to the player A tint. */
+  playerASlotId?: string;
   scores?: ScoreboardRow[];
   wordHistory?: WordHistoryRow[];
   biggestSwing?: BiggestSwingCallout | null;
@@ -21,6 +25,20 @@ interface RoundHistoryPanelProps {
    */
   onHighlight?: (words: WordHistoryRow[] | null) => void;
 }
+
+/** Tailwind class set per player slot, used by the BIGGEST SWING / TOP WORD
+ *  callouts so they live inside the Warm Editorial palette instead of the
+ *  green/red --good / --warn semantics that clashed with the brand. */
+const SLOT_CALLOUT_CLASSES = {
+  player_a: {
+    container: "border-p1-deep/30 bg-p1/10",
+    label: "text-p1-deep",
+  },
+  player_b: {
+    container: "border-p2-deep/30 bg-p2/10",
+    label: "text-p2-deep",
+  },
+} as const;
 
 function WordRow({
   word,
@@ -188,11 +206,24 @@ export function RoundHistoryPanel({
   rounds,
   playerAUsername,
   playerBUsername,
+  playerASlotId,
   biggestSwing,
   highestWord,
   onHighlight,
 }: RoundHistoryPanelProps) {
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(() => new Set());
+
+  // Map each callout to the slot of the player it concerns, so we can tint
+  // it in that player's brand color (issue #209 follow-up).
+  const swingSlot: "player_a" | "player_b" = biggestSwing?.favoredPlayerId === "player-b"
+    ? "player_b"
+    : "player_a";
+  const topWordSlot: "player_a" | "player_b" =
+    playerASlotId && highestWord && highestWord.playerId !== playerASlotId
+      ? "player_b"
+      : "player_a";
+  const swingClasses = SLOT_CALLOUT_CLASSES[swingSlot];
+  const topWordClasses = SLOT_CALLOUT_CLASSES[topWordSlot];
 
   const allExpanded = useMemo(
     () => rounds.length > 0 && expandedRounds.size === rounds.length,
@@ -223,10 +254,10 @@ export function RoundHistoryPanel({
         <div className="grid gap-3 sm:grid-cols-2">
           {biggestSwing ? (
             <div
-              className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3"
+              className={`rounded-xl border px-4 py-3 ${swingClasses.container}`}
               data-testid="callout-biggest-swing"
             >
-              <p className="text-xs font-semibold uppercase tracking-wider text-warn">
+              <p className={`text-xs font-semibold uppercase tracking-wider ${swingClasses.label}`}>
                 Biggest swing
               </p>
               <p className="mt-1 text-sm text-ink">
@@ -246,10 +277,10 @@ export function RoundHistoryPanel({
           )}
           {highestWord ? (
             <div
-              className="rounded-xl border border-good/30 bg-good/10 px-4 py-3"
+              className={`rounded-xl border px-4 py-3 ${topWordClasses.container}`}
               data-testid="callout-highest-word"
             >
-              <p className="text-xs font-semibold uppercase tracking-wider text-good">
+              <p className={`text-xs font-semibold uppercase tracking-wider ${topWordClasses.label}`}>
                 Top word
               </p>
               <p className="mt-1 font-mono text-sm font-semibold uppercase text-ink">
@@ -291,6 +322,13 @@ export function RoundHistoryPanel({
               {allExpanded ? "Collapse all" : "Expand all"}
             </button>
           </div>
+          {/* Scrollable rounds list — keeps the panel's outer height bounded so
+           *  expanding rounds reveals an internal scrollbar instead of growing
+           *  the page (and pushing the board out of view post-game). */}
+          <div
+            className="max-h-[60vh] space-y-3 overflow-y-auto pr-1"
+            data-testid="round-history-list"
+          >
           {rounds.map((entry) => (
             <RoundRow
               key={entry.roundNumber}
@@ -302,6 +340,7 @@ export function RoundHistoryPanel({
               onHighlight={onHighlight}
             />
           ))}
+          </div>
         </>
       )}
     </div>

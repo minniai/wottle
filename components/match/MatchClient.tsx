@@ -1117,6 +1117,7 @@ export function MatchClient({
               rounds={roundHistory}
               playerAUsername={playerADisplayName}
               playerBUsername={playerBDisplayName}
+              playerASlotId={playerAId}
               scores={accumulatedScores}
               wordHistory={accumulatedWords}
               biggestSwing={biggestSwing}
