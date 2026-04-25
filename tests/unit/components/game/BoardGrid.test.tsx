@@ -13,6 +13,10 @@ import {
   PLAYER_B_OVERLAY,
   PLAYER_A_HIGHLIGHT,
   PLAYER_B_HIGHLIGHT,
+  PLAYER_A_SELECTED_BG,
+  PLAYER_A_SELECTED_BORDER,
+  PLAYER_B_SELECTED_BG,
+  PLAYER_B_SELECTED_BORDER,
 } from "@/lib/constants/playerColors";
 
 function createGrid(): BoardGridType {
@@ -666,6 +670,66 @@ describe("BoardGrid scored tile highlights with player colors (US7)", () => {
 
     expect(tile1).not.toHaveClass("board-grid__cell--scored");
     expect(tile2).not.toHaveClass("board-grid__cell--scored");
+  });
+});
+
+describe("BoardGrid selected tile player colors (issue #209)", () => {
+  test("player A: clicking a tile applies player A's deep-ochre selected CSS vars", async () => {
+    const grid = createGrid();
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" playerSlot="player_a" />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[0];
+    fireEvent.click(tile);
+
+    await waitFor(() => {
+      expect(tile).toHaveAttribute("aria-selected", "true");
+    });
+    expect(tile).toHaveClass("board-grid__cell--selected");
+    expect(tile.style.getPropertyValue("--selected-bg")).toBe(
+      PLAYER_A_SELECTED_BG,
+    );
+    expect(tile.style.getPropertyValue("--selected-border")).toBe(
+      PLAYER_A_SELECTED_BORDER,
+    );
+  });
+
+  test("player B: clicking a tile applies player B's deep-blue selected CSS vars", async () => {
+    const grid = createGrid();
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" playerSlot="player_b" />,
+    );
+
+    const tile = screen.getAllByTestId("board-tile")[0];
+    fireEvent.click(tile);
+
+    await waitFor(() => {
+      expect(tile).toHaveAttribute("aria-selected", "true");
+    });
+    expect(tile).toHaveClass("board-grid__cell--selected");
+    expect(tile.style.getPropertyValue("--selected-bg")).toBe(
+      PLAYER_B_SELECTED_BG,
+    );
+    expect(tile.style.getPropertyValue("--selected-border")).toBe(
+      PLAYER_B_SELECTED_BORDER,
+    );
+  });
+
+  test("unselected tiles do not carry the selected CSS vars", async () => {
+    const grid = createGrid();
+    render(
+      <BoardGrid grid={grid} matchId="test-match-id" playerSlot="player_a" />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    fireEvent.click(tiles[0]);
+
+    await waitFor(() => {
+      expect(tiles[0]).toHaveAttribute("aria-selected", "true");
+    });
+    expect(tiles[5].style.getPropertyValue("--selected-bg")).toBe("");
+    expect(tiles[5].style.getPropertyValue("--selected-border")).toBe("");
   });
 });
 

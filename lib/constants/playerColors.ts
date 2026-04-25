@@ -18,6 +18,17 @@ export const PLAYER_B_OVERLAY = "oklch(0.56 0.08 220 / 0.4)";
 export const PLAYER_A_HIGHLIGHT = "oklch(0.68 0.14 60 / 0.6)";
 export const PLAYER_B_HIGHLIGHT = "oklch(0.56 0.08 220 / 0.6)";
 
+// Selected-tile colors (issue #209): player-identity color in a deep shade so
+// the click-to-pick state stays distinct from the lighter scored highlights
+// (60% alpha) and frozen overlays (40% alpha) that already use the player
+// hue. Background is the deep variant at 55% alpha for a saturated fill that
+// keeps the letter readable; border is the deep variant solid for the dark
+// edge the design calls for.
+export const PLAYER_A_SELECTED_BG = "oklch(0.48 0.14 55 / 0.55)";
+export const PLAYER_A_SELECTED_BORDER = "oklch(0.48 0.14 55)";
+export const PLAYER_B_SELECTED_BG = "oklch(0.38 0.08 220 / 0.55)";
+export const PLAYER_B_SELECTED_BORDER = "oklch(0.38 0.08 220)";
+
 // Both-player gradient (split diagonal) for shared / contested tiles
 export const BOTH_GRADIENT =
   "linear-gradient(135deg, oklch(0.68 0.14 60 / 0.4) 50%, oklch(0.56 0.08 220 / 0.4) 50%)";
@@ -26,18 +37,24 @@ export interface PlayerColorSet {
   hex: string;
   overlay: string;
   highlight: string;
+  selectedBg: string;
+  selectedBorder: string;
 }
 
 const PLAYER_A_COLORS: PlayerColorSet = {
   hex: PLAYER_A_HEX,
   overlay: PLAYER_A_OVERLAY,
   highlight: PLAYER_A_HIGHLIGHT,
+  selectedBg: PLAYER_A_SELECTED_BG,
+  selectedBorder: PLAYER_A_SELECTED_BORDER,
 };
 
 const PLAYER_B_COLORS: PlayerColorSet = {
   hex: PLAYER_B_HEX,
   overlay: PLAYER_B_OVERLAY,
   highlight: PLAYER_B_HIGHLIGHT,
+  selectedBg: PLAYER_B_SELECTED_BG,
+  selectedBorder: PLAYER_B_SELECTED_BORDER,
 };
 
 /** Return the color set for a given player slot. */
