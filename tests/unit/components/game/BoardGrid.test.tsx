@@ -17,7 +17,18 @@ import {
   PLAYER_A_SELECTED_BORDER,
   PLAYER_B_SELECTED_BG,
   PLAYER_B_SELECTED_BORDER,
+  PLAYER_A_LOCKED_BG,
+  PLAYER_B_LOCKED_BG,
 } from "@/lib/constants/playerColors";
+
+/**
+ * Extract the OKLCH lightness component from a string like
+ * "oklch(0.92 0.06 70 / 0.7)" — returns null if the string isn't OKLCH.
+ */
+function oklchLightness(value: string): number | null {
+  const match = value.match(/oklch\(\s*([0-9.]+)/);
+  return match ? Number(match[1]) : null;
+}
 
 function createGrid(): BoardGridType {
   return Array.from({ length: BOARD_SIZE }, (_, row) =>
@@ -730,6 +741,91 @@ describe("BoardGrid selected tile player colors (issue #209)", () => {
     });
     expect(tiles[5].style.getPropertyValue("--selected-bg")).toBe("");
     expect(tiles[5].style.getPropertyValue("--selected-border")).toBe("");
+  });
+
+  test("selected background is a light shade (OKLCH lightness ≥ 0.8) for both players", () => {
+    const aLightness = oklchLightness(PLAYER_A_SELECTED_BG);
+    const bLightness = oklchLightness(PLAYER_B_SELECTED_BG);
+    expect(aLightness).not.toBeNull();
+    expect(bLightness).not.toBeNull();
+    expect(aLightness!).toBeGreaterThanOrEqual(0.8);
+    expect(bLightness!).toBeGreaterThanOrEqual(0.8);
+  });
+
+  test("selected border stays a deep shade (OKLCH lightness ≤ 0.55) for both players", () => {
+    expect(oklchLightness(PLAYER_A_SELECTED_BORDER)!).toBeLessThanOrEqual(0.55);
+    expect(oklchLightness(PLAYER_B_SELECTED_BORDER)!).toBeLessThanOrEqual(0.55);
+  });
+});
+
+describe("BoardGrid locked tile player colors (issue #209 follow-up)", () => {
+  test("player A: locked tiles carry player A's --locked-bg CSS var", () => {
+    const grid = createGrid();
+    const lockedTiles: [Coordinate, Coordinate] = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+    ];
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_a"
+        lockedTiles={lockedTiles}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[0]).toHaveClass("board-grid__cell--locked");
+    expect(tiles[1]).toHaveClass("board-grid__cell--locked");
+    expect(tiles[0].style.getPropertyValue("--locked-bg")).toBe(
+      PLAYER_A_LOCKED_BG,
+    );
+    expect(tiles[1].style.getPropertyValue("--locked-bg")).toBe(
+      PLAYER_A_LOCKED_BG,
+    );
+  });
+
+  test("player B: locked tiles carry player B's --locked-bg CSS var", () => {
+    const grid = createGrid();
+    const lockedTiles: [Coordinate, Coordinate] = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+    ];
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_b"
+        lockedTiles={lockedTiles}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[0].style.getPropertyValue("--locked-bg")).toBe(
+      PLAYER_B_LOCKED_BG,
+    );
+    expect(tiles[1].style.getPropertyValue("--locked-bg")).toBe(
+      PLAYER_B_LOCKED_BG,
+    );
+  });
+
+  test("non-locked tiles do not carry --locked-bg", () => {
+    const grid = createGrid();
+    const lockedTiles: [Coordinate, Coordinate] = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+    ];
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="test-match-id"
+        playerSlot="player_b"
+        lockedTiles={lockedTiles}
+      />,
+    );
+
+    const tiles = screen.getAllByTestId("board-tile");
+    expect(tiles[5].style.getPropertyValue("--locked-bg")).toBe("");
   });
 });
 

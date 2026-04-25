@@ -24,6 +24,8 @@ import {
   PLAYER_A_SELECTED_BORDER,
   PLAYER_B_SELECTED_BG,
   PLAYER_B_SELECTED_BORDER,
+  PLAYER_A_LOCKED_BG,
+  PLAYER_B_LOCKED_BG,
 } from "@/lib/constants/playerColors";
 import { usePinchZoom } from "@/components/game/usePinchZoom";
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
@@ -130,6 +132,14 @@ const SELECTED_BG_COLORS = {
 const SELECTED_BORDER_COLORS = {
   player_a: PLAYER_A_SELECTED_BORDER,
   player_b: PLAYER_B_SELECTED_BORDER,
+};
+
+/** Per-player locked-tile color (issue #209 follow-up): keeps the
+ * post-submission swap highlight in the active player's hue instead of
+ * reverting to the legacy ochre fallback. */
+const LOCKED_BG_COLORS = {
+  player_a: PLAYER_A_LOCKED_BG,
+  player_b: PLAYER_B_LOCKED_BG,
 };
 
 function isTileInHighlights(
@@ -635,14 +645,21 @@ function BoardGridActive({
                 playerSlot && (isSelected || isSwapping)
                   ? SELECTED_BORDER_COLORS[playerSlot]
                   : undefined;
+              const lockedBgColor =
+                playerSlot && isLocked ? LOCKED_BG_COLORS[playerSlot] : undefined;
               const tileStyle: CSSProperties | undefined =
-                frozenStyle || highlightColor || needsDelay || selectedBgColor
+                frozenStyle ||
+                highlightColor ||
+                needsDelay ||
+                selectedBgColor ||
+                lockedBgColor
                   ? ({
                       ...frozenStyle,
                       ...(highlightColor && { "--highlight-color": highlightColor }),
                       ...(needsDelay && { animationDelay: `${highlightDelayMs}ms` }),
                       ...(selectedBgColor && { "--selected-bg": selectedBgColor }),
                       ...(selectedBorderColor && { "--selected-border": selectedBorderColor }),
+                      ...(lockedBgColor && { "--locked-bg": lockedBgColor }),
                     } as CSSProperties)
                   : undefined;
 

@@ -18,16 +18,25 @@ export const PLAYER_B_OVERLAY = "oklch(0.56 0.08 220 / 0.4)";
 export const PLAYER_A_HIGHLIGHT = "oklch(0.68 0.14 60 / 0.6)";
 export const PLAYER_B_HIGHLIGHT = "oklch(0.56 0.08 220 / 0.6)";
 
-// Selected-tile colors (issue #209): player-identity color in a deep shade so
-// the click-to-pick state stays distinct from the lighter scored highlights
-// (60% alpha) and frozen overlays (40% alpha) that already use the player
-// hue. Background is the deep variant at 55% alpha for a saturated fill that
-// keeps the letter readable; border is the deep variant solid for the dark
-// edge the design calls for.
-export const PLAYER_A_SELECTED_BG = "oklch(0.48 0.14 55 / 0.55)";
+// Selected-tile colors (issue #209): player-identity hue rendered as a *light*
+// tint on the tile body with a *deep* solid border, so the click-to-pick
+// state lifts the tile rather than darkening it. The light fill matches the
+// `--p1-tint` / `--p2-tint` design tokens (lightness ≈ 0.92), and the deep
+// border matches `--p1-deep` / `--p2-deep`. This keeps selected visually
+// lighter than scored highlights (60% α saturated hue) and frozen overlays
+// (40% α saturated hue), giving each state its own clear weight.
+export const PLAYER_A_SELECTED_BG = "oklch(0.92 0.06 70 / 0.85)";
 export const PLAYER_A_SELECTED_BORDER = "oklch(0.48 0.14 55)";
-export const PLAYER_B_SELECTED_BG = "oklch(0.38 0.08 220 / 0.55)";
+export const PLAYER_B_SELECTED_BG = "oklch(0.86 0.04 220 / 0.85)";
 export const PLAYER_B_SELECTED_BORDER = "oklch(0.38 0.08 220)";
+
+// Locked-tile colors (post-submission swap highlight): keep the player's
+// identity hue at the same 70% saturation the original ochre used, so the
+// "I just swapped these" cue stays strong but follows the active player's
+// color. Without this, Player B's tiles flipped from blue (selected) back
+// to orange (legacy --ochre fallback) on submit.
+export const PLAYER_A_LOCKED_BG = "oklch(0.68 0.14 60 / 0.7)";
+export const PLAYER_B_LOCKED_BG = "oklch(0.56 0.08 220 / 0.7)";
 
 // Both-player gradient (split diagonal) for shared / contested tiles
 export const BOTH_GRADIENT =
@@ -39,6 +48,7 @@ export interface PlayerColorSet {
   highlight: string;
   selectedBg: string;
   selectedBorder: string;
+  lockedBg: string;
 }
 
 const PLAYER_A_COLORS: PlayerColorSet = {
@@ -47,6 +57,7 @@ const PLAYER_A_COLORS: PlayerColorSet = {
   highlight: PLAYER_A_HIGHLIGHT,
   selectedBg: PLAYER_A_SELECTED_BG,
   selectedBorder: PLAYER_A_SELECTED_BORDER,
+  lockedBg: PLAYER_A_LOCKED_BG,
 };
 
 const PLAYER_B_COLORS: PlayerColorSet = {
@@ -55,6 +66,7 @@ const PLAYER_B_COLORS: PlayerColorSet = {
   highlight: PLAYER_B_HIGHLIGHT,
   selectedBg: PLAYER_B_SELECTED_BG,
   selectedBorder: PLAYER_B_SELECTED_BORDER,
+  lockedBg: PLAYER_B_LOCKED_BG,
 };
 
 /** Return the color set for a given player slot. */

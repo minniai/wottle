@@ -206,9 +206,15 @@
     inset 0 -4px 12px color-mix(in oklab, var(--paper) 35%, transparent);
 }
 
-/* Move lock: orange highlight on swapped tiles until next round (US1) */
+/* Move lock: highlight on swapped tiles until next round (US1).
+ * Uses the active player's hue via `--locked-bg` (set inline by BoardGrid
+ * per `playerSlot`); falls back to the original ochre treatment when no
+ * player slot is provided (e.g. read-only previews). */
 .board-grid__cell--locked {
-  background: color-mix(in oklab, var(--ochre) 70%, transparent) !important;
+  background: var(
+    --locked-bg,
+    color-mix(in oklab, var(--ochre) 70%, transparent)
+  ) !important;
   cursor: not-allowed;
   opacity: 1 !important;
   filter: none !important;
