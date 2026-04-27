@@ -52,6 +52,12 @@ export function LandingScreen() {
             maxLength={24}
             placeholder="Choose a username"
             data-testid="landing-username-input"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
             className="w-[280px] rounded-full border border-hair-strong bg-paper px-5 py-3 font-sans text-sm text-ink placeholder:text-ink-soft focus:border-ochre-deep focus:outline-none focus:ring-2 focus:ring-ochre-deep/30"
           />
           <SubmitButton />
