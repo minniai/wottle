@@ -51,7 +51,7 @@ export function PlayNowCard({ currentPlayer }: PlayNowCardProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-display text-2xl font-semibold text-text-primary sm:text-3xl">
-            Ready to play?
+            Viltu spila leik núna?
           </p>
           <p className="text-sm text-text-secondary">
             Drop into a ranked match against someone near your rating.
