@@ -25,17 +25,17 @@ This spec implements T029–T033 from `specs/005-board-ui-animations/tasks.md`.
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| I. Server-Authoritative Game Logic | ✅ PASS | Pure frontend change; no game logic on client; uses existing server-broadcast `RoundSummary` data |
-| II. Real-Time Performance Standards | ✅ PASS | CSS-only animation (GPU-accelerated); 60 FPS target; no server round-trips; reduced-motion path is instant |
-| III. Type-Safe End-to-End | ✅ PASS | New `highlightPlayerColors` prop will be fully typed; no `any`; shared types from `/lib/types/` |
-| IV. Progressive Enhancement & Mobile-First | ✅ PASS | `prefers-reduced-motion` override included; touch targets unaffected; animation is additive enhancement |
-| V. Observability & Resilience | ✅ PASS | Animation phase state machine is local; if summary arrives while animating, it is queued |
-| VI. Clean Code | ✅ PASS | Phase machine <20 lines; `deriveHighlightPlayerColors()` pure utility function |
-| VII. TDD | ✅ PASS | Tests T029–T030 written (failing) before T031–T033 implementation |
-| VIII. External Context Providers | N/A | No external libraries or framework APIs consulted |
-| IX. Commit Message Standards | ✅ PASS | Each test commit before each implementation commit |
+| Principle                                  | Status | Notes                                                                                                      |
+| ------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------------------- |
+| I. Server-Authoritative Game Logic         | ✅ PASS | Pure frontend change; no game logic on client; uses existing server-broadcast `RoundSummary` data          |
+| II. Real-Time Performance Standards        | ✅ PASS | CSS-only animation (GPU-accelerated); 60 FPS target; no server round-trips; reduced-motion path is instant |
+| III. Type-Safe End-to-End                  | ✅ PASS | New `highlightPlayerColors` prop will be fully typed; no `any`; shared types from `/lib/types/`            |
+| IV. Progressive Enhancement & Mobile-First | ✅ PASS | `prefers-reduced-motion` override included; touch targets unaffected; animation is additive enhancement    |
+| V. Observability & Resilience              | ✅ PASS | Animation phase state machine is local; if summary arrives while animating, it is queued                   |
+| VI. Clean Code                             | ✅ PASS | Phase machine <20 lines; `deriveHighlightPlayerColors()` pure utility function                             |
+| VII. TDD                                   | ✅ PASS | Tests T029–T030 written (failing) before T031–T033 implementation                                          |
+| VIII. External Context Providers           | N/A    | No external libraries or framework APIs consulted                                                          |
+| IX. Commit Message Standards               | ✅ PASS | Each test commit before each implementation commit                                                         |
 
 **Constitution violations**: None.
 
