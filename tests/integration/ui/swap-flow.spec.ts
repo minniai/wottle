@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 
+import { submitSwap } from "./helpers/swaps";
 import {
   generateTestUsername,
   startMatchWithDirectInvite,
@@ -38,23 +39,6 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
     if (!lobbyVisible) await page.goto("/");
     await expect(page.getByTestId("lobby-presence-list")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({ timeout: 10_000 });
-  }
-
-  async function submitSwap(page: import("@playwright/test").Page) {
-    const board = page.getByTestId("board-grid");
-    for (let n = 0; n < 99; n += 1) {
-      if (n % 10 === 9) continue;
-      const tileA = board.locator(`[data-tile-index="${n}"]`);
-      const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
-      const frozenA = await tileA.getAttribute("data-frozen");
-      const frozenB = await tileB.getAttribute("data-frozen");
-      if (!frozenA && !frozenB) {
-        await tileA.click();
-        await tileB.click();
-        return;
-      }
-    }
-    throw new Error("No unfrozen adjacent tile pair found");
   }
 
   test("T014: swapping a frozen tile shows invalid class on both tiles @two-player-playtest", async ({

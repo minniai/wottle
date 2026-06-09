@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { submitSwap } from "./helpers/swaps";
 import {
   generateTestUsername,
   startMatchWithDirectInvite,
@@ -66,28 +67,6 @@ async function loginAndStartMatch(
 
   await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
   await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-}
-
-/**
- * Submits a swap by clicking two adjacent unfrozen tiles.
- * Uses the first horizontal pair (n, n+1) where neither tile is frozen.
- * Words can span many tiles, so fixed indices fail when earlier rounds freeze them.
- */
-async function submitSwap(page: import("@playwright/test").Page): Promise<void> {
-  const board = page.getByTestId("board-grid");
-  for (let n = 0; n < 99; n += 1) {
-    if (n % 10 === 9) continue;
-    const tileA = board.locator(`[data-tile-index="${n}"]`);
-    const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
-    const frozenA = await tileA.getAttribute("data-frozen");
-    const frozenB = await tileB.getAttribute("data-frozen");
-    if (!frozenA && !frozenB) {
-      await tileA.click();
-      await tileB.click();
-      return;
-    }
-  }
-  throw new Error("No unfrozen adjacent tile pair found");
 }
 
 // ─── T009 + T010: Score delta popup (US1) ─────────────────────────────────
