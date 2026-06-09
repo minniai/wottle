@@ -13,7 +13,7 @@ const UNLOCK_TIMEOUT_MS = 10_000;
  * Verification is required since spec 042 (instant scoring reveal): the first
  * mover's fast-path scoring can freeze tiles and broadcast mid-`collecting`,
  * which means the second player's click pair can silently fail to produce a
- * move_submission in three ways:
+ * move_submission in four ways:
  *   1. The server rejects the swap because a clicked tile froze between the
  *      DOM read and server-side validation (FR-014).
  *   2. The US3 auto-deselect clears the first selection when its tile freezes,
@@ -25,8 +25,8 @@ const UNLOCK_TIMEOUT_MS = 10_000;
  *      this collision is the common case, not the exception.
  *
  * Each failure leaves the round stuck waiting for a second submission, so the
- * helper retries with a freshly-read unfrozen pair until the "Submitted" state
- * appears (or the round indicator advances past the captured value).
+ * helper retries with a freshly-read swappable pair until the "Submitted"
+ * state appears (or the round indicator advances past the captured value).
  */
 export async function submitSwap(page: Page): Promise<void> {
   // The previous round's recap keeps the board locked (and the "Submitted"
@@ -41,7 +41,11 @@ export async function submitSwap(page: Page): Promise<void> {
     // Clear any stray single-tile selection left by a prior attempt.
     await page.keyboard.press("Escape");
 
-    const pair = await findUnfrozenAdjacentPair(page);
+    // Scan from a different row each attempt: when the freeze broadcast is
+    // delayed (safety poll cadence is 2s), the client's `data-frozen` can be
+    // stale, so re-picking the same pair would repeat the same rejection.
+    const startIndex = ((attempt - 1) * 30) % 100;
+    const pair = await findUnfrozenAdjacentPair(page, startIndex);
     if (!pair) throw new Error("No unfrozen adjacent tile pair found");
 
     await clickPair(pair);
@@ -55,10 +59,10 @@ export async function submitSwap(page: Page): Promise<void> {
 }
 
 /**
- * Finds the first horizontal pair (n, n+1) where both tiles are swappable.
- * Reads the whole grid's state in one DOM evaluation per call — tile state
- * can change mid-round via the instant-scoring broadcast, so each retry
- * re-reads it fresh.
+ * Finds the first horizontal pair (n, n+1) — scanning from `startIndex` with
+ * wraparound — where both tiles are swappable. Reads the whole grid's state
+ * in one DOM evaluation per call: tile state can change mid-round via the
+ * instant-scoring broadcast, so each retry re-reads it fresh.
  *
  * A tile is unswappable when it is frozen (`data-frozen`) OR locked by the
  * opponent's mid-round revealed swap (`board-grid__cell--opponent-locked`,
@@ -68,6 +72,7 @@ export async function submitSwap(page: Page): Promise<void> {
  */
 async function findUnfrozenAdjacentPair(
   page: Page,
+  startIndex = 0,
 ): Promise<[Locator, Locator] | null> {
   const board = page.getByTestId("board-grid");
   const blocked: boolean[] = await board.evaluate((el) => {
@@ -81,7 +86,8 @@ async function findUnfrozenAdjacentPair(
     return states;
   });
 
-  for (let n = 0; n < 99; n += 1) {
+  for (let offset = 0; offset < 100; offset += 1) {
+    const n = (startIndex + offset) % 100;
     if (n % 10 === 9) continue;
     if (!blocked[n] && !blocked[n + 1]) {
       return [

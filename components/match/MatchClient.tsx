@@ -22,6 +22,7 @@ import {
   buildPartialRevealKey,
   deriveRevealHighlightsFromPartial,
 } from "@/lib/match/partialReveal";
+import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
 import type { MatchPlayerProfiles, MatchState, TimerState, Coordinate } from "@/lib/types/match";
@@ -565,17 +566,11 @@ export function MatchClient({
       const snapshot = await fetchMatchSnapshot(matchId);
       if (!isMounted || !snapshot) return;
 
-      const current = matchStateRef.current;
-      const roundAdvanced = snapshot.currentRound > current.currentRound;
-      const matchCompleted =
-        snapshot.state === "completed" && current.state !== "completed";
-      // Also apply when disconnect state flips — this is the only signal
-      // when Realtime broadcasts aren't reaching the surviving client.
-      const disconnectChanged =
-        (snapshot.disconnectedPlayerId ?? null) !==
-        (current.disconnectedPlayerId ?? null);
-
-      if (roundAdvanced || matchCompleted || disconnectChanged) {
+      // Applies on round advance, match completion, disconnect flips, and
+      // mid-round instant-scoring changes (frozen tiles / partial summary) —
+      // each is a broadcast-carried signal the client can't recover from
+      // when Realtime delivery fails silently.
+      if (shouldApplySafetySnapshot(matchStateRef.current, snapshot)) {
         applySnapshot(snapshot);
       }
     };
