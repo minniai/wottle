@@ -51,6 +51,7 @@ interface RoundRow {
   state: string;
   board_snapshot_before: unknown;
   started_at: string | null;
+  frozen_tiles_before: Record<string, unknown> | null;
 }
 
 interface PendingSubmissionRow {
@@ -149,7 +150,14 @@ async function runFastPath(
     return { status: "failed", reason: "invalid-board-snapshot" };
   }
 
-  const frozenTiles = (match.frozen_tiles ?? {}) as Record<string, { owner: string }>;
+  // Scoring baseline: the freeze map as of round start. Mirrors the combined
+  // pass in roundEngine — both paths MUST score against the same baseline so
+  // the combined re-derivation reproduces the fast path's words instead of
+  // rejecting the first mover's swap on its own freshly-frozen tiles.
+  // Falls back to matches.frozen_tiles for legacy rounds.
+  const frozenTiles = (round.frozen_tiles_before ??
+    match.frozen_tiles ??
+    {}) as Record<string, { owner: string }>;
 
   const scoringResult = await computeWordScoresForRound(
     matchId,
@@ -233,7 +241,7 @@ async function loadCurrentRound(
 ): Promise<RoundRow | null> {
   const { data } = await supabase
     .from("rounds")
-    .select("id, state, board_snapshot_before, started_at")
+    .select("id, state, board_snapshot_before, started_at, frozen_tiles_before")
     .eq("match_id", matchId)
     .eq("round_number", currentRound)
     .maybeSingle();

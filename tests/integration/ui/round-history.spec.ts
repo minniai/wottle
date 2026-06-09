@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { submitSwap } from "./helpers/swaps";
 import {
   generateTestUsername,
   startMatchWithDirectInvite,
@@ -55,25 +56,6 @@ async function loginAndStartMatch(
   await expect(pageB.getByTestId("match-shell")).toBeVisible({
     timeout: 10_000,
   });
-}
-
-async function submitSwap(
-  page: import("@playwright/test").Page,
-): Promise<void> {
-  const board = page.getByTestId("board-grid");
-  for (let n = 0; n < 99; n += 1) {
-    if (n % 10 === 9) continue;
-    const tileA = board.locator(`[data-tile-index="${n}"]`);
-    const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
-    const frozenA = await tileA.getAttribute("data-frozen");
-    const frozenB = await tileB.getAttribute("data-frozen");
-    if (!frozenA && !frozenB) {
-      await tileA.click();
-      await tileB.click();
-      return;
-    }
-  }
-  throw new Error("No unfrozen adjacent tile pair found");
 }
 
 test.describe("Round history panel (post-game)", () => {
