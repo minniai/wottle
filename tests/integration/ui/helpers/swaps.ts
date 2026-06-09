@@ -37,7 +37,11 @@ export async function submitSwap(page: Page): Promise<void> {
     // Clear any stray single-tile selection left by a prior attempt.
     await page.keyboard.press("Escape");
 
-    const pair = await findUnfrozenAdjacentPair(page);
+    // Scan from a different row each attempt: when the freeze broadcast is
+    // delayed (safety poll cadence is 2s), the client's `data-frozen` can be
+    // stale, so re-picking the same pair would repeat the same rejection.
+    const startIndex = ((attempt - 1) * 30) % 100;
+    const pair = await findUnfrozenAdjacentPair(page, startIndex);
     if (!pair) throw new Error("No unfrozen adjacent tile pair found");
 
     await clickPair(pair);
@@ -51,15 +55,17 @@ export async function submitSwap(page: Page): Promise<void> {
 }
 
 /**
- * Finds the first horizontal pair (n, n+1) where neither tile is frozen.
- * Re-reads `data-frozen` on every call — frozen state can change mid-round
- * via the instant-scoring broadcast.
+ * Finds the first horizontal pair (n, n+1) — scanning from `startIndex` with
+ * wraparound — where neither tile is frozen. Re-reads `data-frozen` on every
+ * call: frozen state can change mid-round via the instant-scoring broadcast.
  */
 async function findUnfrozenAdjacentPair(
   page: Page,
+  startIndex = 0,
 ): Promise<[Locator, Locator] | null> {
   const board = page.getByTestId("board-grid");
-  for (let n = 0; n < 99; n += 1) {
+  for (let offset = 0; offset < 100; offset += 1) {
+    const n = (startIndex + offset) % 100;
     if (n % 10 === 9) continue;
     const tileA = board.locator(`[data-tile-index="${n}"]`);
     const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
