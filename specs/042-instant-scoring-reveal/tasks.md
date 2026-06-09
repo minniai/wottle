@@ -111,7 +111,7 @@ This is a Next.js 16 web application; paths follow the existing layout:
 
 ### Tests for User Story 2
 
-- [ ] T026 [P] [US2] DEFERRED — requires local Supabase stack. Authored after Phase 4 wrap-up. Write failing server-side integration test in `tests/integration/match/instantScoring.frozenTileGate.spec.ts`: after the fast path writes freezes to `matches.frozen_tiles`, call `submitMove` for the second player targeting a now-frozen tile; assert the existing frozen-tile guard at `app/actions/match/submitMove.ts:117–136` rejects the move with the standard error. (No new server code expected — this test validates the existing guard now sees fast-path freezes.)
+- [X] T026 [P] [US2] COMPLETED — `tests/integration/match/instantScoring.frozenTileGate.spec.ts` (4 tests GREEN). Uses mocked Supabase to simulate the post-fast-path state (`matches.frozen_tiles` populated for tile (X,Y)) and asserts `submitMove`'s existing frozen-tile guard (`app/actions/match/submitMove.ts:118–137`) rejects the second player's swap targeting (X,Y). Covers both `from` and `to` coordinates being frozen, both player_a and player_b ownership, and confirms accept-path when both swap tiles are clear.
 - [ ] T027 [P] [US2] DEFERRED — requires local Supabase stack. Write failing integration test in `tests/integration/match/instantScoring.combinedPipeline.spec.ts`: fire the fast path successfully, then submit the second player's move, run `advanceRound`; assert (a) `word_score_entries` ends with the correct total entries (combined-path re-derivation works), (b) `scoreboard_snapshots` has one row with both players' final totals, (c) `lastSummary` broadcast carries both players' words. Verifies the idempotency contract from data-model.md § 4.7. Implementation invariants are pinned by `tests/unit/match/instantScoring.raceWindow.spec.ts` (T037) and the existing delete-then-insert comment block in `app/actions/match/publishRoundSummary.ts:407–434`.
 - [ ] T028 [P] [US2] DEFERRED — Playwright dual-session, requires local Supabase. Write failing Playwright spec in `tests/integration/ui/instant-scoring-second-mover.spec.ts`.
 
@@ -177,7 +177,7 @@ This is a Next.js 16 web application; paths follow the existing layout:
 ### Tests for User Story 5
 
 - [X] T043 [P] [US5] COMPLETED — `tests/unit/match/instantScoring.zeroScore.spec.ts` (3 tests, all GREEN). Confirms `{ status: "no-score", reason: "swap-produced-no-words" }`, no `publishMatchState` call, and zero log events.
-- [ ] T044 [P] [US5] DEFERRED — requires local Supabase.
+- [X] T044 [P] [US5] COMPLETED — `tests/integration/match/instantScoring.zeroScore.dbState.spec.ts` (4 tests GREEN). Exercises the FULL pipeline (instantScoring → computeWordScoresForRound → executeScoringPipeline) with the wordEngine mocked to return zero scored words; asserts no DELETE/INSERT on `word_score_entries`, no UPDATE on `matches`, no RPC, no `publishMatchState` call. Higher coverage than the unit test (which mocks `computeWordScoresForRound` directly) because this proves the short-circuit in `executeScoringPipeline` at `app/actions/match/publishRoundSummary.ts:404–406` is reached on the real call path.
 - [ ] T045 [P] [US5] DEFERRED — Playwright dual-session, requires local Supabase.
 
 ### Implementation for User Story 5
