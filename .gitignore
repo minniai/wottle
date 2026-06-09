@@ -11,6 +11,9 @@
 .pnp
 .pnp.js
 
+# pnpm content-addressable store (local cache; never commit)
+.pnpm-store/
+
 # TypeScript
 *.tsbuildinfo
 

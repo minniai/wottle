@@ -82,6 +82,8 @@ All code MUST follow:
 ## Active Technologies
 - TypeScript 5.x, Node.js 20.x + Next.js 16 (App Router), React 19, Supabase JS, Zod, Vitest, Playwrigh (003-word-engine-scoring)
 - Supabase PostgreSQL 15+ (existing tables: `word_score_entries`, `scoreboard_snapshots`, `rounds`, `matches`; new: `frozen_tiles` JSONB column on `matches`) (003-word-engine-scoring)
+- TypeScript 5.x, React 19+, Next.js 16 (App Router), Node 20. + `@supabase/supabase-js` (Postgres + Realtime + RPC), existing `lib/game-engine/*` (dictionary, scanner, scorer, wordEngine), existing `lib/match/*` (state machine, conflict resolver, state publisher/loader), Zod for validation. No new runtime dependencies. (042-instant-scoring-reveal)
+- Supabase Postgres (PG 15+). No new tables. Existing tables touched: `matches.frozen_tiles` (JSONB, atomic update via existing `update_frozen_tiles_if_unchanged` RPC), `word_score_entries` (one row per scored word, written by `executeScoringPipeline` — partially populated by the fast path, completed by the combined path on the second submission), `move_submissions` (status transitions; one extra status read to detect race-window collision in FR-007). (042-instant-scoring-reveal)
 
 - TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19 + `@supabase/supabase-js` (auth + Realtime), Supabase Auth helpers, Supabase Edge Functions (invites timeout cron), Zod, Zustand (client state), Tailwind CSS 4.x, Playwright test harness (002-two-player-playtest)
 - Supabase PostgreSQL 15+ with RLS-enabled tables for players, lobby presence, matches, rounds, submissions, word_scores, match_logs; Supabase Realtime channels for lobby + match topics (002-two-player-playtest)
@@ -262,11 +264,11 @@ All code MUST follow the project's code style standards, which are enforced by t
   - Test commits: `test(scope): verify [behavior]` before implementation
 
 ## Recent Changes
+- 042-instant-scoring-reveal: Added TypeScript 5.x, React 19+, Next.js 16 (App Router), Node 20. + `@supabase/supabase-js` (Postgres + Realtime + RPC), existing `lib/game-engine/*` (dictionary, scanner, scorer, wordEngine), existing `lib/match/*` (state machine, conflict resolver, state publisher/loader), Zod for validation. No new runtime dependencies.
 - 003-word-engine-scoring: Added TypeScript 5.x, Node.js 20.x + Next.js 16 (App Router), React 19, Supabase JS, Zod, Vitest, Playwrigh
 
 - 002-two-player-playtest: Added TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19 + `@supabase/supabase-js` (auth + Realtime), Supabase Auth helpers, Supabase Edge Functions (invites timeout cron), Zod, Zustand (client state), Tailwind CSS 4.x, Playwright test harness
 
-- 001-e2e-board-scaffold: Added TypeScript 5.x, Node.js 20.x, Next.js 16 (App Router), React 19 + Next.js, React, `@supabase/supabase-js`, Zod, Tailwind CSS 4.x, ESLint, Prettier
 
 
 <!-- MANUAL ADDITIONS START -->
