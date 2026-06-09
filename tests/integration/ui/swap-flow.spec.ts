@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { submitSwap } from "./helpers/swaps";
+import { submitSwap, waitForBoardUnlocked } from "./helpers/swaps";
 import {
   generateTestUsername,
   startMatchWithDirectInvite,
@@ -75,6 +75,12 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
         timeout: 45_000,
       });
 
+      // The round indicator flips before the recap animation releases the
+      // board (`moveLocked` disables BoardGrid for ~1.2s after resolution).
+      // Clicks dispatched during that window are silently ignored, so wait
+      // for the unlock before interacting with the frozen tile.
+      await waitForBoardUnlocked(pageA);
+
       // Find the first frozen tile on pageA's board
       const board = pageA.getByTestId("board-grid");
       let frozenTileIndex = -1;
@@ -102,12 +108,42 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
 
       // Frozen tiles have aria-disabled="true" which Playwright treats as non-actionable.
       // Use dispatchEvent to bypass the check and trigger the click handler directly.
-      await frozenTile.dispatchEvent("click");
-      await neighborTile.dispatchEvent("click");
+      //
+      // Clicks during a FLIP animation are silently dropped (the isAnimating
+      // guard in handleTileClick) and the round-start replay of the opponent's
+      // swap can still be running here, so each dispatch verifies its
+      // observable effect and retries until it lands.
+      await expect
+        .poll(
+          async () => {
+            await frozenTile.dispatchEvent("click");
+            await pageA.waitForTimeout(150);
+            return frozenTile.getAttribute("aria-selected");
+          },
+          { timeout: 10_000 },
+        )
+        .toBe("true");
 
-      // Both tiles should receive the invalid class after server rejects the swap
-      await expect(frozenTile).toHaveClass(/board-grid__cell--invalid/, { timeout: 3_000 });
-      await expect(neighborTile).toHaveClass(/board-grid__cell--invalid/, { timeout: 3_000 });
+      // Both tiles should flash the invalid class once the frozen pair is
+      // rejected. The flash lasts ~400ms, so sample both classes right after
+      // each dispatch instead of asserting them sequentially.
+      await expect
+        .poll(
+          async () => {
+            await neighborTile.dispatchEvent("click");
+            await pageA.waitForTimeout(150);
+            const [frozenClass, neighborClass] = await Promise.all([
+              frozenTile.getAttribute("class"),
+              neighborTile.getAttribute("class"),
+            ]);
+            return frozenClass?.includes("board-grid__cell--invalid") &&
+              neighborClass?.includes("board-grid__cell--invalid")
+              ? "both-invalid"
+              : "no-flash";
+          },
+          { timeout: 10_000 },
+        )
+        .toBe("both-invalid");
 
       // data-frozen attribute must still be present (board unchanged)
       await expect(frozenTile).toHaveAttribute("data-frozen");

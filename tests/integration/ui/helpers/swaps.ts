@@ -13,16 +13,20 @@ const UNLOCK_TIMEOUT_MS = 10_000;
  * Verification is required since spec 042 (instant scoring reveal): the first
  * mover's fast-path scoring can freeze tiles and broadcast mid-`collecting`,
  * which means the second player's click pair can silently fail to produce a
- * move_submission in three ways:
+ * move_submission in four ways:
  *   1. The server rejects the swap because a clicked tile froze between the
  *      DOM read and server-side validation (FR-014).
  *   2. The US3 auto-deselect clears the first selection when its tile freezes,
  *      so the second click becomes a fresh first selection (FR-004).
  *   3. A click lands during the reveal's FLIP animation window and is ignored.
+ *   4. The first mover's revealed swap locks its two tiles on this player's
+ *      board (issue #210) and clicks on them are silently ignored — and both
+ *      players' helpers deterministically pick the same first free pair, so
+ *      this collision is the common case, not the exception.
  *
  * Each failure leaves the round stuck waiting for a second submission, so the
- * helper retries with a freshly-read unfrozen pair until the "Submitted" state
- * appears (or the round indicator advances past the captured value).
+ * helper retries with a freshly-read swappable pair until the "Submitted"
+ * state appears (or the round indicator advances past the captured value).
  */
 export async function submitSwap(page: Page): Promise<void> {
   // The previous round's recap keeps the board locked (and the "Submitted"
@@ -56,23 +60,40 @@ export async function submitSwap(page: Page): Promise<void> {
 
 /**
  * Finds the first horizontal pair (n, n+1) — scanning from `startIndex` with
- * wraparound — where neither tile is frozen. Re-reads `data-frozen` on every
- * call: frozen state can change mid-round via the instant-scoring broadcast.
+ * wraparound — where both tiles are swappable. Reads the whole grid's state
+ * in one DOM evaluation per call: tile state can change mid-round via the
+ * instant-scoring broadcast, so each retry re-reads it fresh.
+ *
+ * A tile is unswappable when it is frozen (`data-frozen`) OR locked by the
+ * opponent's mid-round revealed swap (`board-grid__cell--opponent-locked`,
+ * issue #210) — BoardGrid silently ignores clicks on opponent-locked tiles,
+ * and they are NOT marked with `data-frozen`, so checking only the frozen
+ * attribute made the helper re-pick the same dead pair forever.
  */
 async function findUnfrozenAdjacentPair(
   page: Page,
   startIndex = 0,
 ): Promise<[Locator, Locator] | null> {
   const board = page.getByTestId("board-grid");
+  const blocked: boolean[] = await board.evaluate((el) => {
+    const states: boolean[] = new Array(100).fill(true);
+    el.querySelectorAll("[data-tile-index]").forEach((tile) => {
+      const index = Number(tile.getAttribute("data-tile-index"));
+      states[index] =
+        tile.hasAttribute("data-frozen") ||
+        tile.classList.contains("board-grid__cell--opponent-locked");
+    });
+    return states;
+  });
+
   for (let offset = 0; offset < 100; offset += 1) {
     const n = (startIndex + offset) % 100;
     if (n % 10 === 9) continue;
-    const tileA = board.locator(`[data-tile-index="${n}"]`);
-    const tileB = board.locator(`[data-tile-index="${n + 1}"]`);
-    const frozenA = await tileA.getAttribute("data-frozen");
-    const frozenB = await tileB.getAttribute("data-frozen");
-    if (!frozenA && !frozenB) {
-      return [tileA, tileB];
+    if (!blocked[n] && !blocked[n + 1]) {
+      return [
+        board.locator(`[data-tile-index="${n}"]`),
+        board.locator(`[data-tile-index="${n + 1}"]`),
+      ];
     }
   }
   return null;
@@ -93,11 +114,12 @@ async function clickPair([tileA, tileB]: [Locator, Locator]): Promise<void> {
 }
 
 /**
- * Waits for the "Your move" card to leave its "Submitted" state. Best-effort:
- * if the card never unlocks (or isn't rendered, e.g. narrow viewports), the
- * retry loop's confirmation polling still bounds the failure.
+ * Waits for the "Your move" card to leave its "Submitted" state — i.e. for
+ * `moveLocked` to clear after the round-recap window, re-enabling the board.
+ * Best-effort: if the card never unlocks (or isn't rendered, e.g. narrow
+ * viewports), callers' own retries/assertions bound the failure.
  */
-async function waitForBoardUnlocked(page: Page): Promise<void> {
+export async function waitForBoardUnlocked(page: Page): Promise<void> {
   const deadline = Date.now() + UNLOCK_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const yourMoveText = await page
