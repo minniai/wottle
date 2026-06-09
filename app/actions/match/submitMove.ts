@@ -7,6 +7,7 @@ import { applySwap } from "@/lib/game-engine/board";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { boardGridSchema } from "@/lib/types/board";
 import type { BoardGrid, MoveResult } from "@/lib/types/board";
+import { instantScoreFirstSubmission } from "@/lib/match/instantScoring";
 import { advanceRound } from "@/lib/match/roundEngine";
 import { publishMatchState } from "@/lib/match/statePublisher";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -201,11 +202,24 @@ export async function submitMove(
         swappedBoard = currentBoard;
     }
 
-    // 7. Trigger round advancement check.
-    // Uses after() so it runs after the response is sent but keeps the Vercel
-    // serverless function alive at full CPU priority (unlike bare fire-and-forget
-    // which gets throttled, causing ~5s delays).
+    // 7. Trigger instant-scoring fast path then round advancement check.
+    // Both run inside the same after() hook so they execute post-response at
+    // full Vercel CPU priority (bare fire-and-forget gets throttled).
+    //
+    // Sequential, not parallel:
+    //   - instantScoreFirstSubmission no-ops in ≤5 ms when the second
+    //     submission is already present (race-window check, FR-007), so
+    //     sequencing costs nothing in the happy path.
+    //   - It must also run *before* advanceRound so the race-window check
+    //     reads a consistent view of move_submissions.
+    //   - Independent try/catch so an instant-scoring failure cannot block
+    //     advanceRound (FR-011).
     after(async () => {
+        try {
+            await instantScoreFirstSubmission(matchId);
+        } catch (e) {
+            console.error("[InstantScoring] Failed (non-fatal):", e);
+        }
         try {
             await advanceRound(matchId);
         } catch (e) {

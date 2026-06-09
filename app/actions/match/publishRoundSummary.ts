@@ -406,10 +406,22 @@ async function executeScoringPipeline(
     }
 
     // Persist word scores to word_score_entries table.
-    // Delete any existing rows for this round first so retries (and any
-    // stray concurrent caller that slipped past the rounds-state CAS) stay
-    // idempotent — `word_score_entries` has no UNIQUE constraint, so a bare
-    // INSERT would stack duplicate rows and double the round delta (#177).
+    //
+    // Delete-then-insert is load-bearing for two independent invariants:
+    //   1. (#177) Retries + concurrent advanceRound callers that slip past
+    //      the rounds-state CAS would otherwise stack duplicate rows
+    //      because `word_score_entries` has no UNIQUE constraint.
+    //   2. (spec 042 / FR-007, data-model.md § 4.7) The instant-scoring fast
+    //      path writes the first mover's words here before `advanceRound`
+    //      ever runs. When advanceRound's combined pass executes, it re-
+    //      derives both players' words against the *combined* board and
+    //      MUST overwrite the fast path's partial output so the canonical
+    //      `word_score_entries` count for the round equals what combined-
+    //      only scoring would have produced. The DELETE here provides that
+    //      idempotency without coordinating the two callers.
+    //
+    // Both invariants share the same fix; do not weaken to UPSERT without
+    // re-reading docs/prd_and_requirements/wottle_game_rules.md § 10.
     const { error: deleteError } = await supabase
         .from("word_score_entries")
         .delete()

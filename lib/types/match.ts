@@ -119,6 +119,42 @@ export interface MatchState {
   frozenTiles?: FrozenTileMap;
   /** In-flight swaps for the current round. Populated only during `collecting`. */
   pendingMoves?: PendingMove[];
+  /**
+   * Set while the current round is still `collecting` and the first player's
+   * instant-scoring pass has fired (spec 042 / Linear O-57). Cleared when the
+   * round transitions out of `collecting` — at that point `lastSummary`
+   * carries the canonical state.
+   */
+  partialSummary?: PartialRoundSummary | null;
+}
+
+/**
+ * Server-published partial state for a round that is still `collecting` but
+ * for which the first player's instant-scoring pass has fired. Carries the
+ * first mover's scored words and the resulting frozen tiles so the second
+ * player's client can render the reveal before they submit (spec 042 / O-57).
+ *
+ * Distinct from `RoundSummary` (which represents a *completed* round and
+ * carries both players' scores). When `lastSummary` for the same round
+ * arrives, the partial reveal is deduplicated by `firstSubmissionAt`.
+ */
+export interface PartialRoundSummary {
+  matchId: string;
+  roundNumber: number;
+  /** ID of the player whose submission triggered the fast path. */
+  firstMoverId: string;
+  /** ISO timestamp of that submission. Stable dedupe key with `firstMoverId`. */
+  firstSubmissionAt: string;
+  /** Only the first mover's words; empty when the swap scored nothing. */
+  words: WordScore[];
+  /** Score delta this submission produced (zero for the other player). */
+  delta: ScoreTotals;
+  /**
+   * Frozen-tile map AFTER applying the fast path's freezes. Includes all
+   * pre-existing freezes plus the new ones. Mirrors `MatchState.frozenTiles`
+   * post-fast-path; consumers should prefer this when present.
+   */
+  frozenTiles: FrozenTileMap;
 }
 
 export type SubmissionStatus =

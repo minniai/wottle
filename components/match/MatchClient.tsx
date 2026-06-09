@@ -18,6 +18,10 @@ import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveRevealSequence } from "@/lib/match/revealSequence";
+import {
+  buildPartialRevealKey,
+  deriveRevealHighlightsFromPartial,
+} from "@/lib/match/partialReveal";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
 import type { MatchPlayerProfiles, MatchState, TimerState, Coordinate } from "@/lib/types/match";
@@ -159,6 +163,13 @@ export function MatchClient({
     [Coordinate, Coordinate] | null
   >(null);
   const animatedOpponentMoveKeysRef = useRef<Set<string>>(new Set());
+  /**
+   * Dedupe key set for instant-scoring partial reveals (spec 042 / O-57).
+   * Mirrors `animatedOpponentMoveKeysRef`'s `${playerId}-${submittedAt}` shape
+   * so a partial reveal that fires before `lastSummary` arrives suppresses
+   * the redundant round-recap animation for the same swap.
+   */
+  const animatedPartialRevealsRef = useRef<Set<string>>(new Set());
 
   // Resign state
   const [showResignDialog, setShowResignDialog] = useState(false);
@@ -622,7 +633,53 @@ export function MatchClient({
     setExternalSwap(null);
     setOpponentSwapTiles(null);
     animatedOpponentMoveKeysRef.current = new Set();
+    // Spec 042 — drop the partial-reveal dedupe set so a new round can fire
+    // its own first-mover animation without colliding with the prior round's key.
+    animatedPartialRevealsRef.current = new Set();
   }, [matchState.currentRound]);
+
+  // ── Instant scoring partial reveal (spec 042 / Linear O-57) ────────────
+  // When the server's fast-path scoring lands during `collecting`, the
+  // `state` broadcast carries a `partialSummary` for the first mover's
+  // words. We animate the highlights + play the discovery sound once per
+  // unique `(firstMoverId, firstSubmissionAt)` pair so a repeated broadcast
+  // (or a polling-fallback poll) doesn't re-fire the animation.
+  //
+  // We also seed `animatedOpponentMoveKeysRef` with the same key so when
+  // the eventual `lastSummary` for this round arrives, the existing
+  // opponent-move suppression skips re-animating the first mover's swap.
+  useEffect(() => {
+    const partial = matchState.partialSummary;
+    if (!partial) return;
+    if (partial.words.length === 0) return; // defensive — fast path returns "no-score" instead
+
+    const key = buildPartialRevealKey(partial);
+    if (animatedPartialRevealsRef.current.has(key)) return;
+    animatedPartialRevealsRef.current.add(key);
+    animatedOpponentMoveKeysRef.current.add(key);
+
+    const colors = deriveHighlightPlayerColors(
+      partial.words,
+      matchState.timers.playerA.playerId,
+    );
+    setHighlightPlayerColors((prev) => ({ ...prev, ...colors }));
+    setActiveRevealHighlights(deriveRevealHighlightsFromPartial(partial));
+    setAnimationPhase("round-recap");
+    playWordDiscovery();
+
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => {
+      // Only revert to idle if the lastSummary recap hasn't taken over by
+      // now. `lastAnimatedRoundRef` is set by the lastSummary useEffect on
+      // its first run; when set, leave the highlights up so the combined
+      // recap continues without flicker.
+      setAnimationPhase((prev) => (prev === "round-recap" ? "idle" : prev));
+    }, 1200);
+  }, [
+    matchState.partialSummary,
+    matchState.timers.playerA.playerId,
+    playWordDiscovery,
+  ]);
 
   // Issue #210 — when a state snapshot carries a new opponent pendingMove,
   // surface it to BoardGrid as an externalSwap so the FLIP animates the

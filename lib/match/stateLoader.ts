@@ -4,10 +4,12 @@ import { boardGridSchema } from "@/lib/types/board";
 import type { Coordinate } from "@/lib/types/board";
 import { aggregateRoundSummary } from "@/lib/scoring/roundSummary";
 import type {
+  FrozenTileMap,
   MatchPhase,
   MatchPlayerProfile,
   MatchPlayerProfiles,
   MatchState,
+  PartialRoundSummary,
   PendingMove,
   RoundSummary,
   ScoreTotals,
@@ -203,6 +205,66 @@ function mapWordScores(entries: any[]): WordScore[] {
     totalPoints: entry.total_points as number,
     coordinates: entry.tiles as Coordinate[],
   }));
+}
+
+interface BuildPartialArgs {
+  matchId: string;
+  roundNumber: number;
+  roundId: string;
+  playerAId: string;
+  wordEntries: any[];
+  submissions: Array<{ player_id: string; submitted_at: string; status: string }>;
+  frozenTiles: FrozenTileMap;
+}
+
+/**
+ * Derive `partialSummary` for a still-`collecting` round (spec 042 § 5).
+ *
+ * Returns null when:
+ *   - no `word_score_entries` rows exist for the round yet, OR
+ *   - both players already have word entries (combined path has run; the
+ *     parallel `lastSummary` query carries the canonical state instead).
+ *
+ * Otherwise builds a `PartialRoundSummary` from the first mover's entries
+ * + their submission timestamp. Polling clients converge to the same shape
+ * realtime broadcasts carry.
+ */
+function buildPartialSummary({
+  matchId,
+  roundNumber,
+  playerAId,
+  wordEntries,
+  submissions,
+  frozenTiles,
+}: BuildPartialArgs): PartialRoundSummary | null {
+  if (!wordEntries.length) return null;
+
+  const playerIds = new Set(wordEntries.map((e) => e.player_id as string));
+  if (playerIds.size !== 1) return null;
+
+  const firstMoverId = wordEntries[0].player_id as string;
+  const firstMoverSub = submissions
+    .filter((s) => s.player_id === firstMoverId && s.status !== "timeout")
+    .sort((a, b) => a.submitted_at.localeCompare(b.submitted_at))[0];
+
+  if (!firstMoverSub) return null;
+
+  const words = mapWordScores(wordEntries);
+  const total = words.reduce((sum, w) => sum + w.totalPoints, 0);
+  const delta: ScoreTotals =
+    firstMoverId === playerAId
+      ? { playerA: total, playerB: 0 }
+      : { playerA: 0, playerB: total };
+
+  return {
+    matchId,
+    roundNumber,
+    firstMoverId,
+    firstSubmissionAt: firstMoverSub.submitted_at,
+    words,
+    delta,
+    frozenTiles,
+  };
 }
 
 async function loadLatestRoundSummary(
@@ -413,6 +475,7 @@ export async function loadMatchState(
   let playerAStatus: "running" | "paused" | "expired";
   let playerBStatus: "running" | "paused" | "expired";
   let pendingMoves: PendingMove[] = [];
+  let partialSummary: PartialRoundSummary | null = null;
 
   if (match.state === "completed") {
     playerARemainingMs = storedA;
@@ -420,10 +483,21 @@ export async function loadMatchState(
     playerAStatus = "expired";
     playerBStatus = "expired";
   } else if (effectiveState === "collecting" && roundStartedAt && round?.id) {
-    const { data: submissions } = await client
-      .from("move_submissions")
-      .select("player_id, submitted_at, status, from_x, from_y, to_x, to_y")
-      .eq("round_id", round.id);
+    // Parallel fetches: submissions (for timers + pending moves) AND
+    // word_score_entries (for partialSummary hydration, spec 042). Both are
+    // sub-millisecond reads keyed by round_id; doing them in parallel keeps
+    // the polling-fallback latency budget intact.
+    const [{ data: submissions }, { data: wordEntries }] = await Promise.all([
+      client
+        .from("move_submissions")
+        .select("player_id, submitted_at, status, from_x, from_y, to_x, to_y")
+        .eq("round_id", round.id),
+      client
+        .from("word_score_entries")
+        .select("player_id, word, length, letters_points, bonus_points, total_points, tiles")
+        .eq("match_id", matchId)
+        .eq("round_id", round.id),
+    ]);
 
     const typedSubs = (submissions ?? []) as Array<{
       player_id: string;
@@ -434,6 +508,16 @@ export async function loadMatchState(
       to_x: number;
       to_y: number;
     }>;
+
+    partialSummary = buildPartialSummary({
+      matchId,
+      roundNumber: match.current_round,
+      roundId: round.id,
+      playerAId: match.player_a_id,
+      wordEntries: wordEntries ?? [],
+      submissions: typedSubs,
+      frozenTiles: ((match as any).frozen_tiles ?? {}) as FrozenTileMap,
+    });
 
     // Self-heal: if both players have real (non-timeout) submissions but the
     // round hasn't advanced, fire advanceRound in the background. This closes
@@ -554,6 +638,7 @@ export async function loadMatchState(
     frozenTiles: (match as any).frozen_tiles ?? {},
     disconnectedPlayerId,
     pendingMoves,
+    partialSummary,
   };
 }
 
