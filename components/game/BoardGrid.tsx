@@ -293,10 +293,19 @@ function BoardGridActive({
   const [swappingTiles, setSwappingTiles] = useState<[SelectedTile, SelectedTile] | null>(null);
   const [activeHighlights, setActiveHighlights] = useState<Coordinate[][]>([]);
   const [invalidTiles, setInvalidTiles] = useState<[Coordinate, Coordinate] | null>(null);
+  // Spec 042 / US3 — text shown in the visually-hidden aria-live region when
+  // the player's pending single-tile selection auto-clears because the first
+  // mover's reveal froze it. Cleared by the next effect run when no fresh
+  // freeze matches the selection.
+  const [autoDeselectAnnouncement, setAutoDeselectAnnouncement] = useState<string>("");
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { scale: boardScale, handleTouchStart, handleTouchMove, handleTouchEnd } = usePinchZoom(0.5, 1.5);
   const highlightsKeyRef = useRef<string>("");
   const tileRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  // Previous frozenTiles snapshot — used by the US3 auto-deselect effect to
+  // distinguish "selected tile became frozen this render" from "selected tile
+  // was already frozen". Only the transition triggers the deselect.
+  const prevFrozenTilesRef = useRef<FrozenTileMap>({});
 
   useEffect(() => {
     if (
@@ -577,6 +586,29 @@ function BoardGridActive({
     }
   }, [opponentLockedTiles, selected]);
 
+  // Spec 042 US3 — when the first mover's instant-scoring reveal freezes the
+  // tile this player has tapped as the first half of a pending swap, drop the
+  // selection silently and announce via aria-live (FR-004, FR-017). Selection
+  // is preserved when only unrelated tiles change (FR-005).
+  useEffect(() => {
+    const prev = prevFrozenTilesRef.current;
+    prevFrozenTilesRef.current = frozenTiles;
+
+    if (!selected) {
+      if (autoDeselectAnnouncement) setAutoDeselectAnnouncement("");
+      return;
+    }
+
+    const key = `${selected.x},${selected.y}`;
+    const becameFrozen = !!frozenTiles[key] && !prev[key];
+    if (!becameFrozen) return;
+
+    setSelected(null);
+    setAutoDeselectAnnouncement(
+      `Selection cleared: tile at column ${selected.x + 1}, row ${selected.y + 1} is now frozen.`,
+    );
+  }, [frozenTiles, selected, autoDeselectAnnouncement]);
+
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
       if (isSubmitting || isAnimating || disabled) {
@@ -838,6 +870,16 @@ function BoardGridActive({
             })}
           </div>
         ))}
+      </div>
+      {/* Spec 042 US3 — auto-deselect announcer for screen readers (FR-017).
+       *   Visually-hidden; populated when the selected tile is frozen mid-round. */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+        data-testid="board-grid-autodeselect-live"
+      >
+        {autoDeselectAnnouncement}
       </div>
       {/* Temporary submit button for testing flow if needed, but grid click handles it */}
       <button data-testid="submit-move-button" className="sr-only">Submit</button>
