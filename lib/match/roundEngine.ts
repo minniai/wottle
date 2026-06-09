@@ -29,6 +29,7 @@ type RoundRow = {
     state: string;
     board_snapshot_before: unknown;
     started_at: string | null;
+    frozen_tiles_before: Record<string, unknown> | null;
 };
 
 type SubmissionRow = {
@@ -145,7 +146,7 @@ export async function advanceRound(matchId: string) {
     // 2. Get current round record (including started_at for clock enforcement)
     const { data: round, error: roundError } = await supabase
         .from("rounds")
-        .select("id, state, board_snapshot_before, started_at")
+        .select("id, state, board_snapshot_before, started_at, frozen_tiles_before")
         .eq("match_id", matchId)
         .eq("round_number", currentRound)
         .single();
@@ -266,8 +267,24 @@ export async function advanceRound(matchId: string) {
         return { status: "not_advancing", reason: "Round already being resolved" };
     }
 
-    // 9b. Compute word scores from the board delta
+    // 9b. Compute word scores from the board delta.
+    //
+    // The scoring baseline is the freeze map AS OF ROUND START
+    // (rounds.frozen_tiles_before), NOT matches.frozen_tiles. The
+    // instant-scoring fast path (spec 042) merges the first mover's freezes
+    // into matches.frozen_tiles while the round is still collecting; feeding
+    // those same-round freezes back into processRoundScoring would make the
+    // frozen-coordinate guard reject the first mover's own swap, wiping
+    // their word_score_entries rows via delete-then-insert. Falls back to
+    // matches.frozen_tiles for legacy rounds created before the snapshot
+    // column existed.
+    const roundStartFrozenTiles =
+        ((round as RoundRow).frozen_tiles_before ??
+            (match as MatchRow).frozen_tiles ??
+            {}) as Record<string, { owner: string }>;
+
     let scoringFinalBoard = boardAfter;
+    let scoringNewFrozenTiles: Record<string, unknown> = roundStartFrozenTiles;
     try {
         const scoringResult = await computeWordScoresForRound(
             matchId,
@@ -277,9 +294,10 @@ export async function advanceRound(matchId: string) {
             acceptedMoves,
             (match as MatchRow).player_a_id,
             (match as MatchRow).player_b_id,
-            (match as MatchRow).frozen_tiles as Record<string, { owner: string }> ?? {},
+            roundStartFrozenTiles,
         );
         scoringFinalBoard = scoringResult.finalBoard;
+        scoringNewFrozenTiles = scoringResult.newFrozenTiles ?? roundStartFrozenTiles;
     } catch (e) {
         console.error("[WordEngine] Failed to compute word scores:", e);
     }
@@ -358,6 +376,10 @@ export async function advanceRound(matchId: string) {
                 round_number: nextRound,
                 state: "collecting",
                 board_snapshot_before: scoringFinalBoard,
+                // Spec 042 — snapshot the canonical post-round freeze map so
+                // round N+1's scoring passes share a stable baseline even
+                // when the fast path mutates matches.frozen_tiles mid-round.
+                frozen_tiles_before: scoringNewFrozenTiles,
                 started_at: new Date().toISOString(),
             });
 

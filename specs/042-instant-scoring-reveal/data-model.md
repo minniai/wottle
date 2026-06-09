@@ -8,19 +8,19 @@ This document defines the in-memory types, the (zero) DB schema changes, the sta
 
 ## 1. Database Schema
 
-**No new tables. No new columns. No new indexes. No new RLS policies.**
-
-The feature reuses these existing tables exactly as today:
+**No new tables. One new column (post-ship amendment). No new indexes. No new RLS policies.**
 
 | Table | Reused as | Touched by fast path? |
 |---|---|---|
 | `matches` | Holds `frozen_tiles` (JSONB) and `player_*_timer_ms`. | Yes — updates `frozen_tiles` via existing `update_frozen_tiles_if_unchanged` RPC. |
-| `rounds` | Holds `board_snapshot_before`, `state`, `started_at`. | No — `state` stays `collecting` during the fast path. |
+| `rounds` | Holds `board_snapshot_before`, `state`, `started_at`, `frozen_tiles_before`. | Reads `frozen_tiles_before` as the scoring baseline; `state` stays `collecting` during the fast path. |
 | `move_submissions` | One row per player swap per round. | Reads (existence check + first-row fetch); no writes. |
 | `word_score_entries` | One row per scored word in a round. | Writes — fast-path inserts the first-mover's words. |
 | `scoreboard_snapshots` | Per-round running totals. | No — written only at round completion by `publishRoundSummary`. |
 
 **Rationale**: All canonical state already exists; the fast path just observes part of the round-resolution work earlier than today.
+
+**Post-ship amendment — `rounds.frozen_tiles_before` (JSONB, NOT NULL, default `{}`)**: the original design ("no new columns") had the combined pass re-read `matches.frozen_tiles` as its scoring baseline. That map is mutated by the fast path *mid-round*, so the combined re-derivation rejected the first mover's own swap on its freshly-frozen tiles (frozen-coordinate guard in `processPlayerMove`), violating § 4.7. `frozen_tiles_before` snapshots the round-start freeze map (mirroring `board_snapshot_before`); both scoring passes read it as their baseline, written by `advanceRound` when it creates the next round (migration `20260609001_rounds_frozen_tiles_before.sql`). `submitMove`'s frozen-tile rejection gate intentionally keeps reading the live `matches.frozen_tiles` so mid-round freezes still block new swaps (FR-014).
 
 ---
 
@@ -193,6 +193,8 @@ When `lastSummary?.roundNumber === partialSummary?.roundNumber`, the client SHOU
 ### 4.7 Idempotency: `word_score_entries` count for the round equals the canonical combined-scoring count
 
 After the round completes, the number of `word_score_entries` rows MUST equal what the combined pipeline would have produced if instant scoring had never run. This is enforced by `executeScoringPipeline`'s existing delete-then-insert pattern (`publishRoundSummary.ts:413`). The fast-path's rows are wiped and recreated by the combined-path's re-derivation against the combined board.
+
+This invariant additionally requires both passes to score against the same freeze baseline — `rounds.frozen_tiles_before` (see § 1 post-ship amendment). If the combined pass scored against the fast-path-mutated `matches.frozen_tiles`, the re-derivation would reject the first mover's swap and the DELETE would destroy their score instead of recreating it. Pinned by `tests/unit/lib/match/roundEngine.frozenTilesBaseline.test.ts` and `tests/unit/match/instantScoring.frozenBaseline.spec.ts`.
 
 ### 4.8 No `scoreboard_snapshots` write by the fast path
 

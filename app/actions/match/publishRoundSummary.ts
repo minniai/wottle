@@ -269,6 +269,12 @@ async function persistFrozenTilesAtomically(
 export interface ScoringPipelineResult {
     wordScores: WordScore[];
     finalBoard: BoardGrid;
+    /**
+     * Canonical cumulative freeze map after this scoring pass (input baseline
+     * merged with this round's new freezes). The round engine persists it as
+     * the next round's `frozen_tiles_before` snapshot (spec 042 regression).
+     */
+    newFrozenTiles: FrozenTileMap;
 }
 
 export async function computeWordScoresForRound(
@@ -360,7 +366,11 @@ export async function computeWordScoresForRound(
         );
     } catch (error) {
         // If retry exhaustion already cancelled the match, return empty scores
-        return { wordScores: [], finalBoard: boardBefore };
+        return {
+            wordScores: [],
+            finalBoard: boardBefore,
+            newFrozenTiles: frozenTiles as FrozenTileMap,
+        };
     }
 }
 
@@ -402,7 +412,11 @@ async function executeScoringPipeline(
     const allBreakdowns = [...result.playerAWords, ...result.playerBWords];
 
     if (allBreakdowns.length === 0) {
-        return { wordScores: [], finalBoard: result.finalBoard };
+        return {
+            wordScores: [],
+            finalBoard: result.finalBoard,
+            newFrozenTiles: result.newFrozenTiles,
+        };
     }
 
     // Persist word scores to word_score_entries table.
@@ -476,6 +490,7 @@ async function executeScoringPipeline(
             coordinates: bd.tiles,
         })),
         finalBoard: result.finalBoard,
+        newFrozenTiles: result.newFrozenTiles,
     };
 }
 

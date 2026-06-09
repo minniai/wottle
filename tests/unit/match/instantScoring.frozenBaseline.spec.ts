@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 
@@ -18,19 +18,12 @@ vi.mock("@/lib/observability/instantScoring", () => ({
 
 import { computeWordScoresForRound } from "@/app/actions/match/publishRoundSummary";
 import { instantScoreFirstSubmission } from "@/lib/match/instantScoring";
-import {
-  trackInstantScoringDeferred,
-  trackInstantScoringFailed,
-  trackInstantScoringFired,
-} from "@/lib/observability/instantScoring";
-import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const MATCH_ID = "11111111-1111-1111-1111-111111111111";
 const ROUND_ID = "22222222-2222-2222-2222-222222222222";
 const PLAYER_A = "33333333-3333-3333-3333-333333333333";
 const PLAYER_B = "44444444-4444-4444-4444-444444444444";
-const SUBMITTED_AT = "2026-06-09T12:00:00.000Z";
 
 function createBoard(): string[][] {
   return Array.from({ length: 10 }, () =>
@@ -38,20 +31,24 @@ function createBoard(): string[][] {
   );
 }
 
-function makeClientWithOnePending() {
+function makeClient(opts: {
+  matchFrozenTiles: Record<string, unknown>;
+  roundFrozenTilesBefore: Record<string, unknown> | null;
+}) {
   const matchData = {
     id: MATCH_ID,
-    current_round: 1,
+    current_round: 2,
     player_a_id: PLAYER_A,
     player_b_id: PLAYER_B,
     board_seed: "seed-1",
-    frozen_tiles: {},
+    frozen_tiles: opts.matchFrozenTiles,
   };
   const roundData = {
     id: ROUND_ID,
     state: "collecting",
     board_snapshot_before: createBoard(),
     started_at: new Date().toISOString(),
+    frozen_tiles_before: opts.roundFrozenTilesBefore,
   };
   const submissionRows = [
     {
@@ -61,7 +58,7 @@ function makeClientWithOnePending() {
       from_y: 0,
       to_x: 1,
       to_y: 0,
-      submitted_at: SUBMITTED_AT,
+      submitted_at: "2026-06-09T12:00:00.000Z",
       status: "pending",
     },
   ];
@@ -73,7 +70,6 @@ function makeClientWithOnePending() {
           select: vi.fn(() => ({
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({ data: matchData, error: null }),
-            single: vi.fn().mockResolvedValue({ data: matchData, error: null }),
           })),
         };
       }
@@ -82,14 +78,10 @@ function makeClientWithOnePending() {
           select: vi.fn(() => ({
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({ data: roundData, error: null }),
-            single: vi.fn().mockResolvedValue({ data: roundData, error: null }),
           })),
         };
       }
       if (table === "move_submissions") {
-        // chain: any — matches the mock-chain pattern in
-        // instantScoring.happyPath.spec.ts; vi.fn's recursive return type
-        // isn't expressible without `any` here.
         const chain: any = {};
         chain.select = vi.fn(() => chain);
         chain.eq = vi.fn(() => chain);
@@ -108,71 +100,55 @@ function makeClientWithOnePending() {
   };
 }
 
-/**
- * Spec 042 / US5 / FR-006 — zero-score no-op fast path.
- *
- * When the first submission scores zero words, the fast path MUST:
- *   • return { status: "no-score", reason: "swap-produced-no-words" }
- *   • NOT broadcast match state (no UI change for opponent)
- *   • emit NO log events (zero-score is a non-event, not worth a structured log;
- *     it's the most common round outcome and would otherwise flood logs)
- */
-describe("instantScoreFirstSubmission — zero-score branch (T043, FR-006)", () => {
+// Spec 042 regression — the fast path must score against the round-start
+// freeze baseline (rounds.frozen_tiles_before), mirroring the combined pass.
+// Using matches.frozen_tiles makes a re-fired fast path reject its own swap
+// once its previous run has merged the new freezes into the match row.
+describe("instantScoreFirstSubmission — frozen-tile scoring baseline (spec 042)", () => {
+  const PRIOR_ROUND_FREEZE = { "9,9": { owner: "player_b" } };
+  const POLLUTED = {
+    "9,9": { owner: "player_b" },
+    "0,0": { owner: "player_a" },
+    "1,0": { owner: "player_a" },
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("returns no-score with reason 'swap-produced-no-words' when the swap yields zero words", async () => {
-    vi.mocked(getServiceRoleClient).mockReturnValue(
-      makeClientWithOnePending() as never,
-    );
     vi.mocked(computeWordScoresForRound).mockResolvedValue({
       wordScores: [],
       finalBoard: createBoard(),
       newFrozenTiles: {},
-    });
-
-    const result = await instantScoreFirstSubmission(MATCH_ID);
-
-    expect(result).toEqual({
-      status: "no-score",
-      reason: "swap-produced-no-words",
-    });
+    } as never);
   });
 
-  it("does NOT broadcast match state when the swap produces no words", async () => {
+  it("passes rounds.frozen_tiles_before to the scoring pipeline", async () => {
     vi.mocked(getServiceRoleClient).mockReturnValue(
-      makeClientWithOnePending() as never,
+      makeClient({
+        matchFrozenTiles: POLLUTED,
+        roundFrozenTilesBefore: PRIOR_ROUND_FREEZE,
+      }) as never,
     );
-    vi.mocked(computeWordScoresForRound).mockResolvedValue({
-      wordScores: [],
-      finalBoard: createBoard(),
-      newFrozenTiles: {},
-    });
 
     await instantScoreFirstSubmission(MATCH_ID);
 
-    expect(publishMatchState).not.toHaveBeenCalled();
+    expect(computeWordScoresForRound).toHaveBeenCalledOnce();
+    const frozenTilesArg =
+      vi.mocked(computeWordScoresForRound).mock.calls[0][7];
+    expect(frozenTilesArg).toEqual(PRIOR_ROUND_FREEZE);
   });
 
-  it("emits NO log events on the zero-score path (most common round outcome)", async () => {
+  it("falls back to matches.frozen_tiles when frozen_tiles_before is null (legacy rounds)", async () => {
     vi.mocked(getServiceRoleClient).mockReturnValue(
-      makeClientWithOnePending() as never,
+      makeClient({
+        matchFrozenTiles: PRIOR_ROUND_FREEZE,
+        roundFrozenTilesBefore: null,
+      }) as never,
     );
-    vi.mocked(computeWordScoresForRound).mockResolvedValue({
-      wordScores: [],
-      finalBoard: createBoard(),
-      newFrozenTiles: {},
-    });
 
     await instantScoreFirstSubmission(MATCH_ID);
 
-    expect(trackInstantScoringFired).not.toHaveBeenCalled();
-    expect(trackInstantScoringFailed).not.toHaveBeenCalled();
-    expect(trackInstantScoringDeferred).not.toHaveBeenCalled();
+    const frozenTilesArg =
+      vi.mocked(computeWordScoresForRound).mock.calls[0][7];
+    expect(frozenTilesArg).toEqual(PRIOR_ROUND_FREEZE);
   });
 });

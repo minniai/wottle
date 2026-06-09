@@ -151,6 +151,7 @@ describe("instantScoreFirstSubmission — happy path (T015)", () => {
         },
       ],
       finalBoard: createBoard(),
+      newFrozenTiles: {},
     });
 
     const result = await instantScoreFirstSubmission(MATCH_ID);
@@ -194,6 +195,7 @@ describe("instantScoreFirstSubmission — happy path (T015)", () => {
         },
       ],
       finalBoard: createBoard(),
+      newFrozenTiles: {},
     });
 
     await instantScoreFirstSubmission(MATCH_ID);
@@ -213,6 +215,7 @@ describe("instantScoreFirstSubmission — happy path (T015)", () => {
     vi.mocked(computeWordScoresForRound).mockResolvedValue({
       wordScores: [],
       finalBoard: createBoard(),
+      newFrozenTiles: {},
     });
 
     const result = await instantScoreFirstSubmission(MATCH_ID);
@@ -271,6 +274,7 @@ describe("instantScoreFirstSubmission — happy path (T015)", () => {
         },
       ],
       finalBoard: createBoard(),
+      newFrozenTiles: {},
     });
 
     const result = await instantScoreFirstSubmission(MATCH_ID);

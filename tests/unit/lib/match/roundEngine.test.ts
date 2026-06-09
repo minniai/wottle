@@ -9,7 +9,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/app/actions/match/publishRoundSummary", () => ({
     publishRoundSummary: vi.fn().mockResolvedValue({ ok: true }),
-    computeWordScoresForRound: vi.fn().mockResolvedValue({ wordScores: [], finalBoard: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")) }),
+    computeWordScoresForRound: vi.fn().mockResolvedValue({ wordScores: [], finalBoard: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")), newFrozenTiles: {} }),
 }));
 
 vi.mock("@/app/actions/match/completeMatch", () => ({
@@ -284,6 +284,7 @@ describe("roundEngine.advanceRound", () => {
         vi.mocked(computeWordScoresForRound).mockResolvedValueOnce({
             wordScores: [],
             finalBoard: markerFinalBoard,
+            newFrozenTiles: {},
         });
 
         setupSupabase([
