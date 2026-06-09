@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { submitSwap } from "./helpers/swaps";
+import { submitSwap, waitForBoardUnlocked } from "./helpers/swaps";
 import {
   generateTestUsername,
   startMatchWithDirectInvite,
@@ -74,6 +74,12 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
       await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(/r2/i, {
         timeout: 45_000,
       });
+
+      // The round indicator flips before the recap animation releases the
+      // board (`moveLocked` disables BoardGrid for ~1.2s after resolution).
+      // Clicks dispatched during that window are silently ignored, so wait
+      // for the unlock before interacting with the frozen tile.
+      await waitForBoardUnlocked(pageA);
 
       // Find the first frozen tile on pageA's board
       const board = pageA.getByTestId("board-grid");
