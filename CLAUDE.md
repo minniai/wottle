@@ -108,6 +108,7 @@ Before implementing any feature:
 - `017-elo-rating-player-stats` — Elo calculation, lobby rating display, profile modal
 - `018-match-hud-layout` — 3-column match layout + compact mobile bars
 - `019-lobby-visual-foundation` — Warm Editorial lobby (Fraunces/Inter, ui primitives, hero, stats strip, PlayNowCard, LobbyDirectory, InviteDialog, skeleton/empty states)
+- `042-instant-scoring-reveal` — first mover's scored words, score delta, and tile freezes appear on both boards instantly via `instantScoreFirstSubmission` fast path in `submitMove`'s `after()` hook; race-window guard + zero-score branch keep contention safe; second mover's auto-deselect + aria-live announcement on freeze (Linear O-57)
 
 **Warm Editorial Redesign** — visual reimagining of the entire app per the Claude Design prototype. Design doc: `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md`. Per-phase plans in `docs/superpowers/plans/`.
 
@@ -544,6 +545,7 @@ Key files:
 - N/A (reads existing MatchState from Supabase Realtime broadcasts; no new persistence) (004-board-ui-animations)
 
 ## Recent Changes
+- 042-instant-scoring-reveal: Added `instantScoreFirstSubmission` server-side fast path that runs in `submitMove`'s `after()` hook; new `lib/match/instantScoring.ts`, `lib/match/schemas.ts` (Zod), `lib/match/partialReveal.ts` (client helpers), `lib/observability/instantScoring.ts` (3 typed log helpers); `PartialRoundSummary` type added to `MatchState`; `loadMatchState` hydrates `partialSummary` from `word_score_entries` mid-collecting; BoardGrid auto-deselect + aria-live region on freeze (FR-004, FR-005, FR-017). New perf script `pnpm perf:instant-scoring`. No new tables — reuses `word_score_entries`, `matches.frozen_tiles`.
 - 004-ci-pipeline-refactor: Added YAML (GitHub Actions workflow syntax); TypeScript 5.x / Node.js 20 (project language — unchanged) + `actions/cache@v4`, `actions/upload-artifact@v4`, `actions/download-artifact@v4`, `supabase/setup-cli@v1`, `pnpm/action-setup@v4`, `actions/setup-node@v4`
 - 005-board-ui-animations: Added TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS Animations/Transforms (no Framer Motion needed for this scope)
 - 006-match-completion: No new technologies. Server-authoritative clock enforcement via `rounds.started_at` timestamp; timer deduction in existing `matches.player_x_timer_ms` columns; timeout-pass synthesis in `roundEngine.ts`; `FinalSummary` extended with frozen tile count and top-scoring words.

@@ -590,14 +590,15 @@ function BoardGridActive({
   // tile this player has tapped as the first half of a pending swap, drop the
   // selection silently and announce via aria-live (FR-004, FR-017). Selection
   // is preserved when only unrelated tiles change (FR-005).
+  //
+  // The aria-live text is NOT cleared on subsequent renders — leaving it set
+  // is harmless (sr-only) and re-announcement only fires when the string
+  // actually changes, which is what we want for the next freeze event.
   useEffect(() => {
     const prev = prevFrozenTilesRef.current;
     prevFrozenTilesRef.current = frozenTiles;
 
-    if (!selected) {
-      if (autoDeselectAnnouncement) setAutoDeselectAnnouncement("");
-      return;
-    }
+    if (!selected) return;
 
     const key = `${selected.x},${selected.y}`;
     const becameFrozen = !!frozenTiles[key] && !prev[key];
@@ -607,7 +608,7 @@ function BoardGridActive({
     setAutoDeselectAnnouncement(
       `Selection cleared: tile at column ${selected.x + 1}, row ${selected.y + 1} is now frozen.`,
     );
-  }, [frozenTiles, selected, autoDeselectAnnouncement]);
+  }, [frozenTiles, selected]);
 
   const handleTileClick = useCallback(
     (rowIndex: number, colIndex: number) => {
