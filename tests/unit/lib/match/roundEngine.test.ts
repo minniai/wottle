@@ -1053,3 +1053,66 @@ describe("roundEngine.advanceRound", () => {
         expect(computeSpy).not.toHaveBeenCalled();
     });
 });
+
+describe("roundEngine.advanceRound — DB error surfacing (O-62)", () => {
+    // Regression: a schema mismatch in production (missing
+    // rounds.frozen_tiles_before column) made the round query fail, but the
+    // generic "Round not found" message hid the real Postgres error in the
+    // Vercel logs. The underlying error message must survive into the throw.
+    const matchData = {
+        id: "match-1",
+        current_round: 1,
+        state: "in_progress",
+        player_a_id: "player-a",
+        player_b_id: "player-b",
+        board_seed: "seed-1",
+        player_a_timer_ms: 300_000,
+        player_b_timer_ms: 300_000,
+        frozen_tiles: {},
+    };
+
+    function createErrorChain(message: string) {
+        return {
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: null, error: { message } }),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message } }),
+        };
+    }
+
+    function mockClient(tables: Record<string, unknown>) {
+        vi.mocked(getServiceRoleClient).mockReturnValue({
+            from: vi.fn((table: string) => tables[table] ?? {}),
+        } as never);
+    }
+
+    beforeEach(() => {
+        vi.mocked(getServiceRoleClient).mockReset();
+    });
+
+    it("includes the underlying error when the match query fails", async () => {
+        mockClient({
+            matches: { select: vi.fn(() => createErrorChain("connection refused")) },
+        });
+
+        await expect(advanceRound("match-1")).rejects.toThrow(
+            /match-1.*connection refused/,
+        );
+    });
+
+    it("includes the underlying error when the round query fails", async () => {
+        mockClient({
+            matches: { select: vi.fn(() => createSelectChain(matchData)) },
+            rounds: {
+                select: vi.fn(() =>
+                    createErrorChain(
+                        "column rounds.frozen_tiles_before does not exist",
+                    ),
+                ),
+            },
+        });
+
+        await expect(advanceRound("match-1")).rejects.toThrow(
+            /frozen_tiles_before does not exist/,
+        );
+    });
+});
