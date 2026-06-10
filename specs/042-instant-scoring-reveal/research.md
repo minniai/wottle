@@ -103,12 +103,17 @@ This document captures the design decisions that resolve every NEEDS-CLARIFICATI
 
 ## Decision 6 — Failure mode for instant scoring (FR-011)
 
-**Decision**: Wrap `instantScoreFirstSubmission`'s body in a try/catch and a 500 ms timer. On either error or timeout: log `instant-scoring.failed` with `{matchId, submissionId, reason}`, do *not* publish a partial state, do *not* leave any `word_score_entries` rows in place (the existing delete-then-insert flow handles this naturally if the failure is mid-insert), and return silently. The combined `advanceRound` in the same `after()` hook then runs the canonical combined path on the second submission and clients see the round through that path as if instant scoring had never happened.
+**Decision** *(revised 2026-06-10, Linear O-71)*: Wrap `instantScoreFirstSubmission`'s body in a try/catch and a 5 s timer (`INSTANT_SCORING_TIMEOUT_MS`). On either error or timeout: log `instant-scoring.failed` with `{matchId, submissionId, reason}`, do *not* publish a partial state, do *not* leave any `word_score_entries` rows in place (the existing delete-then-insert flow handles this naturally if the failure is mid-insert), and return silently. The combined `advanceRound` in the same `after()` hook then runs the canonical combined path on the second submission and clients see the round through that path as if instant scoring had never happened.
+
+Two production hardenings (O-71 post-mortem):
+
+1. The fast path warms the dictionary (`loadDictionary("is")`) before scoring so the dominant cold-start cost is paid up front.
+2. Immediately before invoking `computeWordScoresForRound`, the fast path re-reads `rounds.state` and defers unless it is still `collecting`. A timed-out run keeps executing detached (Promise.race does not cancel the loser); on a serverless instance it freezes at suspend and resumes on a later request, where its delete-then-insert would otherwise wipe the canonical combined entries of an already-resolved round.
 
 **Rationale**:
 
 - The fast path is an optimisation. If it fails, the existing combined path is a *complete* fallback — clients see the round end with all scores together exactly as they do today. This matches FR-011's "without leaving the clients in a half-revealed state."
-- 500 ms is generous: the constitution's word-validation budget is 50 ms p95; even a dictionary cold-load adds ≤2 s (per AGENTS.md) but that only happens once per process lifetime. 500 ms catches pathological cases without false positives.
+- ~~500 ms is generous: … a dictionary cold-load adds ≤2 s (per AGENTS.md) but that only happens once per process lifetime.~~ **This assumption was wrong in production (Linear O-71).** "Once per process lifetime" holds locally, but on Vercel every lambda instance is a fresh process and low traffic means most moves land on cold instances — the 52 MB Icelandic dictionary takes 1.3–4 s to load, so the 500 ms race *always* timed out and the instant reveal never fired in production. The 5 s budget absorbs a cold dictionary load + cross-region Supabase round-trips + `publishMatchState`'s own 2 s subscribe timeout, while still cutting off pathological hangs. Nothing user-facing blocks on it (it runs post-response in `after()`, and the second player's round advancement happens in their own invocation).
 - Not publishing on failure means there's no "phantom" partial state on the wire. Clients only ever see consistent state.
 
 **Alternatives considered**:

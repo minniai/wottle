@@ -152,7 +152,7 @@ The transition from `collecting-one-pending` → `collecting-one-revealed` is th
 
 ```text
 [collecting-one-pending]
-   │  fast path throws or exceeds 500 ms budget
+   │  fast path throws or exceeds the 5 s budget (O-71 revision)
    │  logs `instant-scoring.failed`, returns without writing anything
    ▼
 [second player eventually submits → advanceRound → completed]
