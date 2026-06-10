@@ -1,0 +1,48 @@
+name: Deploy Migrations
+
+# Keeps the production Supabase schema in lockstep with merged code.
+# Linear O-62 post-mortem: code querying rounds.frozen_tiles_before reached
+# Vercel while the migration adding the column never reached production,
+# hanging every match at round 1 resolution. This workflow applies pending
+# migrations to the production project on every merge to main that touches
+# supabase/migrations/.
+#
+# Required repository secrets:
+#   SUPABASE_ACCESS_TOKEN  — personal access token (Supabase dashboard → Account → Access Tokens)
+#   SUPABASE_DB_PASSWORD   — production database password
+#   SUPABASE_PROJECT_ID    — production project ref (e.g. vcjmanighljftajzizat)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+
+jobs:
+  deploy-migrations:
+    name: Apply migrations to production
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Apply pending migrations
+        run: supabase db push
+
+      - name: List applied migrations
+        run: supabase migration list --linked

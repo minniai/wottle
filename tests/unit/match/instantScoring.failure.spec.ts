@@ -169,4 +169,35 @@ describe("instantScoreFirstSubmission — failure modes (T019a, FR-011)", () => 
       instantScoreFirstSubmission(MATCH_ID),
     ).resolves.toBeDefined();
   });
+
+  it("surfaces the underlying DB error when the round query fails (O-62)", async () => {
+    // Regression: a missing rounds.frozen_tiles_before column in production
+    // made the round query error, which was swallowed into a generic
+    // "round-not-found" reason. The real Postgres message must reach the
+    // failure reason so schema drift is diagnosable from logs.
+    const client = makeOneSubmissionClient();
+    vi.mocked(client.from).mockImplementation((table: string) => {
+      if (table === "rounds") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: null,
+              error: { message: "column rounds.frozen_tiles_before does not exist" },
+            }),
+          })),
+        } as never;
+      }
+      return makeOneSubmissionClient().from(table) as never;
+    });
+    vi.mocked(getServiceRoleClient).mockReturnValue(client as never);
+
+    const result = await instantScoreFirstSubmission(MATCH_ID);
+
+    expect(result.status).toBe("failed");
+    if (result.status === "failed") {
+      expect(result.reason).toMatch(/frozen_tiles_before does not exist/);
+    }
+    expect(trackInstantScoringFailed).toHaveBeenCalledOnce();
+  });
 });

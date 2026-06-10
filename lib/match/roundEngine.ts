@@ -135,7 +135,11 @@ export async function advanceRound(matchId: string) {
         .eq("id", matchId)
         .single();
 
-    if (matchError || !match) throw new Error("Match not found");
+    if (matchError || !match) {
+        throw new Error(
+            `Failed to load match ${matchId}: ${matchError?.message ?? "no row returned"}`,
+        );
+    }
 
     if (match.state !== "in_progress") {
         return { status: "not_advancing", reason: "Match is not in progress" };
@@ -151,7 +155,14 @@ export async function advanceRound(matchId: string) {
         .eq("round_number", currentRound)
         .single();
 
-    if (roundError || !round) throw new Error("Round not found");
+    if (roundError || !round) {
+        // Keep the underlying Postgres error in the message — a generic
+        // "Round not found" hid a missing-column schema drift in production
+        // for hours (Linear O-62).
+        throw new Error(
+            `Failed to load round ${currentRound} of match ${matchId}: ${roundError?.message ?? "no row returned"}`,
+        );
+    }
 
     // 3. Check round state - only process if still collecting
     if (round.state !== "collecting") {

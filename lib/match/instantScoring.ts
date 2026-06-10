@@ -224,13 +224,16 @@ async function loadMatch(
   supabase: ReturnType<typeof getServiceRoleClient>,
   matchId: string,
 ): Promise<MatchRow | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("matches")
     .select(
       "id, current_round, player_a_id, player_b_id, board_seed, frozen_tiles",
     )
     .eq("id", matchId)
     .maybeSingle();
+  if (error) {
+    throw new Error(`Failed to load match ${matchId}: ${error.message}`);
+  }
   return (data as MatchRow | null) ?? null;
 }
 
@@ -239,12 +242,20 @@ async function loadCurrentRound(
   matchId: string,
   currentRound: number,
 ): Promise<RoundRow | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("rounds")
     .select("id, state, board_snapshot_before, started_at, frozen_tiles_before")
     .eq("match_id", matchId)
     .eq("round_number", currentRound)
     .maybeSingle();
+  if (error) {
+    // Throwing (instead of returning null → "round-not-found") routes the
+    // real Postgres error into trackInstantScoringFailed's reason. A missing
+    // column in production previously hid behind the generic reason (O-62).
+    throw new Error(
+      `Failed to load round ${currentRound} of match ${matchId}: ${error.message}`,
+    );
+  }
   return (data as RoundRow | null) ?? null;
 }
 
