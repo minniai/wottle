@@ -16,6 +16,10 @@ vi.mock("@/lib/observability/instantScoring", () => ({
   trackInstantScoringFailed: vi.fn(),
 }));
 
+vi.mock("@/lib/game-engine/dictionary", () => ({
+  loadDictionary: vi.fn().mockResolvedValue(new Set(["orð"])),
+}));
+
 import { computeWordScoresForRound } from "@/app/actions/match/publishRoundSummary";
 import { instantScoreFirstSubmission } from "@/lib/match/instantScoring";
 import {

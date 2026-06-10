@@ -1,4 +1,5 @@
 import { computeWordScoresForRound } from "@/app/actions/match/publishRoundSummary";
+import { loadDictionary } from "@/lib/game-engine/dictionary";
 import { boardGridSchema } from "@/lib/types/board";
 import type {
   FrozenTileMap,
@@ -15,13 +16,22 @@ import { getServiceRoleClient } from "@/lib/supabase/server";
 import { publishMatchState } from "./statePublisher";
 
 /**
- * Maximum wall-clock budget for the fast path. Generous vs the constitution's
- * <50 ms word-validation SLA — large enough to absorb a cold dictionary load
- * (≤2 s per AGENTS.md only on the *first* process startup) but tight enough
- * that pathological hangs fall through to the canonical combined-scoring
- * path on the second submission (FR-011, research Decision 6).
+ * Maximum wall-clock budget for the fast path (FR-011, research Decision 6,
+ * revised for Linear O-71). On serverless every move can land on a cold
+ * instance, so the budget must absorb a cold dictionary load (~1.5–4 s for
+ * the 52 MB Icelandic list) plus the cross-region Supabase round-trips and
+ * `publishMatchState`'s own 2 s subscribe timeout. The original 500 ms budget
+ * assumed the dictionary cold-load happens "once per process lifetime" —
+ * true locally, false on Vercel — so in production the race ALWAYS timed out
+ * and the instant reveal never fired.
+ *
+ * Nothing user-facing blocks on this: it runs in `submitMove`'s `after()`
+ * hook, post-response, and the second player's round advancement happens in
+ * their own invocation. The timeout only exists to cut off pathological
+ * hangs; the round-state recheck before scoring keeps a timed-out (detached)
+ * run from corrupting an already-resolved round's entries.
  */
-const INSTANT_SCORING_TIMEOUT_MS = 500;
+const INSTANT_SCORING_TIMEOUT_MS = 5_000;
 
 /**
  * Result of a single `instantScoreFirstSubmission` invocation. Discriminated
@@ -80,9 +90,10 @@ interface PendingSubmissionRow {
  *    broadcasts the updated `MatchState` (which now carries `partialSummary`
  *    via `loadMatchState`).
  *
- * Bounded by a 500 ms internal timeout (FR-011 / research Decision 6). On
- * throw or timeout it logs `instant-scoring.failed` and returns
- * `{status: "failed"}`; the combined path then runs normally.
+ * Bounded by an internal timeout (`INSTANT_SCORING_TIMEOUT_MS`, FR-011 /
+ * research Decision 6 as revised for O-71). On throw or timeout it logs
+ * `instant-scoring.failed` and returns `{status: "failed"}`; the combined
+ * path then runs normally.
  *
  * @param matchId UUID of the match. The fast path resolves the round and
  *   first submission from the DB itself — passing `submissionId` would be
@@ -158,6 +169,30 @@ async function runFastPath(
   const frozenTiles = (round.frozen_tiles_before ??
     match.frozen_tiles ??
     {}) as Record<string, { owner: string }>;
+
+  // Warm the dictionary before the recheck below. The load is the dominant
+  // cold-start cost (and the spot where a detached, timed-out run freezes
+  // until the instance thaws); paying it here keeps the recheck-to-write
+  // window down to a few fast DB round-trips. "is" matches the default
+  // language `computeWordScoresForRound` → `processRoundScoring` resolves.
+  await loadDictionary("is");
+
+  // Pre-write guard (Linear O-58/O-70/O-71): the round was `collecting` when
+  // loaded above, but by now the combined path may have resolved it — either
+  // because this run lost the internal timeout race and resumed on a thawed
+  // instance, or because the second submission landed mid-flight. Scoring
+  // writes are delete-then-insert on the round's word_score_entries, so a
+  // late write would wipe the canonical combined entries. Abort before any
+  // write once the round is no longer collecting.
+  const stateNow = await loadRoundStateById(supabase, round.id);
+  if (stateNow !== "collecting") {
+    trackInstantScoringDeferred({
+      matchId,
+      roundNumber: match.current_round,
+      reason: "race-window",
+    });
+    return { status: "deferred-to-combined", reason: "race-window" };
+  }
 
   const scoringResult = await computeWordScoresForRound(
     matchId,
@@ -257,6 +292,24 @@ async function loadCurrentRound(
     );
   }
   return (data as RoundRow | null) ?? null;
+}
+
+/** Lean state-only re-read used by the pre-write guard in `runFastPath`. */
+async function loadRoundStateById(
+  supabase: ReturnType<typeof getServiceRoleClient>,
+  roundId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("rounds")
+    .select("state")
+    .eq("id", roundId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(
+      `Failed to recheck state of round ${roundId}: ${error.message}`,
+    );
+  }
+  return (data as { state: string } | null)?.state ?? null;
 }
 
 async function loadPendingSubmissions(

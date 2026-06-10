@@ -16,6 +16,10 @@ vi.mock("@/lib/observability/instantScoring", () => ({
   trackInstantScoringFailed: vi.fn(),
 }));
 
+vi.mock("@/lib/game-engine/dictionary", () => ({
+  loadDictionary: vi.fn().mockResolvedValue(new Set(["orð"])),
+}));
+
 import { computeWordScoresForRound } from "@/app/actions/match/publishRoundSummary";
 import { instantScoreFirstSubmission } from "@/lib/match/instantScoring";
 import { trackInstantScoringFailed } from "@/lib/observability/instantScoring";
@@ -135,7 +139,7 @@ describe("instantScoreFirstSubmission — failure modes (T019a, FR-011)", () => 
     expect(failedCall.matchId).toBe(MATCH_ID);
   });
 
-  it("returns {status:'failed', reason:'timeout'} when scoring hangs past the 500 ms budget", async () => {
+  it("returns {status:'failed', reason:'timeout'} when scoring hangs past the 5 s budget", async () => {
     vi.useFakeTimers();
 
     const resolveRef: { current: ((v: unknown) => void) | null } = { current: null };
@@ -144,7 +148,7 @@ describe("instantScoreFirstSubmission — failure modes (T019a, FR-011)", () => 
     );
 
     const resultPromise = instantScoreFirstSubmission(MATCH_ID);
-    await vi.advanceTimersByTimeAsync(600);
+    await vi.advanceTimersByTimeAsync(5_100);
     const result = await resultPromise;
 
     expect(result.status).toBe("failed");

@@ -41,7 +41,7 @@ The function body up through `move_submissions` insert + `revalidatePath` + retu
    });
 ```
 
-**Why sequential, not parallel**: the fast path takes ≤500 ms in the worst case (Decision 6) and `advanceRound` will no-op on a `pending` round with <2 submissions, so sequencing them costs nothing in the happy path. Sequencing also guarantees the race-window check in `instantScoreFirstSubmission` (Decision 2) reads a consistent view of `move_submissions`.
+**Why sequential, not parallel**: the fast path is bounded by a 5 s internal budget in the worst case (Decision 6 as revised for O-71 — dominated by a cold dictionary load on serverless) and `advanceRound` will no-op on a `pending` round with <2 submissions, so sequencing them costs nothing user-facing in the happy path. Sequencing also guarantees the race-window check in `instantScoreFirstSubmission` (Decision 2) reads a consistent view of `move_submissions`.
 
 **Return-type contract**: unchanged. Callers (the `/api/match/[matchId]/move` route, tests, and the client's `MatchClient`) see no API surface change.
 
@@ -103,7 +103,9 @@ export type InstantScoringResult =
 2. `update_frozen_tiles_if_unchanged` RPC
 3. `publishMatchState` broadcast (Realtime + 1 DB read via `loadMatchState`)
 
-**Internal timeout**: 500 ms via `Promise.race` against a `setTimeout`. On timeout, log `instant-scoring.failed` and return `{status: "failed", reason: "timeout"}`. The caller (`submitMove`'s `after()` hook) ignores the return value; `advanceRound` then runs the combined path normally.
+**Internal timeout**: 5 s (`INSTANT_SCORING_TIMEOUT_MS`, revised from 500 ms for Linear O-71 — the old budget was below a cold serverless dictionary load, so the fast path never fired in production) via `Promise.race` against a `setTimeout`. On timeout, log `instant-scoring.failed` and return `{status: "failed", reason: "timeout"}`. The caller (`submitMove`'s `after()` hook) ignores the return value; `advanceRound` then runs the combined path normally.
+
+**Pre-write guard (O-58/O-70/O-71)**: after warming the dictionary and immediately before `computeWordScoresForRound`, the fast path re-reads `rounds.state` and returns `deferred-to-combined` unless it is still `collecting`. `Promise.race` does not cancel the losing branch, so a timed-out run keeps executing detached and — on serverless — can resume after the instance thaws, when the round has already been resolved by the combined path; without this guard its delete-then-insert would wipe the round's canonical entries.
 
 **Concurrency / Idempotency contract**:
 
@@ -114,7 +116,7 @@ export type InstantScoringResult =
 
 | Failure | Detection | Effect |
 |---|---|---|
-| Dictionary not loaded yet | `processRoundScoring` blocks on load (≤2 s per AGENTS.md) | Caught by the 500 ms timeout if cold; logs `instant-scoring.failed` |
+| Dictionary not loaded yet | Fast path warms it via `loadDictionary` before scoring (1.3–4 s cold on serverless) | Absorbed by the 5 s budget; only a pathological load hits the timeout |
 | Postgres unavailable | Supabase client throws | try/catch logs `instant-scoring.failed`; no state change |
 | Realtime subscribe times out | Existing 2 s `BROADCAST_SUBSCRIBE_TIMEOUT_MS` | DB writes already persisted; polling fallback covers the broadcast miss |
 | Race window | `count(*) >= 2` | Returns `deferred-to-combined`, logs the event |
