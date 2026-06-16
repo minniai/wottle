@@ -1110,6 +1110,47 @@ describe("MatchClient round history panel", () => {
     expect(panel.textContent).not.toContain("player-1");
     expect(panel.textContent).not.toContain("player-2");
   });
+
+  // O-71: scored words show inline on both rails as rounds resolve.
+  test("shows current player's words on the left rail and opponent's on the right (O-71)", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    act(() => {
+      mockMatchCallbacks.onSummary!(mockRoundSummary);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1300);
+    });
+
+    const leftRail = screen.getByTestId("match-layout-rail-left");
+    const rightRail = screen.getByTestId("match-layout-rail-right");
+    const leftCard = leftRail.querySelector(
+      '[data-testid="scored-words-card"]',
+    );
+    const rightCard = rightRail.querySelector(
+      '[data-testid="scored-words-card"]',
+    );
+
+    // Current player (player-1) scored "ÞAR"; opponent (player-2) scored "ORÐ".
+    expect(leftCard?.textContent).toContain("Your words");
+    expect(leftCard?.textContent).toContain("ÞAR");
+    expect(leftCard?.textContent).not.toContain("ORÐ");
+
+    expect(rightCard?.textContent).toContain("Opponent's words");
+    expect(rightCard?.textContent).toContain("ORÐ");
+    expect(rightCard?.textContent).not.toContain("ÞAR");
+  });
 });
 
 // ─── MatchClient dual timeout tests (US4) ──────────────────────────────────
