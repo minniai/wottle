@@ -76,6 +76,24 @@ function makeProps(overrides?: Partial<FinalSummaryProps>): FinalSummaryProps {
 }
 
 describe("FinalSummary", () => {
+  it("O-72: places the current player's scoreboard card first (left)", () => {
+    render(
+      <FinalSummary
+        {...makeProps({ currentPlayerId: "player-b", winnerId: "player-b" })}
+      />,
+    );
+    const cards = screen.getAllByTestId("post-game-scoreboard-card");
+    expect(cards[0].textContent).toContain("Player B");
+    expect(cards[1].textContent).toContain("Player A");
+  });
+
+  it("O-72: keeps player_a first for spectators", () => {
+    render(<FinalSummary {...makeProps({ isSpectator: true })} />);
+    const cards = screen.getAllByTestId("post-game-scoreboard-card");
+    expect(cards[0].textContent).toContain("Player A");
+    expect(cards[1].textContent).toContain("Player B");
+  });
+
   it("T032: renders frozen tile count for each player", () => {
     render(<FinalSummary {...makeProps()} />);
     // Player A has 5 frozen tiles — shown as "5 frozen" in PostGameScoreboard

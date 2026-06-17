@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { LogoutConfirmDialog } from "@/components/ui/LogoutConfirmDialog";
 import type { LobbySession } from "@/lib/matchmaking/profile";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
+import { useSelfColorStore } from "@/lib/match/selfColorStore";
 import { useSensoryPreferences } from "@/lib/preferences/useSensoryPreferences";
 
 export interface UserMenuProps {
@@ -23,6 +24,7 @@ export function UserMenu({ session }: UserMenuProps) {
   const chipRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const { player } = session;
+  const selfColor = useSelfColorStore((s) => s.selfColor);
   const { preferences, setSoundEnabled, setHapticsEnabled } =
     useSensoryPreferences();
 
@@ -96,6 +98,7 @@ export function UserMenu({ session }: UserMenuProps) {
           playerId={player.id}
           displayName={player.displayName}
           avatarUrl={player.avatarUrl ?? undefined}
+          colorOverride={selfColor ?? undefined}
           size="sm"
         />
         <span className="hidden sm:inline">{player.displayName}</span>
