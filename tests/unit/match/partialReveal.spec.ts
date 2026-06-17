@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildPartialRevealKey,
+  deriveFirstMoverReveal,
   deriveRevealHighlightsFromPartial,
   isFirstMoverPlayerA,
 } from "@/lib/match/partialReveal";
-import type { PartialRoundSummary } from "@/lib/types/match";
+import type { PartialRoundSummary, PendingMove } from "@/lib/types/match";
 
 const PLAYER_A = "33333333-3333-3333-3333-333333333333";
 const PLAYER_B = "44444444-4444-4444-4444-444444444444";
@@ -112,6 +113,41 @@ describe("deriveRevealHighlightsFromPartial (T023 projection)", () => {
 
   it("returns an empty array when the partial summary has zero words (defensive — fast path normally returns 'no-score' instead)", () => {
     expect(deriveRevealHighlightsFromPartial(makePartial({ words: [] }))).toEqual([]);
+  });
+});
+
+describe("deriveFirstMoverReveal (O-58 / O-68 opponent letter swap)", () => {
+  const firstMoverMove: PendingMove = {
+    playerId: PLAYER_A,
+    from: { x: 0, y: 0 },
+    to: { x: 6, y: 2 },
+    submittedAt: "2026-06-09T12:00:00.000Z",
+  };
+
+  it("returns the first mover's swap (with the reveal key) for the opponent", () => {
+    const reveal = deriveFirstMoverReveal(
+      makePartial(),
+      [firstMoverMove],
+      PLAYER_B,
+    );
+    expect(reveal).toEqual({
+      from: { x: 0, y: 0 },
+      to: { x: 6, y: 2 },
+      key: `${PLAYER_A}-2026-06-09T12:00:00.000Z`,
+    });
+  });
+
+  it("returns null for the first mover themselves (their board already swapped)", () => {
+    expect(
+      deriveFirstMoverReveal(makePartial(), [firstMoverMove], PLAYER_A),
+    ).toBeNull();
+  });
+
+  it("returns null when the first mover's pending move is absent", () => {
+    expect(deriveFirstMoverReveal(makePartial(), [], PLAYER_B)).toBeNull();
+    expect(
+      deriveFirstMoverReveal(makePartial(), undefined, PLAYER_B),
+    ).toBeNull();
   });
 });
 

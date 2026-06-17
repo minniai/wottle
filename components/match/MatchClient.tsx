@@ -20,6 +20,7 @@ import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveRevealSequence } from "@/lib/match/revealSequence";
 import {
   buildPartialRevealKey,
+  deriveFirstMoverReveal,
   deriveRevealHighlightsFromPartial,
 } from "@/lib/match/partialReveal";
 import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
@@ -653,6 +654,20 @@ export function MatchClient({
     animatedPartialRevealsRef.current.add(key);
     animatedOpponentMoveKeysRef.current.add(key);
 
+    // O-58 / O-68 — the opponent's board is the pre-swap snapshot, so apply the
+    // first mover's swap here (the #210 externalSwap path is suppressed above via
+    // the shared dedupe key) so the revealed scored word shows the post-swap
+    // letters rather than the original ones.
+    const reveal = deriveFirstMoverReveal(
+      partial,
+      matchState.pendingMoves,
+      currentPlayerId,
+    );
+    if (reveal) {
+      setExternalSwap(reveal);
+      setOpponentSwapTiles([reveal.from, reveal.to]);
+    }
+
     const colors = deriveHighlightPlayerColors(
       partial.words,
       matchState.timers.playerA.playerId,
@@ -672,7 +687,9 @@ export function MatchClient({
     }, 1200);
   }, [
     matchState.partialSummary,
+    matchState.pendingMoves,
     matchState.timers.playerA.playerId,
+    currentPlayerId,
     playWordDiscovery,
   ]);
 
