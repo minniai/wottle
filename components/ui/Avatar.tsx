@@ -10,6 +10,13 @@ interface AvatarProps {
   avatarUrl?: string | null;
   size?: AvatarSize;
   className?: string;
+  /**
+   * Overrides the hash-based identity gradient with a solid color (a design
+   * token like `var(--p2)`). Used to keep the TopBar avatar consistent with the
+   * player's match/slot color on match pages (O-72). Ignored when `avatarUrl`
+   * is present.
+   */
+  colorOverride?: string;
 }
 
 const SIZE_STYLES: Record<AvatarSize, string> = {
@@ -20,7 +27,7 @@ const SIZE_STYLES: Record<AvatarSize, string> = {
 };
 
 export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
-  { playerId, displayName, avatarUrl, size = "md", className = "" },
+  { playerId, displayName, avatarUrl, size = "md", className = "", colorOverride },
   ref,
 ) {
   const label = `${displayName || "Anonymous player"} avatar`;
@@ -46,13 +53,15 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
   }
 
   const generated = generateAvatar(playerId, displayName);
+  const background = colorOverride ?? generated.background;
+  const foreground = colorOverride ? "var(--ink)" : generated.foreground;
   return (
     <span
       ref={ref}
       role="img"
       aria-label={label}
       className={`inline-flex items-center justify-center rounded-full font-semibold ${sizeClasses} ${className}`.trim()}
-      style={{ background: generated.background, color: generated.foreground }}
+      style={{ background, color: foreground }}
     >
       {generated.initials}
     </span>

@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { useSelfColorStore } from "@/lib/match/selfColorStore";
 
 import type { FrozenTileMap, MatchEndedReason, SeriesContext, TopWord } from "@/lib/types/match";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
@@ -209,6 +211,17 @@ export function FinalSummary({
   const currentPlayerColor = currentIsPlayerA ? PLAYER_A_HEX : PLAYER_B_HEX;
   const opponentColor = currentIsPlayerA ? PLAYER_B_HEX : PLAYER_A_HEX;
 
+  // Publish the viewer's slot color so the global TopBar avatar matches how the
+  // current player is colored across the summary (O-72). Spectators have no
+  // "self" color, so they leave the avatar on its identity gradient.
+  const setSelfColor = useSelfColorStore((s) => s.setSelfColor);
+  const clearSelfColor = useSelfColorStore((s) => s.clearSelfColor);
+  useEffect(() => {
+    if (isSpectator) return;
+    setSelfColor(currentPlayerColor);
+    return () => clearSelfColor();
+  }, [isSpectator, currentPlayerColor, setSelfColor, clearSelfColor]);
+
   const {
     phase: rematchPhase,
     requestRematch: handleRematch,
@@ -301,8 +314,13 @@ export function FinalSummary({
       isCurrentPlayer: player.id === currentPlayerId,
       isWinner: player.id === winnerId,
     });
-    return [toEntry(playerA, "player_a"), toEntry(playerB, "player_b")];
-  }, [playerA, playerB, wordCountByPlayer, bestWordByPlayer, currentPlayerId, winnerId]);
+    const entryA = toEntry(playerA, "player_a");
+    const entryB = toEntry(playerB, "player_b");
+    // Current player first so their card sits on the left, matching the board
+    // panels above (O-72). Spectators keep player_a → player_b order; `currentIsPlayerA`
+    // is already true for them.
+    return currentIsPlayerA ? [entryA, entryB] : [entryB, entryA];
+  }, [playerA, playerB, wordCountByPlayer, bestWordByPlayer, currentPlayerId, winnerId, currentIsPlayerA]);
 
   const handleHighlight = (words: WordHistoryRow[] | null) => {
     if (!words || words.length === 0) {
@@ -542,7 +560,7 @@ export function FinalSummary({
               <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
                 Round by round
               </p>
-              <RoundByRoundChart rounds={scoreboard} />
+              <RoundByRoundChart rounds={scoreboard} currentIsPlayerA={currentIsPlayerA} />
             </div>
 
             <div className="flex flex-wrap gap-3">

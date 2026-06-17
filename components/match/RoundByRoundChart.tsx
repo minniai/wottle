@@ -5,6 +5,19 @@ import type { ScoreboardRow } from "@/components/match/FinalSummary";
 interface RoundByRoundChartProps {
   rounds: ScoreboardRow[];
   maxHeightPx?: number;
+  /**
+   * When false, the current viewer is player B, so player B's bar is drawn on
+   * top to keep "current player first" consistent with the rest of the summary
+   * (O-72). Each player's bar keeps its own slot color and `data-delta`
+   * regardless of vertical position. Defaults to true (spectator / player A).
+   */
+  currentIsPlayerA?: boolean;
+}
+
+interface BarSpec {
+  testid: "round-chart-bar--a" | "round-chart-bar--b";
+  delta: number;
+  colorClass: string;
 }
 
 const DEFAULT_MAX_HEIGHT = 120;
@@ -22,10 +35,33 @@ function maxAbsDelta(rounds: ScoreboardRow[]): number {
 export function RoundByRoundChart({
   rounds,
   maxHeightPx = DEFAULT_MAX_HEIGHT,
+  currentIsPlayerA = true,
 }: RoundByRoundChartProps) {
   const scale = maxAbsDelta(rounds);
   const toHeight = (delta: number): number =>
     scale === 0 ? 0 : Math.round((Math.abs(delta) / scale) * maxHeightPx);
+
+  const renderBar = (spec: BarSpec, position: "top" | "bottom") => {
+    const height = toHeight(spec.delta);
+    const rounding = position === "top" ? "rounded-t" : "rounded-b";
+    const labelEdge = position === "top" ? "top-0.5" : "bottom-0.5";
+    return (
+      <div
+        data-testid={spec.testid}
+        data-delta={spec.delta}
+        className={`relative w-full ${rounding} ${spec.colorClass}`}
+        style={{ height: `${height}px` }}
+      >
+        {spec.delta > 0 && height >= LABEL_MIN_BAR_PX ? (
+          <span
+            className={`absolute inset-x-0 ${labelEdge} text-center font-mono text-[9px] leading-none text-ink/90`}
+          >
+            {spec.delta}
+          </span>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -41,8 +77,19 @@ export function RoundByRoundChart({
           style={{ top: `${maxHeightPx}px` }}
         />
         {rounds.map((row) => {
-          const aH = toHeight(row.playerADelta);
-          const bH = toHeight(row.playerBDelta);
+          const aSpec: BarSpec = {
+            testid: "round-chart-bar--a",
+            delta: row.playerADelta,
+            colorClass: "bg-p1",
+          };
+          const bSpec: BarSpec = {
+            testid: "round-chart-bar--b",
+            delta: row.playerBDelta,
+            colorClass: "bg-p2 opacity-70",
+          };
+          // Current player's bar sits on top so "current player first" holds.
+          const topSpec = currentIsPlayerA ? aSpec : bSpec;
+          const bottomSpec = currentIsPlayerA ? bSpec : aSpec;
           return (
             <div
               key={row.roundNumber}
@@ -53,35 +100,13 @@ export function RoundByRoundChart({
                 className="flex w-full flex-col justify-end"
                 style={{ height: `${maxHeightPx}px` }}
               >
-                <div
-                  data-testid="round-chart-bar--a"
-                  data-delta={row.playerADelta}
-                  className="relative w-full rounded-t bg-p1"
-                  style={{ height: `${aH}px` }}
-                >
-                  {row.playerADelta > 0 && aH >= LABEL_MIN_BAR_PX ? (
-                    <span className="absolute inset-x-0 top-0.5 text-center font-mono text-[9px] leading-none text-ink/90">
-                      {row.playerADelta}
-                    </span>
-                  ) : null}
-                </div>
+                {renderBar(topSpec, "top")}
               </div>
               <div
                 className="flex w-full flex-col"
                 style={{ height: `${maxHeightPx}px` }}
               >
-                <div
-                  data-testid="round-chart-bar--b"
-                  data-delta={row.playerBDelta}
-                  className="relative w-full rounded-b bg-p2 opacity-70"
-                  style={{ height: `${bH}px` }}
-                >
-                  {row.playerBDelta > 0 && bH >= LABEL_MIN_BAR_PX ? (
-                    <span className="absolute inset-x-0 bottom-0.5 text-center font-mono text-[9px] leading-none text-ink/90">
-                      {row.playerBDelta}
-                    </span>
-                  ) : null}
-                </div>
+                {renderBar(bottomSpec, "bottom")}
               </div>
               <span className="mt-1 font-mono text-[10px] text-ink-soft">
                 R{row.roundNumber}

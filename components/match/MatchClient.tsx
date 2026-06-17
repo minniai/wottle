@@ -28,6 +28,7 @@ import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
 import type { MatchPlayerProfiles, MatchState, TimerState, Coordinate } from "@/lib/types/match";
 import { getPlayerColors } from "@/lib/constants/playerColors";
+import { useSelfColorStore } from "@/lib/match/selfColorStore";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { claimWinAction } from "@/app/actions/match/claimWin";
@@ -732,6 +733,14 @@ export function MatchClient({
 
   const playerSlot: "player_a" | "player_b" =
     matchState.timers.playerA.playerId === currentPlayerId ? "player_a" : "player_b";
+
+  // Keep the global TopBar avatar consistent with the player's slot color during
+  // the match too, not just the summary (O-72).
+  const selfSlotColor = getPlayerColors(playerSlot).hex;
+  useEffect(() => {
+    useSelfColorStore.getState().setSelfColor(selfSlotColor);
+    return () => useSelfColorStore.getState().clearSelfColor();
+  }, [selfSlotColor]);
 
   const handleSwapComplete = useCallback(
     ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
