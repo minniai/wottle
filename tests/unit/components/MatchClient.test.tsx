@@ -1181,3 +1181,76 @@ describe("MatchClient dual timeout (US4)", () => {
     expect(screen.getByText(/both players timed out/i)).toBeInTheDocument();
   });
 });
+
+// ─── Opponent swap-reveal letters (O-58 / O-68) ─────────────────────────────
+
+describe("MatchClient opponent swap-reveal letters (O-58 / O-68)", () => {
+  beforeEach(() => {
+    mockMatchCallbacks.onSummary = null;
+    mockMatchCallbacks.onState = null;
+  });
+
+  function tileLetterAt(col: number, row: number): string | undefined {
+    const cell = document.querySelector(
+      `[data-testid="board-tile"][data-col="${col}"][data-row="${row}"]`,
+    );
+    return cell?.querySelector(".board-grid__tile")?.textContent ?? undefined;
+  }
+
+  test("applies the first mover's swapped letters on the opponent's board during the instant reveal", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+
+    // Mirror O-68: first mover (player-1) swaps A1 (0,0) ↔ G3 (6,2).
+    // Pre-swap board has 'A' at (0,0) and 'H' at (6,2); after the swap the
+    // opponent should see 'A' at (6,2), not the pre-swap 'H'.
+    const board = Array.from({ length: 10 }, () => Array(10).fill("A"));
+    board[2][6] = "H";
+
+    const submittedAt = "2026-06-09T12:00:00.000Z";
+    const state = createMatchState({
+      board,
+      pendingMoves: [
+        {
+          playerId: "player-1",
+          from: { x: 0, y: 0 },
+          to: { x: 6, y: 2 },
+          submittedAt,
+        },
+      ],
+      partialSummary: {
+        matchId: "match-test-123",
+        roundNumber: 3,
+        firstMoverId: "player-1",
+        firstSubmissionAt: submittedAt,
+        words: [
+          {
+            playerId: "player-1",
+            word: "aðik",
+            length: 4,
+            lettersPoints: 8,
+            bonusPoints: 0,
+            totalPoints: 8,
+            coordinates: [{ x: 6, y: 2 }],
+          },
+        ],
+        delta: { playerA: 8, playerB: 0 },
+        frozenTiles: {},
+      },
+    });
+
+    // Viewer is the opponent (player-2).
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={state}
+          currentPlayerId="player-2"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    expect(tileLetterAt(6, 2)).toBe("A");
+    expect(tileLetterAt(0, 0)).toBe("H");
+  });
+});
