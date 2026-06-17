@@ -531,6 +531,13 @@
   width: 100%;
 }
 
+/* Mobile-only history trigger (the desktop rails show per-player word logs) */
+.match-layout__mobile-history {
+  display: flex;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
 @media (min-width: 900px) {
   .match-layout {
     display: grid;
@@ -575,7 +582,8 @@
 
   /* Hide compact bars on desktop */
   .match-layout__compact-top,
-  .match-layout__compact-bottom {
+  .match-layout__compact-bottom,
+  .match-layout__mobile-history {
     display: none;
   }
 

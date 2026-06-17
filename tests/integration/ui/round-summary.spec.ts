@@ -70,6 +70,57 @@ async function loginAndStartMatch(
 }
 
 test.describe("Round summary inline", () => {
+  // O-71: scored words show on both rails as rounds resolve (regression guard).
+  test("scored-words cards show on both rails after a round resolves @two-player-playtest", async ({
+    browser,
+  }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+
+    try {
+      const userA = generateTestUsername("rail-alpha");
+      const userB = generateTestUsername("rail-beta");
+      await loginAndStartMatch(pageA, pageB, userA, userB);
+
+      await submitSwap(pageA);
+      await submitSwap(pageB);
+
+      // Wait for round 1 to resolve and the match to advance to round 2.
+      const roundIndicator = pageA
+        .getByTestId("game-chrome-player")
+        .getByTestId("round-indicator");
+      await expect(roundIndicator).toContainText(/r2/i, { timeout: 45_000 });
+
+      // Left rail shows the current player's word log; right rail the opponent's.
+      // Each lists every completed round (empty rounds render "no words"), so the
+      // assertion holds whether or not a word actually scored.
+      const leftCard = pageA
+        .getByTestId("match-layout-rail-left")
+        .getByTestId("scored-words-card");
+      const rightCard = pageA
+        .getByTestId("match-layout-rail-right")
+        .getByTestId("scored-words-card");
+
+      await expect(leftCard).toBeVisible({ timeout: 10_000 });
+      await expect(leftCard).toContainText("Your words");
+      await expect(leftCard).toContainText(/round 1/i);
+
+      await expect(rightCard).toBeVisible();
+      await expect(rightCard).toContainText("Opponent's words");
+      await expect(rightCard).toContainText(/round 1/i);
+
+      // On desktop the in-match History button is replaced by the rails.
+      await expect(pageA.getByTestId("hud-history-button")).toBeHidden();
+    } finally {
+      await pageA.close();
+      await pageB.close();
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
   // T011: score-delta-popup appears after round resolves
   test("T011: score-delta-popup and round-summary-panel coexist after round @two-player-playtest", async ({
     browser,

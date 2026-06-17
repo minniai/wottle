@@ -9,6 +9,7 @@ import { BoardGrid } from "@/components/game/BoardGrid";
 import { PlayerPanel } from "@/components/match/PlayerPanel";
 import { PlayerAvatar } from "@/components/match/PlayerAvatar";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
+import { ScoredWordsCard } from "@/components/match/ScoredWordsCard";
 import { TilesClaimedCard } from "@/components/match/TilesClaimedCard";
 import { HudCard } from "@/components/match/HudCard";
 import { MatchCenterChrome } from "@/components/match/MatchCenterChrome";
@@ -1056,6 +1057,13 @@ export function MatchClient({
               selection={selectedTile}
               submittedMove={moveLocked ? lockedSwapTiles : null}
             />
+            <ScoredWordsCard
+              title="Your words"
+              playerId={currentPlayerId}
+              accumulatedWords={accumulatedWords}
+              completedRounds={completedRounds}
+              playerColor={getPlayerColors(playerSlot).hex}
+            />
           </div>
 
           <div className="match-layout__board">
@@ -1139,6 +1147,21 @@ export function MatchClient({
                 }}
               />
             </div>
+
+            {/* Mobile-only history trigger — desktop shows the per-rail word logs */}
+            {roundHistory.length > 0 && (
+              <div className="match-layout__mobile-history">
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  className="flex-1 rounded-lg border border-hair-strong px-3 py-2 text-sm text-ink-soft hover:bg-paper-2 hover:text-ink"
+                  data-testid="hud-history-button"
+                  aria-label="Round history"
+                >
+                  History ({roundHistory.length})
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right rail — current-player-side widgets */}
@@ -1150,18 +1173,14 @@ export function MatchClient({
               frozenTiles={matchState.frozenTiles ?? {}}
               currentPlayerSlot={playerSlot}
             />
+            <ScoredWordsCard
+              title="Opponent's words"
+              playerId={opponentTimer.playerId}
+              accumulatedWords={accumulatedWords}
+              completedRounds={completedRounds}
+              playerColor={getPlayerColors(opponentSlot).hex}
+            />
             <div className="flex gap-2">
-              {roundHistory.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setHistoryOpen((v) => !v)}
-                  className="flex-1 rounded-lg border border-hair-strong px-3 py-2 text-sm text-ink-soft hover:bg-paper-2 hover:text-ink"
-                  data-testid="hud-history-button"
-                  aria-label="Round history"
-                >
-                  History ({roundHistory.length})
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => setShowResignDialog(true)}
