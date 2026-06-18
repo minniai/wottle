@@ -85,6 +85,7 @@ lerna-debug.log*
 # Testing
 coverage/
 test-results/
+reports/
 *.lcov
 .nyc_output
 
@@ -112,3 +113,6 @@ supabase/.temp
 # Claude worktrees
 .claude/worktrees/
 wottle-game-design.zip
+
+# Gemini CLI per-developer config symlink
+.antigravitycli/
