@@ -995,6 +995,100 @@ describe("MatchClient opponent move reveal (issue #210)", () => {
   });
 });
 
+// ─── O-74: swap highlight stays until scoring, then fades/promotes ──────────
+
+describe("MatchClient swap highlight persists until scoring (O-74)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockMatchCallbacks.onSummary = null;
+    mockMatchCallbacks.onState = null;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        const col = Number(this.getAttribute("data-col") ?? 0);
+        const row = Number(this.getAttribute("data-row") ?? 0);
+        const size = 50;
+        return {
+          top: row * size, left: col * size,
+          bottom: row * size + size, right: col * size + size,
+          width: size, height: size, x: col * size, y: row * size,
+          toJSON: () => ({}),
+        };
+      },
+    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ status: "accepted", grid: null }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  async function submitOwnSwap(tiles: HTMLElement[]): Promise<void> {
+    act(() => { fireEvent.click(tiles[0]); }); // (0,0)
+    act(() => { fireEvent.click(tiles[1]); }); // (1,0)
+    await act(async () => {
+      fireEvent.transitionEnd(tiles[0], { propertyName: "transform" });
+      await vi.advanceTimersByTimeAsync(350);
+    });
+  }
+
+  test("own swap stays highlighted (no fixed-timer fade) while waiting for scoring", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    const tiles = screen.getAllByTestId("board-tile");
+    await submitOwnSwap(tiles);
+
+    // Locked lift is shown on the swapped tiles.
+    expect(tiles[0]).toHaveClass("board-grid__cell--locked");
+
+    // Advance well past the old fixed reveal window — with no scoring yet, the
+    // highlight MUST persist (it should fade only when scoring is revealed).
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+
+    expect(tiles[0]).toHaveClass("board-grid__cell--locked");
+    expect(tiles[0]).not.toHaveClass("board-grid__cell--swap-fade");
+  });
+
+  test("own unscored swap tiles fade once the round summary (scoring) is revealed", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
+    await act(async () => {
+      render(
+        <MatchClient
+          initialState={createMatchState()}
+          currentPlayerId="player-1"
+          matchId="match-test-123"
+          playerProfiles={defaultProfiles}
+        />,
+      );
+    });
+
+    const tiles = screen.getAllByTestId("board-tile");
+    await submitOwnSwap(tiles);
+    expect(tiles[0]).toHaveClass("board-grid__cell--locked");
+
+    // Scoring is revealed (the swapped tiles (0,0)/(1,0) are NOT among the
+    // scored words in mockRoundSummary) → the lift transitions to a fade.
+    act(() => { mockMatchCallbacks.onSummary!(mockRoundSummary); });
+
+    expect(tiles[0]).not.toHaveClass("board-grid__cell--locked");
+    expect(tiles[0]).toHaveClass("board-grid__cell--swap-fade");
+  });
+});
+
 // ─── DisconnectionModal end-of-match guard (issue #161 follow-up) ──────────
 
 describe("MatchClient disconnection modal guard", () => {

@@ -46,25 +46,43 @@ describe("BoardGrid swap reveal-then-fade (US3, FR-004/005/006)", () => {
     expect(tile.className).not.toContain("board-grid__cell--locked");
   });
 
-  it("applies the swap-fade animation to an unscored fading tile", () => {
-    render(
-      <BoardGrid grid={grid} matchId="m-1" playerSlot="player_a" revealFadeTiles={pair} />,
-    );
-    expect(tileAt(0, 0).className).toContain("board-grid__cell--swap-fade");
-  });
-
-  it("does not fade a scored tile — it keeps the current-round mark", () => {
+  it("fades an unscored swap tile once scoring is revealed (O-74)", () => {
     render(
       <BoardGrid
         grid={grid}
         matchId="m-1"
         playerSlot="player_a"
-        revealFadeTiles={pair}
+        lockedTiles={pair}
+        swapScoringRevealed
+      />,
+    );
+    const tile = tileAt(0, 0);
+    expect(tile.className).toContain("board-grid__cell--swap-fade");
+    expect(tile.className).not.toContain("board-grid__cell--locked");
+  });
+
+  it("does not fade a scored tile once scoring is revealed — it promotes to the mark", () => {
+    render(
+      <BoardGrid
+        grid={grid}
+        matchId="m-1"
+        playerSlot="player_a"
+        lockedTiles={pair}
+        swapScoringRevealed
         currentRoundScoredTiles={{ "0,0": PLAYER_A_HIGHLIGHT }}
       />,
     );
     const tile = tileAt(0, 0);
     expect(tile.className).toContain("board-grid__cell--scored-current");
+    expect(tile.className).not.toContain("board-grid__cell--swap-fade");
+  });
+
+  it("keeps the lift (no fade) while scoring is NOT yet revealed (O-74)", () => {
+    render(
+      <BoardGrid grid={grid} matchId="m-1" playerSlot="player_a" lockedTiles={pair} />,
+    );
+    const tile = tileAt(0, 0);
+    expect(tile.className).toContain("board-grid__cell--locked");
     expect(tile.className).not.toContain("board-grid__cell--swap-fade");
   });
 });
