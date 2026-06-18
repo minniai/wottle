@@ -61,11 +61,6 @@ const POLL_ENDPOINT = (matchId: string) => `/api/match/${matchId}/state`;
 /** Interval for the background safety-net poller (runs alongside Realtime). */
 const SAFETY_POLL_INTERVAL_MS = 2_000;
 
-/** Spec 043 (US3): how long the own-swap lift stays before it fades out. */
-const SWAP_REVEAL_WINDOW_MS = 2_600;
-/** Spec 043 (US3): duration of the own-swap fade-out (matches the CSS keyframe). */
-const SWAP_FADE_MS = 450;
-
 function formatClockMMSS(seconds: number): string {
   const clamped = Math.max(0, Math.floor(seconds));
   const m = Math.floor(clamped / 60);
@@ -155,12 +150,12 @@ export function MatchClient({
   // Move lock state (US1): after swap, board is locked until next round
   const [moveLocked, setMoveLocked] = useState(false);
   const [lockedSwapTiles, setLockedSwapTiles] = useState<[Coordinate, Coordinate] | null>(null);
-  // Spec 043 (US3): the own-swap lift is transient. After the reveal window it
-  // moves to `revealFadeTiles` (fade-out) for tiles that did not score; scored
-  // tiles are promoted to the persistent current-round mark in BoardGrid.
-  const [revealFadeTiles, setRevealFadeTiles] = useState<[Coordinate, Coordinate] | null>(null);
-  const swapRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const swapFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Spec 043 / O-74: the swap lift stays on the swapped tiles until SCORING is
+  // revealed for the round (not a fixed timer). Once revealed, BoardGrid
+  // promotes scored swap tiles to the current-round mark and fades the rest.
+  // Cleared on round advance. This keeps both players' boards consistent: the
+  // swap highlight never disappears before the scored words appear.
+  const [scoringRevealed, setScoringRevealed] = useState(false);
   const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
 
   // Sequential reveal state (US1): active player's swap tiles and highlights during reveal phases
@@ -344,6 +339,10 @@ export function MatchClient({
       );
       setCurrentRoundScored((prev) => ({ ...prev, ...scored }));
     }
+    // O-74: scoring is now revealed for the round — swap lifts may transition
+    // (scored tiles promote, unscored fade). Set even for zero-word rounds so
+    // unscored swap tiles still fade on resolution.
+    setScoringRevealed(true);
 
     if (prefersReducedMotionRef.current) {
       // Skip highlight animation entirely
@@ -409,15 +408,6 @@ export function MatchClient({
     vibrateMatchStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Spec 043 (US3) — clear pending reveal-fade timers on unmount.
-  useEffect(
-    () => () => {
-      if (swapRevealTimerRef.current) clearTimeout(swapRevealTimerRef.current);
-      if (swapFadeTimerRef.current) clearTimeout(swapFadeTimerRef.current);
-    },
-    [],
-  );
 
   // Navigate to final summary when match completes — wait for all animations to finish
   const matchEndSoundFiredRef = useRef(false);
@@ -668,11 +658,9 @@ export function MatchClient({
   useEffect(() => {
     setMoveLocked(false);
     setLockedSwapTiles(null);
-    // Spec 043 (US3) — cancel any pending reveal-fade timers and clear the
-    // fading tiles so a stale timer from the prior round can't fire mid-next-round.
-    if (swapRevealTimerRef.current) clearTimeout(swapRevealTimerRef.current);
-    if (swapFadeTimerRef.current) clearTimeout(swapFadeTimerRef.current);
-    setRevealFadeTiles(null);
+    // O-74 — a new round starts with no scoring revealed, so the next swap's
+    // lift shows until that round's scoring lands.
+    setScoringRevealed(false);
     // Issue #210 — drop the externally-driven swap, the persistent opponent-
     // color tiles, and forget which opponent moves were animated; the next
     // round starts with a clean slate.
@@ -734,6 +722,8 @@ export function MatchClient({
       ...prev,
       ...buildCurrentRoundScoredFromPartial(partial, matchState.timers.playerA.playerId),
     }));
+    // O-74: first-mover scoring revealed mid-round — swap lifts transition.
+    setScoringRevealed(true);
     setActiveRevealHighlights(deriveRevealHighlightsFromPartial(partial));
     setAnimationPhase("round-recap");
     playWordDiscovery();
@@ -822,23 +812,8 @@ export function MatchClient({
     ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
       setSwapError(null);
       setMoveLocked(true);
-      const pair: [Coordinate, Coordinate] = [move.from, move.to];
-      setLockedSwapTiles(pair);
-      setRevealFadeTiles(null);
-      // Spec 043 (US3): keep the waiting state (moveLocked) but make the swap
-      // lift transient — after the reveal window, fade the tiles out. Tiles that
-      // scored are promoted to the current-round mark by BoardGrid and skip the
-      // fade. Reduced motion clears instantly.
-      if (swapRevealTimerRef.current) clearTimeout(swapRevealTimerRef.current);
-      if (swapFadeTimerRef.current) clearTimeout(swapFadeTimerRef.current);
-      swapRevealTimerRef.current = setTimeout(() => {
-        setLockedSwapTiles((prev) => (prev === pair ? null : prev));
-        if (prefersReducedMotionRef.current) return;
-        setRevealFadeTiles(pair);
-        swapFadeTimerRef.current = setTimeout(() => {
-          setRevealFadeTiles((prev) => (prev === pair ? null : prev));
-        }, SWAP_FADE_MS);
-      }, SWAP_REVEAL_WINDOW_MS);
+      setLockedSwapTiles([move.from, move.to]);
+      // O-74: the lift persists until scoring is revealed (see `scoringRevealed`).
     },
     [],
   );
@@ -1194,7 +1169,7 @@ export function MatchClient({
                 disabled={moveLocked}
                 showLockBanner={moveLocked}
                 lockedTiles={lockedSwapTiles}
-                revealFadeTiles={revealFadeTiles}
+                swapScoringRevealed={scoringRevealed}
                 opponentLockedTiles={opponentSwapTiles}
                 opponentRevealTiles={
                   animationPhase === "round-recap" && activeRevealMove

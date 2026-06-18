@@ -65,12 +65,14 @@ interface BoardGridProps {
   /** Coordinates of the two tiles involved in the locked swap — rendered with orange highlight. */
   lockedTiles?: [Coordinate, Coordinate] | null;
   /**
-   * Coordinates of the player's own swapped tiles that are fading out after the
-   * reveal window because they did not score (spec 043, US3). Rendered with the
-   * `board-grid__cell--swap-fade` animation. Tiles also present in
-   * `currentRoundScoredTiles` are promoted to the scored mark and do not fade.
+   * O-74: whether this round's scoring has been revealed. While false, swap
+   * tiles (`lockedTiles` / `opponentLockedTiles`) show the lift continuously.
+   * Once true, swap tiles that scored promote to the current-round mark and the
+   * rest fade out (`board-grid__cell--swap-fade`) — so the highlight never
+   * disappears before the scored words appear, and it does so identically for
+   * both the mover and the opponent.
    */
-  revealFadeTiles?: [Coordinate, Coordinate] | null;
+  swapScoringRevealed?: boolean;
   /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
   opponentRevealTiles?: [Coordinate, Coordinate] | null;
   /**
@@ -234,7 +236,7 @@ export function BoardGrid({
   disabled = false,
   showLockBanner = false,
   lockedTiles = null,
-  revealFadeTiles = null,
+  swapScoringRevealed = false,
   opponentRevealTiles = null,
   opponentLockedTiles = null,
   externalSwap = null,
@@ -265,7 +267,7 @@ export function BoardGrid({
       disabled={disabled}
       showLockBanner={showLockBanner}
       lockedTiles={lockedTiles}
-      revealFadeTiles={revealFadeTiles}
+      swapScoringRevealed={swapScoringRevealed}
       opponentRevealTiles={opponentRevealTiles}
       opponentLockedTiles={opponentLockedTiles}
       externalSwap={externalSwap}
@@ -294,7 +296,7 @@ function BoardGridActive({
   disabled = false,
   showLockBanner = false,
   lockedTiles = null,
-  revealFadeTiles = null,
+  swapScoringRevealed = false,
   opponentRevealTiles = null,
   opponentLockedTiles = null,
   externalSwap = null,
@@ -783,26 +785,30 @@ function BoardGridActive({
                 swappingTiles !== null &&
                 ((swappingTiles[0].x === colIndex && swappingTiles[0].y === rowIndex) ||
                   (swappingTiles[1].x === colIndex && swappingTiles[1].y === rowIndex));
-              // Spec 043 (US3): a swapped tile that scored is promoted to the
-              // current-round mark and never shows the transient lift/fade.
-              const isLockedRaw =
+              // O-74: swap-lift lifecycle. A swapped tile (the player's own
+              // `lockedTiles` or the opponent's `opponentLockedTiles`) shows the
+              // lift CONTINUOUSLY until this round's scoring is revealed. Once
+              // revealed (`swapScoringRevealed`), a scored swap tile promotes to
+              // the current-round mark; the rest fade out. Identical for both the
+              // mover and the opponent so neither sees a stale/early-cleared state.
+              const isOwnSwapRaw =
                 lockedTiles !== null &&
                 ((lockedTiles[0].x === colIndex && lockedTiles[0].y === rowIndex) ||
                   (lockedTiles[1].x === colIndex && lockedTiles[1].y === rowIndex));
-              const isLocked = isLockedRaw && !isCurrentRoundScored;
-              const isFading =
-                revealFadeTiles !== null &&
-                !isCurrentRoundScored &&
-                ((revealFadeTiles[0].x === colIndex && revealFadeTiles[0].y === rowIndex) ||
-                  (revealFadeTiles[1].x === colIndex && revealFadeTiles[1].y === rowIndex));
+              const isOpponentSwapRaw =
+                opponentLockedTiles !== null &&
+                ((opponentLockedTiles[0].x === colIndex && opponentLockedTiles[0].y === rowIndex) ||
+                  (opponentLockedTiles[1].x === colIndex && opponentLockedTiles[1].y === rowIndex));
+              // Scored swap tiles promote — they never show the lift/fade.
+              const isOwnSwap = isOwnSwapRaw && !isCurrentRoundScored;
+              const isOpponentSwap = isOpponentSwapRaw && !isCurrentRoundScored;
+              const isFading = (isOwnSwap || isOpponentSwap) && swapScoringRevealed;
+              const isLocked = isOwnSwap && !isFading;
+              const isOpponentLocked = isOpponentSwap && !isFading;
               const isOpponentReveal =
                 opponentRevealTiles !== null &&
                 ((opponentRevealTiles[0].x === colIndex && opponentRevealTiles[0].y === rowIndex) ||
                   (opponentRevealTiles[1].x === colIndex && opponentRevealTiles[1].y === rowIndex));
-              const isOpponentLocked =
-                opponentLockedTiles !== null &&
-                ((opponentLockedTiles[0].x === colIndex && opponentLockedTiles[0].y === rowIndex) ||
-                  (opponentLockedTiles[1].x === colIndex && opponentLockedTiles[1].y === rowIndex));
               const isInvalid =
                 invalidTiles !== null &&
                 ((invalidTiles[0].x === colIndex && invalidTiles[0].y === rowIndex) ||
@@ -830,11 +836,20 @@ function BoardGridActive({
                 playerSlot && (isSelected || isSwapping)
                   ? SELECTED_BORDER_COLORS[playerSlot]
                   : undefined;
-              const lockedBgColor =
-                playerSlot && (isLocked || isFading) ? LOCKED_BG_COLORS[playerSlot] : undefined;
-              const lockedBorderColor =
-                playerSlot && (isLocked || isFading) ? LOCKED_BORDER_COLORS[playerSlot] : undefined;
               const opponentSlot = playerSlot ? oppositeSlot(playerSlot) : undefined;
+              // The fade keyframe reads `--locked-bg` regardless of owner, so a
+              // fading own tile uses the player's color and a fading opponent
+              // tile uses the opponent's color. The own lift also reads it.
+              const fadeSlot = isFading
+                ? (isOwnSwap ? playerSlot : opponentSlot)
+                : undefined;
+              const lockedColorSlot = isLocked ? playerSlot : fadeSlot;
+              const lockedBgColor = lockedColorSlot
+                ? LOCKED_BG_COLORS[lockedColorSlot]
+                : undefined;
+              const lockedBorderColor = lockedColorSlot
+                ? LOCKED_BORDER_COLORS[lockedColorSlot]
+                : undefined;
               const opponentLockedBgColor =
                 opponentSlot && isOpponentLocked
                   ? LOCKED_BG_COLORS[opponentSlot]
