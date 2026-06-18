@@ -266,6 +266,56 @@ describe("roundEngine.advanceRound", () => {
         );
     });
 
+    it("aborts (throws) and does NOT complete/advance the round when word scoring fails", async () => {
+        // Regression for 2026-06-18 review §1: a word-engine failure must NOT
+        // be swallowed. Previously advanceRound caught the error, persisted the
+        // unscored board as board_snapshot_after, and marked the round
+        // completed — corrupting state. Now it throws and leaves the round in
+        // `resolving` for recoverStuckRound to roll forward idempotently.
+        const { computeWordScoresForRound } = await import(
+            "@/app/actions/match/publishRoundSummary"
+        );
+        vi.mocked(computeWordScoresForRound).mockRejectedValueOnce(
+            new Error("dictionary load failed"),
+        );
+
+        setupSupabase([
+            {
+                id: "sub-a",
+                player_id: "player-a",
+                from_x: 0,
+                from_y: 0,
+                to_x: 0,
+                to_y: 1,
+                submitted_at: "2025-01-01T00:00:00Z",
+                status: "pending",
+            },
+            {
+                id: "sub-b",
+                player_id: "player-b",
+                from_x: 5,
+                from_y: 5,
+                to_x: 5,
+                to_y: 6,
+                submitted_at: "2025-01-01T00:00:01Z",
+                status: "pending",
+            },
+        ]);
+
+        await expect(advanceRound("match-1")).rejects.toThrow("dictionary load failed");
+
+        // The round must NOT be marked completed, and the match must NOT be
+        // advanced to the next round — the CAS-locked `resolving` state is left
+        // intact for the recovery path.
+        const roundCompleted = updateCalls.some(
+            (c) => c.table === "rounds" && c.payload.state === "completed",
+        );
+        expect(roundCompleted).toBe(false);
+        const matchAdvanced = updateCalls.some((c) => c.table === "matches");
+        expect(matchAdvanced).toBe(false);
+        expect(roundsInsert).not.toHaveBeenCalled();
+    });
+
     it("seeds the next round with the word engine's finalBoard, not the raw post-swap board (issue #130)", async () => {
         // Regression test for #130: when a same-round move is rejected by the
         // word engine because an earlier move's word froze tiles it would have
@@ -347,6 +397,8 @@ describe("roundEngine.advanceRound", () => {
 
         const result = await advanceRound("match-1");
 
+        expect(result.status).toBe("advanced");
+        if (result.status !== "advanced") throw new Error("expected advanced");
         expect(result.rejectedMoves).toBe(1);
         const moveStatusUpdates = updateCalls.filter((c) => c.table === "move_submissions");
         expect(moveStatusUpdates).toHaveLength(2);
