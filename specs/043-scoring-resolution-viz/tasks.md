@@ -71,7 +71,7 @@ earlier-round tiles look calmer, and that on round advance the marks clear into 
 
 ### Tests for User Story 1 (write FIRST, ensure they FAIL) ⚠️
 
-- [X] T006 [P] [US1] Component test in tests/unit/components/BoardGrid.scored-current.spec.tsx: when `currentRoundScoredTiles` has an entry, that cell renders `board-grid__cell--scored-current` with `--highlight-color` set, persists with no auto-clear timer, and stacks with `board-grid__cell--frozen` when the tile is also frozen.
+- [X] T006 [P] [US1] Component test in tests/unit/components/BoardGrid.scoredCurrent.spec.tsx: when `currentRoundScoredTiles` has an entry, that cell renders `board-grid__cell--scored-current` with `--highlight-color` set, persists with no auto-clear timer, and stacks with `board-grid__cell--frozen` when the tile is also frozen.
 - [X] T007 [P] [US1] Playwright two-player test in tests/integration/ui/scoring-resolution-viz.spec.ts (US1 block): current-round scored tiles are visually distinct from previously-frozen tiles, persist until round completion, then settle into the frozen treatment on the next round.
 
 ### Implementation for User Story 1
@@ -99,7 +99,7 @@ advance.
 
 ### Tests for User Story 2 (write FIRST, ensure they FAIL) ⚠️
 
-- [X] T015 [P] [US2] Component test in tests/unit/components/BoardGrid.waiting-state.spec.tsx: when `disabled` is true, no cell carries the dim styling and the lock banner renders when `showLockBanner` is true; clicks on tiles do not fire `onSwapComplete`.
+- [X] T015 [P] [US2] Component test in tests/unit/components/BoardGrid.waitingState.spec.tsx: when `disabled` is true, no cell carries the dim styling and the lock banner renders when `showLockBanner` is true; clicks on tiles do not fire `onSwapComplete`.
 - [X] T016 [P] [US2] Playwright two-player test in tests/integration/ui/scoring-resolution-viz.spec.ts (US2 block): after submitting, board tiles remain full-color (no `opacity:0.45`/`saturate(0.3)`), the waiting banner is visible, and a second submission is blocked.
 
 ### Implementation for User Story 2
@@ -125,13 +125,13 @@ shows the scored tile marked and the other faded.
 
 ### Tests for User Story 3 (write FIRST, ensure they FAIL) ⚠️
 
-- [X] T020 [P] [US3] Component test in tests/unit/components/BoardGrid.swap-reveal.spec.tsx: a tile in `lockedTiles` not present in `currentRoundScoredTiles` receives the reveal-fade treatment, while a `lockedTiles` tile also in `currentRoundScoredTiles` renders the `scored-current` mark (promotion), not the fade.
+- [X] T020 [P] [US3] Component test in tests/unit/components/BoardGrid.swapReveal.spec.tsx: a tile in `lockedTiles` not present in `currentRoundScoredTiles` receives the reveal-fade treatment, while a `lockedTiles` tile also in `currentRoundScoredTiles` renders the `scored-current` mark (promotion), not the fade.
 - [X] T021 [P] [US3] Playwright two-player test in tests/integration/ui/scoring-resolution-viz.spec.ts (US3 block): an unscored swap's lift fades to plain with no leftover highlight into the next round; a scored swap's tiles persist as current-round marks.
 
 ### Implementation for User Story 3
 
 - [X] T022 [US3] Add an own-swap reveal-then-fade keyframe in app/styles/board.css (analogous to `opponent-reveal-fade`) applied when a locked/revealed swap tile is NOT part of the current-round scored set; include a `@media (prefers-reduced-motion: reduce)` instant-removal fallback.
-- [X] T023 [US3] In components/match/MatchClient.tsx decouple the swap-lift from `moveLocked`: keep `moveLocked` true until round resolves (waiting state owned by US2), but make `lockedSwapTiles` / `opponentSwapTiles` transient — clear them after a short reveal window via a timer (store the timer in a ref; clear on unmount/round change).
+- [X] T023 [US3] In components/match/MatchClient.tsx decouple the swap-lift from `moveLocked`: keep `moveLocked` true until round resolves (waiting state owned by US2), but make the OWN swap lift (`lockedSwapTiles`) transient — clear it after a short reveal window via a timer (store the timer in a ref; clear on unmount/round change). The opponent mid-round reveal stays per issue #210 and is out of US3 scope.
 - [X] T024 [US3] In components/match/MatchClient.tsx promote scored swap tiles: when a swap tile appears in `currentRoundScored`, stop showing its transient lift (it is now a persistent current-round mark) so scored tiles never fade to plain (FR-006); unscored swap tiles fall through to the reveal-fade (FR-005).
 - [X] T025 [US3] Verify no regression to the issue-#210 opponent mid-round reveal and the spec-042 instant reveal: the reveal-fade timer must not clear tiles that have become current-round marks, and must not double-fire across re-renders (reuse existing dedupe refs).
 
@@ -148,6 +148,7 @@ shows the scored tile marked and the other faded.
 - [X] T028 Run `pnpm exec playwright test --grep "scoring resolution"` for the new E2E spec; run it individually to avoid Realtime contention (per project guidance).
 - [X] T029 [P] Sanity-check performance: confirm new animations use only transform/opacity/box-shadow (no layout-triggering props) and run `pnpm perf:round-resolution` to confirm <200ms p95 round-resolution RTT is unaffected.
 - [X] T030 Execute the manual verification steps in specs/043-scoring-resolution-viz/quickstart.md (US1/US2/US3 + spec-042 consistency + reduced-motion) in a two-player local match.
+  - Includes FR-014 parity: repeat with `NEXT_PUBLIC_DISABLE_REALTIME=true` (polling mode) and confirm identical behavior.
 - [X] T031 [P] Update CLAUDE.md (component inventory / status table) to note the new `currentRoundScored` mark, the calm waiting frame, and `lib/match/currentRoundScored.ts`; reference spec 043.
 
 ---
