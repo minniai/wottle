@@ -50,6 +50,13 @@ players, and start a match between them so you can drive both sides of a round.
 2. **Expect**: waiting frame, scored-current ring, and swap reveal all use static (non-animated)
    equivalents that still clearly convey each state.
 
+### Realtime/polling parity (FR-014)
+1. Set `NEXT_PUBLIC_DISABLE_REALTIME=true` in `.env.local` and restart `pnpm dev`.
+2. Re-run the US1/US2/US3 checks above.
+3. **Expect**: the current-round mark, waiting frame, and swap reveal-fade behave
+   identically to Realtime mode (all new visuals derive from `matchState`, which the
+   polling fallback populates the same way).
+
 ## Automated tests
 
 ```bash
