@@ -15,6 +15,7 @@ import { HudCard } from "@/components/match/HudCard";
 import { MatchCenterChrome } from "@/components/match/MatchCenterChrome";
 import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
 import { ScoreDeltaPopup } from "@/components/match/ScoreDeltaPopup";
+import { deriveClockUrgency } from "@/components/match/deriveClockUrgency";
 import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
@@ -66,16 +67,6 @@ function formatClockMMSS(seconds: number): string {
   const m = Math.floor(clamped / 60);
   const s = clamped % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-function deriveClockState(
-  status: "running" | "paused" | "expired",
-  isLow: boolean,
-): "idle" | "active" | "low" | "waiting" {
-  if (status === "paused") return "waiting";
-  if (status === "expired" || isLow) return "low";
-  if (status === "running") return "active";
-  return "idle";
 }
 
 /**
@@ -1090,7 +1081,8 @@ export function MatchClient({
             name={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
             meta={`You · ${(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
             clock={formatClockMMSS(timeLeftSeconds)}
-            clockState={deriveClockState(currentTimer.status, timeLeftSeconds < 60)}
+            clockState={deriveClockUrgency(currentTimer.status, timeLeftSeconds).tone}
+            clockUrgency={deriveClockUrgency(currentTimer.status, timeLeftSeconds).urgency}
             score={playerScore}
           >
             {scoreDelta ? (
@@ -1118,7 +1110,8 @@ export function MatchClient({
             name={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
             meta={`Opponent · ${(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
             clock={formatClockMMSS(opponentTimeLeft)}
-            clockState={deriveClockState(opponentTimer.status, opponentTimeLeft < 60)}
+            clockState={deriveClockUrgency(opponentTimer.status, opponentTimeLeft).tone}
+            clockUrgency={deriveClockUrgency(opponentTimer.status, opponentTimeLeft).urgency}
             score={opponentScore}
           />
         </div>

@@ -27,6 +27,7 @@ const DECLARED_TOKENS = new Set([
   "--good",
   "--warn",
   "--bad",
+  "--clock-warn",
   "--hair",
   "--hair-strong",
   "--shadow-sm",
@@ -64,6 +65,7 @@ describe("board.css theme-flip audit", () => {
       "--board-size",
       "--chrome-height",
       "--highlight-color",
+      "--clock-color",
     ]);
 
     const refs = Array.from(boardCss.matchAll(/var\((--[a-zA-Z0-9-]+)\)/g));

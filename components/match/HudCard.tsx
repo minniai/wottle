@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
-type ClockState = "idle" | "active" | "low" | "waiting";
+import type { ClockTone } from "./deriveClockUrgency";
 
 interface HudCardProps {
   slot: "you" | "opp";
@@ -8,10 +8,21 @@ interface HudCardProps {
   name: string;
   meta: string;
   clock: string;
-  clockState?: ClockState;
+  clockState?: ClockTone | "idle";
+  /** 0..1 urgency ratio driving the yellow→red gradient (O-59). */
+  clockUrgency?: number;
   score: number;
   children?: ReactNode;
 }
+
+const TONE_CLASS: Record<ClockTone | "idle", string> = {
+  idle: "",
+  active: "hud-card__clock--active",
+  warning: "hud-card__clock--warning",
+  critical: "hud-card__clock--critical",
+  expired: "hud-card__clock--expired",
+  waiting: "hud-card__clock--waiting",
+};
 
 export function HudCard({
   slot,
@@ -20,18 +31,23 @@ export function HudCard({
   meta,
   clock,
   clockState = "idle",
+  clockUrgency = 0,
   score,
   children,
 }: HudCardProps) {
   const slotClass = slot === "you" ? "hud-card--you" : "hud-card--opp";
-  const clockStateClass =
-    clockState === "active"
-      ? "hud-card__clock--active"
-      : clockState === "low"
-        ? "hud-card__clock--low"
-        : clockState === "waiting"
-          ? "hud-card__clock--waiting"
-          : "";
+  const clockClasses = [
+    "hud-card__clock",
+    TONE_CLASS[clockState],
+    clockState === "critical" ? "hud-card__clock--blink" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  // Cast: --clock-urgency is a custom property, not in CSSProperties' typed keys.
+  const clockStyle = {
+    "--clock-urgency": clockUrgency,
+  } as CSSProperties;
 
   return (
     <div data-testid="hud-card" className={`hud-card ${slotClass}`}>
@@ -44,7 +60,8 @@ export function HudCard({
       </div>
       <span
         data-testid="hud-card-clock"
-        className={`hud-card__clock ${clockStateClass}`.trim()}
+        className={clockClasses}
+        style={clockStyle}
       >
         {clock}
       </span>
