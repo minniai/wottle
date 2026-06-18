@@ -22,6 +22,10 @@ import {
   buildPartialRevealKey,
   deriveRevealHighlightsFromPartial,
 } from "@/lib/match/partialReveal";
+import {
+  buildCurrentRoundScoredFromPartial,
+  buildCurrentRoundScoredFromSummary,
+} from "@/lib/match/currentRoundScored";
 import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
@@ -53,6 +57,11 @@ const POLL_ENDPOINT = (matchId: string) => `/api/match/${matchId}/state`;
 
 /** Interval for the background safety-net poller (runs alongside Realtime). */
 const SAFETY_POLL_INTERVAL_MS = 2_000;
+
+/** Spec 043 (US3): how long the own-swap lift stays before it fades out. */
+const SWAP_REVEAL_WINDOW_MS = 2_600;
+/** Spec 043 (US3): duration of the own-swap fade-out (matches the CSS keyframe). */
+const SWAP_FADE_MS = 450;
 
 function formatClockMMSS(seconds: number): string {
   const clamped = Math.max(0, Math.floor(seconds));
@@ -143,6 +152,12 @@ export function MatchClient({
   // Move lock state (US1): after swap, board is locked until next round
   const [moveLocked, setMoveLocked] = useState(false);
   const [lockedSwapTiles, setLockedSwapTiles] = useState<[Coordinate, Coordinate] | null>(null);
+  // Spec 043 (US3): the own-swap lift is transient. After the reveal window it
+  // moves to `revealFadeTiles` (fade-out) for tiles that did not score; scored
+  // tiles are promoted to the persistent current-round mark in BoardGrid.
+  const [revealFadeTiles, setRevealFadeTiles] = useState<[Coordinate, Coordinate] | null>(null);
+  const swapRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swapFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedTile, setSelectedTile] = useState<Coordinate | null>(null);
 
   // Sequential reveal state (US1): active player's swap tiles and highlights during reveal phases
@@ -180,6 +195,11 @@ export function MatchClient({
   type AnimationPhase = "idle" | "round-recap";
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
   const [highlightPlayerColors, setHighlightPlayerColors] = useState<Record<string, string>>({});
+  // Spec 043 (US1): persistent "scored THIS round" tile→color map. Fed by both
+  // the lastSummary recap and the spec-042 partial reveal; held until the round
+  // advances (cleared in the round-reset effect) so current-round scored tiles
+  // stay visually distinct from previously-frozen tiles.
+  const [currentRoundScored, setCurrentRoundScored] = useState<Record<string, string>>({});
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Tracks the last summary id that triggered the recap animation (prevents double-fire). */
   const lastAnimatedRoundRef = useRef<string | null>(null);
@@ -308,6 +328,20 @@ export function MatchClient({
     // Derive score delta inline (no overlay to wait for)
     setScoreDelta(deriveScoreDelta(nextSummary, currentPlayerId));
 
+    // Spec 043 (US1) — merge this round's scored tiles into the persistent
+    // current-round mark BEFORE the reduced-motion branch so the mark applies
+    // in both motion modes (the CSS provides a static reduced-motion ring).
+    // Additive + dedupe-safe: the partial reveal may have already added the
+    // first mover's tiles; re-adding the same key with the same color is a
+    // no-op (FR-011). Cleared on round advance (FR-009/FR-012).
+    if (nextSummary.words.length > 0) {
+      const scored = buildCurrentRoundScoredFromSummary(
+        nextSummary,
+        matchState.timers.playerA.playerId,
+      );
+      setCurrentRoundScored((prev) => ({ ...prev, ...scored }));
+    }
+
     if (prefersReducedMotionRef.current) {
       // Skip highlight animation entirely
       setMoveLocked(false);
@@ -372,6 +406,15 @@ export function MatchClient({
     vibrateMatchStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Spec 043 (US3) — clear pending reveal-fade timers on unmount.
+  useEffect(
+    () => () => {
+      if (swapRevealTimerRef.current) clearTimeout(swapRevealTimerRef.current);
+      if (swapFadeTimerRef.current) clearTimeout(swapFadeTimerRef.current);
+    },
+    [],
+  );
 
   // Navigate to final summary when match completes — wait for all animations to finish
   const matchEndSoundFiredRef = useRef(false);
@@ -622,6 +665,11 @@ export function MatchClient({
   useEffect(() => {
     setMoveLocked(false);
     setLockedSwapTiles(null);
+    // Spec 043 (US3) — cancel any pending reveal-fade timers and clear the
+    // fading tiles so a stale timer from the prior round can't fire mid-next-round.
+    if (swapRevealTimerRef.current) clearTimeout(swapRevealTimerRef.current);
+    if (swapFadeTimerRef.current) clearTimeout(swapFadeTimerRef.current);
+    setRevealFadeTiles(null);
     // Issue #210 — drop the externally-driven swap, the persistent opponent-
     // color tiles, and forget which opponent moves were animated; the next
     // round starts with a clean slate.
@@ -631,6 +679,10 @@ export function MatchClient({
     // Spec 042 — drop the partial-reveal dedupe set so a new round can fire
     // its own first-mover animation without colliding with the prior round's key.
     animatedPartialRevealsRef.current = new Set();
+    // Spec 043 (US1) — clear the current-round scored mark so this round's
+    // freshly-scored tiles settle into the calm frozen tint and only the NEW
+    // round's scored tiles carry the bright mark (FR-009).
+    setCurrentRoundScored({});
   }, [matchState.currentRound]);
 
   // ── Instant scoring partial reveal (spec 042 / Linear O-57) ────────────
@@ -658,6 +710,13 @@ export function MatchClient({
       matchState.timers.playerA.playerId,
     );
     setHighlightPlayerColors((prev) => ({ ...prev, ...colors }));
+    // Spec 043 (US1) — persist the first mover's scored tiles as current-round
+    // marks. Same dedupe key as the recap merge, so when `lastSummary` lands
+    // these tiles are already present and are not re-flashed/recolored (FR-011).
+    setCurrentRoundScored((prev) => ({
+      ...prev,
+      ...buildCurrentRoundScoredFromPartial(partial, matchState.timers.playerA.playerId),
+    }));
     setActiveRevealHighlights(deriveRevealHighlightsFromPartial(partial));
     setAnimationPhase("round-recap");
     playWordDiscovery();
@@ -736,7 +795,23 @@ export function MatchClient({
     ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
       setSwapError(null);
       setMoveLocked(true);
-      setLockedSwapTiles([move.from, move.to]);
+      const pair: [Coordinate, Coordinate] = [move.from, move.to];
+      setLockedSwapTiles(pair);
+      setRevealFadeTiles(null);
+      // Spec 043 (US3): keep the waiting state (moveLocked) but make the swap
+      // lift transient — after the reveal window, fade the tiles out. Tiles that
+      // scored are promoted to the current-round mark by BoardGrid and skip the
+      // fade. Reduced motion clears instantly.
+      if (swapRevealTimerRef.current) clearTimeout(swapRevealTimerRef.current);
+      if (swapFadeTimerRef.current) clearTimeout(swapFadeTimerRef.current);
+      swapRevealTimerRef.current = setTimeout(() => {
+        setLockedSwapTiles((prev) => (prev === pair ? null : prev));
+        if (prefersReducedMotionRef.current) return;
+        setRevealFadeTiles(pair);
+        swapFadeTimerRef.current = setTimeout(() => {
+          setRevealFadeTiles((prev) => (prev === pair ? null : prev));
+        }, SWAP_FADE_MS);
+      }, SWAP_REVEAL_WINDOW_MS);
     },
     [],
   );
@@ -1083,8 +1158,9 @@ export function MatchClient({
                 frozenTiles={matchState.frozenTiles ?? {}}
                 playerSlot={playerSlot}
                 disabled={moveLocked}
-                showLockBanner={false}
+                showLockBanner={moveLocked}
                 lockedTiles={lockedSwapTiles}
+                revealFadeTiles={revealFadeTiles}
                 opponentLockedTiles={opponentSwapTiles}
                 opponentRevealTiles={
                   animationPhase === "round-recap" && activeRevealMove
@@ -1101,6 +1177,7 @@ export function MatchClient({
                     ? highlightPlayerColors
                     : {}
                 }
+                currentRoundScoredTiles={currentRoundScored}
                 highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
                 highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
                 externalSwap={externalSwap}

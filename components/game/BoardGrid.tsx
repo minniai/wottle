@@ -48,6 +48,13 @@ interface BoardGridProps {
   highlightDelayMs?: number;
   /** Per-tile highlight color map for player-attributed glow. Keys are "x,y" strings, values are CSS color strings. */
   highlightPlayerColors?: Record<string, string>;
+  /**
+   * Tiles scored in the CURRENT round, mapped to the scoring player's highlight
+   * color. Keys are "x,y" strings. Rendered with a persistent player-colored
+   * ring (`board-grid__cell--scored-current`) that holds until the parent
+   * clears the prop on round advance — no auto-clear timer (spec 043, FR-007/008).
+   */
+  currentRoundScoredTiles?: Record<string, string>;
   /** When true, scored tile highlights persist until highlightPlayerColors is externally cleared (no auto-clear timer). */
   persistentHighlight?: boolean;
   /** When true, board ignores all tile clicks (move lock after swap submission). */
@@ -57,6 +64,13 @@ interface BoardGridProps {
   showLockBanner?: boolean;
   /** Coordinates of the two tiles involved in the locked swap — rendered with orange highlight. */
   lockedTiles?: [Coordinate, Coordinate] | null;
+  /**
+   * Coordinates of the player's own swapped tiles that are fading out after the
+   * reveal window because they did not score (spec 043, US3). Rendered with the
+   * `board-grid__cell--swap-fade` animation. Tiles also present in
+   * `currentRoundScoredTiles` are promoted to the scored mark and do not fade.
+   */
+  revealFadeTiles?: [Coordinate, Coordinate] | null;
   /** Coordinates of opponent's swapped tiles during reveal phase — rendered with orange fade animation. */
   opponentRevealTiles?: [Coordinate, Coordinate] | null;
   /**
@@ -130,6 +144,9 @@ async function submitSwapRequest(matchId: string, move: MoveRequest): Promise<Mo
 
 /** Stable empty array for default prop to avoid useEffect re-run loops. */
 const EMPTY_HIGHLIGHTS: Coordinate[][] = [];
+
+/** Stable empty map for the current-round scored default prop (spec 043). */
+const EMPTY_SCORED_MAP: Record<string, string> = {};
 
 /** Centralized frozen tile overlay colors from playerColors.ts */
 const FROZEN_COLORS = {
@@ -212,10 +229,12 @@ export function BoardGrid({
   highlightDurationMs = 800,
   highlightDelayMs = 0,
   highlightPlayerColors = {},
+  currentRoundScoredTiles = EMPTY_SCORED_MAP,
   persistentHighlight = false,
   disabled = false,
   showLockBanner = false,
   lockedTiles = null,
+  revealFadeTiles = null,
   opponentRevealTiles = null,
   opponentLockedTiles = null,
   externalSwap = null,
@@ -241,10 +260,12 @@ export function BoardGrid({
       highlightDurationMs={highlightDurationMs}
       highlightDelayMs={highlightDelayMs}
       highlightPlayerColors={highlightPlayerColors}
+      currentRoundScoredTiles={currentRoundScoredTiles}
       persistentHighlight={persistentHighlight}
       disabled={disabled}
       showLockBanner={showLockBanner}
       lockedTiles={lockedTiles}
+      revealFadeTiles={revealFadeTiles}
       opponentRevealTiles={opponentRevealTiles}
       opponentLockedTiles={opponentLockedTiles}
       externalSwap={externalSwap}
@@ -268,10 +289,12 @@ function BoardGridActive({
   highlightDurationMs = 800,
   highlightDelayMs = 0,
   highlightPlayerColors = {},
+  currentRoundScoredTiles = EMPTY_SCORED_MAP,
   persistentHighlight = false,
   disabled = false,
   showLockBanner = false,
   lockedTiles = null,
+  revealFadeTiles = null,
   opponentRevealTiles = null,
   opponentLockedTiles = null,
   externalSwap = null,
@@ -751,14 +774,27 @@ function BoardGridActive({
               const isScoredHighlight = persistentHighlight
                 ? !!highlightPlayerColors[tileKey]
                 : activeHighlights.length > 0 && isTileInHighlights(colIndex, rowIndex, activeHighlights);
+              // Spec 043 (US1): persistent "scored THIS round" mark. Independent
+              // of the transient `scored` flash — held until the parent clears
+              // the prop on round advance. No auto-clear timer here.
+              const currentRoundColor = currentRoundScoredTiles[tileKey];
+              const isCurrentRoundScored = !!currentRoundColor;
               const isSwapping =
                 swappingTiles !== null &&
                 ((swappingTiles[0].x === colIndex && swappingTiles[0].y === rowIndex) ||
                   (swappingTiles[1].x === colIndex && swappingTiles[1].y === rowIndex));
-              const isLocked =
+              // Spec 043 (US3): a swapped tile that scored is promoted to the
+              // current-round mark and never shows the transient lift/fade.
+              const isLockedRaw =
                 lockedTiles !== null &&
                 ((lockedTiles[0].x === colIndex && lockedTiles[0].y === rowIndex) ||
                   (lockedTiles[1].x === colIndex && lockedTiles[1].y === rowIndex));
+              const isLocked = isLockedRaw && !isCurrentRoundScored;
+              const isFading =
+                revealFadeTiles !== null &&
+                !isCurrentRoundScored &&
+                ((revealFadeTiles[0].x === colIndex && revealFadeTiles[0].y === rowIndex) ||
+                  (revealFadeTiles[1].x === colIndex && revealFadeTiles[1].y === rowIndex));
               const isOpponentReveal =
                 opponentRevealTiles !== null &&
                 ((opponentRevealTiles[0].x === colIndex && opponentRevealTiles[0].y === rowIndex) ||
@@ -779,6 +815,9 @@ function BoardGridActive({
               const highlightColor = isScoredHighlight
                 ? highlightPlayerColors[tileKey]
                 : undefined;
+              // The ring color drives the `--highlight-color` CSS var for both
+              // the transient scored flash and the persistent current-round mark.
+              const ringColor = highlightColor ?? currentRoundColor;
               const needsDelay = isScoredHighlight && highlightDelayMs > 0;
               // Selected-tile colors are scoped to tiles currently in the
               // selected or swapping state so unrelated tiles don't carry
@@ -792,9 +831,9 @@ function BoardGridActive({
                   ? SELECTED_BORDER_COLORS[playerSlot]
                   : undefined;
               const lockedBgColor =
-                playerSlot && isLocked ? LOCKED_BG_COLORS[playerSlot] : undefined;
+                playerSlot && (isLocked || isFading) ? LOCKED_BG_COLORS[playerSlot] : undefined;
               const lockedBorderColor =
-                playerSlot && isLocked ? LOCKED_BORDER_COLORS[playerSlot] : undefined;
+                playerSlot && (isLocked || isFading) ? LOCKED_BORDER_COLORS[playerSlot] : undefined;
               const opponentSlot = playerSlot ? oppositeSlot(playerSlot) : undefined;
               const opponentLockedBgColor =
                 opponentSlot && isOpponentLocked
@@ -806,14 +845,14 @@ function BoardGridActive({
                   : undefined;
               const tileStyle: CSSProperties | undefined =
                 frozenStyle ||
-                highlightColor ||
+                ringColor ||
                 needsDelay ||
                 selectedBgColor ||
                 lockedBgColor ||
                 opponentLockedBgColor
                   ? ({
                       ...frozenStyle,
-                      ...(highlightColor && { "--highlight-color": highlightColor }),
+                      ...(ringColor && { "--highlight-color": ringColor }),
                       ...(needsDelay && { animationDelay: `${highlightDelayMs}ms` }),
                       ...(selectedBgColor && { "--selected-bg": selectedBgColor }),
                       ...(selectedBorderColor && { "--selected-border": selectedBorderColor }),
@@ -844,7 +883,7 @@ function BoardGridActive({
                   aria-colindex={colIndex + 1}
                   aria-selected={isSelected}
                   aria-disabled={isTileFrozen || undefined}
-                  className={`board-grid__cell${isSelected || isSwapping ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isOpponentLocked ? " board-grid__cell--opponent-locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
+                  className={`board-grid__cell${isSelected || isSwapping ? " board-grid__cell--selected" : ""}${isLocked ? " board-grid__cell--locked" : ""}${isFading ? " board-grid__cell--swap-fade" : ""}${isOpponentLocked ? " board-grid__cell--opponent-locked" : ""}${isOpponentReveal ? " board-grid__cell--opponent-reveal" : ""}${isTileFrozen ? " board-grid__cell--frozen" : ""}${isCurrentRoundScored ? " board-grid__cell--scored-current" : ""}${isScoredHighlight ? ` board-grid__cell--scored${persistentHighlight ? " board-grid__cell--scored-static" : ""}` : ""}${isInvalid ? " board-grid__cell--invalid" : ""}`}
                   data-testid="board-tile"
                   data-tile-index={rowIndex * 10 + colIndex}
                   data-col={colIndex}
