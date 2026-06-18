@@ -5,6 +5,7 @@ import { aggregateRoundSummary, calculateWordScore } from "@/lib/scoring/roundSu
 import { recordScoreSnapshot } from "@/lib/matchmaking/service";
 import { withRetry } from "@/lib/game-engine/retry";
 import { logPlaytestError, logPlaytestInfo } from "@/lib/observability/log";
+import { mergeNewFreezesOntoFresh } from "@/lib/match/frozenTileMerge";
 import { completeMatchInternal } from "./completeMatch";
 import type { RoundSummary, RoundMove, WordScore, ScoreTotals, FrozenTileMap } from "@/lib/types/match";
 import type { Coordinate } from "@/lib/types/board";
@@ -174,30 +175,6 @@ export async function publishRoundSummary(
     });
 
     return summary;
-}
-
-/**
- * Re-apply only THIS round's new freezes on top of freshly-loaded state.
- *
- * `computed` is `fresh-at-compute-time ∪ this-round`. The keys this round added
- * are those in `computed` but not in `baseline` (freezes are monotonic — a tile
- * never un-freezes mid-match). Layering just that delta onto the freshly-loaded
- * `fresh` map preserves a concurrent round's freezes instead of clobbering them.
- *
- * Exported for unit testing.
- */
-export function mergeNewFreezesOntoFresh(
-    fresh: FrozenTileMap,
-    baseline: FrozenTileMap,
-    computed: FrozenTileMap,
-): FrozenTileMap {
-    const merged: FrozenTileMap = { ...fresh };
-    for (const [key, tile] of Object.entries(computed)) {
-        if (!(key in baseline)) {
-            merged[key] = tile;
-        }
-    }
-    return merged;
 }
 
 /**
