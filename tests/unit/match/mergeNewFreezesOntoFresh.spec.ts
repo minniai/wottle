@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mergeNewFreezesOntoFresh } from "@/app/actions/match/publishRoundSummary";
+import { mergeNewFreezesOntoFresh } from "@/lib/match/frozenTileMerge";
 import type { FrozenTile, FrozenTileMap } from "@/lib/types/match";
 
 /**
