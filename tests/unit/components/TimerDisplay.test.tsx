@@ -32,7 +32,7 @@ describe("TimerDisplay", () => {
     expect(screen.getByText("0:00")).toBeInTheDocument();
   });
 
-  test("applies timer-display--low class when <= 15s and running", () => {
+  test("applies critical (blinking) tone when <= 15s and running", () => {
     render(
       <TimerDisplay
         timerSeconds={10}
@@ -43,15 +43,31 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByTestId("timer-display")).toHaveClass(
-      "timer-display--low",
-    );
+    const el = screen.getByTestId("timer-display");
+    expect(el).toHaveClass("timer-display--critical");
+    expect(el).toHaveClass("timer-display--blink");
   });
 
-  test("applies timer-display--running class when > 15s and running", () => {
+  test("applies warning tone (no blink) when <= 30s and > 15s", () => {
     render(
       <TimerDisplay
-        timerSeconds={30}
+        timerSeconds={25}
+        isPaused={false}
+        hasSubmitted={false}
+        playerColor="#38BDF8"
+        size="lg"
+      />,
+    );
+
+    const el = screen.getByTestId("timer-display");
+    expect(el).toHaveClass("timer-display--warning");
+    expect(el).not.toHaveClass("timer-display--blink");
+  });
+
+  test("applies active tone when > 30s and running", () => {
+    render(
+      <TimerDisplay
+        timerSeconds={45}
         isPaused={false}
         hasSubmitted={false}
         playerColor="#38BDF8"
@@ -60,11 +76,29 @@ describe("TimerDisplay", () => {
     );
 
     expect(screen.getByTestId("timer-display")).toHaveClass(
-      "timer-display--running",
+      "timer-display--active",
     );
   });
 
-  test("applies timer-display--paused class when paused", () => {
+  test("exposes the urgency ratio as a --clock-urgency custom property", () => {
+    render(
+      <TimerDisplay
+        timerSeconds={15}
+        isPaused={false}
+        hasSubmitted={false}
+        playerColor="#38BDF8"
+        size="lg"
+      />,
+    );
+
+    expect(
+      screen
+        .getByTestId("timer-display")
+        .style.getPropertyValue("--clock-urgency"),
+    ).toBe("0.5");
+  });
+
+  test("applies waiting tone when paused", () => {
     render(
       <TimerDisplay
         timerSeconds={60}
@@ -76,11 +110,11 @@ describe("TimerDisplay", () => {
     );
 
     expect(screen.getByTestId("timer-display")).toHaveClass(
-      "timer-display--paused",
+      "timer-display--waiting",
     );
   });
 
-  test("does NOT apply low class when paused even if <= 15s", () => {
+  test("does NOT blink when paused even if <= 15s", () => {
     render(
       <TimerDisplay
         timerSeconds={10}
@@ -91,9 +125,9 @@ describe("TimerDisplay", () => {
       />,
     );
 
-    expect(screen.getByTestId("timer-display")).not.toHaveClass(
-      "timer-display--low",
-    );
+    const el = screen.getByTestId("timer-display");
+    expect(el).not.toHaveClass("timer-display--blink");
+    expect(el).not.toHaveClass("timer-display--critical");
   });
 
   test("applies timer-display--expired class when time is 0", () => {

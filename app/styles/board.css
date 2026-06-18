@@ -810,33 +810,40 @@
 
 /* ─── Timer state colors ─────────────────────────────────────────── */
 
-.timer-display--running {
+.timer-display--active {
   background: color-mix(in oklab, var(--good) 85%, transparent);
 }
 
-.timer-display--paused {
+.timer-display--waiting {
   background: color-mix(in oklab, var(--warn) 85%, transparent);
 }
 
 .timer-display--expired {
-  background: color-mix(in oklab, var(--p2) 90%, transparent);
+  background: color-mix(in oklab, var(--bad) 90%, transparent);
+  color: var(--paper);
 }
 
-/* ≤15 s — yellow with brightness flash */
-@keyframes timer-low-flash {
-  0%, 100% { background: color-mix(in oklab, var(--warn) 85%, transparent); filter: brightness(1); }
-  50%      { background: color-mix(in oklab, var(--warn) 100%, transparent);  filter: brightness(1.35); }
+/* Urgency ramp (O-59): mirrors the HUD clock — warm yellow → red driven by
+   --clock-urgency (0 at 30s → 1 at 0s). */
+.timer-display--warning,
+.timer-display--critical {
+  --clock-color: color-mix(
+    in oklab,
+    var(--bad) calc(var(--clock-urgency, 0) * 100%),
+    var(--clock-warn)
+  );
+  background: color-mix(in oklab, var(--clock-color) 90%, transparent);
 }
 
-.timer-display--low {
-  animation: timer-low-flash 0.7s ease-in-out infinite;
+/* ≤15 s — gentle blink, shared with the HUD clock. */
+.timer-display--blink {
+  animation: clock-blink 1s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .timer-display--low {
+  .timer-display--blink {
     animation: none;
-    background: color-mix(in oklab, var(--warn) 85%, transparent);
-    border: 2px solid color-mix(in oklab, var(--warn) 100%, transparent);
+    box-shadow: 0 0 0 2px var(--bad);
   }
 }
 
@@ -971,13 +978,17 @@
 /* `margin-left: auto` lives on the clock so clock + score stay grouped at
    the inner edge of the card (closest to centre). Originally on __score,
    which left clock bunched with the name on the outer edge. See #171. */
+/* Enlarged (O-59): the clock is now a primary number, co-equal with the score,
+   so it reads as central to the match rather than a subdued pill. */
 .hud-card__clock {
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
-  font-size: 15px;
-  letter-spacing: 0.04em;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
   color: var(--ink-2);
-  padding: 5px 10px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   background: var(--paper-2);
   border: 1px solid var(--hair);
   font-variant-numeric: tabular-nums;
@@ -990,16 +1001,48 @@
   border-color: color-mix(in oklab, var(--good) 40%, transparent);
 }
 
-.hud-card__clock--low {
-  background: color-mix(in oklab, var(--bad) 12%, var(--paper));
+/* Urgency ramp (O-59): --clock-urgency runs 0 (at 30s) → 1 (at 0s), driving a
+   smooth OKLAB interpolation from warm yellow toward red. Both warning and
+   critical share the gradient; critical additionally blinks. */
+.hud-card__clock--warning,
+.hud-card__clock--critical {
+  --clock-color: color-mix(
+    in oklab,
+    var(--bad) calc(var(--clock-urgency, 0) * 100%),
+    var(--clock-warn)
+  );
+  color: color-mix(in oklab, var(--clock-color) 78%, var(--ink));
+  background: color-mix(in oklab, var(--clock-color) 16%, var(--paper));
+  border-color: color-mix(in oklab, var(--clock-color) 55%, transparent);
+}
+
+.hud-card__clock--expired {
+  background: color-mix(in oklab, var(--bad) 18%, var(--paper));
   color: var(--bad);
-  border-color: color-mix(in oklab, var(--bad) 40%, transparent);
+  border-color: color-mix(in oklab, var(--bad) 60%, transparent);
 }
 
 .hud-card__clock--waiting {
   background: color-mix(in oklab, var(--warn) 16%, var(--paper));
   color: color-mix(in oklab, var(--warn) 80%, var(--ink));
   border-color: color-mix(in oklab, var(--warn) 50%, transparent);
+}
+
+/* ≤15s — gentle blink: noticeable, not strobing (O-59). */
+@keyframes clock-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.hud-card__clock--blink {
+  animation: clock-blink 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-card__clock--blink {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--bad);
+  }
 }
 
 .hud-card__avatar {

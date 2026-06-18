@@ -53,7 +53,7 @@ describe("HudCard", () => {
     expect(card.className).toContain("hud-card--opp");
   });
 
-  test("supports active/low clock states", () => {
+  test("supports active/warning/critical/waiting clock tones", () => {
     const { rerender } = render(
       <HudCard
         slot="you"
@@ -75,13 +75,28 @@ describe("HudCard", () => {
         avatar={<div />}
         name="Y"
         meta="m"
-        clock="0:30"
-        clockState="low"
+        clock="0:25"
+        clockState="warning"
         score={0}
       />,
     );
     expect(screen.getByTestId("hud-card-clock").className).toContain(
-      "hud-card__clock--low",
+      "hud-card__clock--warning",
+    );
+
+    rerender(
+      <HudCard
+        slot="you"
+        avatar={<div />}
+        name="Y"
+        meta="m"
+        clock="0:10"
+        clockState="critical"
+        score={0}
+      />,
+    );
+    expect(screen.getByTestId("hud-card-clock").className).toContain(
+      "hud-card__clock--critical",
     );
 
     rerender(
@@ -98,6 +113,58 @@ describe("HudCard", () => {
     expect(screen.getByTestId("hud-card-clock").className).toContain(
       "hud-card__clock--waiting",
     );
+  });
+
+  test("only the critical tone blinks", () => {
+    const { rerender } = render(
+      <HudCard
+        slot="you"
+        avatar={<div />}
+        name="Y"
+        meta="m"
+        clock="0:10"
+        clockState="critical"
+        score={0}
+      />,
+    );
+    expect(screen.getByTestId("hud-card-clock").className).toContain(
+      "hud-card__clock--blink",
+    );
+
+    rerender(
+      <HudCard
+        slot="you"
+        avatar={<div />}
+        name="Y"
+        meta="m"
+        clock="0:25"
+        clockState="warning"
+        score={0}
+      />,
+    );
+    expect(screen.getByTestId("hud-card-clock").className).not.toContain(
+      "hud-card__clock--blink",
+    );
+  });
+
+  test("exposes the urgency ratio as a --clock-urgency custom property", () => {
+    render(
+      <HudCard
+        slot="you"
+        avatar={<div />}
+        name="Y"
+        meta="m"
+        clock="0:15"
+        clockState="critical"
+        clockUrgency={0.5}
+        score={0}
+      />,
+    );
+    expect(
+      screen.getByTestId("hud-card-clock").style.getPropertyValue(
+        "--clock-urgency",
+      ),
+    ).toBe("0.5");
   });
 
   test("wraps the avatar in a .hud-card__avatar element so order/positioning rules can target it (issue #171)", () => {
