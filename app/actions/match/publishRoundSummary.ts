@@ -177,12 +177,36 @@ export async function publishRoundSummary(
 }
 
 /**
+ * Re-apply only THIS round's new freezes on top of freshly-loaded state.
+ *
+ * `computed` is `fresh-at-compute-time ∪ this-round`. The keys this round added
+ * are those in `computed` but not in `baseline` (freezes are monotonic — a tile
+ * never un-freezes mid-match). Layering just that delta onto the freshly-loaded
+ * `fresh` map preserves a concurrent round's freezes instead of clobbering them.
+ *
+ * Exported for unit testing.
+ */
+export function mergeNewFreezesOntoFresh(
+    fresh: FrozenTileMap,
+    baseline: FrozenTileMap,
+    computed: FrozenTileMap,
+): FrozenTileMap {
+    const merged: FrozenTileMap = { ...fresh };
+    for (const [key, tile] of Object.entries(computed)) {
+        if (!(key in baseline)) {
+            merged[key] = tile;
+        }
+    }
+    return merged;
+}
+
+/**
  * Persist frozen tiles atomically using conditional update (FR-027).
  *
  * Uses optimistic locking: the UPDATE only succeeds if the current
  * frozen_tiles value matches `previousFrozenTiles`. If stale (another
- * round updated first), reloads current state, recomputes merge, and
- * retries once.
+ * round updated first), reloads current state, re-applies only this round's
+ * new freezes onto it, and retries once.
  */
 async function persistFrozenTilesAtomically(
     supabase: ReturnType<typeof getServiceRoleClient>,
@@ -234,17 +258,32 @@ async function persistFrozenTilesAtomically(
             metadata: { reason: "Stale frozen_tiles, retrying with fresh state" },
         });
 
-        // Reload current frozen tiles and do a plain update as fallback
+        // Reload current frozen tiles and re-apply only THIS round's new
+        // freezes onto the fresh state. The previous implementation reloaded
+        // `match.frozen_tiles` but then ignored it and blindly wrote
+        // `newFrozenTiles` (computed against the now-stale baseline), silently
+        // dropping the concurrent round's freezes — a data-loss race
+        // (2026-06-18 code-quality review §2).
         const { data: match } = await supabase
             .from("matches")
             .select("frozen_tiles")
             .eq("id", matchId)
             .single();
 
+        const freshFrozenTiles =
+            match?.frozen_tiles && typeof match.frozen_tiles === "object"
+                ? (match.frozen_tiles as FrozenTileMap)
+                : {};
+        const mergedFrozenTiles = mergeNewFreezesOntoFresh(
+            freshFrozenTiles,
+            previousFrozenTiles,
+            newFrozenTiles,
+        );
+
         const { error: retryError } = await supabase
             .from("matches")
             .update({
-                frozen_tiles: newFrozenTiles,
+                frozen_tiles: mergedFrozenTiles,
                 updated_at: new Date().toISOString(),
             })
             .eq("id", matchId);

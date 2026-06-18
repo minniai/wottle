@@ -124,7 +124,20 @@ function deductTimerMs(
     return Math.max(0, timerMs - elapsed);
 }
 
-export async function advanceRound(matchId: string) {
+/** Discriminated result of a round-advance attempt. */
+export type AdvanceRoundResult =
+    | { status: "not_advancing"; reason: string }
+    | { status: "waiting"; received: number }
+    | { status: "completed"; reason: string }
+    | {
+          status: "advanced";
+          nextRound: number;
+          isGameOver: boolean;
+          acceptedMoves: number;
+          rejectedMoves: number;
+      };
+
+export async function advanceRound(matchId: string): Promise<AdvanceRoundResult> {
     const supabase = getServiceRoleClient();
     const roundStart = Date.now();
 
@@ -294,8 +307,8 @@ export async function advanceRound(matchId: string) {
             (match as MatchRow).frozen_tiles ??
             {}) as Record<string, { owner: string }>;
 
-    let scoringFinalBoard = boardAfter;
-    let scoringNewFrozenTiles: Record<string, unknown> = roundStartFrozenTiles;
+    let scoringFinalBoard: BoardGrid;
+    let scoringNewFrozenTiles: Record<string, unknown>;
     try {
         const scoringResult = await computeWordScoresForRound(
             matchId,
@@ -310,7 +323,20 @@ export async function advanceRound(matchId: string) {
         scoringFinalBoard = scoringResult.finalBoard;
         scoringNewFrozenTiles = scoringResult.newFrozenTiles ?? roundStartFrozenTiles;
     } catch (e) {
-        console.error("[WordEngine] Failed to compute word scores:", e);
+        // ABORT the transition rather than swallowing the failure. Previously
+        // this caught-and-continued, persisting the *unscored* board as
+        // `board_snapshot_after` and marking the round completed as if scoring
+        // had succeeded — corrupting the board snapshot and silently dropping
+        // the round's freezes (see 2026-06-18 code-quality review §1). By
+        // throwing here the round is left in `resolving` (step 9.5 already
+        // CAS-locked it), which is exactly the stuck shape that
+        // `recoverStuckRound`'s Shape A rolls forward idempotently on the next
+        // /state poll. The submitMove `after()` hook catches and logs this.
+        console.error(
+            "[WordEngine] Failed to compute word scores; aborting round transition (round left in resolving for recovery):",
+            e,
+        );
+        throw e instanceof Error ? e : new Error("Word scoring failed");
     }
 
     // 9c. Persist the word engine's authoritative board snapshot.

@@ -195,15 +195,37 @@ async function fetchPreviousTotals(
     : { playerA: 0, playerB: 0 };
 }
 
-function mapWordScores(entries: any[]): WordScore[] {
+/** Shape of a `word_score_entries` row as read by the loader. */
+interface WordScoreEntryRow {
+  player_id: string;
+  word: string;
+  length: number;
+  letters_points: number;
+  bonus_points: number;
+  total_points: number;
+  tiles: Coordinate[];
+}
+
+/**
+ * Defensively coerce a raw `matches.frozen_tiles` JSON value into a
+ * `FrozenTileMap`. Returns an empty map for null/non-object values rather than
+ * throwing — the polling hot path must never crash on a legacy or partially
+ * written frozen-tiles column. Replaces an `(match as any).frozen_tiles as
+ * FrozenTileMap` double-cast (2026-06-18 code-quality review §7).
+ */
+function coerceFrozenTileMap(value: unknown): FrozenTileMap {
+  return value && typeof value === "object" ? (value as FrozenTileMap) : {};
+}
+
+function mapWordScores(entries: WordScoreEntryRow[]): WordScore[] {
   return entries.map((entry) => ({
-    playerId: entry.player_id as string,
-    word: entry.word as string,
-    length: entry.length as number,
-    lettersPoints: entry.letters_points as number,
-    bonusPoints: entry.bonus_points as number,
-    totalPoints: entry.total_points as number,
-    coordinates: entry.tiles as Coordinate[],
+    playerId: entry.player_id,
+    word: entry.word,
+    length: entry.length,
+    lettersPoints: entry.letters_points,
+    bonusPoints: entry.bonus_points,
+    totalPoints: entry.total_points,
+    coordinates: entry.tiles,
   }));
 }
 
@@ -212,7 +234,7 @@ interface BuildPartialArgs {
   roundNumber: number;
   roundId: string;
   playerAId: string;
-  wordEntries: any[];
+  wordEntries: WordScoreEntryRow[];
   submissions: Array<{ player_id: string; submitted_at: string; status: string }>;
   frozenTiles: FrozenTileMap;
 }
@@ -239,10 +261,10 @@ function buildPartialSummary({
 }: BuildPartialArgs): PartialRoundSummary | null {
   if (!wordEntries.length) return null;
 
-  const playerIds = new Set(wordEntries.map((e) => e.player_id as string));
+  const playerIds = new Set(wordEntries.map((e) => e.player_id));
   if (playerIds.size !== 1) return null;
 
-  const firstMoverId = wordEntries[0].player_id as string;
+  const firstMoverId = wordEntries[0].player_id;
   const firstMoverSub = submissions
     .filter((s) => s.player_id === firstMoverId && s.status !== "timeout")
     .sort((a, b) => a.submitted_at.localeCompare(b.submitted_at))[0];
@@ -516,7 +538,7 @@ export async function loadMatchState(
       playerAId: match.player_a_id,
       wordEntries: wordEntries ?? [],
       submissions: typedSubs,
-      frozenTiles: ((match as any).frozen_tiles ?? {}) as FrozenTileMap,
+      frozenTiles: coerceFrozenTileMap((match as { frozen_tiles?: unknown }).frozen_tiles),
     });
 
     // Self-heal: if both players have real (non-timeout) submissions but the
@@ -635,7 +657,7 @@ export async function loadMatchState(
     },
     scores,
     lastSummary,
-    frozenTiles: (match as any).frozen_tiles ?? {},
+    frozenTiles: coerceFrozenTileMap((match as { frozen_tiles?: unknown }).frozen_tiles),
     disconnectedPlayerId,
     pendingMoves,
     partialSummary,
