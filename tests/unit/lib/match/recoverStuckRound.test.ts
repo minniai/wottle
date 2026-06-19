@@ -46,6 +46,7 @@ type RoundRow = {
     id: string;
     state: "collecting" | "resolving" | "completed";
     board_snapshot_before: string[][];
+    board_snapshot_after: string[][] | null;
     started_at: string | null;
     resolution_started_at: string | null;
 };
@@ -81,6 +82,7 @@ function buildMockClient({
     // Track writes for assertions
     const matchUpdates: Array<Record<string, unknown>> = [];
     const roundUpdates: Array<Record<string, unknown>> = [];
+    const roundInserts: Array<Record<string, unknown>> = [];
     const submissionUpdates: Array<{ id: string; patch: Record<string, unknown> }> = [];
 
     const from = vi.fn((table: string) => {
@@ -107,6 +109,10 @@ function buildMockClient({
                 update: vi.fn((patch: Record<string, unknown>) => {
                     roundUpdates.push(patch);
                     return { eq: vi.fn().mockResolvedValue({ error: null }) };
+                }),
+                insert: vi.fn((payload: Record<string, unknown>) => {
+                    roundInserts.push(payload);
+                    return Promise.resolve({ error: null });
                 }),
             };
         }
@@ -152,11 +158,13 @@ function buildMockClient({
         client: { from } as unknown as ReturnType<typeof getServiceRoleClient>,
         matchUpdates,
         roundUpdates,
+        roundInserts,
         submissionUpdates,
     };
 }
 
 const BOARD = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A"));
+const BOARD_AFTER = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "B"));
 
 function baseMatch(overrides: Partial<MatchRow> = {}): MatchRow {
     return {
@@ -180,6 +188,7 @@ function baseRound(overrides: Partial<RoundRow> = {}): RoundRow {
         id: ROUND_ID,
         state: "resolving",
         board_snapshot_before: BOARD,
+        board_snapshot_after: BOARD_AFTER,
         started_at: startedAt,
         resolution_started_at: new Date(Date.now() - 15_000).toISOString(),
         ...overrides,
@@ -317,6 +326,48 @@ describe("recoverStuckRound", () => {
             expect(matchUpdates.some((u) => u.current_round === 6 && u.state !== "completed")).toBe(true);
             // And the snapshot for round 5 gets backfilled for the chart
             expect(publishRoundSummary).toHaveBeenCalledWith(MATCH_ID, 5);
+        });
+
+        // O-79: when recovery advances current_round for a non-terminal round it
+        // MUST also create the next round row — otherwise current_round points at
+        // a round that doesn't exist, every submitMove returns "Round not found",
+        // and loadMatchState falls back to the regenerated initial board.
+        it("creates the next round row before advancing the match (non-terminal)", async () => {
+            const { client, matchUpdates, roundInserts } = buildMockClient({
+                match: baseMatch({ current_round: 6, frozen_tiles: { "0,0": { owner: PLAYER_A } } }),
+                round: baseRound({ state: "completed" }),
+                submissions: baseSubmissions("accepted"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            // Round 7 row inserted, seeded from the completed round's post-board
+            expect(roundInserts).toHaveLength(1);
+            const inserted = roundInserts[0];
+            expect(inserted.match_id).toBe(MATCH_ID);
+            expect(inserted.round_number).toBe(7);
+            expect(inserted.state).toBe("collecting");
+            expect(inserted.board_snapshot_before).toEqual(BOARD_AFTER);
+            expect(inserted.frozen_tiles_before).toEqual({ "0,0": { owner: PLAYER_A } });
+            expect(inserted.started_at).toBeTruthy();
+
+            // Match advanced to round 7, still in progress
+            expect(matchUpdates.some((u) => u.current_round === 7 && u.state !== "completed")).toBe(true);
+        });
+
+        it("does not create a next round when the recovered round is terminal (round 10)", async () => {
+            const { client, roundInserts } = buildMockClient({
+                match: baseMatch({ current_round: 10 }),
+                round: baseRound({ state: "completed" }),
+                submissions: baseSubmissions("accepted"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(roundInserts).toHaveLength(0);
+            expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
         });
     });
 

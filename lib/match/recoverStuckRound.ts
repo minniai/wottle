@@ -31,6 +31,7 @@ type RoundRow = {
     id: string;
     state: string;
     board_snapshot_before: unknown;
+    board_snapshot_after: unknown;
     started_at: string | null;
     resolution_started_at: string | null;
 };
@@ -54,12 +55,14 @@ type SubmissionRow = {
  *      (mark completed) didn't. We need to finalize scoring (idempotently) and
  *      mark the round completed, then fall through to shape B.
  *
- *   B) `round.state = "completed"` AND `match.state = "in_progress"` — step 11
- *      ran but step 14 (advance match) didn't. For terminal rounds (round 10
- *      or both timers exhausted) we advance the match to `completed` and call
- *      `completeMatchInternal`. For non-terminal rounds we advance
- *      `current_round` and create the next round — the existing submit-retry
- *      path normally handles these, but we're defensive here.
+ *      B) `round.state = "completed"` AND `match.state = "in_progress"` — step
+ *      11 ran but steps 13-14 (create next round + advance match) didn't. For
+ *      terminal rounds (round 10 or both timers exhausted) we advance the match
+ *      to `completed` and call `completeMatchInternal`. For non-terminal rounds
+ *      we create the next round row AND advance `current_round` — both, in that
+ *      order. Creating the round is not optional: nothing else does it once
+ *      `advanceRound` stalled here, and advancing `current_round` without it
+ *      strands the match on a non-existent round (O-79).
  *
  *   C) `match.state = "completed"` AND `winner_id IS NULL` — step 14 ran but
  *      step 16 (`completeMatchInternal`) threw. Just re-invoke it;
@@ -138,7 +141,9 @@ async function loadCurrentRound(
 ): Promise<RoundRow | null> {
     const { data, error } = await supabase
         .from("rounds")
-        .select("id, state, board_snapshot_before, started_at, resolution_started_at")
+        .select(
+            "id, state, board_snapshot_before, board_snapshot_after, started_at, resolution_started_at",
+        )
         .eq("match_id", matchId)
         .eq("round_number", roundNumber)
         .single();
@@ -242,10 +247,52 @@ async function finalizeCompletedRound(
         updatePayload.completed_at = new Date().toISOString();
     }
 
+    // O-79: create round N+1 BEFORE advancing the match, mirroring
+    // advanceRound step 13. Skipping this left `current_round` pointing at a
+    // round that never existed — every subsequent submitMove returned
+    // "Round not found" and loadMatchState fell back to the regenerated initial
+    // board. Done before the match update so `current_round` is never ahead of
+    // an existing round row.
+    if (!isGameOver) {
+        await createNextRound(supabase, match, round, nextRound);
+    }
+
     await supabase.from("matches").update(updatePayload).eq("id", match.id);
 
     if (isGameOver) {
         await runCompleteMatch(match.id, nextRound > 10 ? "round_limit" : "timeout");
+    }
+}
+
+/**
+ * Insert the next round seeded from the just-completed round's authoritative
+ * post-board (`board_snapshot_after`) and the match's current freeze map —
+ * the same inputs `advanceRound` step 13 uses. Idempotent: a concurrent
+ * `advanceRound` that resumes after Vercel termination may also try to create
+ * round N+1, so a duplicate hit on the `(match_id, round_number)` unique
+ * constraint is logged and ignored rather than thrown.
+ */
+async function createNextRound(
+    supabase: Supabase,
+    match: MatchRow,
+    round: RoundRow,
+    nextRound: number,
+): Promise<void> {
+    const boardBefore = round.board_snapshot_after ?? round.board_snapshot_before;
+
+    const { error } = await supabase.from("rounds").insert({
+        match_id: match.id,
+        round_number: nextRound,
+        state: "collecting",
+        board_snapshot_before: boardBefore,
+        frozen_tiles_before: match.frozen_tiles ?? {},
+        started_at: new Date().toISOString(),
+    });
+
+    // 23505 = unique_violation: round N+1 already created by a racing
+    // advanceRound — that's the desired end state, so treat it as success.
+    if (error && error.code !== "23505") {
+        console.error("[recoverStuckRound] failed to create next round:", error);
     }
 }
 
