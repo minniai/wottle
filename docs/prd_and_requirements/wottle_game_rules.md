@@ -153,7 +153,7 @@ total = letter_points + length_bonus
 
 ### 5.1 Letter points
 
-- Sum of the per-letter values from the language's scoring table (`lib/game-engine/letter-values/letter_scoring_values_<lang>.ts`). Icelandic: A=1, Á=4, Ð=2, X=10, etc. Unknown characters default to 1.
+- Sum of the per-letter values from the language's scoring table (`lib/game-engine/letter-values/letter_scoring_values_<lang>.ts`). Icelandic: Krafla distribution (A=1, Á=3, Ð=2, Æ=4, X=10, etc. — 32 letters, no C/Q/W/Z). Unknown characters default to 1.
 - **Opponent-frozen tiles do not contribute** to letter points. A word that spans opponent-frozen tiles still scores (the word is valid), but only the player's own tiles (and unfrozen tiles the word freezes) contribute their letter values.
 
 ### 5.2 Length bonus
