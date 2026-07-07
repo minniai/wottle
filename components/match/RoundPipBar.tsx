@@ -33,7 +33,7 @@ export function RoundPipBar({ current, total }: RoundPipBarProps) {
             key={i}
             data-testid="round-pip"
             data-state={state}
-            className={`w-5.5 rounded- transition-colors ${PIP_CLASSES[state]}`}
+            className={`w-[22px] rounded-[2px] transition-colors ${PIP_CLASSES[state]}`}
           />
         );
       })}
