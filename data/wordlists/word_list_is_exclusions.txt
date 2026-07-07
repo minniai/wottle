@@ -1,0 +1,6 @@
+# Curated exclusions from the raw BÍN word list.
+# One word per line; lines starting with # and blank lines are ignored.
+# Entries here are removed from the dictionary at load time — use for BÍN
+# entries that players reject as real playable words.
+# O-81: sýs scored but is not accepted as a playable word
+sýs
