@@ -4,5 +4,3 @@
 # entries that players reject as real playable words.
 # O-81: sýs scored but is not accepted as a playable word
 sýs
-# O-69: ílæti scored but is not accepted as a playable word
-ílæti

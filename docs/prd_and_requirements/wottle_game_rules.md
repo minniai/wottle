@@ -68,7 +68,7 @@ The word length must be at least **`minimumWordLength`**, currently **3** (set i
 
 ### 3.3 Dictionary membership
 
-The word, normalized to NFC and lowercased, must be present in the active language's dictionary. For Icelandic, this is the full inflected BÍN word list (~3.74M entries), loaded once at runtime from `data/wordlists/word_list_is.txt`, **with a curation overlay applied at load time**: `word_list_is_additions.txt` patches real words missing from the BÍN extraction (e.g. the *kóla* paradigm, Linear O-70), and `word_list_is_exclusions.txt` removes BÍN entries rejected as playable words (e.g. *sýs* O-81, *ílæti* O-69). Exclusions win over additions. Overlay files accept one word per line with `#` comments; entries are NFC-normalized and lowercased on load.
+The word, normalized to NFC and lowercased, must be present in the active language's dictionary. For Icelandic, this is the full inflected BÍN word list (~3.74M entries), loaded once at runtime from `data/wordlists/word_list_is.txt`. **The dictionary accepts BÍN entries and nothing else** — there is no additions mechanism; if a real word is missing (e.g. the *kóla* paradigm, Linear O-70), the fix is regenerating the wordlist from BÍN upstream, never an in-repo addition. A small exclusions file, `word_list_is_exclusions.txt`, is subtracted at load time to remove BÍN entries rejected as playable words (e.g. *sýs*, Linear O-81); it accepts one word per line with `#` comments, NFC-normalized and lowercased on load. Accented and unaccented vowels are distinct letters: *ílæti* is a valid BÍN word while *ilæti*/*itæli* are not, and lookups never conflate them (O-69).
 
 ### 3.4 Triggered by this round's swap
 

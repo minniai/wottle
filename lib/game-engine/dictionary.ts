@@ -21,12 +21,11 @@ export class DictionaryLoadError extends Error {
 /** Per-language wordlist paths and minimum entry counts to detect corrupt/partial files. */
 const LANGUAGE_DICTIONARY_CONFIG: Record<
   Language,
-  { file: string; minEntries: number; additionsFile?: string; exclusionsFile?: string }
+  { file: string; minEntries: number; exclusionsFile?: string }
 > = {
   is: {
     file: "data/wordlists/word_list_is.txt",
     minEntries: 2_000_000,
-    additionsFile: "data/wordlists/word_list_is_additions.txt",
     exclusionsFile: "data/wordlists/word_list_is_exclusions.txt",
   },
   en: { file: "data/wordlists/word_list_en.txt", minEntries: 10_000 },
@@ -36,11 +35,11 @@ const LANGUAGE_DICTIONARY_CONFIG: Record<
 };
 
 /**
- * Read a curation overlay file (additions or exclusions) into a word array.
- * Overlay files are small, hand-edited lists: entries are NFC-normalized and
- * lowercased defensively; blank lines and `#` comment lines are ignored.
+ * Read a curation exclusions file into a word array. The file is a small,
+ * hand-edited list: entries are NFC-normalized and lowercased defensively;
+ * blank lines and `#` comment lines are ignored.
  */
-function readOverlayWords(file: string | undefined): string[] {
+function readExclusionWords(file: string | undefined): string[] {
   if (!file) {
     return [];
   }
@@ -53,18 +52,16 @@ function readOverlayWords(file: string | undefined): string[] {
 }
 
 /**
- * Apply the language's curation overlay to a freshly loaded dictionary:
- * additions patch coverage gaps in the raw extraction, exclusions remove
- * entries players rejected as playable words. Exclusions win over additions.
+ * Remove curated exclusions from a freshly loaded dictionary. Only removal
+ * is supported: the dictionary accepts BÍN entries and nothing else, so a
+ * missing real word is a wordlist-extraction bug to fix upstream, never an
+ * in-repo addition.
  */
-function applyCurationOverlay(
+function applyExclusions(
   words: Set<string>,
-  config: { additionsFile?: string; exclusionsFile?: string },
+  config: { exclusionsFile?: string },
 ): void {
-  for (const word of readOverlayWords(config.additionsFile)) {
-    words.add(word);
-  }
-  for (const word of readOverlayWords(config.exclusionsFile)) {
+  for (const word of readExclusionWords(config.exclusionsFile)) {
     words.delete(word);
   }
 }
@@ -118,7 +115,7 @@ export async function loadDictionary(
     const words = new Set(raw.split("\n"));
     words.delete(""); // Remove any empty entries
 
-    applyCurationOverlay(words, config);
+    applyExclusions(words, config);
 
     // Validate minimum entry count to detect corrupt/partial files (FR-001a)
     if (words.size < minEntries) {
