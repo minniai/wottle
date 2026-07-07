@@ -21,14 +21,53 @@ export class DictionaryLoadError extends Error {
 /** Per-language wordlist paths and minimum entry counts to detect corrupt/partial files. */
 const LANGUAGE_DICTIONARY_CONFIG: Record<
   Language,
-  { file: string; minEntries: number }
+  { file: string; minEntries: number; additionsFile?: string; exclusionsFile?: string }
 > = {
-  is: { file: "data/wordlists/word_list_is.txt", minEntries: 2_000_000 },
+  is: {
+    file: "data/wordlists/word_list_is.txt",
+    minEntries: 2_000_000,
+    additionsFile: "data/wordlists/word_list_is_additions.txt",
+    exclusionsFile: "data/wordlists/word_list_is_exclusions.txt",
+  },
   en: { file: "data/wordlists/word_list_en.txt", minEntries: 10_000 },
   se: { file: "data/wordlists/word_list_se.txt", minEntries: 100_000 },
   no: { file: "data/wordlists/word_list_no.txt", minEntries: 100_000 },
   dk: { file: "data/wordlists/word_list_dk.txt", minEntries: 100_000 },
 };
+
+/**
+ * Read a curation overlay file (additions or exclusions) into a word array.
+ * Overlay files are small, hand-edited lists: entries are NFC-normalized and
+ * lowercased defensively; blank lines and `#` comment lines are ignored.
+ */
+function readOverlayWords(file: string | undefined): string[] {
+  if (!file) {
+    return [];
+  }
+  const raw = readFileSync(resolve(process.cwd(), file), "utf-8");
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .map((line) => line.normalize("NFC").toLowerCase());
+}
+
+/**
+ * Apply the language's curation overlay to a freshly loaded dictionary:
+ * additions patch coverage gaps in the raw extraction, exclusions remove
+ * entries players rejected as playable words. Exclusions win over additions.
+ */
+function applyCurationOverlay(
+  words: Set<string>,
+  config: { additionsFile?: string; exclusionsFile?: string },
+): void {
+  for (const word of readOverlayWords(config.additionsFile)) {
+    words.add(word);
+  }
+  for (const word of readOverlayWords(config.exclusionsFile)) {
+    words.delete(word);
+  }
+}
 
 /** Per-language singleton caches for loaded dictionaries. */
 const cachedDictionaries = new Map<Language, Set<string>>();
@@ -55,7 +94,8 @@ export async function loadDictionary(
     return cached;
   }
 
-  const { file, minEntries } = LANGUAGE_DICTIONARY_CONFIG[language];
+  const config = LANGUAGE_DICTIONARY_CONFIG[language];
+  const { file, minEntries } = config;
   const wordlistPath = resolve(process.cwd(), file);
 
   const startMark = `dictionary-load-start-${language}`;
@@ -77,6 +117,8 @@ export async function loadDictionary(
     // Constructing Set from split array avoids per-line normalization overhead.
     const words = new Set(raw.split("\n"));
     words.delete(""); // Remove any empty entries
+
+    applyCurationOverlay(words, config);
 
     // Validate minimum entry count to detect corrupt/partial files (FR-001a)
     if (words.size < minEntries) {
