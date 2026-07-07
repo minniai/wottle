@@ -1,0 +1,42 @@
+---
+config:
+  layout: dagre
+  theme: mc
+---
+stateDiagram
+    [*] --> Collecting : round row inserted<br>(state=collecting, started_at set)
+
+    state Collecting {
+          [*] --> WaitingForMoves
+          WaitingForMoves --> OneSubmitted : a player submits move<br>(registerSubmission → accepted)
+          OneSubmitted --> WaitingForMoves : duplicate of opponent<br>(ignored_same_move)
+          OneSubmitted --> BothReady : second player submits
+          OneSubmitted --> TimeoutSynth : opponent's clock expired<br>(maybeSynthesizeTimeoutPass)
+          TimeoutSynth --> BothReady
+      }
+
+      Collecting --> MatchCompleted : both clocks flagged<br>(<2 subs, both expired →<br>completeMatchInternal "timeout")
+      BothReady --> Resolving : CAS update<br>state collecting→resolving<br>(serializes concurrent advanceRound)
+      Resolving --> Collecting : CAS lost<br>(another caller won → exit)
+
+      state Resolving {
+          [*] --> ConflictResolution : resolveConflicts<br>(FCFS by timestamp)
+          ConflictResolution --> ApplySwaps : applySwap sequentially<br>(bad swaps → rejected)
+          ApplySwaps --> WordScoring : computeWordScoresForRound<br>(scan, score, freeze tiles)
+          WordScoring --> ScoringFailed : throws
+          WordScoring --> PersistSnapshot : board_snapshot_after =<br>scoringFinalBoard
+          PersistSnapshot --> UpdateSubmissions : accepted / rejected_invalid
+          UpdateSubmissions --> DeductTimers : subtract elapsed per player
+      }
+
+      ScoringFailed --> [*] : round left in 'resolving'<br>for recoverStuckRound (Shape A)
+
+      DeductTimers --> RoundCompleted : state=completed,<br>completed_at set
+
+      RoundCompleted --> NextRoundCheck
+
+      state NextRoundCheck <<choice>>
+      NextRoundCheck --> Collecting : not game over<br>insert round N+1<br>(board + frozen_tiles snapshot)
+      NextRoundCheck --> MatchCompleted : nextRound>10 OR<br>both timers exhausted
+
+      MatchCompleted --> [*] : publishRoundSummary +<br>completeMatchInternal
