@@ -5,7 +5,6 @@ export const LETTER_SCORING_VALUES_IS = {
   A: 1,
   Á: 3,
   B: 5,
-  C: 1,
   D: 5,
   Ð: 2,
   E: 3,
@@ -32,8 +31,7 @@ export const LETTER_SCORING_VALUES_IS = {
   X: 10,
   Y: 6,
   Ý: 5,
-  Z: 1,
   Þ: 7,
-  Æ: 6,
+  Æ: 4,
   Ö: 6,
 };
