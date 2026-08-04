@@ -1,7 +1,7 @@
 import { GameConfig } from '../types';
 
 export const DEFAULT_GAME_CONFIG: GameConfig = {
-  maxRounds: 5,
+  maxRounds: 10,
   timePerRoundMs: 60000,
   // Per PRD §1.2 — a valid word is a sequence of 3 or more letters.
   // The entire scoring pipeline reads this constant: scanner, cross-validator,
