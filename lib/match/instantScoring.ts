@@ -103,22 +103,54 @@ export async function instantScoreFirstSubmission(
   matchId: string,
 ): Promise<InstantScoringResult> {
   const startedAt = performance.now();
+  const trace = createTrace(startedAt);
 
   try {
     return await Promise.race([
-      runFastPath(matchId, startedAt),
-      timeoutAfter(INSTANT_SCORING_TIMEOUT_MS, matchId),
+      runFastPath(matchId, startedAt, trace),
+      timeoutAfter(INSTANT_SCORING_TIMEOUT_MS, matchId, trace),
     ]);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    trackInstantScoringFailed({ matchId, roundNumber: 0, reason });
+    trackInstantScoringFailed({
+      matchId,
+      roundNumber: trace.roundNumber,
+      reason,
+      lastPhase: trace.lastPhase,
+      phases: trace.phases,
+    });
     return { status: "failed", reason };
   }
+}
+
+/**
+ * Mutable diagnostic record shared between `runFastPath` and the timeout
+ * branch. The timeout fires from a detached `setTimeout` that has no view of
+ * how far the fast path got, so the two must communicate through this object:
+ * without it the failure log carried `roundNumber: 0` and no attribution, and
+ * 21 production timeouts in one match told us nothing about their cause.
+ */
+interface FastPathTrace {
+  startedAt: number;
+  roundNumber: number;
+  lastPhase: string;
+  phases: Record<string, number>;
+}
+
+function createTrace(startedAt: number): FastPathTrace {
+  return { startedAt, roundNumber: 0, lastPhase: "start", phases: {} };
+}
+
+/** Record cumulative elapsed time at a phase boundary. */
+function markPhase(trace: FastPathTrace, phase: string): void {
+  trace.phases[phase] = Math.round(performance.now() - trace.startedAt);
+  trace.lastPhase = phase;
 }
 
 async function runFastPath(
   matchId: string,
   startedAt: number,
+  trace: FastPathTrace,
 ): Promise<InstantScoringResult> {
   const supabase = getServiceRoleClient();
 
@@ -126,17 +158,21 @@ async function runFastPath(
   if (!match) {
     return { status: "failed", reason: "match-not-found" };
   }
+  trace.roundNumber = match.current_round;
+  markPhase(trace, "match-loaded");
 
   const round = await loadCurrentRound(supabase, matchId, match.current_round);
   if (!round) {
     return { status: "failed", reason: "round-not-found" };
   }
+  markPhase(trace, "round-loaded");
 
   if (round.state !== "collecting") {
     return { status: "deferred-to-combined", reason: "race-window" };
   }
 
   const pending = await loadPendingSubmissions(supabase, round.id);
+  markPhase(trace, "submissions-loaded");
 
   // FR-007: defer to combined path when the second submission already arrived.
   if (pending.length >= 2) {
@@ -176,6 +212,7 @@ async function runFastPath(
   // window down to a few fast DB round-trips. "is" matches the default
   // language `computeWordScoresForRound` → `processRoundScoring` resolves.
   await loadDictionary("is");
+  markPhase(trace, "dictionary-warmed");
 
   // Pre-write guard (Linear O-58/O-70/O-71): the round was `collecting` when
   // loaded above, but by now the combined path may have resolved it — either
@@ -193,6 +230,7 @@ async function runFastPath(
     });
     return { status: "deferred-to-combined", reason: "race-window" };
   }
+  markPhase(trace, "recheck");
 
   const scoringResult = await computeWordScoresForRound(
     matchId,
@@ -214,6 +252,8 @@ async function runFastPath(
     frozenTiles,
   );
 
+  markPhase(trace, "scoring");
+
   if (scoringResult.wordScores.length === 0) {
     return { status: "no-score", reason: "swap-produced-no-words" };
   }
@@ -230,6 +270,7 @@ async function runFastPath(
   // derives `partialSummary` from the word_score_entries we just wrote +
   // matches.frozen_tiles. So no manual state merging is needed here.
   await publishMatchState(matchId);
+  markPhase(trace, "published");
 
   const durationMs = performance.now() - startedAt;
   trackInstantScoringFired({
@@ -238,6 +279,7 @@ async function runFastPath(
     playerId: firstMover.player_id,
     wordCount: partial.words.length,
     durationMs: Math.round(durationMs),
+    phases: trace.phases,
   });
 
   return { status: "fired", partial, durationMs };
@@ -246,10 +288,17 @@ async function runFastPath(
 function timeoutAfter(
   ms: number,
   matchId: string,
+  trace: FastPathTrace,
 ): Promise<InstantScoringResult> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      trackInstantScoringFailed({ matchId, roundNumber: 0, reason: "timeout" });
+      trackInstantScoringFailed({
+        matchId,
+        roundNumber: trace.roundNumber,
+        reason: "timeout",
+        lastPhase: trace.lastPhase,
+        phases: trace.phases,
+      });
       resolve({ status: "failed", reason: "timeout" });
     }, ms);
   });

@@ -8,6 +8,13 @@ import { logPlaytestError, logPlaytestInfo } from "./log";
  * failure rate?" without scraping arbitrary log strings.
  */
 
+/**
+ * Milliseconds elapsed from the start of the fast path to the completion of
+ * each named phase (`match-loaded`, `dictionary-warmed`, `scoring`, …).
+ * Cumulative, not per-phase deltas — subtract adjacent entries for a stage cost.
+ */
+export type InstantScoringPhaseTimings = Record<string, number>;
+
 export interface InstantScoringFiredPayload {
   matchId: string;
   roundNumber: number;
@@ -16,6 +23,8 @@ export interface InstantScoringFiredPayload {
   wordCount: number;
   /** Wall-clock duration of the fast path in milliseconds. */
   durationMs: number;
+  /** Per-phase timings — the healthy baseline to compare timeouts against. */
+  phases?: InstantScoringPhaseTimings;
 }
 
 export interface InstantScoringDeferredPayload {
@@ -32,6 +41,13 @@ export interface InstantScoringFailedPayload {
   playerId?: string;
   /** Short machine-readable reason ("timeout", "scoring-threw", "db-error", etc.). */
   reason: string;
+  /**
+   * Last phase the fast path completed before failing. On a `timeout` this is
+   * the attribution: the stall is in whatever phase comes *after* this one.
+   */
+  lastPhase?: string;
+  /** Per-phase timings recorded up to the failure. */
+  phases?: InstantScoringPhaseTimings;
 }
 
 export function trackInstantScoringFired(payload: InstantScoringFiredPayload): void {
@@ -42,6 +58,7 @@ export function trackInstantScoringFired(payload: InstantScoringFiredPayload): v
     metadata: {
       wordCount: payload.wordCount,
       durationMs: payload.durationMs,
+      phases: payload.phases,
     },
   });
 }
@@ -59,6 +76,10 @@ export function trackInstantScoringFailed(payload: InstantScoringFailedPayload):
     matchId: payload.matchId,
     roundNumber: payload.roundNumber,
     playerId: payload.playerId,
-    metadata: { reason: payload.reason },
+    metadata: {
+      reason: payload.reason,
+      lastPhase: payload.lastPhase,
+      phases: payload.phases,
+    },
   });
 }
