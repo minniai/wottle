@@ -1,0 +1,118 @@
+{
+  "projectId": "38c0454e-8e66-4b9a-a3b6-2ba9d5fa58cf",
+  "shape": "package",
+  "pkg": "wottle",
+  "globalName": "Wottle",
+  "srcDir": "components",
+  "tsconfig": ".design-sync/tsconfig.sync.json",
+  "buildCmd": "node .design-sync/build-css.mjs",
+  "cssEntry": ".design-sync/.cache/compiled/wottle.css",
+  "componentSrcMap": {
+    "Avatar": "components/ui/Avatar.tsx",
+    "Badge": "components/ui/Badge.tsx",
+    "Button": "components/ui/Button.tsx",
+    "Card": "components/ui/Card.tsx",
+    "Dialog": "components/ui/Dialog.tsx",
+    "GearMenu": "components/ui/GearMenu.tsx",
+    "LogoutConfirmDialog": "components/ui/LogoutConfirmDialog.tsx",
+    "SettingsPanel": "components/ui/SettingsPanel.tsx",
+    "Skeleton": "components/ui/Skeleton.tsx",
+    "Toast": "components/ui/Toast.tsx",
+    "ToastProvider": "components/ui/ToastProvider.tsx",
+    "Board": "components/game/Board.tsx",
+    "BoardCoordLabels": "components/game/BoardCoordLabels.tsx",
+    "BoardGrid": "components/game/BoardGrid.tsx",
+    "MoveFeedback": "components/game/MoveFeedback.tsx",
+    "EmptyLobbyState": "components/lobby/EmptyLobbyState.tsx",
+    "InviteToast": "components/lobby/InviteToast.tsx",
+    "LobbyCard": "components/lobby/LobbyCard.tsx",
+    "LobbyDirectory": "components/lobby/LobbyDirectory.tsx",
+    "LobbyHero": "components/lobby/LobbyHero.tsx",
+    "RecentGamesCard": "components/lobby/RecentGamesCard.tsx",
+    "TopOfBoardCard": "components/lobby/TopOfBoardCard.tsx",
+    "DisconnectionModal": "components/match/DisconnectionModal.tsx",
+    "HowToPlayCard": "components/match/HowToPlayCard.tsx",
+    "HudCard": "components/match/HudCard.tsx",
+    "LegendCard": "components/match/LegendCard.tsx",
+    "MatchCenterChrome": "components/match/MatchCenterChrome.tsx",
+    "MatchLeftRail": "components/match/MatchLeftRail.tsx",
+    "MatchShell": "components/match/MatchShell.tsx",
+    "PlayerAvatar": "components/match/PlayerAvatar.tsx",
+    "PlayerPanel": "components/match/PlayerPanel.tsx",
+    "PostGameScoreboard": "components/match/PostGameScoreboard.tsx",
+    "PostGameVerdict": "components/match/PostGameVerdict.tsx",
+    "RematchBanner": "components/match/RematchBanner.tsx",
+    "RematchInterstitial": "components/match/RematchInterstitial.tsx",
+    "RoundByRoundChart": "components/match/RoundByRoundChart.tsx",
+    "RoundHistoryPanel": "components/match/RoundHistoryPanel.tsx",
+    "RoundPipBar": "components/match/RoundPipBar.tsx",
+    "RoundSummaryPanel": "components/match/RoundSummaryPanel.tsx",
+    "ScoreDeltaPopup": "components/match/ScoreDeltaPopup.tsx",
+    "ScoredWordsCard": "components/match/ScoredWordsCard.tsx",
+    "TilesClaimedCard": "components/match/TilesClaimedCard.tsx",
+    "TimerDisplay": "components/match/TimerDisplay.tsx",
+    "WordHighlightOverlay": "components/match/WordHighlightOverlay.tsx",
+    "WordsOfMatch": "components/match/WordsOfMatch.tsx",
+    "YourMoveCard": "components/match/YourMoveCard.tsx",
+    "MatchRing": "components/matchmaking/MatchRing.tsx",
+    "MatchmakingVsBlock": "components/matchmaking/MatchmakingVsBlock.tsx",
+    "PlayerProfileModal": "components/player/PlayerProfileModal.tsx",
+    "ProfileActions": "components/player/ProfileActions.tsx",
+    "ProfileFormChips": "components/player/ProfileFormChips.tsx",
+    "ProfileSparkline": "components/player/ProfileSparkline.tsx",
+    "ProfileMatchHistoryList": "components/profile/ProfileMatchHistoryList.tsx",
+    "ProfilePage": "components/profile/ProfilePage.tsx",
+    "ProfileRatingChart": "components/profile/ProfileRatingChart.tsx",
+    "ProfileSidebar": "components/profile/ProfileSidebar.tsx",
+    "ProfileStat": "components/profile/ProfileStat.tsx",
+    "ProfileWordCloud": "components/profile/ProfileWordCloud.tsx"
+  },
+  "entry": "./.design-sync/ds-entry.ts",
+  "docsMap": {
+    "Avatar": ".design-sync/docs/ui/Avatar.md",
+    "Badge": ".design-sync/docs/ui/Badge.md",
+    "Button": ".design-sync/docs/ui/Button.md",
+    "Card": ".design-sync/docs/ui/Card.md",
+    "Dialog": ".design-sync/docs/ui/Dialog.md",
+    "GearMenu": ".design-sync/docs/ui/GearMenu.md",
+    "LogoutConfirmDialog": ".design-sync/docs/ui/LogoutConfirmDialog.md",
+    "SettingsPanel": ".design-sync/docs/ui/SettingsPanel.md",
+    "Skeleton": ".design-sync/docs/ui/Skeleton.md",
+    "Toast": ".design-sync/docs/ui/Toast.md",
+    "ToastProvider": ".design-sync/docs/ui/ToastProvider.md"
+  },
+  "extraFonts": [
+    ".design-sync/fonts/fonts.css"
+  ],
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "640x520"
+    },
+    "Board": {
+      "cardMode": "column"
+    },
+    "BoardGrid": {
+      "cardMode": "column"
+    },
+    "InviteToast": {
+      "cardMode": "single",
+      "primaryStory": "IncomingChallenge"
+    },
+    "ProfileStat": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "libOverrides": {
+    "dts.mjs": "no dist .d.ts tree — parse component .tsx sources (with @/* alias) for <Name>Props"
+  },
+  "dtsPropsFor": {
+    "HowToPlayCard": "/** This component takes no props. */",
+    "LegendCard": "/** This component takes no props. */",
+    "GearMenu": "/** This component takes no props. */",
+    "LobbyHero": "/** This component takes no props. */",
+    "RematchInterstitial": "/** This component takes no props. */",
+    "ToastProvider": "children?: React.ReactNode;"
+  }
+}
