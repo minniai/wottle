@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": "..",
+    "jsx": "preserve",
+    "paths": {
+      "server-only": [".design-sync/stubs/server-only.ts"],
+      "next/link": [".design-sync/stubs/next-link.tsx"],
+      "next/navigation": [".design-sync/stubs/next-navigation.ts"],
+      "next/headers": [".design-sync/stubs/next-headers.ts"],
+      "@/app/actions/player/getPlayerProfile": [
+        ".design-sync/stubs/getPlayerProfile.ts"
+      ],
+      "@/*": ["./*"]
+    }
+  }
+}
