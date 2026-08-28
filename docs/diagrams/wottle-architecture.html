@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wottle · Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1200px; width: 100%; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .sub {
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 60ch;
+    }
+
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Wottle</p>
+    <h1>Wottle at a glance — client, server, data</h1>
+    <p class="sub">A two-player Icelandic word duel. The browser only renders and submits; every board mutation, word validation and score is computed server-side and pushed back over Supabase Realtime.</p>
+
+    <svg viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="wottle-architecture-title wottle-architecture-desc">
+      <title id="wottle-architecture-title">Wottle at a glance — client, server, data</title>
+      <desc id="wottle-architecture-desc">Architecture diagram showing the player's browser calling Next.js Server Actions and polling API routes, the server-side match orchestration and word engine, and Supabase Postgres and Realtime pushing match state back to the browser.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- Zones (bg → zones → arrows → nodes) -->
+      <!-- Client -->
+      <rect x="40" y="136" width="160" height="264" rx="8"
+            fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="92" y="140" width="56" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="120" y="149" fill="rgba(45,49,66,0.40)" font-size="7" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.14em">CLIENT</text>
+
+      <!-- Server -->
+      <rect x="296" y="136" width="432" height="264" rx="8"
+            fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="440" y="140" width="144" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="512" y="149" fill="rgba(45,49,66,0.40)" font-size="7" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.14em">SERVER · NEXT.JS ON VERCEL</text>
+
+      <!-- Data -->
+      <rect x="768" y="136" width="192" height="264" rx="8"
+            fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="812" y="140" width="104" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="864" y="149" fill="rgba(45,49,66,0.40)" font-size="7" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.14em">DATA · SUPABASE</text>
+
+      <!-- Arrows (before boxes) -->
+      <!-- A: Browser → Server Actions -->
+      <path d="M 192,256 H 252 Q 260,256 260,248 V 216 Q 260,208 268,208 H 328"
+            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <!-- B: Browser → API routes (polling fallback, dashed) -->
+      <path d="M 192,288 H 252 Q 260,288 260,296 V 328 Q 260,336 268,336 H 328"
+            fill="none" stroke="#2e5aa8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-link)"/>
+      <!-- C: Server Actions → Match orchestration (primary flow) -->
+      <line x1="472" y1="208" x2="536" y2="208" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <!-- D: API routes → Match orchestration -->
+      <path d="M 472,328 H 496 Q 504,328 504,320 V 232 Q 504,224 512,224 H 536"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- E: Match orchestration → Word engine -->
+      <line x1="616" y1="240" x2="616" y2="304" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- F: Match orchestration → Postgres -->
+      <line x1="696" y1="200" x2="784" y2="200" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- G: Match orchestration → Realtime -->
+      <path d="M 696,216 H 732 Q 740,216 740,224 V 328 Q 740,336 748,336 H 784"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- H: Realtime → Browser (websocket push, routed under the zones) -->
+      <path d="M 864,368 V 424 Q 864,432 856,432 H 136 Q 128,432 128,424 V 304"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- Arrow labels (masked, 6–10px off the stroke) -->
+      <rect x="276" y="188" width="44" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="298" y="197" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ACTIONS</text>
+
+      <rect x="268" y="316" width="56" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="296" y="325" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">POLL /STATE</text>
+
+      <rect x="486" y="188" width="36" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="504" y="197" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SUBMIT</text>
+
+      <rect x="512" y="264" width="52" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="538" y="273" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">LOAD STATE</text>
+
+      <rect x="624" y="264" width="36" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="642" y="273" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SCORE</text>
+
+      <rect x="708" y="180" width="64" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="740" y="189" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">READ / WRITE</text>
+
+      <rect x="748" y="264" width="52" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="774" y="273" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BROADCAST</text>
+
+      <rect x="468" y="412" width="64" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="500" y="421" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">MATCH STATE</text>
+
+      <!-- Node: Player browser (Input / User) -->
+      <rect x="48" y="240" width="144" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="48" y="240" width="144" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <rect x="56" y="248" width="28" height="12" rx="2" fill="transparent" stroke="rgba(122,131,153,0.40)" stroke-width="0.8"/>
+      <text x="70" y="257" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">WEB</text>
+      <text x="120" y="276" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Player browser</text>
+      <text x="120" y="292" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">React 19 · MatchClient</text>
+
+      <!-- Node: Server Actions (Backend) -->
+      <rect x="328" y="176" width="144" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="328" y="176" width="144" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="336" y="184" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="350" y="193" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">RPC</text>
+      <text x="400" y="212" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Server Actions</text>
+      <text x="400" y="228" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">app/actions/* · Zod</text>
+
+      <!-- Node: API routes (Backend) -->
+      <rect x="328" y="304" width="144" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="328" y="304" width="144" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="336" y="312" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="350" y="321" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="400" y="340" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">API routes</text>
+      <text x="400" y="356" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">app/api/* · fallback</text>
+
+      <!-- Node: Match orchestration (focal) -->
+      <rect x="536" y="176" width="160" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="536" y="176" width="160" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <rect x="544" y="184" width="32" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="560" y="193" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CORE</text>
+      <text x="616" y="212" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Match orchestration</text>
+      <text x="616" y="228" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">lib/match · roundEngine</text>
+
+      <!-- Node: Word engine (Backend) -->
+      <rect x="536" y="304" width="160" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="536" y="304" width="160" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="544" y="312" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="558" y="321" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ENG</text>
+      <text x="616" y="340" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Word engine</text>
+      <text x="616" y="356" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">lib/game-engine · BÍN dict</text>
+
+      <!-- Node: Supabase Postgres (Store) -->
+      <rect x="784" y="176" width="160" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="784" y="176" width="160" height="64" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="792" y="184" width="28" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+      <text x="806" y="193" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
+      <text x="864" y="212" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Postgres</text>
+      <text x="864" y="228" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">matches · rounds · players</text>
+
+      <!-- Node: Supabase Realtime (Cloud service) -->
+      <rect x="784" y="304" width="160" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="784" y="304" width="160" height="64" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <rect x="792" y="312" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.22)" stroke-width="0.8"/>
+      <text x="806" y="321" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">RT</text>
+      <text x="864" y="340" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Realtime</text>
+      <text x="864" y="356" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">match:{id} · presence</text>
+
+      <!-- Legend strip -->
+      <line x1="40" y1="464" x2="960" y2="464" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="40" y="480" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+      <rect x="40" y="496" width="14" height="10" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="60" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Focal / game authority</text>
+
+      <rect x="196" y="496" width="14" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="216" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Server module</text>
+
+      <rect x="316" y="496" width="14" height="10" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="336" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Store</text>
+
+      <rect x="396" y="496" width="14" height="10" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="416" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Managed service</text>
+
+      <rect x="516" y="496" width="14" height="10" rx="2" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <text x="536" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Client</text>
+
+      <line x1="600" y1="502" x2="628" y2="502" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <text x="636" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">HTTP call</text>
+
+      <line x1="716" y1="502" x2="744" y2="502" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <text x="752" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Primary flow</text>
+
+      <line x1="840" y1="502" x2="868" y2="502" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <text x="876" y="504" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Fallback</text>
+    </svg>
+  </div>
+</body>
+</html>
