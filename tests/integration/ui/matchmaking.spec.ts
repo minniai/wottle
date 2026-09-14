@@ -19,7 +19,7 @@ async function waitForMatchShell(
   page: import("@playwright/test").Page,
   timeout = 15_000
 ) {
-  const shell = page.getByTestId("match-shell");
+  const shell = page.getByTestId("room");
   await expect(shell).toBeVisible({ timeout });
   await expect(page).toHaveURL(/\/match\/[0-9a-f-]+$/i);
   const matchId = await shell.getAttribute("data-match-id");

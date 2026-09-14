@@ -65,8 +65,8 @@ async function loginAndStartMatch(
   expect(matchIdA).toBeTruthy();
   expect(matchIdA).toEqual(matchIdB);
 
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+  await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
+  await expect(pageB.getByTestId("room")).toBeVisible({ timeout: 10_000 });
 }
 
 test.describe("Round summary inline", () => {
@@ -89,9 +89,8 @@ test.describe("Round summary inline", () => {
 
       // Wait for round 1 to resolve and the match to advance to round 2.
       const roundIndicator = pageA
-        .getByTestId("game-chrome-player")
         .getByTestId("round-indicator");
-      await expect(roundIndicator).toContainText(/r2/i, { timeout: 45_000 });
+      await expect(roundIndicator).toContainText(/round 2/i, { timeout: 45_000 });
 
       // Left rail shows the current player's word log; right rail the opponent's.
       // Each lists every completed round (empty rounds render "no words"), so the
@@ -139,8 +138,8 @@ test.describe("Round summary inline", () => {
       await submitSwap(pageB);
 
       // Wait for round to resolve and advance
-      const roundIndicator = pageA.getByTestId("game-chrome-player").getByTestId("round-indicator");
-      await expect(roundIndicator).toContainText(/r2/i, { timeout: 45_000 });
+      const roundIndicator = pageA.getByTestId("round-indicator");
+      await expect(roundIndicator).toContainText(/round 2/i, { timeout: 45_000 });
 
       // Check if score delta popup appeared (depends on whether player scored)
       const popup = pageA.locator('[data-testid="score-delta-popup"]');

@@ -73,7 +73,7 @@ test.describe("@scoring-resolution-viz Spec 043 waiting state (US2)", () => {
       });
       expect(matchIdA).toEqual(matchIdB);
 
-      await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+      await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
       await expect(pageA.getByTestId("board-grid")).toBeVisible({ timeout: 10_000 });
 
       // Player A submits a swap → enters the waiting state.

@@ -64,7 +64,7 @@ test.describe("@left-rail Phase 1d instructional cards", () => {
       expect(matchIdA).toBeTruthy();
       expect(matchIdA).toEqual(matchIdB);
 
-      await expect(pageA.getByTestId("match-shell")).toBeVisible({
+      await expect(pageA.getByTestId("room")).toBeVisible({
         timeout: 10_000,
       });
 
@@ -103,7 +103,7 @@ test.describe("@left-rail Phase 1d instructional cards", () => {
         playerBUsername: userB,
       });
 
-      await expect(pageA.getByTestId("match-shell")).toBeVisible({
+      await expect(pageA.getByTestId("room")).toBeVisible({
         timeout: 10_000,
       });
 

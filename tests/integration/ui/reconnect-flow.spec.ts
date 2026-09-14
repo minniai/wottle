@@ -33,8 +33,8 @@ async function loginAndStartMatch(
   await pageA.waitForTimeout(150);
   await pageB.getByTestId("matchmaker-start-button").click();
 
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
+  await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
+  await expect(pageB.getByTestId("room")).toBeVisible({ timeout: 20_000 });
 }
 
 test.describe("Reconnect flow", () => {
@@ -80,10 +80,10 @@ test.describe("Reconnect flow", () => {
 
       // Player A should be able to rejoin the match
       // The match page should restore state from database
-      const matchId = await pageB.getByTestId("match-shell").getAttribute("data-match-id");
+      const matchId = await pageB.getByTestId("room").getAttribute("data-match-id");
       if (matchId) {
         await newPageA.goto(`/match/${matchId}`);
-        await expect(newPageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+        await expect(newPageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
 
         // Verify state restoration: board, round, timer values
         await expect(newPageA.getByTestId("round-indicator")).toBeVisible();

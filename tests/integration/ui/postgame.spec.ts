@@ -53,12 +53,13 @@ test.describe("@postgame Phase 2 post-game redesign", () => {
       expect(matchIdA).toBeTruthy();
       expect(matchIdA).toEqual(matchIdB);
 
-      await expect(pageA.getByTestId("match-shell")).toBeVisible({
+      await expect(pageA.getByTestId("room")).toBeVisible({
         timeout: 10_000,
       });
 
       // Resign to reach the post-game screen deterministically.
-      await pageA.getByTestId("hud-resign-button").click();
+      await pageA.getByTestId("ledger-menu-trigger").click();
+      await pageA.getByTestId("ledger-menu-item-resign").click();
       await pageA.getByTestId("resign-confirm").click();
 
       await expect(pageA.getByTestId("final-summary-root")).toBeVisible({

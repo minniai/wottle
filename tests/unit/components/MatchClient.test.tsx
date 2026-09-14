@@ -85,12 +85,10 @@ function createMatchState(overrides?: Partial<MatchState>): MatchState {
 }
 
 describe("MatchClient layout", () => {
-  test("renders layout in order: opponent chrome → board → player chrome", async () => {
-    const { MatchClient } = await import(
-      "@/components/match/MatchClient"
-    );
-
+  test("renders the room in order: opponent bar → field → your bar, with the ledger beside", async () => {
+    const { MatchClient } = await import("@/components/match/MatchClient");
     const state = createMatchState();
+
     render(
       <MatchClient
         initialState={state}
@@ -100,27 +98,18 @@ describe("MatchClient layout", () => {
       />,
     );
 
-    const opponentChrome = screen.getByTestId("game-chrome-opponent");
+    const room = screen.getByTestId("room");
+    expect(room).toHaveAttribute("data-match-id", "match-test-123");
+    const opponentBar = screen.getByTestId("player-bar-top");
     const board = screen.getByTestId("board-grid");
-    const playerChrome = screen.getByTestId("game-chrome-player");
+    const playerBar = screen.getByTestId("player-bar-bottom");
+    expect(opponentBar).toHaveAttribute("data-seat", "opp");
+    expect(playerBar).toHaveAttribute("data-seat", "you");
+    expect(screen.getByTestId("ledger")).toBeInTheDocument();
 
-    expect(opponentChrome).toBeInTheDocument();
-    expect(board).toBeInTheDocument();
-    expect(playerChrome).toBeInTheDocument();
-
-    // Verify DOM order: opponent before board before player
-    const container = opponentChrome.closest("[data-testid='match-shell']");
-    expect(container).toBeInTheDocument();
-    const allTestIds = Array.from(
-      container!.querySelectorAll("[data-testid]"),
-    ).map((el) => el.getAttribute("data-testid"));
-
-    const opponentIdx = allTestIds.indexOf("game-chrome-opponent");
-    const boardIdx = allTestIds.indexOf("board-grid");
-    const playerIdx = allTestIds.indexOf("game-chrome-player");
-
-    expect(opponentIdx).toBeLessThan(boardIdx);
-    expect(boardIdx).toBeLessThan(playerIdx);
+    const allTestIds = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
+    expect(allTestIds.indexOf("player-bar-top")).toBeLessThan(allTestIds.indexOf("board-grid"));
+    expect(allTestIds.indexOf("board-grid")).toBeLessThan(allTestIds.indexOf("player-bar-bottom"));
   });
 
   test("does not render debug metadata when ?debug param is absent", async () => {
@@ -1206,7 +1195,7 @@ describe("MatchClient round history panel", () => {
   });
 
   // O-71: scored words show inline on both rails as rounds resolve.
-  test("shows current player's words on the left rail and opponent's on the right (O-71)", async () => {
+  test("scored words land in the ledger row for their round, by seat (O-71 → ledger)", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
     await act(async () => {
@@ -1227,29 +1216,15 @@ describe("MatchClient round history panel", () => {
       await vi.advanceTimersByTimeAsync(1300);
     });
 
-    const leftRail = screen.getByTestId("match-layout-rail-left");
-    const rightRail = screen.getByTestId("match-layout-rail-right");
-    const leftCard = leftRail.querySelector(
-      '[data-testid="scored-words-card"]',
-    );
-    const rightCard = rightRail.querySelector(
-      '[data-testid="scored-words-card"]',
-    );
-
-    // Current player (player-1) scored "ÞAR"; opponent (player-2) scored "ORÐ".
-    expect(leftCard?.textContent).toContain("Your words");
-    expect(leftCard?.textContent).toContain("ÞAR");
-    expect(leftCard?.textContent).not.toContain("ORÐ");
-
-    expect(rightCard?.textContent).toContain("Opponent's words");
-    expect(rightCard?.textContent).toContain("ORÐ");
-    expect(rightCard?.textContent).not.toContain("ÞAR");
+    // The fixture summary is for round 3, so its words land in row 3.
+    const row = screen.getByTestId("ledger-row-3");
+    const cells = row.querySelectorAll(".ledger__words");
+    expect(cells).toHaveLength(2);
+    // Current player (player-1) scored "ÞAR" → you column; opponent (player-2) "ORÐ" → opp column.
+    expect(cells[0].textContent?.toLowerCase()).toContain("þar");
+    expect(cells[1].textContent?.toLowerCase()).toContain("orð");
   });
-});
 
-// ─── MatchClient dual timeout tests (US4) ──────────────────────────────────
-
-describe("MatchClient dual timeout (US4)", () => {
   test("T030: displays dual-timeout indicator when both timers are at zero", async () => {
     const { MatchClient } = await import("@/components/match/MatchClient");
 
@@ -1271,8 +1246,8 @@ describe("MatchClient dual timeout (US4)", () => {
       );
     });
 
-    expect(screen.getByTestId("dual-timeout-overlay")).toBeInTheDocument();
     expect(screen.getByText(/both players timed out/i)).toBeInTheDocument();
+    expect(screen.getByText(/both players timed out/i).closest("[data-testid=\"ledger-notice\"]")).not.toBeNull();
   });
 });
 

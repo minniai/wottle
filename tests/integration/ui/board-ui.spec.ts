@@ -43,8 +43,8 @@ async function loginAndStartMatch(
   });
   expect(matchIdA).toBeTruthy();
   expect(matchIdA).toEqual(matchIdB);
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+  await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
+  await expect(pageB.getByTestId("room")).toBeVisible({ timeout: 10_000 });
 }
 
 test.describe("word discovery highlights", () => {
@@ -101,8 +101,8 @@ test.describe("word discovery highlights", () => {
         }
 
         // Round advances automatically (no summary panel to dismiss)
-        const roundIndicator = pageA.getByTestId("game-chrome-player").getByTestId("round-indicator");
-        await expect(roundIndicator).toContainText(/r2/i, { timeout: 20_000 });
+        const roundIndicator = pageA.getByTestId("round-indicator");
+        await expect(roundIndicator).toContainText(/round 2/i, { timeout: 20_000 });
       } finally {
         await pageA.close();
         await pageB.close();

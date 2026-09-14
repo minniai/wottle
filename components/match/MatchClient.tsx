@@ -4,19 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { BoardCoordLabels } from "@/components/game/BoardCoordLabels";
 import { BoardGrid } from "@/components/game/BoardGrid";
-import { PlayerPanel } from "@/components/match/PlayerPanel";
-import { PlayerAvatar } from "@/components/match/PlayerAvatar";
 import { RoundHistoryPanel } from "@/components/match/RoundHistoryPanel";
-import { ScoredWordsCard } from "@/components/match/ScoredWordsCard";
-import { TilesClaimedCard } from "@/components/match/TilesClaimedCard";
-import { HudCard } from "@/components/match/HudCard";
-import { MatchCenterChrome } from "@/components/match/MatchCenterChrome";
-import type { ScoreDelta } from "@/components/match/ScoreDeltaPopup";
-import { ScoreDeltaPopup } from "@/components/match/ScoreDeltaPopup";
-import { deriveClockUrgency } from "@/components/match/deriveClockUrgency";
-import { deriveScoreDelta } from "@/components/match/deriveScoreDelta";
+import { MatchRoomView } from "@/components/room/MatchRoomView";
+import type { LiveState } from "@/lib/room/ledgerRows";
+import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
+import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { deriveHighlightPlayerColors } from "@/components/match/deriveHighlightPlayerColors";
 import { deriveRoundHistory } from "@/components/match/deriveRoundHistory";
 import { deriveRevealSequence } from "@/lib/match/revealSequence";
@@ -33,8 +26,6 @@ import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
 import { deriveBiggestSwing, deriveHighestScoringWord } from "@/components/match/deriveCallouts";
 import type { WordHistoryRow, ScoreboardRow } from "@/components/match/FinalSummary";
 import type { MatchPlayerProfiles, MatchState, TimerState, Coordinate } from "@/lib/types/match";
-import { getPlayerColors } from "@/lib/constants/playerColors";
-import { useSelfColorStore } from "@/lib/match/selfColorStore";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { claimWinAction } from "@/app/actions/match/claimWin";
@@ -45,8 +36,6 @@ import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
 import { useSensoryPreferences } from "@/lib/preferences/useSensoryPreferences";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
-import { MatchShell } from "./MatchShell";
-import { MatchLeftRail } from "@/components/match/MatchLeftRail";
 
 
 interface MatchClientProps {
@@ -102,7 +91,6 @@ export function MatchClient({
   const [usePolling, setUsePolling] = useState(realtimeDisabled);
   const [pollError, setPollError] = useState<string | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
-  const [scoreDelta, setScoreDelta] = useState<ScoreDelta | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [disconnectedPlayerId, setDisconnectedPlayerId] = useState<
     string | null
@@ -315,7 +303,6 @@ export function MatchClient({
     }
 
     // Derive score delta inline (no overlay to wait for)
-    setScoreDelta(deriveScoreDelta(nextSummary, currentPlayerId));
 
     // Spec 043 (US1) — merge this round's scored tiles into the persistent
     // current-round mark BEFORE the reduced-motion branch so the mark applies
@@ -791,14 +778,6 @@ export function MatchClient({
   const playerSlot: "player_a" | "player_b" =
     matchState.timers.playerA.playerId === currentPlayerId ? "player_a" : "player_b";
 
-  // Keep the global TopBar avatar consistent with the player's slot color during
-  // the match too, not just the summary (O-72).
-  const selfSlotColor = getPlayerColors(playerSlot).hex;
-  useEffect(() => {
-    useSelfColorStore.getState().setSelfColor(selfSlotColor);
-    return () => useSelfColorStore.getState().clearSelfColor();
-  }, [selfSlotColor]);
-
   const handleSwapComplete = useCallback(
     ({ move }: { move: { from: Coordinate; to: Coordinate } }) => {
       setSwapError(null);
@@ -969,10 +948,6 @@ export function MatchClient({
     () => ({ [playerAId]: playerADisplayName, [playerBId]: playerBDisplayName }),
     [playerAId, playerBId, playerADisplayName, playerBDisplayName],
   );
-  const completedRounds = useMemo(
-    () => accumulatedScores.map((s) => s.roundNumber),
-    [accumulatedScores],
-  );
   const biggestSwing = useMemo(() => deriveBiggestSwing(accumulatedScores), [accumulatedScores]);
   const highestWord = useMemo(() => deriveHighestScoringWord(accumulatedWords, usernameMap), [accumulatedWords, usernameMap]);
 
@@ -1008,28 +983,41 @@ export function MatchClient({
     process.env.NODE_ENV !== "production" &&
     searchParams.get("debug") === "1";
 
-  return (
-    <MatchShell matchId={matchId}>
-      {isReconnecting && disconnectedPlayerId === currentPlayerId && (
-        <div
-          className="mt-4 rounded-2xl border border-warn/50 bg-warn/20 p-4 text-sm text-[color-mix(in_oklab,var(--warn)_80%,var(--ink))]"
-          data-testid="reconnect-banner"
-        >
-          Reconnecting... Please wait.
-        </div>
-      )}
+  const liveState: LiveState =
+    centerStatus === "resolving"
+      ? { kind: "resolving" }
+      : centerStatus === "waiting"
+        ? { kind: "played" }
+        : selectedTile
+          ? { kind: "picking", letter: matchState.board[selectedTile.y]?.[selectedTile.x] ?? "", value: 0 }
+          : { kind: "idle" };
 
+  const notices: Notice[] = [];
+  if (isReconnecting && disconnectedPlayerId === currentPlayerId) notices.push({ kind: "text", text: "reconnecting" });
+  if (usePolling && !isReconnecting) notices.push({ kind: "text", text: "realtime lost · polling" });
+  if (dualTimeoutDetected && matchState.state !== "completed") notices.push({ kind: "text", text: "both players timed out" });
+  if (pollError || swapError) notices.push({ kind: "text", text: (swapError ?? pollError) as string });
+
+  const opponentReconnectMsLeft =
+    opponentDisconnected && disconnectStartedAt !== null && isMatchActive
+      ? Math.max(0, disconnectStartedAt + RECONNECT_WINDOW_MS_CLIENT - Date.now())
+      : null;
+
+  const handleLedgerAction = (action: LedgerAction) => {
+    if (action === "resign" || action === "leave") setShowResignDialog(true);
+  };
+
+  const youProfile = playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB;
+  const oppProfile = opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB;
+
+  return (
+    <>
       {opponentDisconnected &&
       showDisconnectModal &&
       disconnectStartedAt !== null &&
       isMatchActive ? (
         <DisconnectionModal
-          opponentDisplayName={
-            (opponentSlot === "player_a"
-              ? playerProfiles.playerA
-              : playerProfiles.playerB
-            ).displayName
-          }
+          opponentDisplayName={oppProfile.displayName}
           disconnectedAt={disconnectStartedAt}
           windowMs={90_000}
           onClose={() => setShowDisconnectModal(false)}
@@ -1038,247 +1026,78 @@ export function MatchClient({
         />
       ) : null}
 
-      {usePolling && !isReconnecting && (
-        <div
-          className="mt-4 rounded-2xl border border-warn/50 bg-warn/20 p-4 text-sm text-[color-mix(in_oklab,var(--warn)_80%,var(--ink))]"
-          data-testid="polling-fallback-banner"
-        >
-          Realtime connection lost. Falling back to polling updates.
-        </div>
-      )}
-
-      {dualTimeoutDetected && matchState.state !== "completed" && (
-        <div
-          className="mt-4 rounded-2xl border border-bad/50 bg-bad/10 p-4 text-center text-sm font-semibold text-bad"
-          data-testid="dual-timeout-overlay"
-        >
-          Both players timed out
-        </div>
-      )}
-
-      {(pollError || swapError) && (
-        <div
-          className="mt-2 rounded-xl border border-bad/50 bg-bad/10 px-4 py-2 text-sm text-bad"
-          data-testid="round-alert"
-        >
-          {swapError ?? pollError}
-        </div>
-      )}
-
-      <div className="match-layout">
-        {/* Desktop: top HUD strip (hidden on mobile) */}
-        <div className="match-layout__hud-strip">
-          <HudCard
-            slot="you"
-            avatar={
-              <PlayerAvatar
-                displayName={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
-                avatarUrl={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).avatarUrl}
-                playerColor={getPlayerColors(playerSlot).hex}
-                size="sm"
-              />
-            }
-            name={(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
-            meta={`You · ${(playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
-            clock={formatClockMMSS(timeLeftSeconds)}
-            clockState={deriveClockUrgency(currentTimer.status, timeLeftSeconds).tone}
-            clockUrgency={deriveClockUrgency(currentTimer.status, timeLeftSeconds).urgency}
-            score={playerScore}
-          >
-            {scoreDelta ? (
-              <ScoreDeltaPopup
-                key={matchState.lastSummary?.roundNumber}
-                delta={scoreDelta}
-              />
-            ) : null}
-          </HudCard>
-          <MatchCenterChrome
-            currentRound={matchState.currentRound}
-            totalRounds={10}
-            status={centerStatus}
-          />
-          <HudCard
-            slot="opp"
-            avatar={
-              <PlayerAvatar
-                displayName={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
-                avatarUrl={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).avatarUrl}
-                playerColor={getPlayerColors(opponentSlot).hex}
-                size="sm"
-              />
-            }
-            name={(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).displayName}
-            meta={`Opponent · ${(opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB).eloRating || "Unrated"}`}
-            clock={formatClockMMSS(opponentTimeLeft)}
-            clockState={deriveClockUrgency(opponentTimer.status, opponentTimeLeft).tone}
-            clockUrgency={deriveClockUrgency(opponentTimer.status, opponentTimeLeft).urgency}
-            score={opponentScore}
-          />
-        </div>
-
-        <div className="match-layout__board-row">
-          {/* Left rail placeholder — Phase 1d fills it */}
-          <div
-            data-testid="match-layout-rail-left"
-            className="match-layout__rail--left"
-          >
-            <MatchLeftRail
-              selection={selectedTile}
-              submittedMove={moveLocked ? lockedSwapTiles : null}
-            />
-            <ScoredWordsCard
-              title="Your words"
-              playerId={currentPlayerId}
-              accumulatedWords={accumulatedWords}
-              completedRounds={completedRounds}
-              playerColor={getPlayerColors(playerSlot).hex}
-            />
-          </div>
-
-          <div className="match-layout__board">
-            {/* Mobile: compact opponent bar */}
-            <div className="match-layout__compact-top" data-testid="game-chrome-opponent">
-              <PlayerPanel
-                player={opponentSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
-                gameState={{
-                  score: opponentScore,
-                  timerSeconds: opponentTimeLeft,
-                  isPaused: opponentTimer.status !== "running",
-                  hasSubmitted: opponentTimer.status === "paused",
-                  currentRound: matchState.currentRound,
-                  totalRounds: 10,
-                  playerColor: getPlayerColors(opponentSlot).hex,
-                }}
-                isDisconnected={matchState.disconnectedPlayerId === opponentTimer.playerId}
-              />
-            </div>
-
-            <BoardCoordLabels>
-              <BoardGrid
-                grid={matchState.board}
-                matchId={matchId}
-                frozenTiles={matchState.frozenTiles ?? {}}
-                playerSlot={playerSlot}
-                disabled={moveLocked}
-                showLockBanner={moveLocked}
-                lockedTiles={lockedSwapTiles}
-                swapScoringRevealed={scoringRevealed}
-                opponentLockedTiles={opponentSwapTiles}
-                opponentRevealTiles={
-                  animationPhase === "round-recap" && activeRevealMove
-                    ? [activeRevealMove.from, activeRevealMove.to]
-                    : null
-                }
-                scoredTileHighlights={
-                  animationPhase === "round-recap"
-                    ? activeRevealHighlights
-                    : []
-                }
-                highlightPlayerColors={
-                  animationPhase === "round-recap"
-                    ? highlightPlayerColors
-                    : {}
-                }
-                currentRoundScoredTiles={currentRoundScored}
-                highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
-                highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
-                externalSwap={externalSwap}
-                onSwapComplete={handleSwapComplete}
-                onSwapError={({ message }) => handleSwapError(message)}
-                onTileSelect={playTileSelect}
-                onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
-                onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
-                onSelectionChange={setSelectedTile}
-              />
-            </BoardCoordLabels>
-
-            {roundAnnounce && (
-              <div
-                key={`${matchState.currentRound}-${roundAnnounce}`}
-                className={`round-announce${roundAnnounce === "Rounds Complete" ? " round-announce--final" : ""}`}
-                style={{ position: "absolute", top: "50%", left: "50%", zIndex: 25 }}
-                data-testid="round-announce"
-              >
-                {roundAnnounce}
-              </div>
-            )}
-
-            {/* Mobile: compact player bar */}
-            <div className="match-layout__compact-bottom" data-testid="game-chrome-player">
-              <PlayerPanel
-                player={playerSlot === "player_a" ? playerProfiles.playerA : playerProfiles.playerB}
-                gameState={{
-                  score: playerScore,
-                  timerSeconds: timeLeftSeconds,
-                  isPaused,
-                  hasSubmitted: currentTimer.status === "paused",
-                  currentRound: matchState.currentRound,
-                  totalRounds: 10,
-                  playerColor: getPlayerColors(playerSlot).hex,
-                }}
-              />
-            </div>
-
-            {/* Mobile-only history trigger — desktop shows the per-rail word logs */}
-            {roundHistory.length > 0 && (
-              <div className="match-layout__mobile-history">
-                <button
-                  type="button"
-                  onClick={() => setHistoryOpen((v) => !v)}
-                  className="flex-1 rounded-lg border border-hair-strong px-3 py-2 text-sm text-ink-soft hover:bg-paper-2 hover:text-ink"
-                  data-testid="hud-history-button"
-                  aria-label="Round history"
-                >
-                  History ({roundHistory.length})
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Right rail — current-player-side widgets */}
-          <div
-            data-testid="match-layout-rail-right"
-            className="match-layout__rail--right"
-          >
-            <TilesClaimedCard
-              frozenTiles={matchState.frozenTiles ?? {}}
-              currentPlayerSlot={playerSlot}
-            />
-            <ScoredWordsCard
-              title="Opponent's words"
-              playerId={opponentTimer.playerId}
-              accumulatedWords={accumulatedWords}
-              completedRounds={completedRounds}
-              playerColor={getPlayerColors(opponentSlot).hex}
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowResignDialog(true)}
-                disabled={
-                  matchState.state === "resolving" ||
-                  matchState.state === "completed" ||
-                  isResigning
-                }
-                className="flex-1 rounded-lg border border-red-400/50 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-40"
-                data-testid="hud-resign-button"
-                aria-label="Resign match"
-              >
-                Resign
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <MatchRoomView
+        matchId={matchId}
+        viewerSlot={playerSlot}
+        you={{
+          name: youProfile.displayName,
+          rating: youProfile.eloRating ?? null,
+          clockMs: timeLeftSeconds * 1000,
+          running: !isPaused,
+          score: playerScore,
+        }}
+        opp={{
+          name: oppProfile.displayName,
+          rating: oppProfile.eloRating ?? null,
+          clockMs: opponentTimeLeft * 1000,
+          running: opponentTimer.status === "running",
+          score: opponentScore,
+          reconnectMsLeft: opponentReconnectMsLeft,
+        }}
+        currentRound={matchState.currentRound}
+        completed={matchState.state === "completed"}
+        words={accumulatedWords}
+        playerAId={playerAId}
+        frozenTiles={matchState.frozenTiles ?? {}}
+        live={liveState}
+        notices={notices}
+        footActions={
+          roundHistory.length > 0 ? (
+            <button
+              type="button"
+              className="action-secondary"
+              onClick={() => setHistoryOpen((v) => !v)}
+              data-testid="hud-history-button"
+              aria-label="Round history"
+            >
+              history ▸
+            </button>
+          ) : null
+        }
+        onAction={handleLedgerAction}
+      >
+        <BoardGrid
+          grid={matchState.board}
+          matchId={matchId}
+          frozenTiles={matchState.frozenTiles ?? {}}
+          playerSlot={playerSlot}
+          disabled={moveLocked}
+          lockedTiles={lockedSwapTiles}
+          swapScoringRevealed={scoringRevealed}
+          opponentLockedTiles={opponentSwapTiles}
+          opponentRevealTiles={
+            animationPhase === "round-recap" && activeRevealMove
+              ? [activeRevealMove.from, activeRevealMove.to]
+              : null
+          }
+          scoredTileHighlights={animationPhase === "round-recap" ? activeRevealHighlights : []}
+          highlightPlayerColors={animationPhase === "round-recap" ? highlightPlayerColors : {}}
+          currentRoundScoredTiles={currentRoundScored}
+          highlightDurationMs={animationPhase === "round-recap" ? (matchState.state === "completed" ? 2400 : 1200) : 800}
+          highlightDelayMs={animationPhase === "round-recap" ? 450 : 0}
+          externalSwap={externalSwap}
+          onSwapComplete={handleSwapComplete}
+          onSwapError={({ message }) => handleSwapError(message)}
+          onTileSelect={playTileSelect}
+          onValidSwap={() => { playValidSwap(); vibrateValidSwap(); }}
+          onInvalidMove={() => { playInvalidMove(); vibrateInvalidMove(); }}
+          onSelectionChange={setSelectedTile}
+        />
+      </MatchRoomView>
 
       {showDebug && (
-        <details
-          className="mt-4 rounded-lg border border-hair bg-paper-2 p-3 text-xs text-ink-soft"
-          data-testid="debug-metadata"
-        >
-          <summary className="cursor-pointer text-ink-soft">
-            Debug Info
-          </summary>
+        <details className="mt-4 border border-rule p-3 text-xs text-muted" data-testid="debug-metadata">
+          <summary className="cursor-pointer">Debug Info</summary>
           <dl className="mt-2 grid grid-cols-2 gap-1">
             <dt>Match ID</dt>
             <dd className="font-mono">{matchId}</dd>
@@ -1287,39 +1106,26 @@ export function MatchClient({
             <dt>Status</dt>
             <dd>{matchState.state}</dd>
             <dt>Player A</dt>
-            <dd className="font-mono">
-              {matchState.timers.playerA.playerId}
-            </dd>
+            <dd className="font-mono">{matchState.timers.playerA.playerId}</dd>
             <dt>Player B</dt>
-            <dd className="font-mono">
-              {matchState.timers.playerB.playerId}
-            </dd>
+            <dd className="font-mono">{matchState.timers.playerB.playerId}</dd>
           </dl>
         </details>
       )}
 
       {historyOpen && roundHistory.length > 0 && createPortal(
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
-          data-testid="history-overlay-backdrop"
-        >
+        <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center" data-testid="history-overlay-backdrop">
           <div
             ref={historyOverlayRef}
-            className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-hair bg-paper p-4 shadow-2xl sm:rounded-2xl"
+            className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto border border-ink bg-paper p-4"
             role="dialog"
             aria-label="Round history"
             data-testid="history-overlay"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-ink">Round History</h2>
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(false)}
-                className="rounded-lg px-2 py-1 text-sm text-ink-soft transition hover:bg-paper-2 hover:text-ink"
-                aria-label="Close round history"
-                data-testid="history-close"
-              >
-                Close
+              <h2 className="text-lg font-semibold text-ink">Round history</h2>
+              <button type="button" onClick={() => setHistoryOpen(false)} className="action-secondary" aria-label="Close round history" data-testid="history-close">
+                close
               </button>
             </div>
             <RoundHistoryPanel
@@ -1337,46 +1143,22 @@ export function MatchClient({
         document.body,
       )}
       {showResignDialog && createPortal(
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          data-testid="resign-dialog-backdrop"
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-hair bg-paper p-6 shadow-2xl"
-            role="alertdialog"
-            aria-label="Confirm resignation"
-            data-testid="resign-dialog"
-          >
-            <h2 className="text-lg font-semibold text-ink">
-              Resign?
-            </h2>
-            <p className="mt-2 text-sm text-ink-3">
-              Are you sure you want to resign? Your opponent will win.
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" data-testid="resign-dialog-backdrop">
+          <div className="w-full max-w-sm border border-ink bg-paper p-6" role="alertdialog" aria-label="Confirm resignation" data-testid="resign-dialog">
+            <h2 className="text-lg font-semibold text-ink">resign the match?</h2>
             <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={handleResignConfirm}
-                disabled={isResigning}
-                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-400 disabled:opacity-50"
-                data-testid="resign-confirm"
-              >
-                {isResigning ? "Resigning..." : "Yes, Resign"}
+              <button type="button" onClick={handleResignConfirm} disabled={isResigning} className="action-primary" data-testid="resign-confirm">
+                {isResigning ? "resigning" : "yes, resign ▸"}
               </button>
-              <button
-                type="button"
-                onClick={() => setShowResignDialog(false)}
-                className="rounded-xl border border-hair-strong px-4 py-2 text-sm text-ink transition hover:bg-paper-2"
-                data-testid="resign-cancel"
-              >
-                Cancel
+              <button type="button" onClick={() => setShowResignDialog(false)} className="action-secondary" data-testid="resign-cancel">
+                no
               </button>
             </div>
           </div>
         </div>,
         document.body,
       )}
-    </MatchShell>
+    </>
   );
 }
 

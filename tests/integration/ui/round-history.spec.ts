@@ -50,10 +50,10 @@ async function loginAndStartMatch(
   expect(matchIdA).toBeTruthy();
   expect(matchIdA).toEqual(matchIdB);
 
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({
+  await expect(pageA.getByTestId("room")).toBeVisible({
     timeout: 10_000,
   });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({
+  await expect(pageB.getByTestId("room")).toBeVisible({
     timeout: 10_000,
   });
 }
@@ -80,7 +80,7 @@ test.describe("Round history panel (post-game)", () => {
         await pageA.waitForTimeout(settleMs);
         if (round < 10) {
           // Wait for round to resolve and advance — rounds auto-advance after recap animation
-          await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(
+          await expect(pageA.getByTestId("round-indicator")).toContainText(
             new RegExp(`r${round + 1}`, "i"),
             { timeout: 45_000 },
           );

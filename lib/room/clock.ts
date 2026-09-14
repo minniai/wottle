@@ -18,3 +18,6 @@ export function formatClock(remainingMs: number): string {
 export function laneFraction(remainingMs: number, budgetMs = MATCH_CLOCK_BUDGET_MS): number {
   return Math.min(1, Math.max(0, remainingMs / budgetMs));
 }
+
+/** Mirrors lib/match/disconnectStore RECONNECT_WINDOW_MS for client rendering (that module is server-only). */
+export const RECONNECT_WINDOW_MS_CLIENT = 90_000;

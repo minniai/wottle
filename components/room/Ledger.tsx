@@ -78,7 +78,9 @@ export function Ledger(props: LedgerProps) {
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
       <div className="ledger__caption" data-testid="ledger-caption">
         <span className="ledger__wordmark">{WORDMARK}</span>
-        <span className="ledger__mono">{model.caption}</span>
+        <span className="ledger__mono" data-testid="round-indicator">
+          {model.caption}
+        </span>
       </div>
 
       {model.verdict ? (
