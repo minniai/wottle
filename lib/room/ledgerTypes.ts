@@ -62,7 +62,10 @@ export type LedgerAction =
   | "signOut"
   | "profile"
   | "claimWin"
-  | { challenge: string };
+  | "playRanked"
+  | { challenge: string }
+  | { acceptChallenge: string }
+  | { declineChallenge: string };
 
 export type Notice =
   | { kind: "frozen"; ownerName: string; round: number; expiresAt: number }

@@ -19,7 +19,12 @@ import {
 import type { Coordinate, MoveResult } from "@/lib/types/board";
 
 export interface FieldInteractionOptions {
-  matchId: string;
+  /** Match id for server calls; null in the lobby warm-up (swaps stay local). */
+  matchId: string | null;
+  /** Warm-up board for pricing when signed in; null in a match (the server owns the board). */
+  warmupBoard?: string[][] | null;
+  /** Warm-up: apply the swap locally instead of posting a move. */
+  onLocalSwap?: (from: Coordinate, to: Coordinate) => void;
   previewEnabled: boolean;
   frozenKeys: Set<string>;
   opponentPins: [Coordinate, Coordinate] | null;
@@ -105,6 +110,12 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
       setTimeout(() => setShakeAt(null), SHAKE_MS);
     } else if (effect.kind === "notice") o.onNotice(effect.notice, effect.at);
     else if (effect.kind === "submit") {
+      if (o.matchId === null) {
+        o.onLocalSwap?.(effect.from, effect.to);
+        o.onCommitted();
+        dispatchRef.current({ type: "roundAdvanced" });
+        return;
+      }
       postMove(o.matchId, effect.from, effect.to)
         .then(() => o.onCommitted())
         .catch((error: Error) => {
@@ -113,7 +124,11 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
         });
     } else if (effect.kind === "requestPrice") {
       const id = ++priceRequest.current;
-      previewSwap({ kind: "match", matchId: o.matchId, from: effect.from, to: effect.to })
+      const input = o.matchId === null
+        ? o.warmupBoard ? { kind: "warmup" as const, board: o.warmupBoard, from: effect.from, to: effect.to } : null
+        : { kind: "match" as const, matchId: o.matchId, from: effect.from, to: effect.to };
+      if (!input) return;
+      previewSwap(input)
         .then((result) => {
           if (id !== priceRequest.current || result.status !== "ok") return;
           dispatchRef.current({ type: "priced", price: { words: result.words ?? [], total: result.total ?? 0 } });

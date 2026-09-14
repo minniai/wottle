@@ -111,6 +111,20 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
       </>
     );
   }
+  if (notice.kind === "challenge") {
+    return (
+      <>
+        {notice.fromName} challenges you ·{" "}
+        <button type="button" className="action-secondary" data-testid="notice-accept-challenge" onClick={() => onAction({ acceptChallenge: notice.inviteId })}>
+          accept ▸
+        </button>{" "}
+        ·{" "}
+        <button type="button" className="action-secondary" data-testid="notice-decline-challenge" onClick={() => onAction({ declineChallenge: notice.inviteId })}>
+          decline
+        </button>
+      </>
+    );
+  }
   if (notice.kind === "claimWin") {
     return (
       <>

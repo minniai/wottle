@@ -6,7 +6,8 @@ import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { formatClock, MATCH_CLOCK_BUDGET_MS } from "@/lib/room/clock";
 import { ClockLane, type LaneMode } from "./ClockLane";
 
-export type PlayerBarState = "empty" | "searching" | "found" | "playing" | "final";
+/** `idle` = a signed-in seat outside a match (lobby): name + sub-line, no clock, no total. */
+export type PlayerBarState = "empty" | "searching" | "found" | "playing" | "final" | "idle";
 
 export interface PlayerBarProps {
   seat: Seat;
@@ -26,7 +27,7 @@ export interface PlayerBarProps {
 }
 
 function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
-  if (state === "empty") return "empty";
+  if (state === "empty" || state === "idle") return "empty";
   if (state === "searching") return "searching";
   return disconnected ? "disconnected" : "clock";
 }
