@@ -253,7 +253,7 @@
   font-weight: 500;
 }
 .field__cell[data-state="previewed"] {
-  box-shadow: inset 0 0 0 2px transparent;
+  box-shadow: none;
   outline: 2px dotted var(--ink);
   outline-offset: -2px;
 }
@@ -305,6 +305,13 @@
 }
 .field__band--dimmed {
   opacity: 0.4; /* 14% → ~6% effective tint while another row is hovered */
+}
+.field__band--drawing {
+  transform-box: fill-box;
+  animation: band-draw 400ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+.player-bar__score--counting {
+  animation: count-up 400ms cubic-bezier(0.2, 0, 0.2, 1) both;
 }
 
 /* ---------- Ledger (§5.4) ---------- */
