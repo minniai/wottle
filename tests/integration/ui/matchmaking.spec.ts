@@ -1,66 +1,62 @@
-import { expect, test } from "@playwright/test";
+/**
+ * Spec 044 US8 — the ranked queue stays in the room: searching bar, letters
+ * landing, the opponent writing in, then the match, with no route flash.
+ */
+import { expect, test, type BrowserContext } from "@playwright/test";
 
-async function loginAndAwaitMatchmaker(
-  page: import("@playwright/test").Page,
-  username: string
-) {
+import { generateTestUsername } from "./helpers/matchmaking";
+
+test.describe.configure({ mode: "serial", retries: 1 });
+test.skip(({ browserName }) => browserName !== "chromium", "two-context queue flow runs on chromium only");
+
+async function loginAs(context: BrowserContext, prefix: string) {
+  const page = await context.newPage();
+  const username = generateTestUsername(prefix);
   await page.goto("/");
-  const input = page.getByTestId("player-bar-name-input");
-  await expect(input).toBeVisible();
-  await input.fill(username);
+  await page.getByTestId("player-bar-name-input").fill(username);
   await page.getByTestId("player-bar-action-play").click();
-
-  await expect(page.getByTestId("player-bar-action-ranked")).toBeVisible({
-    timeout: 10_000,
-  });
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
+  return { page, username };
 }
 
-async function waitForMatchShell(
-  page: import("@playwright/test").Page,
-  timeout = 15_000
-) {
-  const shell = page.getByTestId("room");
-  await expect(shell).toBeVisible({ timeout });
-  await expect(page).toHaveURL(/\/match\/[0-9a-f-]+$/i);
-  const matchId = await shell.getAttribute("data-match-id");
-  return matchId;
-}
-
-test.describe("Matchmaking flows", () => {
-  test.skip("auto queue pairs two players into a shared match", async ({ browser }) => {
-    const contextA = await browser.newContext();
-    const contextB = await browser.newContext();
-    const pageA = await contextA.newPage();
-    const pageB = await contextB.newPage();
-
+test.describe("@matchmaking queue → found → match in the room", () => {
+  test("play ranked ▸ searches; cancel ▸ returns to the lobby", async ({ browser }) => {
+    const ctx = await browser.newContext();
     try {
-      await loginAndAwaitMatchmaker(pageA, "queue-alpha");
-      await loginAndAwaitMatchmaker(pageB, "queue-beta");
-
-      const startA = pageA.getByTestId("player-bar-action-ranked");
-      const startB = pageB.getByTestId("player-bar-action-ranked");
-
-      // Click start buttons simultaneously - the queue logic handles race conditions
-      await Promise.all([startA.click(), startB.click()]);
-
-      // Wait a moment for queue processing
-      await pageA.waitForTimeout(500);
-
-      // Wait for match to be created - polling happens every 3 seconds
-      const [matchIdA, matchIdB] = await Promise.all([
-        waitForMatchShell(pageA),
-        waitForMatchShell(pageB),
-      ]);
-
-      expect(matchIdA).toBeTruthy();
-      expect(matchIdA).toEqual(matchIdB);
+      const { page } = await loginAs(ctx, "q-cancel");
+      await page.getByTestId("player-bar-action-ranked").click();
+      await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
+      await expect(page.getByTestId("player-bar-top")).toContainText("Finding an opponent");
+      await expect(page.getByTestId("player-bar-top").getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "searching");
+      await expect(page.getByTestId("ledger-hint")).toContainText(/setting the field · \d+ of 100 letters/);
+      await page.getByTestId("ledger-cancel-queue").click();
+      await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/lobby$/);
     } finally {
-      await pageA.close();
-      await pageB.close();
-      await contextA.close();
-      await contextB.close();
+      await ctx.close();
+    }
+  });
+
+  test("two players queue, are found, and the room enters the match without a versus screen", async ({ browser }) => {
+    const ctxA = await browser.newContext();
+    const ctxB = await browser.newContext();
+    try {
+      const [a, b] = await Promise.all([loginAs(ctxA, "q-a"), loginAs(ctxB, "q-b")]);
+      await Promise.all([a.page.getByTestId("player-bar-action-ranked").click(), b.page.getByTestId("player-bar-action-ranked").click()]);
+      for (const p of [a.page, b.page]) {
+        await expect(p.getByTestId("room")).toHaveAttribute("data-phase", /found|match/, { timeout: 60_000 });
+      }
+      await expect(a.page.getByTestId("player-bar-top")).toContainText(b.username.slice(0, 8), { timeout: 20_000 });
+      await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+      await expect(b.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+      await expect(a.page).toHaveURL(/\/match\/[0-9a-f-]+/);
+      const idA = await a.page.getByTestId("room").getAttribute("data-match-id");
+      const idB = await b.page.getByTestId("room").getAttribute("data-match-id");
+      expect(idA).toBeTruthy();
+      expect(idA).toBe(idB);
+    } finally {
+      await ctxA.close();
+      await ctxB.close();
     }
   });
 });
-
-
