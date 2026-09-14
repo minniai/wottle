@@ -7,7 +7,7 @@ import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
-import type { MatchState } from "@/lib/types/match";
+import type { MatchState, RematchEvent } from "@/lib/types/match";
 
 export const SAFETY_POLL_INTERVAL_MS = 2_000;
 
@@ -31,7 +31,11 @@ export interface TransportState {
  * ported from MatchClient into the room (spec 044, research R5). Snapshots and
  * summaries land in the room store; the caller reads `match` from there.
  */
-export function useMatchTransport(matchId: string, currentPlayerId: string, pollIntervalMs = 3_000): TransportState {
+export function useMatchTransport(matchId: string, currentPlayerId: string, pollIntervalMs = 3_000, onRematchEvent?: (event: RematchEvent) => void): TransportState {
+  const rematchRef = useRef(onRematchEvent);
+  useEffect(() => {
+    rematchRef.current = onRematchEvent;
+  }, [onRematchEvent]);
   const applySnapshot = useRoomStore((s) => s.applySnapshot);
   const applySummary = useRoomStore((s) => s.applySummary);
   const setConnection = useRoomStore((s) => s.setConnection);
@@ -55,6 +59,7 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
         if (snapshot.disconnectedPlayerId !== currentPlayerId) setIsReconnecting(false);
       },
       onSummary: applySummary,
+      onRematchEvent: (event) => rematchRef.current?.(event),
       onOpponentLeave: ({ playerId }) => {
         void handlePlayerDisconnect(matchId, playerId).catch((error) =>
           console.error("[room] failed to notify opponent disconnect", error),
