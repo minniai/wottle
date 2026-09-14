@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { WORDMARK } from "@/lib/constants/copy";
 import { getSeatColors } from "@/lib/constants/seatColors";
+import { noticeText } from "@/lib/room/notices";
 import type { LedgerAction, LedgerModel, LedgerRow, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import type { RoomMenuVariant } from "./RoomMenu";
@@ -62,6 +63,48 @@ function Row({ row, onRowHover }: { row: LedgerRow; onRowHover?: (round: number 
       )}
     </div>
   );
+}
+
+function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
+  if (notice.kind === "resignConfirm") {
+    return (
+      <>
+        resign the match? ·{" "}
+        <button type="button" className="action-secondary" data-testid="notice-confirm-resign" onClick={() => onAction("confirmResign")}>
+          yes, resign ▸
+        </button>{" "}
+        ·{" "}
+        <button type="button" className="action-secondary" data-testid="notice-cancel-resign" onClick={() => onAction("cancelResign")}>
+          no
+        </button>
+      </>
+    );
+  }
+  if (notice.kind === "rematchRequest") {
+    return (
+      <>
+        {notice.requesterName} asks for a rematch ·{" "}
+        <button type="button" className="action-secondary" data-testid="notice-accept-rematch" onClick={() => onAction("acceptRematch")}>
+          accept ▸
+        </button>{" "}
+        ·{" "}
+        <button type="button" className="action-secondary" data-testid="notice-decline-rematch" onClick={() => onAction("declineRematch")}>
+          decline
+        </button>
+      </>
+    );
+  }
+  if (notice.kind === "claimWin") {
+    return (
+      <>
+        {notice.opponentName} is gone ·{" "}
+        <button type="button" className="action-secondary" data-testid="notice-claim-win" onClick={() => onAction("claimWin")}>
+          claim the win ▸
+        </button>
+      </>
+    );
+  }
+  return <>{noticeText(notice)}</>;
 }
 
 /**
@@ -125,7 +168,7 @@ export function Ledger(props: LedgerProps) {
 
       {notices.map((notice, i) => (
         <div key={`${notice.kind}-${i}`} className="ledger__notice" data-testid="ledger-notice" data-kind={notice.kind} aria-live="polite">
-          {renderNotice ? renderNotice(notice) : notice.kind === "text" ? notice.text : notice.kind}
+          {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
         </div>
       ))}
 

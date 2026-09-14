@@ -32,6 +32,7 @@ export interface MatchRoomViewProps {
   playerAId: string;
   frozenTiles: FrozenTileMap;
   live: LiveState;
+  hint?: string;
   notices?: Notice[];
   footActions?: ReactNode;
   onAction: (action: LedgerAction) => void;
@@ -47,11 +48,11 @@ function subline(facts: SeatFacts, seatWord: string): string {
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
   const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
-  const { notices, footActions, onAction, children } = props;
+  const { hint, notices, footActions, onAction, children } = props;
 
   const model = useMemo(
-    () => buildMatchLedger({ currentRound, completed, words, playerAId, viewerSlot, live, frozenTiles }),
-    [currentRound, completed, words, playerAId, viewerSlot, live, frozenTiles],
+    () => buildMatchLedger({ currentRound, completed, words, playerAId, viewerSlot, live, frozenTiles, hint }),
+    [currentRound, completed, words, playerAId, viewerSlot, live, frozenTiles, hint],
   );
 
   return (

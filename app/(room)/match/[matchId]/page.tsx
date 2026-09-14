@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { MatchClient } from "@/components/match/MatchClient";
+import { MatchRoomController } from "@/components/room/MatchRoomController";
 import { handlePlayerReconnect } from "@/app/actions/match/handleDisconnect";
 import { loadMatchState, loadMatchPlayerProfiles } from "@/lib/match/stateLoader";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -45,14 +45,12 @@ export default async function MatchPage({
   );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 p-6 text-ink">
-      <MatchClient
-        currentPlayerId={session.player.id}
-        initialState={matchState}
-        matchId={matchId}
-        playerProfiles={playerProfiles}
-      />
-    </div>
+    <MatchRoomController
+      currentPlayerId={session.player.id}
+      initialState={matchState}
+      matchId={matchId}
+      playerProfiles={playerProfiles}
+    />
   );
 }
 
