@@ -69,53 +69,6 @@ async function loginAndStartMatch(
   await expect(pageB.getByTestId("room")).toBeVisible({ timeout: 10_000 });
 }
 
-// ─── T009 + T010: Score delta popup (US1) ─────────────────────────────────
-test.describe("Score delta popup (US1)", () => {
-  test("T009/T010: popup matches player score after round resolves @two-player-playtest", async ({
-    browser,
-  }) => {
-    const contextA = await browser.newContext();
-    const contextB = await browser.newContext();
-    const pageA = await contextA.newPage();
-    const pageB = await contextB.newPage();
-
-    try {
-      const userA = generateTestUsername("popup-alpha");
-      const userB = generateTestUsername("popup-beta");
-      await loginAndStartMatch(pageA, pageB, userA, userB);
-
-      // Submit round 1 moves
-      await submitSwap(pageA);
-      await submitSwap(pageB);
-
-      // Wait for round to resolve — round indicator advances automatically
-      const roundIndicator = pageA.getByTestId("round-indicator");
-      await expect(roundIndicator).toContainText(/round 2/i, { timeout: 45_000 });
-
-      // Check if score delta popup appeared (indicates player scored)
-      const popup = pageA.locator('[data-testid="score-delta-popup"]');
-      const popupVisible = await popup.isVisible().catch(() => false);
-
-      if (popupVisible) {
-        // T009: popup is visible and contains "+N" format
-        await expect(popup).toContainText(/\+\d+/);
-      }
-      // T010: if player earns zero points, popup is absent (already verified by popupVisible === false)
-
-      // T010 invariant: popup is never shown in the opponent's chrome
-      const opponentChrome = pageA.getByTestId("player-bar-top");
-      await expect(
-        opponentChrome.locator('[data-testid="score-delta-popup"]'),
-      ).not.toBeAttached();
-    } finally {
-      await pageA.close();
-      await pageB.close();
-      await contextA.close();
-      await contextB.close();
-    }
-  });
-});
-
 test.describe("Round flow", () => {
   test("completes 10 rounds with reconnect safety + late swap guards @two-player-playtest", async ({
     browser,

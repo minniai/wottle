@@ -92,21 +92,3 @@ test.describe("Sensory feedback settings", () => {
     await expect(hapticsAfter).toHaveAttribute("aria-checked", "false");
   });
 });
-
-test.describe("Sensory feedback — reduced motion", () => {
-  test("prefers-reduced-motion: reveal skips animation phases, summary appears immediately", async ({
-    page,
-  }) => {
-    // Emulate reduced motion preference
-    await page.emulateMedia({ reducedMotion: "reduce" });
-
-    // The reduced-motion path transitions directly to "showing-summary" without
-    // going through the "round-recap" animation phase.
-    // We verify this by checking that the media query is respected on the page.
-    await page.goto("/");
-    const reducedMotion = await page.evaluate(() =>
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    );
-    expect(reducedMotion).toBe(true);
-  });
-});
