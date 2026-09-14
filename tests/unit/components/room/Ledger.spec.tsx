@@ -12,6 +12,27 @@ const model: LedgerModel = {
 };
 
 describe("Ledger (design system §5.4)", () => {
+  it("future round numerals are decorative (aria-hidden) and word cells carry their seat (T099)", () => {
+    const withWords: LedgerModel = {
+      ...model,
+      rows: model.rows.map((r) =>
+        r.round === 1
+          ? {
+              ...r,
+              status: "past",
+              you: { words: [{ word: "BORÐ", points: 12, isDuplicate: false, coordinates: [], direction: "ltr" }], total: 12 },
+              opp: { words: [{ word: "GILT", points: 9, isDuplicate: false, coordinates: [], direction: "ltr" }], total: 9 },
+            }
+          : r,
+      ),
+    };
+    render(<Ledger variant="match" model={withWords} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    expect(screen.getByTestId("ledger-row-7").querySelector(".ledger__round")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("ledger-row-1").querySelector(".ledger__round")).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByTestId("ledger-row-1").querySelector('.ledger__words[data-seat="opp"]')).toHaveTextContent("GILT");
+    expect(screen.getByTestId("ledger-row-1").querySelector('.ledger__words[data-seat="you"]')).toHaveTextContent("BORÐ");
+  });
+
   it("caption shows the lowercase wordmark and the match context", () => {
     render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("wottle");

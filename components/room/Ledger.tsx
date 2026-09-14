@@ -36,17 +36,17 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
 }
 
 function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
-  if (!cell) return <div className="ledger__words" />;
+  if (!cell) return <div className="ledger__words" data-seat={seat} />;
   const style = { "--seat-ink": getSeatColors(seat).ink } as CSSProperties;
   if (folded) {
     return (
-      <div className="ledger__words ledger__words--folded" style={style} title={cell.words.map((w) => w.word).join(" · ")}>
+      <div className="ledger__words ledger__words--folded" style={style} data-seat={seat} title={cell.words.map((w) => w.word).join(" · ")}>
         <span className="ledger__total">{cell.total}</span>
       </div>
     );
   }
   return (
-    <div className="ledger__words" style={style}>
+    <div className="ledger__words" style={style} data-seat={seat}>
       {cell.words.map((w, i) => (
         <span key={`${w.word}-${i}`}>
           {i > 0 ? " · " : ""}
@@ -69,7 +69,8 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
       onMouseEnter={() => onRowHover?.(row.round)}
       onMouseLeave={() => onRowHover?.(null)}
     >
-      <div className="ledger__round">R{row.round}</div>
+      {/* Future numerals are a progression mark, not a fact for AT: the caption carries the round (design system §7). */}
+      <div className="ledger__round" aria-hidden={row.status === "future" || undefined}>R{row.round}</div>
       {row.status === "live" ? (
         <div className="ledger__live-row" style={{ gridColumn: "span 2" }} data-testid="ledger-live-row" aria-live="polite">
           {row.liveText ?? ""}

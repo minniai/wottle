@@ -2,6 +2,7 @@
  * Spec 044 US1 — the room fits without scrolling, nothing sits over the field,
  * the ledger aligns with the bars, no top bar (design system §4; SC-001, SC-002).
  */
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 import { generateTestUsername, startMatchWithDirectInvite } from "./helpers/matchmaking";
@@ -127,6 +128,104 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       expect(field.width).toBeGreaterThanOrEqual(358); // full width minus 16px gutters
       const cell = await pageA.getByTestId("field-cell").first().boundingBox();
       expect(cell!.width).toBeGreaterThanOrEqual(34);
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+});
+
+/**
+ * Spec 044 T099 / T102 — WCAG 2.1 AA (axe) in every room state and the profile,
+ * plus reference screenshots at 1440×900 and 390×844 attached to the report for
+ * comparison with the audit figures (Fig. 2, 5, 6, 7, 8, 9).
+ *
+ * Two deliberate exclusions, both traced to the design system's own contrast floor
+ * (§7 "coral text only ≥ 17px"): the opponent's 14px ledger words and the coral
+ * value numerals inside frozen cells. The design asks for both in seat colour; the
+ * conflict is logged in specs/044-field-ledger-redesign/tasks.md (T099) for a
+ * design decision. Everything else on the page is checked.
+ */
+const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+const CONTRAST_EXCLUSIONS = ['.ledger__words[data-seat="opp"]', '.field__cell[data-seat="opp"] .field__value'];
+
+async function expectAxeClean(page: Page, label: string) {
+  let builder = new AxeBuilder({ page }).withTags(AXE_TAGS);
+  for (const selector of CONTRAST_EXCLUSIONS) builder = builder.exclude(selector);
+  const results = await builder.analyze();
+  expect(
+    results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`),
+    `${label} has no axe violations`,
+  ).toEqual([]);
+}
+
+async function snap(page: Page, name: string) {
+  await test.info().attach(name, { body: await page.screenshot({ fullPage: false }), contentType: "image/png" });
+}
+
+test.describe("@room-layout accessibility and reference screenshots", () => {
+  test("lobby (empty seat), lobby, queue and profile: axe clean at 1440×900 and 390×844", async ({ browser }) => {
+    for (const viewport of [
+      { width: 1440, height: 900, tag: "desktop" },
+      { width: 390, height: 844, tag: "phone" },
+    ]) {
+      const context = await browser.newContext({ viewport, isMobile: viewport.width < 600, hasTouch: viewport.width < 600 });
+      const page = await context.newPage();
+      try {
+        await page.goto("/");
+        await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
+        await expect(page.getByTestId("player-bar-name-input")).toBeVisible();
+        await expectAxeClean(page, `lobby-empty-${viewport.tag}`);
+        await snap(page, `lobby-empty-${viewport.tag}.png`);
+
+        await loginPlayer(page, generateTestUsername(`axe-${viewport.tag[0]}`));
+        await expectAxeClean(page, `lobby-${viewport.tag}`);
+        await snap(page, `lobby-${viewport.tag}.png`);
+
+        await page.getByTestId("player-bar-action-ranked").click();
+        await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
+        await expectAxeClean(page, `queue-${viewport.tag}`);
+        await snap(page, `queue-${viewport.tag}.png`);
+        await page.getByTestId("ledger-cancel-queue").click();
+        await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+
+        await page.goto("/profile");
+        await expect(page.getByTestId("profile-page")).toBeVisible({ timeout: 20_000 });
+        await expectAxeClean(page, `profile-${viewport.tag}`);
+        await snap(page, `profile-${viewport.tag}.png`);
+      } finally {
+        await context.close();
+      }
+    }
+  });
+
+  test("match and final: axe clean; screenshots at 1440×900 (A) and 390×844 (B)", async ({ browser }) => {
+    const contextA = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const contextB = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    try {
+      const userA = generateTestUsername("axe-ma");
+      const userB = generateTestUsername("axe-mb");
+      await loginPlayer(pageA, userA);
+      await loginPlayer(pageB, userB);
+      await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
+      for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+      await expectAxeClean(pageA, "match-desktop");
+      await expectAxeClean(pageB, "match-phone");
+      await snap(pageA, "match-desktop.png");
+      await snap(pageB, "match-phone.png");
+
+      // Final via resign: menu → resign → live-row confirmation (no dialog).
+      await pageA.getByTestId("ledger-menu-trigger").click();
+      await pageA.getByTestId("ledger-menu-item-resign").click();
+      await pageA.getByTestId("notice-confirm-resign").click();
+      for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
+      await expect(pageA.getByTestId("verdict")).toBeVisible();
+      await expectAxeClean(pageA, "final-desktop");
+      await expectAxeClean(pageB, "final-phone");
+      await snap(pageA, "final-desktop.png");
+      await snap(pageB, "final-phone.png");
     } finally {
       await contextA.close();
       await contextB.close();
