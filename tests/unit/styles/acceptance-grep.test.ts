@@ -1,0 +1,47 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { describe, expect, test } from "vitest";
+
+/**
+ * Design plan §10 visual acceptance: nothing outside the seven tokens, no
+ * radii/shadows/gradients, none of the retired font names. Scoped to the
+ * folders each step has converted; widened per step until it covers all of
+ * `app/` and `components/` (P5).
+ */
+const ROOT = resolve(__dirname, "../../..");
+const SCOPE = [
+  "app/globals.css",
+  "app/layout.tsx",
+  "app/styles/room.css",
+  "components/room",
+  "lib/room",
+  "lib/constants/seatColors.ts",
+  "lib/constants/copy.ts",
+];
+const BANNED = /rounded-|shadow-|gradient|emerald|red-\d|amber|Fraunces|\bInter\b|JetBrains/;
+const ALLOWLIST: RegExp[] = [];
+
+function files(path: string): string[] {
+  const abs = join(ROOT, path);
+  if (!statSync(abs, { throwIfNoEntry: false })) return [];
+  if (statSync(abs).isFile()) return [abs];
+  return readdirSync(abs, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? files(join(path, e.name)) : /\.(tsx?|css)$/.test(e.name) ? [join(abs, e.name)] : [],
+  );
+}
+
+describe("acceptance grep (design plan §10)", () => {
+  const all = SCOPE.flatMap(files);
+
+  test("scope resolves to at least the token files", () => {
+    expect(all.length).toBeGreaterThan(2);
+  });
+
+  test.each(all.map((f) => [f.replace(`${ROOT}/`, "")]))("%s has no banned pattern", (rel) => {
+    const lines = readFileSync(join(ROOT, rel), "utf8").split("\n");
+    const hits = lines
+      .map((line, i) => ({ line, n: i + 1 }))
+      .filter(({ line }) => BANNED.test(line) && !ALLOWLIST.some((ok) => ok.test(line)));
+    expect(hits, hits.map((h) => `${rel}:${h.n}: ${h.line.trim()}`).join("\n")).toEqual([]);
+  });
+});
