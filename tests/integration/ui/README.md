@@ -29,6 +29,34 @@ pnpm exec playwright test tests/integration/ui/lobby-presence.spec.ts
 pnpm exec playwright test tests/integration/ui --headed
 ```
 
+## Test ids (spec 044, Field & Ledger)
+
+Every player-facing screen is one room, so every spec locates elements through the same ids
+(source of truth: `specs/044-field-ledger-redesign/contracts/room-components.md`; the live list is
+whatever `components/room/**` and `components/profile/**` render).
+
+| Surface | Ids |
+| --- | --- |
+| Room | `room` (`data-phase` = lobby · queue · found · match · final, `data-match-id`), `room-shell`, `room-slot-top` / `room-slot-field` / `room-slot-bottom` / `room-slot-ledger` |
+| Player bars | `player-bar-top`, `player-bar-bottom`, `player-bar-name`, `player-bar-clock` (`data-running`), `player-bar-lane` (`role=progressbar`, max 300, `data-mode` = running · stopped · searching · disconnected), `player-bar-score`, `player-bar-subline`, `player-bar-name-input` (+ `name-input-form`, `name-input-error`), `player-bar-action`, `player-bar-action-play`, `player-bar-action-ranked`, `player-bar-action-cancel` |
+| Field | `field`, `field-cell` (`data-x`, `data-y`, `data-state` = idle · picked · preview · pinned · frozen, `data-seat`), `field-bands`, `field-band` (`data-seat`, `data-direction`, `data-round`, `data-word`) |
+| Ledger (match) | `ledger`, `ledger-caption`, `ledger-header`, `ledger-rows`, `ledger-row-<n>`, `round-indicator`, `ledger-live-row`, `ledger-territory`, `ledger-hint`, `ledger-notice`, `ledger-foot`, `ledger-rules`, `verdict` |
+| Ledger notices | `notice-confirm-resign` / `notice-cancel-resign`, `notice-accept-rematch` / `notice-decline-rematch`, `notice-accept-challenge` / `notice-decline-challenge`, `notice-claim-win` |
+| Ledger menu | `ledger-menu`, `ledger-menu-trigger`, `ledger-menu-list`, `ledger-menu-item-{sound,preview,profile,signout,resign,leave}` |
+| Ledger (lobby / queue / final) | `ledger-here-now`, `ledger-here-now-row`, `ledger-here-now-empty`, `ledger-challenge-<playerId>`, `ledger-last-matches`, `ledger-last-match-row`, `ledger-cancel-queue`, `ledger-rematch`, `ledger-new-opponent`, `ledger-lobby` |
+| Ledger sheet (< 900px) | `ledger-sheet`, `ledger-sheet-close` |
+| Profile | `profile-page`, `profile-identity`, `profile-handle`, `profile-rating`, `profile-rating-chart`, `profile-rating-line`, `profile-record`, `profile-best-words`, `profile-best-word`, `profile-recent-matches`, `profile-recent-match`, `profile-foot`, `profile-back-lobby`, `profile-change-name`, `profile-sign-out`, `profile-not-found` |
+
+Retired with their components (do not reintroduce): `hud-card`, `round-pip-bar`, `your-move-card`,
+`scored-words-card`, `tiles-claimed-card`, `move-lock-banner`, `round-announce`, `match-ring`,
+`post-game-scoreboard-card`, `rematch-banner`, `rematch-interstitial`, `series-badge`, `final-summary`,
+`disconnection-modal`, `board-grid`, `tile-*`.
+
+Conventions that follow from the design: nothing is positioned over the field, so a spec that needs a
+dialog is wrong; frozen letters are `aria-disabled` cells — use `dispatchEvent("click")` if Playwright's
+actionability check refuses them; two-player specs are tagged `@two-player-playtest` and run one file at
+a time locally (`helpers/matchmaking.ts` has the challenge/accept flow, `helpers/swaps.ts` the field ids).
+
 ## Troubleshooting
 
 ### "Failed to load board from Supabase"
