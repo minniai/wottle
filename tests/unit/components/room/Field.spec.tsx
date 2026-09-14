@@ -23,7 +23,7 @@ describe("Field (design system §5.1, §9)", () => {
     expect(t).toHaveAttribute("data-state", "free");
   });
 
-  it("frozen cells carry the scorer's seat and are not activatable", () => {
+  it("frozen cells carry the scorer's seat, are aria-disabled, and still report taps (the reducer shakes them)", () => {
     const onActivate = vi.fn();
     render(
       <Field
@@ -40,8 +40,9 @@ describe("Field (design system §5.1, §9)", () => {
     expect(opp).toHaveAttribute("aria-label", `row 1, column A, A, value ${V.A}, frozen by Kári`);
     expect(opp.style.getPropertyValue("--seat-ink")).toBe("var(--opp)");
     expect(screen.getAllByRole("gridcell")[1]).toHaveAttribute("data-seat", "you");
+    expect(opp).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(opp);
-    expect(onActivate).not.toHaveBeenCalled();
+    expect(onActivate).toHaveBeenCalledWith({ x: 0, y: 0 });
   });
 
   it("free cells activate with their coordinate; disabled fields do not", () => {

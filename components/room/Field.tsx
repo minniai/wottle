@@ -77,7 +77,7 @@ export function Field(props: FieldProps) {
               shake={shakeAt?.x === x && shakeAt?.y === y}
               disabled={disabled || Boolean(frozen)}
               tabIndex={x === 0 && y === 0 ? 0 : -1}
-              onActivate={(cx, cy) => onActivate?.({ x: cx, y: cy })}
+              onActivate={(cx, cy) => !disabled && onActivate?.({ x: cx, y: cy })}
               onKeyDown={(event, cx, cy) => onKeyDown?.(event, { x: cx, y: cy })}
             />
           );

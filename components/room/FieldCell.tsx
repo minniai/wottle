@@ -16,6 +16,7 @@ export interface FieldCellProps {
   seat: Seat | null;
   ownerName?: string;
   shake?: boolean;
+  /** Frozen/pinned letters stay clickable so the reducer can shake them; aria-disabled marks them. */
   disabled?: boolean;
   tabIndex?: number;
   onActivate?: (x: number, y: number) => void;
@@ -47,7 +48,7 @@ export function FieldCell(props: FieldCellProps) {
       aria-disabled={disabled || undefined}
       tabIndex={tabIndex}
       style={style}
-      onClick={() => !disabled && onActivate?.(x, y)}
+      onClick={() => onActivate?.(x, y)}
       onKeyDown={(event) => onKeyDown?.(event, x, y)}
     >
       <span aria-hidden>{letter}</span>
