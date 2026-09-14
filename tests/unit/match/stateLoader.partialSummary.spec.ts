@@ -4,7 +4,7 @@ vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/scoring/roundSummary", () => ({
   aggregateRoundSummary: vi.fn().mockReturnValue(null),
 }));
-vi.mock("@/scripts/supabase/generateBoard", () => ({
+vi.mock("@/lib/game-engine/boardGenerator", () => ({
   generateBoard: vi.fn().mockReturnValue(
     Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A")),
   ),

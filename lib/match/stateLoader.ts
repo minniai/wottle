@@ -15,7 +15,7 @@ import type {
   ScoreTotals,
   WordScore,
 } from "@/lib/types/match";
-import { generateBoard } from "@/scripts/supabase/generateBoard";
+import { generateBoard } from "@/lib/game-engine/boardGenerator";
 import { computeElapsedMs, computeRemainingMs, isClockExpired } from "./clockEnforcer";
 import { getDisconnectRecord } from "./disconnectStore";
 import { findStaleParticipant } from "./heartbeatRepository";
@@ -138,7 +138,7 @@ function ensureBoardSnapshot(
     }
   }
 
-  return generateBoard({ matchId: boardSeed ?? matchId });
+  return generateBoard({ seed: boardSeed ?? matchId });
 }
 
 async function fetchCompletedRound(
@@ -404,7 +404,7 @@ export async function loadMatchState(
 
   if (match.state === "pending") {
     const boardSeed = match.board_seed ?? match.id;
-    const initialBoard = generateBoard({ matchId: boardSeed });
+    const initialBoard = generateBoard({ seed: boardSeed });
 
     await client
       .from("rounds")
