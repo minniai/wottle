@@ -1,0 +1,6 @@
+# Files
+
+- [Workflow: Authentication & Sessions](authentication.md) - How players log in and out of the Wottle playtest, how their identity/profile is upserted, and how the lobby session cookie flows into Server Actions and API routes to authorize server-authoritative gameplay.
+- [Workflow: End-to-End Match](play-a-match.md) - Traces a full match from lobby entry through matchmaking, match creation, rounds of submit and resolve and reveal, match completion with Elo, and optional rematch, tying together the systems and their server-authoritative boundaries.
+- [Workflow: Rematch, Disconnect & Resignation](rematch-and-disconnect.md) - How Wottle handles mid-game presence loss (heartbeats, disconnect tracking, claim-win, resignation) and the finalization of stale in_progress matches, plus post-game rematch negotiation with series tracking and realtime broadcast.
+- [Workflow: Round Submission & Resolution](round-resolution.md) - End-to-end trace of the submit-move to resolve to reveal path in Wottle — submitMove validation gates, second-submission resolution via advanceRound, conflict resolution and same-move handling, synthesized timeout passes, the instant-scoring reveal fast path, round-summary publication, and stuck-round recovery.

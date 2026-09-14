@@ -1,0 +1,406 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:a5dece615c435542a152326b5fba3c99b1205cd6eb8f424424515c1563f0b2c5",
+  "claims": [
+    {
+      "id": "claim_a1c0772655a04de583878bf931b81f01",
+      "statement": "The Wottle match runtime is server-authoritative: clients submit exactly one tile swap per round via submitMove, but the server (using the Supabase service_role) owns the board, clocks, conflict resolution, scoring, and all state transitions.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L17-L57",
+          "version": "repo-lines-v1:sha256:2c3c9b37b8999d5fa018c12d692bf4dc90364dba2dc01db3ef9570c768a698bc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkMTc5M2ZiNGY1OWVmM2M4NTAyNDdmMDU3Y2RmNzhhOGRiZTE4NDI0ZWRiMjQ3ZTEwZmVjOGExYjhiZDhkOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExNWRmM2MyMTM1OWFkMmY2ZGY0NWMwMWY1NDZmYWZkMzI0Y2VhZmUxZTVmZTk0YTc0N2NmMDYzNGQ4NDE0NmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdmYmIzMTUwN2I2NDIyNjhhZjA4M2VlNjQyMTkwMzdjZTkxZjZmNzM0ZDNiM2U3OTdjM2ZmNjI2YWViZTMzZWQifQ"
+        },
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L140-L292",
+          "version": "repo-lines-v1:sha256:6e998a754968c68845ca38de8fcaa35c79e98e5d7eca6b0c484f6a1964b18637:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4Nzg3YzcxZjE3YThmZWZlYTM4NGQ1MGI1NTRhNDczYjdjYWMyNDZiYmUyMjNjZjNlOGIzYmQxY2VjMTdhOThkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2NDA0MWVhM2NlNDZkZGQ0NDk3YWMwOGE4MjBjMWRkOTMwOWEwZGU2ZTM0ZDJkY2MxODM2OGNiMmRmYjlhODUxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwMGNiNzFhMjNjOWM0Zjg0MWNmZTFhZDMxNDc0ZTA0NTYzNGI0NjNiYWZkNzkwYmZmZTc4NmYzNTMzNTQ5ZDI2In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_6818fba51fcb4f719534610afe407546",
+      "statement": "The match state machine progresses matches.state through pending, in_progress, and completed (with abandoned as an alternate terminal), and the first /state read of a pending match lazily seeds round 1, flips the match to in_progress, and sets current_round to 1.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L405-L433",
+          "version": "repo-lines-v1:sha256:ff0de9acc9e71d1a4698c784a2fe2ca8fc47a4f91af9187d9b8965d50a5f0047:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1YjdjNzdmNDc0NDQyOWE3NzY0MWI3YjYzNmY1YTFhYjM5OTZhNmUyMmMwZGFkNjYwNmFhNWFkNTY0MTUzMWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkMDIxNGZlZjM5YmM0ZTM5NmM3OTk3ZjJkOTgxMjA1YTY5NTFjYzI3ZGFhZWYyZWM0NTI0OTJkMTI3MWZmZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3YjBkMWM5OTliZWQxZTU5YzQzNmI3ZmJlMzU3YTdjNWMzNWQ0ZTYyZmYzMmE4YmFiYWM2YjU0NWI0MDRmMjcifQ"
+        },
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L94-L121",
+          "version": "repo-lines-v1:sha256:6f2835eaf2b228673a872219723f3c002846d93058061399b7ec870082253e58:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhMmEzMjMwMTc0Y2YyYzY0Y2FjYmE5ZDFiNTA5NGJlYWEyZGVhMmRhNTU1N2E3NzQ5ZmJmODZmM2MyYjFlZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzZDFiNzA2YmQzMDM5NzU5MzU5MDBhN2YzMzNjYzI3OTk5ZDE5NTNhMzU2OTI0MTQzNTNlMWM5OGU0NWNmNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhYjRjZWVmZjU1ODBiMTVkOWFmZmE2MGQyYzJmYTNiZTJlYjc5NmU4ZmUyYWU2ZjliZDZhMzRlZmI4MTZlZmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_07225aed75874c62a2534ce07aa7746b",
+      "statement": "A round's phase progresses rounds.state through collecting, resolving, and completed; the pure helpers in stateMachine.ts model this by marking a round resolving once both submission slots are non-pending and completed via markRoundCompleted, with a default round limit of 10.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/stateMachine.ts#L12-L67",
+          "version": "repo-lines-v1:sha256:74e044c90f876ac9391ff6e9d17aee2344dada8b706412d3a93cfedc4bfdae58:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhN2QwMTg0ZGRkNmE4NDJjNzViNWQ3NDUzMTkwMWIxYmQ1ZGU0NDg5NzA5MzFjMmRkMDI1ZWVmOWE5ODc5NzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2MTlkZGIxMmI5ODI1ZDk5ZjMzMWEzMjg1NDE0OWVkNDNkNWRjMTZmMzBhY2FlMTQ4NzFkYTBkMDcyYWRlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cb2b75fbf19d4b33a9b08bff56b0d530",
+      "statement": "mapState reports a completed round while the match is still in_progress as the resolving phase to the client, so a finished round is not mistaken for a finished match, and match-level terminal states (completed, abandoned, pending) take precedence over the round phase.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L94-L121",
+          "version": "repo-lines-v1:sha256:6f2835eaf2b228673a872219723f3c002846d93058061399b7ec870082253e58:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhMmEzMjMwMTc0Y2YyYzY0Y2FjYmE5ZDFiNTA5NGJlYWEyZGVhMmRhNTU1N2E3NzQ5ZmJmODZmM2MyYjFlZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzZDFiNzA2YmQzMDM5NzU5MzU5MDBhN2YzMzNjYzI3OTk5ZDE5NTNhMzU2OTI0MTQzNTNlMWM5OGU0NWNmNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhYjRjZWVmZjU1ODBiMTVkOWFmZmE2MGQyYzJmYTNiZTJlYjc5NmU4ZmUyYWU2ZjliZDZhMzRlZmI4MTZlZmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_324e0dc4fb3440748ed210a72be4d4e9",
+      "statement": "submitMove is a rate-limited server action (30 submissions per 60 seconds per player) that validates a swap and rejects it unless the match is in_progress, the caller is a match participant, the round is collecting, the player's clock is not expired, coordinates are in bounds and not a self-swap, neither endpoint is a frozen tile, and the player has not already submitted for the round.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L31-L153",
+          "version": "repo-lines-v1:sha256:1e7efaaad2ca8ffbdb0b39b20148ee69d0d06862359c787b7fe30416ecd169e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzYmI5NWNhM2UxZmJmYjc3N2EwMmVjM2EwOGJmM2VhNzM1NjBkZjczMjk1Y2MzMjMxOTQ4MmVjNWNlZGMxNWQ0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhMDQ4MGYwNGNkYTk0MTg2NjEyMzExNDhlZTQ2YWRmODZlYzA0MWRlYWYwMzI1MGM2NTdjYmI3ODIyM2M1NzBlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiYzAyN2NkMTMyYzIwYTg0YjVkNTliZDRhN2IzNjBiOGU3ZmY5MGQ4NjU3ZTc1OGIwY2UwNGFiZWU4YzAzYTk5In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_605bfeb953104ed8ab8c3e3d14d33d29",
+      "statement": "On a successful submitMove, the pending move_submissions row is inserted and the heavy work is deferred to two Next.js after() hooks that run post-response: one publishes match state so the opponent's timer shows paused, and one runs instantScoreFirstSubmission and then advanceRound sequentially.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L155-L228",
+          "version": "repo-lines-v1:sha256:e5fa7e67b0c29128cfe68543dfbab8bc0983f9d5f151b83880aee49de5d7c2c0:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMTY3ZTc5YTM3YzBhODIxNzBhMDNlYzM5YTg4NmRmNjFjMTdlODQ0MWNlZTg0ZjVjMTlkZmY0NDAzOWEwZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MDg4M2RjYzQ1NWNiNGUwODk3NDkxNzMwZmVhYmQzOWM3MTRhYTRmYTUzZTc4MzA1YThkN2ViMWQyZjYxZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3YTdjZTdmOGZmYjllYzI2MDgxZTRhZTJjZjY2YTk5NzNlMzljN2MwMTM3MWYwZDBiZmUxODgzMjQ5ZmRiZjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a602b47c890346dbab55cb5ad66791c6",
+      "statement": "advanceRound only proceeds when the match is in_progress and the current round is still collecting, then resolves conflicts, applies accepted swaps to the round's board, scores the round, finalizes submission statuses, marks the round completed, deducts clocks, and creates the next round or completes the match.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L140-L446",
+          "version": "repo-lines-v1:sha256:1b92e45eaa13568261c5c221a4507e548c23f83ed7fc04825672a88583ba6bd6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzA3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4Nzg3YzcxZjE3YThmZWZlYTM4NGQ1MGI1NTRhNDczYjdjYWMyNDZiYmUyMjNjZjNlOGIzYmQxY2VjMTdhOThkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5ZjAzMzc1OGI3MGU2MzdlMmFhODIzNTBiOWYxNzY5ZjFlYmYwYzAwYWY1MzI2MjkxY2NmMjZiMDJjZTUyNDM4IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2NDA0MWVhM2NlNDZkZGQ0NDk3YWMwOGE4MjBjMWRkOTMwOWEwZGU2ZTM0ZDJkY2MxODM2OGNiMmRmYjlhODUxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiYTVlOTM3NWE5MTQyMmIyMzU2ZWRjZThmMDg0ZmZkMTFmZDIzZDAyYjczOTMyZTUxMDg4Y2UxZTFjOTBkZWQzIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_8085d4fcb1704391912f6b62a6d60b51",
+      "statement": "advanceRound resolves a round only once both submissions are settled: if fewer than two settled submissions exist (after possible timeout synthesis) it returns a waiting result and leaves the round collecting.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L213-L224",
+          "version": "repo-lines-v1:sha256:bedd92bf9e12f13e18642c75457401a0d57b6b7e16426e32100f89dfbca128d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMzAyNzg5NGFkNGUwODhhNWIzNTc3ZmFiNjVhMGZkZGRjNjgwOTkxNzE4NjIxNmFjZWM0Njg1MGUwMWMxMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzZTU5ZmU5YTNlYjliYjkyZmEwYWJjZWRkNjQ4NjExZGNkOWU4YWQ2NzlhYTE0NzA1ZTllYTQxZGVlYWEyOTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bff6c3f376674824b09ce666d138c015",
+      "statement": "advanceRound uses a conditional compare-and-swap update that sets rounds.state to resolving only where state equals collecting, serializing the two concurrent advanceRound hooks produced by near-simultaneous submissions so the CAS loser exits cleanly and duplicate word_score_entries are avoided.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L266-L292",
+          "version": "repo-lines-v1:sha256:0883dfb24ce2265a1f20e95b48e27b08d28fd104543b093f0e1afa00d66cf3e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwYWRkYWVjZDIzNjUxY2Q2MjIwMzE0YjVmYjNjYTc1ZGNlNzNkMDEwNjYxNDlmOGRjMDA0NDk3OTc5OGUyZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwY2I3MWEyM2M5YzRmODQxY2ZlMWFkMzE0NzRlMDQ1NjM0YjQ2M2JhZmQ3OTBiZmZlNzg2ZjM1MzM1NDlkMjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_43a6071f7fcb4b40abf287d4ddf5d997",
+      "statement": "The next round's board_snapshot_before is seeded from the word engine's freeze-aware scoringFinalBoard rather than the raw post-swap board, because a same-round move can be rejected mid-pipeline when an earlier player's word froze tiles it would have touched.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L342-L426",
+          "version": "repo-lines-v1:sha256:afefc0742738e4d2504f765ebca92660172c74b33c855a5f8812a006a645a6c4:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5YzQ5ZTJkMzhjM2E5ZDNkNWZhNzZkZTZiZDBhZWU3OTkxZDY4MjBhN2FkZDljOTYyZTZhYmE1NjEzY2VkNjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ1Y2M0ZDUyNzE0MDM1OTY0MzI0ZDQzNDIxNGFhOTI5YTczNWU3NGJjMDg0YmZiZWM5ZGE2ZTM3YWFlODUwOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhNGM2ZjMxODI3YTk3ZjM3MWM5OWMzZWViZDYzNWViZjc1YjEwMWNiMTBhN2Q4Yjk1NGFjM2MzODhiY2I1MzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_aa3009f5975446b1bd0ddd590c8ca69a",
+      "statement": "If word scoring throws during advanceRound, the function re-raises rather than swallowing the error, deliberately leaving the CAS-locked round in the resolving state so the recovery path can roll it forward idempotently instead of persisting an unscored board as resolved.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L310-L340",
+          "version": "repo-lines-v1:sha256:87b93365bdd15ccc0d25bea3b73ef17f1dc0430b9c21108446e09571ff63faea:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4YmU2ZjM1ZjQ1MGZkN2I3N2E1YWRiOWZkYjgzM2NmYjAxMWI4YzI2NDY5OTVhMzlmODY1N2Q1YzdjNmM1MTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4NzdhZmEwMWE3Yjg0NjI3YmNhZDI1MzYzYWNjZTM5ZDk1ZmM1YjljZGE2NDM0ODEwNWY5YjdjZmQzNzE4ZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxMjEyZTkyZDUwODc0NTUzYmQwNmI5ZDFhZGFiOTg1NzhkMzA2M2E3NDViYjZiMmEyYmMyNWFkNGYwZWIzZmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_77e3709213474f07a1ad953719455dbf",
+      "statement": "resolveConflicts arbitrates overlapping-tile contention first-come-first-served: submissions are sorted by created_at and each move is rejected if either endpoint is already locked by an earlier accepted move, otherwise it is accepted and both endpoints are locked.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/conflictResolver.ts#L8-L47",
+          "version": "repo-lines-v1:sha256:f02241d1399d63baba78bc05c2a1bf5eb8541111444304b7026ba0602ab07951:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0Y2QxOGMyYTM4NDY4ZmM5Yzc4NjVhNGZhYTNkZDBhYWNiNTE2ODAyMzIwMDI4YTY0OTNlMGVlMTllNTQ3M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1NjBiYmNiNjUxMjI0NjEzOTQzZmNiYmFjYThhMTRmMWViOWNmM2Q3Y2I1MjJhNDgwMzk2MDhkNDAzYWQxMjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a1d66713216c4b20ac20b9915f62d34a",
+      "statement": "Timeout submissions are filtered out before conflict resolution because they lock no tiles.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L226-L240",
+          "version": "repo-lines-v1:sha256:9d796382cae1f79fed298a2fda082c32608986759514531ca489dd268a8a9930:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5MTA2ZmMzMWI3MDFlZWIwM2JjZjc3Njg1YzRiNDkwYjhmOWI4MzkwMmI1OGZjNGVlYmRhMjZlNjgyYzNiYmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhYWM0MmM0YTgzNzM3MDYyYzg5ZWRiOGQzYjJmM2U0YTNhZjZlYzdiYTJmMDhhZDIyM2U4NGM3ZGJkNjg0NjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAzZjAzZTM4NjEwMjA3MTI0MmU5MzljODYzMjU2ZmZiOGY4ODdhYTA1NGI1OTI4MjAzYWY3ZDMzMjg2NDFiMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExMjk2MjFjM2I4ZDQxMThiY2QwMGI0NWY4MGUyNDNhOTJlZjFhM2ViZjhlZTY0OTgzMDkxN2M2OWNmMjBlNzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_61d69d1ae20e4812bd091c340dda4640",
+      "statement": "The chess clock is computed deterministically by clockEnforcer.ts from an injectable now: remaining time equals the stored per-player timer minus elapsed time since rounds.started_at floored at zero, isClockExpired is true when remaining reaches zero, and computeElapsedMs measures time consumed to a submission.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/clockEnforcer.ts#L10-L36",
+          "version": "repo-lines-v1:sha256:db4af957ce8082b89d3834fafe90d342d00a75206d6b691b58603c4a52a6fdf3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NWJkODMxMjU0MTNlYTZhNWY3ZmYzMjk1ZDVhNmZiNjEyNzczN2U0ZTUwNDIwOTM2M2EyNjRiY2NiNTk0MjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmMjM3MWQ0YzI0MWQ5ZTExZWMwNmNlNWU5NjYzNjdkZDY0YTIxMTJiNTA2ZTI4MGZlYmVlZmY0NGZlODA2ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a1cfa27e42fa4b2db8286067eca63584",
+      "statement": "submitMove rejects a submission from a player whose server-authoritative clock is expired and fires advanceRound in the background so the server can synthesize the expired player's timeout pass or complete a mutually-flagged match.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L75-L90",
+          "version": "repo-lines-v1:sha256:40ecc109a2738c8a0eb5adce7e287d57324ce3f3627860a44fd724594790e93f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhNzg0MzdhYzNiZjFkNzU3Nzc2ZjQxYmE5MTg2NDRjMTgzYTQ4ZjFhMGQxMGU2MTUzOGRiNjdjNWMyNzFkOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzOTk1NDZlYjU4YjA2NDQ3YzRiODc2YTVmYjVjZmQ2YzFjMGMzMTc4NGRkZjk0ZDA4Y2E5OTY3MjU1N2Y1M2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4NzU3ODE1NDRjYTc2ZmMyOTljNzJhNmQ3OWM3YWIxM2JlNTAyNDZiMjRkNGViZTcxOTZjMWYwNzliNTE2OGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d7ed2641d7c04961aba755d6f8ae651e",
+      "statement": "When exactly one player has submitted and the absent player's clock has expired, advanceRound synthesizes a timeout move_submissions row for the absent player so resolution can proceed.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L213-L219",
+          "version": "repo-lines-v1:sha256:79e0973fcb57510b9db0a4ad19c137c6982fa2c32c01f1ed0b230d3309d7b2ae:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWUzMDI3ODk0YWQ0ZTA4OGE1YjM1NzdmYWI2NWEwZmRkZGM2ODA5OTE3MTg2MjE2YWNlYzQ2ODUwZTAxYzExZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODRlNDIwOGNkNmZmYjhjNGEzNTQ3YjJmNTRhZGExOTk3OGMzZjM2NWU3OGY5NTAyZWY1MTQ1Y2RkMmFhODU0MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTRjNTAxMjE1YTZlMjBlMzY4OTE2NDkzOTJkMmZmNmNhNTg4YTYyNTEzMzU1MmY2YzAzYTM3MmE2YTBmMDlkZiJ9"
+        },
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L80-L115",
+          "version": "repo-lines-v1:sha256:924b157fa35252dc1305ebcfab8c0e3be841e653796c6ebcbed98bb78037e7bd:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyYzZhZDcxYTczMjNiYTRlMTk1YTJlNTc5MGU2NGY3MmJiZDQzNzZkMmNkZDNiYWZhZDFjNTA5ZWYxZDZlN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmYWI3MTBkZGY3ODU5ZTU3NTc2NGE5MTNhMDAyYzc0NTg1ZmZhNzAwMTUxMGNiODgxMWRhODNkMmNmNzRiMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5ODI5YzAyODJjNmNjM2M3ZDM3YzVkMGM0MDM3OGI1MWU2MzY3ZjcwN2E3MmEwN2RmZmUyNjNmMTllMGMxMmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_26e6dc9ba3c94988aab0dfbe9709da30",
+      "statement": "When fewer than two submissions exist and both players' clocks have expired, advanceRound completes the match immediately with reason timeout (the mutual-flag case).",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L194-L211",
+          "version": "repo-lines-v1:sha256:703bfa51e7745febb1f60a2e1699fc1e145d4fb9cbee846a03d0823665f642bb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5OTFhOTE0YmI2ODZjZjVjMjQ4MDdhMDg0OWQ3ZTIyNTY2MzhlZjQzODdkYmU4MzViMTNiMzdjYzMzZGIyMzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzNDljMTdkNmYxMmE1Y2RlZTI4NjQ3YzIwZWFjZjY4NjI1MTRjZDdhMDg1ODEwNDI4MzA0NjUzYTFlOWE3OTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5ODEzMmUyMmVkYzVhMjQ4NzM0MDk2MDZiMmE0YjZjOWM4MTVlODVkY2RiNThjMDkxOTExYzZkZjdmZDczMzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2ef01e997a8b4d31b89498b976defd29",
+      "statement": "At resolution advanceRound deducts each player's actual elapsed-to-submission time from their stored timer, leaves a non-submitting player's timer unchanged, and treats a round as terminal when current_round plus one exceeds 10 or both timers reach zero.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L117-L125",
+          "version": "repo-lines-v1:sha256:98e56c1fbdc3b1c4dc041cacfd4567def8271114e9e2080f2b96a0cd436f2d50:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2UzZjU5YTlkMjdmOTg5NWRiYzlkZjQwNzJmOTIwOTMzNTQwMWRhZWY3YzFhZjQ2OWU0ZmQ3MjUwMzQ3Yjg3YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmE1ODc4NmVmOWZkODBkOGZkMmEwM2UyOTk5YmQwMTQzOGMyZjA5M2Q1MDYwMWQzZjM0MDBjZjM5NzQwNjZlZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjBmMGIxNWQ2M2QyYjIzNzU0Mjg0NjI5MzgyZTlmNTBmMmY1OTlkZmU0NjFhNWE4MzNlODBhMGU2MjBlZDU2OSJ9"
+        },
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L380-L396",
+          "version": "repo-lines-v1:sha256:803a4d8e73d680e4c60cae06ad2348c843435106ec999a44ca47bd55f68cbca0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmZjY1YjIzN2M5NGVjMzM2Yjc0NDY4MTgwMDAyMWRlM2Q0YWE4ZmRjMTk1OTgyOGU4YTc5MzQ1NWE2MjE4OTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZTFhYmM3OGE0MjA2YjgyOGFjYzNiNTg4ZjI3Y2QxOTA1MmY4OTI4MDNkYzEzNTkzNWE3MTE4NjFjMTY3MDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjNWEyZjJiMzU2OGZlZDRlOTRhNjc5OGEzMGQxYjI4MTc1ZDNkZjI1NDc5YTMwNjY4MmQ1Mjc2ODg4MTQzNTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2Njc4N2NjNGU4MjcyNTdjMzk2NmVkNzcxZTc3NzQ1NzYwM2QxN2QxMmNiYzFlMTkxOTc2MGU0NGJjZTgxOTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ac6743eb5f8041268f0a972e4b68635b",
+      "statement": "loadMatchState recomputes each player's live remaining time from rounds.started_at while collecting, marks a player who already submitted as paused, and reports expired once the match is completed.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L486-L606",
+          "version": "repo-lines-v1:sha256:c7adb4512a1bcdd0ca27a4f372b3b6e3bb2460d23a1b1a08dcfcf3790919ff4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmYjIwMWM2MWIxMDQ1OTM0ZDQ5NDQwOWY5NjRkNDVmNjM1YzA3NzljMWMxMDRmMTJjMzRlZjI2NWMzN2FmOTIwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyN2U1Nzg4ZDVkOWQ3M2QyNGE4MWRiYzBhNWE3NGJmYTgyYzljM2IzYWY5OWU1MmFmNzk2ZTkwYjQ2OGE4YTNkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTU5MDVmMTM5YzEwNzlkYmVkOTJhOGExZmU5YTY4NDdhNjg4ZmIyNmRhYzdlNTg2NzY0NDM0ZGE5N2U0YzYwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyNWNmYWE2Njg0OTM4MTMwNTg5NGIyY2YwMGZhZjM2ZTQxNWE4MDFhMmVhMjhmYWIyYzIyYjZkNGU5MjkwMTk2In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_202cb3b01ea444bbb45f8fbf98e9127c",
+      "statement": "The instant-scoring fast path (spec 042) runs instantScoreFirstSubmission in submitMove's after() hook before advanceRound to reveal the first mover's scored words and freezes on both boards mid-round; it is best-effort, its return value is ignored, and failures are non-fatal.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L205-L228",
+          "version": "repo-lines-v1:sha256:58c630cb4f39711c1931a76862255a22cbd6de8485b8482f2d1cd244f2a2989d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2MTI2ZTQyZGU1ODFmNjk3ZjU0MmE2Nzg0YjVlYjVlMWE5ZGE5MjRhNDE4Y2U5NDFhYTk4Y2E5NThjOTRhNWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOTUyMDZhODg0ZDIwNjExYmQxNWFlZWZiOWI3Njk1ZGQ0MjE5OThlNzJjMTJhZTUwNDExZGI2ZmM4M2ExYmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3YTdjZTdmOGZmYjllYzI2MDgxZTRhZTJjZjY2YTk5NzNlMzljN2MwMTM3MWYwZDBiZmUxODgzMjQ5ZmRiZjMifQ"
+        },
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L78-L124",
+          "version": "repo-lines-v1:sha256:4336ba616c4dc9d4ec805b60ebd956a16cafc3982e5de1c54ca34eb3b54fb700:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxZjhkODFiNTg0OGIzOTMwOTRmMjNlOGYyMDRiZGQzMTk4NmNkODg3ZmE3MzE3ZDljYmE0YzBkNzVjYzFhZDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1MmJhNGZiZWVhYmU1MjJiYzQ2N2I0NTI5NTE5ZTRjOTQyY2UyNTllYzlkMzk5MjEyMDJmMzBjYjZlZTc2NGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_85890b1b272c4e0eb2a64e2710229db6",
+      "statement": "The instant-scoring fast path defers to the combined path (deferred-to-combined) without scoring when two or more pending submissions already exist or the round is no longer collecting, implementing the FR-007 race-window guard.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L170-L189",
+          "version": "repo-lines-v1:sha256:1a3577de6b787b2c414147472cd7d1636c52df49495a4eae9991502564e565dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkZTI4ZjI5ZmM2ZTdkOGQ1MzMyOTI4Y2JmMDBiMjAxYmFkNGJkYjliMjYzYTkzNTA0ZmRjNTUwMDJkMTUxZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1NzVmMjhkYzc2OWJhODJmN2NiODgxNjA5YTk2ZWI4ZmQ2ODkwMTkzYzI4ODI0YmFiZDgwMzg0NDQxMjJjZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlkNDQ2NzRiZTI0NTNjNGNiNDFiNDE1OGE2MDM0YTE1NDg0YzM2MWRlNjVmYWI5NTAwMmNiZGJhYjQ0Njk1OTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5d929a119b7f4bfa83fbc39f842219d1",
+      "statement": "The instant-scoring fast path scores the first mover's move against the same round-start freeze baseline (rounds.frozen_tiles_before) that advanceRound uses, so the later combined pass re-derives identical words instead of rejecting the first mover's swap on tiles their own word just froze.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L200-L253",
+          "version": "repo-lines-v1:sha256:53479ecfdb2af3fbc6f56bd3955ec06b05a8f785082c9acf22b9a0aefa1cda08:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YTMxMjRlMTI2NTUxODZiNzkyZmY3OWY5ZWIwOWRmYThhMzc4NjY0OWNlNGQ0NGY2OWIxNDgzMTM0MWU1MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0NDc0ZDY5MTY0ZTlhMjcyNDczNzMxZDZjNzAzMDUyYjNmNDFjZDE0ZWM0NDUzNzVhZDVkMTE3MDNjODQ0ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNhNTc4ZGQ0OWY4MDEyYWQ3YjlhZjc3ZDg2N2I2NjE3MTgxYmYxMjE5ZmY1NjRiNDMzZmJhMzk0MGE1MWY1NjIifQ"
+        },
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L294-L324",
+          "version": "repo-lines-v1:sha256:2a71ffd300b2cb399e7845c7532c61f1f3e0caee8edfb8091e99e4661644d517:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5NWI3MjM2OTYwOGEzMmViMjAyMzBlNjcyM2ExYjViYjA4NGI4NTdjYjNkNWZlMTY3NGRiMTdkN2I1YTM0NWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmZjUzMmY0YTQ5NzVkNTAxZmI0YWE5NWNjMGEzODdhN2I2Nzk5NzQwZDVlZWNiYTEyNTFjNmEzNTAxYzA1NmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhZjM4ZWY1ZDM1MmZkYTQ4OTMzMTZjMTA0MDg2MDlkYWYxYmUwNzczZjU1NDRkYzgwNmZhMWQ0ZDAyMDczNzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwMGQ1OWE0Y2JhNDM2OTgyYjRlNGIwNDY1ZjM5N2VkNGUzMDIwNmEyMTg2MjkxNzgyMzI5MTIzNWFiYjA1YTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c0fa349354ac4d8fa0e1e8397b07d72f",
+      "statement": "Before writing scores the instant-scoring fast path warms the dictionary and then re-reads the round state, aborting if the round is no longer collecting, because its scoring writes are delete-then-insert on word_score_entries and a late detached write would wipe the canonical combined entries.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L209-L233",
+          "version": "repo-lines-v1:sha256:9986111fc3d59ecf784f2ec74cd879625a58ea8eaca39edc78e66b4db2528bdb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkMDk0ZGRmZDQ2ZGI4OWFmMzU4YzQ3MzMyYWYyZDFhYThhODlkYjRmNzRkMWIwY2I4ZDViMmQwOTBmNzM1MzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiMzIwMWQ1ZGM2NDk0ZDc3YjhiNzE2MjczM2Q1Zjg3MjQ3ZWFiYjc3ODE5ZmZkNTdjZDZiNzU1YzU1Mzg4M2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImViZDBjN2M1MjQyMTk4Y2EyNGM3ODExYzRkNGI5OGJlNGI5MzhkZDdkNDdiZjM0NDA5MDMyZWQ1MzhhYWQ5YTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExZTI5MjM0ZDBiZTc5YzY1MzhkNmI3MTQzZmZkNGM3NzEwNTRhOGMyOWQyN2FmNmJkY2NlMTdiMDQ4YzVhMTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_93d70f591d4a4c299b3ace1dad612d0d",
+      "statement": "The instant-scoring fast path returns no-score without publishing a reveal when the first mover's swap produced no valid words, and the whole run races an internal 5000ms timeout (INSTANT_SCORING_TIMEOUT_MS) sized to absorb a cold dictionary load, returning failed on timeout so the combined path proceeds.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L108-L123",
+          "version": "repo-lines-v1:sha256:46029890e5e7705da28f9d5f1818792db1b34ae490be3d927395f8e23ffd0c04:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2NTk1ZjRlZTVmZjYzZDUwOTUwNDE5ZGMzNDQxNDUxMzg1MWRjOTczNmZkMTdhNGY3YmZhOTMwYjI2MWI2ZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyZjA2MmYwYzlkYTMxYjk2NTQyZDY1N2E2MDE4YjljNmFiNTYwMTUxMDFhYjdiNmI3M2ZhYWRhMTVlYjRiOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTI5ZTkxZTBmOTljM2U4MjVkZTY5YjQzNWZiNjQ4NGQxYjBhMWRmMmY0NjU2MWFiZjFhMjlmMDQxODhiODgifQ"
+        },
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L18-L34",
+          "version": "repo-lines-v1:sha256:f989977d77dadbda728dc4a765e3c1493bab508ed76d25ef9837a8fe73f68961:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0MTI5N2I2OTJmZTcxZmNjOTNhMTlhMWVjYzViZWQ3ZTcyMmYxNDIzYmU3YjAzNWRlNDMzNzM0NDQ4NjBmMjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzNGM4OThhMjM0MTY3ZjdiY2VhOTIwZjNmYmI3YmVlNTRiOTI0MDNlZGE2Nzg2YzczNDYyODI5MjcxZjlkYmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyOTk2Njc2MDA5YzcyM2UzOGNjNWUxOGMyZDA0Yjc4ZWRmMjJlMzU4NGE5M2I2ZGE3NjRiYzI1MjQ2OTFhNzAifQ"
+        },
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L257-L305",
+          "version": "repo-lines-v1:sha256:0496b6db27d70c8504b82708b3645cd02b4eeeb3d777d903920982cd4ad62e53:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiN2EwZDg2NjlhZjAzZDBmNDQzNTgyZTIxYjY4MzNmZWQ5NTVkNTlmMTA1YjBjOWNlMWJjOGQ1MGZlZDVmNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhNTc4ZGQ0OWY4MDEyYWQ3YjlhZjc3ZDg2N2I2NjE3MTgxYmYxMjE5ZmY1NjRiNDMzZmJhMzk0MGE1MWY1NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2YjExMmI3ZjM1NjVkZjMzN2M1NzUyNzBhZTAwNDE3Njg1ZjI4YjE2Y2Y1YTM2ZjUyODBiZWM3NjljMmYzOWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c6266052d88346999313c0fd64c2e4ea",
+      "statement": "After a successful fast-path scoring, loadMatchState derives a partialSummary from the single-player word_score_entries so polling clients converge on the same first-mover reveal that realtime broadcasts carry.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L254-L290",
+          "version": "repo-lines-v1:sha256:4856472dfef78a5c51d2f1acc25a99211b17a40c8091882e3ebc3d1b0bf582c5:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiOTY0MTk1MGQ1MzVkZjQyMDhlOWJkZDY4ZWNlYzUzMzBiOTNkNTAyNzEyZjE2Y2MyZDlhZmIzNzY3MGU0ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjZTVlMGNkZGY2NTEyNzhmOTJhYzhhYzVmODQwMTc0NmZiODMwYzI0MWNlMTg1ZWI0OTE3MzQ1NTgxN2ZhY2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NDQ3MGNkMmU5MTE3NjU1MWJmYjA1ODAzNGQ1MmYwODBhYzMwMjA5MTdlNGFlNDk0NDlhMTFhYTc1YWM4MzgifQ"
+        },
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L507-L542",
+          "version": "repo-lines-v1:sha256:0bb99f8f4d7ac22f9b85bdb391f10e18e98f9c2789c19e2356f06ce8ab2dd22f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1MWM3MTViNjEyMmU0YWU1ZTUwMjg2ZTg2Mzk2ZDA1ZGYzZGRlNjg2NmYxMDkyNDliYWYxODNjOTIwOGY3YjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhZDA2ZWU1NTE1ZDY1NTg0OGY4MGU1MmU5MGI3NzdhYzQ1MTJkZjlhNmYwYmFlMmFhY2ZhMmY1NzJmMGM0ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5ZTFjNTZlNzhjMDYzYmYzMjJhNDZmYWQ5ZmU0ZWY0ZWVjYTk0MGJjMmUwOGI5OGQwN2RjMjczM2FiZjMxMWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b1f784f28146456cad77f144aa1afa4f",
+      "statement": "publishMatchState broadcasts a fresh MatchState on the match:<id> Supabase Realtime channel bounded by a 2000ms subscribe timeout, treating broadcast delivery as best-effort because the authoritative DB writes and clients' 2s safety poll cover dropped broadcasts.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/statePublisher.ts#L5-L71",
+          "version": "repo-lines-v1:sha256:8b188f1788938f0088d3aeb00089651161ac83006e15dd47d4196f118d10049d:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3ODZiN2M3ODJkMjY5MTA1OGM3NzMyNmUwZjY2Yjk2OGIwMDIzMmI2ODk1Mjc3YWQ0MTUxMTRmNmFjOGE4NTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_41f70f9ca8274839a3665fbf56cb4e47",
+      "statement": "shouldApplySafetySnapshot lets the client-side safety-net poller apply a fetched snapshot only when it carries a signal a dropped broadcast would otherwise lose: the round advanced, the match completed, the disconnect flag flipped, the frozen-tile key set grew, or the partial summary changed.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/safetySnapshot.ts#L18-L61",
+          "version": "repo-lines-v1:sha256:b07205c288ed118facc0b771e829a94bf2a33e6b198fe05625e9d4a02b9c2d85:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkYmYzMjlmODQxMmZiMzU0ZjhmOGRiNjU0NDc1ZThmNGJhNWFlZjY0ODgxMTE5ZThlYzAxYTNjZTJiYTMwNDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE2OTk5NTU3NDBjZGEzYTNhYjVlNTU0M2UyYzE3MGMwZjViZWJmYjdlYTRhY2VlOWIyNzJkZWVlYzBmYzQ0NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_79416946636d436e86dd1d5a16897282",
+      "statement": "loadMatchState detects three stall shapes on each /state read and dispatches a single deduplicated background repair per match: a collecting round with two real submissions re-fires advanceRound, while a stale resolving round (past a 10000ms threshold), a completed round on an in_progress match, or a completed match missing a winner_id hand off to recoverStuckRound.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L30-L92",
+          "version": "repo-lines-v1:sha256:06a0caa54d6b5d9195c25f1400e336543f34402afb5d2b3742b2b7e9d0f942a5:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwOGI1YzAyNDVjMzYyZGE0ODA0OWQ3MThiZTdhYjQ3MWJlMzIxYjZiNDczNWU4OGExZWYwNmMyYjk3NjkyMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1ODA5ZjIzZDBlMTIwNzIwNGE4MmU4ZGU0NWI4Njk2OTZjNjhhYjkzMWIzZGNhNmY3MGE5ZDM0NmI1OGFkOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYzMjgxOGQ5MGE1NzhjOGRlMGQ0MmY4ZDhiMzE5NDA2NmE1ODNiN2NhMWYzMTEzNWUwMDZiZGMxMmM1OWJlZjgifQ"
+        },
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L463-L484",
+          "version": "repo-lines-v1:sha256:47c67f08536bfa5af226d052c6bd7a90e597eca9bc83c3eae75f5094e024bda0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwNTkxY2Y2NzUyZGE1NzBjZjUzZTMyYTg4YWI4OTg3YjE3MjJmYWQ4MzI4OTMxY2IyMzY3OTdkMDI1ZmY5MTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxMzU1YTc1MjUwOWUxZDJhODlhNDYxZWQ5Y2U0Y2JlN2VhY2UzNmYxNjUwNzNjM2FlOWJlMjMxMmIyMjE4ZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3M2M1YjE3OTYxYTg0ODA5YjNmMGQyMTlmZmY1ZTk4YjU4YjdkZWU3ZTBjYTQ3ZjBlMDBkMDFhMzMwNzVkYjEifQ"
+        },
+        {
+          "resource": "repo://lib/match/stateLoader.ts#L544-L564",
+          "version": "repo-lines-v1:sha256:52aa7d834166997d03f527150d6b4105e3c7e3a2e7824e3534f61fa704e8954f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkY2JjYTllMDUyYzYyN2NmMTk4ZDNlNDk5NGE3OTY5NDM2ODBhZTNhYzI1OWMxYWU0MmRkMGUzYWM1YjRiY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxMzQ2ODcyYmJkZGZkMGUxMDg3NjE1MjkzZTNmNDBlN2QxOTRjNWI5YTdlOTVmMzQ3NTY2MzAzNmMzNTE0ZjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1NGZjYjc2OWZmNThhOWZlN2FmNDJmMDQyMzU2ZTdkYzA2NDNlMDY2NTZkYTBlODY1MjA2MGI5MDI5ZDEwNTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a8c1a49021fb46978d39e7911bbb932b",
+      "statement": "recoverStuckRound rolls a stalled advance forward idempotently across three shapes: Shape A finalizes scoring and marks a resolving round completed, Shape B deducts timers and creates the next round before advancing an in_progress match (O-79) or completes terminal rounds, and Shape C re-invokes completeMatchInternal for a completed match missing a winner.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/recoverStuckRound.ts#L75-L265",
+          "version": "repo-lines-v1:sha256:07bcf06eed50f17110a927fe54b3321604b9c209f16fecad7e837c306ead8cee:eyJzZWxlY3RlZExpbmVDb3VudCI6MTkxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0MzdhOGI2ZTE4MTJjZjE1Y2UwYjNiOWY4M2IyNjNmMTA5NWY1ODM0MTg3N2QxNTdjZGFmY2I3Njk5ZGEzMjllIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwMjgwYWJjYWIxNmY0NDQ2ZWM1NDk2ZjJiMjUxYjg0NTM1M2FjZTMxMTg1MDFmOWJlNDAwOGNjZTNiNmIxNWM2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3MmNlNzhkYzg1MzBlNzY4YjhkNWNiOWMyMjEzNjFjZDYxOWU1ODFlYjE5MDE5ODFkN2QxZDY5ODBjYzhlY2RjIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_d3db433578fb4f8487b2abdf304c5b4d",
+      "statement": "recoverStuckRound is idempotent on repeat invocation: re-scoring is gated on the presence of word_score_entries, next-round creation tolerates the (match_id, round_number) unique violation (Postgres 23505) from a racing advanceRound, and completeMatchInternal is a no-op once the match is completed.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L108-L122",
+          "version": "repo-lines-v1:sha256:89a1e2f2a28d988ae43a728d73316fae1c24d943aadd0282d41d9e5673ba5ff5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMTAwMDJlNzNhZmYyMDk4YWQxZWIwYzIzZTk1Nzk0ZWUzMmE5YmIzZmJlZmNlYjVmOWI2OWQzY2Q0MjFkMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjOTMwODY4NDFjZmJiNzM3MmYzMGQxMzk2YjQzMzRhNzA0YmQwNGY0YzNjNTJkYWZmOTdhZDNhYThjNzcwZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkZjM0OGQ0M2Y5ZjA3MmIwYTcxYWVjN2E2MWI2MmI5NDk1ZTc4NTgyYzY2OTU1YjdiY2RmNTk4YjY0ODFiZDcifQ"
+        },
+        {
+          "resource": "repo://lib/match/recoverStuckRound.ts#L275-L331",
+          "version": "repo-lines-v1:sha256:2ff44f6b33fcbaee98da94220861cca9459663633222fe77d7cc6f5ded7053dc:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2NjlkYmQzNmUyMjIwY2ZkOGY0YjY3MmQ3NTQ2ZjIyZjI5MTI2N2YyOTEwY2U5NjVhYjlmZDFlOTY3OGI5NDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhYWU5YjU4MTliYTFjYmEzNDJjOTU2Mjc3Nzg2YzBkNzJmYWM1ODA5NDYwNTA4ZTk2OWY4YTg3NGQzZDY1ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2MDZhYmU4YTc3YjI0NjIwMTBkMjg5YzM4MWI5Y2Y1NjI3YWZjNDQ1ODdhMWU0YTUyNTUzYmVmOTk3MjBmMDUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f3ce0c64dbc44042ae7a8367a9ed42c1",
+      "statement": "completeMatchInternal is the single idempotent funnel for match completion (called from advanceRound, recoverStuckRound, and the participant-authorized completeMatchAction); it early-returns the existing winner when the match is already completed, otherwise it reads final scores, determines the winner, writes state/winner_id/ended_reason, resets player presence, writes a match log, and broadcasts final state.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L100-L238",
+          "version": "repo-lines-v1:sha256:d4b39e8109dfd2e168781a164f277ff07a8e067400f351b58e78f9bff049a662:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2MmMyODQ1YWVhM2Q5NGJjNWJjN2M5MTc1MzBjZjFiY2EyNWE1YWUwMTI3YWRmOWY0YTlhYTg0MDUyNTkzMGJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxZTk4ZTEwZDJhOWU1ZjEzZjdjOTg5NTk4YzlkNTA1NWFkYjQ4YjRiNzQ3OTBjYWIwZTkzOTNmNTgyYTY1M2M3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5Nzc3OGFjMWIyYjQzZTEzMDhjMGEyOTg1MzhhMzYxNzY4YWVmN2Q3MjhmYmY1OTlkYzVlM2YyMTI3NjhmY2VjIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_9208a9b2226e46c0ae7117b7d7e220ab",
+      "statement": "determineMatchWinner decides the winner by higher total score, breaking a score tie by the count of exclusively-owned frozen tiles and declaring a draw only when both are equal; abandoned matches record no winner and disconnect flows may pass a forcedWinnerId as forfeit.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L124-L149",
+          "version": "repo-lines-v1:sha256:d0231a54be4f5b5167f6ef06da3389ab1ba4d7acdca1bc78905770dda60bd130:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmZjFlYzUzOGM5YjVhZTUxZDEyN2RlNTg1ZmIxZDA5MmE0ZDlkMzgxNDk2MThjZWQ0OTRhZjI1MDFiNGRiNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmZWQ3MzIyNzAzMDBhYjBjZDFhNzk3ZTgwMWU2YjI4YzczZmI3Zjc5NzIyYmU4MmRlMDAwYTllZmY4NTFjNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlZWVmZGQ1MTEzZDk5MDU2ZjFlMTlkZTFiN2Q1YmVkZTZlMGEzMDFmOWU4ZjdiZTRlYWQzZjhmOGRhODY2YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkZjNkZWVmZGE1MWNlZGYwNDRhNTg2MzI2YzRkM2MyNzgzNzMwMTYyNWEyMTFiZDRlNGRmNTQwYTc0OGE1ODUifQ"
+        },
+        {
+          "resource": "repo://lib/match/resultCalculator.ts#L15-L35",
+          "version": "repo-lines-v1:sha256:02461b3759708eb4636514ce33081b41d03bb1b81dbaf19667118d62d9c08f07:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1ZDI1MmNlNDYzNTY0ZjI5MmYwZTFhNWIzNjc1NzhmYjc1MmE3Y2JkOGRkMzkyYjQ5OGM4ZTdjYzUyOWNmNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwNzE4MTQ2MjcxMDViZDVkNGYwOTlkMzBkZDZiNjA3OWU0MzkxMGM4ZTc5YTdlNzBlYTk5MmNlMDIyOWJmMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5NDlmN2U4OGJkYzY1Mzc4NjYxYzQ0ZDM3YjZlZjA5ZmFkNjY0YjNkMmZhM2ZhMDE2OWE4ZDZmZWFlOTY4ZjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d98a0a378ba2469daf310825c8a0d064",
+      "statement": "On match completion completeMatchInternal triggers Elo unless the match was abandoned: it fetches both players' ratings and games_played, computes new ratings via calculateElo and determineKFactor, and persists deltas through persistRatingChanges, logging rather than throwing on rating failure so completion still succeeds.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L161-L182",
+          "version": "repo-lines-v1:sha256:39715e0c335aa0539ffed157d6e2e0c0d92d97051ea6a13d143a5558b6c8b019:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmN2U3MGE4MjlhMzg3OGUwOGYyMWNhMzM5ZDNhMzc1MzFjOWI1OWEyNjFmNWI1MDBkY2JhZjAxMmFiNDQ3ZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2NDMwNWE0Yzc2YWRmODg0MzAwZDk2MTk4MDQxOGI3NDM3NjllMGU2MWJjZjE2YjZkYjM5ZWJiZjNhYWFkMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlYWEyNmYxMzA3NDU0OTMxZmJkNGMyNDQwYTdlNDYzNDlmMzk1ZWFiZDUyMDMwMDlhN2E4OGViM2ZkMGUyODAifQ"
+        },
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L240-L317",
+          "version": "repo-lines-v1:sha256:dde210cf6cc95897a19e01b031771729d254a1c828091af1f29f48dbe9d94870:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2Nzk1ZDY3NGNkNTcwZDJlNjVhMGJkYjdjMTEyZjRmNDc2YmVkYmZjOWYwZjJlMjU0M2ExNGJlMzc3MDQ3YzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3YzBiM2EyZWM3ZWMwOGY5OGQ5MmJiN2NkNmJiMzg5NWUyMzMyYzg2MGZmYjhlMTU0YmZiNmUxYTU1YWJmNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d73270a938284aae8f7f68d4c9fb2d21",
+      "statement": "For a terminal round, advanceRound awaits publishRoundSummary bounded by a 3000ms outer timeout before calling completeMatchInternal, because that summary writes the final round's scoreboard_snapshots row the recap chart reads and a fire-and-forget publish was being killed by function termination and dropping round 10 from the chart.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L448-L491",
+          "version": "repo-lines-v1:sha256:078e5bb9a8e7c2f9ce54b5586cca0544db77f5b77a70432d4771acdb143a6f40:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmE5ZjE3NDdmNWVjODI4NTAzODg2MmI3YzY5OWE1YmMxY2M5MTUxYjc3NDJhODRhNTBhMzA2MmRiMTI5YzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MWIzNDFlOWMxMWNiNzI2ODI4MDMyNjczNTgxNGIwMWEyZmNjZjkxMWJmZjM0NmY0ZmQyNTEyZDUwNmFlODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkNDQ4MThhNmRjNzU2NjM4YTkwZGM5OWUzODlmMGU4NjRhNDgzNGViODUyOTZjMDkxMjgwZmE0Mjc1Y2YxZjQifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

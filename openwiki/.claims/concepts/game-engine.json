@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:68fee669c579ed5c42d08d931e17adf436481bfb7488bf87abf396caa6b85274",
+  "claims": [
+    {
+      "id": "claim_3649ebc5e6c4473da2f28062999725a0",
+      "statement": "The game engine under lib/game-engine/ is a pure, persistence-free core: given a pre-round board and accepted swaps it computes, validates, and scores words, with no knowledge of HTTP, persistence, or match orchestration.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L200-L217",
+          "version": "repo-lines-v1:sha256:7c04f927bf383a5c53c501569a9f8d794470475a53acd9289be1a45f1d0b11df:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4NjA0NDYxMDI3NDc1MzM3NzVkMDczNjljNWRhMzg4Nzk5MjhhYzQ1MDAwZmYxNjM5MjZiYmU1ZWM2OTUyY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMmNmMzFjYjIwN2E1MGZkMWQ1Y2ZiMzZhOGM5NThiYTdjOTU5ZWI0NmM4NDRlYmY5ZGE0MmMxYzhhZDVjMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwMWYyZWMxNzU5M2MxMDU0ZWI0NjM2N2Q4NDUzZWYyNGExNzNjZTk2YjcxMTdkOTFmOWE2OGQ0NGZlZjhiMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlZTVkZTE4N2NlOTAwNGUxZDEwMWNlNTYyOTk1Y2Y5Yjc0NWE1YjUzZjZkMjdkMWY2ZWNkOThkZTdjOGIxOWYifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L234-L337",
+          "version": "repo-lines-v1:sha256:ce62df9b477259b00a08adae8a1ef238eb3ead2004aebcd9594512802226ed98:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5OGEyOTJjNjZhYTU4YTQ0MTY5ZWYzMWU4Y2VhZmEwZGE4NzgzODZhNThlZmMyZjlmNzkyMDAzNDg2YTNlYjhjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhMmI0ZTI1ZWVmOWVhMjZjNGEzZTlmNzdjZDM4MjBiMjEwMTE2OGUyYmUyYjIwZTlhN2VlOGQ1MjRiNjNkNjdmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_7d97057ff22f40a389ebd7ea272df5e5",
+      "statement": "The board is represented as a BoardGrid (string[][]) with {x,y} coordinates indexed grid[y][x], validated by a Zod schema to be boardSize×boardSize (default 10) with single-letter or space cells and in-range coordinates.",
+      "evidence": [
+        {
+          "resource": "repo://lib/types/board.ts#L5-L37",
+          "version": "repo-lines-v1:sha256:50d8c7d141479ad846be86d8241357de4ef21fb24ecd07d064b03f571ed968ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxNDhlZjc3NmJlNGYyNWU4MTU2YTRiNGZiODkwMmM0YzQzODk5ZDY2ZWI2MzQ3ZWY0MjA5ZTRjNWJiMmMxNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlZmRhMWUwMjZhMDhkMTk5YTgxODEzNmVjZTMwYTYwYmI3NTYzYzg3YjE4YjQ0MDU0Y2U0Y2QyYjQ5YmMxZjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3OGE2OTViN2E2YzY2ODliYzcwYjg4NmIxOWViY2Y3ZTcyMDgzMjEzODhkNGNhYTVlZjU2ODM0Y2EwMzA3NmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxZDY3NDYxZjM0ZWJhYTNjYjQ2NTgzZDE4N2M4ZWQ0YWI4MjM4ZWFmMTU4M2M3YzlhOTUxMDVkNjJlZWIxYWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_627d19ffad1e407394d0f6c41d8d3a8e",
+      "statement": "applySwap is immutable: it clones the grid, validates both endpoints, rejects swapping a tile with itself, exchanges the two cells on the clone, and returns the new grid without mutating the input.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/board.ts#L8-L33",
+          "version": "repo-lines-v1:sha256:d9fdca355739b7669f73c2423dee5b14cbc45b41ed9566063e27370ac4c5d863:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYzcwMTcwZTg4NjI5OGMyOWNiZmYyOTU1MGNjYjMxN2QwNGY5ODM2MGU5ZTg3NTRlMjkwMzk4NDJhZjQ4YzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlMmZmNTE0NjUzNTlkZmMwNDJhOWRmODA0NmViMWU0ZGY1NTQzNjU0MzRkOTRiZjU0MTZlNzgzYTVmMmVhMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY0OTU1ODE4ZjllZjcxYWFiYzNjZmQ2YzNhZGY5M2U3OTM5ODczNjJlMjU3MjFjNzc4ZDkxNjE2MDdlYzkxNmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_73b81cd705da4f3a9868e5e1dc70c151",
+      "statement": "processRoundScoring orchestrates a round by loading the dictionary, sorting moves with sortByPrecedence (ascending submittedAt, player_a wins ties), and processing each move sequentially so later moves see the mutated board and updated frozen-tile map.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L128-L143",
+          "version": "repo-lines-v1:sha256:dd1eba460b1c4df96e6f54b1a75a2e8b91c3bc33e29498affb3a0d8b78eb9c07:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1OTM5MGY2YmYzNGY5NTkxM2JmYzk5NzI1YTYyN2ZjOTc4NjM3YzE5NzVhODE2N2U4ZGZkNmNjMjQ0ZjA0MjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkMDVmNDI1NGY1ZDdmMDIyOTFkOWU0ZTMyOWE2ZDYzYTliODJjOGUyNWU1MTNlNWI0NzE3M2JmMTQzMTg3NjIifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L268-L300",
+          "version": "repo-lines-v1:sha256:b3fbe63b3c95ed31b17eea6551257d62e0a9521634be7d5cd1c46dcdae9664b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljZTM5YTdmZjQ2ZGQ1MjhhNjA5Y2IzN2NiZDQzZjU4MjhkNmY3NGEzZDI0YWViYTFjNDI0MzFkOWRhODAwNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MmNlM2E4MWJiOTlmNTRhYTgwNDFlZDIzMDliNzllNzZkZmIzOGI2ZjA5YzVhM2YzN2VlMjU1ZGY1NjhhMzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2YzQyZTZiMTA2Y2JlMGZmODFhNjlhZjNmODU1YmI1YzJkZDQ2ZmFkNDA5NTVmMjJiZGIwNDIyNzM2Nzc2YmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhNTM4MjY5YjNhMTdhZTNjODBmYzg3ZDcwYzU5ZTJkMmQ1ZjJiZjA2MTE0YTBjNTg1YmUwNjZhNTNmNDNjMzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3e5f7460ea01441c9ecd8262dd27bfc6",
+      "statement": "processPlayerMove rejects a swap outright if either endpoint is already frozen (including tiles frozen earlier in the same round); otherwise it runs applySwap, scanFromSwapCoordinates, selectOptimalCombination, scoreBoardWords, and freezeTiles in that order.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L148-L221",
+          "version": "repo-lines-v1:sha256:68d210196537a8002d13f2a710380294362f08dfa5d2b991637184b3f3906389:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiNGQ0NWM5Yzg5Y2RkZjcyYWEzZDM1YjcyYWQzYTI1MmUwZmVlMmNiNGJhN2EzYzE0ZTE1MjI1MTU3ZTQzN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3YWFmYjIxMDdiYTUwZTZmMDZiNzU1MTRmZmU3MzVlZmVlYmE2NmU1ZmUwY2Q5MWQxM2Y3ZTczNzQzZTMyYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjYWM2OThiYzIyZmEyOTNiNmE2NmE5YjE4NmNlMmYyZDIyNmE4ODMyZjZhYTIwMmUxZGE4ZWNmYzZmMGM1YjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0d160427506d484c805c77cf0e976cd1",
+      "statement": "scanFromSwapCoordinates generates candidates by tracing only the two orthogonal axes through each swap coordinate, enumerating every subsequence that includes the swap index and meets minimumWordLength, checking both forward and reverse readings against the dictionary, and deduplicating by a text:direction:startX,startY key.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/boardScanner.ts#L171-L238",
+          "version": "repo-lines-v1:sha256:a142079d6b25f121adf18c2b77765897eecdbc230355db17220a3a4bcef892eb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3YTdmNjk1YTYyYWVjNTk2NzMzY2U4Y2NiMGZhYmFiMjQ1M2NlYWNlODU5NWY3ZDViNTkxN2MyNzI1MTc4MTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlOGY1NTI4YzYxZDkwZjAxZDRmNTExNDZjMWFmMjliZDkyODRjYzY2YmFhZmIyMDQwNGVlMDhkY2UwMDE2YmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxZDEyZjVjZGU0OTQ0MzcwMzkxZGE0ZGY3MzQyODRiMWQ4ZDhjYjViZmFlMjNmNmFjYmQ5MDZlZDhkMjU3OTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_300af55465294022b8246e1767c45915",
+      "statement": "scanBoard is a separate whole-board scanner over four canonical direction vectors (with reverse readings, covering all eight directions including diagonals) that returns a ScanResult with timing; it is used by deltaDetector rather than the swap pipeline.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/boardScanner.ts#L254-L310",
+          "version": "repo-lines-v1:sha256:ff28e86caf3a19d23787419dc6ff77bbc802bb0dd6a79a3c8074960b9d88daac:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2VjYTY5ZTMzNzM4ZTRmMDliNDU5ODE5MTE0MzUyMzM4Y2FjMGZmYmRlZDZmNWMxNmEwYmJkMzg5NDI5YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjNGQ4MTUxYTg0ZjNkOGNiZjJmY2VlNzkzZDgzYWY3NDZkMjFiNzc0OGQ0MjdhNWQ1MzJhYjgxNzE3YjBjODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/deltaDetector.ts#L415-L431",
+          "version": "repo-lines-v1:sha256:f62d3e86c28bcc9ee8e7167423e0c8e04633db54f4447e663a58dc4cf83930c6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzYmJhMWNmNzQzNzhmNmQ3NDU0ZmJkOGE3ZmQ4OWY5OGYwM2I4MTYyZGVhMWUxYmFiZTkwNGY2NTI1MTIzYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyMzI0ZGFlMDNiNDQ2Nzg4ZDZiOGVhZTIyNDU2NzQ5MGFjZjM5YzhhNzliYzkyNmQ3OWYxYmI0Y2Q4NmQxY2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjZjNlNzEzNGM1ZWM3ZTZiNzU2NmVmZjExMWM0YTYxMDllYWQ4MWZlOTdhNzNiNTBiZTJjMGEwZjg4NGY5NWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNiN2JjYTc1ZDFkOWI5MzkxNzEwNTIyZDM1N2UyNGY4NTM1MzAxMmZkNjQzMmJhNjcxM2I0OTY3ODU1ZTBhMjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a9650694b2ab4956a53f631d1feacca1",
+      "statement": "selectOptimalCombination enumerates every non-empty subset of candidate words, prunes same-axis conflicts, validates each survivor, and returns the maximum-scoring valid subset, deliberately deferring all cross-validation to the subset stage with no per-candidate pre-filter.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L219-L228",
+          "version": "repo-lines-v1:sha256:ba8bad998784e9e3de77340871de1394a8a5aba83cad59855ec659fdf1d68bb0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhMDAzZThiMGZiNmM1MTNlNGMwMTYxYjJlODk1NjM4MTM5NzZhY2ZkMGJjNTQxNDU1N2Y1YWUxNTdhZWY1MjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5ZTExMzVjYzAyODM1YmRiMGMxZWE0ZDZjNGVmZjYzMzg0YmM0YTczZWY0MDM0NzI2OTVjODExMjhmM2NjOTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5YjUyOGY2YmIxYmFjOGFiYTAxM2RhMGYwODRhOWQyY2M4NGFjYjk5YmVmOTc0YTQ4ZmM0MTIzNTAyZDRiYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjODZhODg2YmE4YzFlMjk1OGJlMjdiNjE1MmMyZjM3MjcyYTY1MDgzNjBmOTMzMDdjNjM3ZGUxNWZmNDQzOTgifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/crossValidator.ts#L221-L274",
+          "version": "repo-lines-v1:sha256:eca91dcc7359efa787e115ebd9765cc606f7cedfc09da3c43117155be11e5fc8:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI0NzgxYzZlYTkwZDNmZTFlYmM2YWNhYzcwMzRhYTUxN2RjMjA0ZjYwZDg5YjdjMDkxOWM4NDI2YzQ1NzczZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1Mjk3MjVhOTA1MGQ4YWFlNTFhY2FiMTcwYTdjNzY5MDJmYjE2ODlhNzNjZDA4MmNlYWM5ZGRjMzI2ODBhYzIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e0b214bd82c347f3b909ab82a1a1c73f",
+      "statement": "deltaDetector.detectNewWords attributes new words per player via a three-scan diff (baseline, after Player A swaps, final board), then filters to orthogonal directions, suppresses sub-words and invalid suffix/prefix overlaps, and rejects cross-word and inline-extension violations.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/deltaDetector.ts#L386-L528",
+          "version": "repo-lines-v1:sha256:a27de38619a20c784dd43e17783c2b85c5c96f99f11e014dbca5ce85baceb24b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1ZWQ1ZDFkMDI2YzgzOGIwMjNlNTg2YmJjMGM0ZmQ3ZjE1YjMyZjY0ZjQ3YzA5NjM4YThmMzhjOWExNTlhZDZlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwMGZkYzAxNTMyYWFkYTU5YWQyZmMwMDA2MDU2YWEyYzIzODU3YWFlNDExMmRlOWJlZmIwNjBlYzI3NzFjM2NjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_a5c59d5a104e4aa789fad63846bf738f",
+      "statement": "loadDictionary reads a language wordlist synchronously into an in-memory Set for O(1) lookups, relies on the wordlist being pre-NFC-normalized and pre-lowercased, and caches the result per language in a module-level map cleared by resetDictionaryCache.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/dictionary.ts#L183-L189",
+          "version": "repo-lines-v1:sha256:85f16604ac5bd64ce6b37163b905e32b8782c4ea7dcffff5d5aaec7e76202c4c:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWFmMjJjZjA3MzI1OTJjMjQ3MTQxY2JlNjFlZmExMTAxMjYxMmY1YTMxMjJiOWFmOWJiYWY1MmY1NzI0ZDE5NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGFhMzcwNzM4ZDAxMWZkMWFlOWJkZmNmN2JhNjA1OTNjMWQyZTY2ZTNhMjRkNDQzNTYwNTAzOWMzOTc0NTEwZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/dictionary.ts#L69-L145",
+          "version": "repo-lines-v1:sha256:4e0c7ac5fe804a74f3ebe1de3886289f0d1e8163554c1416cf5b0e01636c8256:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiNzRlMDQ2OGFlZTM4OGIwZjlmZTBjNjAzNzRjZTc4Y2IyN2VlZGI3M2U0Mzc2MmJiYzQ3NTQ2YzBhOGQyNGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhM2Q3Mzk1MDllZGYwMTA1Y2E2NWI0OGVkMGI5YzhkY2YwNGVkZjQwN2YxZmJlYTY2N2Q2NjA3OWE5MTY5MzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNTgwZTk2NGY4M2E0NzNmNDNkNDQzODQ2Mjk0OWQ2OGI1NjAwZmRhNzg3ZjE2Mzc0NWQwMGRlODljYmYzNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwY2RiYzMyOTIwNGQ3MjZhMDJhY2EwNWZjNGNmMDQwMmEwY2Q2NzZkOGVjZGQxZGEzYTJhNTAyNGUyYmQ5MzIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_83a62ef1f53143f4b65bfca907a9cecc",
+      "statement": "Dictionary loading is defensive: an empty file, a missing file (ENOENT), or a file with fewer than the language's configured minEntries all raise a DictionaryLoadError instead of running on a corrupt dictionary.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/dictionary.ts#L102-L160",
+          "version": "repo-lines-v1:sha256:38072782ab21f1146b323de4cd055aaf925f036b672c071c0734a0c77166b826:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2NTk1ZjRlZTVmZjYzZDUwOTUwNDE5ZGMzNDQxNDUxMzg1MWRjOTczNmZkMTdhNGY3YmZhOTMwYjI2MWI2ZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRiYmI5YzVlYjUzZjFlMzQxZDg3ZTlmODY4YzlhN2FhNGUyNTBlZTE4OWVmN2RhZThjODdhZDkzNTE0MDRlMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTI5ZTkxZTBmOTljM2U4MjVkZTY5YjQzNWZiNjQ4NGQxYjBhMWRmMmY0NjU2MWFiZjFhMjlmMDQxODhiODgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_26a56e518ee54707b083efb21f50868c",
+      "statement": "Icelandic (is) is the default dictionary, sourced from data/wordlists/word_list_is.txt with a minEntries floor of 2,000,000, and refined by a removal-only curated overlay data/wordlists/word_list_is_exclusions.txt applied via applyExclusions; missing real words are treated as upstream extraction bugs rather than in-repo additions.",
+      "evidence": [
+        {
+          "resource": "repo://data/wordlists/word_list_is_exclusions.txt#L1-L6",
+          "version": "repo-lines-v1:sha256:4a25c69e5b8df20f2aea70a45b5067a57f26617a6c888b9668cc75db56a38b67:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTFmZDI2YmFhMGVjYThhNmE2ZDg2Mzc2YWMyYTllOGU5NTMxMWE4ODhhMWE5MzQ5NGU3MWVmNTJmYjQ4ZGUxYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTA3NmE3OWEyZGRiYjIwZGZhNGQyOGFmMGFlNGY3NmVlMmQ2NDcxNzNkZTlhOTUyNzk5MGU3YjhjMDE4ZGRmNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/dictionary.ts#L21-L67",
+          "version": "repo-lines-v1:sha256:49205901fe295777f31c3621c7ad6b6680f9688437fb82275f3fa8cfc149edad:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyYTY1NjRjYzNmMzA4Y2Y5YzUwMzVkZTFjYmMxNTgzNzkwYTc1ZGNlOWY2M2Y3Y2NjOTU5MzZlMmM1MjljYWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNTgwZTk2NGY4M2E0NzNmNDNkNDQzODQ2Mjk0OWQ2OGI1NjAwZmRhNzg3ZjE2Mzc0NWQwMGRlODljYmYzNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhNTRlODIzZjZmNjRhNzRhNDZhMDJhZTRiMzNiM2ViNWM0ZDZjMWFjZDc3Mzc1ODEwMTlhZmRkYTAwMjJlZDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d165d8a769b148f89fabe4d2128280aa",
+      "statement": "The en, se, no, and dk wordlists and their letter-value tables are holdovers with much smaller minEntries floors; Wottle runs on Icelandic.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/dictionary.ts#L31-L34",
+          "version": "repo-lines-v1:sha256:482daafe6658bd07cbeda40d647636130f91c1ab366bd76bb3090c6ed89e88c7:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWQ1YmZlYzMzNGZhNmQ5ZmY3MGUwZmI1ZjVlMmEwZjdmNDE0NThiYmIxYTYzOGEzZDcwOGFkN2M5MjM5N2QyZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDVkYmNkMGE4YTVlNGUwNmQ1OWNiNWM2YjgwZTI2NDAxN2MzYmJkNzliYjIyOTljNjYyNWI2MDVhYTQ5YmU5MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmZkNDVlM2UzNmJiMjViMjM3NzQ3M2I3YzkzYzQ3ZDMzYmJiZGMxMmU0ZGI0NzFiZDkzMWY0NTViNzM4Mjc1MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWVlY2E5YWZjZTVmMjAzNWQ5N2NiODA0YTA2MjgyYTRhMTIyMzllYzVhMjRhYmI2YWVmZWU3MDNlNDhiOGM4MiJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L17-L23",
+          "version": "repo-lines-v1:sha256:3f31851a725f7cc59c7b3121af51502313e9787032eb01614a2bff9f0338b90e:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGM1NGJiMmI1MjA1NTVmNTQ5NDFjZDgzZjkyNjJlY2ZmY2RjMzc4OGY4YWFiOWIyNzlkZjhmNjRkZmY3MmZhNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWExZDFhNjMzOTAyMjljNzk4MzQ3ZTgzYTA0MDU0NDFjOTQwMDAzNTI4NGFkMTY4YzFiZjZjZGYxZDcwYTM3MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDc0OWQ2NDcwMDdkMmI2ZjcyZmU2ZDY5OGFjOGQ2NmM1ZTRkMTFjMWMwMzg0YWZjNzRiODZkMjRiM2JkNGZkMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjUxYjFjNjQ1MWVhYjJjZThhYzEwMDM3OTAzZDg0M2RjYzJkM2E0ZDg3MzNiZWE1YjZmNDVkYmU3OTAxYjhiZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0cc30e330c1e4815a415b277f42be5fb",
+      "statement": "withRetry retries the whole scoring pipeline with exponential backoff (default 3 attempts, 100ms base) and throws a ScoringPipelineError on exhaustion; its only caller is computeWordScoresForRound in publishRoundSummary.ts, which wraps executeScoringPipeline so transient round-scoring failures are retried.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/publishRoundSummary.ts#L306-L336",
+          "version": "repo-lines-v1:sha256:cce7020f5f1d5d221a23dbb2ac30c2a6df070edc7d6b13a6720604829d3f3726:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExZGY4N2E0NzMxNmM3MDhjNTUwMjA5OGU5YWY2YzQ0NTM0ZWI4MGJlYWRjZjYwNjMwMjhlZmNhODU5MzdhYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5OWQ4OTRlNjg4YTdhYTU4M2YyM2U1NWY1ZTc3NDEyZmEzMDlmOWQwZjE2NTJmOTQ4ZTVlYjY5NTAxMmQ2NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjMTE4MjRlZGYwNmJmMmMxYTY3NmFjMTNiYjU1YjBlYmVlNTVjNTgzZDY5N2JmNTJjNzNiNGJiM2Q5MzllOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjNzQ4Mjk3MjMxZjdiYzY2YzFhNDVlZmEwY2ExYmQ2ZGVjZDcwMDlkODQ4M2FhNjY0YzdhZTc4ZDYyZTcwZWQifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/retry.ts#L28-L64",
+          "version": "repo-lines-v1:sha256:3216c0ba1f0dfa0abde8ca137672207ab3c9c230e7682a9ad6ae85fc57441aac:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmOWM1NGQ2NjRkMDM1ZTMyMmVmMGQ1NzFiZWRmMmI1OGNmYjZkNjc3ZjE4NGY4N2U4ZGE1YzQ2YTY2MDI1YTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4d9b11669853495fa0a81a335849c7e5",
+      "statement": "wottle_game_rules.md is the authoritative specification for the scoring and validation pipeline, and any change to lib/game-engine/* must be checked against its rules and invariants (§7-§8), which document the swap sort, apply, scan, cross-validate, score, and freeze sequence.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L1-L7",
+          "version": "repo-lines-v1:sha256:3ffbf0e1cb69730a70a6b28d96f1c91ef8ff2474c34fe6f437b824a952206547:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTQ0ZjQxM2Y0OWQ4N2VkYmI5YzUxOTI1YjEzMmViZTYwMWI0MjM3MzJjN2RmNzUwNWUzZDRmNzc1NWRjMDJhOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDNhM2NiNjM2NDU4OTVjYTgyMjg0ZTkwYmEwZGQwYWUwY2U4MDk3NGM2MWU3NjI0NGY2ZDNiNmYzNDg1ZmNiMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDAxZjJlYzE3NTkzYzEwNTRlYjQ2MzY3ZDg0NTNlZjI0YTE3M2NlOTZiNzExN2Q5MWY5YTY4ZDQ0ZmVmOGIwMSJ9"
+        },
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L262-L278",
+          "version": "repo-lines-v1:sha256:cd977eec38625633a6780b073d574fbce0104f8bbb7696c6e2e9aeb65b2f83ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0YWE1YjgzMzQ3YmRlNzA1MzkwOTAwOGUwNjI4MjkwMzdjOTc2YTMxNDc1ZGQwZjVmNGFjMWQ4NDljOGU5MGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiMjE1Mjg3ODFhMjlmMTk0NmRkZThiMWIwNzEzYzk4NDQ4NDc2NzgzNWIxNDZmNzcyZDVmN2M2NzY4ZGJhMTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwMWYyZWMxNzU5M2MxMDU0ZWI0NjM2N2Q4NDUzZWYyNGExNzNjZTk2YjcxMTdkOTFmOWE2OGQ0NGZlZjhiMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwMWYyZWMxNzU5M2MxMDU0ZWI0NjM2N2Q4NDUzZWYyNGExNzNjZTk2YjcxMTdkOTFmOWE2OGQ0NGZlZjhiMDEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

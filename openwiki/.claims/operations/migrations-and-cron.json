@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:6b13c7425a521f539361de67ac41de92cf82572e6b0a109bdc4cd3e7b2a8fa95",
+  "claims": [
+    {
+      "id": "claim_ae4d772a5206451f81ece851b38ef9fc",
+      "statement": "The Postgres database schema (tables, constraints, RLS policies, SQL functions, Realtime publication, and scheduled jobs) is defined entirely by timestamp-prefixed SQL files in supabase/migrations/, which the Supabase CLI applies in lexicographic order; the `pnpm supabase:migrate` script wraps `supabase migration up`.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L20-L20",
+          "version": "repo-lines-v1:sha256:d333d36559bf43dd154d274302323629957b9e47f774abbc8c6ecd639b2b07cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDMzM2QzNjU1OWJmNDNkZDE1NGQyNzQzMDIzMjM2Mjk5NTdiOWU0N2Y3NzRhYmJjOGM2ZWNkNjM5YjJiMDdjZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDMzM2QzNjU1OWJmNDNkZDE1NGQyNzQzMDIzMjM2Mjk5NTdiOWU0N2Y3NzRhYmJjOGM2ZWNkNjM5YjJiMDdjZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjNmMWNmMDIyMTlmOGU4M2ZiYTNiMDIxNWMzNTEyZmI1MTRkZjZjNGZjZjVkM2I1ZmI4MTU4YjAyYjBjYzEzOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2FiZTNkYmZhYzZlNDIyY2MyNjEzM2FmYjQ0NzMyYjc3ODBlNWQ4YWEzNjY3MGRlMzg2M2JhNGRiOGMwNTI0NiJ9"
+        },
+        {
+          "resource": "repo://supabase/migrations/20251105001_init.sql#L1-L15",
+          "version": "repo-lines-v1:sha256:7b388da728b8e56abc88fb22e4cba024ab9c9c41e29b85b82730869d1ef919dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzODZlZDlhZWZkYzRhMTMzNmE3YjFkNWZiZDcyZDM4MjZhZDNiMzhlYjFlYjk3YWZkNjE1YWJkMDA1ODFiMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5OTY3ZWMxZWQzODM2ZjhlYjE3YWZmMTcyYjViZmVmN2RlNjA0ODVhNDM5YzZjYTExYzU5MWUxNzU1NzM5YWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjOTQ5OGNkMWQ1ZTFmYzUwNjJiYTBhZjE4ZjFkM2ZhZGI1MmZmYjkyMWMwMTZhOWI3NWQ1YjJjZTA3M2VjMzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6fc5282b8eee459ba38dc4fa75b77187",
+      "statement": "The sweep migration 20260424001_sweep_stale_matches.sql defines the SQL function public.find_orphaned_matches(), which returns ids of matches in state 'in_progress' for which neither participant (player_a_id or player_b_id) has a lobby_presence row with expires_at greater than now(); a match is thus considered orphaned only when both players' presence has expired.",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260424001_sweep_stale_matches.sql#L26-L45",
+          "version": "repo-lines-v1:sha256:0dc99fd969a07d7e99c3cda368dead509dd3cad14c2fa5174c56e04a077388f2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3ZWYyYzc0MjZiYTY5NjJmNmY4ODYwMTA1Y2E3ZTYyNmUxNWVmN2U4MjcyY2FmOTEwYTMyN2U5Y2JmZmM5ZWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwNzA0ZmJhOGZiN2RiZTI1ZDlhNTJhODdjMGZiOTAyMzlkOTgxMWRkMTRmYTFlOGE0N2JjM2Y2YjljMmYzY2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5OTBjYjRlN2ExNmQ1MmU2ODliZjBjOWZkY2E3NTgxODE1MjUxOTRkYWU5MGI5ZjE1NThiM2ZhNTc3ZDljNWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiODJiZDA2NTg3MGVjMTFhNGIzMDgzZTIxYjNiZGVjNmRmMTYyN2MyMGMwMjA0OWE0NjYzNDU3MzQ5YjIzM2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e0f05aef0ae745359c3b24c89f14e78b",
+      "statement": "The same sweep migration extends the matches_ended_reason_check CHECK constraint to allow the value 'abandoned', which is the ended_reason recorded for sweep-finalized matches.",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260424001_sweep_stale_matches.sql#L8-L24",
+          "version": "repo-lines-v1:sha256:f0d89603a4e83e9f5defe9757d8fa75d4676346b0c43a07d007729e4e8c94fc0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3YTIxMzhhYzc2ZTlhMDQ5YzE3M2FlMjJiNDEwZWU1OTJiZjQxZjM2ZTM2MTlhZDBlYzNkNmMwYjJhZWU4YzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllMGY3MzhiYjU4Y2ZjZjVmMmRlNmZlMWRhZWUzZTViMzM1MjM5NmVlNzk0YmZjZGVhMzhiMjBjMTkyNGY0MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5ZDdkNmNjNTZlYjMzNWRmMDRlYWRlNmYxMjQ3N2QyNmJhMzRkNzViNzJhNDg1ODkxYTMyNzFiNmE0NTExMDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a14b91baaa1b445c933f7b9043b089f1",
+      "statement": "lib/match/findOrphanedMatches.ts is a thin service-role wrapper that invokes supabase.rpc(\"find_orphaned_matches\"), returns the ids as a string[] (mapping null data to an empty array), and throws when the RPC reports an error; the detection logic lives entirely in Postgres.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/findOrphanedMatches.ts#L1-L12",
+          "version": "repo-lines-v1:sha256:7713db302b8cbbf841728f0ee8370c8cc2dc74017863062c5900fc6d265f7998:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2MzZlMDE3NjAyNmNlMTI5NTBhNjBlNmRlNTdiMTVlOTFkMGQ0NGI1NTIxNjg3NGM0ODIxMzM4NDQyYjg4YTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ac7ac3a771d442f8918b1819e279280d",
+      "statement": "The POST /api/cron/sweep-stale-matches route is guarded by CRON_SECRET: it returns 500 if CRON_SECRET is unset and 401 if the request's Authorization header does not equal `Bearer <CRON_SECRET>`, and orphan detection never runs for an unauthorized request.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/cron/sweep-stale-matches/route.ts#L8-L23",
+          "version": "repo-lines-v1:sha256:66e7275cef989698330a4bcbbcb37fc37d18bee02d6becc5e8867b2fb89675c3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwOGMyYmM0NzgwNTVmYWU4Yzk2MDNhMzY0NTYxMDQzZWEzOTNlNWI5YzdmNzMzMDg1NTg4NDk0YTZiMjY1YTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4ZDdkMGZlYmY2ZWM4NzM3ODQ4MDFmZTVjMzc2OTMyZjI5NWI1NjNhNmJiZThkYTczNzYwNTViZWRhYzk2MDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzNmNiNjIzZGI1NGMxMWZlOGU3Mzg3YTQ1NTc5ODQ4ZTMwMjIzODRlODFiMmU3MGUwZjI1NzgyYjI5Njg3YTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c78ca94e2dff46e9be24e43d0e5cc8c3",
+      "statement": "The sweep route calls findOrphanedMatches() then finalizes each returned match by calling completeMatchInternal(id, \"abandoned\") under Promise.allSettled, so a single failing match does not abort the batch; it returns 200 with { swept, failed } and emits a structured sweep_stale_matches log with swept_count, failed_count, and duration_ms. If detection throws it logs sweep_stale_matches.find_failed and returns 500.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/cron/sweep-stale-matches/route.ts#L25-L75",
+          "version": "repo-lines-v1:sha256:22b4b3f4c973cf2e4bf689fa444bdcd46317ca07ccda5868d47bfc789edad24f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3MDUzYjIzZGFkZTNmZmQwZmEwMmZhMWYzNGM2YWRlNTI2OTEyZTJlZjFlNzZmZDBlNTY3MTdiODRjMDYwMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkYjNlN2NkMGMzYTYyMzA0NzY2ODE2MWQxMDRlOTlkODYyMDljYTNlNzc1NGEyNWIxMTlhNDkwNzg3ODA0MjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7019cbaf2a9a40d09364d23d969e5589",
+      "statement": "completeMatchInternal is idempotent — it short-circuits when the match is already in state 'completed' — and for reason 'abandoned' it records no winner, skips Elo rating changes, resets both players to available, and writes a match.abandoned log, making a concurrent client completion and a sweep pass safe to race.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L100-L217",
+          "version": "repo-lines-v1:sha256:313614826f484cb766abe29dcc797535f2f80c9a8737128fe26de6b6ca4dac03:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2MmMyODQ1YWVhM2Q5NGJjNWJjN2M5MTc1MzBjZjFiY2EyNWE1YWUwMTI3YWRmOWY0YTlhYTg0MDUyNTkzMGJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxZTk4ZTEwZDJhOWU1ZjEzZjdjOTg5NTk4YzlkNTA1NWFkYjQ4YjRiNzQ3OTBjYWIwZTkzOTNmNTgyYTY1M2M3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0M2U2N2EwNjEyZTMyMzg0ZjAzNGEzZDZmMjc2YmFhY2UyZGM4NjhiMzdkNjI2NjViNmZlYjFlZTlmZDc2YzEwIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_f2a149860fda4efd8fca8e3299ae4704",
+      "statement": "The sweep migration schedules the job via a guarded do-block that creates the pg_cron and pg_net extensions, unschedules any prior job named 'sweep-stale-matches', and registers cron.schedule('sweep-stale-matches', '*/30 * * * * *', ...) whose body issues net.http_post to current_setting('app.app_url', true) || '/api/cron/sweep-stale-matches' with an Authorization Bearer header built from current_setting('app.cron_secret', true).",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260424001_sweep_stale_matches.sql#L47-L72",
+          "version": "repo-lines-v1:sha256:478b02b550322a3e931d5c8ee738bb3e69912764f1fed6666d1bf0ce3dbabdc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZWM2NTljOWU1NWJkMGU0OTViNzM5NDRjYTlmYzJhZDExOWE4MTA0M2Q5MGRlOWY4Y2JmZTk1MGE5MDJjNDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzNjhmM2Q3YTBmYmQ0YjhjMjNjYTFjNzg3NjZlNmMxNTM1MWI2Njc5NjBkMmY3OTNlYmUwYjgyMzYxNzA4NGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhYmEwZjFkMmFjYTA4YjJkYmM4NmQ2YTA0NjNmZjMwNzI0N2Y5NGU5YjY3ODcxOWVlZDU4ODI5YTY0NTJiYmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9d3274fa0e57489f9496c17f8e1035a1",
+      "statement": "The pg_cron schedule block is safe in environments without pg_cron/pg_net: exception handlers (undefined_file and a catch-all) merely raise a notice so the migration still applies, and because the schedule body reads settings with current_setting(..., true) unset app.app_url/app.cron_secret resolve to NULL so net.http_post no-ops instead of firing; find_orphaned_matches() remains available for direct invocation on any stack.",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260424001_sweep_stale_matches.sql#L47-L79",
+          "version": "repo-lines-v1:sha256:eddf35c9f0517b8c424e895e3d6c2e16f6c68b16f5e820f948b4c8ba503608dc:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZWM2NTljOWU1NWJkMGU0OTViNzM5NDRjYTlmYzJhZDExOWE4MTA0M2Q5MGRlOWY4Y2JmZTk1MGE5MDJjNDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlMzQ2YjNlYzhlNDY1Zjc5MTMzZTQxYjU0NzdhNzRkZGNmNTc3YzE1YjNmNWUzZDczOTRhOTEyZDE5Zjc0ZmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzNjhmM2Q3YTBmYmQ0YjhjMjNjYTFjNzg3NjZlNmMxNTM1MWI2Njc5NjBkMmY3OTNlYmUwYjgyMzYxNzA4NGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f9ba381e8b1f44419d6c849ae6b5a9c1",
+      "statement": "Production setup requires setting CRON_SECRET in the Vercel environment and running `alter database postgres set app.app_url = ...` and `alter database postgres set app.cron_secret = ...` in Supabase, where app.cron_secret must equal the Vercel CRON_SECRET or every scheduled POST is rejected with 401; job execution is verified by querying cron.job_run_details filtered by jobname 'sweep-stale-matches'.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L113-L137",
+          "version": "repo-lines-v1:sha256:d577a1aca099bf860359f1ce46e42d2debc9d536ad62eff18a71e27a44d9a5c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlMTRiNGNjZGQ3OTg4ODdiOWYwZTM5MGI2MDE0NzhlNWVjMTVlYmU4MTkwNTg0MWFkODA0MGY0YmY4ZTBiMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyODVkOTYxZTA5MjY2Mzk0NzdiYzBjNWIxYmM0YmFjZTExZGJlMmFkZmQ4NjFlMTcxZTc3MjliODIxYjFjMTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1NDQ0NDE2Mzk1Nzg2YzcxZWQzZjc3NTA1OTYxM2EwZTQ4OTBlODE2NmUxNTRjM2RmYzQxMGRmYzg1ZDY1MWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4NWU2MDA2ZWJiOTUzNDZiZmIyZTBmM2E5NTFmMTZlN2IwNGU1M2Y3OGM3YzI5MDk5ZjgzY2JlNGU5MGMxZjYifQ"
+        },
+        {
+          "resource": "repo://app/api/cron/sweep-stale-matches/route.ts#L9-L23",
+          "version": "repo-lines-v1:sha256:7670b7bd91b5827d14408f7cf8106e5bd747515077b72fcd279a9838521466e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OWJlYjIzODlhMTkzNjFjYWNkOTVmOTBlMzU0YWRmODJhY2IyNmU5ZTA2MzE1NjQ2MGUyOGU1ZDI4MDcwMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyYTdjOWE0MTkyYTBjOTIxNTg2MjFlMjdlYjhjZTBmNzgxMTZkZTFmMThlZjdlY2VjNWY1OTY0YTViODgzYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzNmNiNjIzZGI1NGMxMWZlOGU3Mzg3YTQ1NTc5ODQ4ZTMwMjIzODRlODFiMmU3MGUwZjI1NzgyYjI5Njg3YTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ea10ced078224f8b9b9868a7e3505b1e",
+      "statement": "The sweep route's contract is covered by tests/unit/app/api/sweepStaleMatches.test.ts, asserting 401 on missing/mismatched bearer, 500 when CRON_SECRET is unset, 200 with empty result when no orphans exist, that each orphan is finalized with reason \"abandoned\", that per-match failures are collected into failed while the batch continues, and 500 when detection throws.",
+      "evidence": [
+        {
+          "resource": "repo://tests/unit/app/api/sweepStaleMatches.test.ts#L42-L117",
+          "version": "repo-lines-v1:sha256:bf861ffbaef5b1f54354b763e7890a7ec6c9b8b86115bb4893328dfb823e25ea:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2ZjE2NzI5MDlkY2FmZmJhNzQ4YjhiZGQ1OGQxNjVmNjI1MTYzMDFkMDdkYzM0NDZlYTRhNTJkODIyODBlNDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImViMWVhMTVhMGY3YjFkNzc0MWMwOTJkZTgwMmQzOWZkYTQ0MzRlY2YwNWY5NDM1OGM2ZjM2OWNhOTExNmUyMmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

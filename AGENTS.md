@@ -49,3 +49,16 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
 - **Supabase CLI**: Installed as a system binary via `.deb` package (not npm global). Version 2.76.14.
 - **Wordlist loading**: The Icelandic dictionary (~2.76M entries) takes ~2s to load on first use. This is normal and expected in tests and at runtime.
 - **Realtime channel**: Local Supabase Realtime may show as "disconnected" in the lobby UI; the app automatically falls back to HTTP polling (2s interval). This is expected behavior in development.
+
+<!-- OPENWIKI:START -->
+
+## OpenWiki
+
+This repository has a generated `openwiki/` evidence index. It is optional just-in-time context, not required startup reading.
+
+- Treat source code and tests as authoritative. A brief's unknowns and review items are verification gaps, not automatic requirements.
+- Prefer the narrowest quiet validation that proves the changed behavior. Preserve complete failure output.
+
+The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
+
+<!-- OPENWIKI:END -->

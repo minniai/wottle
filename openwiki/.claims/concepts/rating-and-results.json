@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:79917b2f978d4a928738197755f1df9413a0a68866fe556dc2c16ec05adc33ab",
+  "claims": [
+    {
+      "id": "claim_4505830c22ea46b8964955cf8ec20df4",
+      "statement": "completeMatchInternal in completeMatch.ts is the single finalisation funnel for every terminal match path; it resolves the outcome, flips the matches row to completed, applies Elo rating changes, resets both players to available, writes a match log, and publishes final state.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L100-L217",
+          "version": "repo-lines-v1:sha256:313614826f484cb766abe29dcc797535f2f80c9a8737128fe26de6b6ca4dac03:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2MmMyODQ1YWVhM2Q5NGJjNWJjN2M5MTc1MzBjZjFiY2EyNWE1YWUwMTI3YWRmOWY0YTlhYTg0MDUyNTkzMGJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxZTk4ZTEwZDJhOWU1ZjEzZjdjOTg5NTk4YzlkNTA1NWFkYjQ4YjRiNzQ3OTBjYWIwZTkzOTNmNTgyYTY1M2M3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0M2U2N2EwNjEyZTMyMzg0ZjAzNGEzZDZmMjc2YmFhY2UyZGM4NjhiMzdkNjI2NjViNmZlYjFlZTlmZDc2YzEwIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_60f4a4fbce154533bff6b66b4ad3579e",
+      "statement": "completeMatchInternal is idempotent: when the match row is already 'completed' it returns the persisted winner and scores without recomputing or reapplying rating changes.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L108-L122",
+          "version": "repo-lines-v1:sha256:89a1e2f2a28d988ae43a728d73316fae1c24d943aadd0282d41d9e5673ba5ff5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMTAwMDJlNzNhZmYyMDk4YWQxZWIwYzIzZTk1Nzk0ZWUzMmE5YmIzZmJlZmNlYjVmOWI2OWQzY2Q0MjFkMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjOTMwODY4NDFjZmJiNzM3MmYzMGQxMzk2YjQzMzRhNzA0YmQwNGY0YzNjNTJkYWZmOTdhZDNhYThjNzcwZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkZjM0OGQ0M2Y5ZjA3MmIwYTcxYWVjN2E2MWI2MmI5NDk1ZTc4NTgyYzY2OTU1YjdiY2RmNTk4YjY0ODFiZDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bc1859362f7e4cbe88644be1b0fdb634",
+      "statement": "completeMatchAction is the authenticated wrapper that verifies the caller is a participant (player_a_id or player_b_id) before delegating to completeMatchInternal.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L219-L238",
+          "version": "repo-lines-v1:sha256:e2a5f51c1f25c51ef1610f42e37f16d4d2ab58a60e9245988ee7054fa4b53808:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkMDA3N2M0ODA1YWY3YjFhNDI3YmFjNGZhOTAwYWE5MmEzMTZlYWJjMDJmZjY1ZjkxN2Y2YzBmZTNiZmM5MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyMDQwZTA5NWE5NGUyYWRhNzRlNDIxZjM3MTg3NTFhOTFhODEwYmZkNjZmNDhmNGU5MzljN2I3NDgwZWI2NzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3Nzc4YWMxYjJiNDNlMTMwOGMwYTI5ODUzOGEzNjE3NjhhZWY3ZDcyOGZiZjU5OWRjNWUzZjIxMjc2OGZjZWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1a6efebc6d82421e9f72d8b620a6a0ab",
+      "statement": "determineMatchWinner derives the outcome from final ScoreTotals: higher total score wins, ties are broken by more exclusively-owned frozen tiles, and equal scores plus equal frozen counts produce a draw with null winnerId/loserId and isDraw true.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/resultCalculator.ts#L15-L35",
+          "version": "repo-lines-v1:sha256:02461b3759708eb4636514ce33081b41d03bb1b81dbaf19667118d62d9c08f07:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1ZDI1MmNlNDYzNTY0ZjI5MmYwZTFhNWIzNjc1NzhmYjc1MmE3Y2JkOGRkMzkyYjQ5OGM4ZTdjYzUyOWNmNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwNzE4MTQ2MjcxMDViZDVkNGYwOTlkMzBkZDZiNjA3OWU0MzkxMGM4ZTc5YTdlNzBlYTk5MmNlMDIyOWJmMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5NDlmN2U4OGJkYzY1Mzc4NjYxYzQ0ZDM3YjZlZjA5ZmFkNjY0YjNkMmZhM2ZhMDE2OWE4ZDZmZWFlOTY4ZjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0d70d084826e4b4a981391b23c132e41",
+      "statement": "Two completion paths bypass determineMatchWinner: a forcedWinnerId awards the still-connected player regardless of score (forfeit), and an 'abandoned' reason records no winner and skips the rating update entirely.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L128-L182",
+          "version": "repo-lines-v1:sha256:49f37a3b2d99452104eef59b4e238e438e9b882e5f1ef19d4bf8bba97bb03a53:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhNmNlOGI4ZmYyOTdmZTQ5ZjYwOWE1OTVlMTQ0YjRmODEyYzZmMGZkMjcwYmU0YzMzNzgwMDA2N2QxYzE4MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1NTlhNjI0N2RkNThmMDFmYjgxNGQ0MDAxY2RhM2Y0YzRkNWI3M2MxYzU1NDA4MmUzMDkxNjM4NTc3M2YyNzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlYWEyNmYxMzA3NDU0OTMxZmJkNGMyNDQwYTdlNDYzNDlmMzk1ZWFiZDUyMDMwMDlhN2E4OGViM2ZkMGUyODAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_87c27924f20046d4a8c19c6a2202cd31",
+      "statement": "calculateElo computes expected score as 1/(1+10^((opponent-player)/400)), delta as kFactor*(actualScore-expectedScore), and a new rating that is rounded and clamped up to a rating floor of 100; the returned delta is the effective change after clamping, so a player at the floor who loses records a delta of 0.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rating/calculateElo.ts#L17-L31",
+          "version": "repo-lines-v1:sha256:57e9ca90c504523f10430d2359bb57b08a2f2a4331f973ac656278c7163eeacf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3Mzk5NzEzYmRlOTM0YjU3MWI4OTE5MTVjOTU5NjliMzg1NjhjZjYxOTg4ZjNhNzA4NzgzMTg3NDJjYWU2OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyN2E1MzU2NTkwMzIwM2I5MTg1ZDJlOGE0N2MwM2Y1MzAzMzc4NGM0NjljNWQ1OGQ5ZWVmYjQ5NjcyYmE2M2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_96af9780ada747df8a19b59c545a4d6d",
+      "statement": "determineKFactor selects K=32 for new players with fewer than 20 games and K=16 for established players with 20 or more games, chosen per-player from that player's own games_played, so the two participants can use different K-factors.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L266-L267",
+          "version": "repo-lines-v1:sha256:00834e0a7c3d5869178de540bc3ad0f74617ba4436e8e6ec1cd16abfd59ad9e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmMxZDdjMjk5YWIwZDY2NmIzMzg1M2UwZmI2YzZiMTAyZGE0NzRmOTdhNWI1MTMxMzI2MjZiMWRiYzBmZjNkZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzFmNTRkYmI2YTE0MzI3YmEyMGQ0MjI2NzcxOTdiYjkxNDZmMDE0YWZkZTVmMDg0YTc2MDdiZTAzODE5MjAwNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOGFlMTBmNjhiM2Y3MmUxNDJiYzE0ZDJiYjNhZDk2ZDNlZGI5MWEyNjk1M2RiZmQ4ZWFiNGQzZjA3ZGE3YmM0ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDQ1OWVhMzM5YWRhNWFhZmIzNGI4ZTAwYWRmZTBmY2NiNTRiZTM1OTE4YWFjOWQyNmEwNmE3MTAzZTFmZjQ5ZSJ9"
+        },
+        {
+          "resource": "repo://lib/rating/calculateElo.ts#L6-L15",
+          "version": "repo-lines-v1:sha256:d3858727e6ac837d2b0868efe8dd9c55a7f4a2bad42cfd4a8954abf423d78678:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ODVmYjdkNjgzNjVlNmY2ODQ0ZGU0ZThjYTBiODE4YTI0N2VmYTdkNmFmYjdmMDVmNzNiNWI3MTFkMTU2NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3ZjYxMmQ3YTg1NjFmMzgwNjgxMzBhMmMyMTdjNDhlMWIzYjdjNTU0OTFhNWJlZGIyZWE5OGI2NDM4YWIxZmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3Y2U1MTdkMmI5YTZlMzkyNzU2MWNkY2YxOTFiYTRjNTJjZmE5YjU1MWJhNjUwMmIwYjI5YjRlYThkZWFmNTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_99d822023703403c81f4a9bf8cd57ca3",
+      "statement": "applyRatingChanges reads both players' current elo_rating and games_played, maps the winner result to symmetric actual scores (scoreB = 1.0 - scoreA, 0.5 each on a draw), runs calculateElo per player, and returns a compact RatingChange summary while delegating persistence to persistRatingChanges.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L240-L317",
+          "version": "repo-lines-v1:sha256:dde210cf6cc95897a19e01b031771729d254a1c828091af1f29f48dbe9d94870:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2Nzk1ZDY3NGNkNTcwZDJlNjVhMGJkYjdjMTEyZjRmNDc2YmVkYmZjOWYwZjJlMjU0M2ExNGJlMzc3MDQ3YzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3YzBiM2EyZWM3ZWMwOGY5OGQ5MmJiN2NkNmJiMzg5NWUyMzMyYzg2MGZmYjhlMTU0YmZiNmUxYTU1YWJmNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9957ebe06be04426b352cf7cefe73058",
+      "statement": "persistRatingChanges inserts two match_ratings rows (one per player) capturing rating_before/after, delta, k_factor, and match_result, then increments each player's aggregate stats via incrementPlayerStats which writes the new elo_rating and bumps games_played plus exactly one of wins/losses/draws by match_result.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rating/persistRatingChanges.ts#L4-L78",
+          "version": "repo-lines-v1:sha256:431fdd50ea2556c22f4657d90e5f1e0637f51bd4e2fa44e77ec3c9460175f787:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0NWQ5Y2Q4NGNkNjE3MzA2ZWYxZDViNGYwYTdkNjcyZGYwZGUyMmZjNGM1OTAwNGIwNjI4MjkzNjBjNDYxNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlZjNjMDMyMGY3ZDliYWQxNTJmOGNmYzk4MjkzZGIxZTg4NjI2ZmIyMWYwNTcwODM0M2EyZDZlOTZhOTE5ODciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwNGM3ODFmMTU3ODM1ZDg2ZjA0OGM4ODI4YjA3OWM0Y2VmNTIzMTRjNTc1YWI2MGMwZTg2ZjYyZDVlNjZhNjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5YzQ2ODIxYWU5YTc4ZGEyY2Y5Zjk4NzY2ZTIxNmZkZjNjZTQ1ZDNlODJiZDJhNTEwNjRhNDU3OTFjMTM0MDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_272391ba3ab04d639f6a4e3b09cf04cc",
+      "statement": "A rating-update failure is isolated: completeMatchInternal wraps applyRatingChanges in a try/catch that logs a rating.update.error event and swallows the error, so match completion, player reset, and state publication still proceed without the rating snapshot.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L161-L182",
+          "version": "repo-lines-v1:sha256:39715e0c335aa0539ffed157d6e2e0c0d92d97051ea6a13d143a5558b6c8b019:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmN2U3MGE4MjlhMzg3OGUwOGYyMWNhMzM5ZDNhMzc1MzFjOWI1OWEyNjFmNWI1MDBkY2JhZjAxMmFiNDQ3ZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2NDMwNWE0Yzc2YWRmODg0MzAwZDk2MTk4MDQxOGI3NDM3NjllMGU2MWJjZjE2YjZkYjM5ZWJiZjNhYWFkMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlYWEyNmYxMzA3NDU0OTMxZmJkNGMyNDQwYTdlNDYzNDlmMzk1ZWFiZDUyMDMwMDlhN2E4OGViM2ZkMGUyODAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7c9daff73a6e4a12983e924c58a4d4f1",
+      "statement": "getMatchRatings is an authenticated read that requires a lobby session, validates matchId as a UUID, selects the two match_ratings rows for the match, and returns a status of ok, not_found (no rows), or error.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/getMatchRatings.ts#L20-L59",
+          "version": "repo-lines-v1:sha256:c1ff08db6d99943ba4129be3a5a5cbef5a1428faf95060b75116f5cfd4ed65bf:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0NWM1M2I3NzczNGE1NGQxMWY1ZmQ1ZWIxZjIzZWYxMjIwODJmMWJkZDJkNzc2MmIwYjZhOTlkOGJkODU5YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5OTAyN2MxNzUwYjk4YTRiNGMxNjEzYmVmMzZiOGI3ZTdlZmJjNWZjMmUzMmVmNGVmYzhmMWI5ZDIzYzI4MmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_510fca5d435f4147988866b3aadb7641",
+      "statement": "The persisted match_ratings history backs the player profile display: getPlayerProfile derives the recent rating trend (last 5 rating_after), full rating history, peak rating (max rating_after falling back to current elo_rating), and last-10 W/L/D form from match_ratings rows.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/player/getPlayerProfile.ts#L53-L96",
+          "version": "repo-lines-v1:sha256:ab82e27670156ccb882ef7682e25c9a8a415049d47587856bfa300c045321069:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlMWJiZTUxY2VmMWZhODEyMzI3MDZlYWQ5ZTYyN2Y0NDFmNDE5NDU0NjZkOTdiMjVkNDU1OWJlZTM5MmYyYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRjMjY2ODNkNTFmZGVjNmNhZTRjZmQxZGY1NGQ4N2Q3NTRmZGQzZGNjZTJjMWE5YTk0Yjc2NTE0YzIyYjI1OTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlNDI2ZTFmN2RkMmY5YmY2NjgzNjBiZTllZjU0N2NiZTJkNDNmODVjODRiOTEyMzNjZDMzMGE2OWVjNThlODUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fff4aa354e1f4e64bb05159a5360b5d9",
+      "statement": "The elo_rating migration makes players.elo_rating NOT NULL with default 1200, adds games_played/wins/losses/draws counters, and enforces via CHECK constraints both the elo_rating >= 100 floor and the invariant games_played = wins + losses + draws.",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260315001_elo_rating.sql#L3-L25",
+          "version": "repo-lines-v1:sha256:b66bee1f41bd83f8a8373159a2fcdaf06a8e0a9a6dc6224670b2b7c506abda68:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1ZDEyYTUzODcwY2U4ZTAxYTJlNmY5YzM4NjQ2ZWI0NDg3N2MwZDRmOTJiNDVhYmM1ZmY3OWI0MDk5YjEwMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhY2JiNDY1YzVlNjMzYTZjMjNhNzY1YTliMDUyNDEyMWQ1MjkxOTY5Zjk5YTg3YmVhMzZiMWRkNjY4NzhiYzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0NmFlYzk1MzBhN2M2Mjg1ODlhOWI3MDMwZTAwODQzYWFiMjdkOTFhMjg1YTdiY2Y0ZDg5NzNkODQ1YTE2ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhNGZkYjQyODhlNDZlNzBmYjI2MWFmZTQwNDk3MDI5ODZhZWIzM2FkNDFmZjRlNGYxNmJkNTUwMjhiNjBiMWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_da8130545c88499794760ebd1d473ec0",
+      "statement": "The match_ratings table enforces a unique constraint on (match_id, player_id), giving a database-level guard against double-applying a rating per player per match, and constrains k_factor to IN (16, 32) matching determineKFactor.",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260315001_elo_rating.sql#L28-L39",
+          "version": "repo-lines-v1:sha256:b423a51a245a0e8857346cd71f1e77f7699cde747870b980e36b1ca7062d7534:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiNjcyMDEwZGZmMDRkMzc4Njc5ZWU5NDE4NWE1NWExNGZhY2JmMWJiYjU0OWYxOGI5NjNmMTliYmU4MTc4ODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5OTY3ZWMxZWQzODM2ZjhlYjE3YWZmMTcyYjViZmVmN2RlNjA0ODVhNDM5YzZjYTExYzU5MWUxNzU1NzM5YWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzZmM4ZDU5YTc1NDJiNDZlYmI1YmI0OGZkYzA0MmI0YWNiODliMDY1ZGU5ZjE3ZTZjNDQ0MjE4NmI5NGRmM2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkNTc1NzM1MTBjOGE1ZWYyNjcyYTNmYzY3ZmRiN2JiYjc1YmE3NDE1MDA5NjlkZjM5ZTQwODY4OWZiNDhiMmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4b93e47d204e473aa3c475ed77da5e7c",
+      "statement": "Row-level security makes match_ratings public to read (SELECT USING true) but writable only by the service role, since the insert/update/delete policies use false and all writes go through getServiceRoleClient.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rating/persistRatingChanges.ts#L46-L69",
+          "version": "repo-lines-v1:sha256:10d90361dc601fe78da7a65e36c61d6f25b5641e814c602be8ba74d87f2aa14c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjN2I0MjhlMDgwNjgyMzgyYjc1MDkyZTMwNGI3MmExYmEyMDBiYmZhOWJjZjYzMWQ1MGU4MDE3OTk2MDlmODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwOTNlMTI5MDZhNjFmZDVjMDg5ZmVlOGZjYWZkOTUyZTU3YTU5MDlhMjQ5ZGQxMjUwOTQ5OGQyNzFhNzFjOTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0MmYyODQ2ZTA4ZTQ4OTA0N2IzNzExMjI3MzE0ZDhiM2I0MGZmZmFlNzlmZTUzN2RkNzBhNzAzZjIzOWRiOTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2YzQ5YzZkOTkwZmY1MWU0YjgyYmFhYTk1YjBhMTJkYzUzNjkzNWIzOWNiMDBjM2ZhODk4ZjgzMmQzYTg4ZjUifQ"
+        },
+        {
+          "resource": "repo://supabase/migrations/20260315001_elo_rating.sql#L48-L65",
+          "version": "repo-lines-v1:sha256:f02fec16e55720107b3a79df69e87ddfe7afb80a1e04ee252a99502b60c969b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MGI4MGMxNzNjNGE0YTAzMGZjMGRhY2QyOGJjYmRkNzM3MGUyNjY1Zjg3YTNhYTQzNjczYjM2MWM1OTQ0NTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MTcwZWRmZmU3ZDQ4ZGMxZTZiYmI5OTVkM2E5NTliOTUyNjZiMDMzYTM4NjlkMDM2MjkwYTFmNDQ5MjFmMWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFiZGUyMzM3MDdkZDJjM2UyZmUwNTRjZjA3NTIzNmViZDg4YjQ4Njk5NTcwNDIwNjdjNDE4MTQ5NTIzMTlkNGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_174672088c234a9988adedfa6eceeb2f",
+      "statement": "determineMatchWinner is deterministic and side-effect free, allowing the summary page to re-run it from the latest scoreboard snapshot when a match row was persisted with winner_id null (issue #117 regression: a 56 vs 96 match had rendered as a draw).",
+      "evidence": [
+        {
+          "resource": "repo://tests/unit/lib/match/resultCalculator.test.ts#L40-L69",
+          "version": "repo-lines-v1:sha256:95aecf3d7e6640dab6702c28d291d1c5bf0082bd3e1134feb3e97989d43e4f7e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNmNlOWM4NDVhMjIxMjIyYWM4ODk0MTEyOGU0Nzk2N2MwNjZiODg0ZWQxMTRkODEwYTExZWQ3NjVmNDZiNDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1MzBhOWRlNzFhODI2M2RlMWQyNTk1ZmNjM2UyMGZkMGExZmYyMTgyOGEwNTk0ZWQ5NzM4ZWYzZmM4NzllOTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU3MThkYmE5ZTdjYzVkZTA5NTdiZGZlZTExYjcxODhjOGI4NjFjZGY4ODFjOTQ2YmY2NzRmNzM2YmZhN2MzYWMifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:49573514cf6f288ffa7ba656e46db841cd918a3b58891eddee122246f8ede00c",
+  "claims": [
+    {
+      "id": "claim_b491b838d29f4aa29e4d7edfdf01247b",
+      "statement": "A frozen-tile set is a FrozenTileMap keyed by \"x,y\" coordinate strings (built via toFrozenKey); each FrozenTile records a single owner (player_a or player_b) and an optional scoredAxes audit array. Physical membership (key in the map) is the test for whether a coordinate is frozen.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L24-L40",
+          "version": "repo-lines-v1:sha256:d42c82b67278d719f895d2cd2a172e2c4511f1a569b8a5102d0d989148a9ab35:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkMzEwMmY1YTJmMDRjZWI4ZWY3NTRhMDQ1ZmJlNWZjN2UxMWE5ZWUzMmU1MmEzZDI4NTNhZWVmZDVlM2UxNjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwMDgwMjVkNTNiOTAxZTBhMWI0ZGY0ZDRjNDE5ZTMzNmQ4MDQ5YWY0NDc5ODllOTZiNTliNjZiMDllY2I2YzUifQ"
+        },
+        {
+          "resource": "repo://lib/types/match.ts#L247-L258",
+          "version": "repo-lines-v1:sha256:f0232ef786d7ae861a614e4a8e4e670a452cef94178d48cf970eca64d3b30d51:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3OGE0ZWM4YjFmYWUyNDk1MGY0YzM4YWY0MmQ0MWU3NDJiN2U2MDZkNzEyNGM1MDhjYzJhM2ViNDhkYjNmY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhY2ZmNGZmYWE2MGNlNmRhNzljOGRmNWY3MDcyYWUxNTUzOWQ4ZTk2NTY1NDQ4ZDNiYjY1NTIwNDMxOGJkNWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5Y2M1MDI0ZjAwZmYwZTgwZjJhNjA5NGUyNjc1YjcwMjk1NmUwMWQxOGE2ZTdjZGM1ZWM1ZWZiOWVhODljOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4M2M4MzY1ZWYwMTNhOWE0ZjE1MWJlYmE5ZTM2MGNlYmM5ZmZjMzAyOGFkOGExMTMxMjVlZGMyZjlmZWE2OTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f9999de4f075447ea3256904d3a87c50",
+      "statement": "Frozen-tile ownership is first-owner-wins: resolveOwnership keeps the existing owner rather than reassigning it, so once a tile is frozen its owner never changes even when the other player later scores a word through the same tile.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L203-L222",
+          "version": "repo-lines-v1:sha256:893562ca9a9a32a2caa6cc0d8d779cece37a8fdcdf0e15c0f6e9d5a80178a71b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4ZTdhNWVjMWE0MzFjNjM5YzY5YjUyYmE2NjhjYmNiNWM5YzhhNDY1MDI0Mzc0YmJkNGRlYmNjNTMwNjdkN2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3ZDg2MzJlNTRlOTI5OGFiYjk1ODcyN2UyZDUxNDA4YWJhZjEzNjYwMzUzNzkxMDE0MGFiZjY1YjMwYWI2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxZDVkMDAxMzAwMjUzMDcyNWQwNzc5MGUwN2Q4OWU0NGFhNDZjZjg4N2Q5NDdmOTQwMmRlNDUxODM0ZWU1NDgifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L61-L73",
+          "version": "repo-lines-v1:sha256:0dda4d5a0a76afbe940d98d6e2bdc9b619ef99e1bf254875c7b29bfe4b88f062:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4YjFhOTFkODk4MTRmZTdlMTVjOWQzOWQ1MTI4NzNmOGQzYjM4OTEyZDljODMyMjhiODc0NWM0ZjIxNWQ5MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyNDg0MjBmOWMzYzQ5YzZjZjhhMzgyMWVmZGU0ZWFiMTg3YWRkOTJjN2ZkNThkZmZjMGM4ZDE4Zjc3NDBlMDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e31f1271230c4711bb094dcc658174f3",
+      "statement": "Although wottle_game_rules.md describes a third owner value \"both\", the implemented FrozenTileOwner type admits only player_a and player_b and no \"both\" value is produced anywhere in the engine; ownership is single-valued in code.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L36-L38",
+          "version": "repo-lines-v1:sha256:e67ca17e1565275a3809feb3650216fc0eb55676b7a9e1307a9614c8c15826aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWQzZTNkMmE0NzkxN2I3MmUwYzU2ZWUzNDg2OWIwMGQ1OGIxZjZkYzhkNDhkYWY5NjdmZWNlNDM3NjdkZTUxNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzMzMDZkMjUyYzZiZjQ3N2RlMGJmYzEzN2ZhNTliODgyYmM4OWQ0NjdlMTllYTQzZDFmMGNjNTE2MDE5ZmEwNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmM2NmE4ZGFjNzAzMDgyNDA1OWM1MTUwMDU4ZDJlOTk0MTNkYTVmNjMyZGE1NGU4NjgzZThhMjI5YWVkMGM3OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZThkYjM5MTY0YmEzYTE1MjJkZjc5ZWJlYzhiM2I4ZDY3NTE3YTg2ZGMwN2UwYmZiNjJiZDY4MWJkNWM4ZGFlNyJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L124-L243",
+          "version": "repo-lines-v1:sha256:4b6be3efd292850307f5087a79c8f6b6540f8bc3063598e535234ae91a93e06d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5NDhkNzhiMDk5MzA2NTdhYmRiMDNkYzllMWM0MGZiMjQzMTE0YzcyMDE0NDUwYTcwOTc3ZTM4YzFhMmQ3NDAyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyN2U1Nzg4ZDVkOWQ3M2QyNGE4MWRiYzBhNWE3NGJmYTgyYzljM2IzYWY5OWU1MmFmNzk2ZTkwYjQ2OGE4YTNkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkYzgwNzMzNTJhYjY5MDgzNTcwZjdiYTI2YzFjMjY3OGQ2NGQ4NTg3OTNiN2ZkYWI1ZWVkZGI5MGY1OWZlOWEwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0OGVkOTljZDI3NzViMjJjNGM5MzAxYzU0NDBmYWJiYzUwMDAxNDY2YTQyZjJhMWM0Njg1MjMzM2MyZjYwMzIwIn0"
+        },
+        {
+          "resource": "repo://lib/types/match.ts#L247-L258",
+          "version": "repo-lines-v1:sha256:f0232ef786d7ae861a614e4a8e4e670a452cef94178d48cf970eca64d3b30d51:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3OGE0ZWM4YjFmYWUyNDk1MGY0YzM4YWY0MmQ0MWU3NDJiN2U2MDZkNzEyNGM1MDhjYzJhM2ViNDhkYjNmY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhY2ZmNGZmYWE2MGNlNmRhNzljOGRmNWY3MDcyYWUxNTUzOWQ4ZTk2NTY1NDQ4ZDNiYjY1NTIwNDMxOGJkNWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5Y2M1MDI0ZjAwZmYwZTgwZjJhNjA5NGUyNjc1YjcwMjk1NmUwMWQxOGE2ZTdjZGM1ZWM1ZWZiOWVhODljOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4M2M4MzY1ZWYwMTNhOWE0ZjE1MWJlYmE5ZTM2MGNlYmM5ZmZjMzAyOGFkOGExMTMxMjVlZGMyZjlmZWE2OTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7f2ee4c13af14197a8c10251767e9b37",
+      "statement": "Tiles freeze at the end of a swap's scoring pass: freezeTiles takes the scored words plus the existing frozen map and returns a FreezeResult (updatedFrozenTiles, newlyFrozen, wasPartialFreeze, unfrozenRemaining). The word engine invokes it once per processed swap after validation and scoring.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L124-L254",
+          "version": "repo-lines-v1:sha256:111d931877d17e44f561c950757e67e7311cbbeec5f42cf05102e6cc96e432b4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5NDhkNzhiMDk5MzA2NTdhYmRiMDNkYzllMWM0MGZiMjQzMTE0YzcyMDE0NDUwYTcwOTc3ZTM4YzFhMmQ3NDAyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkYzgwNzMzNTJhYjY5MDgzNTcwZjdiYTI2YzFjMjY3OGQ2NGQ4NTg3OTNiN2ZkYWI1ZWVkZGI5MGY1OWZlOWEwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        },
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L16-L22",
+          "version": "repo-lines-v1:sha256:b7dd42ec3758aa745bc26cdf5168feffb5292dcff78a949612bc2be11ae6692d:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDMzMzljNDg2MTgxZTdiOTE2NmQ2MzU5MDdhNDU5MzRjNGNkMzQ1YTFlOTA2ZWVmMjJiZWU2MDYzYjMxNDA1NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjBmNTIyMmJjMGU0YTBlYjJmYTBjNmI2YzJhY2U3Nzc4NzdhZTQ5NmQzNWIwZWM3MTdjODU0OTc0ZDhlNjk0ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2NjZGY0MDJkYzVlMzcyMWYzZjI1MzJjNjEzNjk2MjkwYzNlODZkMzkyYzM0OThjZjYwNTMzODJjZjA2MjIzYiJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L207-L221",
+          "version": "repo-lines-v1:sha256:8609d0016024ef977708a398409cc8360b58f5fe8bf99bfb9898ef5e9d1f7300:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyMjY5MmI5ZTg0YzljMDczYjliMGJjYTEzNWFhNjMyYTcwOTI1OWNlOTNjYzQ2ZDRjNzg3OWU1NDBlZjc2ODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4YjFjMzdmNTlhMDg0OWJjNGRhYzc2ZjhhMTYzMzNiYWRkYjY0OWI2YWI2YTMxYzA4M2M1ZDczYmZiODdjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjYWM2OThiYzIyZmEyOTNiNmE2NmE5YjE4NmNlMmYyZDIyNmE4ODMyZjZhYTIwMmUxZGE4ZWNmYzZmMGM1YjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6fe96e262a45423cb68ee2612e3d3afc",
+      "statement": "freezeTiles enforces a 24-unfrozen floor: MIN_UNFROZEN_TILES=24 caps freezes at MAX_FROZEN_TILES=BOARD_TILE_COUNT-24=76. When a round's new tiles would breach the floor, freezing is partial (new tiles frozen in reading order up to remaining capacity, remainder left unfrozen, wasPartialFreeze set) while the words still score full points.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L10-L14",
+          "version": "repo-lines-v1:sha256:e24de7c0168b2bdd594f5e451511f87584bc1e43d72986c6dd12a9bc13b53147:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjE0MmUxN2RkYTQ0YTY0YTA4NGIzZDEyMGRmZjk3YmYxYWYwOGY2ZTkxNGMyNDkxNzhkZTkxODgwYzIzYTQ0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNkMzRiMTkzOTcyN2QxOGFmNGQ4MDRiM2I4MDU1MmQ1ZjljMWU3NmMyYzNjNDg5ZWEzNjgzYzQxYmYyNWQ3ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTFhMzhmMjMwZjVjNjFjZTZlZjZmMjdlMTQ0NjI1YTIyMTVlNmYwNzdhZDY5OGEzMGI2NTdkNDUyMDMyZDAwYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTI2MzljNzFhNjA5ZmJjOGZhNGI2NzhiYTNhYjIzYTY1YzNhYTA5M2QwNGNjOGZhZmExZWZhYjNkMjEzNWIxOSJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L137-L139",
+          "version": "repo-lines-v1:sha256:1c0ad71ff3c4fec21fd219345025cc78b3edfb106e1a290f661e49bca8add342:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzNjYjZjNjkwNGY1MTE4NTExZTE4NDg5MzRjNzU5ZWRmNTkwNmU2OWZhNjgzNWY0OTYxMDhkZjE2MjYwZDRlNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzkyN2RmZjIzMzZjMTgyMzA2ZmQxY2YzYmRkMWYzMjMzNjBlZTg3NzgwM2I3OWNkMDI1NzFiZDJhNjlmNzkzZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWNiN2JjYmNjMjlhMTQ5ZDFlOTc3MjAyYzY5MzRiZDlkNmY0ZDZlMjRiYTk5YTAwZmJhMDNhMGY4OTg5OWY2MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWQyNDg4YTlkZTc5NjlmMDBjZGUxZjRhNTM4ZWQzNTViYzkxZTg5OWFkOTFiNjA1ZGE1YzAzNmQyNDlmZTUxMSJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L224-L246",
+          "version": "repo-lines-v1:sha256:5d6beb3bcb4631ec2ec802e8a1a12634d8652cc0dd11c95491188aa82c3735a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2OTdlMmQ1NDAwOTllOTg5Y2I2ZjMzZDE5MWQ5NGUwNmMzYjAxM2E0ZmNiMTA0NTcyNzlmM2M1YTg5ZTA3NWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4ZDczZGY4ZTliM2NmOGI5YTRmY2QyY2VmM2ExNzAxOTRkODg2YjMxMDdmMWY1YzE3M2ZhYTQxMzk5MTY5ODIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3ZDg2MzJlNTRlOTI5OGFiYjk1ODcyN2UyZDUxNDA4YWJhZjEzNjYwMzUzNzkxMDE0MGFiZjY1YjMwYWI2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlMWU4M2U1ZTljODc1NzJjNmU3NTU3NjMyZjQ1YWE3MDkyNzFiYmUxOWVkMTU2ZDVkNzNkMGZlYjlkOWU3MzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_85b62fafd50d403fa95564660701ca19",
+      "statement": "Re-freezing an already-frozen tile is an ownership/axes upgrade that costs no freeze capacity: freezeTiles applies scoredAxes merges and owner re-resolution to existing keys separately from newly-frozen tiles, which are the only ones counted against freeze capacity.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L183-L222",
+          "version": "repo-lines-v1:sha256:e05089bd8c25db03b18bcdcbbb6ac9141da37bde43c4465b341b7a6d689dec33:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmMTZkNWRiMGJkODlkYzA1NzAyNWZiNDdjYmM5ZjRkYjFhMjhhZWM4ZDkxNDZkYTkwZWI2ZTM4ZDUyZTIyMzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3ZDg2MzJlNTRlOTI5OGFiYjk1ODcyN2UyZDUxNDA4YWJhZjEzNjYwMzUzNzkxMDE0MGFiZjY1YjMwYWI2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxZDVkMDAxMzAwMjUzMDcyNWQwNzc5MGUwN2Q4OWU0NGFhNDZjZjg4N2Q5NDdmOTQwMmRlNDUxODM0ZWU1NDgifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L230-L243",
+          "version": "repo-lines-v1:sha256:516a1624dfc7e6f8cdec8f2c7738c6527d05562e21376572063941a7d5ce7230:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2OWU5MzI5Y2MzOTJkNDg0OTJjMzUwMDAzNjczMmQzNDU3OGRmOWRlZGE5NzQxYTI2N2YzZGZmZWY2MDUyZWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5YmE4NzllOWJlNjkyZjVjYTM0ZTg3YTk5YTRkMWQyYjc2M2JjZDdlYWFjODZjZDc1ZTY3OWExM2Y0NmM3NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4ZWQ5OWNkMjc3NWIyMmM0YzkzMDFjNTQ0MGZhYmJjNTAwMDE0NjZhNDJmMmExYzQ2ODUyMzMzYzJmNjAzMjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d66d144611194d6f8716a086aedd04c5",
+      "statement": "A swap may not target a frozen tile on either endpoint: the word engine's per-move handler rejects a move when either the from or to key is already in the frozen map (including tiles frozen earlier in the same round), returning empty breakdowns and an unchanged board.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L47-L47",
+          "version": "repo-lines-v1:sha256:f0854b3ecdc68b97bd4aa504d23813939ee7d6a555e4b075383dadd431c5a517:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjA4NTRiM2VjZGM2OGI5N2JkNGFhNTA0ZDIzODEzOTM5ZWU3ZDZhNTU1ZTRiMDc1MzgzZGFkZDQzMWM1YTUxNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjA4NTRiM2VjZGM2OGI5N2JkNGFhNTA0ZDIzODEzOTM5ZWU3ZDZhNTU1ZTRiMDc1MzgzZGFkZDQzMWM1YTUxNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODZjNTk0MDYwN2M4ZjdmMmI2N2M1ZDI5ZGVkNGE4NGNjYjNiNDYyMTBjMGJkNjA4YjQyMzdhOTI4NjllYTFlNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODg4OTdkYTY1MDkyYzY1OGRlZDNiZTQ1MDkxOTMxZTc0NzAwZWM2NmJiY2ZmNWFiY2QwMjJmZDhkYmJkZGUxMCJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L163-L173",
+          "version": "repo-lines-v1:sha256:3f3aef7d0418474b5bbcd092ecdffbce3d030ad6fb9f686e9275d04df0950638:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxNWZjOWZjNTg5YzMwYzg5Mjc1MTYxMzVlOTk5M2NhMjk2ODFiNDRkN2QyYmYzMWJiNzZkNjc2ZjViYmZkMDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyMDA0NTRkNTdiMjJkZGI0ZGMyZWI4YjVkMDRkYThlOGU2MDBhNDdiMzM5MjRhZmMxNWJkYTY0MWU3OTczY2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkOGFhZDAzZjFkMzc4MGIyNTdmNGRkODMzN2U0MGQ4ZmRkNjBmMThhMzhiYmIwOWRkNjA3MDY1OWZhZjIxNGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d15923ad811b4f7d8a66ba1a2cc3a273",
+      "statement": "Opponent-owned frozen tiles are excluded from letter points but not from the length bonus: scoreBoardWords blanks tiles whose frozen owner is the opponent slot before summing letter values, while calculateLengthBonus uses the full word length including opponent-frozen tiles.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L157-L162",
+          "version": "repo-lines-v1:sha256:f9e7e4f047f525198dd07f466db58e4e349f81f19cea491d5d770706cb5d3340:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjIzZTI3NWMyZTY5MjUyZDNjYmEzNzFkOGY1ZWQ3ZjdhNTYzNjI2NWY2OTM0Mjg1ZTA5YjgwZTcxNjYxNTMxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmQ0NDFlNTA0ZWVhOTM5YzE4ZTZmNzFlZDhlZDZlY2Y3Y2NmNzY2Mzg3ZTliMzExMGRlN2M1Yzg0ODY5ZWI1ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTgyYTUzNzFjMTljYWVmZDU2N2I0MzgxZDc0YmIzNGM5YzMyMzk2YWE3ZGMwM2M0ZmI1MmQxZGNjODhiODU3YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmFiNWRhOWU0MGMxMGE4ZWRlNTRkNzZkMGU1OGIxZTYxMGI2MjNkYWZhMTQ4Y2M1N2Q1YjNjNjhiODliMTdhMCJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L41-L72",
+          "version": "repo-lines-v1:sha256:ed4fd1d9b57b2384d5272aa883542d4cb867989e20058131fb01c8753f616ced:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlNDQ3ZTBlN2QxODljYWI2Y2QyYmI1OTJlNWRhODRjNTYxNTExN2M3MjAzMjE0MmEzZTA4ODg2YjA2YzA2NjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNGFmODMzMGUzZjYwZDY2NTRhOWNiM2MwZDRhNjk3M2U1YWIzYzE2OWZjMTg1ZmIxNzY2OGY2MzczYThmZDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTI5ZTkxZTBmOTljM2U4MjVkZTY5YjQzNWZiNjQ4NGQxYjBhMWRmMmY0NjU2MWFiZjFhMjlmMDQxODhiODgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ed49308450ae49f0b0f823da45cb0529",
+      "statement": "During delta detection, getOpponentFrozenKeys computes per candidate word the set of coordinates owned by the opponent slot, and attaches it as opponentFrozenKeys so the letter-point exclusion is tracked alongside each attributed word.",
+      "evidence": [
+        {
+          "resource": "repo://lib/game-engine/deltaDetector.ts#L344-L361",
+          "version": "repo-lines-v1:sha256:55574d88cf66623776d77c8f7dd3d83320a1197b3347ce7df9634bdfc8edd9e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzOGU2ODMyOTQ3ZWUxNzE3MWY4OTg3NTNjODEwZjY4NDdlODhjMzAzMWM1YmU4NTQ2MDVhYjI4ZWVmM2UzODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjOTY1M2RkMDhhNzkwZjRhYTE1NTU3ZTk5ZmMwMTEyNmZmYzRlZDFhN2IxZTc3ODQ5YzJjYzZiNjc4NmJmZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlMjIzNDI5ODc0MmEwZjU5NWIzNzE1ZjAyOTNhMmI0MDRlZGUzYzA1NzBlZGMwNmVkMDM1NGM0ZGJjN2Y4ZTYifQ"
+        },
+        {
+          "resource": "repo://lib/game-engine/deltaDetector.ts#L466-L467",
+          "version": "repo-lines-v1:sha256:0b655b7e7781b859f90b8d222df5949b732fe78a3b60c7910ddcc853bf63b7f9:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmRiMDE4ZjBjMTVhZjEwYWI2MzFjMWNmNTQ3OTc1ODQwYWE5NTc5OTk5ZDVmMDVkNGEzM2Y1ODFhZjllNmRmZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjVjYmQ1MDMyYjM1ZWFiMGZhZjRlNzdjY2U5YmQ2ZTg5MzA5MWE4Y2Q2N2FkNDdiMDJiODcyMjVlYWYxMTFlNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGFjMTdmYmE0YzNhYjQwMWE0OWNkNDIzZTAzNjFkOGZlZGY4ZTZlMzRmMWQ5ZWE4YzIzNDUxODhjOThkN2E4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWI4MGEzZGZiM2IyYjc5OWY0ZDM1YjYzMjQ1MDRmZmUxYTE3ZTEwMzIwMGExYmIxOWY3Njk1ZTRjZTM5ODE2MiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_363b6d77c4eb467a8add0a3d12714954",
+      "statement": "Both scoring passes for a round (the instant-scoring fast path and advanceRound's combined pass) score against the round-start freeze baseline rounds.frozen_tiles_before (falling back to matches.frozen_tiles for legacy rounds); the fast path's mid-round freezes only gate new swap submissions via the live matches.frozen_tiles map and must not feed back into the same round's scoring.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L273-L273",
+          "version": "repo-lines-v1:sha256:bd76fb19f4b93470d9659524a662c8e1dda06a6ab92e0ff52092c4120014fe49:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmQ3NmZiMTlmNGI5MzQ3MGQ5NjU5NTI0YTY2MmM4ZTFkZGEwNmE2YWI5MmUwZmY1MjA5MmM0MTIwMDE0ZmU0OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmQ3NmZiMTlmNGI5MzQ3MGQ5NjU5NTI0YTY2MmM4ZTFkZGEwNmE2YWI5MmUwZmY1MjA5MmM0MTIwMDE0ZmU0OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2NhY2FhMzA1YzY4ZDIwZTQ2M2I2NTQ3NzEyMDc2MDE4ZTY4NGIyMWM1MjRjNzcxZjc2ZmQ1ZGM3YmQ3ZWEyZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWViMDQ1MzlkZGExYjI2ZmRjMmNhN2ZkYTdjMWI0YzU0YWNhNjE1N2I2YzJhZmY5MjE0NDgyZWY5NjI1NjlkOCJ9"
+        },
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L294-L322",
+          "version": "repo-lines-v1:sha256:a753874dddb6854e6fe3187b253ce747930402360b09a9e8af39ad06446d0a6d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5NWI3MjM2OTYwOGEzMmViMjAyMzBlNjcyM2ExYjViYjA4NGI4NTdjYjNkNWZlMTY3NGRiMTdkN2I1YTM0NWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNzVjNzBkOTQ2MzYyNWUxMDc5ZmQ4ZmM4ZWU2MmFkMmU5MmM0MmJlYWFiZmQ4NWI3OGQ4ZTBhNDk3OWI5NGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhZjM4ZWY1ZDM1MmZkYTQ4OTMzMTZjMTA0MDg2MDlkYWYxYmUwNzczZjU1NDRkYzgwNmZhMWQ0ZDAyMDczNzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3MTI5NTQ3MWFjYTUyNDYyMmY2OGQyYWU3NDE0MWFjMDQ5YWE3ZDhlZmI4YTIxZDBhMGM3ZDM5YjI5NjFjODIifQ"
+        },
+        {
+          "resource": "repo://supabase/migrations/20260609001_rounds_frozen_tiles_before.sql#L1-L18",
+          "version": "repo-lines-v1:sha256:6645a75764aa605f42a7d8080d0060bebce628bb9918793da1055c0bf2cb9f2f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkMGU0ODc4ZmM2NTRmYzdiMzEyOTE2OTZmZTlkNGQ4NWE1ZGJhYTI5MGJjNTljNTAxODdhODI3MjdlNDgxMmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhMTgzMmEwNGVmNzM2MGRkNTQwNjMxYzhiYWE3YzcwYjYyOTg5YTQ3ZTQ4MDU2ZWVmYmZiMTI2M2I3OWJiOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8ee12317cd6440889b3688ffd8410d9c",
+      "statement": "persistFrozenTilesAtomically writes the updated frozen map via the conditional update_frozen_tiles_if_unchanged RPC; if the stored value changed under it (0 rows affected) it reloads the fresh map and re-applies only this round's new freezes, with a plain-update fallback when the RPC is unavailable.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/publishRoundSummary.ts#L188-L274",
+          "version": "repo-lines-v1:sha256:8584d56f37077d2d307938ded03b96aa6e3b248d2eed514f7f1cfd6f93a596fc:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2ZDNjNmQ2ZjI4OTdkYWJiYTYxODZiZjgxOWZhODJhNTFiYzhlMzIzNWQyYmRlZTYwNGQ0Yjc5ZjVmYmIyZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2NGFiNjI3MDJiMDU1MjQ0MjgwM2RkMTg4MTU1OTYyYjc2NzRhYTdjOTIzMWNlYmJiZTJjODU0MTZhMzUwZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NDg3MjMwMjAwN2ZjYjljN2I3NGQ1OTg2ZWYxNzc2MjJmZjU2ZTdjYjRkMDBjYmYyNTQxMWRkOGRmMGY0NjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8def2cca083d4446a398b24b7eee75fc",
+      "statement": "mergeNewFreezesOntoFresh is a pure helper used by the stale-retry path that layers only this round's freeze delta (computed keys absent from baseline) onto the freshly-loaded map; because freezes are monotonic, this preserves a concurrent round's freezes instead of clobbering them.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/publishRoundSummary.ts#L250-L266",
+          "version": "repo-lines-v1:sha256:382ecd96c3c2ac13ddc033d510712e4be1f1ad6aa814c9d072d4de9b3319856b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4YjFiZDI5MzBkM2M5MWVkYmY5MDAxM2M3ZGFhNTJkY2I1OTAwNGU5NGY4MzA1NjUyMDYzNDA3ZWU1NjAzMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzY2U1Y2U4NzhiZTRiOGUxNmY5NzJhYjQ3M2FkMzZkZDM3N2IxMmZmZDhjOTg4MDVmZGU4NDhlZGRmMzZmMzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViYTI4MDI1YmFkM2ZmNmRhNTA3MjYwZjBiMjMxZjA1Y2U4YzJiMTFlYzAzNzU4NmQ4Y2QxOThkZmQxYjcxYmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyMTY5MGM4NDEzNjk2Y2UzNzJmNzlkNmQ5YjYwOTdlZjhjMWYzYTE4NjYyZmZkZGEwNTkzNTk1N2ZjYTIwNTIifQ"
+        },
+        {
+          "resource": "repo://lib/match/frozenTileMerge.ts#L1-L27",
+          "version": "repo-lines-v1:sha256:8d7429f0ed6d6e89f7c2db49f0adc31b6558e3fe968c5664ce615ff7a22e3fb3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzZWFmNThiNWM4NDA2OTdhMGU4MzEzMWUyNWE3Y2JkODc1YmM5MDQ2OTkwNTNjMTU4ZTgyNTQ3MGQxZjJiYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b1b4e1ae5c134848a19da6c0b26ae1b4",
+      "statement": "advanceRound seeds the next round's frozen_tiles_before with the canonical post-round freeze map (scoringNewFrozenTiles) so round N+1's scoring passes share a stable baseline even when the fast path mutates matches.frozen_tiles mid-round.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L408-L421",
+          "version": "repo-lines-v1:sha256:fc927b20ae3b3d2b921ebc320d7695d75ad0db839973d2204a00ffb62874d2b9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0YThhYTAwZTEzNTNkN2E5M2E3ODZmMzk2MDZiMjE2YWZhY2UzMDYzZGQwMWU3N2RkOWY1YTI5ZmNmOWE0OWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlNDYyYmQ4NWVhMzUyMjgyMmE5YWQzZWIyNDA5OWIwMzJhMWI2MjdiZWNmZDdjNTgzMWU5OTI3ZDRiYWM0MGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4NDQyZWFmZDE0NzVkODEyNmY5NjFlMjUxMTUwYzU1YzM3YzEwZTUwNzI1YTJjYjRjNDdhMWJjYjdlMTM0MzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5OWYyNGI0ZGY4MDUzM2Q4YzcwNzRmNzhlZGQ4YWRjZTA1ZWY3OWE0OGM4YjVjNGU5YjQxODVlOWE3MWIyOGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d25cb815b8ec4f7882153138be9621db",
+      "statement": "computeFrozenTileCountByPlayer tallies per-player frozen-tile ownership from the final FrozenTileMap for post-game summaries; because ownership is single-valued (first-owner-wins) each tile contributes to exactly one player's count, and it is consumed by completeMatch and the match summary page.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L11-L11",
+          "version": "repo-lines-v1:sha256:5734fadb0358714b8bcf181bd7ec90ea6a6614d1bae97588955e0d88653a0242:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczNGZhZGIwMzU4NzE0YjhiY2YxODFiZDdlYzkwZWE2YTY2MTRkMWJhZTk3NTg4OTU1ZTBkODg2NTNhMDI0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczNGZhZGIwMzU4NzE0YjhiY2YxODFiZDdlYzkwZWE2YTY2MTRkMWJhZTk3NTg4OTU1ZTBkODg2NTNhMDI0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDNlYmFiNjAzNjA0YzczMjg0ODQzNzI3Yjg1YWE1YzJjOTY4YTQyNWIzMjdjYjgxNTg1NDY3ZTVhM2E5MmZiZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWIzYmYzNDY1NGMxYWE4YWRjYTc1MzM3YWFjNDlkNWE2NGFhNjRiMzI4ZmM3NTVmYzU1MDZiM2I4ZDgyYmZkOSJ9"
+        },
+        {
+          "resource": "repo://app/match/%5BmatchId%5D/summary/page.tsx#L4-L4",
+          "version": "repo-lines-v1:sha256:5734fadb0358714b8bcf181bd7ec90ea6a6614d1bae97588955e0d88653a0242:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczNGZhZGIwMzU4NzE0YjhiY2YxODFiZDdlYzkwZWE2YTY2MTRkMWJhZTk3NTg4OTU1ZTBkODg2NTNhMDI0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczNGZhZGIwMzU4NzE0YjhiY2YxODFiZDdlYzkwZWE2YTY2MTRkMWJhZTk3NTg4OTU1ZTBkODg2NTNhMDI0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOGM0MzUxYzFhMGM2ODA4MmViOTBiYTc0YTJhZDM1MDM0ZDllZjc1YzE5NzI5YjA2NGMzY2ExNjk4YzgzYzliMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGMwODUwM2VjNDkzMzI0ODAyN2EwZjMxZjJjOGY1ZjVmZDdlMjA5NzllMTFiYTg5MzhiODE5NzYzNWNjOGIwNiJ9"
+        },
+        {
+          "resource": "repo://lib/match/matchSummary.ts#L1-L17",
+          "version": "repo-lines-v1:sha256:6522b11439edb8e3ce198a685d55bef30064703842393f84b5c010e1049b33a2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzZWFmNThiNWM4NDA2OTdhMGU4MzEzMWUyNWE3Y2JkODc1YmM5MDQ2OTkwNTNjMTU4ZTgyNTQ3MGQxZjJiYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5af1dcf64c3d4e138c89e46580b9ecc5",
+      "statement": "scoredAxes is audit-only and must never gate validation or scoring: it is inferred from tile coordinates (inferAxis) and merged without duplicates (mergeAxes), while all validation and scoring decisions consult only the physical frozen state per the game-rules guardrail.",
+      "evidence": [
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L25-L25",
+          "version": "repo-lines-v1:sha256:3adf9c0253f211e43feac993f788692b5e17fe67eb9143f3762c610b4a3a6c94:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FkZjljMDI1M2YyMTFlNDNmZWFjOTkzZjc4ODY5MmI1ZTE3ZmU2N2ViOTE0M2YzNzYyYzYxMGI0YTNhNmM5NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FkZjljMDI1M2YyMTFlNDNmZWFjOTkzZjc4ODY5MmI1ZTE3ZmU2N2ViOTE0M2YzNzYyYzYxMGI0YTNhNmM5NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWEwMGRjZDRkNmM3N2JlMzAwY2FhZTE1NzBjZjAzMDg2NjU5YjA4YmVkMGYyZGRjMjM5OGIwMGE0MGM1MmUzYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDAxZjJlYzE3NTkzYzEwNTRlYjQ2MzY3ZDg0NTNlZjI0YTE3M2NlOTZiNzExN2Q5MWY5YTY4ZDQ0ZmVmOGIwMSJ9"
+        },
+        {
+          "resource": "repo://docs/prd_and_requirements/wottle_game_rules.md#L40-L40",
+          "version": "repo-lines-v1:sha256:1f8a854d688eabe97d02edd4f08cb80240896add45d47d5ce8068054cdc82e20:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWY4YTg1NGQ2ODhlYWJlOTdkMDJlZGQ0ZjA4Y2I4MDI0MDg5NmFkZDQ1ZDQ3ZDVjZTgwNjgwNTRjZGM4MmUyMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWY4YTg1NGQ2ODhlYWJlOTdkMDJlZGQ0ZjA4Y2I4MDI0MDg5NmFkZDQ1ZDQ3ZDVjZTgwNjgwNTRjZGM4MmUyMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGVlNDc2YjNkYThmMWM3ZDRhY2ZjOGY3MGYxYjRlOGY1NzI2OTNmYWIyNDE3NmVhNzgwYmI2YjQyYTc2NGQ1YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDAxZjJlYzE3NTkzYzEwNTRlYjQ2MzY3ZDg0NTNlZjI0YTE3M2NlOTZiNzExN2Q5MWY5YTY4ZDQ0ZmVmOGIwMSJ9"
+        },
+        {
+          "resource": "repo://lib/game-engine/frozenTiles.ts#L86-L104",
+          "version": "repo-lines-v1:sha256:a21691936bc26bfa51ea621af2b863d36b34a9702241bbc6299638d600d7fc80:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlMGZiMmYyZjQ1Yjc2NmYyYzdmYTgyOWU0ODA4YTA3ZWRiYzEwNzQzODQ5ZWVhZWIwN2M3ZDY2YTU3NjMzYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM3OTI5ZTkxZTBmOTljM2U4MjVkZTY5YjQzNWZiNjQ4NGQxYjBhMWRmMmY0NjU2MWFiZjFhMjlmMDQxODhiODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiNDY0M2UxOGFhZjIzZjI4MjU1MWUxZTIxZmVhNDU2MjY1ZTYzODA0Njk3NDRlNmYxMzViNjc2NTNlYWE4Y2QifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

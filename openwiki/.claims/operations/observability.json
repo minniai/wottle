@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:fd28949eb26ca52aa1fbbe3d6c2191bc8006885503ccf60267b0993cc3df8b0f",
+  "claims": [
+    {
+      "id": "claim_3609a64e7dc2400da4fb19279fbe8819",
+      "statement": "logPlaytestInfo and logPlaytestError emit single-line structured JSON records that include level, event, an ISO timestamp, and a playtest:true marker, merge any metadata keys onto the top level, and flatten a supplied Error into error message and stack; logPlaytestInfo uses console.log and logPlaytestError uses console.error.",
+      "evidence": [
+        {
+          "resource": "repo://lib/observability/log.ts#L44-L107",
+          "version": "repo-lines-v1:sha256:07990d7352e2cbeb21ad7692a1a31dfaad3df8393b5a7eaf8dd9f700efa2f397:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhNzAxOWRkMzg4YmFlMTRhMmU3NDZjOWY2MTQ1YjQ2ZmQwMGU4NzlmZTkwNDMwMWFiNTliZjNkYTBiMTBhMmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlYWQxZjEyN2M4OTZiODA0ODc1MGUzZGY0NjdjOWI3OTNkNjYyZWNlOTU3ODUxODEzNjhiODNjNDUzZDY1YTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE0NmU4ZjdkMGNmZDZiZjZiNmJiOWZkYjMyZmY0NGE5YzI4YmQ2ZDQ0NjU0NjUwZTM0ODU2YWU4NjRhZmZjMjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_98b434cc605f4b81aac04fc5350027ea",
+      "statement": "The typed trackers trackInviteAccepted, trackRoundCompleted, and trackMatchResult each both log a JSON line and dispatch a typed AnalyticsEvent through emitAnalyticsEvent, which fans out to every hook registered via registerAnalyticsHook (each wrapped in its own try/catch) and, in a browser context, dispatches a playtest:analytics CustomEvent on window.",
+      "evidence": [
+        {
+          "resource": "repo://lib/observability/log.ts#L78-L187",
+          "version": "repo-lines-v1:sha256:d079ab948001b692036f332a6c3853c1d0e1697fefaf07a9d0c0f17c9486f85e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmMmI0NTEzNjliOGY0MmM5Yzk1MzliMDdhNzg0Yzk5MzVmMGE2OWRlOGMyMmY3ZTA2OTI2ODEyYWQxMDIwMmIxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0YTQ2MTY4MTc4YmMxMDcwMTM2ODYxMDkwZTk3NWYwZDM1OWQ3ZmM3YjEzMTc0ODRjZTc1YWMzNWRlNTEwMjI2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_eaf53714d265461d9db6edce539f273e",
+      "statement": "trackRoundCompleted is emitted at the end of advanceRound in roundEngine.ts (after the round-summary broadcast) with acceptedMoves, rejectedMoves, isGameOver, and a durationMs computed as Date.now() minus roundStart.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L506-L513",
+          "version": "repo-lines-v1:sha256:957e3cec28c85f894bafccac1498f93dc21ae981d33afe44783ff3cb359c56ac:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmIxNjVmZmMxMGY1NmFmNjc3NmEyYmM1OWQ3Y2UzNjljMjU3NzA2ZTBlNDJhNmU4ZGIyYTBjODFjMGQyYjc0MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjJkMTFjYWY0M2U5N2VmMzY5ZTZiZWVkMWEyNjhiZDA1ODM4ZjI5YjlkZDI1NGJmNjliYTY0ODg0MTQ3MjM0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTJjYzBkNDRkZGUzOTEwMThhNDU5YzA2YjA5MGVlZWM4ZGY1MDQxODgyOTczMjAyZDBhNzY1ZmM5MzU2NGNhNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDJiNDUyNWIxMmU1Mzc0NjBhOTI4NWNlOGUzN2I5NDA4YjYxOGFkMTYwN2E5YmQ1OGI0Njg1ZDk0YmU1MzY3YiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_4c1d3d850f414e4487ec81750849d263",
+      "statement": "trackMatchResult is emitted in the completeMatch server action after the match state is published, carrying winnerId, loserId, endedReason, isDraw, scores, and totalRounds.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L196-L206",
+          "version": "repo-lines-v1:sha256:8a80654fcb9c6b59339a7ddcb374eda33ff5960cf0e45646b3e47ce0dea201ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1M2Q1MWQ1NWMzMjAwOTY2MTQ2YmRiMmNiYWNkYmU4OTg0NjRkOGZiYTY1MzBmZWI1NjcyOGIzZmY5ZDMxYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5Y2QzM2E0OWNjY2FjYWQyN2VmMWI0MWMyMmQ2MmMyMjliY2I3NGM0N2MyNzc0OTJkYjgzNDVjZGRkYjhhMjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2Nzc1ODYzOWUwNWFiZTc4OGNkMGZlOGYyNGZmYWQwMmQ3NmNiOGE2MzJlMGJiNDM4NTQzOWY1ZjUzZTFjMTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_51e8108418164c1dbde86b8e6bf367d9",
+      "statement": "The instant-scoring observability module wraps logPlaytestInfo/logPlaytestError with three typed trackers — trackInstantScoringFired (info instant-scoring.fired), trackInstantScoringDeferred (info instant-scoring.deferred-to-combined), and trackInstantScoringFailed (error instant-scoring.failed) — centralising event names and payload shapes for the fast path.",
+      "evidence": [
+        {
+          "resource": "repo://lib/observability/instantScoring.ts#L53-L85",
+          "version": "repo-lines-v1:sha256:3ee459cbc447cc413754d70ccb0502f3781ad11e390f34fa6df5167e3eda6f90:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmYTFmNGM2YzA3MzU5MTNiNDI1ZjM4YTZhYjM3ZDMzNDY5MjRmYjQ5OTJjZjAzMTViODMzNmI5MjI4YjdhZWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwY2JhNWFjMDExMGQ5MjU1YmUxYmZjOTY3YjBlZTZhYTJkMWY1NTRkZjk1YWIxZTVmZDdiYWJlOTA3OTBjNmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8e4edd06cc8e4c95b77b18a242da9485",
+      "statement": "Instant-scoring events carry a cumulative phases record (milliseconds from fast-path start to each named phase such as match-loaded/round-loaded/submissions-loaded/scoring), and on a failure the lastPhase field attributes the stall to the phase after the last one completed.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L126-L148",
+          "version": "repo-lines-v1:sha256:e8316912d0a466bd52b02200dc4d8498550ae0b8cebf7426d8921fbe3057c4cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNTgwZTk2NGY4M2E0NzNmNDNkNDQzODQ2Mjk0OWQ2OGI1NjAwZmRhNzg3ZjE2Mzc0NWQwMGRlODljYmYzNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkYTQxODg4MWRjNzZmOTU2NThmZGZlZDgwMjhiYzdlNmU0MjE2NjNiMzlkZWZkYWZjMmZjODNlMWUyNmNlOTcifQ"
+        },
+        {
+          "resource": "repo://lib/observability/instantScoring.ts#L11-L51",
+          "version": "repo-lines-v1:sha256:cc35415ea2453ab88e3aa366cab41812dd5c0c2b5d093ea05c0adc07c6de66f1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5NmE0NWIzNjBhYTNmNjQyODBhMTk3NWMxZDc3MTM5Y2E3ZDZlNTYwZDUwMDc4MTZiYmQyOTlkZmQ0ODM4OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhM2IyYzYxODBiY2ZjNzA5MmZkMzk5ZDMxZGE4ZTMyNmNlYTgzYWU1Y2QwNTNjZjU4ODE4MTczN2U1YmU0M2QifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_85e8cdbe23bc4b128c4f059da6a18c95",
+      "statement": "instantScoreFirstSubmission races the fast path against a 5000 ms INSTANT_SCORING_TIMEOUT_MS timer using a shared mutable FastPathTrace, and emits trackInstantScoringDeferred on a race-window skip, trackInstantScoringFired on a successful score, and trackInstantScoringFailed on timeout or throw.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L170-L184",
+          "version": "repo-lines-v1:sha256:2c94afd20a90bd76b8b4b9b675b7120a94b60f3b34e428bde4942f1a7979fa09:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkZTI4ZjI5ZmM2ZTdkOGQ1MzMyOTI4Y2JmMDBiMjAxYmFkNGJkYjliMjYzYTkzNTA0ZmRjNTUwMDJkMTUxZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2N2RkMDE4MTEzY2Y2Mzc4ZDkwMTgwMzEwMWEzMDJjMmZiYzAwZTE2ZjQ2MzVmYzIyNzc0ODNkOWVjYzYxZmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1NzVmMjhkYzc2OWJhODJmN2NiODgxNjA5YTk2ZWI4ZmQ2ODkwMTkzYzI4ODI0YmFiZDgwMzg0NDQxMjJjZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3ZWFlNTQ5MGIxMGZiNmU4NTZiZmNlMTZkNTA5YTA0YzU0Y2YyNGQ2YTE0YWFkNGFiNzFhOGQ1ZDJjMTNlZjAifQ"
+        },
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L276-L296",
+          "version": "repo-lines-v1:sha256:0f0b7279863807dbc95f01c620ba39a96ae7ef40b40c4dbf7b456dec6b80ea95:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0OGUwZjNmMmFhNGQ1MjZkMjk1MDJhYWRjZDdkOGRiMmU1Y2Q4MDRmMzVhNmI2M2Q0MWRlMzA0NmNmY2UxNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4MWQ5ZGE0MzA1MmU3OGE2MGQwNWQ5MjgxNjE1NDU3YzM2OWE5OWJhYzU4NzM4MDIwZDQyMjA0YjA3NGJkN2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjY2Y0ZWI5ZTU4MDMzMTBhNTA2NGZlNTA1ZjE2MmY4OTNkZWIxYzcwYjQ2NDY1ZDM5NDM0YWU5NjE1NzBjNzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmZDY2MzdjOWVlMjA4Njc2MmQwZTIzNDk5MzYxOGZiYTdiNTc0YTQzNTY4MTQ3NzI0OTJjMWExYzZjMjg1ZDYifQ"
+        },
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L34-L124",
+          "version": "repo-lines-v1:sha256:be10aa4c63f8925e7f883600c956e107def14ab1701e29fbc68aa3beb181b9bd:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0MTI5N2I2OTJmZTcxZmNjOTNhMTlhMWVjYzViZWQ3ZTcyMmYxNDIzYmU3YjAzNWRlNDMzNzM0NDQ4NjBmMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzODJjYTQwZjFmODIxYjRkN2U5OTJhYWRiYmIyNGVmNzczMWY1NjhkNDgzYTNjNWZjMWE4MjU5NGNmNWVhMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1MmJhNGZiZWVhYmU1MjJiYzQ2N2I0NTI5NTE5ZTRjOTQyY2UyNTllYzlkMzk5MjEyMDJmMzBjYjZlZTc2NGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5b40ed1073a846f48bb83e44758af848",
+      "statement": "The instant-scoring fast path runs inside submitMove's after() hook post-response so nothing user-facing blocks on it, it is best-effort, and its InstantScoringResult return value is ignored by the production caller.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L205-L228",
+          "version": "repo-lines-v1:sha256:58c630cb4f39711c1931a76862255a22cbd6de8485b8482f2d1cd244f2a2989d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2MTI2ZTQyZGU1ODFmNjk3ZjU0MmE2Nzg0YjVlYjVlMWE5ZGE5MjRhNDE4Y2U5NDFhYTk4Y2E5NThjOTRhNWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOTUyMDZhODg0ZDIwNjExYmQxNWFlZWZiOWI3Njk1ZGQ0MjE5OThlNzJjMTJhZTUwNDExZGI2ZmM4M2ExYmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3YTdjZTdmOGZmYjllYzI2MDgxZTRhZTJjZjY2YTk5NzNlMzljN2MwMTM3MWYwZDBiZmUxODgzMjQ5ZmRiZjMifQ"
+        },
+        {
+          "resource": "repo://lib/match/instantScoring.ts#L36-L48",
+          "version": "repo-lines-v1:sha256:ccf525f2223dfd11e8d95f235cf090c7759f645a8ea9ebe1c17f7b6b116a7146:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5ZjYwYjUyMmFkYzViMDYzMTJkZWJlMTBjYzM3ZDMzYThhM2IzZDNhNTRiYTNjODY0MzBhOTRjZDdhOTJiOGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwOWYxNTAxNTc2NGUzNzBkNDhmZThmMDhkM2VmMDY0ZmRiYmQ1NDE3MTQ2MzE0YzgxMTI2NjkyODhiZTAzNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY0OTg1M2NhMGVhZDM1MWFhMDYzMzkzNmFjNTRmMDhlMTNiY2VmNTIwYmYzNGJjN2YxNjI1YjNiMzkyMjNlZTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5439bc6a405943198224d606f50ade04",
+      "statement": "writeMatchLog is a use-server helper that inserts one row into the match_logs table with match_id, event_type, and a JSON payload of {actorId, metadata}, using a typed-but-open eventType union of match lifecycle events.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/logWriter.ts#L1-L28",
+          "version": "repo-lines-v1:sha256:277954a06936ee64023b0a30aa08a3813f724821f9be5f6caf35fdb366895603:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZmRiNmE5NjYxNWI2MDQzZGRhYzA0OWM0YTg3ZGZmMDgyZDIyZmJhNGZkOTkzMTBhMGRkOTJhNGU3Yjk5NjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiYjgwZGNlOWVjYmRiMzQxMjg4YzVhNWM4NDEyOGU0OTIzZjMyMzExZDc4ZDNjMzEyNGU3Zjc4MzZiZDVmOGEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3329bf6ed71e4259b2782c2ad8272e66",
+      "statement": "writeMatchLog is deliberately non-throwing: on an insert error it logs to console.error and returns normally, so audit logging never fails the surrounding match action.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/logWriter.ts#L20-L33",
+          "version": "repo-lines-v1:sha256:b2948198c6d71c9d2141bf9c2b57ab30e1e02981ffd90812bb45ab27acadf20e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlOWFkODM5MzA5ZjA3YzJlM2M2NTA1YzJhYjU3NWFiMGFkYjc4ZTY5NzQzZjU5MTExYTA0MWZhZTg3MzczMzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRjYzc3ZDZiZjY2MTY4ZjA4NzVmMzcyMTViYWU3YjNhN2RjYWFiZTVhNTJhYmNiZDg3MTgxY2NjYjRmMDZmZjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b6d7b3c66eab43c39f2fb2afae185276",
+      "statement": "Durable match_logs rows are written from multiple match-lifecycle actions: completeMatch (match.completed on round-limit else match.${reason}), resignMatch and handleDisconnect, and the requestRematch/respondToRematch rematch pair.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/completeMatch.ts#L186-L194",
+          "version": "repo-lines-v1:sha256:82a65f5ba27bdf500d8dfcd1842aceec3fdaae1aca2a83291a72d9578860367d:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU3OWRiOWE4MTc5ZDU3NzYzMDU0MWYwMTJhYzI4ZTI0Y2I2Njc3MzIzZTVmMDVjZDYyNDVmYzBmMTU2MmRkMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2EzZTQ2Zjk0Mjc2YjZmNmY0ZWQxZjAyYWY3OGJlZjZhMmVlMWM0MzlkZDU1ODRiOTczOTQ4MzEzMjE0ZDJiNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGVhYTI2ZjEzMDc0NTQ5MzFmYmQ0YzI0NDBhN2U0NjM0OWYzOTVlYWJkNTIwMzAwOWE3YTg4ZWIzZmQwZTI4MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzVlNTIzNmE5OGQzYjE0MTY1YmM1MjJkZGExOTVkMzY2MDZhNmIwM2MxNzM4NTM0MzdiNzM0NzA5ZjQ3M2YwYiJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/handleDisconnect.ts#L58-L58",
+          "version": "repo-lines-v1:sha256:4579db9a8179d577630541f012ac28e24cb6677323e5f05cd6245fc0f1562dd0:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU3OWRiOWE4MTc5ZDU3NzYzMDU0MWYwMTJhYzI4ZTI0Y2I2Njc3MzIzZTVmMDVjZDYyNDVmYzBmMTU2MmRkMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU3OWRiOWE4MTc5ZDU3NzYzMDU0MWYwMTJhYzI4ZTI0Y2I2Njc3MzIzZTVmMDVjZDYyNDVmYzBmMTU2MmRkMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjYzMTZmOGU2OGVhZTVhYzg2M2JmZDU4M2QxYTMzZjRlYzhkNzY3NjkzZjlhY2IzNzk4MzU1ZmZkZjI0MGRlZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2E2Y2JmMTcxODQyOTdmMmYwYTZlOWIzYzhiNDNjNmFjMWJmNDU5OGY2ODc4ZWI1NzQyYmVkOTM4MzI4ZTZhZSJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/requestRematch.ts#L83-L83",
+          "version": "repo-lines-v1:sha256:4579db9a8179d577630541f012ac28e24cb6677323e5f05cd6245fc0f1562dd0:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU3OWRiOWE4MTc5ZDU3NzYzMDU0MWYwMTJhYzI4ZTI0Y2I2Njc3MzIzZTVmMDVjZDYyNDVmYzBmMTU2MmRkMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU3OWRiOWE4MTc5ZDU3NzYzMDU0MWYwMTJhYzI4ZTI0Y2I2Njc3MzIzZTVmMDVjZDYyNDVmYzBmMTU2MmRkMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzUxMDAzMDg1NTM4ZWE5NmE0MmYwYmFjMmVhMjk1YWQ0MGM4OTllZTQ3NTA3Y2Y4NjAzMWY2YzlhNjdlYmEyMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2I4Zjg5NTk5MGRjODYzMDI1YThiYjM1ZWVjMTU1M2JjYmVlMDc4ZTczNDZhOWVmNDcyZjA5MjY1NDUzYWZiZSJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/resignMatch.ts#L84-L84",
+          "version": "repo-lines-v1:sha256:4579db9a8179d577630541f012ac28e24cb6677323e5f05cd6245fc0f1562dd0:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU3OWRiOWE4MTc5ZDU3NzYzMDU0MWYwMTJhYzI4ZTI0Y2I2Njc3MzIzZTVmMDVjZDYyNDVmYzBmMTU2MmRkMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU3OWRiOWE4MTc5ZDU3NzYzMDU0MWYwMTJhYzI4ZTI0Y2I2Njc3MzIzZTVmMDVjZDYyNDVmYzBmMTU2MmRkMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmExNzQ0MmQ2NzdjM2M2OGM4ZDQ1Y2U2NzdlYTEzMzU2ZjBkMzdlZjlkNzA5ZDlhYTg2MTEzNTU2M2VjNDRlOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGEzNjZlOWRhNjRjMjE5NDE0NjM0Y2NlYzMzZTE2MjYwMGIwN2Y5ODQ3ZjRlOWM0M2I2MzMwNjg1NDQ3NjZhYyJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/respondToRematch.ts#L135-L166",
+          "version": "repo-lines-v1:sha256:f15b3145bdfd2d5e44224fd3edfe42f33900fa1e3bd00824cdd6c5614188c8e5:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1NzlkYjlhODE3OWQ1Nzc2MzA1NDFmMDEyYWMyOGUyNGNiNjY3NzMyM2U1ZjA1Y2Q2MjQ1ZmMwZjE1NjJkZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1NzlkYjlhODE3OWQ1Nzc2MzA1NDFmMDEyYWMyOGUyNGNiNjY3NzMyM2U1ZjA1Y2Q2MjQ1ZmMwZjE1NjJkZDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3NGQxMmYzZDAxMTM5N2Q4M2M4ZmExYzVhMmY0Zjg0OTYwNDcxMzIyNDdiOTJiM2Y1NzRkNGE3NmQ5MWEwMjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhZTljMWI0Y2JkMWMwNzE2YTU0ZWQ1NzY2ZWRiMmY4ODhmMzY5ZjEwZWUxM2YzMjM3ODQ0N2I5ZTI0NzFiOWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1c3a68d002264213aa617d691b90af03",
+      "statement": "scripts/supabase/log-export.ts is a tsx CLI that, given a matchId, uses a service-role Supabase client to select match_id/event_type/payload/created_at from match_logs filtered by that match and ordered by created_at ascending, printing a pretty JSON {matchId, events}; it exits with status 1 on a missing argument or query error.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/supabase/log-export.ts#L1-L36",
+          "version": "repo-lines-v1:sha256:6456769614bcd259e5de82c95af9916aa37a1101de7445a50a0090d01f708df5:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0NTdjMWIzZmMxOTg5NWI4ODI5NjY3ZmQ0NzEyM2VlN2E4MDkzMDQ3NDdiNzI0MGFkZWY1Njg2NTcwNmRkMWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmMTIxZDQ3Yjk5Yzg4ZTdmMjkzYzhiNDAwMDRkZDUyODVhNmY4ZDYzZjk1YWExMTQ3NWJmYjc0ZjExYWYxZWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_aeeac8c1c1c24c258766c7e9980b55bd",
+      "statement": "createPerfTimer returns a PerfTimer whose terminal success/failure methods auto-start the timer, select a monotonic clock (performance.now() when available, else Date.now()), compute a non-negative rounded durationMs, and emit a single JSON line with status success via console.log or status error plus flattened error/stack via console.error; createPlaytestPerfTimer pre-tags metadata with playtest:true.",
+      "evidence": [
+        {
+          "resource": "repo://lib/observability/perf.ts#L21-L116",
+          "version": "repo-lines-v1:sha256:be65344c33e48bdbb2d468bec60fad1bf19072119dc52fe1de7743b3acc2b865:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3M2JhNTc5ZWZjNTk2OWIxYTZhMDM2YmFhMmNiYWZjZWE5MDFmNmUxNjZhNWIxNDNkOTg0ZDM3Mzc0ZjQ5MjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5NGZjMGMxNzNkMWVjM2ZjNTAxZDdkZmE5Mjg1NTAxYzUyN2NmYjQ3MTI1ODNkYTNjYzM2MTgwNTY2YjRiZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1YTExZGE0NGM4MDI0ODZiYzZmNjU2NDBhYTQ4YTczMGYwZjY4NGM1YzA3YTQyYmEzY2QxNzM1ZWIzZmIwNzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_23e70c28591a4cdd9c95d2d2cccbd8d8",
+      "statement": "Latency budgets are enforced externally by Artillery scenarios under tests/perf/ that declare ensure expectations (move submission median<200 and p95<200, round-resolution broadcast p95<400 for PERF-002), separate from perf.ts's in-process durationMs stamping.",
+      "evidence": [
+        {
+          "resource": "repo://tests/perf/instant-scoring.yml#L14-L24",
+          "version": "repo-lines-v1:sha256:2f1c1dd7c9b7e2b2e41f979043f722e0e06e9cd1483556402a0589752874d262:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0ZjMyM2JjOWQ5N2E2YmI0NWU2ZDU2YmFlN2U5NTA0ZmRjZGU0NTc1MGM5N2Y4NzhhOTIyMzUwM2JiYzUwY2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzYTlhYTRlNDQxYTFmZTMxYTQ3ZDA2ZTgwNDVjN2NjYWNjNTFlMjJmMTMwNDI3YmNlYmY2MTllYzcxZjNlZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2MGI1OGNhNTY2Yjc4MDhhNDE3YmE1OTc0MWJkMmIwODQzNWM1ZWYzZmFlZWU0ZTE2Y2RkMThlODQ0NTE2NGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMzZTJmOTZiNWIxOTdkOTU5MTliNDEzMzY0ZDNmN2QxNDA5NGQ2ZDU3NjE0OGFkMWM4M2NlMTQxNDVhYjg0NjMifQ"
+        },
+        {
+          "resource": "repo://tests/perf/round-resolution.yml#L14-L27",
+          "version": "repo-lines-v1:sha256:e82c910d2d0a9289e5f821f13269a6f4ce701a322fb6f72d454f0fc8d1ff0aef:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0ZjMyM2JjOWQ5N2E2YmI0NWU2ZDU2YmFlN2U5NTA0ZmRjZGU0NTc1MGM5N2Y4NzhhOTIyMzUwM2JiYzUwY2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3Nzg5NDE5MjA1OTYyMzY2NWFjNjI1ZDEzYTgxY2RkNjA4OGJlODlmY2RiYjFiNzYxMzBkMzEwYjc0ZTFjZWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2MGI1OGNhNTY2Yjc4MDhhNDE3YmE1OTc0MWJkMmIwODQzNWM1ZWYzZmFlZWU0ZTE2Y2RkMThlODQ0NTE2NGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMWIyZTAwYjZlMTFiN2VmMDMxYzRkYTVmMzlmZmZiZDJjMDE5NzNhNTE2OTk3ZTAwMGIyYjZhODA2YjI3OGMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_39419af5b4fc4bf38561dd316c9b83a5",
+      "statement": "scripts/perf/assert-artillery-thresholds.ts parses an Artillery JSON report and fails the perf gate (exiting non-zero) unless the sample size clears a minimum and both median and p95 latency are within a threshold, defaulting to 200 ms via SWAP_LATENCY_THRESHOLD_MS and a minimum sample via SWAP_LATENCY_MIN_SAMPLE.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/perf/assert-artillery-thresholds.ts#L141-L193",
+          "version": "repo-lines-v1:sha256:ce3a7f601caae289f4d64dafe410666c33392c97455da41d5bd6b40128b0ecc1:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMjIwY2M5NTAyZjE5M2MzMzY3YmYxOGMxMmQxM2Y5MjMzYjA4YjMyNWQxYTYyNDE2NzIzMWZkNzA0YTQ1MDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxZTUyYjJkZjFlNmZlZDBhYjMzMmI4MjQ4MjEwODRiMDFmY2FkZmFiNzZhYjcxY2ExNGExNjFlN2Q0MGNiNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiOTY4NTI0ZGEyYWQzOWIyNzhmNmE4Yzk3ZjZkOTMwZDc0Y2JkYTI2NWI4ZTY0YWU2ZmVlMDdiMjRjOWE5YmUifQ"
+        },
+        {
+          "resource": "repo://scripts/perf/assert-artillery-thresholds.ts#L4-L5",
+          "version": "repo-lines-v1:sha256:bd8e1d2669d2ee6f2ecc6abf1015031c90e9e09f47edf84f0205dfa57ae81331:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2E5MTRkMTY2Y2YwNTU4NmJhNGIxZGNlNWI0YWY0OWNmMTFkNWU0OWJhMTY1YjM0MDdlMTk5YjIzNzZjYWFkYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzJhNDIwMDYzNmU4YmU0NDdmNDE4NThkMDA4NGNkZjE2NzRiZWYzZThkZDQ0ODk0NDlkMGI4OTllZTZmNDlhOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDE0ZjI4NzY2OTY5YjMyMmI4ODM3NzUzMDI0Y2IzNTMzZDUyYTc5ODdmZWZjN2YwMDNiMTJkYWI5MGE4ZmE3OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzRlNTQ4N2I3MzgwZDY3YjBkM2U1YzliN2Q2ZTEwMjcyYjIwNmZkYTlkZGRlYjJjNTA5MjEzNWIzYzc5YWUwYyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_7a3ed1ccc28542f9a37c963db07bad0d",
+      "statement": "instrumentation.ts exports the Next.js register() hook which runs once on server startup and, only under the Node runtime (NEXT_RUNTIME === nodejs), pre-warms the Icelandic dictionary via loadDictionary(\"is\") inside a try/catch so a load failure does not crash the server and the game fails gracefully on the first round resolution.",
+      "evidence": [
+        {
+          "resource": "repo://instrumentation.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:223653eb8db1089dc6f4651b80e885213e596a7a52b5ada9ea9582bf627354a9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8ffd818749954ad6b667e88793720fca",
+      "statement": "The instant-scoring trackers have focused unit coverage in tests/unit/observability/instantScoring.log.spec.ts that spies on console and asserts the exact emitted event names, levels, and payload fields.",
+      "evidence": [
+        {
+          "resource": "repo://tests/unit/observability/instantScoring.log.spec.ts#L1-L60",
+          "version": "repo-lines-v1:sha256:030981a2ded9f371e2c031d6316d4e5dbc0c7674c67cb317085708089df57105:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhOTFiYmE1ZTg0NTc1OGMyYjdjMDAxMjU4MzU2ZTA4YTg4MzYwMDNlMGY1MjM0NWVlOTEwZjMzNTFjY2FlMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1NzI1YTUxZjg2N2UyY2EzZGY5ZjY3MDI5ZGEzNmNkZWE0N2ZiMDQ2ZTRiMGMxYjY4NmQwN2Y5ZDAyMjkxMWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5NTUxOTlmZDAxMWNjOTkwNDM4MjM5ODA0NzdiYjJlMGMwZTMwNjM0YjdmNWM5NzU0MzliZjg1YTVjMjZmNjEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

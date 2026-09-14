@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:afb5360f7aaadcc036a2dce29ee1281a934826bd14bd4ed84868ffdfd10824a3",
+  "claims": [
+    {
+      "id": "claim_7823b5129a504049927429a5b01eab77",
+      "statement": "The Next.js client renders server-authoritative match state and never computes game outcomes (scores, round summaries, completion) itself; MatchClient is seeded with an initialState MatchState and replaces its matchState only from server snapshots delivered via Realtime or the REST poller.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L213-L230",
+          "version": "repo-lines-v1:sha256:dc2d1e898e30a2234adf2f26c71beda69a8a1c88f2a99d0eca1108431433a7b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlOGI1MDA4YmJjNGU1MmI4OTZhZjMzZmI5NmI4Y2JjODFlMjU1M2QwMTZkYWNlMTk2NWRhZTIyZDk5NWNmMDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkYzUyZjA4YjM5YjA4YjAxYzhkMzA4YmY4ODBiMGJlZjAyZmQxZGZjYzlkOWFhOTNhNGQxYjVmNGQ1OGI2Y2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4MDE4ODRlYzMyY2M1NzZhNjU0OGI0ZWI0NmY0YzUxYWFhY2NmYzNiYTU3N2Y5YTU3OTM5MzkzNmJkMzUxZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwYzA0NTc3NTYzOTdjNTllOWYzMjFmMDJiNWQzYzQ2YzNmZGQ2YmYwYTk0MzcwMGVkZTk5MmIzMzExOTEzN2QifQ"
+        },
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L90-L98",
+          "version": "repo-lines-v1:sha256:88f21b0d21b24625fe10425da61d4762a9a7461e9692fa663d22bbb0428e4826:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2I0ZmNhNDQ1MDE4OGUwYWJhYjE1NjVjYzg2NzYxMDA5NWZiYWM2NmE2MGE4ZDIxZjlmYzg3YjNmYjQzYjJkOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBlYTZkZTQzMjA5ZDIwMjMyMzlhMzcyOTY1MDZiYjNlMzFhNWM2MWI1NDI3NjM5Y2E5NDZkOTAyMTI3YjRmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmI1ODBlOTY0ZjgzYTQ3M2Y0M2Q0NDM4NDYyOTQ5ZDY4YjU2MDBmZGE3ODdmMTYzNzQ1ZDAwZGU4OWNiZjM2YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWIzM2I2OGY1NzFiMDM1OWIxZGMwZTkxY2VkNDE1MTM2MzUyOTYxNjYyZThmMmJmMDk0MTA4MDliNWJmZjMxMCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_861185a12f0b4c3da67e8a7a03e2a600",
+      "statement": "MatchClient runs three overlapping transports: a primary Supabase Realtime subscription to match:${matchId}, a REST polling fallback of /api/match/{matchId}/state used only when Realtime is confirmed down, and an always-on slow safety-net poller that applies a snapshot only when shouldApplySafetySnapshot detects the client is behind.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L433-L491",
+          "version": "repo-lines-v1:sha256:634a2bd2c4444bb43633f91a9394dbf84639ef97e5e66d4f5ed2004fc3b6b7ed:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1ZmY3YTFkZTQzOGVlMWI2NjcwNjhkY2FmOWQwNmI2NDcyODJmZmVhNTVlZDhhZDRjMDcwYmYzMmFjZTJkNWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5NDVhYjJkMTVkZTc0MmVmOWY1NjE2NjRkMzU4YjJmZmY2Y2NjN2I0OTdkZDcwNWQxYjA1MzAyMmRmMTRkY2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxZTk0YjczZWIwMWMyOTg2ZDczNDI3ODZkN2JiZDU1OTY3OGE2M2Q5MDU0MmRiNGQwZDNhNjA4NGQyZDAyZTQifQ"
+        },
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L551-L610",
+          "version": "repo-lines-v1:sha256:5694cd0d8b82571654ceab44e45b95e0f2196bcbe411adc2c6a80f8bf14152ef:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlZDM3NDE4ZjkxY2I0MDgwOTJiMGY0NTE3N2E3ZGU0MmM2Zjg5MDMwZDUzMGZlNDNjZTU4ZDgyOGM0ZTQ2OTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjMzlmMGJhMTUwZDM4MzNjZjYxMWFhNGFiYmFhNTE2OWU0NTJlMTBjYWQwNjBlMDdlYjg5NjVjYzQ0NzQ4NWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxNjFmMTlkMTM2NjhjMTNiZThiZjQ5OWE1OTM3OGU2ZDhiM2Q5NWQ0YzVhZWUyZTY2NzAwNjAwN2E2MGYwNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlMmY0ODlkODMwZGU4ZmUzNjRiYmJiZTJiNGNkZmM3NmY1YWJlZWY2YTkzNmNlMjZiYTA4OWJjMmI3MDllOGMifQ"
+        },
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L60-L63",
+          "version": "repo-lines-v1:sha256:fe447471041daa208d624bb6a446659e5ce049204df5ce8b269f8cd4cb92986a:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDA1MTUzYjc2ZGVlMDBlNTgyYmU2ZmYzNDNmOTAyYTI0YWRmNTJhOTU0NzcwMTU5MDZmMTdiMGI4ZmVmZTU0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTRlYzIwNDg1YzIyNzA3ZmJjOTY0NzNlYzRjMWE3NDJkNTBjZWJjY2E0MzZkM2I2MTMxMTFhMTkwN2UxY2FhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTExOTYxMTkzN2RhZDRmMmNkNDc1ZmYwY2FkNWEzYzU0YjFjMWUyOGRjMTkwNzE0NTY2MjIzMDRkOWJlYTVhYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjdjNDU2ZWU4MDMzZjFjOTA1NTMwYzYxZTA5ZTI2ZDU3YTBmYmYyNTJmNTk0ZWQwN2FiOWYyNjYzOGY4MjU5MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ad8d7e99a812485db2a7d837490cfe90",
+      "statement": "subscribeToMatchChannel wires MatchClient to Realtime broadcast events state (onState) and round-summary (onSummary), presence-based onOpponentLeave, and onError; a channel error or CLOSED status flips MatchClient into the polling fallback.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L440-L512",
+          "version": "repo-lines-v1:sha256:445e822ca7e019b36f292ba0cc0468f5ce2ec6abe896987b9d46e64686390e3a:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjOGRkNzMzYzVkOTAxMmViNjk3M2EwZTIwYTRiODFiYTUyN2Y3OWMwOWFhYWJjMWEwMjAzMThiNjMyNzA0Y2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1ZjM4MmIzNzFjNmEwYjY3Nzc2MWE5NDk2MmM5ZTdiNzcwODM0NmZmZDBkMzY3MzM4ZTdmYTc5MDJlNTMwN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhMmI3MDBkYzMwZDM1NTA0NDZmMWI0NzdiYTA0YmU5Zjc4ODBkOTFlOWRkYTY5NjQ1MDM4ZTg3ODRlMTc0NmYifQ"
+        },
+        {
+          "resource": "repo://lib/realtime/matchChannel.ts#L40-L60",
+          "version": "repo-lines-v1:sha256:e00d9cbe33ba42d8618cce8a6c9077392793dfef0a828f83fc28dd78a8754f5d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZWNmYjBmMDAwZjFiNzJhNGIwOGI3M2E3ZWZkZDc5YTU5YzMzMmU2ODQ1MzBmODJmMTIwM2U4NjdhYzQ5NTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhNGMxNTJkYzQ0NTgxMmIyZmUxNzU4OWYwYzJkYjY0ZDE0ZjljYTZkZDcxNTMxYTUxMzlmMWJmMzc2MjkyMWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjMDVkN2UzMzM4NWI5NThiMGY5NDc1YWQxNDNhNzBjZTM3ZjkwM2FmNDIzZTI3ZTg4OGMxMjg2ZDlkYzhhNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwOTE3NzMyNTUxMDFmZWQ2MjMzMjI1ZTI1M2I1MDhhZTg0NThlNmYwYmJhNTY2ZDI2NTdhOGZhYzE5MjY5ODIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f765b7e88e0a4dc6ae54054963cc968d",
+      "statement": "applySnapshot preserves previously-seen non-zero scores when a server snapshot reports zero totals, and preserves the prior lastSummary when a snapshot omits it, to keep the displayed scoreboard monotonic across snapshot races.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L213-L230",
+          "version": "repo-lines-v1:sha256:dc2d1e898e30a2234adf2f26c71beda69a8a1c88f2a99d0eca1108431433a7b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlOGI1MDA4YmJjNGU1MmI4OTZhZjMzZmI5NmI4Y2JjODFlMjU1M2QwMTZkYWNlMTk2NWRhZTIyZDk5NWNmMDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkYzUyZjA4YjM5YjA4YjAxYzhkMzA4YmY4ODBiMGJlZjAyZmQxZGZjYzlkOWFhOTNhNGQxYjVmNGQ1OGI2Y2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4MDE4ODRlYzMyY2M1NzZhNjU0OGI0ZWI0NmY0YzUxYWFhY2NmYzNiYTU3N2Y5YTU3OTM5MzkzNmJkMzUxZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwYzA0NTc3NTYzOTdjNTllOWYzMjFmMDJiNWQzYzQ2YzNmZGQ2YmYwYTk0MzcwMGVkZTk5MmIzMzExOTEzN2QifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0b40dc68ffdc4a46aeba6586f906c4bf",
+      "statement": "The round-recap animation is driven off matchState.lastSummary as the single source of truth and deduped by ${matchId}-${roundNumber}, so it fires reliably regardless of whether the state or round-summary broadcast arrives first.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L275-L394",
+          "version": "repo-lines-v1:sha256:a478e4b29afe5f23c602ea4210b9b9ce7827978b8e8078e947cdbdacdfc31d61:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5OTM4ZjFiYWJmMzViZjQ2YmFjZTdlZDBmMDdlMGZjYzA4YTE3OGQ0ZjhhNmE5NTg2MzE5OTBhYzQyMzRjZjU2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxMWE4ZTUxNzFlNGI3MDU1MDRhZWUyY2Q5YjJhYTg2NjljNjBjMzZkMWU1ZDE4YmFhMDA0ZWFjNDgzZjI2N2VjIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzZjViMzk5MmZmMzU2YjhmZjAzM2M4YzU3MTcyZmNjYjdiMDgxMTRkYjJlZTk3YjJkMDdlNmYyNWUwNjA5MGEwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwOTNhZGMwNDI4ZmQ5MDk2ZDFmYmRiZDRkNzMyOGFiMWU3MGZkZjVjZmIzMDU2YmJhMmVhZTFjYTA0ODkyZGU4In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_32244fd2cb3c43ffa2cfc9a6ddc4db20",
+      "statement": "The HUD clock is a local visual tick over authoritative timer data: MatchClient reads remainingMs/status from matchState.timers, resets a local reference when new timer data arrives, and decrements only the displayed seconds locally between server updates.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L612-L646",
+          "version": "repo-lines-v1:sha256:50ce3cea9a16cc085a3224cc36d9d29c55c5f8ca60039c743381930ea602e5a1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlMzhjYTE5MjMwMGIxMjkxNzZlZDllM2QyNDQxZmE1NGMyZGZmZjg2MDJmMjhiMTA4MTU3ZDNjZDNmODkyMTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxODAxZWE5ZWUzZmJjYWQyYTU4YTMzNDEyMGNlYWZmYTU2YmM4MmRlN2ZlNjJhMDQ0ZmQwYjYzYWRiMDJjMzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlmMWUyMjFkNDI4Mjc0MWYzNDg4ODMxYmM1YTY1NWM4NzgxMzI2MGE5MmU2OTg2NjY1NDhhYTA4MzExMjllOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwOTVkODJjYzRjMjI0M2E0M2JjYzk4Yzc4ZGNkYmEyZWRlZjBiMTMyODk5M2ZjMmMwNzE0ZThjM2YzNjRhN2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_98f040dc3891494e96f98bfbd7a14c60",
+      "statement": "Tile swaps are submitted by BoardGrid via POST /api/match/{matchId}/move (submitSwapRequest), which returns the authoritative move result and board; the client never scores swaps locally.",
+      "evidence": [
+        {
+          "resource": "repo://components/game/BoardGrid.tsx#L115-L145",
+          "version": "repo-lines-v1:sha256:133d916e9c86f80accf0e919ee8ea234e22f0d3b89b85057229f2d91c60a27b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExZmUyMzJkOTFhM2JmZTc1ZjkxYzY4OTJlY2Y4NWVjZDc5Nzc4Mjk4YjgyMGMzMDIwYmY1MzY5MjcxMmRkZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmOWRmODQ0MTgxZTcyMWM4Y2M2Y2ZkZjcyNDA0OTI4NjA2MTVlZjJmOTEyM2EzYTU4NWQ1NzMyZDUyMWRkMzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1NzIzYmY5NDk3NWY2NDdmZWM5MzQ1ZDQ5NDFlNGRkY2E0OTRhYjAzNzEzNDc4NTBiNWI2MTVhOTAzMzJkYmEifQ"
+        },
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L1186-L1186",
+          "version": "repo-lines-v1:sha256:cf776da9c2851bdb51a70f1d94a3dd8db90b5b438486255ad6afabca18c843d6:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2Y3NzZkYTljMjg1MWJkYjUxYTcwZjFkOTRhM2RkOGRiOTBiNWI0Mzg0ODYyNTVhZDZhZmFiY2ExOGM4NDNkNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2Y3NzZkYTljMjg1MWJkYjUxYTcwZjFkOTRhM2RkOGRiOTBiNWI0Mzg0ODYyNTVhZDZhZmFiY2ExOGM4NDNkNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGMwZjZmYTc1ZjIxYTlmZjMzY2I0ZDI3NDU3OGRkNDg3ODI1Nzc5MzJlOWZkMGQ4NGI1MjAzNzc5Mzc0ZjMyZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGQ5NjM0Y2M0ZDVmNWMwNjc4ODZhMTNjMjVjZDZlMDUwMDRiOTYwNmJjZTFiZDc3MmYyZmQ0M2M5ODMwMTMxOSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ae183d0c5e0c4baa8b5bba372244af4d",
+      "statement": "The derive* helpers (deriveScoreDelta, deriveRoundHistory, deriveClockUrgency, deriveHighlightPlayerColors, deriveCallouts, and related lib/match reveal helpers) are presentation-only pure transforms that reshape authoritative summary data for display and contain no game rules.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/deriveClockUrgency.ts#L1-L46",
+          "version": "repo-lines-v1:sha256:55ae57d28b907f5b126eb97ad9a1f5b5cc27794183ce7bc164a2d991d640d2dd:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://components/match/deriveRoundHistory.ts#L33-L60",
+          "version": "repo-lines-v1:sha256:b5d95fcc8be313eed93b451b08f95b9dff945b1bda041d507c12fa9178afedea:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4Yjc3MzE4YjdhMDg4M2ZjNzRhMzY5MzkxYmY0NmViNWUzMjgxYjAzZmNiMWFmNjhhZjMxN2IyYjE5Mzg5MTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0MGVkYmQ0ZDc3ZTY1NzVkNDZiYTQzZGM1MjUyNWIwYTExZDY0NDY1MGE1MTY5N2I3NWFjMTM2YzQ1NGY4OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyMDQwZTA5NWE5NGUyYWRhNzRlNDIxZjM3MTg3NTFhOTFhODEwYmZkNjZmNDhmNGU5MzljN2I3NDgwZWI2NzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlNzBmMDk1NDY1ZGY5MGE2YmI5NmIxZTM1ZmEwNWE5MTNhZDNhYmM0ZjIxNDM3MzI0YTlmMDc3OTQ3Njc5MjEifQ"
+        },
+        {
+          "resource": "repo://components/match/deriveScoreDelta.ts#L1-L19",
+          "version": "repo-lines-v1:sha256:88cf1926015a69430527ff6707c8ae41bb23b144818cd41e4a94824ab9614a84:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmZTdjNWFjMDc2YmI4YTYyMjc4MGIwODU4YjZhYzAxNTU2MzFkN2U5M2RjZjNhNjJlZDZkOWQ5MTljYjVkOTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_764caacf8fd74021a3b9d259fceed56d",
+      "statement": "useSelfColorStore is a Zustand store that holds the viewer's match slot color while a match is active; MatchClient and FinalSummary publish it on mount and clear it on unmount so the root-layout TopBar avatar (which sits above match routes and cannot read match state) stays color-consistent, falling back to the identity gradient when null.",
+      "evidence": [
+        {
+          "resource": "repo://app/layout.tsx#L37-L47",
+          "version": "repo-lines-v1:sha256:36cc895902a92daafd06216ab9555c75aca2a665fd92174b3e5d6aa31e463adf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3MjE2ZThlOWMwYTFhNjhkMDZjMmZiYWE1ZmQyMTM5NDgyYjhlZmQwYTE5MzE1YjkxNWU2Y2NlODQ5ZDg5ZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1ZGQzNjdlMDAzNjE4ZGM2ZTdlYzJiZjE5MTQ2ZTM5YjdhYTY4MjQ2MTA5ZTNiNzhjZmNlYWYwZjQzYWYxYzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5MWYzZTI2ODAzNDQyMzEwZGQ0ZjVmNTFmYjM0ODNjZDVmNzcwNWFhZjRjYWZhMDNhY2Q0NDEzZDBkYTgyM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiOGI2MDBhNWI0NDhiMWU0ZDAyZGYwOTc0NmVkM2NhMzE3MmY3NWM0YWFiYjAxZGRlMDgwZTM2Y2FiMDc0YjQifQ"
+        },
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L795-L799",
+          "version": "repo-lines-v1:sha256:09dda374259e73e83cf90fff4695b573e9cea75fc2b63f3849ad452feacbac9d:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNmM5MGVlM2Q4ODU1NmUzZDI2NGMzMDBkN2EwZGU2MzhiZDI2NzQ3MWI0MWQ4NDUyMGMxYTVmMTlhOTkzY2RjOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDRkYjcwMWQ5MjQ3YzMxNjUzMmM0YzdhMWU0OTljMGIxOWQ4MjYwNmJhNTJhMzYwMjg4NDA2NGI5ZjcxZjRhYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDg4MzkyZDU5OWVlYjE2M2E0MTRkYmEwOTA2ZTE3OGIzZmRhM2IxODdmMTJmNDQ3OTQ3MDEzZWU3M2FkY2U1ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmFjM2YyNTg5YmE2MWIyNTM0NDk5NzFiZGVjMGI2YjcwZjgxZDkxZTY5MjE2ZDRmNTI5M2UxYTBhOGViNThjMCJ9"
+        },
+        {
+          "resource": "repo://lib/match/selfColorStore.ts#L1-L23",
+          "version": "repo-lines-v1:sha256:6b8778d38cac7a6dd37e7a0bdb8b0cc24bf4e4a26b19f7b6900703487b52980f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxOGFkZmRiYzlmOTQ2NGYxM2ExYmZjZWI2MGZlYjBhMmM2NzNjNzY2NzQzMGQ2NzI2ZDk0ZTU3ZjdkZTMwNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjViNzQxZDJjMDhlNmY1MTBiN2U5YTI2NGYzNzhmOWNlMDA0OWE1MDRlMGU3ZWY1ZDY3Y2QzZWE4MTNmODU0NzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2c11d105553640c192a24f04b11b1086",
+      "statement": "useTimerStore is a Zustand store modeling per-slot timer state and pause flags, but it is not the path that drives the live HUD clock; it is referenced only by its own unit test while MatchClient renders the clock from matchState.timers.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L612-L646",
+          "version": "repo-lines-v1:sha256:50ce3cea9a16cc085a3224cc36d9d29c55c5f8ca60039c743381930ea602e5a1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlMzhjYTE5MjMwMGIxMjkxNzZlZDllM2QyNDQxZmE1NGMyZGZmZjg2MDJmMjhiMTA4MTU3ZDNjZDNmODkyMTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxODAxZWE5ZWUzZmJjYWQyYTU4YTMzNDEyMGNlYWZmYTU2YmM4MmRlN2ZlNjJhMDQ0ZmQwYjYzYWRiMDJjMzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlmMWUyMjFkNDI4Mjc0MWYzNDg4ODMxYmM1YTY1NWM4NzgxMzI2MGE5MmU2OTg2NjY1NDhhYTA4MzExMjllOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwOTVkODJjYzRjMjI0M2E0M2JjYzk4Yzc4ZGNkYmEyZWRlZjBiMTMyODk5M2ZjMmMwNzE0ZThjM2YzNjRhN2EifQ"
+        },
+        {
+          "resource": "repo://lib/match/timerStore.ts#L21-L100",
+          "version": "repo-lines-v1:sha256:573cd75838b73f6104cdb7da44d877e2107e0cbd838c90bba1a679c4dd4aeaef:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiZjQyMmExNzJkNmNlZmQ1NGQ2M2FhMDViYzg2ZDI0YTkyZDRlMzczNmQxNDM4NTVjZDY3Y2NhMjkyYTdmOTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1Y2M2YmQwNjNhODI2YmFmZGQ5YTZhZmMwY2YwOTlhNzE4NjI3OGE3MmFlOTYxNTU2Nzg1MmUxZDk1NDRjOGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzMTJmMDUyMTY3Y2IxMjg4YzYwMGFiNTQxOGU0Yzk5NmUyNWUzYmMwNThjOTkwNjIxZTE5OGIxZThmMGQxOWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0bc8334569fd47b8a37ef46c2d79825a",
+      "statement": "Sensory preferences (soundEnabled, hapticsEnabled) are persisted to localStorage by useSensoryPreferences under a fixed key seeded from SENSORY_PREFERENCES_DEFAULT, and are toggled through the GearMenu/SettingsPanel switch UI.",
+      "evidence": [
+        {
+          "resource": "repo://components/ui/SettingsPanel.tsx#L45-L70",
+          "version": "repo-lines-v1:sha256:616f70920ebce0cf53bad7b2a585d368095e4203ba2e813fa8d8dc330bd02c35:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwYzdhNmE0M2U2MmFlZTBlNWVjNDRmYzYxZWI0MmQwODQ2ZWY5NTE3MzJkN2Y3NWM1YTdhNzEwM2I0YzNiYTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzZGEwOTkxZTA3MzRhYTk2MDM4NmI4NDkwMzc1YjBmYmZjYWFhZGNmZGNjMWI3ZTNiOTU1YTVjNjNjZWNhZmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5NGZjMGMxNzNkMWVjM2ZjNTAxZDdkZmE5Mjg1NTAxYzUyN2NmYjQ3MTI1ODNkYTNjYzM2MTgwNTY2YjRiZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhOWExZDdlZmJiNmUzMzRiN2IxYjI3MTYzMTY5YTBhM2Y2MzA3ZWI4ZWY5ZTMxOTViZWI1NzMzMmRkOTA2OTAifQ"
+        },
+        {
+          "resource": "repo://lib/preferences/useSensoryPreferences.ts#L10-L52",
+          "version": "repo-lines-v1:sha256:f0dab5d9ff1fc97f500424b4a9f793bbaac7ddc1d53e521f425ec5fe48474bd6:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwN2MzMDQ0MGNhN2Q4OWVhZjkwNzEwYjdhODVkMTc2YTNjMjczYWI2MDdiYmUzMDg3OGM0NTkzNGMxNGYxZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiNTIwMTUxOGRjY2ExMDgwNTViYTI1YTU4MTE3ZDQ5N2Q1MDY5MzllNWNiYTAwYzlhZTI1Njc4MzNkZDAzM2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_480a99c486b44aa1bc14ca68bb068037",
+      "statement": "Sound effects are synthesized with the Web Audio API in useSoundEffects (lazily creating and closing an AudioContext) and haptics use navigator.vibrate with fixed patterns in useHapticFeedback; both no-op when their preference is disabled or the API is unavailable.",
+      "evidence": [
+        {
+          "resource": "repo://lib/audio/useSoundEffects.ts#L86-L100",
+          "version": "repo-lines-v1:sha256:cab1529c56674a4e70a9f466a4482e94464db1fb0d464242fb3777370c54c83a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMzVkOTMzMWVjMzIxOTk4OWQ5MmMzZjE5ZWEwMWI3NjE1MzhkZGU5NTg2ZWFkZGMyNDg1ZjNmZmM5NDI1MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkOWUxMjU0NjQyNTU3NmQzZGVhZThjOWI5ZGJmMTI4ZDVkNmRkYWY1ZDdmZTg1NzkzNDkyN2RlZmZhM2I5ZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwYzJjZmM1YzBjY2IxNmJjOGZlMDdjYWU0YTZhZjJhNWNmMDJlYzhiNzc5MGZlZTgzNGZkZDlkZTE1NmFlODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjMmNkYTIwNzUxY2U4NjMxNTljNmYwNmEzZDQ1NTlkZjY1NGM2Mjk5MjkzODc2NzQzM2JjMDdiM2JiYTc2MDEifQ"
+        },
+        {
+          "resource": "repo://lib/haptics/useHapticFeedback.ts#L11-L45",
+          "version": "repo-lines-v1:sha256:875f5398a024c4655de75fdc3b9d64d896394fa3ea961126e7ab42f0d2086013:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlM2JmYjYzNzNkMzZkZmJmOTNmOWZmNjJmMWNmNDdkMWRhMDc2OWNhMzdkMGEzOGFlM2Q3MjQ1NjdjNWFkZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4MTE5YWY1MmRhMjc2ODlhNWUyYzJkMjgzMDM3NjQ4MGE3OGNhNmZkMjRhMWIwMzljOTEwZWYzZDE3ZDJkNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmYzY0Nzk5OGU4MDlhOTU3ZTE1YzRjYTlkMzMyNzc0YWYwODQ2ODU4ZmQxMGVjZjMzZDQ5ZDZhMmYzZmJjZDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2ffc36b3412e4c96a5b87fe7457bef31",
+      "statement": "MatchClient honors prefers-reduced-motion (read via matchMedia) by skipping the recap highlight animation while still applying the static scored-tile mark, keeping the match playable without motion.",
+      "evidence": [
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L196-L200",
+          "version": "repo-lines-v1:sha256:853246508ed50b8ce6f604ae3dcf032d487ed7a4c5f30fa05876ed7139c97b9e:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGViMjdjZTEzYTIwMzllNWQ1YzM2Y2JiOGUyOGE0YWIzNzg5NjBjMGVjODhkZDBlMGRiN2JkZWM0ZmExNDdkMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTVlZjAxYmMwOGRiYzNiNjNlNGU3NWVhM2QyNmE1Yjk0MTg5MTg3N2UyN2FkODkxMzI5Yzg0MTFkN2Q4ZGM0ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWE2YTEzOTYwNjc5MjJjZDk1NTZhY2Y3OWQxOWIwNTFhZWY5Y2FjMmI4NjZlMmU0OTA3NWVkZGVlNWJlMjA4NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzA1OTRlNzVjMmY0NDc1NDFkMzlmOGM5YjAxOGUzYTU0MTk4NTNkMDQ4YmRmNTIxOWYxZjdlYmZkMjE3ZjU2OSJ9"
+        },
+        {
+          "resource": "repo://components/match/MatchClient.tsx#L338-L346",
+          "version": "repo-lines-v1:sha256:7e2ada91a065cccda7fbafd610187bbef06e4305c1410e856443d81b9c613ee8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDBmZDc4NGRiOWU0YjViMWQzODIzMGFhY2ExZjA2OWYxZGYzZTkxYjA2OWZlYjc3NjMxNmI3MTExOTZkY2ZmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWQyYjJiMTY5NTdiZmFjODJjMTNjNjhiNTMwYWNkMWJjMjZkZmU1ZjI3NzkyYzc1NWQ2NTRkNTJhYjc5MmM2ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzY5NGVjYjNmNWM0ZTVjZmZlYTljYjkwNGZmYTJmNjhhNDdjOTI0MzBkYzAyYjUyYzFiZjc5ZDgzNmFkNTgxZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_b8e0eb1723a74f8087cdfaeec2109114",
+      "statement": "Move results are announced to assistive technology through MoveFeedback's aria-live region (polite for success, assertive for errors) paired with a role=status/role=alert toast, and lib/a11y provides useFocusTrap and rovingFocus helpers for dialogs and grid navigation.",
+      "evidence": [
+        {
+          "resource": "repo://components/game/MoveFeedback.tsx#L85-L104",
+          "version": "repo-lines-v1:sha256:0614774df00f98024ae92cdb14f876de266b322a963787a8935a50a97210b790:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3MjE2ZThlOWMwYTFhNjhkMDZjMmZiYWE1ZmQyMTM5NDgyYjhlZmQwYTE5MzE1YjkxNWU2Y2NlODQ5ZDg5ZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MjhjYTcyNTVhMjBkODU0MGYwMGI4NGU3ZTVkMzEyOGJhNjIzYzRhNTFiZmVhMGQxODEwMmFiZTEyYzM1N2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzYzI1NTE0N2NlOTkzNGMzMDE4ZTk5MWZjZjIzZjE1ODQ3N2RlYmFiOWU0YjllYzZjZmY1OGUwODdhNzU2OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5NzQxZTNkYTQ0ZTk1MjY1MWJjMDZlNDZlNDAxMjFlYzY2ZTY2MGExMGRiYjgwM2UyNGJlOGMzMWU3Zjc5M2UifQ"
+        },
+        {
+          "resource": "repo://lib/a11y/rovingFocus.ts",
+          "version": "repo-file-v1:sha256:c87ffa41e6d3aae704775c8789fab051c6b69738363b7bc8d6e28a008bc6699a"
+        },
+        {
+          "resource": "repo://lib/a11y/useFocusTrap.ts",
+          "version": "repo-file-v1:sha256:d41e5a6498817e1e00dc27415be5f7512dbe90d256480c21ec492ef5444e68f3"
+        }
+      ]
+    },
+    {
+      "id": "claim_09a480a03f70453caa990ee9aefec86e",
+      "statement": "The Warm Editorial visual system is defined in tailwind.config.ts as an OKLCH paper/ink palette with ochre and per-player p1/p2 families, semantic surface/text/accent aliases, Fraunces and JetBrains Mono fonts, and named swap/shake/highlight transition durations; lib/ui/tokens.ts mirrors the brand scales as raw hex only for TS contexts that need literal values.",
+      "evidence": [
+        {
+          "resource": "repo://app/layout.tsx#L10-L24",
+          "version": "repo-lines-v1:sha256:67bd5ab41fa67cf4da7ab68a40a5aad3b63239e183bb2eabb7febb4a506054ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0NjNkYzBmN2RlNTExNjQ3ZDBkNmUxODRjOTMwOTc5MTE0ZTQ2Mjg3YjBjODFjMjkwN2I4OGEwMDMxMTQ4OGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExZmMyOTNlZmU1ZGUxMzBmNGJkYTAwYzhlMTI5YmUyNjBhMDQ0ODY2MzJkYWI4MWIyYTFiOTk3ODA0Mjg4YTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxM2JjNmI0YzYxZDMyMzJkNzc3NTVjMzVlZjU3NzRlOGE0YWNhOGY1MGM2Njc3MzJjZGJmZTM3Y2U2MTc5MjEifQ"
+        },
+        {
+          "resource": "repo://lib/ui/tokens.ts#L1-L43",
+          "version": "repo-lines-v1:sha256:2803b18db34edd3424d01c5a06c16a3062df3a2ad5d72f445c7f0d54af1cecd5:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3NGVlOGE4ZDFhYTg0NTM5MWJjNjc5ZWI3MGNlN2Y0NmEzY2Q2ZmIyZDE2ZmNjYTY3ZmExNzhmNGY4YzFlMGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlmYTk4YjA2NjA5N2M2NjM1MTZiZDRiMTQzZmYxYTdlOThiMzZiNDc3NDMyZGE4MWMwNjI1NjMyMzgwYjg4ZGUifQ"
+        },
+        {
+          "resource": "repo://tailwind.config.ts#L19-L120",
+          "version": "repo-lines-v1:sha256:92e2e5c02645ab6994c31f63d0d6698d460ee03b62a8305b1543adbef8a3caff:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmMDViYWExZTA3NzdlNzYwYWVkNzA4YTQzMTU0YzU3YzkyYmNkNGU4ODQ5YmFmODVhNzNjNjhlZjQ5MzM1YTIwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhYTFkMWE2MzM5MDIyOWM3OTgzNDdlODNhMDQwNTQ0MWM5NDAwMDM1Mjg0YWQxNjhjMWJmNmNkZjFkNzBhMzcwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxM2RkMzljMTNhZGYwMmRjMjY1MDcyOGE1MWNmYmIzZjVhZDBiM2ZkZjlkZjA0OTIwNzkxNjEyYzc2NzM1ZTM5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MiwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0YTk5Yjc0MzIwZGE0ZWE0Yzg1NDIxMTEyYTdkZTZmZTNiYjFiMzU0ZjdhYjFjZDg3YmU2ODhlMTc0OWFhMzZkIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_2f98f7cfe04444f2b3dc23a0a5f147cd",
+      "statement": "MatchmakingClient renders server-authoritative queue results: it polls the startQueue server action while searching and transitions through searching, found, and starting phases with timed holds before routing into the match.",
+      "evidence": [
+        {
+          "resource": "repo://components/matchmaking/MatchmakingClient.tsx#L21-L74",
+          "version": "repo-lines-v1:sha256:004e061cb1931ea25c91bbeabe842357945985c373d9f72a166aa764329c27e0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5MDYzZDNlODM1ODQ3Zjk1ZjI3Y2RkMTYwYWE2YjA0NDYyNmI3OGNlZmU3Y2JiNWRmMDM2MDZmMTQyOGE5MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2NzYzYWVhYTkzZWUzNjU4MGE2ODNlMWQxZWM4NmZmYjBlZjRkMjM4ZDg5ZDQ1ZGY1MjkyNDQwNjRiY2E5NjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5MGIwMTA0MGJkNmNjZmUzOGQwNTJlMmM3MmNkZWY1NDRhNWU2ZDA0ZDUzNmEzNzZkMDMxZTZmMDZhMzI5NGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1MDZhODQwMzBlZWE1MDMyNTM4NjNiNjBlYWRkNDI5ZWU5NGNiNDY2NGM2OTU1MTIzYjFlYmIxNmFlMjcxNDgifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

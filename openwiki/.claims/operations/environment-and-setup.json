@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:69b3484d8007635452cf97f61e9333aa70853b086147224777661cb6499a90c3",
+  "claims": [
+    {
+      "id": "claim_1f7db9e564424497a0dc31a19a1a18aa",
+      "statement": "`pnpm quickstart` (scripts/supabase/quickstart.sh) is the supported one-command local setup: it runs a Supabase/Docker preflight, starts the Docker stack, reads credentials from `supabase status`, writes/updates `.env.local`, then applies migrations and seeds/verifies data.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L88-L92",
+          "version": "repo-lines-v1:sha256:1de2dd8415c12cb424c58697091d26b5972f595c48cd38d9a01de873ee4d4891:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTEyMGIwNzE4ZWQwNDA2ZWYzNzY5ZWIzNGM3YTg2M2Q3M2YzOWY5YTk3YmZhZGFlMTg2NGEzN2NjZGYwODFmNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2I1NjM5ZWMzZDMwZWRkNjA4NjJjMjJjOTA5MmE2M2Q3ZTU2ZWUyMWRjZjQyOTRhOWY5ZmExOGQxZmNiMWE3MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjliMWFlN2Y1MTUyMjRlN2IwMjYyODBlNmFlYmM5ZjA4ZGIyNDUyMWNmODQzZDk5MmY1ZWU2N2FkZDVmOTQwMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzAxOGIxN2RlZmYwOTc4Y2I2ZjJhNjdkZmNmNzkxMTc2MWEwM2E0ZWIxNmIwN2NiYzZiZDY1MTgxYWI2MzkxOCJ9"
+        },
+        {
+          "resource": "repo://scripts/supabase/quickstart.sh#L113-L233",
+          "version": "repo-lines-v1:sha256:74edfface4c247d75d7d356cb3473f25cff7925ac5f8b05797155e721b77fb0e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIyZTdhMGI4OWJhNWJmZTc5Nzc5ZDVjNDE0N2JkNzI0ZWUwZmQ5NDgzY2ZjZDA2Y2NlNzI5Y2EyYmQzOGQzODRhIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4NWZiNzU5MWIxMWM0Y2VjNDJiOTRlYmU5YjI4ZmU1YzhlY2I3NDc0NGQxN2ZjMDU2NWU0NmJhZDY1ZmEyODk5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyZThlZDEyZmJjM2U1OGExYTQ4NGI1ZDFiYmZjMWMzNmM4NjEzZmQ0YjZjMDAwYjBiNzY3NWQ5OTZmYzY0MmI2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_9f73480ac8a74b64a020feee31cac505",
+      "statement": "There is no committed `.env.example`; quickstart itself materializes local configuration by writing `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_ANON_KEY` into `.env.local` (and `.env.production.local` when present) via sync_env_values.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L90-L92",
+          "version": "repo-lines-v1:sha256:416541288d72922d9d2e5825488bb1b3f99034bf880159aed7dd34992599be20:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTEzYTNiNzExZDI1ODNhM2UzZTczNTQyMDlmOGI2MTEwNzU4YjRiNWJhZjIyMmM0ODRkM2Q3YzMyZmFiMDY2NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2I1NjM5ZWMzZDMwZWRkNjA4NjJjMjJjOTA5MmE2M2Q3ZTU2ZWUyMWRjZjQyOTRhOWY5ZmExOGQxZmNiMWE3MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTVhZTk5ZWFjYTQwNmQzZDUwZTI5ZTM3M2QzMTdkNmYzNWUyMDcyZGI4NTVjNmExMzYyZGUzZmYwMmNlODJlZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzAxOGIxN2RlZmYwOTc4Y2I2ZjJhNjdkZmNmNzkxMTc2MWEwM2E0ZWIxNmIwN2NiYzZiZDY1MTgxYWI2MzkxOCJ9"
+        },
+        {
+          "resource": "repo://scripts/supabase/quickstart.sh#L199-L207",
+          "version": "repo-lines-v1:sha256:45141284e822a8f7a8993a2a2fc169ddd0ac538e8e12f02869b441a373dd482b:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTFkM2EwZDg4NDA5NWM1OTM0OGM3ODUwYTM4MzkxZDMyOTdiNzM1ZjYzMzdlMTI3Njk1ZGFkNGY1NjRhOTNlMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjNkMDA5NTY0ZTM4YjA4ODUyY2QyZTUxMWFiNWMwZTllZmNjMTRkZTkyMWY2ZTJjNjM5MmQ0MmVhYjIwZTdlMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzFjZTFhYTExNjk1ZDliNTE1NzBkYTE1ZjIzOWQ3MGQyZjVjYWQ1OGE3ODUwZDJhOGRhOWNlZDU4NjFkNDgzMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODE2OTllZTFiNWNmYTAzYTFkYWIzNDliODViNTAyNmRkM2Q5OTJhYTJmZTgyMzlmMjJjZjkzNmE5YTk4MGNhNCJ9"
+        },
+        {
+          "resource": "repo://scripts/supabase/quickstart.sh#L62-L68",
+          "version": "repo-lines-v1:sha256:fdc7c7bb913e952b54717b107a2403371dcf78cd73b11237bf1a9cefceb9107a:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODVhZGU4ZDk1MmVhN2I4ZjgyNDI4YzVlMTJlMGM4YmVlMGEwOTQ5YTExMDhjZmE0NTMyZGZkOWIyYWUzYmI3ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmEyYjNhZWY5M2ZiNjdlYjNlYmFkZTdmOWU3MDA5MzMxNzYyNTkwOGFjY2EyNGE4MzQ3MzFkY2Q1MzkzMzM0ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWFhMTU4Y2ZjZmZmN2Y2MzU1ZDRkM2M0MGFmMGY0ZDAyNzQwOTMzMmQ3MDMyYzFmN2JlODc3MzZhYzZlOWJiZCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_8167f6f242554662b40f3dbb10e4e761",
+      "statement": "quickstart's preflight (scripts/supabase/preflight.ts) hard-requires prerequisites before starting: it verifies the Docker daemon via `docker info`, the Supabase CLI via `supabase --version`, and a non-empty `SUPABASE_ACCESS_TOKEN`, throwing (aborting the run) when any check fails.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/supabase/preflight.ts#L39-L84",
+          "version": "repo-lines-v1:sha256:2945f15ea5c866d617af82bd03dff9d59a12eb5a8179685d67136158d9d9fce5:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4ODFiYWE1MmEzMDQ2NDhmZDFhN2QwMzU4ZTZiOTVhNDRhZDk4MmVhZjZiYzAzNWZhZTI2MGEzYjJhY2RiYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0ODM3YmVhMDU2MGYxMGU3NWMwYzU5NzJmMzkwMTQ3MWFlYzc0MTk5N2MxMzU4NWNmMDFiYWY5ODRjMzYzZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjNmY4MjIxMTg0NTdmOTY1ZjVmOGVjZmVmNjc5M2U0MmIzOTg3ODk4MDJlYzkzOTEwNTFhMWI4Mzg5OWQzYzgifQ"
+        },
+        {
+          "resource": "repo://scripts/supabase/quickstart.sh#L117-L117",
+          "version": "repo-lines-v1:sha256:be71eafe9ccd3b018e7fefacc7970ae990a83c4ff41977ff8fb971c77dce0aca:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmU3MWVhZmU5Y2NkM2IwMThlN2ZlZmFjYzc5NzBhZTk5MGE4M2M0ZmY0MTk3N2ZmOGZiOTcxYzc3ZGNlMGFjYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmU3MWVhZmU5Y2NkM2IwMThlN2ZlZmFjYzc5NzBhZTk5MGE4M2M0ZmY0MTk3N2ZmOGZiOTcxYzc3ZGNlMGFjYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGViNDczZjE4YjM2MDcwZTU4MzhmNzVhNDU2ZGNlNDJhOGQ3YTM3YmFhYWRiMWUxZmE1NmM2YjYxY2M5ZmZlYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTI0YzczNWRmOWMwZTlkYWVmOWFmZGJlYzllYzUxMzAyNGIyZTJhMWMyZmUzM2FiMzU0MDkzOWI3M2E5MGNlNiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ca5bb635bfcc478a9f9100fdb48358bc",
+      "statement": "The service-role key is server-only: lib/supabase/server.ts imports `server-only`, throws if constructed with a defined `window` (browser), and is the single constructor of the service-role Supabase client used by Server Actions and scripts.",
+      "evidence": [
+        {
+          "resource": "repo://lib/supabase/server.ts#L1-L40",
+          "version": "repo-lines-v1:sha256:3d5a27b15f8783e34adb1b7e2bb89212a1bb03ab08ee1663a7fc6945f0e9117a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmNDhkYjMzMTFkMTk0N2RmMTQzODc1Njc5NDY1YzRlYjA1M2VhYTgzMmY5ZThmMTIzZTJiZGMwOTIzMzQzZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ea2bc1aea07740f89def8fa66f72b305",
+      "statement": "A CI guard (scripts/guards/no-service-role-in-client.ts, `pnpm guard:no-service-role`) enforces the server-only invariant by scanning `app/` and `components/` for `SUPABASE_SERVICE_ROLE_KEY` or `service_role` and failing when either appears in client-reachable code.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L19-L19",
+          "version": "repo-lines-v1:sha256:a1a3fc4425cf04193bef8a85a053221f0d6accf6f80a1e081db2d2fdfd894e46:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTFhM2ZjNDQyNWNmMDQxOTNiZWY4YTg1YTA1MzIyMWYwZDZhY2NmNmY4MGExZTA4MWRiMmQyZmRmZDg5NGU0NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTFhM2ZjNDQyNWNmMDQxOTNiZWY4YTg1YTA1MzIyMWYwZDZhY2NmNmY4MGExZTA4MWRiMmQyZmRmZDg5NGU0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWJkMzkwZmI4MDYyY2VmYWMwMWMzZjRlZjI2ZjZhMGY2Nzk4ZmM2YTcxMjEwMDBmNmE2ZTA4ZGM5OTM5ZDNhOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODhlZTI0YTI5MWI3MzUxNzI3MmVkNWE1MTdkNTJmOTk5NDI1NWU0ZDQ3Y2E1NzUyY2RmYmJiNDQ1ZDU2ZmYxNyJ9"
+        },
+        {
+          "resource": "repo://scripts/guards/no-service-role-in-client.ts#L4-L50",
+          "version": "repo-lines-v1:sha256:383a7eff69489008ec76a6d94f11651bb42e1d05cf2ca1a8e4b8247d270a87e3:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlYTg2NzhjNzg1NzkyYzIwMDlhOTZkMDFkNGQ3NmJmODFlYjNlNDY2ZjUwYTcwNTQxZmI3NDI5NmQ3ZjQyMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0ZTQyMDhjZDZmZmI4YzRhMzU0N2IyZjU0YWRhMTk5NzhjM2YzNjVlNzhmOTUwMmVmNTE0NWNkZDJhYTg1NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjNDExOWYwMGIxYzhhZWJiMzU3NDYyOTQ2MDljMjRhZTEzOGFlN2QzZmEwMWRiZTRjYjkyZWRiYzFiZGUxODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM0Zjg3ZmQ2ZjQzZjcxN2ZhMjc5NzJlZjdkZTlhMjUzZmFjNGIzZDUxNGQ2YzkyNzM5ZDkzNmZmZmUwNjAwODcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5cfa1b4bc20c4b23899511ceb9e6a9dc",
+      "statement": "Playtest UI is gated by two build-time feature flags in lib/constants/featureFlags.ts: `NEXT_PUBLIC_ENABLE_PLAYTEST_LOBBY` (playtestLobby) and `NEXT_PUBLIC_ENABLE_PLAYTEST_MATCH` (playtestMatchView), each parsed by readFlag which treats 1/true/on/yes/enabled as true and defaults to false.",
+      "evidence": [
+        {
+          "resource": "repo://lib/constants/featureFlags.ts#L1-L15",
+          "version": "repo-lines-v1:sha256:d692d6c234785b98ccf29e33826ef093a2a02c94d9e135cc9c673463ba11cd67:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyMTk3NmNiNzQ3YzY0OWNkZGFlNDk3NDIxNDg3NmM1OGYxMzMxMjIwZWViNDIxMDM1MmJjNmFiYzMyNmExNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmYjJiZjBkZTU5MzI0NTdjOWQxOGQ5NmJhYjUxNmI3OGMyZTdiN2E1ZWEzOGMxYmFkZmUzMDAzYzhlZGUzNDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7d96bc86c9ba47c695d7399040f89813",
+      "statement": "DEFAULT_GAME_CONFIG (lib/constants/game-config.ts) defines the default match rules: 10x10 board, timePerRoundMs 60000 (60s), minimumWordLength 3, horizontal/vertical directions, and Icelandic ('is'); minimumWordLength is read across the whole scoring pipeline so changing it alters scoring end to end.",
+      "evidence": [
+        {
+          "resource": "repo://lib/constants/game-config.ts#L3-L13",
+          "version": "repo-lines-v1:sha256:14100124c129ae57d48cb3df13b6541143e73cd951e9ae7d079e231621604320:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4OGVlYzUzM2QxZWRjODhmMTczNjUwOWNkM2IxZmFjZWRmYWRjNjY5MjcxNjNlOGUyNzBjZDRhNDhkMDk3ODIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlOTRlOThmMmZmNjJlYmFlNWFiODNiNjlkNjY0YWZiNmMzNzA4YjQwOTFmMTVjYzcxMGIwN2NlMTdlZWQ5YzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_886abf9399a1420fa7339547638264b2",
+      "statement": "The default rounds-per-match is `maxRounds: 10` in DEFAULT_GAME_CONFIG, which contradicts the README's default-configuration table that lists 5 rounds; the code constant is authoritative.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L11-L18",
+          "version": "repo-lines-v1:sha256:f6d40809b51daa20a7cbf54b90dff4456d23f9f8ec2a0800d0d165ca2cfba079:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTA0OTUxMDA5ZmViZmE4OGJhODhhYmUwODc1MWRhOTY2YWYzNDlkOTg0YTUwZDIyNjNhZmRlZWMxODUwODA0OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTQ3ZjQ3ZjRlY2JiMTIxNmQ4YWY5NmE1YmRkMGZiNjBiOWNhZjdkZDU1OGNmNDg2MDhlMzhiMGYxMGM2ZWFlMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzg4MjFmMjAzMjk4NjhjMjE5YmZhOGQzODhlYmJiZTdlNjYxODM3NDZmYWMyNzBkNDMzNDM3NjY4NWJmYTI2ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmIzMWM1Y2NlODU3Mjk4ZTI0YzNlNDUwN2I3NmVlZGJkNGJlMzI4M2U3NTA5MWZmZjM4MzhlNDZjYWM0ZTViOCJ9"
+        },
+        {
+          "resource": "repo://lib/constants/game-config.ts#L4-L4",
+          "version": "repo-lines-v1:sha256:776250aff4e57603ef6262fb1f6955a536767a6191c4d3c8770583e9811c6e1d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc2MjUwYWZmNGU1NzYwM2VmNjI2MmZiMWY2OTU1YTUzNjc2N2E2MTkxYzRkM2M4NzcwNTgzZTk4MTFjNmUxZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc2MjUwYWZmNGU1NzYwM2VmNjI2MmZiMWY2OTU1YTUzNjc2N2E2MTkxYzRkM2M4NzcwNTgzZTk4MTFjNmUxZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWFhNzc0YzViMzczNmQwMjZhMzNlODllNzE4NDRkZDQ3NGQ1OGEwNTgwMjQ2NDQ2YWViYTZmN2Q0MThkMmE4ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGYxNmQ5MWVmMjliMzk3OWFlNDA3MWJkMzg5NmU1MjM5ZmY4YWEzZDNjMzczMmNiMzgyNjlhYTg5ZTY2M2NiYiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_81fec8dd2bb141e79fc54ca4f3f8d0b3",
+      "statement": "`PLAYTEST_INVITE_EXPIRY_SECONDS` sets the default direct-invite TTL, read by lib/matchmaking/inviteService.ts (defaulting to 30 seconds when unset).",
+      "evidence": [
+        {
+          "resource": "repo://lib/matchmaking/inviteService.ts#L12-L14",
+          "version": "repo-lines-v1:sha256:8f1c9ae06a62f9899e988d78efc4a9675cd038a1bd8bd111e0ec88caa82702f4:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTUyZWEzNTgzY2VjNGM3MjM3MzkwZTQ0ZjQ0YmJhMjEwYTY0MTZiZWJkZjdmYTNmY2I3OTc2M2RhM2I4MzkyOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDk5NjdlYzFlZDM4MzZmOGViMTdhZmYxNzJiNWJmZWY3ZGU2MDQ4NWE0MzljNmNhMTFjNTkxZTE3NTU3MzlhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzc3NGFiYTRmM2QxMDJmZmRjYjE0MDQzNTVjZGM4MmI4MmRmNDhmODg3MTY2YzgxYTZmNWMxMDNjYmEwNmFkYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTlmZGY0MDRjOTQ3YmIxYThmNjYxOGY5MWRjMjUwZjQ0MWU4YTczYjg1NDMyMzVhM2NiYjkzOTNkMTA2NDA5YyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_54935203cf9e4df0aca0e9fa4db0809b",
+      "statement": "`PLAYTEST_SESSION_SECURE` controls secure session cookies via lib/matchmaking/profile.ts shouldUseSecureCookies: an explicit truthy/falsy value wins, otherwise CI disables secure cookies and production enables them.",
+      "evidence": [
+        {
+          "resource": "repo://lib/matchmaking/profile.ts#L328-L350",
+          "version": "repo-lines-v1:sha256:fb0e47f1b2600d3b50dabb911763dcb74969c51be067e8eead761b84e0128eea:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMTNhNzk4NTVjNzM0MmY2YzU2N2E4OTBlYWU3MjcwOTVkYjFiYzU1NDkxM2FjOTg5Yjk3YjliOWM3MDdkNDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjYzBmYjUyMWNhYTRiZTU0Njk3Yzg4NzU4NGYzZDk2YTQ2YjBhNzk2ZDFmZTExYjE0NWUyMmM0MGFlOWQwMmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4OTgwNzBkYTI2ZGU3YjNhZWQwODFmNzAzNGY4M2RlYjFiMWNmMmMxNmM0NDI4NTA3ZTQ1N2RmZDYyN2NlNTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxNzIzMTQ0MTQ5NTFkZGUxZDA5NzNkM2E1YzhlNjk5NTU3NDkzZDdiYjNjYWI5OWU0YjNkMWE3ZTIxZTk4NzgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_035e6f68ba894210a37d1a39f684ff98",
+      "statement": "`RATE_LIMIT_DISABLED_SCOPES` is parsed once by lib/rate-limiting/middleware.ts into a Set of comma-separated scopes to bypass, alongside a blanket disable via `RATE_LIMIT_DISABLE_ALL`/`RATE_LIMIT_BYPASS`.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L13-L21",
+          "version": "repo-lines-v1:sha256:3e257806accff7a8662e82d08935eb859d9be42d48d5a37bcc95132e11e829c7:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjg0ZmMyMzhhZTNhNmFlMDNmNjdmOGM1NTM4NTVlMWUyZmJmZTlmZmEwZTM1OWFlMjcyZjRlZjE5NDE5MzBkNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDk5NjdlYzFlZDM4MzZmOGViMTdhZmYxNzJiNWJmZWY3ZGU2MDQ4NWE0MzljNmNhMTFjNTkxZTE3NTU3MzlhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDMwMDRiYTcwNDI1MTUwOWIzNTIwOWYxOGIzMGYzOTNlMGNjMDNkMzJmMzNlYjI2NDFjMmVkMDQ5ZDBhZmI0MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmI1MmE3YWZiZjJjYTRkMmIwOWFiM2JkNzI4NGE2M2QxZTAyMTAwOGJhZmQ1OTA3OGMzMTEzOTViYzUxMmMwMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3f1edc9f890e48c6a824939668ae42d8",
+      "statement": "`CRON_SECRET` gates the cron routes: app/api/cron/sweep-stale-matches/route.ts returns HTTP 500 when the secret is unset and 401 unless the request presents `Authorization: Bearer <CRON_SECRET>`.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/cron/sweep-stale-matches/route.ts#L9-L23",
+          "version": "repo-lines-v1:sha256:7670b7bd91b5827d14408f7cf8106e5bd747515077b72fcd279a9838521466e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OWJlYjIzODlhMTkzNjFjYWNkOTVmOTBlMzU0YWRmODJhY2IyNmU5ZTA2MzE1NjQ2MGUyOGU1ZDI4MDcwMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyYTdjOWE0MTkyYTBjOTIxNTg2MjFlMjdlYjhjZTBmNzgxMTZkZTFmMThlZjdlY2VjNWY1OTY0YTViODgzYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzNmNiNjIzZGI1NGMxMWZlOGU3Mzg3YTQ1NTc5ODQ4ZTMwMjIzODRlODFiMmU3MGUwZjI1NzgyYjI5Njg3YTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b20f9e8d520c42fdb3a2c252fa7dc8b5",
+      "statement": "`PLAYTEST_MAX_CONCURRENT_MATCHES` is documented in the README as a concurrency guardrail but has no reader anywhere in the codebase, so it is advisory rather than enforced.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L102-L102",
+          "version": "repo-lines-v1:sha256:2369bbf1bab56f8977e2ea09a2cb4ab3ae9b5cb49e4a188d2b5b778f5dcce622:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjM2OWJiZjFiYWI1NmY4OTc3ZTJlYTA5YTJjYjRhYjNhZTliNWNiNDllNGExODhkMmI1Yjc3OGY1ZGNjZTYyMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjM2OWJiZjFiYWI1NmY4OTc3ZTJlYTA5YTJjYjRhYjNhZTliNWNiNDllNGExODhkMmI1Yjc3OGY1ZGNjZTYyMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDViNmMyMWUzZjgzMWQxYTllZTY3NGNlZGEzYTRlMDM2YTZhMGY4MTc3MTc4MDRhODIzYWVlNmFmYWY3MGUzMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTY2NmQ0Mzk1MzQwNzg5YzU4NDI5MGZmZDk3YjljZGVmYjAzMjJhMTA1Y2U2NzY2MDE0MWVkNmFjZTg3ZDc0OCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0b14630eb1f24a8a99bb891d6d4c33a6",
+      "statement": "The supabase:* npm scripts each map to a specific operation: supabase:migrate runs `supabase migration up`; supabase:seed/reset/verify/policies/logs run the corresponding tsx scripts under scripts/supabase/.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L20-L25",
+          "version": "repo-lines-v1:sha256:f6a6d8e928651689b83d8ace364e3b8d1953737d0b06bf66dd2c49cee6b8a820:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDMzM2QzNjU1OWJmNDNkZDE1NGQyNzQzMDIzMjM2Mjk5NTdiOWU0N2Y3NzRhYmJjOGM2ZWNkNjM5YjJiMDdjZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQ0ODM0NGQwNTM0Y2NlMWE5YjAyOWE1ZTAyNmRjNmY3N2EwNWUyMGRmM2JmMmM4MjU2NWQ5MmY4YTdmYTE4NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjNmMWNmMDIyMTlmOGU4M2ZiYTNiMDIxNWMzNTEyZmI1MTRkZjZjNGZjZjVkM2I1ZmI4MTU4YjAyYjBjYzEzOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTc2NjY3ZmI0YjUyMjQ3NzI4NTMzY2ZkOWQyZmVkMzk2ZjNmNGQ5OTVkMjhhNjk3ZTU4NDljOTc2ZGVlYjUyMCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_902e6410976244d1bedf098a107357cd",
+      "statement": "scripts/supabase/verify.ts probes the core schema by selecting from boards, players, matches, rounds, move_submissions, match_logs, and match_heartbeats and reports a `healthy` or `error` status with duration.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/supabase/verify.ts#L25-L67",
+          "version": "repo-lines-v1:sha256:3651cc61f46eb255d2213a49e064098c6c0d353b3a5af800d5809ae6c5469fe1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4ZmFiNmRiOTQxZGJkZjIxZTQwMGFhODJhNjNlZDYwOTQ3MzEzNmZjZjg1MDZjMjQxNTNkNThiMGU4NjVhMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcxODg3MGE4MDQwOWY4YzRjOTk0ODA3YWY4MjU5Y2MwNGJkMGM1Y2EyZTlmMWMzYjEzZGVmMTBiMTYyNzg2ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzYjY4OTZhYjBlZjA4MmMwOTM3YmZkMzRhNTk2NTRiNTBlYmViODRhMmM0MDliZWI0MDcxMzE4OThiNGJjODAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cf8eaf951d9d40918d3f71b0faae079f",
+      "statement": "scripts/supabase/policies/check.ts (`pnpm supabase:policies`) connects directly to Postgres using SUPABASE_DB_* settings and snapshots pg_policies for the tracked public tables into supabase/policies/policies.snapshot.json.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/supabase/policies/check.ts#L6-L61",
+          "version": "repo-lines-v1:sha256:07c412b61496a2da0759c413994d263f46b1800e79fbde864a76534640f2aff3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhYjIzNzE2YzBmYzBmNDIzNjE4N2U2OTdlNjg4MTgwMWEyZTU0YjU1M2Y1MDQyYTYxMjA5NWE0NWFlYWJmOWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkNTdmNzBiOTk0NjgwYTAyNzhjMWUwYTdkNDM4NWM2ODRmYWM0ZTZiYTIyMmI4YWFmYWMyNDYxZTE0NjVkZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdmNzhmYWM2NTA4OTU0MDk4M2M5ZTllOWE1Yjc4ZjhkYmRhZjgyMjIzYzFmMDRlMjMzOTI2MDE1MDY3YjM2MDEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_73167a10d6394a7bb147aee2e5dcaf97",
+      "statement": "The local Supabase stack (supabase/config.toml, project wottle-local) pins API/REST to 54321 (matching the NEXT_PUBLIC_SUPABASE_URL default), Postgres to 54322, and Studio to 54323, and disables analytics and the Edge Runtime because the project ships no Edge Functions.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L96-L96",
+          "version": "repo-lines-v1:sha256:020286e036d38681fceab2d4d86faaa45cb02d7a32870cfab71f134109df9b49:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDIwMjg2ZTAzNmQzODY4MWZjZWFiMmQ0ZDg2ZmFhYTQ1Y2IwMmQ3YTMyODcwY2ZhYjcxZjEzNDEwOWRmOWI0OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDIwMjg2ZTAzNmQzODY4MWZjZWFiMmQ0ZDg2ZmFhYTQ1Y2IwMmQ3YTMyODcwY2ZhYjcxZjEzNDEwOWRmOWI0OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzAxOGIxN2RlZmYwOTc4Y2I2ZjJhNjdkZmNmNzkxMTc2MWEwM2E0ZWIxNmIwN2NiYzZiZDY1MTgxYWI2MzkxOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjExNTYwMzNmNDJhMmFiYzZiZjk3ZDYyMjdkNGFiMTM0MTc4ZWMxZWZmOGVmODc4ZWVlMTQzY2Y1NWNmN2NjYSJ9"
+        },
+        {
+          "resource": "repo://supabase/config.toml#L1-L32",
+          "version": "repo-lines-v1:sha256:b60d19ce72ae8db141793793e3fc3ff3667a991edf9677777e3778a9c93ce97e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5MDk2MjAyMTU2NjA2ZDRlZGNmZDNmMGQ3MGVjNGFiYWU0MDcxOGExY2M5ZTU5Y2Y3NDgxY2JkYmUwMGEzYTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkZGFmN2I2MzE3MGExM2U4MjI0NTMyYTE0MmRmYzFkYzhlNzdkYWM2MzkzM2NlYmU4Y2M5YWZjNDJmZDQ0YTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

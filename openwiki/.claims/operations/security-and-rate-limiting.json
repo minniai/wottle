@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:bd06f87f743de70cf7d978a2c04875d7b6a9239d997b3c0aca8c4cb834da55c0",
+  "claims": [
+    {
+      "id": "claim_9ba5128d1df24637ad85e393c8eee77e",
+      "statement": "The service-role Supabase client (getServiceRoleClient/createServiceRoleClient) is created with SUPABASE_SERVICE_ROLE_KEY, bypasses RLS, is used by server code to mutate game state, and throws if constructed in a browser context (window defined) or when its required env vars are missing.",
+      "evidence": [
+        {
+          "resource": "repo://lib/supabase/server.ts#L1-L40",
+          "version": "repo-lines-v1:sha256:3d5a27b15f8783e34adb1b7e2bb89212a1bb03ab08ee1663a7fc6945f0e9117a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmNDhkYjMzMTFkMTk0N2RmMTQzODc1Njc5NDY1YzRlYjA1M2VhYTgzMmY5ZThmMTIzZTJiZGMwOTIzMzQzZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3eaf1d9140c244a1801552758bd0ff42",
+      "statement": "The browser Supabase client (getBrowserSupabaseClient) is a client-only module created with the public anon key (NEXT_PUBLIC_SUPABASE_ANON_KEY) and never holds the service-role key, so browser requests are subject to RLS.",
+      "evidence": [
+        {
+          "resource": "repo://lib/supabase/browser.ts#L1-L30",
+          "version": "repo-lines-v1:sha256:5793a94c48f669042e2f480febdaeab27496de78c613e2bb2e5430629303afac:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZmYzZTg1ZDY3MTVhN2E5ZDBmNmMxYjMyZjMwY2Q4Y2IxNDRjYzc5YzhhYmFlOTUzZWExMzc4ODlmYWUyZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1YTExZGE0NGM4MDI0ODZiYzZmNjU2NDBhYTQ4YTczMGYwZjY4NGM1YzA3YTQyYmEzY2QxNzM1ZWIzZmIwNzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7e888ed6b4ee46f686e1f2771227c6ba",
+      "statement": "The service-role client module enforces a server-only import boundary by importing lib/supabase/server-only.ts, which imports the 'server-only' package, causing a build-time error if the service-role client is pulled into a client bundle.",
+      "evidence": [
+        {
+          "resource": "repo://lib/supabase/server-only.ts#L1-L3",
+          "version": "repo-lines-v1:sha256:ecfae5b7e57327e8943aae8d9072fb24ce5df64557f69b7c15b098e477adcfeb:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGMwZjQ4ZTM4ZmJkYjZjMGVmZTk4N2M5ODQ1MjFlZDA3NDMyNzU1YjZiYWFjY2Y0NWQ5NzdlNTdkYjdjYmFkNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGE2OGQ4YmQxMjc5ZTY4ZjFlZjk5NmM1YjhlN2U0YzI0ODNmNjdiNDZhODcxZDRlN2I5OWFhNGIzN2IyMTE0MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://lib/supabase/server.ts#L1-L1",
+          "version": "repo-lines-v1:sha256:8f48db3311d1947df143875679465c4eb053eaa832f9e8f123e2bdc0923343f8:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGY0OGRiMzMxMWQxOTQ3ZGYxNDM4NzU2Nzk0NjVjNGViMDUzZWFhODMyZjllOGYxMjNlMmJkYzA5MjMzNDNmOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGY0OGRiMzMxMWQxOTQ3ZGYxNDM4NzU2Nzk0NjVjNGViMDUzZWFhODMyZjllOGYxMjNlMmJkYzA5MjMzNDNmOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTI3YWYzYTBiNGUwYTIxMmZiNTYxZTdhMjJiMWY2MDY2ODU5ZDMzM2Y5NjcxMzU5YzJhOTMwZGMxZmZkM2FjZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_cb6ec5f4c87641c4b8b6ce271369d525",
+      "statement": "The guard:no-service-role static check recursively scans the app and components directories and fails the process (exit code 1) if any source file contains SUPABASE_SERVICE_ROLE_KEY or the literal 'service_role', acting as a CI-level defense against leaking the service role into client code.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L19-L19",
+          "version": "repo-lines-v1:sha256:a1a3fc4425cf04193bef8a85a053221f0d6accf6f80a1e081db2d2fdfd894e46:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTFhM2ZjNDQyNWNmMDQxOTNiZWY4YTg1YTA1MzIyMWYwZDZhY2NmNmY4MGExZTA4MWRiMmQyZmRmZDg5NGU0NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTFhM2ZjNDQyNWNmMDQxOTNiZWY4YTg1YTA1MzIyMWYwZDZhY2NmNmY4MGExZTA4MWRiMmQyZmRmZDg5NGU0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWJkMzkwZmI4MDYyY2VmYWMwMWMzZjRlZjI2ZjZhMGY2Nzk4ZmM2YTcxMjEwMDBmNmE2ZTA4ZGM5OTM5ZDNhOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODhlZTI0YTI5MWI3MzUxNzI3MmVkNWE1MTdkNTJmOTk5NDI1NWU0ZDQ3Y2E1NzUyY2RmYmJiNDQ1ZDU2ZmYxNyJ9"
+        },
+        {
+          "resource": "repo://scripts/guards/no-service-role-in-client.ts#L4-L60",
+          "version": "repo-lines-v1:sha256:890edd93a7fb15e621924c81409cd62491b503c3b6fc6c9cba1d1e5dbfee29f7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlYTg2NzhjNzg1NzkyYzIwMDlhOTZkMDFkNGQ3NmJmODFlYjNlNDY2ZjUwYTcwNTQxZmI3NDI5NmQ3ZjQyMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjNDExOWYwMGIxYzhhZWJiMzU3NDYyOTQ2MDljMjRhZTEzOGFlN2QzZmEwMWRiZTRjYjkyZWRiYzFiZGUxODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ZjM4ZmRkODRjYTI1NDcxYTU4MzAzNjUzOTY1NWQzNDAzNDJhN2MxY2IzNDg3MjQ5MTVkOTEzNWE2MmQ3N2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6086356bf01c4d72bddaa73b05747aa1",
+      "statement": "The playtest RLS migration enables Row Level Security on nine tables (players, lobby_presence, matches, rounds, move_submissions, match_invitations, word_score_entries, scoreboard_snapshots, match_logs) and scopes reads to match participants via player_a_id = auth.uid() OR player_b_id = auth.uid(), while leaving most writes to the service role which bypasses RLS.",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260325001_rls_playtest_tables.sql#L1-L177",
+          "version": "repo-lines-v1:sha256:b87236a5085151536cda7c2583d7574f8ae1efc1b4796aa859b39c48d3f9244d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTc3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhZThjMDc3NmM2ZjFiOTQyMDM5ODNiZjMzYWFhMzIzOTY3NDBiY2UxYjM2OWViNDhkNjU4M2M1M2I4ODQ1NDdkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3OGVlYTYyNjc2Y2YwOWNkY2U0ZWNiNjRjMGFiMzY1ODk4NTJkZWFkNzc1MmFkNDA5Njc1NDQ4ODA4YjgzYjljIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MCwicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_1c60d0cbad954b70a68f20d2202544f7",
+      "statement": "The RLS design permits a limited set of ownership-checked client writes: players may update their own profile (id = auth.uid()), upsert/delete their own lobby_presence row, insert their own move_submissions, send invitations as sender_id = auth.uid(), and update invitations they received as recipient_id = auth.uid().",
+      "evidence": [
+        {
+          "resource": "repo://supabase/migrations/20260325001_rls_playtest_tables.sql#L20-L124",
+          "version": "repo-lines-v1:sha256:6da0de44b4bd3038f7dd28a2cca3339dab39fdb948cacbf794bffeb0918242a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1NTE1YjliYjM2NDk4Y2RhM2NjMjYxZTI5ZDg2NWUwMzNiOTcyMTU5YjcxNDNlZWM3ODNhOTRhM2NhODgzZjA5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNmE3NjQ4NzYwMDI0ZjM5NGM3NmI2YmY4ZjZmZTE0YTgyYTFlNjBiMWFiNWQxNzNmZjMzZWQ1MTg4Yzc5ODI4IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3YTI2MTBiMmI5ZmYwY2YzOGRlYThhOGY4YmNjYTk4ODFhNmEyNjczZTU2NGU1MDZiNGIzMjEzNDg3MWFkZWJmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmMjBjNTY5YWRlNmI5NzA1NzVhOTM1NmRjNWU1ZGNjZGRjMzUwODdmZTU4MGJkNDRmMTY3MDJiNzE4ZjlkZjY1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_5514e75ce9a34ce8b0a4d9a4dd43e77e",
+      "statement": "The supabase:policies script queries pg_policies for a fixed table list and writes an ordered snapshot with a generatedAt timestamp to supabase/policies/policies.snapshot.json, giving reviewers a committed source of truth for verifying live RLS policy coverage and detecting drift.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L24-L24",
+          "version": "repo-lines-v1:sha256:dd4a2db28ada3c663853b33bc8e927a13aaca8425462a3eba016fc6faa5926f9:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGQ0YTJkYjI4YWRhM2M2NjM4NTNiMzNiYzhlOTI3YTEzYWFjYTg0MjU0NjJhM2ViYTAxNmZjNmZhYTU5MjZmOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGQ0YTJkYjI4YWRhM2M2NjM4NTNiMzNiYzhlOTI3YTEzYWFjYTg0MjU0NjJhM2ViYTAxNmZjNmZhYTU5MjZmOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2FiZTNkYmZhYzZlNDIyY2MyNjEzM2FmYjQ0NzMyYjc3ODBlNWQ4YWEzNjY3MGRlMzg2M2JhNGRiOGMwNTI0NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTBlMTQzYWMxNGExYjg2OWUzOTY5YjAyZGE2Y2MyMWUxMGVhNjIxMzM3Mjk4ZTU0NGQ4OTFiNDYwYTc1NmI5NCJ9"
+        },
+        {
+          "resource": "repo://scripts/supabase/policies/check.ts#L16-L70",
+          "version": "repo-lines-v1:sha256:a59183190b381b1d10f18e5bdcd656dd979316fb514beebc44b72d787428bdac:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiMjlhOTNjYzI1NWZmM2Q4NjZhYjg2ODAwZjFmZDZmZDI0MzkyZjE1MDcxNjU4YzNkMjBhNzYzMTdlN2Q3NWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcxODg3MGE4MDQwOWY4YzRjOTk0ODA3YWY4MjU5Y2MwNGJkMGM1Y2EyZTlmMWMzYjEzZGVmMTBiMTYyNzg2ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyZTc0MTgzMTRmMmE5OGJmZTVjNThkMmRjNmIxMGViMmY5MjU0OWY2ZTFlMzAxZWNjZTIyOWE0NTU0ZDNlNjgifQ"
+        },
+        {
+          "resource": "repo://supabase/policies/policies.snapshot.json#L1-L23",
+          "version": "repo-lines-v1:sha256:27cff9556078d9d4d664a65c67da38d7d0a565926f0e45adbaeaeaaaaf1f0791:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4YWRlZDlhZGUzZjFiOWE4ZjQ1NzQwNDhiZWQzZTYyODRiMGE2ZTI5YjBkODg4ZjdiNDBhMGU1OTFiMDExMjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c3dc844eca9d49bbad65a95248c02f90",
+      "statement": "assertWithinRateLimit is a synchronous fixed-window counter keyed by `${scope}:${identifier}` (identifier trimmed/lowercased, blank collapsing to 'anonymous') that starts a fresh window when none exists or it has elapsed, increments otherwise, returns a {remaining, resetAt} snapshot, and rejects non-positive limit or windowMs as an invalid configuration.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L69-L120",
+          "version": "repo-lines-v1:sha256:8d34527aaa89b0b9b993184dbc191732f32bddcfc89479131d6dc44f1cd8a5db:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2ZDMzNThhMWJmNDNlM2Y4YTU0ZGQ3ZWU2ZjgyYmQ5MzYwOGIzOTFlMWIwYWZiNjEyNDlmZWZkYzUwZGQ4NWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3YWU0Mzc0ZWQ3YzhiM2U1M2FkZmZmZjI3MjA4OWUxODY5MzBlZTVlZmI1ODFkOWE4MGEzNmUyNmQ0Yzg4ZTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2ZWU5MGFlN2ZjZDIxZDgwZjBmNWFkZDI2ZGZmMmVhZjA3ODlhMjE3ZDQyMWUzMWE5Y2E4MjBiYWNmZmM3M2IifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_aea9a42027044a83afe2ee81034bd4d7",
+      "statement": "When the limit is exceeded assertWithinRateLimit throws RateLimitExceededError carrying scope, retryAfterSeconds (ceil((resetAt-now)/1000), min 1), and statusCode 429; isRateLimitError is the type guard callers use to detect it and surface a retry hint.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/claimWin.ts#L38-L51",
+          "version": "repo-lines-v1:sha256:00818ac60119e6e3b6b36d0dee379ca9da3d965375079ea9bbfe39cb80318408:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2NTk1ZjRlZTVmZjYzZDUwOTUwNDE5ZGMzNDQxNDUxMzg1MWRjOTczNmZkMTdhNGY3YmZhOTMwYjI2MWI2ZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlMzNkYzczMWU3ZDA3YjFmMGMwNWNmZWJkN2UxOTIyMDIzZTYwNzdiYzBhZTdiYTMwMTQ4ZjUwODMzYTI1YTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwNzEyOGNlMWE5N2VjMzRmNWQxNmVjNGQ2NDczNjFkMmI4NGI5YmYzZTM0N2U3NzI2Y2JmNWYwYzI4NzY1ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFhMWQ5NTY2OWU3ZWQ5OTE1OGIxMmUwNjQ2ZTZhMzU1MWVmNDY5MTM2NTNjOGQ3ZjBjYjI2MjE4YmE0YTRlNTkifQ"
+        },
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L50-L115",
+          "version": "repo-lines-v1:sha256:ab47643259b5e4aa5f0ec13e78743e475d0603032eb8e2fc30c4b3dea2cbecbb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkMmRkY2EyYjUzNDNiNGJjNjJlNzUyNTFmN2MzNjgxZTQxYTE4OGRiNDE0NTE5NTEyNDZmNTg4NDk4ZWU2MmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzNjc3YTVhNTQxMGIzM2YyMzFkYzY1YzNiM2RhMGMyZWUxZmNkOTNlYTk4NWI5ZjJlODc5ZTU2NzkzOGE4ZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmMTIzMDBlY2MzY2U5YjYwMDA4ZDJlMjBjYTk1ZjFkOTA4NmFmNGMxNjA3MDlmNGI0NjJlMWNkNDY5YjY3M2MifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6c97b97b36934c9a8047e8d60951cba4",
+      "statement": "Rate-limit counters live in a single Map stored on globalThis under __wottleRateLimitStore__, making the limiter per-process and not distributed across instances, so the effective ceiling scales with instance count rather than enforcing a strict global cap.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L10-L35",
+          "version": "repo-lines-v1:sha256:1d38ef5d6059b5dd11bf4503602c3331c85d3257e97810c68fae6cbacfb83a46:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkNDlkMzM5NmQwODQ0MTNlMzRmNDE5YjI1ZjExYTVjNjhhZDBmMTk1Zjg3NzJhMWY0NjZlZmE1ZWJjZWY0Y2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzNjc3YTVhNTQxMGIzM2YyMzFkYzY1YzNiM2RhMGMyZWUxZmNkOTNlYTk4NWI5ZjJlODc5ZTU2NzkzOGE4ZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlNjg5ODIwNzFlYzk4Y2RkZWYyNzQ5OTA3YWY3ZThkYzFiMDdiY2NjNGE3ZmMyOWY4ZmU3NDA4YTkxYzY1ZmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_687abddff69b4b429e0d3fdf079ffc37",
+      "statement": "Rate limiting can be disabled per scope: RATE_LIMIT_DISABLE_ALL (alias RATE_LIMIT_BYPASS) bypasses every scope when truthy, and RATE_LIMIT_DISABLED_SCOPES is a comma-separated list of individually disabled scopes; a bypassed scope short-circuits and returns a full snapshot without touching the store.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L13-L21",
+          "version": "repo-lines-v1:sha256:3e257806accff7a8662e82d08935eb859d9be42d48d5a37bcc95132e11e829c7:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjg0ZmMyMzhhZTNhNmFlMDNmNjdmOGM1NTM4NTVlMWUyZmJmZTlmZmEwZTM1OWFlMjcyZjRlZjE5NDE5MzBkNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDk5NjdlYzFlZDM4MzZmOGViMTdhZmYxNzJiNWJmZWY3ZGU2MDQ4NWE0MzljNmNhMTFjNTkxZTE3NTU3MzlhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDMwMDRiYTcwNDI1MTUwOWIzNTIwOWYxOGIzMGYzOTNlMGNjMDNkMzJmMzNlYjI2NDFjMmVkMDQ5ZDBhZmI0MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmI1MmE3YWZiZjJjYTRkMmIwOWFiM2JkNzI4NGE2M2QxZTAyMTAwOGJhZmQ1OTA3OGMzMTEzOTViYzUxMmMwMiJ9"
+        },
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L158-L177",
+          "version": "repo-lines-v1:sha256:edf0ac946a7f16343d97fe94e5b3526b8e795e5f60933a8fe139ec646478c0f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkYmNhZmMyMzU4YTBlYjMxYWY1YjUzYjUxNzBiNjI0MDljYTdhNDhhZmJlYjBiZTJjNTk4N2I4OGM4ZGI3ODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5OWNjYzc2MWYyODZjNDlmM2ZmNzY1YzJiMDE2NjFjZmQ5YWFlMTM0OTJhNjZmMmYwMDkwNWI5YzcyOGM2ZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIifQ"
+        },
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L86-L91",
+          "version": "repo-lines-v1:sha256:210aeecb32fc04a72aad82d0c170770bd90c494561182104af424e6fcd8e5062:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjA2MjE5YTZhZjlmMjhiZmY4MWMxYzU1ZDNiMmYxMDNjZTg4YTljYjJkZDRlZWRmYjFkMTAyZjc1ZjZhNGU0NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjdlNTc4OGQ1ZDlkNzNkMjRhODFkYmMwYTVhNzRiZmE4MmM5YzNiM2FmOTllNTJhZjc5NmU5MGI0NjhhOGEzZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWRiM2U3Y2QwYzNhNjIzMDQ3NjY4MTYxZDEwNGU5OWQ4NjIwOWNhM2U3NzU0YTI1YjExOWE0OTA3ODc4MDQyNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTkxMTE2Yzg2ZjcxZjUzNzBkZWY3OTQwNWM4YTE1YmU5YWIzNGM3ZGMwMjZkZWRmNzVjNTE0YWVjMmYzMmNhZCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_e99f682dce9a4d60a368bf80106cd540",
+      "statement": "resolveClientIp derives an IP identifier for IP-based rate-limit scopes by checking forwarded-for and proxy headers in a fixed priority order (x-forwarded-for, x-real-ip, cf-connecting-ip, true-client-ip, x-client-ip, fastly-client-ip, x-cluster-client-ip), taking the first address, and returning 'unknown' when none match.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L122-L148",
+          "version": "repo-lines-v1:sha256:747272396fd932765928273d921b4b96e19e5cffba60b331048c890b42e22508:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0NmE2Nzc5MjlhNjU1Njk1MzMxMTg0ODJlODAxMzA4ZWY4ZWE2MzA4NDM4ODE4OGE1MjUyNDU1OTQ2ZTE5NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1YTQ5ZTA1NjQ5OGU5YTQxMjVhYjllOWU0ZGVhYjNkNWQ4NDM0YzlkOGEyYTljMDI1YzljNWVmMThjNmJiNGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2ZmEzZjVkYzM0ODlhNmY1YTE5YWQzOTU3ZGFiODljZjg3NDc5ZjMxODVhNmU1ZjM1OTlhOWY4MTViMDM2MDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_82029a7a141f4a628df649d6e271c827",
+      "statement": "Rate limiting is applied per Server Action / auth route with distinct scopes and budgets, e.g. match:submit-move at 30/60s keyed by player id, match:claim-win at 1/60s, match:resign at 5/60s, match:rematch at 5/60s, auth:logout at 10/60s (player id), and auth:login at 5/60s keyed by client IP in both the action and API route.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/auth/login.ts#L37-L44",
+          "version": "repo-lines-v1:sha256:82e7d3fcf002bb64e6550fb65aaba4ead4842bec756b2547e5413ad61a2d0ee7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2JiOTVjYTNlMWZiZmI3NzdhMDJlYzNhMDhiZjNlYTczNTYwZGY3MzI5NWNjMzIzMTk0ODJlYzVjZWRjMTVkNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjJkMTFjYWY0M2U5N2VmMzY5ZTZiZWVkMWEyNjhiZDA1ODM4ZjI5YjlkZDI1NGJmNjliYTY0ODg0MTQ3MjM0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTY1YTg2Y2I4ZjBmNzFmNDhkYzQ1NjBhM2ZkNDk3MWMwNTZmYTY2YTBlODNkZjIzYzljZDJiZWJkMWE1MDRjNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTAxY2FjYTg4YWE1MGU5MWJkYzQwMWQzMjEwNWU3OGRkNTE4NzNmYmNiMDU4YjE4YWIwNDllOTA1OGI3ZmNlOSJ9"
+        },
+        {
+          "resource": "repo://app/actions/auth/logout.ts#L41-L47",
+          "version": "repo-lines-v1:sha256:6caf91c0b0e90ef3db08ef3d2017df6a9cd430221c174e12ae4fb9e77c3a97cc:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDk4MDcwM2Y1ZjUzYWVjNDdmZWM3YzE3Njc4YjEzMjQwZDgxOTg2ZWIwODg3YzMyZDU5YzRhZDA2ODhmMTgwOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2EzZTQ2Zjk0Mjc2YjZmNmY0ZWQxZjAyYWY3OGJlZjZhMmVlMWM0MzlkZDU1ODRiOTczOTQ4MzEzMjE0ZDJiNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzVhNmQzZjUwMzMzYjRmN2ZiMDU5ODNlMDc4ZjRmYjNiZTc3ZTdmMjY2MWZiMzk5ZjA0OTE4MGRjNjNhYjY2NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGFjMmJkOTBmZTRiNDBmOGQ5ZGE3NmUyYzZkMjczYzNjMzI1MGMxNTcwNmQ0M2RhZmQxZDk3NTg0Y2RjN2IxYiJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/claimWin.ts#L39-L45",
+          "version": "repo-lines-v1:sha256:d66a2ce30903d3244e1535bba08ed5a2afbb9eb9cd58e7627eaf153e23f5379d:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2JiOTVjYTNlMWZiZmI3NzdhMDJlYzNhMDhiZjNlYTczNTYwZGY3MzI5NWNjMzIzMTk0ODJlYzVjZWRjMTVkNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjJkMTFjYWY0M2U5N2VmMzY5ZTZiZWVkMWEyNjhiZDA1ODM4ZjI5YjlkZDI1NGJmNjliYTY0ODg0MTQ3MjM0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDMwNjczZmEwNjNiOGEzYzVlMzViNTcyZGZiZWY5OGFjNzU0OTMzNTliMzFiN2IxOGY5YjFkZjJmMzgxYjM2YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2ZlNDc3ODg5M2UwYmExMGJlM2I5NjgyYTBhNTc2NDQ5ZWE1NGNjOGRiZjQzYzQ2MWIzMWE3YzFhODQ3MDIzYiJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/requestRematch.ts#L118-L123",
+          "version": "repo-lines-v1:sha256:b7f989430fa000e906f0e29592b3d0e66be9103aa108e41b264a86e4f3c9596a:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDk4MDcwM2Y1ZjUzYWVjNDdmZWM3YzE3Njc4YjEzMjQwZDgxOTg2ZWIwODg3YzMyZDU5YzRhZDA2ODhmMTgwOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2EzZTQ2Zjk0Mjc2YjZmNmY0ZWQxZjAyYWY3OGJlZjZhMmVlMWM0MzlkZDU1ODRiOTczOTQ4MzEzMjE0ZDJiNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzVhNmQzZjUwMzMzYjRmN2ZiMDU5ODNlMDc4ZjRmYjNiZTc3ZTdmMjY2MWZiMzk5ZjA0OTE4MGRjNjNhYjY2NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEwMjI0YzBjNTUwZTA3MmVkYjJhYzcxMzlmNTI3NmRlNjEwNTdjNTIwMDhiMjlhMmUwMWFkZjdjMjM4ZjdjMiJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/resignMatch.ts#L28-L34",
+          "version": "repo-lines-v1:sha256:62e2012f4b7d183d8fed4f677297165896e4536385f0bd96c32b078ab6dacde0:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDk4MDcwM2Y1ZjUzYWVjNDdmZWM3YzE3Njc4YjEzMjQwZDgxOTg2ZWIwODg3YzMyZDU5YzRhZDA2ODhmMTgwOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2EzZTQ2Zjk0Mjc2YjZmNmY0ZWQxZjAyYWY3OGJlZjZhMmVlMWM0MzlkZDU1ODRiOTczOTQ4MzEzMjE0ZDJiNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzVhNmQzZjUwMzMzYjRmN2ZiMDU5ODNlMDc4ZjRmYjNiZTc3ZTdmMjY2MWZiMzk5ZjA0OTE4MGRjNjNhYjY2NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGFjMmJkOTBmZTRiNDBmOGQ5ZGE3NmUyYzZkMjczYzNjMzI1MGMxNTcwNmQ0M2RhZmQxZDk3NTg0Y2RjN2IxYiJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L31-L37",
+          "version": "repo-lines-v1:sha256:3e1bedbd0838bf831a469fc89c419c6c754098722dab082a0c1e9ec1c77495cb:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2JiOTVjYTNlMWZiZmI3NzdhMDJlYzNhMDhiZjNlYTczNTYwZGY3MzI5NWNjMzIzMTk0ODJlYzVjZWRjMTVkNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjJkMTFjYWY0M2U5N2VmMzY5ZTZiZWVkMWEyNjhiZDA1ODM4ZjI5YjlkZDI1NGJmNjliYTY0ODg0MTQ3MjM0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTA0ODBmMDRjZGE5NDE4NjYxMjMxMTQ4ZWU0NmFkZjg2ZWMwNDFkZWFmMDMyNTBjNjU3Y2JiNzgyMjNjNTcwZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTVhMzQ5ZjM5ODA3ZGQ5MTZhYTgxZDU4ZmEwOGU2NzhhZWIzMmUzOTE2Y2E0YzAwMDBhZDY0YmI1MGU1MDFkZCJ9"
+        },
+        {
+          "resource": "repo://app/api/auth/login/route.ts#L42-L49",
+          "version": "repo-lines-v1:sha256:70ed0c6f57533212f025309afbea92ff9dba32c2943b6f39e92f3698c30b7ba2:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2JiOTVjYTNlMWZiZmI3NzdhMDJlYzNhMDhiZjNlYTczNTYwZGY3MzI5NWNjMzIzMTk0ODJlYzVjZWRjMTVkNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjJkMTFjYWY0M2U5N2VmMzY5ZTZiZWVkMWEyNjhiZDA1ODM4ZjI5YjlkZDI1NGJmNjliYTY0ODg0MTQ3MjM0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDMwNjczZmEwNjNiOGEzYzVlMzViNTcyZGZiZWY5OGFjNzU0OTMzNTliMzFiN2IxOGY5YjFkZjJmMzgxYjM2YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmExYjU4ZjA3ZWQwMjI5ZmUyMWEwMTRlOWJjOGY0OWY1MTEwYjlmODdiMzU5ZDYwODYzYjgzYzkzNTZiNTY2ZSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:0af191bb4bbbf654e5eaa758017d13ed7cbfbbd6afc7bf7029e8c375c8137d18",
+  "claims": [
+    {
+      "id": "claim_b91fb5f9ecea4301827057fc316fda7c",
+      "statement": "Wottle is organized in three layers: app/ route segments plus server entrypoints on top (Server Actions under app/actions/* and API Route Handlers under app/api/*), framework-agnostic domain modules in lib/ in the middle, and Supabase (Postgres, Realtime, Auth) as the backing service.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/README.md#L1-L9",
+          "version": "repo-lines-v1:sha256:4e452bc7ad8ec3e8028d7fbdfe67be646739ef18253045201d2b775e23c80549:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzY0MTEwMzY0N2IxNWJmMDc5ODQ1MWJlZjhhYmJkZjQ5OWZiNjMxYTM1MTkxMTlkMTMyNDQwYmY2OTYzMGIwMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGIyNzgyYWVmOTU2YTMzYjBjMjhjMTE4NmNjYmNlNzM5MTE0NGFiNzIwZDVmOTI1Njk0ZmNhNzRlYjFhMWE5YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTgyMTc4ZmFiZmJhZDg3MTlmMjkwNjFmODcwM2ZlMGRjNWM1NGY5NGY2MGExOGJjOTQwOGY3MmQxNWU2NjkzYiJ9"
+        },
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L1-L16",
+          "version": "repo-lines-v1:sha256:ffbe3ba93c631313f45bedb5402c7cbeb55c6ebe7d2db35dbfbe002b93c1d494:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZmRiNmE5NjYxNWI2MDQzZGRhYzA0OWM0YTg3ZGZmMDgyZDIyZmJhNGZkOTkzMTBhMGRkOTJhNGU3Yjk5NjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyMWU5MmViYTg5NzA1NDUwNjM1MzZmYTQwMDAzZTE4ZjExNTNjYzNkZGZmYjY3ZmY1NDcxZTI1YmE0ZDc1NTUifQ"
+        },
+        {
+          "resource": "repo://app/api/match/start/route.ts#L1-L9",
+          "version": "repo-lines-v1:sha256:c90112a6c9e3ff9888c5a5fd618f37c0232d7aaaa749ca79029e24a70d7d26b2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDgzNmE1OTQ3OTkxYzFjNzg5MjgxNDEyNmIwY2M2MGMwY2E3YTFhOGJiNjBlMjUyZDY2Y2M1NzBhZjY4YTIzNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWExZDFhNjMzOTAyMjljNzk4MzQ3ZTgzYTA0MDU0NDFjOTQwMDAzNTI4NGFkMTY4YzFiZjZjZGYxZDcwYTM3MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmQxNTBlNzY4ZTU2MzA2Nzg4MzJmNjdlOGEwNmVmNDA3ZTlmYzMwNTE0ODgzZjFmYTc1MzZhN2JlZDM2MjUwOCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_b55161dccee14af3a94f5bac01c6821b",
+      "statement": "Wottle is server-authoritative: the browser is view-only and all game state mutations run server-side, enforced by entrypoints reading the session and authorizing the caller before writing (e.g. submitMove verifies the caller is one of the match's two players).",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L24-L57",
+          "version": "repo-lines-v1:sha256:757379f23be265dda77851b3c62f7d253b84c7fc3c2d2059bc8d7c700971eaa7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjODM2YzhjNTYyNzJjODY5ZDZhYjAxMGNlZmVkOTVlNGU4NGNjNTNiMzVlZWI5N2RmODQzOTAyZTViNjQxZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNjAyMGU1Yzg0YzRiNTA0OTNkMTJiZWVlNTc3ZGEzZTZlOGUzNDdmMDM0ZTg1YmY3NWE2YmM3YmZlYzNmOTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdmYmIzMTUwN2I2NDIyNjhhZjA4M2VlNjQyMTkwMzdjZTkxZjZmNzM0ZDNiM2U3OTdjM2ZmNjI2YWViZTMzZWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c56adb70951649a7a9e6068bae80d595",
+      "statement": "lib/supabase/server.ts builds a service-role Supabase client from SUPABASE_SERVICE_ROLE_KEY that bypasses RLS, and is protected from browser execution by importing server-only and calling ensureServerContext() which throws if a window is present.",
+      "evidence": [
+        {
+          "resource": "repo://lib/supabase/server-only.ts#L1-L3",
+          "version": "repo-lines-v1:sha256:ecfae5b7e57327e8943aae8d9072fb24ce5df64557f69b7c15b098e477adcfeb:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGMwZjQ4ZTM4ZmJkYjZjMGVmZTk4N2M5ODQ1MjFlZDA3NDMyNzU1YjZiYWFjY2Y0NWQ5NzdlNTdkYjdjYmFkNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGE2OGQ4YmQxMjc5ZTY4ZjFlZjk5NmM1YjhlN2U0YzI0ODNmNjdiNDZhODcxZDRlN2I5OWFhNGIzN2IyMTE0MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://lib/supabase/server.ts#L1-L30",
+          "version": "repo-lines-v1:sha256:f4cd78e63f046e419e7ed249fae293790cea95583b1b1ac9acf741aa4cc584d1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmNDhkYjMzMTFkMTk0N2RmMTQzODc1Njc5NDY1YzRlYjA1M2VhYTgzMmY5ZThmMTIzZTJiZGMwOTIzMzQzZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlZjQxOGM3ZThiYjQwZTAyMzA5ZWNjODFkNDc2ODI5ZjJlODk5YTljOGMxNGQ2MGYyOWUzY2RlNjQ3NTllZWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9c732fccc3484c7eaac58931946ec5f9",
+      "statement": "The browser Supabase client (lib/supabase/browser.ts) is a client-only module that uses the public anon key (NEXT_PUBLIC_SUPABASE_ANON_KEY) and never the service role key.",
+      "evidence": [
+        {
+          "resource": "repo://lib/supabase/browser.ts#L1-L30",
+          "version": "repo-lines-v1:sha256:5793a94c48f669042e2f480febdaeab27496de78c613e2bb2e5430629303afac:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZmYzZTg1ZDY3MTVhN2E5ZDBmNmMxYjMyZjMwY2Q4Y2IxNDRjYzc5YzhhYmFlOTUzZWExMzc4ODlmYWUyZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1YTExZGE0NGM4MDI0ODZiYzZmNjU2NDBhYTQ4YTczMGYwZjY4NGM1YzA3YTQyYmEzY2QxNzM1ZWIzZmIwNzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec75d4d269aa46caab0592935289fc3b",
+      "statement": "The guard:no-service-role script scans app/ and components/ for the literals SUPABASE_SERVICE_ROLE_KEY and service_role and fails (exit code 1) if any are found, keeping service-role usage confined to server-only modules.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L19-L19",
+          "version": "repo-lines-v1:sha256:a1a3fc4425cf04193bef8a85a053221f0d6accf6f80a1e081db2d2fdfd894e46:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTFhM2ZjNDQyNWNmMDQxOTNiZWY4YTg1YTA1MzIyMWYwZDZhY2NmNmY4MGExZTA4MWRiMmQyZmRmZDg5NGU0NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTFhM2ZjNDQyNWNmMDQxOTNiZWY4YTg1YTA1MzIyMWYwZDZhY2NmNmY4MGExZTA4MWRiMmQyZmRmZDg5NGU0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWJkMzkwZmI4MDYyY2VmYWMwMWMzZjRlZjI2ZjZhMGY2Nzk4ZmM2YTcxMjEwMDBmNmE2ZTA4ZGM5OTM5ZDNhOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODhlZTI0YTI5MWI3MzUxNzI3MmVkNWE1MTdkNTJmOTk5NDI1NWU0ZDQ3Y2E1NzUyY2RmYmJiNDQ1ZDU2ZmYxNyJ9"
+        },
+        {
+          "resource": "repo://scripts/guards/no-service-role-in-client.ts#L1-L60",
+          "version": "repo-lines-v1:sha256:cfd0555fa6b58b95652f5d0eab1ca90d8c8c710c1a5790051e9426eae9272e68:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkMzY4MTZlZjljNzYzZTc3MDE4MWJiYWJmZGNmYWUyMGE3OWNkMzEwYzI5YjU2OGE0MTFmZDEyYzYzOGEwYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ZjM4ZmRkODRjYTI1NDcxYTU4MzAzNjUzOTY1NWQzNDAzNDJhN2MxY2IzNDg3MjQ5MTVkOTEzNWE2MmQ3N2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_52d125a1befa48f9aa4026fe6dcafcda",
+      "statement": "Server Actions (app/actions/*, marked \"use server\") are the primary type-safe mutation pattern invoked from React, returning typed results, calling revalidatePath, and deferring follow-up work (broadcast, instant scoring, round advancement) into Next.js after() so it runs post-response at full function CPU priority.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L1-L23",
+          "version": "repo-lines-v1:sha256:18bc6e308d37d6c44ccf3584fc7f0213fa32a34f6eb302974c3a3f76e3057855:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZmRiNmE5NjYxNWI2MDQzZGRhYzA0OWM0YTg3ZGZmMDgyZDIyZmJhNGZkOTkzMTBhMGRkOTJhNGU3Yjk5NjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMmE1NDBhY2M5ZmYxNWQ0ZDJjZGJhNjk3ZDlkZjA5YjA2NzllZjhkNTc1ZDE0MzUzNDI1NjdjZDQwN2VhODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0MDVlMjEwZDViMzExMjVhYjY2NjJlMzYwODQ3YjNiN2NlZGJmZmJmNTAxMjdkMjU5NGIyMGE2ZjZhODU3ZWIifQ"
+        },
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L180-L234",
+          "version": "repo-lines-v1:sha256:7250b3aaee553e8fd154e7efc3f2bb2d66cb1efa82157e9ac6cc3e96e59c1cac:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3YjE0MzE0N2IzMmNmNjRmZWRiMzBhNjU5YTlmMDZkNGM1NTNlNzM4YmMxYzFlYTdmMzc1YzczZGUzMmE1NDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkOWUxMjU0NjQyNTU3NmQzZGVhZThjOWI5ZGJmMTI4ZDVkNmRkYWY1ZDdmZTg1NzkzNDkyN2RlZmZhM2I5ZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZTJhZjA5YjIzNWUyYTIwN2JkNmViNTdmOTdhY2FlOTliNDViNzRmYjAyODE1ZjEwYzFkODdhY2I3ZWVmYTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_90c9cd2b656c4eea8975e0e642be157b",
+      "statement": "API Route Handlers (app/api/*) serve non-React callers: the cron sweep route authenticates via a Bearer CRON_SECRET header rather than a user session, while app/api/match/start authenticates with the shared readLobbySession check; route handlers set Cache-Control no-store.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/cron/sweep-stale-matches/route.ts#L1-L45",
+          "version": "repo-lines-v1:sha256:30e645b91dcb4f0afec611cdce8a751dd51ec0544b87f6aec3d4df893129a558:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4MzZhNTk0Nzk5MWMxYzc4OTI4MTQxMjZiMGNjNjBjMGNhN2ExYThiYjYwZTI1MmQ2NmNjNTcwYWY2OGEyMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxZmJkOTBjMmMwMmFhYjA2ODQ4ZTVhYjY2ZWE2MGRhYmEyYjViZmVlYjM1MmY4YTUzNTJjZjc5MTA3Y2ZmYjgifQ"
+        },
+        {
+          "resource": "repo://app/api/match/start/route.ts#L1-L34",
+          "version": "repo-lines-v1:sha256:ea3981630359890eb0c63db806ae1ecba9228c9e55888f7f5e222d234fd3bd7e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4MzZhNTk0Nzk5MWMxYzc4OTI4MTQxMjZiMGNjNjBjMGNhN2ExYThiYjYwZTI1MmQ2NmNjNTcwYWY2OGEyMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1YTExZGE0NGM4MDI0ODZiYzZmNjU2NDBhYTQ4YTczMGYwZjY4NGM1YzA3YTQyYmEzY2QxNzM1ZWIzZmIwNzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1ef65285eb8d4d5ba96d2e4086d251a0",
+      "statement": "State is broadcast to clients over Supabase Realtime: the server calls publishMatchState (statePublisher.ts) to send a 'state' broadcast on the match:<matchId> channel using the service-role client, treating delivery as best-effort with a short subscribe timeout, while clients subscribe with the anon client via subscribeToMatchChannel listening for state, round-summary, and rematch events.",
+      "evidence": [
+        {
+          "resource": "repo://lib/match/statePublisher.ts#L1-L71",
+          "version": "repo-lines-v1:sha256:9ed55580a9e693345693bd205d3e36dd16e79271555a706413d30bf59b47597c:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2MzZlMDE3NjAyNmNlMTI5NTBhNjBlNmRlNTdiMTVlOTFkMGQ0NGI1NTIxNjg3NGM0ODIxMzM4NDQyYjg4YTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://lib/realtime/matchChannel.ts#L40-L85",
+          "version": "repo-lines-v1:sha256:85073ee03effc484f519e20d640b41ea33929c4481abf03eb2226f7d0bb6dfd4:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZWNmYjBmMDAwZjFiNzJhNGIwOGI3M2E3ZWZkZDc5YTU5YzMzMmU2ODQ1MzBmODJmMTIwM2U4NjdhYzQ5NTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjMDVkN2UzMzM4NWI5NThiMGY5NDc1YWQxNDNhNzBjZTM3ZjkwM2FmNDIzZTI3ZTg4OGMxMjg2ZDlkYzhhNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5361299a2a9f4c75acde98cfd542965a",
+      "statement": "The instrumentation.ts server-startup hook pre-warms the Icelandic dictionary via loadDictionary(\"is\") only in the Node.js runtime and swallows load failures so the server still boots and fails gracefully at first round resolution instead.",
+      "evidence": [
+        {
+          "resource": "repo://instrumentation.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:223653eb8db1089dc6f4651b80e885213e596a7a52b5ada9ea9582bf627354a9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_699019841714487b8845b7d44f93df18",
+      "statement": "The major owned systems each live in a dedicated lib/ directory: game engine (lib/game-engine), match/round runtime (lib/match), scoring (lib/scoring), matchmaking and lobby (lib/matchmaking, lib/lobby), realtime channels (lib/realtime), rating/Elo (lib/rating), rate limiting (lib/rate-limiting), observability (lib/observability), and shared types (lib/types).",
+      "evidence": [
+        {
+          "resource": "repo://lib/README.md",
+          "version": "repo-file-v1:sha256:fa892d9c5483d8567ac091d7d11c47eba3beba58c754f40f3edd06698b1b55ff"
+        },
+        {
+          "resource": "repo://lib/game-engine/wordEngine.ts#L1-L32",
+          "version": "repo-lines-v1:sha256:1e37061933e5fd6af3ec8684315266b3ce99da0949fb4d843a10465b9b5542cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkMzk1M2NmNTg2YjljMzc5ODRhMDY5Y2NkYTY0YmU0OWE3MzU0ZGU1ZjViZDlmNzc3YjgzYzUzYzU5ZmE3MDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhZjNjZDFjZjE1ZDZkZWNlNTVlOTE2MzUzYWRjNDIxYmU2YzNiN2ZjOWY5ZjZiYjVlZjIzZjZkMWU0MWNkNzkifQ"
+        },
+        {
+          "resource": "repo://lib/match/roundEngine.ts#L1-L12",
+          "version": "repo-lines-v1:sha256:e790ce5db573e4aed68c9e15307855611136c51375a90e2fcca5a59e3ad94524:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2MzZlMDE3NjAyNmNlMTI5NTBhNjBlNmRlNTdiMTVlOTFkMGQ0NGI1NTIxNjg3NGM0ODIxMzM4NDQyYjg4YTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3Yzk3ZmNkZjRjNTE1ODI3Mjg3ZmVkZDQyN2E1YmVkZjA3NzZhNThkNjQ0OWQwN2ZhNjFjZmE4MWQ3ZDMxNzAifQ"
+        },
+        {
+          "resource": "repo://lib/realtime/matchChannel.ts#L1-L8",
+          "version": "repo-lines-v1:sha256:f20142b6bb11d475255ec10c6052c640fd85e67d0533c752c05b36995fe92518:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzMzYTg3NDU5NjNjNTI3MmQ2NTJlNTg5ZTZmYjEwNmYwOWU3OTY2MjVkNWZlZTc2NWVmY2UxNjQyMDY1YThlNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzdiNjQ0NWM4NGQ2ZmI5NjhjNjEzZjllYmVlMTBkM2YxZGE2MWZmMTFkNDg5NGU0Y2Y3YWIyYTA5YjIzZTE1OCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_93e0c1dc5fc94b52bbd05b35cdb71362",
+      "statement": "The move submission entrypoint applies a per-user sliding-window rate limit (assertWithinRateLimit) and a server-authoritative clock gate (isClockExpired) before accepting a swap, with the rate limiter implemented as an in-process per-scope store in lib/rate-limiting/middleware.ts.",
+      "evidence": [
+        {
+          "resource": "repo://app/actions/match/submitMove.ts#L31-L90",
+          "version": "repo-lines-v1:sha256:3b1fa31515ace4afebdd304a8b4115c8a8823783f2a20fdce6976ea318669fd0:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYjk1Y2EzZTFmYmZiNzc3YTAyZWMzYTA4YmYzZWE3MzU2MGRmNzMyOTVjYzMyMzE5NDgyZWM1Y2VkYzE1ZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwNDgwZjA0Y2RhOTQxODY2MTIzMTE0OGVlNDZhZGY4NmVjMDQxZGVhZjAzMjUwYzY1N2NiYjc4MjIzYzU3MGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4NzU3ODE1NDRjYTc2ZmMyOTljNzJhNmQ3OWM3YWIxM2JlNTAyNDZiMjRkNGViZTcxOTZjMWYwNzliNTE2OGUifQ"
+        },
+        {
+          "resource": "repo://lib/rate-limiting/middleware.ts#L1-L61",
+          "version": "repo-lines-v1:sha256:88a5a5b53eba3c697ea462ba1e73a4b3dc7232e29adc57ea28a23642790c7d3f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmNjhkOGY4MjIyZDNiNzc0NTM1MjZiMmY5YjRjYzkxMDBmNWM1ZjBlMjY3Yzc3ZjdiYWZmZDJkZWE0MTIwZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5YTlmOTNiNzNkYTYzYjVjZDEyNjJiZTAzOTc3YTIxMWI5OTg3ZTFiMDI3NTBiMGM5NTBhYWIzZjRkZWVlMWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e7ce0135ba674c9fad9fc6698e074a87",
+      "statement": "Elo rating changes use K-factor 32 for players with fewer than 20 games and 16 otherwise, clamped to a rating floor of 100, computed in lib/rating/calculateElo.ts and persisted separately at match completion.",
+      "evidence": [
+        {
+          "resource": "repo://lib/rating/calculateElo.ts#L1-L31",
+          "version": "repo-lines-v1:sha256:0d21d96a2cc2660548358ff7ee288cd8681affc5e6358c2587f9ab4850671e67:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxYjdmOTA3OGU5ZTRlMWE0OWRiZDk4MmZiZmIxYWU5ZmVlMzU5NDlhNjhhNTdiN2FiNWE4NGE5ZDcyZTA1MmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0efa8a2a13c24300a059c3caee434481",
+      "statement": "Authentication is cookie-based: lib/matchmaking/profile.ts defines the wottle-playtest-session cookie with a 4-hour TTL and a Zod-validated payload, and readLobbySession() is the shared session check reused by both Server Actions and API Route Handlers.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/match/start/route.ts#L11-L18",
+          "version": "repo-lines-v1:sha256:695ede43fd4206713392ebddc88f8cc5d150d9149b79926c2b7f775f9bbe243f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzZhOGUxMjNiYjRlZDIyNjk4ZWM3N2Q5Zjg4NzU3NzUxN2IyOTZiZTliMzczMjA5YjNmZGU1YTAwN2FkNjVhMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjdlNTc4OGQ1ZDlkNzNkMjRhODFkYmMwYTVhNzRiZmE4MmM5YzNiM2FmOTllNTJhZjc5NmU5MGI0NjhhOGEzZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDM3ZDQyYWYzMTE2ZmY1MzlmMjNjZjFmODk1ODBlYmU3ZmFhNzBjNzdiNDBhZWQ5MDE4N2UzZDE0NzliYjg0YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTY1ZTRjYWQzNzc0MWI2MjJjYWIwMzEyYjY5MGRmMWMzMDk1OGJhOWVhMWNiZjBjOWVhOTM0OTc2NjYyOWIwNyJ9"
+        },
+        {
+          "resource": "repo://lib/matchmaking/profile.ts#L20-L62",
+          "version": "repo-lines-v1:sha256:aa0a406b8a837806a0eebc573f13ebe2f1ac01b25da52b7cc49a2fb30b3cdf0c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5M2JiZWNmYTgyZWQ0YTU3MzExY2YwMGFlY2Y2ODQ5M2FjNmI0NDkxZTk2YjdlM2JhYmIzZTBiZWQwNGFlYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyNDhhNDQzZDJjZWM5NjMyYWRmZjRkMDg0NGQyMzY1MDdmZTIwYWVjMThjNTllNTQ0ZTczNmUxYTM1YjU2NzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM0MzM5MDdhMThjMGI4ZWQ5MjBjNWUzNzJlZmJhZThkYTU2YzUxOWVhZDA1ZmU4ZTM2NjIwOWRmNzJkZDBmNDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_93ad8f4968fd4a91baf8ddf78607a49d",
+      "statement": "Edge security headers are applied globally in next.config.ts: a deny-by-default Permissions-Policy, X-Frame-Options DENY, X-Content-Type-Options nosniff, and Referrer-Policy on all paths, with HSTS added only in production.",
+      "evidence": [
+        {
+          "resource": "repo://next.config.ts#L6-L62",
+          "version": "repo-lines-v1:sha256:c72d340b7df47765bc58c40ed012b0b3f3a933bf806016f4a83f32d5875a0654:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1ZTFiODE4OGUyMzNkYzFjOTEyNmJhMGZiNzQ0ZDkxYzg4YWMxNjQxNzlkN2UzNTY3NmQyODhiNWVhMmM4Y2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlZjAxMjQ5MjdjMzA2MmQyZGVhMjNmZjg0YzlhMDQ1ZGNkMDk1NzEzNjQxMzk0MWI0NTAxMzM5YzRjMjQ4ZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzMTNiNzljZmY3ODk3NmJkY2FmNDdkNGM4Yzg0NGI0MGUxMzExMzU3ZDBmMjlkY2QyYzIyZjYwZDU2Mzk0OTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b14810ac304043788dbbcbd7f2807342",
+      "statement": "The cron sweep route completes orphaned matches as 'abandoned' via completeMatchInternal for each match returned by findOrphanedMatches, and emits structured sweep metrics.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/cron/sweep-stale-matches/route.ts#L43-L74",
+          "version": "repo-lines-v1:sha256:b151d180c69e8947c3d8099944ee700d663f3c1535d2bf1610fe40ec0dffd6e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmYTQ0MmU3MDliODFhZjM3YTU1NmNlMTgxNzVmMjZkOTBiMjk1NmE4YjFkOTdiZjk5YmJjYjQxOTU1NDViZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkYjNlN2NkMGMzYTYyMzA0NzY2ODE2MWQxMDRlOTlkODYyMDljYTNlNzc1NGEyNWIxMTlhNDkwNzg3ODA0MjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://lib/match/findOrphanedMatches.ts",
+          "version": "repo-file-v1:sha256:7713db302b8cbbf841728f0ee8370c8cc2dc74017863062c5900fc6d265f7998"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T18:17:19.733Z"
+  }
+}
