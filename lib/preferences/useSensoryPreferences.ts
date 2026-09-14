@@ -1,52 +1,39 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import {
-  type SensoryPreferences,
-  SENSORY_PREFERENCES_DEFAULT,
-  SENSORY_PREFS_STORAGE_KEY,
-} from "@/lib/types/preferences";
+import { useEffect } from "react";
 
-function readFromStorage(): SensoryPreferences {
-  if (typeof window === "undefined") {
-    return SENSORY_PREFERENCES_DEFAULT;
-  }
-  try {
-    const raw = localStorage.getItem(SENSORY_PREFS_STORAGE_KEY);
-    if (!raw) return SENSORY_PREFERENCES_DEFAULT;
-    return { ...SENSORY_PREFERENCES_DEFAULT, ...JSON.parse(raw) };
-  } catch {
-    return SENSORY_PREFERENCES_DEFAULT;
-  }
-}
+import type { PlayerPreferences } from "@/lib/types/preferences";
+import { usePreferencesStore } from "./preferencesStore";
 
-function writeToStorage(prefs: SensoryPreferences): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(SENSORY_PREFS_STORAGE_KEY, JSON.stringify(prefs));
-}
-
+/**
+ * Thin selector over the shared preferences store (spec 044, R14). Every
+ * consumer sees the same values, so a toggle in the ⋯ menu reaches the field
+ * and the sound hooks immediately.
+ */
 export function useSensoryPreferences(): {
-  preferences: SensoryPreferences;
+  preferences: PlayerPreferences;
   setSoundEnabled: (enabled: boolean) => void;
   setHapticsEnabled: (enabled: boolean) => void;
+  setPreviewEnabled: (enabled: boolean) => void;
 } {
-  const [preferences, setPreferences] = useState<SensoryPreferences>(readFromStorage);
+  const soundEnabled = usePreferencesStore((s) => s.soundEnabled);
+  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
+  const previewEnabled = usePreferencesStore((s) => s.previewEnabled);
+  const setSoundEnabled = usePreferencesStore((s) => s.setSoundEnabled);
+  const setHapticsEnabled = usePreferencesStore((s) => s.setHapticsEnabled);
+  const setPreviewEnabled = usePreferencesStore((s) => s.setPreviewEnabled);
+  const hydrate = usePreferencesStore((s) => s.hydrate);
 
-  const setSoundEnabled = useCallback((enabled: boolean) => {
-    setPreferences((prev) => {
-      const next = { ...prev, soundEnabled: enabled };
-      writeToStorage(next);
-      return next;
-    });
-  }, []);
+  // The store is created at module load, possibly before a test stubs
+  // localStorage; re-read on mount so persisted values win.
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
-  const setHapticsEnabled = useCallback((enabled: boolean) => {
-    setPreferences((prev) => {
-      const next = { ...prev, hapticsEnabled: enabled };
-      writeToStorage(next);
-      return next;
-    });
-  }, []);
-
-  return { preferences, setSoundEnabled, setHapticsEnabled };
+  return {
+    preferences: { soundEnabled, hapticsEnabled, previewEnabled },
+    setSoundEnabled,
+    setHapticsEnabled,
+    setPreviewEnabled,
+  };
 }
