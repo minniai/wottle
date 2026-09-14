@@ -24,6 +24,16 @@ Lobby, matchmaking, match, post-game and profile become **states of the same roo
 
 **The one rule**: every visible element is a letter (or a state of a letter) on the field, a fact about one player in that player's bar, or a fact about the match in the ledger. Anything else is removed, not restyled.
 
+## Clarifications
+
+### Session 2026-09-14
+
+- Q: Are challenge (direct-invite) matches rated, given the spec said "unranked" but every match writes Elo today? → A: All matches stay rated as today; lobby copy reads `here now · challenge for a ranked match`; no `unranked` label anywhere.
+- Q: How is a player's "first match" detected for the three-sentence rules line? → A: Server-side — the viewer's `gamesPlayed` count (existing profile stats) is 0 when the match starts; no per-device flag.
+- Q: At round resolution, do bands already drawn by the instant first-mover reveal animate again? → A: No — only words not yet drawn animate; already-drawn bands settle 30 % → 14 % with the rest, and totals count up by the remaining delta only.
+- Q: Who can open `/match/[id]` for a match they are not playing? → A: Signed-in non-participants may open a **completed** match as the read-only final room (seat colours resolve with the viewer as neither seat: player A teal, player B coral, header without `· you`); non-participants opening a **live** match are redirected to the lobby. Signed-out visitors are redirected to the landing room.
+- Q: Do signed-out visitors get server-priced previews on the warm-up field? → A: No. Signed out, the warm-up field swaps locally with no pricing and the hint reads `tap a second letter`; preview pricing (match and warm-up) requires a session. There is no anonymous pricing endpoint.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Read the match at a glance from the room (Priority: P1)
@@ -103,7 +113,7 @@ The ledger beside the field lists the match context, a column header for each se
 5. **Given** a row that would need more than three lines, **When** the ledger renders, **Then** rounds older than the last three collapse to totals only, with words available on hover.
 6. **Given** the opponent requests a rematch after a match, **When** the ledger renders, **Then** the notice `<name> asks for a rematch · accept ▸ · decline` appears as a live-row-styled line and no dialog opens.
 7. **Given** a player chooses resign from the `⋯` menu, **When** the confirmation shows, **Then** it is the line `resign the match? · yes, resign ▸ · no` in the live row, and it reverts after 5 seconds without action.
-8. **Given** a player's first match, **When** the room enters the match state, **Then** the live row carries the three-sentence rules text and a `? rules` control remains in the ledger foot for later matches.
+8. **Given** a player whose completed-match count is 0 (server-side `gamesPlayed`), **When** the room enters the match state, **Then** the live row carries the three-sentence rules text and a `? rules` control remains in the ledger foot for later matches.
 9. **Given** the territory bar, **When** the field has 32 teal frozen letters, 25 coral and 43 free, **Then** the bar shows you / free / opponent proportions in seat colour / rule colour / seat colour with the counts line beneath.
 
 ---
@@ -139,6 +149,7 @@ When a round resolves, the field draws each scored word's band along the word, o
 1. **Given** a round resolves with scored words, **When** the reveal runs, **Then** bands draw along each word at 30% tint, staggered, and the ledger live row appends each word with its points as its band lands.
 2. **Given** the reveal has drawn all bands, **When** the settle beat runs, **Then** pins fade, band tint settles to 14%, totals finish counting up, the territory bar updates and the next round's row opens as the live row.
 3. **Given** the first mover scores before the second mover has played, **When** the instant reveal arrives, **Then** the same choreography runs for the first mover's words only, and the second mover's pick is cleared if it landed on a newly frozen letter.
+3a. **Given** the first mover's bands were already drawn mid-round, **When** the round resolves, **Then** only the not-yet-drawn words (the second mover's) draw, the first mover's bands settle from 30 % to 14 % with the rest, and the totals count up only by the delta not already shown; no band is drawn twice.
 4. **Given** the user prefers reduced motion, **When** any round resolves, **Then** all transitions are instantaneous and only end states are shown.
 5. **Given** a round resolves with no scored words, **When** the settle beat runs, **Then** pins fade and the next row opens with no other signal.
 
@@ -155,10 +166,11 @@ A new visitor sees the same room: an empty top bar (`No opponent yet`), a real w
 **Acceptance Scenarios**:
 
 1. **Given** a signed-out visitor, **When** the room loads, **Then** the bottom bar shows an underlined `your name` input with sub-line `no account needed` and a `play ▸` primary action; the top bar shows `No opponent yet` / `ranked · about 0:10 to find one` / `play ranked ▸` (disabled until signed in).
-2. **Given** the lobby room, **When** the visitor picks and previews two letters on the warm-up field, **Then** the preview works exactly as in a match and the live row prices the word the preview would make, but no move is submitted, no word is scored and no territory is recorded.
+2. **Given** the lobby room and a signed-in player with preview on, **When** they pick and preview two letters on the warm-up field, **Then** the preview works exactly as in a match and the live row prices the word, but no move is submitted, no word is scored and no territory is recorded.
+2a. **Given** a signed-out visitor, **When** they pick two letters on the warm-up field, **Then** the letters swap locally, the hint reads `tap a second letter`, and no pricing request is sent (preview pricing requires a session).
 3. **Given** a name is entered and submitted, **When** the session is created, **Then** the bottom bar becomes the signed-in bar (name, rating, `you`) in place, without a route change or loading skeleton.
-4. **Given** other players are present, **When** the lobby ledger renders, **Then** the `here now · challenge for an unranked match` table lists each player with rating, the rating difference versus the viewer, and a `challenge ▸` action; the `your last matches` table lists opponent, score and rating change.
-5. **Given** a player presses `challenge ▸` on another player, **When** the challenge is accepted, **Then** an unranked match starts with that player using the existing invite path.
+4. **Given** other players are present, **When** the lobby ledger renders, **Then** the `here now · challenge for a ranked match` table lists each player with rating, the rating difference versus the viewer, and a `challenge ▸` action; the `your last matches` table lists opponent, score and rating change.
+5. **Given** a player presses `challenge ▸` on another player, **When** the challenge is accepted, **Then** a rated match starts with that player using the existing invite path (all matches are rated; see Clarifications).
 6. **Given** the lobby is empty of other players, **When** the ledger renders, **Then** the table shows `—` rows and the live row hint invites the player to press `play ranked ▸`; there is no illustrated empty state.
 
 ---
@@ -250,6 +262,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **Rating not yet computed at match end**: bars read `rating pending`; the verdict block still renders.
 - **Realtime falls back to polling**: nothing visible changes except latency; no status badge is shown (a fact about the connection has no home in the room).
 - **Player disconnects during the queue**: the queue is cancelled server-side as today; on return the room shows the lobby state.
+- **Non-participant opens a match URL**: completed match → read-only final room (no actions except `◂ lobby`, no rematch, seat colours teal = player A / coral = player B, no `· you` marker); live match → redirect to the lobby room; signed out → landing room.
 - **Sign-out during a match**: the `⋯` menu in a match offers leave (which resigns); sign-out is only in the lobby menu.
 
 ## Requirements *(mandatory)*
@@ -307,25 +320,27 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **FR-032**: The current round MUST render as the live row (tinted background, 3px ink left rule) carrying `picking · <letter> (<value>)`, `played ●`, then the words as they land; the live row MUST be a polite live region.
 - **FR-033**: Hovering or tapping a round row MUST highlight that round's bands on the field and dim the others, and show per-word points in the row.
 - **FR-034**: If a row would exceed three lines, rounds older than the last three MUST collapse to totals only, with words on hover.
-- **FR-035**: Rematch requests, resign confirmation, first-match rules and illegal-pick notices MUST render as live-row-styled lines in the ledger and MUST NOT open a dialog; the resign confirmation MUST revert after 5 seconds.
+- **FR-035**: Rematch requests, resign confirmation, first-match rules (shown when the viewer's server-side completed-match count is 0 at match start, never from a device flag) and illegal-pick notices MUST render as live-row-styled lines in the ledger and MUST NOT open a dialog; the resign confirmation MUST revert after 5 seconds.
 - **FR-036**: The ledger foot MUST hold `? rules` and the state's actions on the left and a `⋯` menu on the right (lobby: sound, profile, sign out; match: sound, resign, leave).
 - **FR-037**: The lobby variant MUST show a `here now` table (name, rating, difference versus viewer, `challenge ▸`), a `your last matches` table (opponent, score, rating change), the warm-up hint in the live row, and `—` rows while loading instead of skeletons.
 
 **Room states**
 
 - **FR-038**: Landing MUST be the lobby room with the bottom bar in the empty state: an underlined name input, `no account needed`, and `play ▸`; submitting MUST create the session and convert the bar in place without navigation.
-- **FR-039**: The lobby MUST show a warm-up field (a real random board) on which pick and preview work and the live row prices the preview, with nothing submitted, scored or stored.
+- **FR-039**: The lobby MUST show a warm-up field (a real random board) on which pick and commit work locally with nothing submitted, scored or stored; preview pricing on the warm-up field MUST be available only to signed-in players (no anonymous pricing endpoint).
 - **FR-040**: The queue state MUST show `Finding an opponent` / `ranked · <elapsed> · cancel ▸` with a travelling lane segment, and the field MUST set itself letter by letter from a placeholder board, with the live row counting letters; when the real board arrives at match start only the differing letters MUST swap in place.
 - **FR-041**: The found state MUST write the opponent's name and rating into the top bar, fill the lane, count `round 1 in 3 · 2 · 1` in the sub-line, and enter the match state without a versus screen.
 - **FR-042**: The final state MUST keep the field with all bands, show final totals and rating sub-lines (`<old> → <new> · ±n · wins`, or `rating pending`), a verdict block in the ledger (`<name> wins <a>–<b>` + `by <n> points · <w> words to <w> · territory <t>–<t>`), the rematch notice when requested, and the actions `rematch ▸ · new opponent ▸ · lobby`.
-- **FR-043**: Challenges from the lobby directory MUST start unranked matches using the existing invite path.
+- **FR-043**: Challenges from the lobby directory MUST start matches through the existing invite path; challenge matches are rated exactly like queued matches (no `unranked`/`casual` label anywhere).
 
 **Profile**
 
+- **FR-043a**: A signed-in non-participant opening `/match/[id]` MUST see the read-only final room when the match is completed (no actions, no rematch, seats coloured player A teal / player B coral without a `· you` marker) and MUST be redirected to the lobby when the match is live; signed-out visitors MUST be redirected to the landing room.
 - **FR-044**: The profile MUST use the same two-column grid: identity row, hairline rating chart and four-cell record row on the left; `best words` and `recent matches` ledgers with a `◂ lobby` / `change name · sign out` foot on the right; another player's profile MUST use the opponent colour; tapping a match MUST open its final room state read-only.
 
 **Motion, sound and copy**
 
+- **FR-044a**: A word's band MUST be drawn at most once per match; at round resolution the reveal MUST animate only words not already revealed by the instant first-mover path, and totals MUST count up only by the delta not yet shown.
 - **FR-045**: Motion MUST use only the durations and easing in design system §6 (ring/pin 120ms, preview 150ms, band 400ms staggered 120ms, count-up 400ms, pin fade 200ms, name write 200ms, setting letters ~100ms apart); geometry MUST not animate except the preview exchange and the picked scale; under reduced motion everything MUST be 0ms and end-state only.
 - **FR-046**: Sounds MUST be `tile-select` on pick, `valid-swap` on commit (with haptic where available) and a tick per band on reveal; nothing on cancel or error; sound MUST be toggled from the `⋯` menu and remembered as today.
 - **FR-047**: All copy MUST follow design system §8: sentence case, mono uppercase labels, lowercase wordmark, no exclamation marks, the fixed strings as listed with the clock budget written as `5:00` (`ranked · 10 rounds · 5:00 clocks`); the strings `Hidden from opponent until both submit`, `Move submitted — waiting for opponent`, `outrun the chess clock` and `wants a rematch!` MUST not appear.
@@ -384,7 +399,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **Double-direction scoring is current behaviour.** The scanner already produces both a forward and a reversed record for a run, so FÁR and RÁF score as two records; this spec pins it with a named regression test rather than treating it as a new rule.
 - **0:00 on a clock keeps the match going.** The server already synthesises a timeout pass for a player whose clock has expired and continues to round 10 for the opponent; the bar renders `0:00` muted with an empty lane. No rule change.
 - **Warm-up field never keeps score** (plan §12.4, recommended answer adopted).
-- **Directory challenges are unranked only** (plan §12.5, recommended answer adopted).
+- **All matches are rated**, including directory challenges (Clarifications 2026-09-14, Q1). Design plan §12.5's "unranked only" is not adopted because it would require a rating change, which is out of scope.
 - **Rounds are ten.** The ledger has ten rows; the caption reads `round n of 10`.
 - **Existing server contracts stay.** Move submission, broadcast on submit, instant first-mover reveal, rematch requests, claim-win and Elo are reused; the only contract change is adding the reading direction to scored word records.
 - **Sound and haptic preferences** keep their current storage and defaults; the `⋯` menu is the new toggle location.

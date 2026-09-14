@@ -21,6 +21,7 @@ The bundle is kept as authored. Read it with these team decisions substituted (s
 | 10:00 per-player clock (`10:00 clocks`, lane = 10:00, progress max 600) | **5:00** — the current budget stays; lane = 5:00, max 300, copy `5:00 clocks` |
 | Second tap previews; `instantCommit` setting opts out | **Second tap commits** (as today); a `preview` setting (default off) opts in |
 | Queue field shows the real match board | **Placeholder board**; letters that differ swap in at match start |
+| Directory challenges start unranked matches | **All matches are rated** (no rating change in scope); copy `here now · challenge for a ranked match` |
 
 ## The one rule
 

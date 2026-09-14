@@ -100,7 +100,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 **Lobby Ledger:**
 
-- `here now` table: every present player with rating, rating difference versus the viewer, and a `challenge ▸` action (unranked match).
+- `here now` table: every present player with rating, rating difference versus the viewer, and a `challenge ▸` action (a rated match, like every match).
 - `your last matches` table: opponent, score, rating change.
 - Updates in real-time as users join/leave; while loading, rows show `—`.
 
