@@ -18,22 +18,16 @@ export default async function PublicProfilePage({
 
   if (profileResult.status === "not_found") {
     return (
-      <main className="mx-auto max-w-lg px-6 py-16 text-center">
-        <h1 className="font-display text-2xl text-ink">No such player</h1>
-        <p className="mt-2 text-sm text-ink-3">
-          @{handle} hasn&apos;t played a round here yet.
-        </p>
+      <main className="room">
+        <div className="ledger__live-row" data-testid="profile-not-found">No such player · @{handle} has not played a round here yet</div>
       </main>
     );
   }
 
   if (profileResult.status !== "ok" || !profileResult.profile) {
     return (
-      <main className="mx-auto max-w-lg px-6 py-16 text-center">
-        <h1 className="font-display text-2xl text-bad">Profile unavailable</h1>
-        <p className="mt-2 text-sm text-ink-3">
-          {profileResult.error ?? "Try again in a moment."}
-        </p>
+      <main className="room">
+        <div className="ledger__live-row">profile unavailable · {(profileResult.error ?? "try again in a moment").toLowerCase()}</div>
       </main>
     );
   }
