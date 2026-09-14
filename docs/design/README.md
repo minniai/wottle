@@ -10,7 +10,7 @@ The binding design for every screen in Wottle is the **Field & Ledger** system. 
 | [`DOCS_CONSISTENCY.md`](../design_documentation/260914-wottle-new-design/DOCS_CONSISTENCY.md) | Documentation edits that keep the repo consistent with the design, plus the grep list of phrases the docs must no longer contain. |
 | `260914-wottle-new-design-v2.pdf` | The UX audit with the figures (Fig. 2 desktop match, Fig. 5 phone, Fig. 6 lobby, Fig. 7 matchmaking, Fig. 8 post-game, Fig. 9 profile, Fig. 10 states). `v1` is the earlier draft. |
 
-The Speckit feature that implements it is `specs/044-field-ledger-redesign/`.
+The Speckit feature that implements it is `specs/044-field-ledger-redesign/`. **Status (2026-09-14):** P0 contracts and P1 (tokens, fonts, room shell, player bars) are in; P2–P5 pending — see the step table in `CLAUDE.md`.
 
 ## Decisions that override the bundle (2026-09-14)
 
