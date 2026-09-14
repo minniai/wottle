@@ -32,6 +32,8 @@ const config = [
       "docs/design_documentation/**",
       // Archived Warm Editorial handoff bundles (moved from docs/design_documentation by spec 044).
       "docs/archive/**",
+      // Untracked design-sync build output (gitignored); not source.
+      "ds-bundle/**",
       "prd/wordlist",
       "node_modules",
       ".next",
