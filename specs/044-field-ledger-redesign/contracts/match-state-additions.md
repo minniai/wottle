@@ -6,7 +6,7 @@ All changes are optional fields; existing clients ignore them, new clients fall 
 - Carried in `RoundSummary.words`, `PartialRoundSummary.words`, the round summary route and the summary page loader.
 - Filled by `mapWordScoreRow` from the stored `tiles` order; `deriveReadingDirection(coordinates)` is the fallback for payloads without it.
 - `lib/match/schemas.ts` `wordScoreSchema`: `.optional()` enum.
-- Regression tests: `FÁR/RÁF → two records, opposite directions`; `single-direction run → one record`; `BORÐA + GILT → GILT rejected`.
+- Regression tests: `FÁR/RÁF → one record, ltr`; `reverse-only word → one record with reversed tiles (rtl)`; `single-direction run → one record`; `BORÐA + GILT → GILT rejected`.
 
 ## `MatchState.disconnectedAt?: string | null`, `MatchState.reconnectWindowMs?: number`
 - Emitted by `loadMatchState` whenever `disconnectedPlayerId` is set: `disconnectedAt` from `disconnectStore.getDisconnectedAt` or the heartbeat's last-seen timestamp; `reconnectWindowMs = RECONNECT_WINDOW_MS` (90 000).

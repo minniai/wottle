@@ -40,7 +40,7 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `tests
 ### Contracts (design plan §1, research R1, R2, R3, R13, R14)
 
 - [ ] T006 Write failing test `tests/unit/lib/game-engine/readingDirection.test.ts` (ltr/rtl/ttb/btt from two coordinates; throws `InvalidWordGeometryError` on <2 coords or diagonal step) then create `lib/game-engine/readingDirection.ts` and add `ReadingDirection` + `WordScore.direction?` to `lib/types/match.ts`
-- [ ] T007 Write failing regression test `tests/unit/lib/game-engine/doubleReading.test.ts` — a run valid both ways (fixture dictionary with `fár` and `ráf`) produces two `WordScoreBreakdown`s with reversed tiles; a single-direction run produces one — against `lib/game-engine/wordEngine.ts` (test only; behaviour already exists)
+- [ ] T007 Write regression test `tests/unit/lib/game-engine/doubleReading.test.ts` — a run valid both ways (`fár`/`ráf`) produces **one** `WordScoreBreakdown` (forward reading, ltr tiles); a reverse-only word keeps reversed tile order; a single-direction run produces one — against `lib/game-engine/wordEngine.ts` (test only; pins current behaviour, rules §3.1)
 - [ ] T008 [P] Write failing regression test `tests/unit/lib/game-engine/wholeRun.bordaGilt.test.ts` — frozen horizontal `BORÐA` cols 1–5, new `GILT` cols 6–9 rejected by `violatesFrozenAdjacencyOnSameAxis` when the dictionary lacks `borðagilt` (test only) and add the case to `docs/prd_and_requirements/wottle_game_rules.md` §10 change log as "pinned 2026-09"
 - [ ] T009 Write failing test `tests/unit/lib/match/wordScoreRow.test.ts` (row with `tiles` → `WordScore` with `direction`; legacy row without tiles order still maps) then create `lib/match/wordScoreRow.ts` (`mapWordScoreRow`) and use it in `lib/match/stateLoader.ts` (`mapWordScores`), `app/actions/match/publishRoundSummary.ts`, `app/api/match/[matchId]/rounds/[round]/summary/route.ts`, `app/match/[matchId]/summary/page.tsx`
 - [ ] T010 Extend `wordScoreSchema` in `lib/match/schemas.ts` with `direction: z.enum([...]).optional()` and update `tests/unit/match/schemas.partialRoundSummary.spec.ts` fixture to include `direction`
@@ -108,15 +108,15 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `tests
 
 ## Phase 5: User Story 3 — See words, not tiles (Priority: P2)
 
-**Goal**: One band per scored word record with a chevron at the reading start; two chevrons for double-direction runs; both bands at crossings; shared letters in ink; row hover dims other bands.
+**Goal**: One band per scored word record with a chevron at the reading start (one record per run, so one chevron); both bands at crossings; shared letters in ink; row hover dims other bands.
 
 **Independent Test**: `tests/unit/lib/room/bandGeometry.spec.ts` + `tests/unit/components/room/FieldBands.spec.tsx` green; fixture match state renders `field-band[data-direction]` for all four directions and two bands on a FÁR/RÁF run.
 
 - [ ] T043 [P] [US3] Write failing tests `tests/unit/lib/room/bandGeometry.spec.ts` (rect for horizontal/vertical runs in percent units with 20 % short-axis / 5 % long-axis insets; chevron edge per direction; clipping to frozen subset for partial freezes; `bandsFromWords(words, frozenTiles, viewerSlot, round)` builds `WordBand[]` with stable ids and falls back to `deriveReadingDirection` when `direction` is absent) then create `lib/room/bandGeometry.ts`
 - [ ] T044 [US3] Write failing component test `tests/unit/components/room/FieldBands.spec.tsx` (one `<rect>` + one chevron `<path>` per band; `data-seat`, `data-direction`, `data-round`; `dimmed` opacity when `highlightRound` set elsewhere; `strength` live vs settled classes) then create `components/room/FieldBands.tsx` (single `<svg>` sibling under the cells, `pointer-events:none`, ≤ 60 lines)
 - [ ] T045 [US3] Extend `components/room/FieldCell.tsx` + test: letters inside a band take the scorer's seat colour, numerals too; a cell in bands of both seats renders `--ink` at 700 (`data-state=shared`)
-- [ ] T046 [US3] Accumulate `WordBand[]` in `lib/room/roomStore.ts` from `lastSummary.words` + `partialSummary.words` (dedupe by band id, cleared on rematch) and pass to `Field`; test in `tests/unit/lib/room/roomStore.bands.spec.ts` including the double-direction case producing two bands
-- [ ] T047 [US3] Add "bands" section to `tests/integration/ui/room-flow.spec.ts`: after a scored round, `field-band` count equals ledger word count and the chevron edge matches `data-direction`
+- [ ] T046 [US3] Accumulate `WordBand[]` in `lib/room/roomStore.ts` from `lastSummary.words` + `partialSummary.words` (dedupe by band id, cleared on rematch) and pass to `Field`; test in `tests/unit/lib/room/roomStore.bands.spec.ts` including a reversed-reading word producing a right/bottom-edge chevron
+- [ ] T047 [US3] Add "bands" section to `tests/integration/ui/room-flow.spec.ts`: after a scored round, `field-band` count equals ledger word count (one per record) and the chevron edge matches `data-direction`
 - [ ] T048 [US3] Delete `components/match/{WordHighlightOverlay,deriveHighlightPlayerColors,derivePostGameHighlightColors}.ts(x)`, `lib/match/currentRoundScored.ts`, `lib/constants/playerColors.ts`, `lib/match/selfColorStore.ts` and their tests (`tests/unit/match/currentRoundScored.spec.ts`, `tests/unit/components/BoardGrid.*.spec.tsx`); update `docs/prd_and_requirements/wottle_game_rules.md` §12 if any rendering detail changed
 
 ---

@@ -79,17 +79,17 @@ A player taps a letter (it becomes picked in their colour) and taps a second let
 
 ### User Story 3 - See words, not tiles (Priority: P2)
 
-Scored words are drawn on the field as bands: a light tint of the scorer's colour running along the word, with a small chevron at the end where reading begins, so a player can see which letters belong to which word, whose it is and which way it reads. A run that is a valid word in both directions carries a chevron at each end. A letter shared by both players' words is drawn in ink inside two bands.
+Scored words are drawn on the field as bands: a light tint of the scorer's colour running along the word, with a small chevron at the end where reading begins, so a player can see which letters belong to which word, whose it is and which way it reads. A run that is a valid word in both directions is one record (the forward reading), so it carries one chevron. A letter shared by both players' words is drawn in ink inside two bands.
 
 **Why this priority**: Territory is earned per word but the current UI paints it per tile, so words vanish into a mosaic of coloured squares. Bands restore the game's central object and are the basis of the reveal choreography (Story 5) and the ledger's row hover (Story 4).
 
-**Independent Test**: Load a match state with a horizontal left-to-right word, a vertical bottom-to-top word, a crossing between a teal and a coral word, and a run scored in both directions. Verify one band per word record with its chevron on the correct edge, both bands visible at the crossing, the shared letter in ink, and two chevrons on the two-direction run.
+**Independent Test**: Load a match state with a horizontal left-to-right word, a vertical bottom-to-top word, a crossing between a teal and a coral word, and a run that reads as a word both ways. Verify one band per word record with its chevron on the correct edge, both bands visible at the crossing, the shared letter in ink, and exactly one chevron (at the left/top end) on the two-way run.
 
 **Acceptance Scenarios**:
 
 1. **Given** a settled scored word reading left to right, **When** the field renders, **Then** a band at 14% of the scorer's seat colour covers exactly its cells, inset so the value-numeral gutter stays clear, with a chevron on the band's left edge pointing right; the letters inside take the scorer's colour and their value numerals take the scorer's colour.
 2. **Given** words reading right to left, top to bottom, or bottom to top, **When** the field renders, **Then** the chevron sits at the reading start (right edge pointing left, top edge pointing down, bottom edge pointing up respectively).
-3. **Given** a run that scored as a valid word in both directions (for example FÁR and RÁF), **When** the field renders, **Then** the run carries a chevron at each end and the ledger row lists both words.
+3. **Given** a run that reads as a valid word in both directions (for example FÁR and RÁF), **When** the field renders, **Then** it is one record read forward (`fár`, left-to-right), one band with a single chevron at the left end, and one word in the ledger row.
 4. **Given** a teal word and a coral word crossing at one letter, **When** the field renders, **Then** both bands are drawn in full and the shared letter is rendered in ink at heavy weight.
 5. **Given** two words of the same seat on the same axis, **When** the field renders, **Then** their bands never touch end to end (guaranteed by the whole-run rule: BORÐA + GILT is only valid as the single run BORÐAGILT).
 6. **Given** a player hovers or taps a round row in the ledger, **When** the row is active, **Then** that round's bands stay at full tint and all other bands dim, and the row shows per-word points.
@@ -252,7 +252,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **Both players pick the same letter**: the first commit wins (existing rule). The second player's pick clears when the opponent's pin arrives; the live row states why. The second player's preview, if it included that letter, reverses.
 - **Opponent's pin lands on a letter in the player's preview**: the preview reverses, the pin shows in coral, the live row explains, and the player's clock keeps running.
 - **First-mover instant reveal freezes a letter the second mover has picked**: the pick clears silently on the field and the live row (which is polite live-region text) announces it.
-- **A run valid in both directions**: two word records, two chevrons, two words in the ledger row.
+- **A run valid in both directions**: one word record (the forward reading, rules §3.1), one band, one chevron, one word in the ledger row.
 - **A word fully or partly overlapping frozen letters of the other seat**: bands for both seats are drawn; shared letters render in ink.
 - **A ledger row overflowing three lines**: older rounds collapse to totals only; the ledger never scrolls.
 - **Very long player names**: the name truncates with an ellipsis in the bar and the ledger header; the sub-line never wraps.
@@ -290,7 +290,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **FR-011**: The field MUST render 100 flat paper cells separated by 1px rules inside a 1.5px ink frame, each with a centred uppercase letter at 55% of cell height and a value numeral at 18% of cell height in the top-right gutter.
 - **FR-012**: Each letter MUST render exactly one of the states free, picked, previewed, pinned, scored, shared, illegal-pick shake or keyboard focus, with the marks defined in design system §5.1.
 - **FR-013**: Each scored word record MUST be drawn as one band (tint of the scorer's seat colour, square ends, inset 20% of a cell on the short axis and 5% on the long axis, clipped to frozen letters for partial freezes) with a 1.5px chevron at the reading start on the edge matching its reading direction.
-- **FR-014**: Each scored word record MUST carry its reading direction (left-to-right, right-to-left, top-to-bottom, bottom-to-top) so the field can place the chevron; a run valid in both directions MUST produce two records and two chevrons.
+- **FR-014**: Each scored word record MUST carry its reading direction (left-to-right, right-to-left, top-to-bottom, bottom-to-top) so the field can place the chevron; a run valid in both directions is one record (forward reading) and MUST show exactly one chevron.
 - **FR-015**: Coordinate labels, the lock banner, the round announcement overlay, move-feedback toasts, the invalid-move colour flash and the pulsing waiting frame MUST be removed from the field; coordinates MUST survive only in each cell's accessible label.
 - **FR-016**: Value numerals MUST be muted on free letters, take the scorer's seat colour on scored letters, and ink on picked letters.
 
@@ -356,7 +356,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 
 **Documentation**
 
-- **FR-051**: The rules document MUST gain a clock-model section, a double-direction scoring sentence with a regression test named for it, the BORÐA + GILT example, and a "what the player sees" subsection, before the field work begins.
+- **FR-051**: The rules document MUST gain a clock-model section, a one-record-per-run sentence with a regression test named for it, the BORÐA + GILT example, and a "what the player sees" subsection, before the field work begins.
 - **FR-052**: The PRD, architecture and ideation documents MUST be aligned with four orthogonal directions, the match-long clock model, the BÍN dictionary, broadcast-on-submit visibility, lane clocks, in-colour shake, and the single room, or marked historical.
 - **FR-053**: The Warm Editorial bundle, the previous Claude Design handoff bundles, the Warm Editorial phased plan, and every spec or proposal describing retired UI MUST carry a superseded note pointing to the Field & Ledger plan; the new design bundle MUST live at a stable documented path.
 - **FR-054**: `README.md` and `CLAUDE.md` MUST describe the Field & Ledger system, link the design system as binding, add the design rules block from `DOCS_CONSISTENCY.md §8`, and list the room components; test documentation MUST name the new test ids.
@@ -369,7 +369,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **Player bar**: one player's facts: seat square, name, rating, sub-line, clock, total, clock lane, and the empty / searching / found / playing / final states.
 - **Field**: the 10×10 grid of letters, each with a value and a state (free, picked, previewed, pinned, scored, shared), plus the word bands drawn over the cells but under nothing.
 - **Word band**: the rendering of one scored word record: scorer's seat, cells covered, reading direction (determines the chevron edge), and whether it is settled (14%) or live (30%).
-- **Scored word record**: an existing entity (player, word, points, coordinates) extended with reading direction; a run valid both ways yields two records.
+- **Scored word record**: an existing entity (player, word, points, coordinates) extended with reading direction; exactly one record per run.
 - **Ledger**: the match's facts: context caption, seat header, ten round rows (one live), territory counts, hint, notices, foot actions. Lobby variant: presence table, recent matches, hint.
 - **Live row**: the current round's ledger row and the only place transient state text (picking, played, illegal pick, notices, first-match rules) is written.
 - **Clock lane**: one player's remaining time drawn as a filled fraction of the match budget, with running / stopped / low / disconnected states.
@@ -388,7 +388,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **SC-007**: A round resolving with three words completes its reveal and settle in under 2.5 seconds; with reduced motion the end state is visible immediately.
 - **SC-008**: Lobby → queue → found → match → final → rematch runs with zero route flashes or loading skeletons and the field never unmounts (verified by a single field element identity across the flow).
 - **SC-009**: The two-player end-to-end flow (sign in, queue, pair, pick → commit, pick → preview → commit with the setting on, Esc cancels a preview, opponent pin during preview, reveal, final, rematch notice) passes in CI, and automated accessibility checks report zero violations in every room state.
-- **SC-010**: The documentation grep list returns nothing, and the rules document contains the clock model, double-direction sentence, BORÐA + GILT example and "what the player sees" subsection.
+- **SC-010**: The documentation grep list returns nothing, and the rules document contains the clock model, one-record-per-run sentence, BORÐA + GILT example and "what the player sees" subsection.
 - **SC-011**: Performance budgets are unchanged: move round-trip, validation and broadcast latencies stay within the constitution's limits; the preview hint prices a board within one frame on a mid-range phone.
 
 ## Assumptions
@@ -396,7 +396,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **Clock budget stays 5:00 per player** (decision Q1, 2026-09-14). The design's `10:00` copy, lane scale and accessibility max are adapted to 5:00; no rule or server change.
 - **Second tap commits by default** (decision Q2, 2026-09-14). Preview is an opt-in setting.
 - **Queue field is a placeholder** (decision Q3, 2026-09-14). Letters that differ swap in when the real board arrives at match start; no server change.
-- **Double-direction scoring is current behaviour.** The scanner already produces both a forward and a reversed record for a run, so FÁR and RÁF score as two records; this spec pins it with a named regression test rather than treating it as a new rule.
+- **One record per run is current behaviour.** The scanner produces a forward and a reversed candidate, but overlapping same-axis readings conflict and the cross-validator keeps one (the forward reading when both are words). FÁR/RÁF is therefore one record, `fár`; this spec pins it with a named regression test and does not change scoring. The design plan's "two chevrons" case does not occur.
 - **0:00 on a clock keeps the match going.** The server already synthesises a timeout pass for a player whose clock has expired and continues to round 10 for the opponent; the bar renders `0:00` muted with an empty lane. No rule change.
 - **Warm-up field never keeps score** (plan §12.4, recommended answer adopted).
 - **All matches are rated**, including directory challenges (Clarifications 2026-09-14, Q1). Design plan §12.5's "unranked only" is not adopted because it would require a rating change, which is out of scope.

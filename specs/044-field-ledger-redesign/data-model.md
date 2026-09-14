@@ -29,7 +29,7 @@ export interface WordScore {
 
 - **Derivation**: `deriveReadingDirection(coordinates)`: `dx>0 → ltr`, `dx<0 → rtl`, `dy>0 → ttb`, `dy<0 → btt` from `coordinates[1] − coordinates[0]`. Throws `InvalidWordGeometryError` for fewer than 2 coordinates or a non-orthogonal step.
 - **Validation**: `wordScoreSchema` gains `direction: z.enum(["ltr","rtl","ttb","btt"]).optional()`.
-- **Invariant**: a run valid in both directions is two `WordScore`s with identical coordinate *sets* and opposite `direction`.
+- **Invariant**: exactly one `WordScore` per run; when both readings are words the record is the forward one (`ltr`/`ttb`). A reversed record (`rtl`/`btt`) exists only when the reversed reading alone is a word.
 - **Filled by**: the shared mapper `mapWordScoreRow(row)` (`lib/match/wordScoreRow.ts`, new) used by `stateLoader.mapWordScores`, `publishRoundSummary`, `app/api/match/[id]/rounds/[round]/summary/route.ts` and `app/match/[id]/summary/page.tsx` (until the latter is retired).
 
 ### 1.2 `MatchState` — add disconnect anchor
