@@ -8,3 +8,5 @@ is the ledger's rounds table and the final room state (`Ledger`); `RoundHistoryP
 feature spec `specs/044-field-ledger-redesign/spec.md`.
 
 The folder is kept for history. Any engine or server behaviour this spec introduced remains valid.
+
+**Replacing pieces (2026-09-14, US9):** the ledger's rounds table (`lib/room/ledgerRows.ts`, `components/room/Ledger.tsx`) is the history during and after the match; the final room state keeps every band on the field. `RoundHistoryPanel`, `FinalSummary`, `RoundByRoundChart`, `WordsOfMatch` are deleted.

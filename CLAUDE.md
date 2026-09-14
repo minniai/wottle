@@ -231,14 +231,18 @@ Round Flow:
 #### 7. Frontend Communication
 
 ```txt
-MatchClient Flow:
-1. Server Component loads initial state → loadMatchState()
-2. Client hydrates → Subscribe to Realtime match channel
-3. State updates → Broadcast or polling
-4. Move submission → POST /api/match/[matchId]/move → submitMove() Server Action
-5. Feedback → MoveFeedback component
-6. Disconnect → Fallback to polling, mark player disconnected
-7. Game end → Navigate to summary
+Room flow (spec 044):
+1. app/(room)/layout.tsx reads the session once → RoomShell seeds roomStore.viewer
+2. Lobby page → LobbyRoomController: presence store, warm-up field, LobbyLedger, invites polled every 3s
+3. play ranked ▸ → /matchmaking → QueueRoomController: placeholder letters land, startQueueAction polled
+   every 3s, found → opponent writes into the top bar, real board swapped in, round 1 in 3·2·1,
+   then MatchRoomController renders in place (URL via history.replaceState)
+4. Match page → MatchRoomController: useMatchTransport (Realtime + 2s safety poll + polling fallback)
+   → roomStore.applySnapshot / applySummary; useFieldInteraction posts moves; useReveal draws bands
+5. Disconnect → opponent bar counts `reconnecting · m:ss left` from MatchState.disconnectedAt; both
+   lanes hold; after the window the ledger offers `claim the win ▸` (claimWinAction)
+6. state = completed → final phase in the same room: verdict block, rating lines from
+   getMatchRatings, rematch negotiation as ledger lines, actions rematch ▸ · new opponent ▸ · lobby
 ```
 
 ### Core Types & Validation

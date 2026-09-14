@@ -8,3 +8,5 @@ is live-row-styled notices in the ledger (`<name> asks for a rematch · accept �
 feature spec `specs/044-field-ledger-redesign/spec.md`.
 
 The folder is kept for history. Any engine or server behaviour this spec introduced remains valid.
+
+**Replacing pieces (2026-09-14, US9):** `lib/room/useRematchNegotiation.ts` (events arrive through the room's single match channel), rendered by `components/room/Ledger.tsx` as live-row lines (`<name> asks for a rematch · accept ▸ · decline`, `waiting for <name>`, `<name> declined`) and the foot actions `rematch ▸ · new opponent ▸ · lobby` in `MatchRoomController`. Server actions and `rematch_requests` unchanged. `/match/[id]/summary` now redirects to the room.
