@@ -35,13 +35,25 @@ Each step ends with the two-player Playwright flow green and two screenshots (14
 7. Close window B's tab — window A's top bar sub-line counts `reconnecting · 1:30 left`, lane dashed; after 90 s the ledger offers `claim the win ▸`.
 8. Finish or resign (`⋯ → resign` → live-row confirmation). The verdict appears in the ledger; the field stays; `rematch ▸` shows the request as a live-row line in the other window.
 
+**Walkthrough status (T105, 2026-09-14):** not executed locally in this session (no Supabase). The same
+path is automated end to end in `tests/integration/ui/{landing,lobby-presence,room-flow,matchmaking,
+sensoryFeedback,reconnect-flow,match-completion,profile-room,room-layout}.spec.ts`, which CI runs; do the
+two-browser pass by hand once on the review deployment and tick this line.
+
 ## Performance checks
 
 ```bash
 pnpm perf:round-resolution    # unchanged budget <200 ms p95
 pnpm perf:instant-scoring     # unchanged
-# preview action: tests/perf/preview-swap.yml (new) asserts <200 ms p95 at 20 rps
+pnpm perf:preview-swap        # tests/perf/preview-swap.yml asserts <200 ms p95 at 20 rps
 ```
+
+**Results (T101).** Not run locally on 2026-09-14 — the local Supabase stack was not running and the
+Artillery scenarios need it plus a built server. The CI `perf-gate` job runs `round-resolution` and,
+since this feature, `preview-swap` on every push (`.github/workflows/ci.yml`); read the numbers from
+its `perf-artifacts` upload (`artillery-round-resolution.json`, `artillery-preview-swap.json`).
+`instant-scoring` is not gated in CI; run it before release. The server-side preview scan is asserted
+<50 ms in `tests/unit/app/actions/previewSwap.spec.ts`.
 
 ## Acceptance greps (run at the end of each step, scoped to converted folders)
 
