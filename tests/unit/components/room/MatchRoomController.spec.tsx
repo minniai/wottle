@@ -113,11 +113,13 @@ describe("MatchRoomController", () => {
   });
 
   it("a scored round lands in its ledger row by seat and the round advance resets the field", () => {
+    vi.useFakeTimers();
     renderController();
     fireEvent.click(cell(0, 0));
     fireEvent.click(cell(1, 0));
     act(() => mockCallbacks.onSummary!(summary));
     act(() => mockCallbacks.onState!(state({ currentRound: 4, lastSummary: summary, scores: summary.totals })));
+    act(() => vi.advanceTimersByTime(2_100)); // reveal settles
     const row = screen.getByTestId("ledger-row-3");
     const cells = row.querySelectorAll(".ledger__words");
     expect(cells[0].textContent).toContain("þar");
@@ -202,4 +204,54 @@ describe("MatchRoomController", () => {
     fireEvent.click(screen.getByTestId("ledger-rules"));
     expect(screen.getByText(/Swap two letters/)).toBeInTheDocument();
   });
+
+  it("reveal: bands draw one at a time, words land in the row as each lands, then everything settles", () => {
+    vi.useFakeTimers();
+    renderController(state({ currentRound: 3 }));
+    act(() => mockCallbacks.onSummary!(summary));
+    // Nothing drawn at t=0 before the first band step runs.
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getAllByTestId("field-band")).toHaveLength(1);
+    expect(screen.getAllByTestId("field-band")[0]).toHaveClass("field__band--drawing");
+    expect(screen.getByTestId("ledger-row-3").textContent).not.toContain("þar");
+    act(() => vi.advanceTimersByTime(400));
+    expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
+    act(() => vi.advanceTimersByTime(120));
+    expect(screen.getAllByTestId("field-band")).toHaveLength(2);
+    expect(screen.getAllByTestId("field-band")[1]).toHaveClass("field__band--live");
+    act(() => vi.advanceTimersByTime(400));
+    expect(screen.getByTestId("ledger-row-3").textContent).toContain("orð");
+    act(() => vi.advanceTimersByTime(1_200)); // t ≥ 2040: settle
+    expect(screen.getAllByTestId("field-band").every((b) => b.classList.contains("field__band--settled"))).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("reveal under reduced motion: end state immediately", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+    vi.useFakeTimers();
+    renderController(state({ currentRound: 3 }));
+    act(() => mockCallbacks.onSummary!(summary));
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getAllByTestId("field-band")).toHaveLength(2);
+    expect(screen.getByTestId("ledger-row-3").textContent).toContain("orð");
+    vi.useRealTimers();
+  });
+
+  it("words revealed by the first-mover partial are not drawn again at resolution (Q3)", () => {
+    vi.useFakeTimers();
+    renderController(state({ currentRound: 3 }));
+    const partial = { matchId: "m1", roundNumber: 3, firstMoverId: "player-1", firstSubmissionAt: "2026-01-01T00:00:00Z", words: [summary.words[0]], delta: { playerA: 15, playerB: 0 }, frozenTiles: {} };
+    act(() => mockCallbacks.onState!(state({ currentRound: 3, partialSummary: partial })));
+    act(() => vi.advanceTimersByTime(1100));
+    expect(screen.getAllByTestId("field-band")).toHaveLength(1);
+    act(() => mockCallbacks.onSummary!(summary));
+    act(() => vi.advanceTimersByTime(0));
+    // The first mover's band stays; only the second word draws.
+    const bands = screen.getAllByTestId("field-band");
+    expect(bands).toHaveLength(2);
+    expect(bands.filter((b) => b.classList.contains("field__band--drawing"))).toHaveLength(1);
+    expect(bands.find((b) => b.classList.contains("field__band--drawing"))).toHaveAttribute("data-word", "orð");
+    vi.useRealTimers();
+  });
 });
+

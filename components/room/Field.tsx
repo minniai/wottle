@@ -23,6 +23,7 @@ export interface FieldProps {
   bands?: WordBand[];
   highlightRound?: number | null;
   drawnCount?: number | null;
+  drawingIndex?: number | null;
   cellStateFor?: (coord: Coordinate, base: CellState) => CellState;
   seatFor?: (coord: Coordinate) => Seat | null;
   shakeAt?: Coordinate | null;
@@ -43,7 +44,7 @@ function letterValue(letter: string): number {
  * pick/preview/commit reducer drives it from P3 through `cellStateFor`.
  */
 export function Field(props: FieldProps) {
-  const { board, frozenTiles = {}, viewerSlot, ownerNames = {}, disabled, bands = [], highlightRound = null, drawnCount = null } = props;
+  const { board, frozenTiles = {}, viewerSlot, ownerNames = {}, disabled, bands = [], highlightRound = null, drawnCount = null, drawingIndex = null } = props;
   const shared = useMemo(() => new Set([...(props.sharedCells ?? []), ...sharedFromBands(bands)]), [props.sharedCells, bands]);
   const { cellStateFor, seatFor, shakeAt, focusAt, onActivate, onKeyDown } = props;
   const ref = useRef<HTMLDivElement | null>(null);
@@ -61,7 +62,7 @@ export function Field(props: FieldProps) {
 
   return (
     <div ref={ref} className="field" role="grid" aria-label="the field" data-testid="field" data-disabled={disabled || undefined}>
-      <FieldBands bands={bands} highlightRound={highlightRound} drawnCount={drawnCount} />
+      <FieldBands bands={bands} highlightRound={highlightRound} drawnCount={drawnCount} drawingIndex={drawingIndex} />
       {board.map((row, y) =>
         row.map((letter, x) => {
           const key = `${x},${y}`;

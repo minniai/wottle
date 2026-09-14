@@ -8,7 +8,7 @@ import { resignMatch } from "@/app/actions/match/resignMatch";
 import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
-import { bandsFromWords } from "@/lib/room/bandGeometry";
+import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
 import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import type { LiveState } from "@/lib/room/ledgerRows";
@@ -26,6 +26,9 @@ import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
+import { useReducedMotion } from "./hooks/useReducedMotion";
+import { useReveal } from "./hooks/useReveal";
+import { buildPartialRevealKey } from "@/lib/match/partialReveal";
 
 export interface MatchRoomControllerProps {
   initialState: MatchState;
@@ -104,10 +107,38 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   });
 
   const displayBoard = useMemo(() => applyLetterSwaps(match.board, [opponentPins, field.ownPins]), [match.board, opponentPins, field.ownPins]);
-  const bands = useMemo(
-    () => bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId }),
-    [words, frozenTiles, viewerSlot, match.timers.playerA.playerId],
-  );
+  // Reveal (design system §7, Clarifications Q3): a new summary or first-mover
+  // partial starts a plan over the words not yet drawn; drawn ids are remembered
+  // so nothing is ever drawn twice.
+  const reducedMotion = useReducedMotion();
+  const [drawnIds, setDrawnIds] = useState<Set<string>>(() => new Set());
+  const reveal = useMemo(() => {
+    const partial = match.partialSummary;
+    const summary = match.lastSummary;
+    const source = summary && (!partial || summary.roundNumber >= partial.roundNumber) ? { key: `summary:${summary.roundNumber}`, round: summary.roundNumber } : partial ? { key: `partial:${buildPartialRevealKey(partial)}`, round: partial.roundNumber } : null;
+    if (!source) return { key: null as string | null, round: null as number | null, ids: [] as string[] };
+    const ids = words.filter((w) => w.roundNumber === source.round).map(bandIdForWord).filter((id): id is string => Boolean(id));
+    return { key: source.key, round: source.round, ids };
+  }, [match.lastSummary, match.partialSummary, words]);
+  const alreadyDrawn = useMemo(() => new Set(reveal.ids.filter((id) => drawnIds.has(id))), [reveal.ids, drawnIds]);
+  const newIds = useMemo(() => reveal.ids.filter((id) => !alreadyDrawn.has(id)), [reveal.ids, alreadyDrawn]);
+  const onBand = useCallback(() => sound.playWordDiscovery(), [sound]);
+  const progress = useReveal({ key: reveal.key, wordIds: reveal.ids, alreadyDrawn, reducedMotion, onBand });
+  useEffect(() => {
+    if (!progress.settled || progress.planIds.length === 0) return;
+    setDrawnIds((prev) => (progress.planIds.every((id) => prev.has(id)) ? prev : new Set([...prev, ...progress.planIds])));
+  }, [progress.settled, progress.planIds]);
+  const revealing = reveal.key !== null && !progress.settled;
+  const hiddenWordIds = useMemo(() => new Set(newIds.slice(progress.wordsWritten)), [newIds, progress.wordsWritten]);
+
+  const bands = useMemo(() => {
+    const all = bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId, liveRound: revealing ? reveal.round : null });
+    // New bands of the running reveal go last so `drawnCount` can gate them.
+    const fresh = new Set(newIds);
+    return [...all.filter((b) => !fresh.has(b.id)), ...all.filter((b) => fresh.has(b.id))];
+  }, [words, frozenTiles, viewerSlot, match.timers.playerA.playerId, revealing, reveal.round, newIds]);
+  const drawnCount = revealing ? bands.length - newIds.length + Math.min(progress.bandsDrawn, newIds.length) : null;
+  const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightRound, setHighlightRound] = useState<number | null>(null);
 
   const live: LiveState = useMemo(() => {
@@ -194,6 +225,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         currentRound={match.currentRound}
         completed={completed}
         words={words}
+        hiddenWordIds={hiddenWordIds}
         playerAId={match.timers.playerA.playerId}
         frozenTiles={frozenTiles}
         live={live}
@@ -210,6 +242,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           disabled={completed}
           bands={bands}
           highlightRound={highlightRound}
+          drawnCount={drawnCount}
+          drawingIndex={drawingIndex}
           cellStateFor={field.cellStateFor}
           seatFor={field.seatFor}
           shakeAt={field.shakeAt}

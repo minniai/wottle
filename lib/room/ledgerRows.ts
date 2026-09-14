@@ -1,6 +1,7 @@
 import { drawLine, PLAYED, picking, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
+import { bandIdForWord } from "./bandGeometry";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot, ReadingDirection } from "@/lib/types/match";
 import { emptyRows, type LedgerModel, type LedgerRow, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
@@ -26,6 +27,8 @@ export type LiveState =
   | { kind: "resolving" };
 
 export interface BuildRowsInput {
+  /** Words not yet written by the running reveal (band ids); hidden from their row until landed. */
+  hiddenWordIds?: Set<string>;
   currentRound: number;
   completed: boolean;
   words: AccumulatedWord[];
@@ -58,7 +61,7 @@ export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
   const seatOf = (playerId: string): Seat =>
     seatForSlot(input.viewerSlot, playerId === input.playerAId ? "player_a" : "player_b");
   return emptyRows(TOTAL_ROUNDS).map((row) => {
-    const inRound = input.words.filter((w) => w.roundNumber === row.round);
+    const inRound = input.words.filter((w) => w.roundNumber === row.round && !input.hiddenWordIds?.has(bandIdForWord(w) ?? ""));
     // Words that have already landed in the current round (instant first-mover
     // reveal, or a resolved round the server has not advanced yet) show as words.
     const landed = row.round === input.currentRound && inRound.length > 0;

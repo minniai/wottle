@@ -88,6 +88,12 @@ export function bandId(word: AccumulatedWord, direction: ReadingDirection): stri
   return `${word.playerId}:${word.word}:${start?.x ?? "?"},${start?.y ?? "?"}:${direction}`;
 }
 
+/** Band id for an accumulated word (direction from the record or the tile order). */
+export function bandIdForWord(word: AccumulatedWord): string | null {
+  const direction = word.direction ?? tryDeriveReadingDirection(word.coordinates);
+  return direction ? bandId(word, direction) : null;
+}
+
 export interface BandsInput {
   words: AccumulatedWord[];
   frozenTiles: FrozenTileMap;

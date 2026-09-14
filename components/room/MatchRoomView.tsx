@@ -10,6 +10,8 @@ import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
 import { PlayerBar } from "./PlayerBar";
 import { Room } from "./Room";
+import { useCountUp } from "./hooks/useCountUp";
+import { useReducedMotion } from "./hooks/useReducedMotion";
 
 export interface SeatFacts {
   name: string;
@@ -32,6 +34,7 @@ export interface MatchRoomViewProps {
   playerAId: string;
   frozenTiles: FrozenTileMap;
   live: LiveState;
+  hiddenWordIds?: Set<string>;
   hint?: string;
   notices?: Notice[];
   footActions?: ReactNode;
@@ -49,11 +52,14 @@ function subline(facts: SeatFacts, seatWord: string): string {
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
   const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
-  const { hint, notices, footActions, onRowHover, onAction, children } = props;
+  const { hiddenWordIds, hint, notices, footActions, onRowHover, onAction, children } = props;
+  const reducedMotion = useReducedMotion();
+  const youScore = useCountUp(you.score, reducedMotion);
+  const oppScore = useCountUp(opp.score, reducedMotion);
 
   const model = useMemo(
-    () => buildMatchLedger({ currentRound, completed, words, playerAId, viewerSlot, live, frozenTiles, hint }),
-    [currentRound, completed, words, playerAId, viewerSlot, live, frozenTiles, hint],
+    () => buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint }),
+    [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint],
   );
 
   return (
@@ -68,7 +74,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           subline={subline(opp, OPPONENT)}
           clockMs={opp.clockMs}
           clockRunning={opp.running}
-          score={opp.score}
+          score={oppScore}
           disconnected={opp.reconnectMsLeft != null}
         />
       }
@@ -82,7 +88,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           subline={subline(you, YOU)}
           clockMs={you.clockMs}
           clockRunning={you.running}
-          score={you.score}
+          score={youScore}
           disconnected={you.reconnectMsLeft != null}
         />
       }
