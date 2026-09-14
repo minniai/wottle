@@ -11,11 +11,11 @@ async function loginPlayer(
   username: string,
 ) {
   await page.goto("/");
-  await page.getByTestId("landing-username-input").fill(username);
+  await page.getByTestId("player-bar-name-input").fill(username);
 
   // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
   // and the form component calls router.refresh() on success.
-  await page.getByTestId("landing-login-submit").click();
+  await page.getByTestId("player-bar-action-play").click();
 
   // Wait for the Server Action to complete and cookie to settle
   await page.waitForTimeout(1500);
@@ -26,7 +26,7 @@ async function loginPlayer(
   // brand-new JS context so the Zustand store has no trackedPlayerId and
   // disconnect() won't send a DELETE.
   const lobbyVisible = await page
-    .getByTestId("lobby-presence-list")
+    .getByTestId("ledger-here-now")
     .isVisible()
     .catch(() => false);
 
@@ -34,12 +34,12 @@ async function loginPlayer(
     await page.goto("/");
   }
 
-  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({
     timeout: 20_000,
   });
 
   // Then check for matchmaker controls
-  await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({
+  await expect(page.getByTestId("player-bar-action-ranked")).toBeVisible({
     timeout: 10_000,
   });
 }

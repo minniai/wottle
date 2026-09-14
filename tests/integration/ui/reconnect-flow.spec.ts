@@ -14,9 +14,9 @@ async function loginAs(context: BrowserContext, prefix: string) {
   const page = await context.newPage();
   const username = generateTestUsername(prefix);
   await page.goto("/");
-  await page.getByTestId("landing-username-input").fill(username);
-  await page.getByTestId("landing-login-submit").click();
-  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
   return { page, username };
 }
 

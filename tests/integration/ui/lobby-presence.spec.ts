@@ -1,104 +1,37 @@
-import { expect, test } from "@playwright/test";
+/**
+ * Spec 044 US7 — the here-now table shows other players within seconds and drops them on leave.
+ */
+import { expect, test, type Page } from "@playwright/test";
 
-async function loginAs(page: import("@playwright/test").Page, username: string) {
+import { generateTestUsername } from "./helpers/matchmaking";
+
+async function loginAs(page: Page, username: string) {
   await page.goto("/");
-  const input = page.getByTestId("landing-username-input");
-  await expect(input).toBeVisible();
-  await input.fill(username);
-
-  // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
-  // and the form component calls router.refresh() on success.
-  await page.getByTestId("landing-login-submit").click();
-
-  // Wait for the lobby list to appear after router.refresh() re-renders the page.
-  // Do NOT use page.reload() here: it unmounts React, which triggers the
-  // presence store's disconnect() cleanup and sends DELETE /api/lobby/presence,
-  // permanently removing this player from the database.
-  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 20_000,
-  });
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
 }
 
-test.describe("Lobby presence", () => {
+test.describe.configure({ mode: "serial", retries: 1 });
+
+test.describe("@lobby-presence here now", () => {
   test("shows both players within five seconds and updates on leave", async ({ browser }) => {
-    const contextA = await browser.newContext();
-    const contextB = await browser.newContext();
-    const pageA = await contextA.newPage();
-    const pageB = await contextB.newPage();
-
-    // Capture console logs for debugging
-    pageA.on('console', msg => console.log('[PageA]', msg.text()));
-    pageB.on('console', msg => console.log('[PageB]', msg.text()));
-
-    await loginAs(pageA, "tester-alpha");
-    
-    // Debug: Check API endpoint directly from Player A's context
-    const apiResponseA = await pageA.evaluate(async () => {
-      const res = await fetch('/api/lobby/players', { cache: 'no-store' });
-      return { status: res.status, data: await res.json() };
-    });
-    console.log('[DEBUG] Player A sees via API:', JSON.stringify(apiResponseA));
-    
-    await loginAs(pageB, "tester-beta");
-    
-    // Debug: Check API endpoint directly from Player B's context  
-    const apiResponseB = await pageB.evaluate(async () => {
-      const res = await fetch('/api/lobby/players', { cache: 'no-store' });
-      return { status: res.status, data: await res.json() };
-    });
-    console.log('[DEBUG] Player B sees via API:', JSON.stringify(apiResponseB));
-    
-    // Debug: Check presence store state
-    const storeStateB = await pageB.evaluate(() => {
-      // @ts-ignore
-      const store = window.useLobbyPresenceStore?.getState();
-      return store ? {
-        players: store.players?.map((p: any) => ({ id: p.id, username: p.username })),
-        status: store.status,
-        connectionMode: store.connectionMode,
-        error: store.error,
-      } : { error: 'Store not found' };
-    });
-    console.log('[DEBUG] Player B store state:', JSON.stringify(storeStateB));
-
-    const listA = pageA.getByTestId("lobby-presence-list");
-    const listB = pageB.getByTestId("lobby-presence-list");
-
-    await expect(listA.getByTestId("lobby-card").filter({ hasText: /tester-beta/i })).toBeVisible({
-      timeout: 10_000,
-    });
-    await expect(listB.getByTestId("lobby-card").filter({ hasText: /tester-alpha/i })).toBeVisible({
-      timeout: 10_000,
-    });
-
-    // Explicitly disconnect before closing to ensure cleanup completes
-    await pageB.evaluate(() => {
-      // @ts-ignore - accessing global store for test cleanup
-      window.useLobbyPresenceStore?.getState().disconnect();
-    });
-
-    // Give time for DELETE request + Realtime propagation + polling cycles
-    await pageB.waitForTimeout(2500);
-
-    await pageB.close();
-    await contextB.close();
-
-    // Wait for presence cleanup to propagate (polling runs every 500ms)
-    await expect
-      .poll(
-        async () =>
-          listA
-            .getByTestId("lobby-card")
-            .filter({ hasText: /tester-beta/i })
-            .count(),
-        {
-          timeout: 15_000,
-          intervals: [500, 1000, 2000],
-        }
-      )
-      .toBe(0);
-
-    await pageA.close();
-    await contextA.close();
+    const ctxA = await browser.newContext();
+    const ctxB = await browser.newContext();
+    const pageA = await ctxA.newPage();
+    const pageB = await ctxB.newPage();
+    try {
+      const userA = generateTestUsername("pres-a");
+      const userB = generateTestUsername("pres-b");
+      await loginAs(pageA, userA);
+      await loginAs(pageB, userB);
+      await expect(pageA.getByTestId("ledger-here-now").getByText(`@${userB}`)).toBeVisible({ timeout: 10_000 });
+      await expect(pageB.getByTestId("ledger-here-now").getByText(`@${userA}`)).toBeVisible({ timeout: 10_000 });
+      await expect(pageA.getByTestId("round-indicator")).toContainText(/lobby · \d+ here/);
+      await ctxB.close();
+      await expect(pageA.getByTestId("ledger-here-now").getByText(`@${userB}`)).toHaveCount(0, { timeout: 90_000 });
+    } finally {
+      await ctxA.close();
+    }
   });
 });

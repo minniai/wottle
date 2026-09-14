@@ -21,12 +21,12 @@ async function loginPlayer(
   username: string,
 ) {
   await page.goto("/");
-  await page.getByTestId("landing-username-input").fill(username);
-  await page.getByTestId("landing-login-submit").click();
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
   await page.waitForTimeout(1500);
 
   const lobbyVisible = await page
-    .getByTestId("lobby-presence-list")
+    .getByTestId("ledger-here-now")
     .isVisible()
     .catch(() => false);
 
@@ -34,10 +34,10 @@ async function loginPlayer(
     await page.goto("/");
   }
 
-  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({
     timeout: 20_000,
   });
-  await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({
+  await expect(page.getByTestId("player-bar-action-ranked")).toBeVisible({
     timeout: 10_000,
   });
 }
@@ -112,7 +112,7 @@ test.describe("Match completion — game-over screen (T034)", () => {
 
         // Both players click "Back to Lobby" and land on lobby page
         await pageA.getByTestId("final-summary-back-lobby").click();
-        await expect(pageA.getByTestId("lobby-presence-list")).toBeVisible({
+        await expect(pageA.getByTestId("ledger-here-now")).toBeVisible({
           timeout: 15_000,
         });
 
@@ -124,7 +124,7 @@ test.describe("Match completion — game-over screen (T034)", () => {
             // navigate directly to lobby
             await pageB.goto("/");
           });
-        await expect(pageB.getByTestId("lobby-presence-list")).toBeVisible({
+        await expect(pageB.getByTestId("ledger-here-now")).toBeVisible({
           timeout: 15_000,
         });
       } finally {

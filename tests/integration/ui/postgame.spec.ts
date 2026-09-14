@@ -9,12 +9,12 @@ test.describe.configure({ mode: "serial", retries: 2, timeout: 240_000 });
 
 async function loginPlayer(page: Page, username: string) {
   await page.goto("/");
-  await page.getByTestId("landing-username-input").fill(username);
-  await page.getByTestId("landing-login-submit").click();
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
   await page.waitForTimeout(1500);
 
   const lobbyVisible = await page
-    .getByTestId("lobby-presence-list")
+    .getByTestId("ledger-here-now")
     .isVisible()
     .catch(() => false);
 
@@ -22,10 +22,10 @@ async function loginPlayer(page: Page, username: string) {
     await page.goto("/");
   }
 
-  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({
     timeout: 20_000,
   });
-  await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({
+  await expect(page.getByTestId("player-bar-action-ranked")).toBeVisible({
     timeout: 10_000,
   });
 }

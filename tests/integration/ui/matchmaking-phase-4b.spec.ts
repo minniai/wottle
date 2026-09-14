@@ -17,8 +17,8 @@ async function loginNewPlayer(context: BrowserContext) {
   const page = await context.newPage();
   const username = generateTestUsername("mm4b");
   await page.goto("/");
-  await page.getByTestId("landing-username-input").fill(username);
-  await page.getByTestId("landing-login-submit").click();
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
   await expect(page).toHaveURL(/\/lobby$/, { timeout: 15_000 });
   return { page, username };
 }
@@ -30,7 +30,7 @@ test.describe("@matchmaking Phase 4b matchmaking screen", () => {
     const context = await browser.newContext();
     try {
       const { page } = await loginNewPlayer(context);
-      await page.getByTestId("matchmaker-start-button").click();
+      await page.getByTestId("player-bar-action-ranked").click();
       await expect(page).toHaveURL(/\/matchmaking$/, { timeout: 10_000 });
       await expect(page.getByTestId("match-ring")).toBeVisible({
         timeout: 10_000,
@@ -49,7 +49,7 @@ test.describe("@matchmaking Phase 4b matchmaking screen", () => {
     const context = await browser.newContext();
     try {
       const { page } = await loginNewPlayer(context);
-      await page.getByTestId("matchmaker-start-button").click();
+      await page.getByTestId("player-bar-action-ranked").click();
       await expect(page).toHaveURL(/\/matchmaking$/, { timeout: 10_000 });
       // Wait for the Cancel button — it's only present during the searching phase.
       // If a stale queue entry pairs the player immediately, the page skips straight
@@ -83,8 +83,8 @@ test.describe("@matchmaking Phase 4b matchmaking screen", () => {
     try {
       const [a, b] = await Promise.all([loginNewPlayer(ctxA), loginNewPlayer(ctxB)]);
       await Promise.all([
-        a.page.getByTestId("matchmaker-start-button").click(),
-        b.page.getByTestId("matchmaker-start-button").click(),
+        a.page.getByTestId("player-bar-action-ranked").click(),
+        b.page.getByTestId("player-bar-action-ranked").click(),
       ]);
       await Promise.all([
         expect(a.page).toHaveURL(/\/matchmaking$/, { timeout: 10_000 }),

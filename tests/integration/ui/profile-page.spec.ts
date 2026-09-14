@@ -21,8 +21,8 @@ test.describe("@profile-page Phase 5b profile pages", () => {
     const seedPage = await seedCtx.newPage();
     seedUsername = generateTestUsername("prof-seed");
     await seedPage.goto("/");
-    await seedPage.getByTestId("landing-username-input").fill(seedUsername);
-    await seedPage.getByTestId("landing-login-submit").click();
+    await seedPage.getByTestId("player-bar-name-input").fill(seedUsername);
+    await seedPage.getByTestId("player-bar-action-play").click();
     await expect(seedPage).toHaveURL(/\/lobby$/, { timeout: 15_000 });
     await seedPage.close();
 
@@ -31,8 +31,8 @@ test.describe("@profile-page Phase 5b profile pages", () => {
     viewerPage = await viewerCtx.newPage();
     const viewerName = generateTestUsername("prof-viewer");
     await viewerPage.goto("/");
-    await viewerPage.getByTestId("landing-username-input").fill(viewerName);
-    await viewerPage.getByTestId("landing-login-submit").click();
+    await viewerPage.getByTestId("player-bar-name-input").fill(viewerName);
+    await viewerPage.getByTestId("player-bar-action-play").click();
     await expect(viewerPage).toHaveURL(/\/lobby$/, { timeout: 15_000 });
   });
 
@@ -82,7 +82,7 @@ test.describe("@profile-page Phase 5b profile pages", () => {
         timeout: 10_000,
       });
       // And the landing hero should be visible as evidence of the redirect
-      await expect(anonPage.getByTestId("landing-username-input")).toBeVisible({
+      await expect(anonPage.getByTestId("player-bar-name-input")).toBeVisible({
         timeout: 5_000,
       });
     } finally {

@@ -37,9 +37,9 @@ async function safeWait(page: Page, delayMs: number): Promise<void> {
 }
 
 /**
- * Direct invite matchmaking via the per-card Challenge flow.
- * Player A clicks Challenge on Player B's LobbyCard, confirms the
- * send dialog, and Player B accepts the incoming InviteToast.
+ * Direct invite matchmaking via the ledger's challenge flow.
+ * Player A presses `challenge ▸` on Player B's here-now row and
+ * Player B accepts the incoming ledger line.
  *
  * The `playerBUsername` option is required for parallel-test isolation —
  * the lobby presence list typically contains many other players.
@@ -70,24 +70,17 @@ export async function startMatchWithDirectInvite(
   // Stabilisation wait: presence store churns while realtime sync settles.
   await safeWait(pageA, 1500);
 
-  // Player A: click Challenge on Player B's card, then confirm the dialog.
+  // Player A: `challenge ▸` on Player B's here-now row (no dialog — design system §5.5).
   const remainingForChallenge = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const targetCard = pageA
-    .getByTestId("lobby-card")
-    .filter({ hasText: `@${playerBUsername}` });
-  await targetCard.waitFor({ state: "visible", timeout: remainingForChallenge });
-  await targetCard.getByRole("button", { name: /Challenge/i }).click();
-  await pageA.getByTestId("invite-dialog-confirm").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await pageA.getByTestId("invite-dialog-confirm").click();
+  const targetRow = pageA.getByTestId("ledger-here-now-row").filter({ hasText: `@${playerBUsername}` });
+  await targetRow.waitFor({ state: "visible", timeout: remainingForChallenge });
+  await targetRow.getByRole("button", { name: /challenge/i }).click();
 
-  // Player B: wait for the incoming InviteToast, then click Accept.
-  const remainingForToast = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const toast = pageB.getByTestId("invite-toast");
-  await toast.waitFor({ state: "visible", timeout: remainingForToast });
-  await toast.getByRole("button", { name: /Accept/i }).click();
+  // Player B: the challenge arrives as a ledger line; accept ▸.
+  const remainingForNotice = Math.max(5_000, timeoutMs - (Date.now() - startTime));
+  const accept = pageB.getByTestId("notice-accept-challenge");
+  await accept.waitFor({ state: "visible", timeout: remainingForNotice });
+  await accept.click();
 
   // Both players: wait for the match shell.
   const remainingForMatch = Math.max(5_000, timeoutMs - (Date.now() - startTime));
@@ -101,8 +94,8 @@ export async function startMatchWithDirectInvite(
 }
 
 /**
- * Wait for both players' LobbyCards to appear in each other's lobby
- * presence list. Required before triggering the Challenge flow.
+ * Wait for both players' rows to appear in each other's here-now table.
+ * Required before triggering the challenge flow.
  */
 async function waitForPlayersVisible(
   pageA: Page,
@@ -118,8 +111,8 @@ async function waitForPlayersVisible(
       throw new Error("Page was closed while waiting for players to be visible");
     }
 
-    const lobbyListA = pageA.getByTestId("lobby-presence-list");
-    const lobbyListB = pageB.getByTestId("lobby-presence-list");
+    const lobbyListA = pageA.getByTestId("ledger-here-now");
+    const lobbyListB = pageB.getByTestId("ledger-here-now");
 
     const lobbyReadyA = await lobbyListA.isVisible().catch(() => false);
     const lobbyReadyB = await lobbyListB.isVisible().catch(() => false);
@@ -176,18 +169,18 @@ export async function waitForBothPlayersMatched(
 
     const [matchIdA, matchIdB] = await Promise.all([
       pageA
-        .getByTestId("match-shell")
+        .getByTestId("room")
         .getAttribute("data-match-id")
         .catch(() => null),
       pageB
-        .getByTestId("match-shell")
+        .getByTestId("room")
         .getAttribute("data-match-id")
         .catch(() => null),
     ]);
 
     // Check if both are matched
-    const shellA = await pageA.getByTestId("match-shell").isVisible().catch(() => false);
-    const shellB = await pageB.getByTestId("match-shell").isVisible().catch(() => false);
+    const shellA = await pageA.getByTestId("room").isVisible().catch(() => false);
+    const shellB = await pageB.getByTestId("room").isVisible().catch(() => false);
 
     if (shellA && shellB && matchIdA && matchIdB && matchIdA === matchIdB) {
       return [matchIdA, matchIdB];
@@ -203,11 +196,11 @@ export async function waitForBothPlayersMatched(
 
   const [finalMatchIdA, finalMatchIdB] = await Promise.all([
     pageA
-      .getByTestId("match-shell")
+      .getByTestId("room")
       .getAttribute("data-match-id")
       .catch(() => null),
     pageB
-      .getByTestId("match-shell")
+      .getByTestId("room")
       .getAttribute("data-match-id")
       .catch(() => null),
   ]);
@@ -250,13 +243,13 @@ export async function startMatchWithRetry(
 
       // Click both start buttons simultaneously
       await Promise.all([
-        pageA.getByTestId("matchmaker-start-button").click().catch((e) => {
+        pageA.getByTestId("player-bar-action-ranked").click().catch((e) => {
           if (!isPageOpen(pageA)) {
             throw new Error("Page A was closed during button click");
           }
           throw e;
         }),
-        pageB.getByTestId("matchmaker-start-button").click().catch((e) => {
+        pageB.getByTestId("player-bar-action-ranked").click().catch((e) => {
           if (!isPageOpen(pageB)) {
             throw new Error("Page B was closed during button click");
           }
