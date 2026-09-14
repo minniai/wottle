@@ -1,44 +1,15 @@
 "use server";
 
-import { z } from "zod";
-
 import { loadDictionary } from "@/lib/game-engine/dictionary";
 import { applySwap } from "@/lib/game-engine/board";
 import { priceSwap, type PricedWord } from "@/lib/match/previewScoring";
+import { previewSwapInputSchema } from "@/lib/match/previewSchemas";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { logPlaytestInfo } from "@/lib/observability/log";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { boardGridSchema, type BoardGrid, type Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
-
-const coordinateSchema = z.object({
-  x: z.number().int().min(0).max(9),
-  y: z.number().int().min(0).max(9),
-});
-
-const ICELANDIC_LETTER = /^[A-ZÁÐÉÍÓÚÝÞÆÖ]$/u;
-
-export const previewSwapInputSchema = z
-  .discriminatedUnion("kind", [
-    z.object({
-      kind: z.literal("match"),
-      matchId: z.string().min(1),
-      from: coordinateSchema,
-      to: coordinateSchema,
-    }),
-    z.object({
-      kind: z.literal("warmup"),
-      board: z.array(z.array(z.string().regex(ICELANDIC_LETTER)).length(10)).length(10),
-      from: coordinateSchema,
-      to: coordinateSchema,
-    }),
-  ])
-  .refine((v) => v.from.x !== v.to.x || v.from.y !== v.to.y, {
-    message: "Cannot swap a tile with itself",
-  });
-
-export type PreviewSwapInput = z.infer<typeof previewSwapInputSchema>;
 
 export interface PreviewSwapResult {
   status: "ok" | "rejected" | "rate_limited" | "unauthenticated" | "forbidden" | "error";
