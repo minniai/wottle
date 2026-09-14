@@ -11,7 +11,7 @@ vi.mock("@/lib/matchmaking/profile", () => ({
 }));
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import LandingPage from "@/app/(landing)/page";
+import LandingPage from "@/app/(room)/page";
 
 describe("LandingPage route", () => {
   test("redirects to /lobby when a session exists", async () => {

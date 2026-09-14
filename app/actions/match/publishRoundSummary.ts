@@ -1,5 +1,6 @@
 "use server";
 
+import { mapWordScoreRows, type WordScoreEntryRow } from "@/lib/match/wordScoreRow";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { aggregateRoundSummary, calculateWordScore } from "@/lib/scoring/roundSummary";
 import { recordScoreSnapshot } from "@/lib/matchmaking/service";
@@ -82,15 +83,9 @@ export async function publishRoundSummary(
         : { playerA: 0, playerB: 0 };
 
     // 3. Convert word_score_entries to WordScore format
-    const wordScores: WordScore[] = (wordsResult.data || []).map((entry) => ({
-        playerId: entry.player_id,
-        word: entry.word,
-        length: entry.length,
-        lettersPoints: entry.letters_points,
-        bonusPoints: entry.bonus_points,
-        totalPoints: entry.total_points,
-        coordinates: entry.tiles as Coordinate[],
-    }));
+    const wordScores: WordScore[] = mapWordScoreRows(
+        (wordsResult.data || []) as WordScoreEntryRow[],
+    );
 
     const { data: moveSubmissions } = moveSubmissionsResult;
 

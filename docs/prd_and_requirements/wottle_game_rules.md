@@ -11,7 +11,7 @@
 ## Table of Contents
 
 1. [Board and tile state](#1-board-and-tile-state)
-2. [Rounds and moves](#2-rounds-and-moves)
+2. [Rounds and moves](#2-rounds-and-moves) · [2a. Time control](#2a-time-control-clock-model)
 3. [What counts as a scored word](#3-what-counts-as-a-scored-word)
 4. [The per-letter coverage rule](#4-the-per-letter-coverage-rule-critical)
 5. [Scoring formula](#5-scoring-formula)
@@ -21,6 +21,7 @@
 9. [Testing discipline](#9-testing-discipline)
 10. [Change log of scoring regressions](#10-change-log-of-scoring-regressions)
 11. [Code references](#11-code-references)
+12. [What the player sees](#12-what-the-player-sees)
 
 > **Two rules, two axes — both physical**. The cross-axis uses per-letter coverage (§4): every new tile must sit inside some dict sub-run of length ≥ min. The same-axis uses the standalone invariant (§3.5a, §7.4): if the new word physically abuts a frozen tile on its axis, the maximal combined same-axis scored run must itself be a dict word. Both rules consult only the physical frozen state — `scoredAxes` is audit-only (§4.4). Most past regressions came from gating validation on `scoredAxes`; do not reintroduce that.
 
@@ -52,6 +53,14 @@
 
 The swap mechanic is the *only* way to mutate the board. Scoring is a pure function of the board state after both swaps have been applied and the prior round's frozen state.
 
+### 2a. Time control (clock model)
+
+- Each player has **one clock for the whole match** — a single budget that must cover all ten of their moves. There is no per-round timer and no increment.
+- The budget today is **5:00 (300 000 ms) per player**, stored in `matches.player_a_timer_ms` / `player_b_timer_ms` and carried to the client as `TimerState { playerId, remainingMs, status: "running" | "paused" | "expired" }` (`lib/types/match.ts`, `MatchState.timers`). The Field & Ledger design (`docs/design/README.md`) draws each clock as a lane whose full width is this budget. The design documents were written assuming 10:00; the team decided on 2026-09-14 to keep **5:00** (`specs/044-field-ledger-redesign/spec.md`, Decisions Q1), so every `10:00` in the design bundle is read as `5:00`.
+- A player's clock **runs while their move for the current round is open** — from `rounds.started_at` until their submission is recorded — and **stops when they submit**. Time spent in one round is not restored later. Enforcement is server-side (spec 007): the deduction is computed from `rounds.started_at` and `move_submissions.submitted_at`, never from the client.
+- **At 0:00** the player can submit no further swaps. The server synthesises a **timeout pass** for that player in every remaining round (`roundEngine.ts`, spec 007), so the round resolves with the opponent's swap alone and the match continues to round 10. A player whose clock has expired keeps their score and frozen tiles; if both clocks expire the match completes immediately. The expired clock renders as `0:00` with an empty lane.
+- Disconnection does not stop a clock by itself; the 90-second reconnection window and the claim-win path are described in `CLAUDE.md` (Disconnect Handling).
+
 ---
 
 ## 3. What counts as a scored word
@@ -60,7 +69,9 @@ A *word* is a contiguous sequence of letters on the board. For a word to be **sc
 
 ### 3.1 Direction
 
-The word must be read along one of **four orthogonal reading directions**: left-to-right, right-to-left, top-to-bottom, bottom-to-top. **Diagonals are not scored.** The scanner may find diagonal matches as a side effect, but they are filtered out before scoring.
+The word must be read along one of **four orthogonal reading directions**: left-to-right, right-to-left, top-to-bottom, bottom-to-top. **No other direction is read.** The scanner may find matches along other lines as a side effect; they are filtered out before scoring.
+
+**One record per run.** A run is scored **once** even when it is a valid word in **both** directions. The scanner builds a forward and a reversed `BoardWord` for every run, but two readings of the same tiles overlap on the same axis (§3.5, `hasNoSameAxisConflict`), so `selectOptimalCombination` keeps exactly one: the **forward** reading (left-to-right or top-to-bottom) when both are words, the reversed reading only when it alone is a word. `FÁR`/`RÁF` therefore yields one record, `fár`, read left-to-right. The kept record's tile order is its reading direction, which the UI uses to place a single chevron (§12). Pinned by `tests/unit/lib/game-engine/doubleReading.test.ts`.
 
 ### 3.2 Length
 
@@ -93,6 +104,8 @@ Formal statement: let *E_before* be the maximal contiguous run of **frozen** til
 **Rejects** (issue #200, `ÖRLTEL`): Frozen `Ö`, `R`, `L` at column 1 rows 1–3 (from a prior vertical `ÖRL`). Player scores vertical `TEL` at rows 4–6. *E_before* = `ÖRL`, *E_after* = empty. Combined run `ÖRLTEL` is not a dict word → `TEL` is rejected.
 
 **Rejects** (issue #200, `NMÚL`): Frozen `N` at `(5,3)` (from any prior scoring — horizontal or vertical, does not matter). Player scores vertical `MÚL` at `(5,4)`–`(5,6)`. *E_before* = `N`, *E_after* = empty. Combined run `NMÚL` is not a dict word → `MÚL` is rejected.
+
+**Rejects** (design example, `BORÐA + GILT`): Frozen horizontal `BORÐA` at columns 1–5 of a row. Player forms `GILT` at columns 6–9 of the same row. *E_before* = `BORÐA`, *E_after* = empty. Combined run `BORÐAGILT` is not a dict word → `GILT` is rejected, even though `GILT` alone is. This is why, on the field, two bands of the same axis never touch end to end: a new word may only extend a frozen run if the whole run is itself a word, in which case it is one word and one band. Regression test to pin: `BORÐA + GILT`.
 
 ### 3.6 Per-letter coverage
 
@@ -316,6 +329,7 @@ Read this section before editing anything in `lib/game-engine/crossValidator.ts`
 | 2026-06-09 | TBD | spec 042 follow-up | The fast path merged the first mover's freezes into `matches.frozen_tiles` mid-`collecting`, and `advanceRound`'s combined pass then fed that polluted map back into `processRoundScoring` as the scoring baseline. The frozen-coordinate guard rejected the first mover's *own* swap, the delete-then-insert wiped their `word_score_entries` rows without re-creating them, and the swap was dropped from `finalBoard` — violating data-model.md § 4.7. Fixed by snapshotting the round-start freeze map in `rounds.frozen_tiles_before` (mirroring `board_snapshot_before`); both scoring passes now score against that baseline, while `submitMove`'s frozen-tile rejection gate still reads the live `matches.frozen_tiles` (FR-014). Regression tests: `tests/unit/lib/match/roundEngine.frozenTilesBaseline.test.ts`, `tests/unit/match/instantScoring.frozenBaseline.spec.ts`. | §8 invariant: both scoring passes for a round share the round-start freeze baseline (`rounds.frozen_tiles_before`). |
 
 | 2026-06-10 | TBD | O-71 (O-58/O-70 related) | The fast path's 500 ms `Promise.race` budget was below a cold serverless dictionary load (1.3–4 s; "once per process lifetime" is every lambda instance on Vercel), so in production the race always timed out and the instant scoring reveal never fired. Worse, `Promise.race` does not cancel the losing branch: the timed-out run kept executing detached, froze at instance suspend, and on thaw could run `executeScoringPipeline`'s delete-then-insert against a round the combined path had already resolved — wiping both players' canonical `word_score_entries` and re-inserting only the first mover's. Fixed by raising the budget to 5 s, warming the dictionary before scoring, and re-reading `rounds.state` immediately before `computeWordScoresForRound` (defer unless still `collecting`). Regression tests: `tests/unit/match/instantScoring.coldStartBudget.spec.ts`. | §8 invariant: only the combined path may write a resolved round's `word_score_entries`; the fast path writes only while the round is `collecting`. |
+| 2026-09-14 | spec 044 | — | Not a regression: pinned the §3.5a design example `BORÐA + GILT` (rejected when `borðagilt` is not a word; accepted when it is) and §3.1 one-record-per-run (`FÁR`/`RÁF` → one record, forward reading) so the Field & Ledger UI's "bands never touch end to end" and "one chevron per band" renderings have named tests. | §3.5a, §3.1 (`tests/unit/lib/game-engine/wholeRun.bordaGilt.test.ts`, `doubleReading.test.ts`). |
 
 When you land a scoring-related fix, append a row here with: date, PR number, issue number, one-sentence description of what went wrong, and the rule section that now prevents it. If the fix exposes a rule that was not previously documented, document it in this file *in the same PR*.
 
@@ -326,10 +340,36 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 - **Rules surface** — this document is the source of truth; `lib/constants/game-config.ts` holds the numeric constants (`minimumWordLength`, `maxRounds`, `timePerRoundMs`, `boardSize`, `language`).
 - **Pipeline entry point** — `lib/game-engine/wordEngine.ts::processRoundScoring`.
 - **Scanner** — `lib/game-engine/boardScanner.ts::scanFromSwapCoordinates`.
+- **Reading direction (§3.1, §12)** — `lib/game-engine/readingDirection.ts::deriveReadingDirection` derives ltr / rtl / ttb / btt from the stored tile order of a word record; `lib/match/wordScoreRow.ts` maps `word_score_entries` rows to `WordScore` (with `direction`) for the ledger and the field bands.
+- **Board generation** — `lib/game-engine/boardGenerator.ts::generateBoard` (seeded; also the lobby's warm-up field and the queue's placeholder field).
+- **Preview pricing (§12, pick → preview → commit)** — `app/actions/match/previewSwap.ts` runs the same pipeline read-only for one hypothetical swap (`kind: "match" | "warmup"`, session required, no state change); the dictionary never leaves the server.
 - **Cross-validator** — `lib/game-engine/crossValidator.ts::selectOptimalCombination`, `hasCrossWordViolation` (cross-axis, §7.3), `violatesFrozenAdjacencyOnSameAxis` (same-axis standalone, §7.4), `runContainsValidSubRunCoveringIndex`.
 - **Scorer** — `lib/game-engine/scorer.ts::calculateLetterPoints`, `calculateLengthBonus`.
 - **Freezer** — `lib/game-engine/frozenTiles.ts::freezeTiles`.
 - **Dictionary** — `lib/game-engine/dictionary.ts::loadDictionary`; wordlist at `data/wordlists/word_list_is.txt`.
 - **Letter values** — `lib/game-engine/letter-values/letter_scoring_values_<lang>.ts`.
 - **Round orchestration** — `lib/match/roundEngine.ts::advanceRound`, `lib/match/stateMachine.ts`.
-- **Older narrative (superseded)** — `docs/notes/260303-word-scoring-rules.md`. Kept for history; always prefer this document.
+- **Older narrative (superseded)** — `docs/archive/notes/260303-word-scoring-rules.md`. Kept for history; always prefer this document.
+
+---
+
+## 12. What the player sees
+
+The Field & Ledger design (`docs/design/README.md`) renders each rule above as exactly one mark. This table is the contract between the rules and the UI; a rendering that needs a second mark for the same fact is a design bug.
+
+| Rule | Rendering |
+| --- | --- |
+| A scored word (§3, §6) | A **band** along its tiles on the field: a 14% tint of the scorer's seat colour (teal = you, coral = the opponent), square ends aligned to the cell grid, with the letters inside drawn in the scorer's colour. |
+| Reading direction (§3.1) | A small **chevron** in the scorer's colour at the end of the band where reading **begins**: left edge pointing right (left-to-right), right edge pointing left (right-to-left), top edge pointing down (top-to-bottom), bottom edge pointing up (bottom-to-top). |
+| Run valid both ways (§3.1) | One record, one band, **one chevron** at the kept reading's start (forward reading wins); one word in the ledger row. |
+| A tile in two words / crossing (§3.5, §4) | Both bands are drawn; a letter shared by **both seats'** words is drawn in ink at heavy weight instead of a seat colour. |
+| Standalone / whole-run rule (§3.5a) | Two bands of the same seat on the same axis **never touch end to end**; a legal extension of a frozen run is a single longer word and a single band. |
+| Frozen tile (§6) | The letter sits inside a settled band and cannot be picked; tapping it shakes the letter 300ms in its own colour and the ledger's live row reads `frozen · <name> R<n> · pick another`. |
+| Territory (§6) | A 4px bar in the ledger — you / free / opponent — with the three counts beneath it. Territory is stored per tile but shown as words. |
+| One swap per round, broadcast on submit (§2) | Your two letters **pin** (dashed ring in your colour) when you commit; the opponent's two letters pin in coral the moment their swap is broadcast. Pins fade at settle. |
+| Clock (§2a) | The **lane** at the inner edge of each player bar: full width = the match budget, filled in the seat colour for the time left. Under 1:00 it thickens and blinks (colour only). A stopped clock has a muted numeral; an expired one reads `0:00` with an empty lane. |
+| Round number and progression (§2) | Once, in the ledger: caption `ranked · round 4 of 10` and one row per round with the current round as the tinted **live row**. |
+| Scoring (§5) | Written into the live row as each band lands (`word · points`), round total pinned top right of the row, match totals counting up in the bars. |
+| Duplicate word (§5.4) | Listed in the row with `0` points; its band is still drawn (the tiles freeze). |
+| Reconnection window | The disconnected player's lane becomes a dashed pattern and holds; their sub-line counts `reconnecting · 0:42 left`. Nothing is drawn over the field. |
+

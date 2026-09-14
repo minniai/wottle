@@ -1,138 +1,63 @@
 /**
- * T034: E2E test for match completion — verifies game-over screen displays
- * winner declaration, frozen tile counts, and top words; both players can
- * return to lobby.
- *
- * Note: frozen tile counts appear only if tiles were actually frozen during
- * the match. Top words appear only if words were scored. Both sections are
- * verified present when applicable; empty states are acceptable since board
- * position is random.
+ * Spec 044 US9 — the result is stated once, in the same room: resign ends the
+ * match; the field stays; the ledger shows the verdict; the rematch request is a
+ * ledger line on the other side; `lobby` returns to the lobby room.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-import { submitSwap } from "./helpers/swaps";
-import {
-  generateTestUsername,
-  startMatchWithDirectInvite,
-} from "./helpers/matchmaking";
+import { generateTestUsername, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
-async function loginPlayer(
-  page: import("@playwright/test").Page,
-  username: string,
-) {
+async function loginPlayer(page: Page, username: string) {
   await page.goto("/");
-  await page.getByTestId("landing-username-input").fill(username);
-  await page.getByTestId("landing-login-submit").click();
-  await page.waitForTimeout(1500);
-
-  const lobbyVisible = await page
-    .getByTestId("lobby-presence-list")
-    .isVisible()
-    .catch(() => false);
-
-  if (!lobbyVisible) {
-    await page.goto("/");
-  }
-
-  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 20_000,
-  });
-  await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({
-    timeout: 10_000,
-  });
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
 }
 
-test.describe("Match completion — game-over screen (T034)", () => {
-  test(
-    "shows winner declaration, frozen tile counts, top words, and lobby return @two-player-playtest",
-    async ({ browser }) => {
-      const contextA = await browser.newContext();
-      const contextB = await browser.newContext();
-      const pageA = await contextA.newPage();
-      const pageB = await contextB.newPage();
+test.describe.configure({ mode: "serial", retries: 1 });
 
-      try {
-        const userA = generateTestUsername("completion-alpha");
-        const userB = generateTestUsername("completion-beta");
+test.describe("@match-completion final room state", () => {
+  test("resign → final: verdict in the ledger, field kept, rating lines, rematch line, back to lobby", async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    try {
+      const userA = generateTestUsername("fin-a");
+      const userB = generateTestUsername("fin-b");
+      await loginPlayer(pageA, userA);
+      await loginPlayer(pageB, userB);
+      await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
+      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
-        await loginPlayer(pageA, userA);
-        await loginPlayer(pageB, userB);
+      // A resigns through the live-row confirmation.
+      await pageA.getByTestId("ledger-menu-trigger").click();
+      await pageA.getByTestId("ledger-menu-item-resign").click();
+      await pageA.getByTestId("notice-confirm-resign").click();
 
-        const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
-          timeoutMs: 120_000,
-          playerBUsername: userB,
-        });
-        expect(matchIdA).toBeTruthy();
-        expect(matchIdA).toEqual(matchIdB);
-
-        await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-        await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-
-        // Play all 10 rounds to trigger match completion
-        for (let round = 1; round <= 10; round += 1) {
-          await submitSwap(pageA);
-          await submitSwap(pageB);
-          const settleMs = round === 1 ? 6_000 : 3_000;
-          await pageA.waitForTimeout(settleMs);
-          if (round < 10) {
-            // Wait for round to resolve and advance — rounds auto-advance after recap animation
-            await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(
-              new RegExp(`r${round + 1}`, "i"),
-              { timeout: 45_000 },
-            );
-          }
-        }
-
-        // Final summary should be visible
-        const summaryView = pageA.getByTestId("final-summary-root");
-        await expect(summaryView).toBeVisible({ timeout: 30_000 });
-
-        // Verdict banner must show one of Victory / Defeat / Draw (Phase 2 redesign).
-        const verdict = pageA.getByTestId("post-game-verdict");
-        await expect(verdict).toBeVisible();
-        await expect(verdict).toContainText(/Victory\.|Defeat\.|Draw\./);
-
-        // Ended reason now lives inside the verdict card ("reasonLabel" prop).
-        await expect(verdict).toContainText(/10 rounds completed/i);
-
-        // Scoreboard present
-        await expect(pageA.getByTestId("final-summary-scoreboard")).toBeVisible();
-
-        // Words-of-match section present (replaces legacy final-summary-word-history).
-        await expect(pageA.getByTestId("words-of-match")).toBeVisible();
-
-        // Both player cards in the PostGameScoreboard show "N frozen" (Phase 2
-        // replaced the legacy "tiles frozen" label with the compact "N frozen"
-        // inline stat). Count should be one per player card.
-        const frozenTexts = await pageA.getByText(/\d+ frozen/i).all();
-        expect(frozenTexts.length).toBeGreaterThanOrEqual(1);
-
-        // Action buttons present
-        await expect(pageA.getByTestId("final-summary-back-lobby")).toBeVisible();
-
-        // Both players click "Back to Lobby" and land on lobby page
-        await pageA.getByTestId("final-summary-back-lobby").click();
-        await expect(pageA.getByTestId("lobby-presence-list")).toBeVisible({
-          timeout: 15_000,
-        });
-
-        await pageB
-          .getByTestId("final-summary-back-lobby")
-          .click()
-          .catch(async () => {
-            // pageB may still be on the match page if Realtime was slow;
-            // navigate directly to lobby
-            await pageB.goto("/");
-          });
-        await expect(pageB.getByTestId("lobby-presence-list")).toBeVisible({
-          timeout: 15_000,
-        });
-      } finally {
-        await pageA.close();
-        await pageB.close();
-        await contextA.close();
-        await contextB.close();
+      for (const p of [pageA, pageB]) {
+        await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
+        await expect(p.getByTestId("field")).toBeVisible();
+        await expect(p.getByTestId("verdict")).toContainText(/wins \d+–\d+|draw \d+–\d+/);
+        await expect(p.getByTestId("round-indicator")).toContainText(/final · 10 rounds/);
+        await expect(p).toHaveURL(/\/match\/[0-9a-f-]+$/);
+        expect(await p.locator("[role=dialog], [role=alertdialog]").count()).toBe(0);
       }
-    },
-  );
+      // The winner's sub-line says wins once ratings land; the loser's shows a −n.
+      await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/→ \d+ · \+\d+ · wins|rating pending/, { timeout: 15_000 });
+
+      // Rematch: B asks, A sees the line and declines; then A returns to the lobby.
+      await pageB.getByTestId("ledger-rematch").click();
+      await expect(pageA.getByTestId("notice-accept-rematch")).toBeVisible({ timeout: 15_000 });
+      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: "asks for a rematch" })).toBeVisible();
+      await pageA.getByTestId("notice-decline-rematch").click();
+      await expect(pageB.getByTestId("ledger-notice").filter({ hasText: /declined/ })).toBeVisible({ timeout: 15_000 });
+
+      await pageA.getByTestId("ledger-lobby").click();
+      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
 });

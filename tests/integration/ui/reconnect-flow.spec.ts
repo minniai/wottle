@@ -1,143 +1,58 @@
-import { expect, test } from "@playwright/test";
+/**
+ * Spec 044 US5 — an opponent's disconnect is written into their bar, not an
+ * overlay: the sub-line counts the reconnection window down from the server
+ * anchor, the lane goes dashed, and both clocks hold (FR-027).
+ */
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
-async function loginAndStartMatch(
-  pageA: import("@playwright/test").Page,
-  pageB: import("@playwright/test").Page,
-  userA: string,
-  userB: string,
-) {
-  await Promise.all([pageA.goto("/"), pageB.goto("/")]);
+import { generateTestUsername, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
-  await pageA.getByTestId("landing-username-input").fill(userA);
-  await pageA.getByTestId("landing-login-submit").click();
-  await pageB.getByTestId("landing-username-input").fill(userB);
-  await pageB.getByTestId("landing-login-submit").click();
+test.describe.configure({ mode: "serial", retries: 1 });
+test.skip(({ browserName }) => browserName !== "chromium", "two-context realtime flow runs on chromium only");
 
-  // Wait for lobby list to appear (indicates login completed and page re-rendered)
-  await expect(pageA.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 10_000,
-  });
-  await expect(pageB.getByTestId("lobby-presence-list")).toBeVisible({
-    timeout: 10_000,
-  });
-
-  // Then check for matchmaker controls
-  await expect(pageA.getByTestId("matchmaker-start-button")).toBeVisible({
-    timeout: 10_000,
-  });
-  await expect(pageB.getByTestId("matchmaker-start-button")).toBeVisible({
-    timeout: 10_000,
-  });
-
-  await pageA.getByTestId("matchmaker-start-button").click();
-  await pageA.waitForTimeout(150);
-  await pageB.getByTestId("matchmaker-start-button").click();
-
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 20_000 });
+async function loginAs(context: BrowserContext, prefix: string) {
+  const page = await context.newPage();
+  const username = generateTestUsername(prefix);
+  await page.goto("/");
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
+  return { page, username };
 }
 
-test.describe("Reconnect flow", () => {
-  test.skip("pauses timers on disconnect and restores state within 10s window", async ({
-    browser,
-  }) => {
-    const contextA = await browser.newContext();
-    const contextB = await browser.newContext();
-    const pageA = await contextA.newPage();
-    const pageB = await contextB.newPage();
+/** Playwright force-closes contexts without `pagehide`; replicate the beacon the production client sends. */
+async function notifyServerOfDisconnect(page: Page) {
+  const matchId = page.url().match(/\/match\/([0-9a-f-]+)/)?.[1];
+  if (!matchId) return;
+  await page.evaluate((id) => fetch(`/api/match/${id}/disconnect`, { method: "POST", keepalive: true }), matchId);
+}
 
+test.describe("@reconnect-flow disconnect is a bar state", () => {
+  test("opponent bar counts the window down with a dashed lane; both clocks hold; no overlay", async ({ browser }) => {
+    const ctxA = await browser.newContext();
+    const ctxB = await browser.newContext();
     try {
-      await loginAndStartMatch(pageA, pageB, "reconnect-alpha", "reconnect-beta");
+      const [a, b] = await Promise.all([loginAs(ctxA, "dc-a"), loginAs(ctxB, "dc-b")]);
+      await startMatchWithDirectInvite(a.page, b.page, { timeoutMs: 60_000, playerBUsername: b.username });
+      await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+      await expect(b.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
-      // Wait for match to be active
-      await expect(pageA.getByTestId("round-indicator")).toBeVisible();
-      await expect(pageB.getByTestId("round-indicator")).toBeVisible();
+      await notifyServerOfDisconnect(b.page);
+      await ctxB.close();
 
-      // Get initial timer values
-      const timerA = pageA.getByTestId("timer-hud");
-      const timerB = pageB.getByTestId("timer-hud");
-      const initialTimeA = await timerA.textContent();
-      const initialTimeB = await timerB.textContent();
+      const topBar = a.page.getByTestId("player-bar-top");
+      await expect(topBar.getByTestId("player-bar-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 20_000 });
+      await expect(topBar.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "disconnected");
+      await expect(a.page.getByTestId("player-bar-bottom").getByTestId("player-bar-clock")).toHaveAttribute("data-running", "false");
+      expect(await a.page.locator("[role=dialog], [role=alertdialog]").count()).toBe(0);
 
-      // Simulate disconnect by closing context A (simulates network loss)
-      await contextA.close();
-
-      // Player B should see "Reconnecting" state for Player A
-      // Wait for reconnect banner to appear on Player B's side
-      await expect(pageB.getByTestId("reconnect-banner")).toBeVisible({ timeout: 5_000 });
-
-      // Verify Player B's timer is paused (both timers pause on disconnect)
-      await pageB.waitForTimeout(2_000);
-      const timerBAfterDisconnect = await timerB.textContent();
-      expect(timerBAfterDisconnect).toBe(initialTimeB); // Timer should not have decreased
-
-      // Reconnect Player A within 10 seconds
-      const newContextA = await browser.newContext();
-      const newPageA = await newContextA.newPage();
-      await newPageA.goto("/");
-      await newPageA.getByTestId("landing-username-input").fill("reconnect-alpha");
-      await newPageA.getByTestId("landing-login-submit").click();
-
-      // Player A should be able to rejoin the match
-      // The match page should restore state from database
-      const matchId = await pageB.getByTestId("match-shell").getAttribute("data-match-id");
-      if (matchId) {
-        await newPageA.goto(`/match/${matchId}`);
-        await expect(newPageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-
-        // Verify state restoration: board, round, timer values
-        await expect(newPageA.getByTestId("round-indicator")).toBeVisible();
-        await expect(newPageA.getByTestId("board-grid")).toBeVisible();
-
-        // Timers should resume after reconnection
-        const restoredTimerA = newPageA.getByTestId("timer-hud");
-        await expect(restoredTimerA).toBeVisible();
-      }
-
-      await newPageA.close();
-      await newContextA.close();
+      // The countdown moves.
+      const first = await topBar.getByTestId("player-bar-subline").textContent();
+      await a.page.waitForTimeout(2_100);
+      const second = await topBar.getByTestId("player-bar-subline").textContent();
+      expect(second).not.toBe(first);
     } finally {
-      await pageB.close();
-      await contextB.close();
-    }
-  });
-
-  test.skip("finalizes match with disconnect end condition after 10s timeout", async ({
-    browser,
-  }) => {
-    const contextA = await browser.newContext();
-    const contextB = await browser.newContext();
-    const pageA = await contextA.newPage();
-    const pageB = await contextB.newPage();
-
-    try {
-      await loginAndStartMatch(pageA, pageB, "timeout-alpha", "timeout-beta");
-
-      // Wait for match to be active
-      await expect(pageA.getByTestId("round-indicator")).toBeVisible();
-      await expect(pageB.getByTestId("round-indicator")).toBeVisible();
-
-      // Disconnect Player A
-      await contextA.close();
-
-      // Player B should see reconnect banner
-      await expect(pageB.getByTestId("reconnect-banner")).toBeVisible({ timeout: 5_000 });
-
-      // Wait for 10s timeout + buffer
-      await pageB.waitForTimeout(12_000);
-
-      // Match should be finalized with disconnect end condition
-      // Player B should be redirected to summary page
-      await expect(pageB).toHaveURL(/\/match\/.*\/summary/, { timeout: 5_000 });
-
-      // Summary should indicate disconnect as end reason
-      const summary = pageB.getByTestId("final-summary");
-      await expect(summary).toBeVisible();
-      // The summary should show disconnect as the reason
-      await expect(summary).toContainText(/disconnect|abandoned/i);
-    } finally {
-      await pageB.close();
-      await contextB.close();
+      await ctxA.close();
     }
   });
 });

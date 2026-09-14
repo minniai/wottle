@@ -15,10 +15,12 @@ import type {
   ScoreTotals,
   WordScore,
 } from "@/lib/types/match";
-import { generateBoard } from "@/scripts/supabase/generateBoard";
+import { generateBoard } from "@/lib/game-engine/boardGenerator";
 import { computeElapsedMs, computeRemainingMs, isClockExpired } from "./clockEnforcer";
 import { getDisconnectRecord } from "./disconnectStore";
-import { findStaleParticipant } from "./heartbeatRepository";
+import { findStaleParticipantDetail } from "./heartbeatRepository";
+import { RECONNECT_WINDOW_MS } from "./disconnectStore";
+import { mapWordScoreRows, type WordScoreEntryRow } from "./wordScoreRow";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -138,7 +140,7 @@ function ensureBoardSnapshot(
     }
   }
 
-  return generateBoard({ matchId: boardSeed ?? matchId });
+  return generateBoard({ seed: boardSeed ?? matchId });
 }
 
 async function fetchCompletedRound(
@@ -195,17 +197,6 @@ async function fetchPreviousTotals(
     : { playerA: 0, playerB: 0 };
 }
 
-/** Shape of a `word_score_entries` row as read by the loader. */
-interface WordScoreEntryRow {
-  player_id: string;
-  word: string;
-  length: number;
-  letters_points: number;
-  bonus_points: number;
-  total_points: number;
-  tiles: Coordinate[];
-}
-
 /**
  * Defensively coerce a raw `matches.frozen_tiles` JSON value into a
  * `FrozenTileMap`. Returns an empty map for null/non-object values rather than
@@ -218,15 +209,7 @@ function coerceFrozenTileMap(value: unknown): FrozenTileMap {
 }
 
 function mapWordScores(entries: WordScoreEntryRow[]): WordScore[] {
-  return entries.map((entry) => ({
-    playerId: entry.player_id,
-    word: entry.word,
-    length: entry.length,
-    lettersPoints: entry.letters_points,
-    bonusPoints: entry.bonus_points,
-    totalPoints: entry.total_points,
-    coordinates: entry.tiles,
-  }));
+  return mapWordScoreRows(entries);
 }
 
 interface BuildPartialArgs {
@@ -320,7 +303,7 @@ async function loadLatestRoundSummary(
 }
 
 function mapPlayerRow(
-  row: { id: string; username: string; display_name: string; avatar_url: string | null; elo_rating: number | null },
+  row: { id: string; username: string; display_name: string; avatar_url: string | null; elo_rating: number | null; games_played?: number | null },
 ): MatchPlayerProfile {
   return {
     playerId: row.id,
@@ -328,6 +311,7 @@ function mapPlayerRow(
     username: row.username,
     avatarUrl: row.avatar_url,
     eloRating: row.elo_rating ?? 1200,
+    gamesPlayed: typeof row.games_played === "number" ? row.games_played : undefined,
   };
 }
 
@@ -348,7 +332,7 @@ export async function loadMatchPlayerProfiles(
 ): Promise<MatchPlayerProfiles> {
   const { data, error } = await client
     .from("players")
-    .select("id, username, display_name, avatar_url, elo_rating")
+    .select("id, username, display_name, avatar_url, elo_rating, games_played")
     .in("id", [playerAId, playerBId]);
 
   if (error || !data) {
@@ -404,7 +388,7 @@ export async function loadMatchState(
 
   if (match.state === "pending") {
     const boardSeed = match.board_seed ?? match.id;
-    const initialBoard = generateBoard({ matchId: boardSeed });
+    const initialBoard = generateBoard({ seed: boardSeed });
 
     await client
       .from("rounds")
@@ -622,13 +606,15 @@ export async function loadMatchState(
   // on Vercel multi-instance (issue #161 / #163 hotfix). The shared
   // Postgres row resolves that.
   const inMemoryDisconnect =
-    getDisconnectRecord(match.id, match.player_a_id)?.playerId ??
-    getDisconnectRecord(match.id, match.player_b_id)?.playerId ??
+    getDisconnectRecord(match.id, match.player_a_id) ??
+    getDisconnectRecord(match.id, match.player_b_id) ??
     null;
 
   const staleFromHeartbeat =
-    match.state === "in_progress" && (match as { created_at?: string }).created_at
-      ? await findStaleParticipant(client, {
+    !inMemoryDisconnect &&
+    match.state === "in_progress" &&
+    (match as { created_at?: string }).created_at
+      ? await findStaleParticipantDetail(client, {
           matchId: match.id,
           playerAId: match.player_a_id,
           playerBId: match.player_b_id,
@@ -636,7 +622,11 @@ export async function loadMatchState(
         })
       : null;
 
-  const disconnectedPlayerId = inMemoryDisconnect ?? staleFromHeartbeat;
+  const disconnectedPlayerId =
+    inMemoryDisconnect?.playerId ?? staleFromHeartbeat?.playerId ?? null;
+  // Anchor for the client's `reconnecting · m:ss left` countdown (spec 044, R13).
+  const disconnectedAt =
+    inMemoryDisconnect?.disconnectedAt ?? staleFromHeartbeat?.disconnectedAt ?? null;
 
   return {
     matchId: match.id,
@@ -659,6 +649,8 @@ export async function loadMatchState(
     lastSummary,
     frozenTiles: coerceFrozenTileMap((match as { frozen_tiles?: unknown }).frozen_tiles),
     disconnectedPlayerId,
+    disconnectedAt,
+    reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,
     pendingMoves,
     partialSummary,
   };

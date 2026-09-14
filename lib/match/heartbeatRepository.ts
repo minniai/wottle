@@ -64,10 +64,21 @@ export async function recordHeartbeat(
  * detects network drops where neither `pagehide` → `sendBeacon` nor
  * Realtime presence leave fired (issue #164).
  */
-export async function findStaleParticipant(
+export interface StaleParticipant {
+  playerId: string;
+  /** ISO timestamp from which the reconnection window counts: last heartbeat + HEARTBEAT_STALE_MS. */
+  disconnectedAt: string;
+}
+
+/**
+ * Like {@link findStaleParticipant} but also returns when the participant is
+ * considered to have gone away, so the client can count the window down from
+ * the same anchor on every device (spec 044, R13).
+ */
+export async function findStaleParticipantDetail(
   client: AnyClient,
   opts: FindStaleParticipantOptions,
-): Promise<string | null> {
+): Promise<StaleParticipant | null> {
   const now = opts.now ?? new Date();
 
   if (now.getTime() - opts.matchCreatedAt.getTime() < GRACE_WINDOW_MS) {
@@ -93,8 +104,17 @@ export async function findStaleParticipant(
   for (const playerId of [opts.playerAId, opts.playerBId]) {
     const lastSeen = lastSeenByPlayer.get(playerId);
     if (lastSeen === undefined || lastSeen <= threshold) {
-      return playerId;
+      const anchor = lastSeen === undefined ? opts.matchCreatedAt.getTime() + GRACE_WINDOW_MS : lastSeen + HEARTBEAT_STALE_MS;
+      return { playerId, disconnectedAt: new Date(anchor).toISOString() };
     }
   }
   return null;
+}
+
+export async function findStaleParticipant(
+  client: AnyClient,
+  opts: FindStaleParticipantOptions,
+): Promise<string | null> {
+  const stale = await findStaleParticipantDetail(client, opts);
+  return stale?.playerId ?? null;
 }

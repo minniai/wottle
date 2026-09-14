@@ -9,7 +9,13 @@ Wottle is a competitive 2-player real-time word duel (Next.js 16 + Supabase). Tw
 1. **Supabase local stack** (Docker containers: Postgres, PostgREST, Realtime, Auth, etc.)
 2. **Next.js dev server** (`pnpm dev`, port 3000)
 
-See `CLAUDE.md` for full command reference (setup, testing, Supabase operations).
+See `CLAUDE.md` for the full command reference (setup, testing, Supabase operations), the architecture overview, the Speckit workflow, and the mandatory design and game-rules constraints. In short:
+
+- **Runtime**: Node.js 22 (`.nvmrc`, `engines`), pnpm 11.7 (`packageManager`; settings in `pnpm-workspace.yaml`).
+- **Verify a change**: `pnpm lint` (zero warnings), `pnpm typecheck`, `pnpm test:unit`; `pnpm test:integration` and `pnpm exec playwright test` need the Supabase stack (and, for Playwright, the dev server) running.
+- **UI work** must follow `docs/design/README.md` → `WOTTLE_DESIGN_SYSTEM.md` (Field & Ledger, spec `specs/044-field-ledger-redesign/`).
+- **Scoring / round-engine work** must be checked against `docs/prd_and_requirements/wottle_game_rules.md` (§10 regression log first).
+- **Feature work** follows Speckit: `/speckit.specify` → `clarify` → `plan` → `tasks` → `implement`, TDD throughout.
 
 ### Starting Services
 
@@ -45,9 +51,11 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
 
 - **Pre-set Supabase secrets conflict**: If `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are pre-set as environment secrets, the quickstart script will skip starting local Supabase and skip migrations/seeding. When using local Supabase, override these env vars on the command line for `pnpm supabase:seed`, `pnpm supabase:verify`, and `pnpm dev`.
 - **Docker permissions**: After starting `dockerd`, run `sudo chmod 666 /var/run/docker.sock` so the `supabase` CLI can connect without sudo.
-- **Node.js version**: The project targets Node.js 20.x. Use `nvm use 20` before running commands. Node 22 is the default on the VM but some dependencies may behave differently.
+- **Node.js version**: The project pins Node.js 22 (`.nvmrc`, `engines.node >=22`). Run `nvm use` in the repo root before running commands.
 - **Supabase CLI**: Installed as a system binary via `.deb` package (not npm global). Version 2.76.14.
-- **Wordlist loading**: The Icelandic dictionary (~2.76M entries) takes ~2s to load on first use. This is normal and expected in tests and at runtime.
+- **Wordlist loading**: The Icelandic dictionary (`data/wordlists/word_list_is.txt`, ~3.71M BÍN inflected forms, minus `word_list_is_exclusions.txt`) takes ~1–2s to load on first use and logs `dictionary.loaded`. This is normal in tests and at runtime; do not add words to the list (BÍN-only policy — curation is via the exclusions file).
+- **Match clock**: one 5:00 budget per player for the whole match (`matches.player_a/b_timer_ms`, fallback `300_000` in `lib/match/roundEngine.ts`), 10 rounds. `timePerRoundMs` in `lib/constants/game-config.ts` is not read by the live clock.
+- **Two-player Playwright specs**: files tagged `@two-player-playtest` run in CI on the `playtest-firefox` project with `--workers=1`; locally run them one spec file at a time to avoid Realtime contention.
 - **Realtime channel**: Local Supabase Realtime may show as "disconnected" in the lobby UI; the app automatically falls back to HTTP polling (2s interval). This is expected behavior in development.
 
 <!-- OPENWIKI:START -->

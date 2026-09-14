@@ -1,32 +1,28 @@
 import type { Metadata } from "next";
-import { Fraunces, JetBrains_Mono } from "next/font/google";
+import { Red_Hat_Mono, Zilla_Slab } from "next/font/google";
 import "./globals.css";
-import "./styles/board.css";
-import "./styles/lobby.css";
-import "./styles/profile.css";
-import { ToastProvider } from "@/components/ui/ToastProvider";
-import { TopBar } from "@/components/ui/TopBar";
+import "./styles/room.css";
 
-const fraunces = Fraunces({
+const zillaSlab = Zilla_Slab({
   subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
   display: "swap",
   preload: true,
-  variable: "--font-fraunces",
-  axes: ["opsz"],
+  variable: "--font-zilla-slab",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const redHatMono = Red_Hat_Mono({
   subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600"],
   display: "swap",
   preload: true,
-  variable: "--font-jetbrains-mono",
-  weight: ["400", "500"],
+  variable: "--font-red-hat-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Wottle — Icelandic word duel",
+  title: "wottle",
   description:
-    "ORÐUSTA. A two-player Icelandic word duel: swap tiles, find words, race the clock.",
+    "A two-player Icelandic word duel. Swap two letters; words of three or more score and freeze in your ink.",
 };
 
 export default function RootLayout({
@@ -35,14 +31,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen overflow-x-clip bg-surface-0 text-text-primary antialiased">
-        <ToastProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <TopBar />
-            {children}
-          </div>
-        </ToastProvider>
+    <html lang="en" className={`${zillaSlab.variable} ${redHatMono.variable}`}>
+      <body className="min-h-screen overflow-x-clip bg-paper text-ink antialiased">
+        <div className="relative flex min-h-screen flex-col">{children}</div>
       </body>
     </html>
   );

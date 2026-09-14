@@ -38,7 +38,7 @@ import { freezeTiles } from "./frozenTiles";
  *   lengthBonus = (word_length - 2) * 5
  *   total = lettersPoints + lengthBonus
  */
-function scoreBoardWords(
+export function scoreBoardWords(
   words: BoardWord[],
   playerId: string,
   frozenTiles: FrozenTileMap,

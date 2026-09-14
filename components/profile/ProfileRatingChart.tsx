@@ -1,92 +1,65 @@
+import type { Seat } from "@/lib/constants/seatColors";
+import { getSeatColors } from "@/lib/constants/seatColors";
 import type { RatingHistoryEntry } from "@/lib/types/match";
 
 interface ProfileRatingChartProps {
   history: RatingHistoryEntry[];
+  seat: Seat;
 }
 
-const VIEWBOX_W = 600;
-const VIEWBOX_H = 180;
-const PAD_X = 24;
+const W = 600;
+const H = 180;
+const PAD_LEFT = 44;
+const PAD_RIGHT = 12;
 const PAD_Y = 14;
 
-export function ProfileRatingChart({ history }: ProfileRatingChartProps) {
-  if (history.length === 0) {
-    return (
-      <div
-        data-testid="profile-rating-chart"
-        className="flex h-[180px] w-full items-center justify-center text-sm text-ink-soft"
-      >
-        No rated matches in the last 30 days.
-      </div>
-    );
-  }
-
+/**
+ * Hairline 30-day rating chart (design system §5.8): one 1.5px polyline in the
+ * seat colour over three rule gridlines, ink axes left and bottom, mono labels.
+ * No area fill, no markers, no tooltip.
+ */
+export function ProfileRatingChart({ history, seat }: ProfileRatingChartProps) {
   const ratings = history.map((h) => h.rating);
-  const min = Math.min(...ratings);
-  const max = Math.max(...ratings);
+  const min = ratings.length ? Math.min(...ratings) : 0;
+  const max = ratings.length ? Math.max(...ratings) : 0;
   const range = max - min || 1;
-
-  const xStep =
-    history.length > 1 ? (VIEWBOX_W - PAD_X * 2) / (history.length - 1) : 0;
-
-  const points = history.map((h, i) => {
-    const x = history.length > 1 ? PAD_X + i * xStep : VIEWBOX_W / 2;
-    const y =
-      VIEWBOX_H - PAD_Y - ((h.rating - min) / range) * (VIEWBOX_H - PAD_Y * 2);
-    return { x, y, rating: h.rating };
-  });
-
-  const lineD = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-    .join(" ");
-  const areaD =
-    `${lineD} L ${points[points.length - 1].x.toFixed(1)} ${VIEWBOX_H - PAD_Y} ` +
-    `L ${points[0].x.toFixed(1)} ${VIEWBOX_H - PAD_Y} Z`;
-
-  const gridYs = [0.2, 0.4, 0.6, 0.8].map(
-    (t) => PAD_Y + t * (VIEWBOX_H - PAD_Y * 2),
-  );
-
-  const endpoint = points[points.length - 1];
+  const innerW = W - PAD_LEFT - PAD_RIGHT;
+  const innerH = H - PAD_Y * 2;
+  const xAt = (i: number) => (history.length > 1 ? PAD_LEFT + (i * innerW) / (history.length - 1) : PAD_LEFT + innerW / 2);
+  const yAt = (r: number) => H - PAD_Y - ((r - min) / range) * innerH;
+  const points = history.map((h, i) => `${xAt(i).toFixed(1)},${yAt(h.rating).toFixed(1)}`).join(" ");
+  const gridYs = [0.25, 0.5, 0.75].map((t) => PAD_Y + t * innerH);
+  const color = getSeatColors(seat).ink;
 
   return (
     <svg
       data-testid="profile-rating-chart"
       role="img"
-      aria-label="Rating history chart"
-      viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
+      aria-label={history.length ? `rating over the last 30 days, ${min} to ${max}` : "no rated matches in the last 30 days"}
+      viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className="block h-[180px] w-full"
+      className="profile-chart"
     >
       {gridYs.map((y) => (
-        <line
-          key={y}
-          x1={PAD_X}
-          x2={VIEWBOX_W - PAD_X}
-          y1={y}
-          y2={y}
-          stroke="currentColor"
-          strokeOpacity={0.08}
-          strokeDasharray="2 4"
-        />
+        <line key={y} x1={PAD_LEFT} x2={W - PAD_RIGHT} y1={y} y2={y} stroke="var(--rule)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       ))}
-      <path d={areaD} fill="var(--ochre-tint)" opacity={0.7} />
-      <path
-        d={lineD}
-        fill="none"
-        stroke="var(--ochre-deep)"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle
-        cx={endpoint.x}
-        cy={endpoint.y}
-        r={5}
-        fill="var(--ochre-deep)"
-        stroke="var(--paper)"
-        strokeWidth={2}
-      />
+      <line x1={PAD_LEFT} x2={PAD_LEFT} y1={PAD_Y} y2={H - PAD_Y} stroke="var(--ink)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      <line x1={PAD_LEFT} x2={W - PAD_RIGHT} y1={H - PAD_Y} y2={H - PAD_Y} stroke="var(--ink)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      {history.length > 0 ? (
+        <>
+          <text x={PAD_LEFT - 6} y={PAD_Y + 4} textAnchor="end" className="profile-chart__label">
+            {max}
+          </text>
+          <text x={PAD_LEFT - 6} y={H - PAD_Y} textAnchor="end" className="profile-chart__label">
+            {min}
+          </text>
+          <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" data-testid="profile-rating-line" />
+        </>
+      ) : (
+        <text x={PAD_LEFT + innerW / 2} y={H / 2} textAnchor="middle" className="profile-chart__label">
+          no rated matches in the last 30 days
+        </text>
+      )}
     </svg>
   );
 }

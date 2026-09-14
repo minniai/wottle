@@ -23,6 +23,7 @@ const VALID_PARTIAL = {
         { x: 5, y: 2 },
         { x: 6, y: 2 },
       ],
+      direction: "ltr",
     },
   ],
   delta: { playerA: 28, playerB: 0 },

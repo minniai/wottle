@@ -2,23 +2,42 @@
 
 ## Overview
 
-Wottle is a competitive two-player real-time word duel. Players swap tiles on a 10×10 board to form
-Icelandic words, under a per-round clock and with spatial tile-freezing strategy. The core gameplay
+Wottle is a competitive two-player real-time word duel. Players swap letters on a 10×10 field to form
+Icelandic words, each on one match-long clock, with spatial tile-freezing strategy. The core gameplay
 loop — swap → find words → score → freeze — is functional and covered by tests.
 
-Default match configuration (`lib/constants/game-config.ts`):
+Default match configuration (`lib/constants/game-config.ts`, `lib/match/roundEngine.ts`):
 
-| Setting             | Value                |
-| ------------------- | -------------------- |
-| Board size          | 10×10                |
-| Rounds per match    | 5                    |
-| Time per round      | 60s                  |
-| Minimum word length | 3 letters            |
-| Scoring directions  | horizontal, vertical |
-| Language            | Icelandic (`is`)     |
+| Setting             | Value                                                    |
+| ------------------- | -------------------------------------------------------- |
+| Board size          | 10×10                                                    |
+| Rounds per match    | 10                                                       |
+| Clock               | one 5:00 budget per player for the whole match (rules §2a) |
+| Minimum word length | 3 letters                                                |
+| Scoring directions  | four orthogonal (rules §3.1)                             |
+| Language            | Icelandic (`is`)                                         |
 
 Word validity is decided against the BÍN-derived Icelandic word list in `data/wordlists/`
 (`word_list_is.txt`, with `word_list_is_exclusions.txt` as the curation overlay).
+
+## UI / design
+
+Wottle's UI is the **Field & Ledger** system: a ruled field of letters framed by two player bars (the
+opponent's above, yours below), with a single ledger beside it. Lobby, matchmaking, match, result and
+profile are states of that one room, not pages. Everything about the look is in
+[`docs/design/README.md`](docs/design/README.md) →
+`docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`; all UI work must follow it.
+The implementing feature is `specs/044-field-ledger-redesign/`.
+
+| Room state | What changes |
+| --- | --- |
+| lobby (empty seat) | your bar holds the name input; a warm-up field you can pick and preview on |
+| lobby | `here now` and `your last matches` tables in the ledger; `play ranked ▸` in the opponent bar |
+| queue | `Finding an opponent`; the field sets itself letter by letter |
+| found | the opponent's name writes into the top bar; `round 1 in 3 · 2 · 1` |
+| match | bands, pins, lanes, live row |
+| final | verdict in the ledger; field stays; `rematch ▸ · new opponent ▸ · lobby` |
+| profile | same grid: identity + rating chart + record left, `best words` and `recent matches` right |
 
 ## Technology Stack
 
@@ -35,12 +54,15 @@ Word validity is decided against the BÍN-derived Icelandic word list in `data/w
 ## Project Structure
 
 - **`app/`**: Next.js application routes, pages, and Server Actions.
-- **`components/`**: React components (`game/`, `match/`, and shared UI).
-- **`lib/`**: Domain logic and backend services — game engine, scoring, match state machine, types.
+- **`components/`**: React components — `room/` (`Room`, `PlayerBar`, `Field`, `Ledger`, the lobby /
+  queue / match controllers and their hooks) and `profile/` (`ProfilePage`, `ProfileRatingChart`). Nothing else.
+- **`lib/`**: Domain logic and backend services — game engine, scoring, match state machine, types, and
+  `lib/room/` (room store, field interaction reducer, reveal planner, ledger rows).
 - **`data/wordlists/`**: Dictionaries. Icelandic is the live language; the other lists are unused holdovers.
 - **`specs/`**: Speckit feature specifications (see below).
-- **`docs/`**: Requirements, architecture, design docs, and proposals.
-- **`scripts/`**: Supabase setup/seed/verify utilities, perf assertions, and guards.
+- **`docs/`**: Requirements, architecture, design entry point (`docs/design/`), proposals, and `docs/archive/`
+  for superseded material (excluded from `pnpm docs:check`).
+- **`scripts/`**: Supabase setup/seed/verify utilities, perf assertions, guards, and `docs/consistency-grep.sh`.
 - **`tests/`**: Test suites (`unit/`, `integration/`, `contract/`, `perf/`).
 
 ## Development Status
@@ -49,9 +71,10 @@ The project follows a spec-driven workflow using [Speckit](#speckit-workflow).
 
 **Shipped Speckit specs** (`specs/`): `001-e2e-board-scaffold` through `019-lobby-visual-foundation`,
 plus `042-instant-scoring-reveal` and `043-scoring-resolution-viz`. The `020`–`041` range was used for
-the Warm Editorial visual redesign, which was tracked as phase branches and plans under
+the previous visual redesign (April–June 2026), which was tracked as phase branches and plans under
 `docs/superpowers/plans/` rather than as `specs/` directories — that is why the `specs/` numbering has
-a gap.
+a gap. That redesign is superseded by `044-field-ledger-redesign` (shipped 2026-09-14); specs whose UI it
+retired carry a `SUPERSEDED.md`.
 
 > **Note on spec status headers**: individual `spec.md` files often still read `**Status**: Draft` even
 > after the feature has shipped. Treat git merge history, not the spec header, as the record of what is
@@ -100,8 +123,6 @@ migrations, seeds data, and writes `.env.local` for you. There are no committed 
 | `SUPABASE_DB_PASSWORD`              | Optional Postgres password for CLI scripts                                            | `postgres-password`                     |
 | `PLAYTEST_INVITE_EXPIRY_SECONDS`    | How long direct invites remain valid before expiring                                  | `30`                                    |
 | `PLAYTEST_MAX_CONCURRENT_MATCHES`   | Guardrail limiting simultaneous matches on a single Supabase stack                    | `20`                                    |
-| `NEXT_PUBLIC_ENABLE_PLAYTEST_LOBBY` | Set to `true` to surface lobby preview UI                                             | _unset_ (false)                         |
-| `NEXT_PUBLIC_ENABLE_PLAYTEST_MATCH` | Set to `true` to surface match summary preview UI                                     | _unset_ (false)                         |
 | `PLAYTEST_SESSION_SECURE`           | Force secure cookies (`true`/`false`); override for local Playwright                  | auto (`true` in production)             |
 | `RATE_LIMIT_DISABLED_SCOPES`        | Comma-separated list of scopes to bypass (e.g., `auth:login`)                         | _unset_                                 |
 | `CRON_SECRET`                       | Shared secret for `/api/cron/*` routes; must match Postgres `app.cron_secret` setting | _unset_ (required in prod)              |
@@ -148,6 +169,7 @@ to invoke directly for ad-hoc cleanup.
 | `pnpm start`      | Serves the production build.                                                             |
 | `pnpm lint`       | ESLint, zero-warnings policy.                                                            |
 | `pnpm typecheck`  | TypeScript compilation check (`tsc --noEmit`).                                           |
+| `pnpm docs:check` | Fails if the living docs still contain a retired phrase (`DOCS_CONSISTENCY.md §10`).    |
 
 ### Testing
 
@@ -222,7 +244,7 @@ pnpm exec playwright test --grep "test name"
 
 The CI workflow (`.github/workflows/ci.yml`) runs these jobs:
 
-1. **lint**: ESLint with zero warnings policy
+1. **lint**: ESLint with zero warnings policy, service-role guard, `pnpm docs:check`
 2. **typecheck**: TypeScript compilation check
 3. **test**: Vitest unit + contract suite
 4. **build**: Next.js production build
@@ -233,8 +255,9 @@ The CI workflow (`.github/workflows/ci.yml`) runs these jobs:
 ### Test Helpers
 
 Playwright tests use retry helpers (`tests/integration/ui/helpers/matchmaking.ts`) to handle race
-conditions in matchmaking operations. These helpers implement exponential backoff and polling to
-ensure reliable test execution when two players click "Start Game" simultaneously.
+conditions in matchmaking operations. `startMatchWithDirectInvite` drives the ledger's `challenge ▸`
+row and the `accept ▸` notice; `waitForBothPlayersMatched` polls the room's `data-match-id`. Room test ids
+are listed in `tests/integration/ui/README.md`.
 
 ### Test Artifacts
 

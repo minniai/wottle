@@ -286,6 +286,17 @@ necessary context without cluttering the one-liner history.
   4. Update to dependent templates (plan, spec, tasks)
   5. Version bump per semantic versioning (MAJOR.MINOR.PATCH)
 
+- **Pending amendment (drafted 2026-09-14, spec 044 — not yet adopted; principle text above unchanged):**
+  Principle IV's "Board responsiveness: Scrollable container with pinch-to-zoom (50–150%)" no longer
+  describes the product. The Field & Ledger design renders the field at full width on every viewport
+  (`min(100vw − 32px, 100vh − bars − live row)` on phones), never scrolls it, and has no zoom; letters
+  stay ≥ 34px cells at 390px. Proposed replacement bullet: "Board responsiveness: the field fills the
+  viewport width without scrolling or zoom; cells never fall below 34px." Rationale: the previous
+  `usePinchZoom`/`BoardCoordLabels` path was retired with the design; a zoomable, scrollable board
+  contradicts "nothing is positioned over the field" and the fixed bar / field / bar / live-row stack.
+  Impact: `usePinchZoom` and its tests are already deleted (spec 044 P3); no other implementation
+  depends on the bullet. Requires tech-lead approval and a MINOR version bump when adopted.
+
 ## Governance
 
 **Supremacy**: This constitution overrides ad-hoc decisions; all features MUST comply with principles and stack standards.

@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "eslint --max-warnings=0 --ext .ts,.tsx .",
     "typecheck": "tsc --pretty --noEmit",
+    "docs:check": "bash scripts/docs/consistency-grep.sh",
     "test": "pnpm test:unit",
     "test:unit": "vitest --config vitest.config.ts --run --passWithNoTests",
     "test:integration": "vitest --config vitest.integration.config.ts --run --passWithNoTests",
@@ -28,7 +29,8 @@
     "perf:swap": "artillery run --output artillery-swap.json tests/perf/swap.yml && tsx scripts/perf/assert-artillery-thresholds.ts artillery-swap.json",
     "perf:lobby-presence": "SWAP_LATENCY_THRESHOLD_MS=2000 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-lobby-presence.json tests/perf/lobby-presence.yml && SWAP_LATENCY_THRESHOLD_MS=2000 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-lobby-presence.json",
     "perf:round-resolution": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-round-resolution.json tests/perf/round-resolution.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-round-resolution.json",
-    "perf:instant-scoring": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-instant-scoring.json tests/perf/instant-scoring.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-instant-scoring.json"
+    "perf:instant-scoring": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-instant-scoring.json tests/perf/instant-scoring.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-instant-scoring.json",
+    "perf:preview-swap": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-preview-swap.json tests/perf/preview-swap.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-preview-swap.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.0",

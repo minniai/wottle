@@ -11,11 +11,11 @@ async function loginPlayer(
   username: string,
 ) {
   await page.goto("/");
-  await page.getByTestId("landing-username-input").fill(username);
+  await page.getByTestId("player-bar-name-input").fill(username);
 
   // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
   // and the form component calls router.refresh() on success.
-  await page.getByTestId("landing-login-submit").click();
+  await page.getByTestId("player-bar-action-play").click();
 
   // Wait for the Server Action to complete and cookie to settle
   await page.waitForTimeout(1500);
@@ -26,7 +26,7 @@ async function loginPlayer(
   // brand-new JS context so the Zustand store has no trackedPlayerId and
   // disconnect() won't send a DELETE.
   const lobbyVisible = await page
-    .getByTestId("lobby-presence-list")
+    .getByTestId("ledger-here-now")
     .isVisible()
     .catch(() => false);
 
@@ -34,12 +34,12 @@ async function loginPlayer(
     await page.goto("/");
   }
 
-  await expect(page.getByTestId("lobby-presence-list")).toBeVisible({
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({
     timeout: 20_000,
   });
 
   // Then check for matchmaker controls
-  await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({
+  await expect(page.getByTestId("player-bar-action-ranked")).toBeVisible({
     timeout: 10_000,
   });
 }
@@ -65,56 +65,9 @@ async function loginAndStartMatch(
   expect(matchIdA).toBeTruthy();
   expect(matchIdA).toEqual(matchIdB);
 
-  await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-  await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+  await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
+  await expect(pageB.getByTestId("room")).toBeVisible({ timeout: 10_000 });
 }
-
-// ─── T009 + T010: Score delta popup (US1) ─────────────────────────────────
-test.describe("Score delta popup (US1)", () => {
-  test("T009/T010: popup matches player score after round resolves @two-player-playtest", async ({
-    browser,
-  }) => {
-    const contextA = await browser.newContext();
-    const contextB = await browser.newContext();
-    const pageA = await contextA.newPage();
-    const pageB = await contextB.newPage();
-
-    try {
-      const userA = generateTestUsername("popup-alpha");
-      const userB = generateTestUsername("popup-beta");
-      await loginAndStartMatch(pageA, pageB, userA, userB);
-
-      // Submit round 1 moves
-      await submitSwap(pageA);
-      await submitSwap(pageB);
-
-      // Wait for round to resolve — round indicator advances automatically
-      const roundIndicator = pageA.getByTestId("game-chrome-player").getByTestId("round-indicator");
-      await expect(roundIndicator).toContainText(/r2/i, { timeout: 45_000 });
-
-      // Check if score delta popup appeared (indicates player scored)
-      const popup = pageA.locator('[data-testid="score-delta-popup"]');
-      const popupVisible = await popup.isVisible().catch(() => false);
-
-      if (popupVisible) {
-        // T009: popup is visible and contains "+N" format
-        await expect(popup).toContainText(/\+\d+/);
-      }
-      // T010: if player earns zero points, popup is absent (already verified by popupVisible === false)
-
-      // T010 invariant: popup is never shown in the opponent's chrome
-      const opponentChrome = pageA.getByTestId("game-chrome-opponent");
-      await expect(
-        opponentChrome.locator('[data-testid="score-delta-popup"]'),
-      ).not.toBeAttached();
-    } finally {
-      await pageA.close();
-      await pageB.close();
-      await contextA.close();
-      await contextB.close();
-    }
-  });
-});
 
 test.describe("Round flow", () => {
   test("completes 10 rounds with reconnect safety + late swap guards @two-player-playtest", async ({
@@ -141,7 +94,7 @@ test.describe("Round flow", () => {
         await pageA.waitForTimeout(settleMs);
         if (round < 10) {
           // Wait for round to resolve and advance — rounds auto-advance after recap animation
-          await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(
+          await expect(pageA.getByTestId("round-indicator")).toContainText(
             new RegExp(`r${round + 1}`, "i"),
             { timeout: 45_000 }
           );

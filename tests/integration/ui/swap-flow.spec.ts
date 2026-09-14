@@ -6,7 +6,7 @@ import {
   startMatchWithDirectInvite,
 } from "./helpers/matchmaking";
 
-const BOARD_TILE_SELECTOR = "[data-testid=\"board-tile\"]";
+const BOARD_TILE_SELECTOR = "[data-testid=\"field-cell\"]";
 const FEEDBACK_SELECTOR = "[data-testid=\"move-feedback-toast\"]";
 
 async function getTileLetters(page: import("@playwright/test").Page, indices: number[]) {
@@ -29,16 +29,16 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
     username: string,
   ) {
     await page.goto("/");
-    await page.getByTestId("landing-username-input").fill(username);
-    await page.getByTestId("landing-login-submit").click();
+    await page.getByTestId("player-bar-name-input").fill(username);
+    await page.getByTestId("player-bar-action-play").click();
     await page.waitForTimeout(1500);
     const lobbyVisible = await page
-      .getByTestId("lobby-presence-list")
+      .getByTestId("ledger-here-now")
       .isVisible()
       .catch(() => false);
     if (!lobbyVisible) await page.goto("/");
-    await expect(page.getByTestId("lobby-presence-list")).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByTestId("matchmaker-start-button")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("player-bar-action-ranked")).toBeVisible({ timeout: 10_000 });
   }
 
   test("T014: swapping a frozen tile shows invalid class on both tiles @two-player-playtest", async ({
@@ -63,15 +63,15 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
       expect(matchIdA).toBeTruthy();
       expect(matchIdA).toEqual(matchIdB);
 
-      await expect(pageA.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
-      await expect(pageB.getByTestId("match-shell")).toBeVisible({ timeout: 10_000 });
+      await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
+      await expect(pageB.getByTestId("room")).toBeVisible({ timeout: 10_000 });
 
       // Complete round 1 to generate frozen tiles
       await submitSwap(pageA);
       await submitSwap(pageB);
 
       // Wait for round to resolve and advance — rounds auto-advance after recap animation
-      await expect(pageA.getByTestId("game-chrome-player").getByTestId("round-indicator")).toContainText(/r2/i, {
+      await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, {
         timeout: 45_000,
       });
 
@@ -82,7 +82,7 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
       await waitForBoardUnlocked(pageA);
 
       // Find the first frozen tile on pageA's board
-      const board = pageA.getByTestId("board-grid");
+      const board = pageA.getByTestId("field");
       let frozenTileIndex = -1;
       for (let n = 0; n < 100; n += 1) {
         const tile = board.locator(`[data-tile-index="${n}"]`);
@@ -136,8 +136,8 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
               frozenTile.getAttribute("class"),
               neighborTile.getAttribute("class"),
             ]);
-            return frozenClass?.includes("board-grid__cell--invalid") &&
-              neighborClass?.includes("board-grid__cell--invalid")
+            return frozenClass?.includes("field__cell--shake") &&
+              neighborClass?.includes("field__cell--shake")
               ? "both-invalid"
               : "no-flash";
           },
@@ -150,8 +150,8 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
 
       // Invalid class should clear after ~500ms
       await pageA.waitForTimeout(500);
-      await expect(frozenTile).not.toHaveClass(/board-grid__cell--invalid/);
-      await expect(neighborTile).not.toHaveClass(/board-grid__cell--invalid/);
+      await expect(frozenTile).not.toHaveClass(/field__cell--shake/);
+      await expect(neighborTile).not.toHaveClass(/field__cell--shake/);
     } finally {
       await pageA.close();
       await pageB.close();

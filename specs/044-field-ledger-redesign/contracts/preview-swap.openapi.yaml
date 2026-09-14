@@ -1,0 +1,96 @@
+openapi: 3.1.0
+info:
+  title: Wottle preview swap
+  version: 1.0.0
+  description: |
+    Read-only pricing of a candidate swap. Runs the scoring pipeline (scan → cross-validate → score)
+    on the server without freezing tiles, persisting rows or broadcasting. Exposed primarily as the
+    Server Action `previewSwap` (app/actions/match/previewSwap.ts); this HTTP wrapper exists for
+    polling clients and contract tests. Dictionary never leaves the server (Constitution I).
+paths:
+  /api/match/preview:
+    post:
+      summary: Price a swap on the authoritative match board or on a warm-up board
+      operationId: previewSwap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/MatchPreviewRequest'
+                - $ref: '#/components/schemas/WarmupPreviewRequest'
+      responses:
+        '200':
+          description: Priced (possibly zero words)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PreviewSwapOk' }
+        '400':
+          description: Invalid input or swap touches a frozen tile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PreviewSwapRejected' }
+        '401':
+          description: No session (both variants require one)
+        '403':
+          description: Session is not a participant of the match
+        '429':
+          description: Rate limit `match:preview-swap` exceeded (60/min per player)
+          headers:
+            Retry-After: { schema: { type: integer } }
+        '500':
+          description: Match or round row missing, unreadable board, or unexpected failure (`status: error`)
+components:
+  schemas:
+    Coordinate:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: integer, minimum: 0, maximum: 9 }
+        y: { type: integer, minimum: 0, maximum: 9 }
+    MatchPreviewRequest:
+      type: object
+      required: [kind, matchId, from, to]
+      properties:
+        kind: { const: match }
+        matchId: { type: string, format: uuid }
+        from: { $ref: '#/components/schemas/Coordinate' }
+        to: { $ref: '#/components/schemas/Coordinate' }
+    WarmupPreviewRequest:
+      type: object
+      required: [kind, board, from, to]
+      properties:
+        kind: { const: warmup }
+        board:
+          description: 10 rows of 10 single uppercase Icelandic letters
+          type: array
+          minItems: 10
+          maxItems: 10
+          items:
+            type: array
+            minItems: 10
+            maxItems: 10
+            items: { type: string, pattern: '^[A-ZÁÐÉÍÓÚÝÞÆÖ]$' }
+        from: { $ref: '#/components/schemas/Coordinate' }
+        to: { $ref: '#/components/schemas/Coordinate' }
+    PricedWord:
+      type: object
+      required: [word, points, direction]
+      properties:
+        word: { type: string }
+        points: { type: integer, minimum: 0 }
+        direction: { type: string, enum: [ltr, rtl, ttb, btt] }
+    PreviewSwapOk:
+      type: object
+      required: [status, words, total]
+      properties:
+        status: { const: ok }
+        words: { type: array, items: { $ref: '#/components/schemas/PricedWord' } }
+        total: { type: integer, minimum: 0 }
+    PreviewSwapRejected:
+      type: object
+      required: [status, error]
+      properties:
+        status: { const: rejected }
+        error: { type: string }

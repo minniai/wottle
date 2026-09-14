@@ -1,3 +1,5 @@
+> **Superseded (2026-09-14).** The UI this proposal describes was retired by the Field & Ledger rebuild — see `docs/design/README.md` and `specs/044-field-ledger-redesign/spec.md`. Kept for history.
+
 # 016-rematch-and-post-game-loop
 
 ## Context
@@ -18,7 +20,7 @@ After a match completes, both players see two primary actions on the `FinalSumma
 
 When a player clicks "Rematch":
 - Their button changes to "Waiting for opponent..." (disabled state).
-- The opponent receives an inline rematch invitation on their `FinalSummary` screen — no lobby round-trip, no modal. A banner or card appears: **"[Opponent] wants a rematch!"** with Accept / Decline buttons.
+- The opponent receives an inline rematch invitation on their `FinalSummary` screen — no lobby round-trip, no modal. A banner or card appears: **"[Opponent] wants a rematch"** with Accept / Decline buttons (shipped that way; since spec 044 it is the ledger line `rematch? ▸`).
 
 ### 1.2 Acceptance
 When the opponent accepts:

@@ -58,6 +58,9 @@ export interface TopWord {
  * and `bonus_points` in the `word_score_entries` DB column.
  * All three refer to the same value: (word_length - 2) * 5.
  */
+/** Direction a scored word reads on the field (rules §3.1); chevron sits at coordinates[0]. */
+export type ReadingDirection = "ltr" | "rtl" | "ttb" | "btt";
+
 export interface WordScore {
   playerId: string;
   word: string;
@@ -65,7 +68,10 @@ export interface WordScore {
   lettersPoints: number;
   bonusPoints: number;
   totalPoints: number;
+  /** Ordered from the reading start; `coordinates[0]` is where the chevron sits. */
   coordinates: Coordinate[];
+  /** Derived from `coordinates` by the row mapper; absent on legacy payloads (spec 044). */
+  direction?: ReadingDirection;
 }
 
 /** A player's accepted swap coordinates, included in round summaries for opponent move reveal. */
@@ -115,6 +121,10 @@ export interface MatchState {
   scores: ScoreTotals;
   lastSummary?: RoundSummary | null;
   disconnectedPlayerId?: string | null;
+  /** ISO timestamp when `disconnectedPlayerId` was first observed server-side (spec 044). */
+  disconnectedAt?: string | null;
+  /** Length of the reconnection window in ms (RECONNECT_WINDOW_MS). */
+  reconnectWindowMs?: number;
   /** Frozen tile map for visual rendering and swap validation */
   frozenTiles?: FrozenTileMap;
   /** In-flight swaps for the current round. Populated only during `collecting`. */
@@ -338,6 +348,8 @@ export interface PlayerStats {
 export interface BestWord {
   word: string;
   points: number;
+  /** Opponent in the match where it scored (profile `best words` ledger). */
+  opponentName?: string;
 }
 
 export type MatchResult = "W" | "L" | "D";
@@ -391,6 +403,8 @@ export interface MatchPlayerProfile {
   username: string;
   avatarUrl: string | null;
   eloRating: number;
+  /** Completed matches; 0 → the first-match rules line shows (spec 044, Clarifications Q2). */
+  gamesPlayed?: number;
 }
 
 /** Both players' profiles for the match UI. */

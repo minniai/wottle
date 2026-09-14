@@ -20,7 +20,7 @@ vi.mock("@/app/actions/match/getRecentGames", () => ({
 }));
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import LobbyPage from "@/app/(lobby)/lobby/page";
+import LobbyPage from "@/app/(room)/lobby/page";
 
 describe("LobbyPage route", () => {
   test("redirects to / when no session cookie is present", async () => {

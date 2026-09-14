@@ -1,54 +1,61 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
+/*
+ * Field & Ledger tokens — docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md §2.
+ * Seven colours. Nothing else may appear on screen. Seat colours are relative to
+ * the viewer (teal = you, coral = the opponent) and resolved via getSeatColors().
+ */
 :root {
   color-scheme: light;
 
-  /* Surfaces — warm paper + deep ink */
-  --paper: oklch(0.975 0.012 85);
-  --paper-2: oklch(0.955 0.014 82);
-  --paper-3: oklch(0.925 0.016 80);
-  --ink: oklch(0.22 0.025 258);
-  --ink-2: oklch(0.29 0.027 258);
-  --ink-3: oklch(0.38 0.024 258);
-  --ink-soft: oklch(0.52 0.020 258);
+  --paper: #FFFDF7;
+  --ink: #0F1A24;
+  --rule: #E6E2D6;
+  --tint: #F4F1E8;
+  --muted: #5A6572;
+  --you: #147D7A;
+  --opp: #E4573D;
 
-  /* Accent — warm ochre (brand) */
-  --ochre: oklch(0.72 0.13 70);
-  --ochre-deep: oklch(0.58 0.14 60);
-  --ochre-tint: oklch(0.93 0.045 80);
+  /* The only permitted alphas: 14% settled band, 30% live reveal. */
+  --you-band: color-mix(in srgb, var(--you) 14%, transparent);
+  --you-live: color-mix(in srgb, var(--you) 30%, transparent);
+  --opp-band: color-mix(in srgb, var(--opp) 14%, transparent);
+  --opp-live: color-mix(in srgb, var(--opp) 30%, transparent);
 
-  /* Player colors */
-  --p1: oklch(0.68 0.14 60);
-  --p1-tint: oklch(0.92 0.06 70);
-  --p1-deep: oklch(0.48 0.14 55);
-  --p2: oklch(0.56 0.08 220);
-  --p2-tint: oklch(0.92 0.035 220);
-  --p2-deep: oklch(0.38 0.08 220);
+  /* Future-round labels in the ledger — the single exception to the seven values. */
+  --future-label: #B9B4A6;
 
-  /* Semantic */
-  --good: oklch(0.62 0.12 150);
-  --warn: oklch(0.70 0.15 40);
-  --bad: oklch(0.58 0.17 25);
+  /* Type: --font-board (Zilla Slab) and --font-mono (Red Hat Mono) are set by next/font on <html>. */
+  --font-board: var(--font-zilla-slab), "Zilla Slab", Georgia, serif;
+  --font-mono: var(--font-red-hat-mono), "Red Hat Mono", ui-monospace, monospace;
 
-  /* Match clock urgency ramp (O-59): warm yellow → red as time runs out */
-  --clock-warn: oklch(0.82 0.16 92);
-
-  /* Lines */
-  --hair: color-mix(in oklab, var(--ink) 14%, transparent);
-  --hair-strong: color-mix(in oklab, var(--ink) 22%, transparent);
-
-  /* Shadows */
-  --shadow-sm: 0 1px 0 color-mix(in oklab, var(--ink) 8%, transparent);
-  --shadow-md:
-    0 1px 2px color-mix(in oklab, var(--ink) 6%, transparent),
-    0 8px 24px color-mix(in oklab, var(--ink) 10%, transparent);
-  --shadow-lg:
-    0 2px 4px color-mix(in oklab, var(--ink) 8%, transparent),
-    0 20px 60px color-mix(in oklab, var(--ink) 16%, transparent);
-
-  font-family: var(--font-inter, "Inter"), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  /*
+   * Legacy aliases — kept only while pre-rebuild components are still live.
+   * Each resolves to a token so every colour on screen is already one of the
+   * seven. Removed with their last consumer (design plan §11).
+   */
+  --paper-2: var(--tint);
+  --paper-3: var(--tint);
+  --ink-2: var(--ink);
+  --ink-3: var(--ink);
+  --ink-soft: var(--muted);
+  --ochre: var(--ink);
+  --ochre-deep: var(--ink);
+  --ochre-tint: var(--tint);
+  --p1: var(--you);
+  --p1-tint: var(--you-band);
+  --p1-deep: var(--you);
+  --p2: var(--opp);
+  --p2-tint: var(--opp-band);
+  --p2-deep: var(--opp);
+  --good: var(--ink);
+  --warn: var(--ink);
+  --bad: var(--ink);
+  --hair: var(--rule);
+  --hair-strong: var(--rule);
+  --font-fraunces: var(--font-board);
+  --font-jetbrains-mono: var(--font-mono);
 }
 
 html,
@@ -61,5 +68,11 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
+  font-family: var(--font-board);
   -webkit-font-smoothing: antialiased;
+}
+
+/* No radii, anywhere (design system §2). */
+* {
+  border-radius: 0;
 }

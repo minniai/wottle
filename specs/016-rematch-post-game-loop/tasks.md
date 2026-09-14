@@ -69,8 +69,8 @@
 - [x] T018 [US1] Rewrite `requestRematchAction` with rate limiting, validation, simultaneous detection, DB insert, and broadcast in `app/actions/match/requestRematch.ts`
 - [x] T019 [US1] Implement `respondToRematchAction` with accept path — create match, update request, set players in match, broadcast in `app/actions/match/respondToRematch.ts`
 - [x] T020 [US1] Implement `useRematchNegotiation` hook — idle/requesting/waiting/incoming/accepted/interstitial phases, Realtime subscription, 500ms interstitial timer in `components/match/useRematchNegotiation.ts`
-- [x] T021 [P] [US1] Create `RematchBanner` component — shows requester name, Accept and Decline buttons, data-testid="rematch-banner" in `components/match/RematchBanner.tsx`
-- [x] T022 [P] [US1] Create `RematchInterstitial` component — fixed overlay with "Starting new game..." text, data-testid="rematch-interstitial" in `components/match/RematchInterstitial.tsx`
+- [x] T021 [P] [US1] Create `RematchBanner` component — shows requester name, Accept and Decline buttons, data-testid="rematch-banner" in `components/match/RematchBanner.tsx` _(retired 2026-09-14 — now the ledger line with `notice-accept-rematch` / `notice-decline-rematch`; see `SUPERSEDED.md`)_
+- [x] T022 [P] [US1] Create `RematchInterstitial` component — fixed overlay with "Starting new game..." text, data-testid="rematch-interstitial" in `components/match/RematchInterstitial.tsx` _(retired — the room stays mounted and the field is reset in place)_
 - [x] T023 [US1] Integrate `useRematchNegotiation` hook into FinalSummary — replace `useTransition` rematch logic with hook, render RematchBanner when phase=incoming, render RematchInterstitial when phase=interstitial, phase-driven button label in `components/match/FinalSummary.tsx`
 - [x] T024 [US1] Update existing FinalSummary tests — add mocks for `respondToRematchAction`, `getBrowserSupabaseClient`, verify rematch button renders in `tests/unit/components/FinalSummary.test.tsx`
 
@@ -114,7 +114,7 @@
 ### Implementation
 
 - [x] T033 [US3] Add `seriesContext` optional prop to `FinalSummaryProps` and `seriesBadgeText()` helper function in `components/match/FinalSummary.tsx`
-- [x] T034 [US3] Render series badge in FinalSummary overview — sky-colored rounded pill with game number and score text, data-testid="series-badge" in `components/match/FinalSummary.tsx`
+- [x] T034 [US3] Render series badge in FinalSummary overview — sky-colored rounded pill with game number and score text, data-testid="series-badge" in `components/match/FinalSummary.tsx` _(retired — the series score is the `verdict` caption in the ledger)_
 - [x] T035 [US3] Fetch series context in summary page — call `fetchMatchChainForSeries`, `walkRematchChain`, `deriveSeriesContext`, pass as prop to FinalSummary in `app/match/[matchId]/summary/page.tsx`
 
 **Checkpoint**: US3 complete — series badge displays on FinalSummary for Game 2+, correct score tracking up to 10 rematches (SC-004)

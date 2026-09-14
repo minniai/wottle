@@ -1,3 +1,5 @@
+> **Superseded (2026-09-14).** The UI this proposal describes was retired by the Field & Ledger rebuild — see `docs/design/README.md` and `specs/044-field-ledger-redesign/spec.md`. Kept for history.
+
 # 015-sensory-feedback-sequential-reveal
 
 ## Context
