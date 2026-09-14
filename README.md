@@ -14,7 +14,7 @@ Default match configuration (`lib/constants/game-config.ts`, `lib/match/roundEng
 | Rounds per match    | 10                                                       |
 | Clock               | one 5:00 budget per player for the whole match (rules §2a) |
 | Minimum word length | 3 letters                                                |
-| Scoring directions  | four orthogonal (no diagonals)                           |
+| Scoring directions  | four orthogonal (rules §3.1)                             |
 | Language            | Icelandic (`is`)                                         |
 
 Word validity is decided against the BÍN-derived Icelandic word list in `data/wordlists/`
@@ -54,14 +54,15 @@ The implementing feature is `specs/044-field-ledger-redesign/`.
 ## Project Structure
 
 - **`app/`**: Next.js application routes, pages, and Server Actions.
-- **`components/`**: React components. `room/` (Room, PlayerBar, Ledger, Field — the Field & Ledger
-  shell, landing with spec 044), plus `game/`, `match/`, `lobby/`, `matchmaking/`, `profile/`, `player/`
-  and shared `ui/` (the Warm Editorial component folders, retired step by step per the design plan §11).
-- **`lib/`**: Domain logic and backend services — game engine, scoring, match state machine, types.
+- **`components/`**: React components — `room/` (`Room`, `PlayerBar`, `Field`, `Ledger`, the lobby /
+  queue / match controllers and their hooks) and `profile/` (`ProfilePage`, `ProfileRatingChart`). Nothing else.
+- **`lib/`**: Domain logic and backend services — game engine, scoring, match state machine, types, and
+  `lib/room/` (room store, field interaction reducer, reveal planner, ledger rows).
 - **`data/wordlists/`**: Dictionaries. Icelandic is the live language; the other lists are unused holdovers.
 - **`specs/`**: Speckit feature specifications (see below).
-- **`docs/`**: Requirements, architecture, design docs, and proposals.
-- **`scripts/`**: Supabase setup/seed/verify utilities, perf assertions, and guards.
+- **`docs/`**: Requirements, architecture, design entry point (`docs/design/`), proposals, and `docs/archive/`
+  for superseded material (excluded from `pnpm docs:check`).
+- **`scripts/`**: Supabase setup/seed/verify utilities, perf assertions, guards, and `docs/consistency-grep.sh`.
 - **`tests/`**: Test suites (`unit/`, `integration/`, `contract/`, `perf/`).
 
 ## Development Status
@@ -170,6 +171,7 @@ to invoke directly for ad-hoc cleanup.
 | `pnpm start`      | Serves the production build.                                                             |
 | `pnpm lint`       | ESLint, zero-warnings policy.                                                            |
 | `pnpm typecheck`  | TypeScript compilation check (`tsc --noEmit`).                                           |
+| `pnpm docs:check` | Fails if the living docs still contain a retired phrase (`DOCS_CONSISTENCY.md §10`).    |
 
 ### Testing
 
@@ -244,7 +246,7 @@ pnpm exec playwright test --grep "test name"
 
 The CI workflow (`.github/workflows/ci.yml`) runs these jobs:
 
-1. **lint**: ESLint with zero warnings policy
+1. **lint**: ESLint with zero warnings policy, service-role guard, `pnpm docs:check`
 2. **typecheck**: TypeScript compilation check
 3. **test**: Vitest unit + contract suite
 4. **build**: Next.js production build
@@ -255,8 +257,9 @@ The CI workflow (`.github/workflows/ci.yml`) runs these jobs:
 ### Test Helpers
 
 Playwright tests use retry helpers (`tests/integration/ui/helpers/matchmaking.ts`) to handle race
-conditions in matchmaking operations. These helpers implement exponential backoff and polling to
-ensure reliable test execution when two players click "Start Game" simultaneously.
+conditions in matchmaking operations. `startMatchWithDirectInvite` drives the ledger's `challenge ▸`
+row and the `accept ▸` notice; `waitForBothPlayersMatched` polls the room's `data-match-id`. Room test ids
+are listed in `tests/integration/ui/README.md`.
 
 ### Test Artifacts
 

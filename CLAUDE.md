@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap tiles on a 10x10 board to form Icelandic words, with chess-clock tension and spatial tile-freezing strategy.
+Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap letters on a 10×10 field to form Icelandic words, each on one match-long clock, with spatial tile-freezing strategy.
 
 **Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-one Speckit specs have shipped. The previous visual redesign (April–June 2026, phases 1a–6) shipped in full and is now **superseded by the Field & Ledger rebuild** — spec `specs/044-field-ledger-redesign/spec.md`, design system and plan via `docs/design/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The rebuild replaces every player-facing screen with one room (two player bars, the field, one ledger) in steps P0–P5 of the design plan §11; until a step lands, the components it retires are still the live code.
 
@@ -125,18 +125,18 @@ Before implementing any feature:
 - `042-instant-scoring-reveal` — first mover's scored words, score delta, and tile freezes appear on both boards instantly via `instantScoreFirstSubmission` fast path in `submitMove`'s `after()` hook; race-window guard + zero-score branch keep contention safe; second mover's auto-deselect + aria-live announcement on freeze (Linear O-57)
 - `043-scoring-resolution-viz` — presentation-only round-resolution clarity: current-round scored ring, calm waiting frame, transient swap lift (see Recent Changes)
 
-**Field & Ledger Rebuild** (`044-field-ledger-redesign`, in progress) — one room for every screen. Plan: `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_PLAN.md` §11. Each step ships on its own and ends with the acceptance greps for its retired components returning nothing.
+**Field & Ledger Rebuild** (`044-field-ledger-redesign`, shipped 2026-09-14) — one room for every screen. Plan: `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_PLAN.md` §11. Each step shipped on its own; the acceptance greps for the retired components (`tests/unit/styles/acceptance-grep.test.ts`) and the docs phrase list (`pnpm docs:check`) return nothing.
 
 | Step | Work                                                                                                                     | Retires                                                                                                                                                                                                       | Status                              |
 | ---- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| P0   | Reading direction on scored word records; `BORÐA + GILT` and `FÁR/RÁF` regression tests; copy fixes; rules doc §2a / §12 | —                                                                                                                                                                                                             | Docs done (this spec); code pending |
-| P1   | Tokens, fonts, Tailwind config; shell without top bar; `PlayerBar`                                                       | `HudCard`, `PlayerPanel`, `TimerDisplay`, `MatchCenterChrome`, `RoundPipBar`, `TopBar` in match                                                                                                               | Pending                             |
-| P2   | `Ledger` (match variant)                                                                                                 | `MatchLeftRail` + 3 cards, `ScoredWordsCard`, `TilesClaimedCard`, `ScoreDeltaPopup`, `RoundSummaryPanel`, `RoundHistoryPanel`, resign button                                                                  | Pending                             |
-| P3   | Field: flat cells, word bands with chevrons, pick → preview → commit, reveal choreography                                | `BoardCoordLabels`, `MoveFeedback`, lock banner, round announce, invalid flash, bulk of `board.css`                                                                                                           | Pending                             |
-| P4   | Room states: landing / lobby / queue / found / final in one `Room`; warm-up and setting fields                           | `LandingScreen`, `LobbyHero`, `PlayNowCard`, `LobbyDirectory`, `LobbyCard`, `MatchRing`, `MatchmakingVsBlock`, `FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RematchBanner`, `DisconnectionModal` | Pending                             |
-| P5   | Profile; Playwright + visual acceptance; remaining docs per `DOCS_CONSISTENCY.md`                                        | `ProfileSidebar`, `ProfileStat`, `ProfileWordCloud`, `ProfileMatchHistoryList`                                                                                                                                | Pending                             |
+| P0   | Reading direction on scored word records; `BORÐA + GILT` and `FÁR/RÁF` regression tests; copy fixes; rules doc §2a / §12 | —                                                                                                                                                                                                             | Done                                |
+| P1   | Tokens, fonts, Tailwind config; shell without top bar; `PlayerBar`                                                       | `HudCard`, `PlayerPanel`, `TimerDisplay`, `MatchCenterChrome`, `RoundPipBar`, `TopBar` in match                                                                                                               | Done                                |
+| P2   | `Ledger` (match variant)                                                                                                 | `MatchLeftRail` + 3 cards, `ScoredWordsCard`, `TilesClaimedCard`, `ScoreDeltaPopup`, `RoundSummaryPanel`, `RoundHistoryPanel`, resign button                                                                  | Done                                |
+| P3   | Field: flat cells, word bands with chevrons, pick → preview → commit, reveal choreography                                | `BoardCoordLabels`, `MoveFeedback`, lock banner, round announce, invalid flash, bulk of `board.css`                                                                                                           | Done                                |
+| P4   | Room states: landing / lobby / queue / found / final in one `Room`; warm-up and setting fields                           | `LandingScreen`, `LobbyHero`, `PlayNowCard`, `LobbyDirectory`, `LobbyCard`, `MatchRing`, `MatchmakingVsBlock`, `FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RematchBanner`, `DisconnectionModal` | Done                                |
+| P5   | Profile; Playwright + visual acceptance; remaining docs per `DOCS_CONSISTENCY.md`                                        | `ProfileSidebar`, `ProfileStat`, `ProfileWordCloud`, `ProfileMatchHistoryList`                                                                                                                                | Done                                |
 
-The previous redesign (phases 1a–6, April–June 2026) shipped in full and is superseded; its plan `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md` and phase plans under `docs/superpowers/plans/` are marked as such and kept because they explain why the current code looks as it does.
+The previous redesign (phases 1a–6, April–June 2026) shipped in full and is superseded; its plan `docs/archive/superpowers/specs/2026-04-19-wottle-design-implementation.md` and phase plans under `docs/archive/superpowers/plans/` are marked as such and kept because they explain why the current code looks as it does.
 
 ## Architecture
 
@@ -146,15 +146,14 @@ The previous redesign (phases 1a–6, April–June 2026) shipped in full and is 
 
 - `/app` - Next.js App Router
   - `/app/actions/*.ts` - **Server Actions** (primary frontend→backend interface)
-  - `/app/api` - HTTP API routes (backup endpoints, polling)
-  - `/app/(landing)` - Landing page (unauthenticated `/`)
-  - `/app/(lobby)` - Lobby page (`/lobby`)
-  - `/app/matchmaking` - Matchmaking screen (searching / found / starting phases)
-  - `/app/profile` - Own profile + `[handle]` public profile page
-  - `/app/match/[matchId]` - Match page with dynamic routing
+  - `/app/api` - HTTP API routes (backup endpoints, polling, `POST /api/match/preview`)
+  - `/app/(room)` - The **room** route group: `layout.tsx` reads the session once → `RoomShell`; pages `/` (landing = lobby with an empty seat), `/lobby`, `/matchmaking` (queue → found → match in place), `/match/[matchId]` (non-participant guard: live → `/lobby`, completed → read-only)
+  - `/app/match/[matchId]/summary` - Redirects into the room (the result is a room state, not a page)
+  - `/app/profile` - Own profile + `[handle]` public profile, rendered in the room grid
 - `/lib` - Business logic and utilities
-  - `/lib/game-engine` - **Board mechanics + Word Engine** (mutations, swaps, dictionary, board scanner, delta detection, scoring, frozen tiles)
-  - `/lib/match` - **Match orchestration** (round engine, state machine, conflict resolution)
+  - `/lib/game-engine` - **Board mechanics + Word Engine** (mutations, swaps, dictionary, board scanner, delta detection, scoring, frozen tiles, `readingDirection.ts`, `boardGenerator.ts`)
+  - `/lib/match` - **Match orchestration** (round engine, state machine, conflict resolution, `wordScoreRow.ts`, `previewSchemas.ts`)
+  - `/lib/room` - **Room state and pure UI logic**: `roomStore.ts` (zustand: phase lobby | queue | found | match | final, viewer, board, match, connection), `fieldInteraction.ts` (idle → picked → preview → committed reducer), `revealSequence.ts` (reveal planner), `ledgerRows.ts`, `bandGeometry.ts`, `clock.ts`, `notices.ts`, `displayBoard.ts`, `useMatchmaking.ts`, `useRematchNegotiation.ts`
   - `/lib/matchmaking` - Lobby presence, invites, player profiles
   - `/lib/scoring` - **Scoring** (roundSummary, highlights) — wired to word engine
   - `/lib/realtime` - Supabase Realtime with polling fallback
@@ -163,19 +162,13 @@ The previous redesign (phases 1a–6, April–June 2026) shipped in full and is 
   - `/lib/a11y` - Focus trap, roving focus utilities
   - `/lib/observability` - Structured logging, performance marks
   - `/lib/types` - Shared TypeScript types
-  - `/lib/constants` - Board dimensions, feature flags, app constants
-- `/docs` - PRD, analysis, wordlists
+  - `/lib/constants` - Board dimensions, `seatColors.ts` (`getSeatColors`, `resolveSeat`), `copy.ts` (fixed strings, design system §8), app constants
+- `/docs` - PRD, rules, design entry point (`docs/design/README.md`), archive of superseded material (`docs/archive/`)
   - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
-- `/components` - React Client Components. **Field & Ledger target** (spec 044): `/components/room` — `Room` (the one layout: bar / field / bar + ledger, states lobby | queue | found | match | final), `PlayerBar`, `Ledger` (+ `LobbyLedger`), `Field` (cells, word bands, pick → preview → commit). Everything below is the live pre-rebuild code and is retired step by step per the plan §11 table above:
-  - `/components/game` — `Board`, `BoardGrid`, `BoardCoordLabels`, `MoveFeedback`, `usePinchZoom`
-  - `/components/match` — core match client (`MatchClient`, now rendering through `components/room/MatchRoomView`), panels (`PlayerAvatar`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`), disconnect (`DisconnectionModal`, `useCountdown` — Phase 6)
-  - `/components/lobby` — `LobbyHero`, `LobbyList`, `LobbyDirectory`, `LobbyCard`, `LobbyStatsStrip`, `PlayNowCard`, `InviteDialog`, `InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` _(`InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` ship with Phase 3 / PR #115)_
-  - `/components/landing` — `LandingScreen`, `LandingTileVignette` _(Phase 4a)_
-  - `/components/matchmaking` — `MatchmakingClient`, `MatchRing`, `MatchmakingVsBlock` _(Phase 4b)_
-  - `/components/ui` — shared primitives: `Avatar`, `Badge`, `Button`, `Card`, `Dialog`, `GearMenu`, `SettingsPanel`, `Skeleton`, `Toast`, `ToastProvider`, `TopBar`
-  - `/components/player` — `PlayerProfileModal`, `ProfileSparkline`, `ProfileFormChips`, `ProfileActions` _(Phase 5a refresh)_
-  - `/components/profile` — `ProfileSidebar`, `ProfileRatingChart`, `ProfileWordCloud`, `ProfileMatchHistoryList`, `ProfilePage` _(Phase 5b)_
-- `/app/styles` — Board + lobby CSS (GPU-accelerated animations, letterpress tiles, `.hud-card`, `.match-layout__hud-strip` / `--board-row` / `--rail--left|right`, ambient lobby background)
+- `/components` - React Client Components. There are two folders:
+  - `/components/room` — the whole player-facing UI (spec 044): `Room` / `RoomShell` (the one grid: bar / field / bar + ledger), `PlayerBar` + `ClockLane` + `NameInput`, `Field` + `FieldCell` + `FieldBands`, `Ledger` + `LedgerFoot` + `LedgerSheet` + `LobbyLedger` + `RoomMenu`, the controllers `LobbyRoomController`, `QueueRoomController`, `MatchRoomController` (+ `MatchRoomView`), and `hooks/` (`useMatchTransport`, `useFieldInteraction`, `useReveal`, `useClockTick`, `useCountUp`, `useNotices`, `useLobbyInvites`, `useAccumulatedRounds`, `useFieldSize`, `useMeasuredLines`, `useNowTick`, `useReducedMotion`)
+  - `/components/profile` — `ProfilePage`, `ProfileRatingChart` (same grid and grammar as the room)
+- `/app/styles/room.css` — the one stylesheet: room grid, bars and lanes, field cells, bands, ledger, lobby tables, name input, profile classes; keyframes `field-shake`, `band-draw`, `count-up`, `lane-blink`, `lane-search`, `letter-land`, `pin-fade`; one `prefers-reduced-motion` block. Tokens and fonts live in `app/globals.css` / `tailwind.config.ts`.
 
 ### Key Architectural Patterns
 
@@ -271,9 +264,9 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Current Test Health
 
-- **183 unit/contract test files, 1224 tests passing** (2 intentionally skipped), zero failures (measured 2026-09-14 on `044-field-ledger-redesign`).
+- **134 unit/contract test files, 972 tests passing** (2 intentionally skipped), zero failures (measured 2026-09-14 on `044-field-ledger-redesign` after the retired-component sweep).
 - CI splits Playwright by tag: specs tagged `@two-player-playtest` (`board-ui`, `match-completion`, `round-history`, `round-summary`, `rounds-flow`, `swap-flow`, `z-final-summary`) run on the `playtest-firefox` project with `--workers=1`; everything else runs on `chromium`. Locally, run two-player spec files one at a time to avoid Realtime contention.
-- Lint (zero-warnings policy) and typecheck both pass cleanly.
+- Lint (zero-warnings policy), typecheck and `pnpm docs:check` pass cleanly.
 
 ### Implementation Status by Area
 
@@ -283,18 +276,18 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 | Matchmaking      | Complete   | Direct invites, auto-queue, match bootstrap                                      |
 | Round Engine     | Complete   | State machine, conflict resolution, 10-round cycle                               |
 | Realtime         | Complete   | WebSocket channels + HTTP polling fallback                                       |
-| Reconnection     | Complete   | 90s window, DisconnectionModal + claim-win CTA (Phase 6)                         |
+| Reconnection     | Complete   | 90s window counted down in the opponent's bar; `claim the win ▸` ledger line     |
 | Rate Limiting    | Complete   | 5/min auth, 30/min moves, 1/min claim-win, 429 responses                         |
 | Accessibility    | Complete   | Focus traps, aria-live, keyboard nav, 44×44 touch targets, WCAG 2.1 AA axe clean |
 | Observability    | Complete   | Structured logs, perf marks, analytics hooks                                     |
-| Word Finding     | Complete   | Set-based dictionary (3.74M entries), 8-directional scanner, delta detection     |
+| Word Finding     | Complete   | Set-based dictionary (3.74M entries), four-direction scanner, delta detection    |
 | Scoring          | Complete   | PRD-compliant formula, length bonus, combo bonuses, unique word tracking         |
 | Frozen Tiles     | Complete   | Freeze tracking, swap validation, visual overlay, >=24 unfrozen safeguard        |
-| Board Animations | Complete   | Tile-swap FLIP, scored-tile glow, invalid-move shake, round-recap sequence       |
+| Field Motion     | Complete   | Pins, band draw + count-up reveal, in-colour shake, lane blink; 0ms reduced-motion |
 | Server Timer     | Complete   | `rounds.started_at`-based enforcement, timeout-pass synthesis (spec 007)         |
 | Elo + Ratings    | Complete   | `match_ratings` written on match end, ±N rating deltas in post-game (spec 017)   |
 | Rematch          | Complete   | `rematch_requests` table, 30s invite TTL, series tracking (spec 016)             |
-| Theme (visual)   | Rebuilding | Field & Ledger (spec 044) replaces the previous look in steps P0–P5; see Design  |
+| Theme (visual)   | Complete   | Field & Ledger (spec 044): seven tokens, two type families, one room; see Design |
 
 ### Remaining Gaps
 
@@ -387,7 +380,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 **Disconnect Handling:**
 
 - Player marked disconnected in match state (realtime broadcast)
-- Other player sees centered `DisconnectionModal` with 90s countdown + Claim win CTA (Phase 6)
+- The other player's bar shows the sub-line `reconnecting · m:ss left` (from `MatchState.disconnectedAt`), a dashed lane, and both clocks hold; after the window the ledger offers `<name> is gone · claim the win ▸` (`notice-claim-win`). Nothing is drawn over the field.
 - Reconnection within 90s clears the flag; past 90s `claimWinAction` or the auto-finalise awards the non-disconnected player (forced-winner path on `completeMatchInternal`)
 - Detection has two layers: (1) fast path via `disconnectStore` (in-memory, populated by `pagehide`/`sendBeacon`, Realtime `system: CLOSED`, or `onOpponentLeave` presence leave); (2) shared-store safety net via `match_heartbeats` upserted on every `/api/match/[matchId]/state` poll — `loadMatchState` surfaces the stale player after `HEARTBEAT_STALE_MS` (10s) with a grace window for match launch (issue #164).
 
@@ -552,7 +545,7 @@ Key files:
 - Supabase PostgreSQL — new `rematch_requests` table, `matches.rematch_of` column (016-rematch-post-game-loop)
 - Supabase PostgreSQL — existing `players` table (modified), new `match_ratings` table (017-elo-rating-player-stats)
 - Supabase PostgreSQL — reads existing `players` table (no new tables/columns) (018-match-hud-layout)
-- TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x (theme extension), `next/font/google` (Fraunces variable + existing Inter), existing `zustand` presence store, existing `lib/a11y/useFocusTrap.ts` and `lib/a11y/rovingFocus.ts`. No Radix/shadcn/Framer Motion added. (019-lobby-visual-foundation)
+- TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x (theme extension), `next/font/google` (the previous display + body fonts, replaced in spec 044), existing `zustand` presence store, existing `lib/a11y/useFocusTrap.ts` and `lib/a11y/rovingFocus.ts`. No Radix/shadcn/Framer Motion added. (019-lobby-visual-foundation)
 - None new. Reads existing `players`, `lobby_presence`, `matches` via already-wired Server Actions and API routes. (019-lobby-visual-foundation)
 - TypeScript 5.x, React 19+, Next.js 16 (App Router) + Tailwind CSS 4.x, CSS keyframe animations (GPU-accelerated, no Framer Motion); existing `lib/constants/playerColors.ts`, `deriveHighlightPlayerColors`, `lib/match/partialReveal.ts` (043-scoring-resolution-viz)
 - N/A — no new persistence; reads existing match state (`RoundSummary`, `PartialRoundSummary`, `FrozenTileMap`) (043-scoring-resolution-viz)
