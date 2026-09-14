@@ -348,6 +348,8 @@ export interface PlayerStats {
 export interface BestWord {
   word: string;
   points: number;
+  /** Opponent in the match where it scored (profile `best words` ledger). */
+  opponentName?: string;
 }
 
 export type MatchResult = "W" | "L" | "D";
