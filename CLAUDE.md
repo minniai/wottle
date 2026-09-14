@@ -449,19 +449,19 @@ Playtest configuration:
 ### Example: Full Move Submission Flow
 
 ```txt
-1. User clicks tile pair on board
-2. BoardGrid.onSwapComplete fires
-3. submitMove(matchId, fromX, fromY, toX, toY) [Server Action]
-4. Rate limit check + session validation
-5. Insert move_submission record
-6. Trigger async advanceRound(matchId) if both players submitted
-7. Backend resolves conflicts (FCFS by timestamp)
-8. Backend applies moves to board (immutable operations)
-9. Backend publishes state via Realtime broadcast
-10. MatchClient receives onState callback
-11. Update board display, round number, timer
-12. If round complete → Display RoundSummaryPanel
-13. If game over → Navigate to /match/[matchId]/summary
+1. Player taps letter A on the field → reduceField: idle → picked (sound tile-select)
+2. Player taps letter B → default: picked → committed, effect `submit`
+   (with the preview setting on: picked → preview, effect `requestPrice` → previewSwap Server Action,
+    read-only; a third tap or Enter commits)
+3. useFieldInteraction posts /api/match/[matchId]/move → submitMove() Server Action
+4. Rate limit check + session validation; insert move_submission; publishMatchState in after()
+5. Both boards: the committer's two letters pin (dashed ring, seat colour); the opponent's
+   field pins them in coral from `MatchState.pendingMoves`
+6. Trigger async advanceRound(matchId) when both players submitted
+7. Backend resolves conflicts (FCFS by timestamp), applies swaps, scores, freezes
+8. Backend publishes state + round-summary via Realtime; useMatchTransport → roomStore
+9. Ledger row for the round fills with both seats' words; frozen letters take the scorer's seat colour
+10. Round advances → field back to idle; if game over → final room state
 ```
 
 ### Adding a New Server Action
