@@ -5,19 +5,10 @@ import { describe, expect, test } from "vitest";
 /**
  * Design plan §10 visual acceptance: nothing outside the seven tokens, no
  * radii/shadows/gradients, none of the retired font names. Scoped to the
- * folders each step has converted; widened per step until it covers all of
- * `app/` and `components/` (P5).
+ * P5 scope: all of `app/` and `components/`, plus the room's lib modules.
  */
 const ROOT = resolve(__dirname, "../../..");
-const SCOPE = [
-  "app/globals.css",
-  "app/layout.tsx",
-  "app/styles/room.css",
-  "components/room",
-  "lib/room",
-  "lib/constants/seatColors.ts",
-  "lib/constants/copy.ts",
-];
+const SCOPE = ["app", "components", "lib/room", "lib/constants/seatColors.ts", "lib/constants/copy.ts"];
 const BANNED = /rounded-|shadow-|gradient|emerald|red-\d|amber|Fraunces|\bInter\b|JetBrains/;
 const ALLOWLIST: RegExp[] = [];
 
