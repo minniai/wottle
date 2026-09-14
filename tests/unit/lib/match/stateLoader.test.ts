@@ -838,6 +838,56 @@ describe("stateLoader heartbeat-based disconnect detection (issue #164)", () => 
         expect(state!.disconnectedPlayerId).toBe(PLAYER_B);
     });
 
+    it("spec 044: emits disconnectedAt (last heartbeat + stale window) and reconnectWindowMs when a player is stale", async () => {
+        const matchCreatedAt = new Date(Date.now() - 60_000);
+        const lastSeen = new Date(Date.now() - 30_000);
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID, state: "in_progress", current_round: 3, board_seed: "seed-1",
+                player_a_id: PLAYER_A, player_b_id: PLAYER_B,
+                player_a_timer_ms: 250_000, player_b_timer_ms: 240_000,
+                winner_id: null, frozen_tiles: {}, created_at: matchCreatedAt.toISOString(),
+            },
+            { id: "round-3", state: "collecting", board_snapshot_before: BOARD, board_snapshot_after: null, started_at: new Date(Date.now() - 5_000).toISOString() },
+            null,
+            [
+                { player_id: PLAYER_A, last_seen_at: new Date(Date.now() - 1_000).toISOString() },
+                { player_id: PLAYER_B, last_seen_at: lastSeen.toISOString() },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state!.disconnectedPlayerId).toBe(PLAYER_B);
+        expect(state!.disconnectedAt).toBe(new Date(lastSeen.getTime() + 10_000).toISOString());
+        expect(state!.reconnectWindowMs).toBe(90_000);
+    });
+
+    it("spec 044: disconnectedAt is null and reconnectWindowMs absent when nobody is disconnected", async () => {
+        const mockClient = makeMockClient(
+            {
+                id: MATCH_ID, state: "in_progress", current_round: 3, board_seed: "seed-1",
+                player_a_id: PLAYER_A, player_b_id: PLAYER_B,
+                player_a_timer_ms: 250_000, player_b_timer_ms: 240_000,
+                winner_id: null, frozen_tiles: {}, created_at: new Date(Date.now() - 60_000).toISOString(),
+            },
+            { id: "round-3", state: "collecting", board_snapshot_before: BOARD, board_snapshot_after: null, started_at: new Date(Date.now() - 5_000).toISOString() },
+            null,
+            [
+                { player_id: PLAYER_A, last_seen_at: new Date().toISOString() },
+                { player_id: PLAYER_B, last_seen_at: new Date().toISOString() },
+            ],
+        );
+        vi.mocked(getServiceRoleClient).mockReturnValue(mockClient as never);
+
+        const state = await loadMatchState(mockClient as never, MATCH_ID);
+
+        expect(state!.disconnectedPlayerId).toBeNull();
+        expect(state!.disconnectedAt).toBeNull();
+        expect(state!.reconnectWindowMs).toBeUndefined();
+    });
+
     it("does NOT surface a disconnected player when both heartbeats are fresh", async () => {
         const matchCreatedAt = new Date(Date.now() - 60_000);
         const mockClient = makeMockClient(
