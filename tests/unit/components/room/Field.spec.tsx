@@ -69,4 +69,21 @@ describe("Field (design system §5.1, §9)", () => {
     expect(cell).toHaveAttribute("data-state", "shared");
     expect(cell).not.toHaveAttribute("data-seat");
   });
+
+  it("cells inside a band take the scorer's seat and render as scored; the bands SVG sits under the cells", () => {
+    render(
+      <Field
+        board={board()}
+        viewerSlot="player_a"
+        frozenTiles={{ "1,2": { owner: "player_b" }, "2,2": { owner: "player_b" } }}
+        bands={[{ id: "b", seat: "opp", cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], direction: "ltr", strength: "settled", round: 1, word: "ab" }]}
+      />,
+    );
+    const field = screen.getByTestId("field");
+    expect(field.firstElementChild).toBe(screen.getByTestId("field-bands"));
+    const scored = screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === "1" && c.getAttribute("data-y") === "2")!;
+    expect(scored).toHaveAttribute("data-state", "scored");
+    expect(scored).toHaveAttribute("data-seat", "opp");
+    expect(screen.getAllByTestId("field-band")).toHaveLength(1);
+  });
 });

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
+import { seatOfCell, sharedCells as sharedFromBands, type WordBand } from "@/lib/room/bandGeometry";
+import { FieldBands } from "./FieldBands";
 import { FieldCell, type CellState } from "./FieldCell";
 
 export interface FieldProps {
@@ -14,11 +16,13 @@ export interface FieldProps {
   viewerSlot: PlayerSlot | null;
   /** Names by slot for the frozen-cell label (`frozen by Kári`). */
   ownerNames?: Partial<Record<PlayerSlot, string>>;
-  /** Cells shared by both seats' words render in ink at weight 700. */
+  /** Extra cells to render in ink (both seats); normally derived from `bands`. */
   sharedCells?: Set<string>;
   disabled?: boolean;
-  /** Overlay layer (word bands) rendered under the cells. */
-  bands?: ReactNode;
+  /** Scored words drawn as bands under the cells (design system §5.2). */
+  bands?: WordBand[];
+  highlightRound?: number | null;
+  drawnCount?: number | null;
   cellStateFor?: (coord: Coordinate, base: CellState) => CellState;
   seatFor?: (coord: Coordinate) => Seat | null;
   shakeAt?: Coordinate | null;
@@ -39,7 +43,8 @@ function letterValue(letter: string): number {
  * pick/preview/commit reducer drives it from P3 through `cellStateFor`.
  */
 export function Field(props: FieldProps) {
-  const { board, frozenTiles = {}, viewerSlot, ownerNames = {}, sharedCells, disabled, bands } = props;
+  const { board, frozenTiles = {}, viewerSlot, ownerNames = {}, disabled, bands = [], highlightRound = null, drawnCount = null } = props;
+  const shared = useMemo(() => new Set([...(props.sharedCells ?? []), ...sharedFromBands(bands)]), [props.sharedCells, bands]);
   const { cellStateFor, seatFor, shakeAt, focusAt, onActivate, onKeyDown } = props;
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -56,14 +61,15 @@ export function Field(props: FieldProps) {
 
   return (
     <div ref={ref} className="field" role="grid" aria-label="the field" data-testid="field" data-disabled={disabled || undefined}>
-      {bands}
+      <FieldBands bands={bands} highlightRound={highlightRound} drawnCount={drawnCount} />
       {board.map((row, y) =>
         row.map((letter, x) => {
           const key = `${x},${y}`;
           const frozen = frozenTiles[key];
-          const base: CellState = sharedCells?.has(key) ? "shared" : frozen ? "frozen" : "free";
+          const bandSeat = seatOfCell(bands, { x, y });
+          const base: CellState = shared.has(key) ? "shared" : bandSeat ? "scored" : frozen ? "frozen" : "free";
           const state = cellStateFor ? cellStateFor({ x, y }, base) : base;
-          const seat = seatFor?.({ x, y }) ?? (frozen ? seatForSlot(viewerSlot, frozen.owner) : null);
+          const seat = seatFor?.({ x, y }) ?? bandSeat ?? (frozen ? seatForSlot(viewerSlot, frozen.owner) : null);
           return (
             <FieldCell
               key={key}

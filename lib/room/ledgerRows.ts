@@ -2,7 +2,7 @@ import { PLAYED, picking, roundContext, TAP_SECOND_LETTER } from "@/lib/constant
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import type { Coordinate } from "@/lib/types/board";
-import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
+import type { FrozenTileMap, PlayerSlot, ReadingDirection } from "@/lib/types/match";
 import { emptyRows, type LedgerModel, type LedgerRow, type SeatCell, type Territory, type WordCell } from "./ledgerTypes";
 
 export const TOTAL_ROUNDS = 10;
@@ -15,6 +15,8 @@ export interface AccumulatedWord {
   totalPoints: number;
   coordinates: Coordinate[];
   isDuplicate?: boolean;
+  /** From the server record when present; derived from tile order otherwise. */
+  direction?: ReadingDirection;
 }
 
 export type LiveState =
@@ -39,7 +41,7 @@ function toCell(words: AccumulatedWord[]): SeatCell | null {
     points: w.isDuplicate ? 0 : w.totalPoints,
     isDuplicate: Boolean(w.isDuplicate),
     coordinates: w.coordinates,
-    direction: tryDeriveReadingDirection(w.coordinates) ?? "ltr",
+    direction: w.direction ?? tryDeriveReadingDirection(w.coordinates) ?? "ltr",
   }));
   return { words: cells, total: cells.reduce((sum, c) => sum + c.points, 0) };
 }
