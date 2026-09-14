@@ -69,7 +69,7 @@ A *word* is a contiguous sequence of letters on the board. For a word to be **sc
 
 ### 3.1 Direction
 
-The word must be read along one of **four orthogonal reading directions**: left-to-right, right-to-left, top-to-bottom, bottom-to-top. **Diagonals are not scored.** The scanner may find diagonal matches as a side effect, but they are filtered out before scoring.
+The word must be read along one of **four orthogonal reading directions**: left-to-right, right-to-left, top-to-bottom, bottom-to-top. **No other direction is read.** The scanner may find matches along other lines as a side effect; they are filtered out before scoring.
 
 **One record per run.** A run is scored **once** even when it is a valid word in **both** directions. The scanner builds a forward and a reversed `BoardWord` for every run, but two readings of the same tiles overlap on the same axis (§3.5, `hasNoSameAxisConflict`), so `selectOptimalCombination` keeps exactly one: the **forward** reading (left-to-right or top-to-bottom) when both are words, the reversed reading only when it alone is a word. `FÁR`/`RÁF` therefore yields one record, `fár`, read left-to-right. The kept record's tile order is its reading direction, which the UI uses to place a single chevron (§12). Pinned by `tests/unit/lib/game-engine/doubleReading.test.ts`.
 
@@ -340,13 +340,16 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 - **Rules surface** — this document is the source of truth; `lib/constants/game-config.ts` holds the numeric constants (`minimumWordLength`, `maxRounds`, `timePerRoundMs`, `boardSize`, `language`).
 - **Pipeline entry point** — `lib/game-engine/wordEngine.ts::processRoundScoring`.
 - **Scanner** — `lib/game-engine/boardScanner.ts::scanFromSwapCoordinates`.
+- **Reading direction (§3.1, §12)** — `lib/game-engine/readingDirection.ts::deriveReadingDirection` derives ltr / rtl / ttb / btt from the stored tile order of a word record; `lib/match/wordScoreRow.ts` maps `word_score_entries` rows to `WordScore` (with `direction`) for the ledger and the field bands.
+- **Board generation** — `lib/game-engine/boardGenerator.ts::generateBoard` (seeded; also the lobby's warm-up field and the queue's placeholder field).
+- **Preview pricing (§12, pick → preview → commit)** — `app/actions/match/previewSwap.ts` runs the same pipeline read-only for one hypothetical swap (`kind: "match" | "warmup"`, session required, no state change); the dictionary never leaves the server.
 - **Cross-validator** — `lib/game-engine/crossValidator.ts::selectOptimalCombination`, `hasCrossWordViolation` (cross-axis, §7.3), `violatesFrozenAdjacencyOnSameAxis` (same-axis standalone, §7.4), `runContainsValidSubRunCoveringIndex`.
 - **Scorer** — `lib/game-engine/scorer.ts::calculateLetterPoints`, `calculateLengthBonus`.
 - **Freezer** — `lib/game-engine/frozenTiles.ts::freezeTiles`.
 - **Dictionary** — `lib/game-engine/dictionary.ts::loadDictionary`; wordlist at `data/wordlists/word_list_is.txt`.
 - **Letter values** — `lib/game-engine/letter-values/letter_scoring_values_<lang>.ts`.
 - **Round orchestration** — `lib/match/roundEngine.ts::advanceRound`, `lib/match/stateMachine.ts`.
-- **Older narrative (superseded)** — `docs/notes/260303-word-scoring-rules.md`. Kept for history; always prefer this document.
+- **Older narrative (superseded)** — `docs/archive/notes/260303-word-scoring-rules.md`. Kept for history; always prefer this document.
 
 ---
 

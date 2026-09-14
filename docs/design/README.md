@@ -10,7 +10,7 @@ The binding design for every screen in Wottle is the **Field & Ledger** system. 
 | [`DOCS_CONSISTENCY.md`](../design_documentation/260914-wottle-new-design/DOCS_CONSISTENCY.md) | Documentation edits that keep the repo consistent with the design, plus the grep list of phrases the docs must no longer contain. |
 | `260914-wottle-new-design-v2.pdf` | The UX audit with the figures (Fig. 2 desktop match, Fig. 5 phone, Fig. 6 lobby, Fig. 7 matchmaking, Fig. 8 post-game, Fig. 9 profile, Fig. 10 states). `v1` is the earlier draft. |
 
-The Speckit feature that implements it is `specs/044-field-ledger-redesign/`. **Status (2026-09-14):** P0 contracts and P1 (tokens, fonts, room shell, player bars) are in; P2–P5 pending — see the step table in `CLAUDE.md`.
+The Speckit feature that implements it is `specs/044-field-ledger-redesign/`. **Status (2026-09-14): implemented** — P0–P5 are in (`CLAUDE.md` step table); the acceptance greps (`tests/unit/styles/acceptance-grep.test.ts`) and `pnpm docs:check` (the §10 phrase list) both return nothing.
 
 ## Decisions that override the bundle (2026-09-14)
 
@@ -31,8 +31,8 @@ not restyled.
 
 ## Previous designs
 
-The Warm Editorial look (April–June 2026) is superseded. Its two Claude Design handoff bundles are kept
+The previous look (April–June 2026) is superseded. Its two Claude Design handoff bundles are kept
 for reference under `docs/archive/260420-wottle-game-design/` and `docs/archive/260422-wottle-game-design/`;
-the phased plan is `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md` (marked superseded).
-The local `ds-bundle/` folder is an untracked design-sync build of the Warm Editorial system and is not a
+the phased plan is `docs/archive/superpowers/specs/2026-04-19-wottle-design-implementation.md` (marked superseded).
+The local `ds-bundle/` folder is an untracked design-sync build of that previous system and is not a
 source for UI work. Do not implement from any of them.
