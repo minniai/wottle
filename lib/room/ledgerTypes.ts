@@ -71,6 +71,7 @@ export type Notice =
   | { kind: "resignConfirm"; expiresAt: number }
   | { kind: "firstMatchRules" }
   | { kind: "claimWin"; opponentName: string }
+  | { kind: "challenge"; fromName: string; inviteId: string }
   | { kind: "text"; text: string };
 
 export const EMPTY_TERRITORY: Territory = { you: 0, opp: 0, free: 100 };
