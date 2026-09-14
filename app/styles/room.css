@@ -300,6 +300,13 @@
   z-index: -1;
 }
 
+.field__band {
+  transition: opacity 120ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+.field__band--dimmed {
+  opacity: 0.4; /* 14% → ~6% effective tint while another row is hovered */
+}
+
 /* ---------- Ledger (§5.4) ---------- */
 .ledger {
   display: flex;
