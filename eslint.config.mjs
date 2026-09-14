@@ -30,6 +30,8 @@ const config = [
       // script tags load primitives into global scope, which ESLint correctly
       // reports as undefined — but it's a reference artifact, not source.
       "docs/design_documentation/**",
+      // Archived Warm Editorial handoff bundles (moved from docs/design_documentation by spec 044).
+      "docs/archive/**",
       "prd/wordlist",
       "node_modules",
       ".next",
