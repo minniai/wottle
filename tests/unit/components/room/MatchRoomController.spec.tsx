@@ -124,6 +124,18 @@ describe("MatchRoomController", () => {
     expect(cells[1].textContent).toContain("orð");
     expect(screen.getByTestId("round-indicator")).toHaveTextContent("round 4 of 10");
     expect(cell(0, 0)).toHaveAttribute("data-state", "free");
+    // Bands: one per word record, viewer-relative seats, chevron edge per direction.
+    const bands = screen.getAllByTestId("field-band");
+    expect(bands).toHaveLength(2);
+    expect(bands.find((b) => b.getAttribute("data-word") === "þar")).toHaveAttribute("data-seat", "you");
+    expect(bands.find((b) => b.getAttribute("data-word") === "orð")).toHaveAttribute("data-seat", "opp");
+    expect(bands[0]).toHaveAttribute("data-direction", "ltr");
+    expect(cell(1, 2)).toHaveAttribute("data-state", "scored");
+    // Hovering a ledger row dims the other round's bands.
+    fireEvent.mouseEnter(screen.getByTestId("ledger-row-1"));
+    expect(bands[0]).toHaveClass("field__band--dimmed");
+    fireEvent.mouseLeave(screen.getByTestId("ledger-row-1"));
+    expect(bands[0]).not.toHaveClass("field__band--dimmed");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
   });
 

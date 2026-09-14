@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { claimWinAction } from "@/app/actions/match/claimWin";
 import { resignMatch } from "@/app/actions/match/resignMatch";
@@ -9,6 +9,7 @@ import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
 import { DisconnectionModal } from "@/components/match/DisconnectionModal";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
+import { bandsFromWords } from "@/lib/room/bandGeometry";
 import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import type { LiveState } from "@/lib/room/ledgerRows";
@@ -103,6 +104,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   });
 
   const displayBoard = useMemo(() => applyLetterSwaps(match.board, [opponentPins, field.ownPins]), [match.board, opponentPins, field.ownPins]);
+  const bands = useMemo(
+    () => bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId }),
+    [words, frozenTiles, viewerSlot, match.timers.playerA.playerId],
+  );
+  const [highlightRound, setHighlightRound] = useState<number | null>(null);
 
   const live: LiveState = useMemo(() => {
     if (match.state === "resolving") return { kind: "resolving" };
@@ -177,6 +183,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         live={live}
         hint={field.hint}
         notices={allNotices}
+        onRowHover={setHighlightRound}
         onAction={handleAction}
       >
         <Field
@@ -185,6 +192,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
           disabled={completed}
+          bands={bands}
+          highlightRound={highlightRound}
           cellStateFor={field.cellStateFor}
           seatFor={field.seatFor}
           shakeAt={field.shakeAt}

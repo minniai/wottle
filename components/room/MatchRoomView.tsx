@@ -35,6 +35,7 @@ export interface MatchRoomViewProps {
   hint?: string;
   notices?: Notice[];
   footActions?: ReactNode;
+  onRowHover?: (round: number | null) => void;
   onAction: (action: LedgerAction) => void;
   /** The field slot — BoardGrid until the Field takes over in US2. */
   children: ReactNode;
@@ -48,7 +49,7 @@ function subline(facts: SeatFacts, seatWord: string): string {
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
   const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
-  const { hint, notices, footActions, onAction, children } = props;
+  const { hint, notices, footActions, onRowHover, onAction, children } = props;
 
   const model = useMemo(
     () => buildMatchLedger({ currentRound, completed, words, playerAId, viewerSlot, live, frozenTiles, hint }),
@@ -93,6 +94,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           viewerName={you.name}
           opponentName={opp.name}
           footActions={footActions}
+          onRowHover={onRowHover}
           onAction={onAction}
         />
       }
