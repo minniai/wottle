@@ -39,6 +39,8 @@ paths:
           description: Rate limit `match:preview-swap` exceeded (60/min per player)
           headers:
             Retry-After: { schema: { type: integer } }
+        '500':
+          description: Match or round row missing, unreadable board, or unexpected failure (`status: error`)
 components:
   schemas:
     Coordinate:
