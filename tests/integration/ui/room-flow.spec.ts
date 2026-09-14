@@ -1,6 +1,7 @@
 /**
  * Spec 044 — the two-player room flow. Grows with each user story:
  *   US2: pick → commit (default), preview opt-in, Esc, opponent pin, frozen tap.
+ *   US3: bands — one per ledger word, chevron edge matches data-direction.
  */
 import { expect, test, type Page } from "@playwright/test";
 
@@ -79,6 +80,19 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       // Round resolves: caption advances, pins clear.
       await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, { timeout: 45_000 });
       await expect(cell(pageA, ax1, 0)).not.toHaveAttribute("data-state", "pinned");
+
+      // US3 — bands: one per word in the ledger's row 1, chevron edge per direction.
+      const wordCells = pageA.getByTestId("ledger-row-1").locator(".ledger__words");
+      const rowText = (await wordCells.allTextContents()).join(" ");
+      const wordCount = rowText.split("·").map((w) => w.trim()).filter((w) => /^[^\d]+$/.test(w) && w.length > 0).length;
+      const bands = pageA.getByTestId("field-band");
+      expect(await bands.count()).toBe(wordCount);
+      for (let i = 0; i < (await bands.count()); i += 1) {
+        const dir = await bands.nth(i).getAttribute("data-direction");
+        expect(["ltr", "rtl", "ttb", "btt"]).toContain(dir);
+        const d = await bands.nth(i).locator("path").getAttribute("d");
+        expect(d).toMatch(/^M /);
+      }
     } finally {
       await contextA.close();
       await contextB.close();
