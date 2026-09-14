@@ -8,3 +8,5 @@ is current-round words drawn as live bands at 30% tint that settle to 14%, pins 
 feature spec `specs/044-field-ledger-redesign/spec.md`.
 
 The folder is kept for history. Any engine or server behaviour this spec introduced remains valid.
+
+**Replacing hooks (2026-09-14):** `components/room/hooks/useReveal.ts` + `lib/room/revealSequence.ts` (`planReveal`) draw the current round's words as live bands (30 %) that settle to 14 %; `useFieldInteraction` pins replace the swap lift; there is no locked frame or lock banner.
