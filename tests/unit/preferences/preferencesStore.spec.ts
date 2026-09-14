@@ -20,7 +20,9 @@ describe("preferencesStore (spec 044 R14)", () => {
     delete store[SENSORY_PREFS_STORAGE_KEY];
     usePreferencesStore.getState().hydrate();
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("defaults: sound on, haptics on, preview off", () => {
     expect(readStoredPreferences()).toEqual({ soundEnabled: true, hapticsEnabled: true, previewEnabled: false });

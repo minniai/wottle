@@ -49,7 +49,9 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     vi.mocked(previewSwap).mockClear();
     (useLobbyPresenceStore as unknown as { setState: (s: object) => void }).setState({ players: [] });
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("signed out: empty top bar with play ranked ▸ disabled, name input in the bottom bar, warm-up field, no polling", () => {
     render(<LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />);

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Red_Hat_Mono, Zilla_Slab } from "next/font/google";
 import "./globals.css";
 import "./styles/room.css";
-import "./styles/board.css";
 import "./styles/profile.css";
 
 const zillaSlab = Zilla_Slab({

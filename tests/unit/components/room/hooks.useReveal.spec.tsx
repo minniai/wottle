@@ -5,8 +5,12 @@ import { useCountUp } from "@/components/room/hooks/useCountUp";
 import { useReveal } from "@/components/room/hooks/useReveal";
 
 describe("useReveal", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("advances band → write → countUp → settle on the plan's timeline and ticks per band", () => {
     const onBand = vi.fn();
@@ -25,7 +29,7 @@ describe("useReveal", () => {
   });
 
   it("no key → done; reduced motion → settles immediately; re-keying restarts", () => {
-    const { result, rerender } = renderHook((p: { key: string | null; rm: boolean }) => useReveal({ key: p.key, wordIds: ["a"], alreadyDrawn: new Set(), reducedMotion: p.rm }), { initialProps: { key: null, rm: false } });
+    const { result, rerender } = renderHook((p: { key: string | null; rm: boolean }) => useReveal({ key: p.key, wordIds: ["a"], alreadyDrawn: new Set(), reducedMotion: p.rm }), { initialProps: { key: null as string | null, rm: false } });
     expect(result.current.settled).toBe(true);
     rerender({ key: "r1", rm: true });
     expect(result.current.settled).toBe(true); // settle-only plans complete synchronously

@@ -45,7 +45,9 @@ describe("Field interaction (spec 044 US2)", () => {
     fetchMock.mockResolvedValue({ status: 200, json: async () => ({ status: "accepted", grid: board() }) });
     vi.mocked(previewSwap).mockReset();
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("default: first tap picks (your colour, sound), second tap commits and posts the move", async () => {
     const onPick = vi.fn();

@@ -33,7 +33,9 @@ describe("useFieldSize", () => {
     RO.instances = [];
     vi.stubGlobal("ResizeObserver", RO);
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("measures the room element and re-measures on resize", () => {
     const el = document.createElement("div");
@@ -51,7 +53,9 @@ describe("useFieldSize", () => {
 });
 
 describe("useReducedMotion", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   it("reflects prefers-reduced-motion", () => {
     vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("reduce"), addEventListener() {}, removeEventListener() {} }));
     expect(renderHook(() => useReducedMotion()).result.current).toBe(true);
@@ -61,8 +65,12 @@ describe("useReducedMotion", () => {
 });
 
 describe("useClockTick", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   const timers: MatchState["timers"] = {
     playerA: { playerId: "a", remainingMs: 300_000, status: "running" },

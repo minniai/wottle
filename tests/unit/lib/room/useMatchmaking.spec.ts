@@ -18,7 +18,9 @@ describe("useMatchmaking (spec 044 US8)", () => {
     vi.mocked(startQueueAction).mockReset();
     vi.mocked(getMatchOverviewAction).mockReset();
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("polls the queue every 3 s and counts elapsed seconds while searching", async () => {
     vi.mocked(startQueueAction).mockResolvedValue({ status: "queued" });
