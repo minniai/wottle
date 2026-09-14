@@ -38,6 +38,13 @@ export default async function MatchPage({
     return <div>Match not found</div>;
   }
 
+  // FR-043a: a signed-in non-participant may view a completed match read-only;
+  // a live match sends them back to the lobby.
+  const participants = [matchState.timers.playerA.playerId, matchState.timers.playerB.playerId];
+  if (!participants.includes(session.player.id) && matchState.state !== "completed" && matchState.state !== "abandoned") {
+    redirect("/lobby");
+  }
+
   const playerProfiles = await loadMatchPlayerProfiles(
     supabase,
     matchState.timers.playerA.playerId,
