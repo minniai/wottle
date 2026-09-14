@@ -389,6 +389,15 @@
   font-size: 12px;
   color: var(--ink);
 }
+.ledger__points {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+.ledger__words--folded {
+  min-height: 1.4em;
+}
 .ledger__live-row {
   background: var(--tint);
   border-left: 3px solid var(--ink);

@@ -1,10 +1,12 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { WORDMARK } from "@/lib/constants/copy";
 import { getSeatColors } from "@/lib/constants/seatColors";
+import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeText } from "@/lib/room/notices";
+import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { LedgerAction, LedgerModel, LedgerRow, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import type { RoomMenuVariant } from "./RoomMenu";
@@ -31,22 +33,37 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
   return "lobby";
 }
 
-function SeatWords({ cell, seat }: { cell: SeatCell | null; seat: "you" | "opp" }) {
+function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
   if (!cell) return <div className="ledger__words" />;
+  const style = { "--seat-ink": getSeatColors(seat).ink } as CSSProperties;
+  if (folded) {
+    return (
+      <div className="ledger__words ledger__words--folded" style={style} title={cell.words.map((w) => w.word).join(" · ")}>
+        <span className="ledger__total">{cell.total}</span>
+      </div>
+    );
+  }
   return (
-    <div className="ledger__words" style={{ "--seat-ink": getSeatColors(seat).ink } as CSSProperties}>
-      {cell.words.map((w) => w.word).join(" · ")}
+    <div className="ledger__words" style={style}>
+      {cell.words.map((w, i) => (
+        <span key={`${w.word}-${i}`}>
+          {i > 0 ? " · " : ""}
+          {w.word}
+          {showPoints ? <span className="ledger__points"> {w.points}</span> : null}
+        </span>
+      ))}
       {cell.words.length > 0 ? <span className="ledger__total">{cell.total}</span> : null}
     </div>
   );
 }
 
-function Row({ row, onRowHover }: { row: LedgerRow; onRowHover?: (round: number | null) => void }) {
+function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; onRowHover?: (round: number | null) => void }) {
   return (
     <div
-      className={`ledger__row ledger__row--${row.status}`}
+      className={`ledger__row ledger__row--${row.status}${row.folded ? " ledger__row--folded" : ""}`}
       data-testid={`ledger-row-${row.round}`}
       data-status={row.status}
+      data-folded={row.folded || undefined}
       onMouseEnter={() => onRowHover?.(row.round)}
       onMouseLeave={() => onRowHover?.(null)}
     >
@@ -57,8 +74,8 @@ function Row({ row, onRowHover }: { row: LedgerRow; onRowHover?: (round: number 
         </div>
       ) : (
         <>
-          <SeatWords cell={row.you} seat="you" />
-          <SeatWords cell={row.opp} seat="opp" />
+          <SeatWords cell={row.you} seat="you" showPoints={hovered} folded={row.folded} />
+          <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded={row.folded} />
         </>
       )}
     </div>
@@ -115,6 +132,14 @@ export function Ledger(props: LedgerProps) {
   const { variant, model, notices = [], viewerName, opponentName, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
   const { territory } = model;
+  const rowsRef = useRef<HTMLDivElement | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const lineCounts = useMeasuredLines(rowsRef, ".ledger__words", [model.rows]);
+  const rows = foldRows(model.rows, lineCounts);
+  const hover = (round: number | null) => {
+    setHovered(round);
+    onRowHover?.(round);
+  };
   const total = Math.max(1, territory.you + territory.opp + territory.free);
 
   return (
@@ -144,9 +169,9 @@ export function Ledger(props: LedgerProps) {
               <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden /> {opponentName ?? "—"}
             </span>
           </div>
-          <div className="ledger__rows" data-testid="ledger-rows">
-            {model.rows.map((row) => (
-              <Row key={row.round} row={row} onRowHover={onRowHover} />
+          <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
+            {rows.map((row) => (
+              <Row key={row.round} row={row} hovered={hovered === row.round} onRowHover={hover} />
             ))}
           </div>
           <div className="ledger__territory" data-testid="ledger-territory" aria-label={`territory ${territory.you}–${territory.opp}`}>
