@@ -1,81 +1,47 @@
 import { describe, expect, test } from "vitest";
+
 import config from "../../../tailwind.config";
 
-const colors = config.theme?.extend?.colors as Record<
-  string,
-  string | Record<string, string>
->;
+const theme = config.theme?.extend as {
+  colors: Record<string, string | Record<string, string>>;
+  fontFamily: Record<string, string[]>;
+  borderRadius: Record<string, string>;
+  boxShadow?: unknown;
+};
 
-describe("tailwind token extension — new Warm Editorial families", () => {
-  test("paper scale is declared", () => {
-    expect(colors.paper).toEqual({
-      DEFAULT: "oklch(0.975 0.012 85)",
-      2: "oklch(0.955 0.014 82)",
-      3: "oklch(0.925 0.016 80)",
-    });
+const TOKEN_REF = /^var\(--(paper|ink|rule|tint|muted|you|opp|you-band|you-live|opp-band|opp-live|future-label)\)$/;
+
+function flatten(colors: Record<string, string | Record<string, string>>): Array<[string, string]> {
+  return Object.entries(colors).flatMap(([k, v]) =>
+    typeof v === "string" ? [[k, v] as [string, string]] : Object.entries(v).map(([kk, vv]) => [`${k}.${kk}`, vv] as [string, string]),
+  );
+}
+
+describe("tailwind.config.ts — Field & Ledger theme", () => {
+  test("declares the seven tokens as CSS variable references", () => {
+    for (const key of ["paper", "ink", "rule", "tint", "muted", "you", "opp"]) {
+      const value = theme.colors[key];
+      const ref = typeof value === "string" ? value : value.DEFAULT;
+      expect(ref).toBe(`var(--${key})`);
+    }
   });
 
-  test("ink scale is declared", () => {
-    expect(colors.ink).toMatchObject({
-      DEFAULT: "oklch(0.22 0.025 258)",
-      2: "oklch(0.29 0.027 258)",
-      3: "oklch(0.38 0.024 258)",
-      soft: "oklch(0.52 0.020 258)",
-    });
+  test("every colour utility resolves to one of the tokens (legacy aliases included)", () => {
+    for (const [name, value] of flatten(theme.colors)) {
+      expect(value, name).toMatch(TOKEN_REF);
+    }
   });
 
-  test("ochre family is declared", () => {
-    expect(colors.ochre).toMatchObject({
-      DEFAULT: "oklch(0.72 0.13 70)",
-      deep: "oklch(0.58 0.14 60)",
-      tint: "oklch(0.93 0.045 80)",
-    });
+  test("two type families only", () => {
+    expect(theme.fontFamily.board[0]).toBe("var(--font-board)");
+    expect(theme.fontFamily.mono[0]).toBe("var(--font-mono)");
+    for (const [name, stack] of Object.entries(theme.fontFamily)) {
+      expect(stack[0], name).toMatch(/^var\(--font-(board|mono)\)$/);
+    }
   });
 
-  test("player families p1 and p2 declared", () => {
-    expect(colors.p1).toMatchObject({
-      DEFAULT: "oklch(0.68 0.14 60)",
-      tint: "oklch(0.92 0.06 70)",
-      deep: "oklch(0.48 0.14 55)",
-    });
-    expect(colors.p2).toMatchObject({
-      DEFAULT: "oklch(0.56 0.08 220)",
-      tint: "oklch(0.92 0.035 220)",
-      deep: "oklch(0.38 0.08 220)",
-    });
-  });
-
-  test("hair line colours declared", () => {
-    expect(colors.hair).toMatchObject({
-      DEFAULT: "color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent)",
-      strong: "color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent)",
-    });
-  });
-
-  test("legacy surface alias resolves to paper scale", () => {
-    expect(colors.surface).toMatchObject({
-      0: "oklch(0.975 0.012 85)",
-      1: "oklch(0.955 0.014 82)",
-      2: "oklch(0.925 0.016 80)",
-    });
-  });
-
-  test("legacy text alias resolves to ink scale", () => {
-    expect(colors.text).toMatchObject({
-      primary: "oklch(0.22 0.025 258)",
-      secondary: "oklch(0.38 0.024 258)",
-      muted: "oklch(0.52 0.020 258)",
-      inverse: "oklch(0.975 0.012 85)",
-    });
-  });
-
-  test("mono font family added", () => {
-    const fontFamily = config.theme?.extend?.fontFamily as Record<string, string[]>;
-    expect(fontFamily.mono).toEqual([
-      "var(--font-jetbrains-mono)",
-      "JetBrains Mono",
-      "ui-monospace",
-      "monospace",
-    ]);
+  test("no radii and no shadows", () => {
+    expect(theme.borderRadius).toEqual({ DEFAULT: "0", none: "0" });
+    expect(theme.boxShadow).toBeUndefined();
   });
 });
