@@ -108,7 +108,7 @@ test.describe("@left-rail Phase 1d instructional cards", () => {
       });
 
       const leftRail = pageA.getByTestId("match-layout-rail-left");
-      const tiles = pageA.getByTestId("board-tile");
+      const tiles = pageA.getByTestId("field-cell");
       await tiles.nth(0).click();
 
       await expect(leftRail.getByText("A1")).toBeVisible();

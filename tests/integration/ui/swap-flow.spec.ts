@@ -6,7 +6,7 @@ import {
   startMatchWithDirectInvite,
 } from "./helpers/matchmaking";
 
-const BOARD_TILE_SELECTOR = "[data-testid=\"board-tile\"]";
+const BOARD_TILE_SELECTOR = "[data-testid=\"field-cell\"]";
 const FEEDBACK_SELECTOR = "[data-testid=\"move-feedback-toast\"]";
 
 async function getTileLetters(page: import("@playwright/test").Page, indices: number[]) {
@@ -82,7 +82,7 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
       await waitForBoardUnlocked(pageA);
 
       // Find the first frozen tile on pageA's board
-      const board = pageA.getByTestId("board-grid");
+      const board = pageA.getByTestId("field");
       let frozenTileIndex = -1;
       for (let n = 0; n < 100; n += 1) {
         const tile = board.locator(`[data-tile-index="${n}"]`);
@@ -136,8 +136,8 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
               frozenTile.getAttribute("class"),
               neighborTile.getAttribute("class"),
             ]);
-            return frozenClass?.includes("board-grid__cell--invalid") &&
-              neighborClass?.includes("board-grid__cell--invalid")
+            return frozenClass?.includes("field__cell--shake") &&
+              neighborClass?.includes("field__cell--shake")
               ? "both-invalid"
               : "no-flash";
           },
@@ -150,8 +150,8 @@ test.describe("Invalid shake on frozen tile (US2)", () => {
 
       // Invalid class should clear after ~500ms
       await pageA.waitForTimeout(500);
-      await expect(frozenTile).not.toHaveClass(/board-grid__cell--invalid/);
-      await expect(neighborTile).not.toHaveClass(/board-grid__cell--invalid/);
+      await expect(frozenTile).not.toHaveClass(/field__cell--shake/);
+      await expect(neighborTile).not.toHaveClass(/field__cell--shake/);
     } finally {
       await pageA.close();
       await pageB.close();

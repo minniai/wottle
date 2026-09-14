@@ -43,8 +43,8 @@ async function loginPlayer(page: Page, username: string): Promise<void> {
 
 /** Click two horizontally-adjacent, non-frozen tiles to submit a swap. */
 async function submitAdjacentSwap(page: Page): Promise<void> {
-  const first = page.locator('[data-testid="board-tile"][data-col="0"][data-row="0"]');
-  const second = page.locator('[data-testid="board-tile"][data-col="1"][data-row="0"]');
+  const first = page.locator('[data-testid="field-cell"][data-x="0"][data-y="0"]');
+  const second = page.locator('[data-testid="field-cell"][data-x="1"][data-y="0"]');
   await first.click();
   await second.click();
 }
@@ -74,20 +74,20 @@ test.describe("@scoring-resolution-viz Spec 043 waiting state (US2)", () => {
       expect(matchIdA).toEqual(matchIdB);
 
       await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
-      await expect(pageA.getByTestId("board-grid")).toBeVisible({ timeout: 10_000 });
+      await expect(pageA.getByTestId("field")).toBeVisible({ timeout: 10_000 });
 
       // Player A submits a swap → enters the waiting state.
       await submitAdjacentSwap(pageA);
 
       // Waiting banner surfaces (FR-002).
-      await expect(pageA.getByTestId("move-lock-banner")).toBeVisible({
+      await expect(pageA.getByTestId("ledger-live-row")).toBeVisible({
         timeout: 10_000,
       });
 
       // The board container carries the locked class but is NOT dimmed (FR-001):
       // tiles keep full opacity and are not desaturated.
       const tile = pageA
-        .locator('[data-testid="board-tile"][data-col="5"][data-row="5"]')
+        .locator('[data-testid="field-cell"][data-x="5"][data-y="5"]')
         .first();
       const { opacity, filter } = await tile.evaluate((el) => {
         const cs = window.getComputedStyle(el);
@@ -98,7 +98,7 @@ test.describe("@scoring-resolution-viz Spec 043 waiting state (US2)", () => {
 
       // A second move is blocked while waiting (FR-003): banner stays, no nav.
       await submitAdjacentSwap(pageA);
-      await expect(pageA.getByTestId("move-lock-banner")).toBeVisible();
+      await expect(pageA.getByTestId("ledger-live-row")).toBeVisible();
     } finally {
       await contextA.close();
       await contextB.close();

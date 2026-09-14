@@ -27,7 +27,7 @@ async function loginAs(context: BrowserContext, prefix: string) {
 
 async function waitForMatch(page: Page) {
   await expect(page).toHaveURL(/\/match\/[0-9a-f-]+/, { timeout: 20_000 });
-  await expect(page.getByTestId("board-grid")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("field")).toBeVisible({ timeout: 15_000 });
 }
 
 // Playwright's `ctxB.close()` force-kills the browser context, so the

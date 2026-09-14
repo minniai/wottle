@@ -87,7 +87,7 @@ test.describe("Reconnect flow", () => {
 
         // Verify state restoration: board, round, timer values
         await expect(newPageA.getByTestId("round-indicator")).toBeVisible();
-        await expect(newPageA.getByTestId("board-grid")).toBeVisible();
+        await expect(newPageA.getByTestId("field")).toBeVisible();
 
         // Timers should resume after reconnection
         const restoredTimerA = newPageA.getByTestId("timer-hud");
