@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "eslint --max-warnings=0 --ext .ts,.tsx .",
     "typecheck": "tsc --pretty --noEmit",
+    "docs:check": "bash scripts/docs/consistency-grep.sh",
     "test": "pnpm test:unit",
     "test:unit": "vitest --config vitest.config.ts --run --passWithNoTests",
     "test:integration": "vitest --config vitest.integration.config.ts --run --passWithNoTests",

@@ -14,7 +14,7 @@
 
 ## Summary
 
-Wottle's current look (Warm Editorial: cream paper, letterpress tiles, seven HUD cards around the board, separate landing / lobby / matchmaking / match / post-game / profile pages) spends contrast on decoration, covers the board with banners and overlays, shows the round number three times, draws two match-long clocks as unrelated numerals, and paints territory per tile so scored words disappear. The Field & Ledger redesign replaces it with three objects that never leave the screen:
+Wottle's current look (the April–June 2026 theme: cream paper, embossed tiles, seven stat cards around the board, separate landing / lobby / matchmaking / match / post-game / profile pages) spends contrast on decoration, covers the board with banners and overlays, shows the round number three times, draws two match-long clocks as unrelated numerals, and paints territory per tile so scored words disappear. The Field & Ledger redesign replaces it with three objects that never leave the screen:
 
 - **The field** — a ruled grid of one hundred capitals. Scored words are drawn as tinted bands with a chevron at the reading start. Nothing is ever placed over it.
 - **Two player bars** — the opponent's above the field, yours below. Each carries one player's name, rating, clock, total and a clock lane at the edge nearest the field. Both lanes share one scale so "who can afford to think" is a glance.
@@ -216,7 +216,7 @@ When the match ends, the field freezes with all bands, the bars show final total
 
 A player's profile is the same two-column grid: identity row, hairline 30-day rating chart and a four-cell record row on the left; `best words` and `recent matches` ledgers on the right, with `◂ lobby` and `change name · sign out` in the foot. Another player's profile uses the opponent colour. Tapping a match opens its final room state read-only.
 
-**Why this priority**: The profile was a dashboard with a word cloud and cards. It is the last screen to convert and does not block play.
+**Why this priority**: The profile was a dashboard with a cloud of best words and cards. It is the last screen to convert and does not block play.
 
 **Independent Test**: Open your own profile and another player's. Verify the seat colour is teal for yours and coral for theirs, the rating chart is a single hairline polyline over three gridlines with no fill or markers, and tapping a recent match opens the final room state.
 
@@ -234,16 +234,16 @@ A player's profile is the same two-column grid: identity row, hairline 30-day ra
 
 Repository documentation (rules, PRD, architecture, README, agent instructions, superseded specs and proposals) says what the game and its UI now are, and stops saying what they were.
 
-**Why this priority**: The design was derived from the rules document, and the repo's docs are the source future work reads. Stale docs (Warm Editorial, 5+0 clock, eight directions, "hidden until both submit") would misdirect the rebuild.
+**Why this priority**: The design was derived from the rules document, and the repo's docs are the source future work reads. Stale docs (the previous theme, the per-round clock notation, an eight-direction word finder, "hidden until both submit") would misdirect the rebuild.
 
-**Independent Test**: Run the grep list in `DOCS_CONSISTENCY.md §10` over `README.md`, `CLAUDE.md`, `docs/` (excluding `docs/archive/`) and `specs/`; it returns nothing. The rules document has a time-control section and a "what the player sees" subsection.
+**Independent Test**: Run the grep list in `DOCS_CONSISTENCY.md §10` (`pnpm docs:check`) over `README.md`, `CLAUDE.md`, `docs/` (excluding `docs/archive/` and the design bundle itself) and the active spec folders under `specs/` (shipped specs 001–043 are immutable records of what was built and are skipped; those whose UI was retired carry `SUPERSEDED.md`); it returns nothing. The rules document has a time-control section and a "what the player sees" subsection.
 
 **Acceptance Scenarios**:
 
 1. **Given** the rules document, **When** read, **Then** it contains a clock-model section (one match-long budget per player, running only while that player's move is open, with the consequence at 0:00 stated), a sentence on double-direction scoring, the BORÐA + GILT example, and a "what the player sees" subsection mapping each rule to its rendering.
 2. **Given** the PRD and architecture documents, **When** read, **Then** time control, scoring directions, dictionary, timer colours, error colours, visibility and screens match the rules document and the design system, or the document is marked historical.
 3. **Given** the previous design bundles and superseded specs, **When** read, **Then** each carries a superseded note pointing to the Field & Ledger plan and the replacing component.
-4. **Given** `README.md` and `CLAUDE.md`, **When** read, **Then** they describe the Field & Ledger system, link the design system as binding, list the room components, and no longer describe the Warm Editorial redesign as current.
+4. **Given** `README.md` and `CLAUDE.md`, **When** read, **Then** they describe the Field & Ledger system, link the design system as binding, list the room components, and no longer describe the previous redesign as current.
 
 ---
 
@@ -343,7 +343,7 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 - **FR-044a**: A word's band MUST be drawn at most once per match; at round resolution the reveal MUST animate only words not already revealed by the instant first-mover path, and totals MUST count up only by the delta not yet shown.
 - **FR-045**: Motion MUST use only the durations and easing in design system §6 (ring/pin 120ms, preview 150ms, band 400ms staggered 120ms, count-up 400ms, pin fade 200ms, name write 200ms, setting letters ~100ms apart); geometry MUST not animate except the preview exchange and the picked scale; under reduced motion everything MUST be 0ms and end-state only.
 - **FR-046**: Sounds MUST be `tile-select` on pick, `valid-swap` on commit (with haptic where available) and a tick per band on reveal; nothing on cancel or error; sound MUST be toggled from the `⋯` menu and remembered as today.
-- **FR-047**: All copy MUST follow design system §8: sentence case, mono uppercase labels, lowercase wordmark, no exclamation marks, the fixed strings as listed with the clock budget written as `5:00` (`ranked · 10 rounds · 5:00 clocks`); the strings `Hidden from opponent until both submit`, `Move submitted — waiting for opponent`, `outrun the chess clock` and `wants a rematch!` MUST not appear.
+- **FR-047**: All copy MUST follow design system §8: sentence case, mono uppercase labels, lowercase wordmark, no exclamation marks, the fixed strings as listed with the clock budget written as `5:00` (`ranked · 10 rounds · 5:00 clocks`); the retired strings listed in `DOCS_CONSISTENCY.md §10` (the hidden-until-both-submit line, the waiting-for-opponent banner, the clock tagline and the rematch exclamation) MUST not appear.
 
 **Accessibility**
 
@@ -352,15 +352,15 @@ Repository documentation (rules, PRD, architecture, README, agent instructions, 
 
 **Removals**
 
-- **FR-050**: The following surfaces MUST be removed, not restyled, once their replacement ships: HUD cards, centre chrome, round pip bar, tiles-claimed card, scored-words card, left-rail cards (how to play, legend, your move), score-delta popup, round summary panel, round history panel, lock banner, round announcement, move-feedback toasts, coordinate labels, landing screen and hero, play-now card, lobby card wall and directory, empty-lobby illustration, match ring, versus block, final summary, post-game verdict/scoreboard cards, rematch banner, disconnection modal, profile sidebar/stat/word cloud/match list, and the top bar.
+- **FR-050**: The following surfaces MUST be removed, not restyled, once their replacement ships: stat cards, centre chrome, round pips, tiles-claimed card, scored-words card, left-rail cards (how to play, legend, your move), score-delta popup, round summary panel, round history panel, lock banner, round announcement, move-feedback toasts, coordinate labels, landing screen and hero, play-now card, lobby card wall and directory, empty-lobby illustration, matchmaking ring, versus block, final summary, post-game verdict/scoreboard cards, rematch banner, disconnection modal, profile sidebar/stat/best-words cloud/match list, and the top bar.
 
 **Documentation**
 
 - **FR-051**: The rules document MUST gain a clock-model section, a one-record-per-run sentence with a regression test named for it, the BORÐA + GILT example, and a "what the player sees" subsection, before the field work begins.
 - **FR-052**: The PRD, architecture and ideation documents MUST be aligned with four orthogonal directions, the match-long clock model, the BÍN dictionary, broadcast-on-submit visibility, lane clocks, in-colour shake, and the single room, or marked historical.
-- **FR-053**: The Warm Editorial bundle, the previous Claude Design handoff bundles, the Warm Editorial phased plan, and every spec or proposal describing retired UI MUST carry a superseded note pointing to the Field & Ledger plan; the new design bundle MUST live at a stable documented path.
+- **FR-053**: The previous design-system bundle, the previous Claude Design handoff bundles, the previous phased plan, and every spec or proposal describing retired UI MUST carry a superseded note pointing to the Field & Ledger plan; the new design bundle MUST live at a stable documented path.
 - **FR-054**: `README.md` and `CLAUDE.md` MUST describe the Field & Ledger system, link the design system as binding, add the design rules block from `DOCS_CONSISTENCY.md §8`, and list the room components; test documentation MUST name the new test ids.
-- **FR-055**: At the end of the work, the grep list in `DOCS_CONSISTENCY.md §10` MUST return nothing over `README.md`, `CLAUDE.md`, `docs/` (excluding `docs/archive/`) and `specs/`.
+- **FR-055**: At the end of the work, the grep list in `DOCS_CONSISTENCY.md §10` MUST return nothing over `README.md`, `CLAUDE.md`, `docs/` (excluding `docs/archive/` and the design bundle) and the active spec folders under `specs/`; shipped specs are historical records and are not rewritten (retired-UI ones carry `SUPERSEDED.md`). The check is `pnpm docs:check` and runs in CI.
 
 ### Key Entities
 

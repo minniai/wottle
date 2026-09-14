@@ -37,6 +37,8 @@ jobs:
         run: pnpm lint
       - name: Guard service_role usage
         run: pnpm guard:no-service-role
+      - name: Docs consistency (DOCS_CONSISTENCY.md §10)
+        run: pnpm docs:check
 
   typecheck:
     name: Typecheck

@@ -46,7 +46,8 @@ pnpm perf:instant-scoring     # unchanged
 ## Acceptance greps (run at the end of each step, scoped to converted folders)
 
 ```bash
-grep -rnE 'rounded-|shadow-|gradient|emerald|red-|amber|Fraunces|Inter\b|JetBrains' app components
+pnpm test:unit -- tests/unit/styles/acceptance-grep.test.ts   # radii, shadows, gradients, third hues, retired fonts
+pnpm docs:check                                              # DOCS_CONSISTENCY.md §10 phrase list over the living docs
 grep -rnE 'hud-card|round-pip-bar|your-move-card|scored-words-card|tiles-claimed-card|move-lock-banner|round-announce|match-ring|post-game-scoreboard-card|rematch-banner' app components tests
 ```
 

@@ -35,7 +35,7 @@ Each item: **Decision** / **Rationale** / **Alternatives considered**. Items R1�
 
 ## R4. Fonts (FR-009, Constitution VIII)
 
-**Decision**: `Zilla_Slab` (weights 500/600/700) and `Red_Hat_Mono` (400/500/600), subsets `latin` + `latin-ext`, via `next/font/google`, exposed as `--font-board` and `--font-mono`; `Fraunces` and `JetBrains_Mono` removed from `app/layout.tsx`.
+**Decision**: `Zilla_Slab` (weights 500/600/700) and `Red_Hat_Mono` (400/500/600), subsets `latin` + `latin-ext`, via `next/font/google`, exposed as `--font-board` and `--font-mono`; the two previous font imports removed from `app/layout.tsx`.
 
 **Provenance**: verified against the font catalogue bundled with Next.js 16.2.7 (`node_modules/next/dist/compiled/@next/font/dist/google/font-data.json`, read 2026-09-14): Zilla Slab offers 300–700 static weights with `latin`, `latin-ext`; Red Hat Mono offers 300–700 plus `variable` with `latin`, `latin-ext`. Both cover Þ Ð Æ Ö Ý. Context7 was not needed; the catalogue is the authoritative source for `next/font/google`.
 
@@ -55,9 +55,9 @@ Each item: **Decision** / **Rationale** / **Alternatives considered**. Items R1�
 
 ## R7. Tokens, Tailwind and the style tests (FR-007, FR-008)
 
-**Decision**: `app/globals.css` declares exactly `--paper --ink --rule --tint --muted --you --opp` (+ the four alpha derivatives from R6, `--future-label` for `#B9B4A6`, `--font-board`, `--font-mono`). `tailwind.config.ts` shrinks to `colors: { paper, ink, rule, tint, muted, you, opp }`, `fontFamily: { board, mono }`, `borderRadius: { DEFAULT: "0", none: "0" }`, no `boxShadow`, no legacy aliases. `app/styles/lobby.css`, `profile.css`, `matchmaking.css` are deleted; `board.css` is replaced by `app/styles/room.css` (layout + field + bars + ledger; only `@keyframes` for shake, band draw, count-up, lane blink, letter land, plus the reduced-motion block). The regex-over-CSS tests in `tests/unit/styles/` are replaced by one `tokens.test.ts` (seven values declared, no others) and one `acceptance-grep.test.ts` that runs the design plan §10 greps (`rounded-`, `shadow-`, `gradient`, `emerald`, `red-`, `amber`, `Fraunces`, `Inter`, `JetBrains`) over `app/` and `components/`, initially scoped to the folders each step has converted and widened per step.
+**Decision**: `app/globals.css` declares exactly `--paper --ink --rule --tint --muted --you --opp` (+ the four alpha derivatives from R6, `--future-label` for `#B9B4A6`, `--font-board`, `--font-mono`). `tailwind.config.ts` shrinks to `colors: { paper, ink, rule, tint, muted, you, opp }`, `fontFamily: { board, mono }`, `borderRadius: { DEFAULT: "0", none: "0" }`, no `boxShadow`, no legacy aliases. `app/styles/lobby.css`, `profile.css`, `matchmaking.css` are deleted; `board.css` is replaced by `app/styles/room.css` (layout + field + bars + ledger; only `@keyframes` for shake, band draw, count-up, lane blink, letter land, plus the reduced-motion block). The regex-over-CSS tests in `tests/unit/styles/` are replaced by one `tokens.test.ts` (seven values declared, no others) and one `acceptance-grep.test.ts` that runs the design plan §10 greps (radii, shadows, gradients, third-hue utilities and the three retired font names) over `app/` and `components/`, initially scoped to the folders each step has converted and widened per step.
 
-**Rationale**: The existing style tests assert the Warm Editorial contract and will break mechanically; replacing them with the new contract is TDD-red for P1. Tailwind still handles layout utilities; the theme is where the seven-token rule is enforced.
+**Rationale**: The existing style tests assert the previous theme's contract and will break mechanically; replacing them with the new contract is TDD-red for P1. Tailwind still handles layout utilities; the theme is where the seven-token rule is enforced.
 
 ## R8. Room layout and field sizing (FR-002, FR-003, FR-004)
 
