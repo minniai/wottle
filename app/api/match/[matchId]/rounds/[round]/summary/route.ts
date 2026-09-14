@@ -1,3 +1,4 @@
+import { mapWordScoreRows, type WordScoreEntryRow } from "@/lib/match/wordScoreRow";
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -108,15 +109,9 @@ export async function GET(
         : { playerA: 0, playerB: 0 };
 
     // Convert word_score_entries to WordScore format
-    const wordScores: WordScore[] = (wordEntries || []).map((entry) => ({
-        playerId: entry.player_id,
-        word: entry.word,
-        length: entry.length,
-        lettersPoints: entry.letters_points,
-        bonusPoints: entry.bonus_points,
-        totalPoints: entry.total_points,
-        coordinates: entry.tiles as Coordinate[],
-    }));
+    const wordScores: WordScore[] = mapWordScoreRows(
+        (wordEntries || []) as WordScoreEntryRow[],
+    );
 
     // Aggregate round summary
     const summary: RoundSummary = aggregateRoundSummary(

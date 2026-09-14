@@ -1,3 +1,4 @@
+import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { redirect } from "next/navigation";
 
 import { FinalSummary } from "@/components/match/FinalSummary";
@@ -216,6 +217,7 @@ export default async function MatchSummaryPage({
     lettersPoints: entry.letters_points as number,
     bonusPoints: entry.bonus_points as number,
     coordinates: (entry.tiles as Coordinate[] | null) ?? [],
+    direction: tryDeriveReadingDirection((entry.tiles as Coordinate[] | null) ?? []),
   }));
 
   const scoreboard = summary.snapshots.map((row) => ({
