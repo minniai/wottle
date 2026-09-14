@@ -3,10 +3,7 @@ import { Red_Hat_Mono, Zilla_Slab } from "next/font/google";
 import "./globals.css";
 import "./styles/room.css";
 import "./styles/board.css";
-import "./styles/lobby.css";
 import "./styles/profile.css";
-import { ToastProvider } from "@/components/ui/ToastProvider";
-import { TopBar } from "@/components/ui/TopBar";
 
 const zillaSlab = Zilla_Slab({
   subsets: ["latin", "latin-ext"],
@@ -38,12 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${zillaSlab.variable} ${redHatMono.variable}`}>
       <body className="min-h-screen overflow-x-clip bg-paper text-ink antialiased">
-        <ToastProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <TopBar />
-            {children}
-          </div>
-        </ToastProvider>
+        <div className="relative flex min-h-screen flex-col">{children}</div>
       </body>
     </html>
   );
