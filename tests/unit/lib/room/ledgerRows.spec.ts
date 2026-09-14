@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildLedgerRows, buildMatchLedger, buildTerritory, liveText } from "@/lib/room/ledgerRows";
+import { buildLedgerRows, buildMatchLedger, buildTerritory, buildVerdict, foldRows, liveText } from "@/lib/room/ledgerRows";
 
 const A = "a";
 const B = "b";
@@ -66,3 +66,39 @@ describe("buildMatchLedger", () => {
     expect(model.territory.free).toBe(100);
   });
 });
+
+describe("foldRows (fold rule)", () => {
+  const rows = buildLedgerRows({ currentRound: 6, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" } });
+  it("leaves rows alone while every row fits in three lines", () => {
+    expect(foldRows(rows, rows.map(() => 2))).toBe(rows);
+  });
+  it("collapses past rounds older than the last three to totals when any row overflows", () => {
+    const folded = foldRows(rows, rows.map((_, i) => (i === 4 ? 4 : 1)));
+    const past = folded.filter((r) => r.status === "past");
+    expect(past.map((r) => r.folded)).toEqual([true, true, false, false, false]);
+    expect(folded[5].folded).toBe(false);
+  });
+});
+
+describe("buildVerdict (design system §8)", () => {
+  const territory = { you: 25, opp: 32, free: 43 };
+  it("states the winner once, with margin, word counts and territory in the winner's order", () => {
+    expect(buildVerdict({ viewerName: "Birna", opponentName: "Kári", viewerScore: 127, opponentScore: 170, viewerWords: 8, opponentWords: 10, territory })).toEqual({
+      winnerSeat: "opp",
+      scoreLine: "Kári wins 170–127",
+      detailLine: "by 43 points · 10 words to 8 · territory 32–25",
+    });
+  });
+  it("a viewer win uses the same voice", () => {
+    const v = buildVerdict({ viewerName: "Birna", opponentName: "Kári", viewerScore: 170, opponentScore: 127, viewerWords: 10, opponentWords: 8, territory: { you: 32, opp: 25, free: 43 } });
+    expect(v.winnerSeat).toBe("you");
+    expect(v.scoreLine).toBe("Birna wins 170–127");
+  });
+  it("a draw has no winner and no exclamation", () => {
+    const v = buildVerdict({ viewerName: "B", opponentName: "K", viewerScore: 90, opponentScore: 90, viewerWords: 5, opponentWords: 5, territory });
+    expect(v.winnerSeat).toBeNull();
+    expect(v.scoreLine).toBe("draw 90–90");
+    expect(v.scoreLine + v.detailLine).not.toContain("!");
+  });
+});
+

@@ -1,9 +1,9 @@
-import { PLAYED, picking, roundContext, TAP_SECOND_LETTER } from "@/lib/constants/copy";
+import { drawLine, PLAYED, picking, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot, ReadingDirection } from "@/lib/types/match";
-import { emptyRows, type LedgerModel, type LedgerRow, type SeatCell, type Territory, type WordCell } from "./ledgerTypes";
+import { emptyRows, type LedgerModel, type LedgerRow, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
 
 export const TOTAL_ROUNDS = 10;
 
@@ -96,5 +96,42 @@ export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
     rows: buildLedgerRows(input),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),
     hint: input.hint ?? TAP_SECOND_LETTER,
+  };
+}
+
+/** Rows older than the last three collapse to totals when any row would exceed three lines (design system §5.4). */
+export const MAX_ROW_LINES = 3;
+export const KEEP_UNFOLDED = 3;
+
+export function foldRows(rows: LedgerRow[], lineCounts: number[]): LedgerRow[] {
+  const overflow = lineCounts.some((n) => n > MAX_ROW_LINES);
+  if (!overflow) return rows;
+  const pastRounds = rows.filter((r) => r.status === "past").map((r) => r.round);
+  const keep = new Set(pastRounds.slice(-KEEP_UNFOLDED));
+  return rows.map((r) => (r.status === "past" && !keep.has(r.round) ? { ...r, folded: true } : r));
+}
+
+export interface VerdictInput {
+  viewerName: string;
+  opponentName: string;
+  viewerScore: number;
+  opponentScore: number;
+  viewerWords: number;
+  opponentWords: number;
+  territory: Territory;
+}
+
+/** `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` — stated once, same voice for win and loss. */
+export function buildVerdict(v: VerdictInput): Verdict {
+  const youWin = v.viewerScore > v.opponentScore;
+  const draw = v.viewerScore === v.opponentScore;
+  const winnerSeat = draw ? null : youWin ? "you" : "opp";
+  const [hi, lo] = youWin ? [v.viewerScore, v.opponentScore] : [v.opponentScore, v.viewerScore];
+  const [wordsHi, wordsLo] = youWin ? [v.viewerWords, v.opponentWords] : [v.opponentWords, v.viewerWords];
+  const [terrHi, terrLo] = youWin ? [v.territory.you, v.territory.opp] : [v.territory.opp, v.territory.you];
+  return {
+    winnerSeat,
+    scoreLine: draw ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
+    detailLine: verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo),
   };
 }
