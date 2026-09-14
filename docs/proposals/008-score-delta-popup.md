@@ -1,3 +1,5 @@
+> **Superseded (2026-09-14).** The UI this proposal describes was retired by the Field & Ledger rebuild — see `docs/design/README.md` and `specs/044-field-ledger-redesign/spec.md`. Kept for history.
+
 r Next Feature After 006-Match-Completion
 
 **Purpose:** Recommend the next spec to implement after 006-match-completion so the game feels more polished and moves toward an “amazing playable word game” without large scope or long implementation time.

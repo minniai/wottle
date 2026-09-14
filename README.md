@@ -2,23 +2,42 @@
 
 ## Overview
 
-Wottle is a competitive two-player real-time word duel. Players swap tiles on a 10×10 board to form
-Icelandic words, under a per-round clock and with spatial tile-freezing strategy. The core gameplay
+Wottle is a competitive two-player real-time word duel. Players swap letters on a 10×10 field to form
+Icelandic words, each on one match-long clock, with spatial tile-freezing strategy. The core gameplay
 loop — swap → find words → score → freeze — is functional and covered by tests.
 
-Default match configuration (`lib/constants/game-config.ts`):
+Default match configuration (`lib/constants/game-config.ts`, `lib/match/roundEngine.ts`):
 
-| Setting             | Value                |
-| ------------------- | -------------------- |
-| Board size          | 10×10                |
-| Rounds per match    | 5                    |
-| Time per round      | 60s                  |
-| Minimum word length | 3 letters            |
-| Scoring directions  | horizontal, vertical |
-| Language            | Icelandic (`is`)     |
+| Setting             | Value                                                    |
+| ------------------- | -------------------------------------------------------- |
+| Board size          | 10×10                                                    |
+| Rounds per match    | 10                                                       |
+| Clock               | one 5:00 budget per player for the whole match (rules §2a) |
+| Minimum word length | 3 letters                                                |
+| Scoring directions  | four orthogonal (no diagonals)                           |
+| Language            | Icelandic (`is`)                                         |
 
 Word validity is decided against the BÍN-derived Icelandic word list in `data/wordlists/`
 (`word_list_is.txt`, with `word_list_is_exclusions.txt` as the curation overlay).
+
+## UI / design
+
+Wottle's UI is the **Field & Ledger** system: a ruled field of letters framed by two player bars (the
+opponent's above, yours below), with a single ledger beside it. Lobby, matchmaking, match, result and
+profile are states of that one room, not pages. Everything about the look is in
+[`docs/design/README.md`](docs/design/README.md) →
+`docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`; all UI work must follow it.
+The implementing feature is `specs/044-field-ledger-redesign/`.
+
+| Room state | What changes |
+| --- | --- |
+| lobby (empty seat) | your bar holds the name input; a warm-up field you can pick and preview on |
+| lobby | `here now` and `your last matches` tables in the ledger; `play ranked ▸` in the opponent bar |
+| queue | `Finding an opponent`; the field sets itself letter by letter |
+| found | the opponent's name writes into the top bar; `round 1 in 3 · 2 · 1` |
+| match | bands, pins, lanes, live row |
+| final | verdict in the ledger; field stays; `rematch ▸ · new opponent ▸ · lobby` |
+| profile | same grid: identity + rating chart + record left, `best words` and `recent matches` right |
 
 ## Technology Stack
 
@@ -35,7 +54,9 @@ Word validity is decided against the BÍN-derived Icelandic word list in `data/w
 ## Project Structure
 
 - **`app/`**: Next.js application routes, pages, and Server Actions.
-- **`components/`**: React components (`game/`, `match/`, and shared UI).
+- **`components/`**: React components. `room/` (Room, PlayerBar, Ledger, Field — the Field & Ledger
+  shell, landing with spec 044), plus `game/`, `match/`, `lobby/`, `matchmaking/`, `profile/`, `player/`
+  and shared `ui/` (the Warm Editorial component folders, retired step by step per the design plan §11).
 - **`lib/`**: Domain logic and backend services — game engine, scoring, match state machine, types.
 - **`data/wordlists/`**: Dictionaries. Icelandic is the live language; the other lists are unused holdovers.
 - **`specs/`**: Speckit feature specifications (see below).
@@ -49,9 +70,10 @@ The project follows a spec-driven workflow using [Speckit](#speckit-workflow).
 
 **Shipped Speckit specs** (`specs/`): `001-e2e-board-scaffold` through `019-lobby-visual-foundation`,
 plus `042-instant-scoring-reveal` and `043-scoring-resolution-viz`. The `020`–`041` range was used for
-the Warm Editorial visual redesign, which was tracked as phase branches and plans under
+the previous visual redesign (April–June 2026), which was tracked as phase branches and plans under
 `docs/superpowers/plans/` rather than as `specs/` directories — that is why the `specs/` numbering has
-a gap.
+a gap. That redesign is superseded by `044-field-ledger-redesign` (in progress); specs whose UI it
+retires carry a `SUPERSEDED.md`.
 
 > **Note on spec status headers**: individual `spec.md` files often still read `**Status**: Draft` even
 > after the feature has shipped. Treat git merge history, not the spec header, as the record of what is

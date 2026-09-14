@@ -141,3 +141,14 @@ pass `clockState` (tone) + `clockUrgency` to each `HudCard`. `HudCard` maps tone
   left untouched.
 - No new center timer; no top-strip layout restructure beyond the size bump.
 - No server/timer-logic changes — this is presentation only.
+
+## Outcome (2026-09-14, Field & Ledger)
+
+The requirement — prominent, urgency-aware clocks — is now met by the **clock lanes** at the inner
+edge of each player bar (one shared scale: full width = the match budget, filled in the seat colour)
+plus the mm:ss numeral at the bar's centre (ink while running, muted when stopped). The five-tone
+yellow → red ramp and the two renderings (desktop HUD + mobile compact bar) are retired;
+`deriveClockUrgency` keeps only the < 1:00 threshold, at which the lane thickens to 8px and blinks at
+1Hz in colour only. See `docs/design/README.md` (design system §5.3) and
+`specs/044-field-ledger-redesign/spec.md` (User Story 5). Open question to O-59's authors: whether the
+numeral should also change weight under 1:00, or whether the lane alone carries urgency.

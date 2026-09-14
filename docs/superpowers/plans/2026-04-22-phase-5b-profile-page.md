@@ -1,3 +1,7 @@
+> **Superseded (2026-09-14).** The Warm Editorial design this document describes is replaced by the
+> Field & Ledger rebuild — see `docs/design/README.md` and `specs/044-field-ledger-redesign/spec.md`.
+> Kept because the phase notes explain why the current code looks as it does.
+
 # Phase 5b — `/profile` + `/profile/[handle]` Pages Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

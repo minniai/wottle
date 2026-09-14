@@ -1,3 +1,7 @@
+> **Superseded (2026-09-14).** The Warm Editorial design this document describes is replaced by the
+> Field & Ledger rebuild — see `docs/design/README.md` and `specs/044-field-ledger-redesign/spec.md`.
+> Kept because the phase notes explain why the current code looks as it does.
+
 # Wottle Design Implementation — Phased Plan
 
 **Date:** 2026-04-19

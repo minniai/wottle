@@ -1,3 +1,9 @@
+> **Historical document (2025-11).** Parts of this proposal predate the engine and are no longer accurate:
+> the word finder scans **four orthogonal directions** (left-to-right, right-to-left, top-to-bottom, bottom-to-top),
+> not eight — diagonals are never scored (rules §3.1); the clock is one match-long budget per player (rules §2a);
+> the dictionary is the full inflected BÍN list (rules §3.3); the UI is the Field & Ledger room (`docs/design/README.md`).
+> Where this document and `docs/prd_and_requirements/wottle_game_rules.md` disagree, the rules document wins.
+
 # Wottle – Technical Architecture Proposal
 
 **Document Version:** 1.0

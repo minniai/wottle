@@ -1,3 +1,5 @@
+> **Superseded (2026-09-14).** The UI this proposal describes was retired by the Field & Ledger rebuild — see `docs/design/README.md` and `specs/044-field-ledger-redesign/spec.md`. Kept for history.
+
 # Next Feature Recommendation: 004 Match Layout & Playable View
 
 **Context:** After completing **003-word-engine-scoring** (word-finder, scoring, frozen tiles), the game will be functionally playable but the match screen will still look like a backend test harness. This document recommends the next spec: **Match Layout & Playable View** — a focused UI/UX pass so the game feels like a real, playable word duel.

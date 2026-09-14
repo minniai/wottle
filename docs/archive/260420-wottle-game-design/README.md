@@ -1,3 +1,7 @@
+> **Superseded on 2026-09-14 by the Field & Ledger design** — see `docs/design/README.md` and
+> `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_PLAN.md`. This is the handoff
+> bundle for the previous Warm Editorial look. **Do not implement from this bundle.**
+
 # CODING AGENTS: READ THIS FIRST
 
 This is a **handoff bundle** from Claude Design (claude.ai/design).
@@ -6,7 +10,7 @@ A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported t
 
 ## What you should do — IMPORTANT
 
-**Read `wottle-game-design/project/prototype/index.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+**Find the primary design file under `wottle-game-design/project/` and read it top to bottom.** Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
 
 **If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
 

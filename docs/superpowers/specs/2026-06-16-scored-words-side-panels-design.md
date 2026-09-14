@@ -99,3 +99,11 @@ Core behavior updates the logs on round resolution — faithful to the pre-`3d28
 
 This restores behavior removed by `3d28ad0`. The component + Playwright tests pin the
 always-visible side display so a future rail refactor can't silently drop it again.
+
+## Outcome (2026-09-14, Field & Ledger)
+
+Scored words are now shown in the **ledger's rounds table** (both players in one table, one row per
+round, words in the scorer's seat colour) and as **bands with a reading-direction chevron on the
+field**. The two side panels (`ScoredWordsCard`, the always-visible side display) are retired in the
+Field & Ledger rebuild. See `docs/design/README.md` (design system §5.2, §5.4) and
+`specs/044-field-ledger-redesign/spec.md` (User Stories 3–4).

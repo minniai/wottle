@@ -6,7 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap tiles on a 10x10 board to form Icelandic words, with chess-clock tension and spatial tile-freezing strategy.
 
-**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Nineteen Speckit specs have shipped, and the Warm Editorial visual redesign is in progress: Phases 1a–3 of the design proposal (theme flip, match surfaces, HUD classic, left-rail cards, post-game redesign, lobby finish) have shipped or are in open PRs. See `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md` for the redesign master plan and `docs/superpowers/plans/` for the per-phase implementation plans.
+**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-one Speckit specs have shipped. The previous visual redesign (April–June 2026, phases 1a–6) shipped in full and is now **superseded by the Field & Ledger rebuild** — spec `specs/044-field-ledger-redesign/spec.md`, design system and plan via `docs/design/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The rebuild replaces every player-facing screen with one room (two player bars, the field, one ledger) in steps P0–P5 of the design plan §11; until a step lands, the components it retires are still the live code.
+
+## Design (MANDATORY for any UI change)
+
+- The UI follows `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (entry point `docs/design/README.md`). Do not add colours, radii, shadows, gradients, blur or fonts outside it. Seven colour tokens (`--paper`, `--ink`, `--rule`, `--tint`, `--muted`, `--you`, `--opp`); two type families (`--font-board` slab serif, `--font-mono`).
+- Every visible element is a letter (or a state of a letter) on the **field**, a fact about one player in that player's **bar**, or a fact about the match in the **ledger**. If a new element is none of these, do not add it.
+- Colours are **seat-relative**: `--you` teal, `--opp` coral, always via `getSeatColors(viewerSlot, slot)`. Never map colour to `player_a` / `player_b`.
+- **Nothing is ever positioned over the field.** No modals, banners, toasts, overlays or confetti during a match; state changes are written into the bars or the ledger's live row.
+- Copy: sentence case, no exclamation marks, one idea per line, mono uppercase for labels, lowercase wordmark `wottle`. Fixed strings in design system §8.
+- Motion is a state change, not a performance: durations and easing in design system §6; everything 0ms under `prefers-reduced-motion`.
+- The rules → rendering contract is `docs/prd_and_requirements/wottle_game_rules.md` §12 ("What the player sees").
 
 ## Essential Commands
 
@@ -107,24 +117,21 @@ Before implementing any feature:
 - `016-rematch-post-game-loop` — rematch negotiation, series tracking
 - `017-elo-rating-player-stats` — Elo calculation, lobby rating display, profile modal
 - `018-match-hud-layout` — 3-column match layout + compact mobile bars
-- `019-lobby-visual-foundation` — Warm Editorial lobby (Fraunces/Inter, ui primitives, hero, stats strip, PlayNowCard, LobbyDirectory, InviteDialog, skeleton/empty states)
+- `019-lobby-visual-foundation` — previous-design lobby (ui primitives, hero, stats strip, PlayNowCard, LobbyDirectory, InviteDialog, skeleton/empty states); UI superseded by spec 044
 - `042-instant-scoring-reveal` — first mover's scored words, score delta, and tile freezes appear on both boards instantly via `instantScoreFirstSubmission` fast path in `submitMove`'s `after()` hook; race-window guard + zero-score branch keep contention safe; second mover's auto-deselect + aria-live announcement on freeze (Linear O-57)
 
-**Warm Editorial Redesign** — visual reimagining of the entire app per the Claude Design prototype. Design doc: `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md`. Per-phase plans in `docs/superpowers/plans/`.
+**Field & Ledger Rebuild** (`044-field-ledger-redesign`, in progress) — one room for every screen. Plan: `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_PLAN.md` §11. Each step ships on its own and ends with the acceptance greps for its retired components returning nothing.
 
-| Phase | Scope | Status |
-|---|---|---|
-| 1a | OKLCH theme flip (light mode) + TopBar + JetBrains Mono | Merged |
-| 1b | Match surfaces — letterpress tiles, A–J/1–10 coord labels, `RoundPipBar`, `TilesClaimedCard` | Merged |
-| 1c | HUD classic refresh — `.hud-card`, `MatchCenterChrome`, top-strip + board-row grid | Merged |
-| 1d | Left-rail cards — `HowToPlayCard`, `LegendCard`, `YourMoveCard`, `MatchLeftRail` | Merged |
-| 2 | Post-game redesign — `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch` | Merged |
-| 3 | Lobby finish — `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState`, `InviteToast` + Server Actions | Merged |
-| 4a | Landing screen — dedicated `/` route, `LandingScreen` + `LandingTileVignette`, lobby login form removed | Merged |
-| 4b | Matchmaking screen — dedicated `/matchmaking` route, ring + found/starting phases | Merged |
-| 5a | Profile modal refresh — sparkline, best word, form chips, Challenge CTA | Merged |
-| 5b | `/profile` + `/profile/[handle]` pages + rating chart + word cloud | Merged |
-| 6 | Disconnection modal + claim-win Server Action | In progress |
+| Step | Work | Retires | Status |
+|---|---|---|---|
+| P0 | Reading direction on scored word records; `BORÐA + GILT` and `FÁR/RÁF` regression tests; copy fixes; rules doc §2a / §12 | — | Docs done (this spec); code pending |
+| P1 | Tokens, fonts, Tailwind config; shell without top bar; `PlayerBar` | `HudCard`, `PlayerPanel`, `TimerDisplay`, `MatchCenterChrome`, `RoundPipBar`, `TopBar` in match | Pending |
+| P2 | `Ledger` (match variant) | `MatchLeftRail` + 3 cards, `ScoredWordsCard`, `TilesClaimedCard`, `ScoreDeltaPopup`, `RoundSummaryPanel`, `RoundHistoryPanel`, resign button | Pending |
+| P3 | Field: flat cells, word bands with chevrons, pick → preview → commit, reveal choreography | `BoardCoordLabels`, `MoveFeedback`, lock banner, round announce, invalid flash, bulk of `board.css` | Pending |
+| P4 | Room states: landing / lobby / queue / found / final in one `Room`; warm-up and setting fields | `LandingScreen`, `LobbyHero`, `PlayNowCard`, `LobbyDirectory`, `LobbyCard`, `MatchRing`, `MatchmakingVsBlock`, `FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RematchBanner`, `DisconnectionModal` | Pending |
+| P5 | Profile; Playwright + visual acceptance; remaining docs per `DOCS_CONSISTENCY.md` | `ProfileSidebar`, `ProfileStat`, `ProfileWordCloud`, `ProfileMatchHistoryList` | Pending |
+
+The previous redesign (phases 1a–6, April–June 2026) shipped in full and is superseded; its plan `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md` and phase plans under `docs/superpowers/plans/` are marked as such and kept because they explain why the current code looks as it does.
 
 ## Architecture
 
@@ -154,7 +161,7 @@ Before implementing any feature:
   - `/lib/constants` - Board dimensions, feature flags, app constants
 - `/docs` - PRD, analysis, wordlists
   - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime) + letter scoring values
-- `/components` - React Client Components
+- `/components` - React Client Components. **Field & Ledger target** (spec 044): `/components/room` — `Room` (the one layout: bar / field / bar + ledger, states lobby | queue | found | match | final), `PlayerBar`, `Ledger` (+ `LobbyLedger`), `Field` (cells, word bands, pick → preview → commit). Everything below is the live pre-rebuild code and is retired step by step per the plan §11 table above:
   - `/components/game` — `Board`, `BoardGrid`, `BoardCoordLabels`, `MoveFeedback`, `usePinchZoom`
   - `/components/match` — core match client (`MatchClient`, `MatchShell`), HUD (`HudCard`, `MatchCenterChrome`, `RoundPipBar`), panels (`PlayerPanel`, `PlayerAvatar`, `TimerDisplay`, `TilesClaimedCard`), left rail (`MatchLeftRail`, `HowToPlayCard`, `LegendCard`, `YourMoveCard`), round recap (`RoundSummaryPanel`, `RoundHistoryPanel`, `ScoreDeltaPopup`, `WordHighlightOverlay`), post-game (`FinalSummary`, `PostGameVerdict`, `PostGameScoreboard`, `RoundByRoundChart`, `WordsOfMatch`), rematch (`RematchBanner`, `RematchInterstitial`, `useRematchNegotiation`), disconnect (`DisconnectionModal`, `useCountdown` — Phase 6)
   - `/components/lobby` — `LobbyHero`, `LobbyList`, `LobbyDirectory`, `LobbyCard`, `LobbyStatsStrip`, `PlayNowCard`, `InviteDialog`, `InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` *(`InviteToast`, `RecentGamesCard`, `TopOfBoardCard`, `EmptyLobbyState` ship with Phase 3 / PR #115)*
@@ -277,7 +284,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 | Server Timer      | Complete    | `rounds.started_at`-based enforcement, timeout-pass synthesis (spec 007)        |
 | Elo + Ratings     | Complete    | `match_ratings` written on match end, ±N rating deltas in post-game (spec 017)  |
 | Rematch           | Complete    | `rematch_requests` table, 30s invite TTL, series tracking (spec 016)            |
-| Theme (visual)    | Phase 1–3   | OKLCH light-mode, HUD classic, post-game redesign, lobby cards (PR #115)        |
+| Theme (visual)    | Rebuilding  | Field & Ledger (spec 044) replaces the previous look in steps P0–P5; see Design |
 
 ### Remaining Gaps
 

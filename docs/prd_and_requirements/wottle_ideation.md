@@ -1,3 +1,6 @@
+> **Historical document.** Original ideation notes. The shipped rules differ in places — in particular words are
+> scored only along the **four orthogonal directions** (no diagonals); see `docs/prd_and_requirements/wottle_game_rules.md` §3.1.
+
 # Wottle MVP Game Ideation
 
 This is a description of an MVP for the Wottle word game to be implemented as the first iteration of the game do a trial with actual users.
