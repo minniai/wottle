@@ -19,6 +19,8 @@ export interface LedgerProps {
   notices?: Notice[];
   viewerName: string;
   opponentName: string | null;
+  /** Non-participant view: header without `· you`. */
+  readOnly?: boolean;
   /** Lobby/queue content rendered in place of the rounds table. */
   body?: ReactNode;
   footActions?: ReactNode;
@@ -143,7 +145,7 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
-  const { variant, model, notices = [], viewerName, opponentName, body, footActions, onRowHover, onAction, renderNotice } = props;
+  const { variant, model, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
   const { territory } = model;
   const rowsRef = useRef<HTMLDivElement | null>(null);
@@ -177,7 +179,7 @@ export function Ledger(props: LedgerProps) {
           <div className="ledger__header" data-testid="ledger-header">
             <span />
             <span>
-              <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden /> {viewerName} · you
+              <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden /> {viewerName}{readOnly ? "" : " · you"}
             </span>
             <span>
               <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden /> {opponentName ?? "—"}

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MatchPlayerProfiles, MatchState, RoundSummary } from "@/lib/types/match";
@@ -6,18 +6,21 @@ import type { MatchPlayerProfiles, MatchState, RoundSummary } from "@/lib/types/
 const mockCallbacks = vi.hoisted(() => ({
   onSummary: null as ((summary: RoundSummary) => void) | null,
   onState: null as ((state: MatchState) => void) | null,
+  onRematch: null as ((event: import("@/lib/types/match").RematchEvent) => void) | null,
 }));
 const mockPush = vi.fn();
+const mockReplace = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, replace: vi.fn() }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn() }) }));
 vi.mock("@/lib/realtime/matchChannel", () => ({
-  subscribeToMatchChannel: (_c: unknown, _m: string, cb: { onSummary?: (s: RoundSummary) => void; onState?: (s: MatchState) => void }) => {
+  subscribeToMatchChannel: (_c: unknown, _m: string, cb: { onSummary?: (s: RoundSummary) => void; onState?: (s: MatchState) => void; onRematchEvent?: (e: import("@/lib/types/match").RematchEvent) => void }) => {
     mockCallbacks.onSummary = cb.onSummary ?? null;
     mockCallbacks.onState = cb.onState ?? null;
+    mockCallbacks.onRematch = cb.onRematchEvent ?? null;
     return { on: () => ({ on: vi.fn() }), unsubscribe: vi.fn() };
   },
 }));
@@ -26,9 +29,16 @@ vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
 vi.mock("@/app/actions/match/resignMatch", () => ({ resignMatch: vi.fn().mockResolvedValue({ status: "ok" }) }));
 vi.mock("@/app/actions/match/claimWin", () => ({ claimWinAction: vi.fn() }));
 vi.mock("@/app/actions/match/triggerTimeoutCheck", () => ({ triggerTimeoutCheck: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/app/actions/match/getMatchRatings", () => ({ getMatchRatings: vi.fn() }));
+vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.fn().mockResolvedValue({ status: "pending" }) }));
+vi.mock("@/app/actions/match/respondToRematch", () => ({ acceptRematchAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m2" }), declineRematchAction: vi.fn().mockResolvedValue({ status: "declined" }) }));
+vi.mock("@/app/actions/match/cancelRematch", () => ({ cancelRematchAction: vi.fn().mockResolvedValue(undefined) }));
 
 import { MatchRoomController } from "@/components/room/MatchRoomController";
 import { resignMatch } from "@/app/actions/match/resignMatch";
+import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
+import { requestRematchAction } from "@/app/actions/match/requestRematch";
+import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
 
 const profiles: MatchPlayerProfiles = {
@@ -75,9 +85,13 @@ describe("MatchRoomController", () => {
   beforeEach(() => {
     useRoomStore.getState().leaveToLobby();
     mockPush.mockClear();
+    mockReplace.mockClear();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ status: "accepted", grid: state().board }) }));
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer", () => {
     renderController();
@@ -152,11 +166,65 @@ describe("MatchRoomController", () => {
     expect(resignMatch).toHaveBeenCalledWith("m1");
   });
 
-  it("a completed match never shows a reconnect countdown and navigates to the summary", () => {
-    renderController(state({ state: "completed", disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
+  it("final: the field stays, the ledger states the verdict once, bars carry rating lines, actions rematch · new opponent · lobby", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "ok", ratings: [
+      { playerId: "player-1", ratingBefore: 1191, ratingAfter: 1203, ratingDelta: 12, kFactor: 32, matchResult: "win" },
+      { playerId: "player-2", ratingBefore: 1204, ratingAfter: 1192, ratingDelta: -12, kFactor: 32, matchResult: "loss" },
+    ] });
+    renderController(state({ state: "completed", currentRound: 10, scores: { playerA: 170, playerB: 127 }, frozenTiles: { "0,0": { owner: "player_a" }, "1,0": { owner: "player_b" } }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z" }));
+    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "final");
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.getByTestId("field")).toBeInTheDocument();
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent(/final · 10 rounds · \d+:\d\d/);
     expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
-    expect(mockPush).toHaveBeenCalledWith("/match/m1/summary");
+    await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1191 → 1203 · +12 · wins"));
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1204 → 1192 · −12");
+    expect(screen.getByTestId("ledger-rematch")).toBeInTheDocument();
+    expect(screen.getByTestId("ledger-new-opponent")).toBeInTheDocument();
+    expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("final: rating pending until the server has written ratings", () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 90, playerB: 90 } }));
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("rating pending");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("draw 90–90");
+  });
+
+  it("final: an incoming rematch request is a ledger line; accept ▸ moves to the new match; rematch ▸ asks", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed" }));
+    const event: RematchEvent = { type: "rematch-request", matchId: "m1", requesterId: "player-2", status: "pending" };
+    act(() => mockCallbacks.onRematch!(event));
+    expect(screen.getByTestId("notice-accept-rematch")).toBeInTheDocument();
+    expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("Bob asks for a rematch"))).toBe(true);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("notice-accept-rematch"));
+    });
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m2"));
+  });
+
+  it("final: rematch ▸ sends the request and shows waiting for the opponent", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed" }));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ledger-rematch"));
+    });
+    expect(requestRematchAction).toHaveBeenCalledWith("m1");
+    await waitFor(() => expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("waiting for Bob"))).toBe(true));
+  });
+
+  it("read-only non-participant: player A is the bottom seat without · you, field disabled, only ◂ lobby", () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    render(<MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="stranger" matchId="m1" playerProfiles={profiles} />);
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
+    expect(screen.getByTestId("ledger-header")).not.toHaveTextContent("· you");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    expect(screen.queryByTestId("ledger-rematch")).toBeNull();
+    expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
   });
 
   it("opponent disconnect: sub-line counts down from the server anchor, lane dashed, both clocks hold, no overlay", () => {

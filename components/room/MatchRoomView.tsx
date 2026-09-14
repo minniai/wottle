@@ -5,7 +5,7 @@ import { useMemo, type ReactNode } from "react";
 import { OPPONENT, YOU, reconnecting } from "@/lib/constants/copy";
 import { formatClock } from "@/lib/room/clock";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
-import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
+import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
 import { PlayerBar } from "./PlayerBar";
@@ -21,6 +21,8 @@ export interface SeatFacts {
   score: number;
   /** ms left in the reconnection window, when this player is disconnected. */
   reconnectMsLeft?: number | null;
+  /** Final: `1191 → 1203 · +12 · wins` or `rating pending`. */
+  finalLine?: string;
 }
 
 export interface MatchRoomViewProps {
@@ -36,6 +38,10 @@ export interface MatchRoomViewProps {
   live: LiveState;
   hiddenWordIds?: Set<string>;
   hint?: string;
+  caption?: string;
+  verdict?: Verdict;
+  /** Non-participant viewing a completed match: no `· you`, no actions. */
+  readOnly?: boolean;
   notices?: Notice[];
   footActions?: ReactNode;
   onRowHover?: (round: number | null) => void;
@@ -44,23 +50,24 @@ export interface MatchRoomViewProps {
   children: ReactNode;
 }
 
-function subline(facts: SeatFacts, seatWord: string): string {
+function subline(facts: SeatFacts, seatWord: string | null): string {
+  if (facts.finalLine) return facts.finalLine;
   if (facts.reconnectMsLeft != null) return reconnecting(formatClock(facts.reconnectMsLeft));
-  return `${facts.rating ?? "unrated"} · ${seatWord}`;
+  return seatWord ? `${facts.rating ?? "unrated"} · ${seatWord}` : String(facts.rating ?? "unrated");
 }
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
   const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
-  const { hiddenWordIds, hint, notices, footActions, onRowHover, onAction, children } = props;
+  const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children } = props;
   const reducedMotion = useReducedMotion();
   const youScore = useCountUp(you.score, reducedMotion);
   const oppScore = useCountUp(opp.score, reducedMotion);
 
-  const model = useMemo(
-    () => buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint }),
-    [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint],
-  );
+  const model = useMemo(() => {
+    const base = buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint });
+    return { ...base, caption: caption ?? base.caption, verdict };
+  }, [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict]);
 
   return (
     <Room
@@ -71,7 +78,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           position="top"
           state={completed ? "final" : "playing"}
           name={opp.name}
-          subline={subline(opp, OPPONENT)}
+          subline={subline(opp, readOnly ? null : OPPONENT)}
           clockMs={opp.clockMs}
           clockRunning={opp.running}
           score={oppScore}
@@ -85,7 +92,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           position="bottom"
           state={completed ? "final" : "playing"}
           name={you.name}
-          subline={subline(you, YOU)}
+          subline={subline(you, readOnly ? null : YOU)}
           clockMs={you.clockMs}
           clockRunning={you.running}
           score={youScore}
@@ -99,6 +106,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           notices={notices}
           viewerName={you.name}
           opponentName={opp.name}
+          readOnly={readOnly}
           footActions={footActions}
           onRowHover={onRowHover}
           onAction={onAction}
