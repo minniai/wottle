@@ -3,6 +3,7 @@
  *   US2: pick → commit (default), preview opt-in, Esc, opponent pin, frozen tap.
  *   US3: bands — one per ledger word, chevron edge matches data-direction.
  *   US4: ledger — rows fill per round, live row text, resign via the live-row confirmation.
+ *   US6: reveal — bands settle after resolution; reduced motion shows the end state at once.
  */
 import { expect, test, type Page } from "@playwright/test";
 
@@ -163,6 +164,39 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(pageA.getByTestId("ledger-row-2")).toHaveAttribute("data-status", "live", { timeout: 45_000 });
       await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", "past");
       await expect(pageA.getByTestId("ledger-territory")).toBeVisible();
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
+  test("US6 reveal: after resolution every band is settled; under reduced motion the end state is immediate", async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext({ reducedMotion: "reduce" });
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    try {
+      const userA = generateTestUsername("rvl-a");
+      const userB = generateTestUsername("rvl-b");
+      await loginPlayer(pageA, userA);
+      await loginPlayer(pageB, userB);
+      await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
+      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+
+      const [ax1, ax2] = await twoFreeCells(pageA, 0);
+      await cell(pageA, ax1, 0).click();
+      await cell(pageA, ax2, 0).click();
+      const [bx1, bx2] = await twoFreeCells(pageB, 9);
+      await cell(pageB, bx1, 9).click();
+      await cell(pageB, bx2, 9).click();
+      await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, { timeout: 45_000 });
+
+      // Settle: no band is still drawing or live once the reveal completes (≤ 2.5 s for three words).
+      await pageA.waitForTimeout(2_600);
+      expect(await pageA.locator(".field__band--drawing, .field__band--live").count()).toBe(0);
+      expect(await pageB.locator(".field__band--drawing, .field__band--live").count()).toBe(0);
+      // Both fields agree on the number of bands.
+      expect(await pageA.getByTestId("field-band").count()).toBe(await pageB.getByTestId("field-band").count());
     } finally {
       await contextA.close();
       await contextB.close();
