@@ -2,6 +2,7 @@
  * Spec 044 — the two-player room flow. Grows with each user story:
  *   US2: pick → commit (default), preview opt-in, Esc, opponent pin, frozen tap.
  *   US3: bands — one per ledger word, chevron edge matches data-direction.
+ *   US4: ledger — rows fill per round, live row text, resign via the live-row confirmation.
  */
 import { expect, test, type Page } from "@playwright/test";
 
@@ -125,4 +126,47 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await contextB.close();
     }
   });
+
+  test("US4 ledger: live row transitions, rows fill per round, resign is a live-row confirmation that reverts on no", async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    try {
+      const userA = generateTestUsername("ldg-a");
+      const userB = generateTestUsername("ldg-b");
+      await loginPlayer(pageA, userA);
+      await loginPlayer(pageB, userB);
+      await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
+      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+
+      // Ten rows; row 1 live; rows 2–10 labels only.
+      for (let r = 1; r <= 10; r += 1) await expect(pageA.getByTestId(`ledger-row-${r}`)).toBeVisible();
+      await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", "live");
+      await expect(pageA.getByTestId("ledger-row-5")).toHaveAttribute("data-status", "future");
+
+      // Resign confirmation is a line, not a dialog; `no` reverts.
+      await pageA.getByTestId("ledger-menu-trigger").click();
+      await pageA.getByTestId("ledger-menu-item-resign").click();
+      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: "resign the match?" })).toBeVisible();
+      expect(await pageA.locator("[role=alertdialog], [role=dialog]").count()).toBe(0);
+      await pageA.getByTestId("notice-cancel-resign").click();
+      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: "resign the match?" })).toHaveCount(0);
+
+      // Both play; row 1 becomes past with words or stays empty, row 2 goes live.
+      const [ax1, ax2] = await twoFreeCells(pageA, 0);
+      await cell(pageA, ax1, 0).click();
+      await cell(pageA, ax2, 0).click();
+      const [bx1, bx2] = await twoFreeCells(pageB, 9);
+      await cell(pageB, bx1, 9).click();
+      await cell(pageB, bx2, 9).click();
+      await expect(pageA.getByTestId("ledger-row-2")).toHaveAttribute("data-status", "live", { timeout: 45_000 });
+      await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", "past");
+      await expect(pageA.getByTestId("ledger-territory")).toBeVisible();
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
 });
+
