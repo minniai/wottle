@@ -1019,3 +1019,5 @@ After all commits land locally:
 - `components/match/MatchClient.tsx:339–350` — existing disconnect state-machine site.
 - `docs/design_documentation/wottle-game-design/project/prototype/screens/Overlays.jsx` — pixel reference.
 - `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md` §6 — design spec.
+
+> **Replaced (2026-09-14, spec 044 US5).** `DisconnectionModal` and `useCountdown` are gone. The opponent's disconnect now lives in their player bar — sub-line `reconnecting · m:ss left` counting down from the server anchor `MatchState.disconnectedAt`, a dashed held lane, both clocks held — and once the window elapses the ledger offers `<name> is gone · claim the win ▸` as a live-row line (`claimWinAction` unchanged). Nothing is drawn over the field.

@@ -150,5 +150,6 @@ plus the mm:ss numeral at the bar's centre (ink while running, muted when stoppe
 yellow → red ramp and the two renderings (desktop HUD + mobile compact bar) are retired;
 `deriveClockUrgency` keeps only the < 1:00 threshold, at which the lane thickens to 8px and blinks at
 1Hz in colour only. See `docs/design/README.md` (design system §5.3) and
-`specs/044-field-ledger-redesign/spec.md` (User Story 5). Open question to O-59's authors: whether the
-numeral should also change weight under 1:00, or whether the lane alone carries urgency.
+`specs/044-field-ledger-redesign/spec.md` (User Story 5). Decision (2026-09-14, US5): the numeral keeps its running weight; urgency is
+carried by the lane alone (8px + 1Hz blink under 1:00, solid under reduced motion). `deriveClockUrgency` was deleted;
+`lib/room/clock.ts` `isLowClock` is the only threshold.
