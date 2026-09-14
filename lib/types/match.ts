@@ -401,6 +401,8 @@ export interface MatchPlayerProfile {
   username: string;
   avatarUrl: string | null;
   eloRating: number;
+  /** Completed matches; 0 → the first-match rules line shows (spec 044, Clarifications Q2). */
+  gamesPlayed?: number;
 }
 
 /** Both players' profiles for the match UI. */

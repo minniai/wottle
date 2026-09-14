@@ -303,7 +303,7 @@ async function loadLatestRoundSummary(
 }
 
 function mapPlayerRow(
-  row: { id: string; username: string; display_name: string; avatar_url: string | null; elo_rating: number | null },
+  row: { id: string; username: string; display_name: string; avatar_url: string | null; elo_rating: number | null; games_played?: number | null },
 ): MatchPlayerProfile {
   return {
     playerId: row.id,
@@ -311,6 +311,7 @@ function mapPlayerRow(
     username: row.username,
     avatarUrl: row.avatar_url,
     eloRating: row.elo_rating ?? 1200,
+    gamesPlayed: typeof row.games_played === "number" ? row.games_played : undefined,
   };
 }
 
@@ -331,7 +332,7 @@ export async function loadMatchPlayerProfiles(
 ): Promise<MatchPlayerProfiles> {
   const { data, error } = await client
     .from("players")
-    .select("id, username, display_name, avatar_url, elo_rating")
+    .select("id, username, display_name, avatar_url, elo_rating, games_played")
     .in("id", [playerAId, playerBId]);
 
   if (error || !data) {

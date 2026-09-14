@@ -143,9 +143,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const disconnectedAt = match.disconnectedPlayerId === oppTimer.playerId && isActive ? match.disconnectedAt ?? null : null;
   const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + (match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT) - Date.now()) : null;
 
+  // First match (server-side gamesPlayed === 0, Clarifications Q2): the three-sentence rules live in the ledger.
+  const firstMatch = you.gamesPlayed === 0;
+  useEffect(() => {
+    if (firstMatch) push({ kind: "firstMatchRules" });
+  }, [firstMatch, push]);
+
   const handleAction = useCallback(
     (action: LedgerAction) => {
-      if (action === "resign" || action === "leave") push(resignConfirm());
+      if (action === "rules") push({ kind: "firstMatchRules" });
+      else if (action === "resign" || action === "leave") push(resignConfirm());
       else if (action === "cancelResign") dismiss("resignConfirm");
       else if (action === "confirmResign") {
         dismiss("resignConfirm");
