@@ -1,0 +1,497 @@
+/*
+ * Field & Ledger room — layout, bars, field, ledger.
+ * Design system: docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md (§4–§6).
+ * Only `transform` and `opacity` animate; every duration is 0 under reduced motion.
+ */
+
+/* ---------- Room grid (§4) ---------- */
+.room {
+  --bar-height: 60px;
+  --bar-gap: 12px;
+  --room-gutter: 56px;
+  --ledger-width: 340px;
+  --field-size: 480px; /* overwritten by useFieldSize (ResizeObserver) */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--ledger-width);
+  column-gap: var(--room-gutter);
+  align-items: start;
+  width: 100%;
+  min-height: 100dvh;
+  padding: 24px var(--room-gutter);
+  box-sizing: border-box;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.room__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--bar-gap);
+  width: var(--field-size);
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.room__field-slot {
+  width: var(--field-size);
+  height: var(--field-size);
+  max-width: 100%;
+}
+
+.room__ledger {
+  align-self: stretch;
+  min-height: calc(var(--field-size) + 2 * var(--bar-height) + 2 * var(--bar-gap));
+}
+
+@media (max-width: 1100px) {
+  .room {
+    --room-gutter: 40px;
+    --ledger-width: 260px;
+  }
+}
+
+@media (max-width: 900px) {
+  .room {
+    --bar-height: 56px;
+    --room-gutter: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--bar-gap);
+    padding: 12px var(--room-gutter);
+  }
+  .room__stack,
+  .room__field-slot {
+    width: 100%;
+  }
+  .room__ledger {
+    min-height: 0;
+  }
+}
+
+/* ---------- Player bar (§5.3) ---------- */
+.player-bar {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  height: var(--bar-height);
+  padding: 0 4px;
+  box-sizing: border-box;
+  font-family: var(--font-board);
+}
+
+.player-bar__seat {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: var(--seat-ink);
+  flex: none;
+}
+.player-bar--empty .player-bar__seat {
+  background: transparent;
+  outline: 1.5px dashed var(--seat-ink);
+  outline-offset: -1.5px;
+}
+
+.player-bar__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.player-bar__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.player-bar__name {
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-bar__subline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-bar__clock {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: center;
+}
+.player-bar__clock--stopped {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.player-bar__score {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 40px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--seat-ink);
+  text-align: right;
+}
+.player-bar__action {
+  justify-self: end;
+}
+
+/* Clock lane: the bar's edge nearest the field. */
+.player-bar__lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--rule);
+}
+.player-bar--top .player-bar__lane {
+  bottom: 0;
+}
+.player-bar--bottom .player-bar__lane {
+  top: 0;
+}
+.player-bar__lane-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--lane-fraction, 1) * 100%);
+  background: var(--seat-ink);
+}
+.player-bar__lane--low {
+  height: 8px;
+}
+.player-bar__lane--low .player-bar__lane-fill {
+  animation: lane-blink 1s steps(2, jump-none) infinite;
+}
+.player-bar__lane--disconnected .player-bar__lane-fill {
+  /* 6px/4px dashed pattern, held (design system §5.3) via a dashed border. */
+  height: 0;
+  background: transparent;
+  border-top: 4px dashed var(--seat-ink);
+  animation: none;
+}
+.player-bar__lane--searching .player-bar__lane-fill {
+  width: 12%;
+  animation: lane-search 3s linear infinite;
+}
+
+@media (max-width: 900px) {
+  .player-bar__name { font-size: 15px; }
+  .player-bar__subline { font-size: 10px; }
+  .player-bar__clock { font-size: 22px; }
+  .player-bar__score { font-size: 30px; }
+}
+
+/* ---------- Field (§5.1) ---------- */
+.field {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--ink);
+  background: var(--rule); /* 1px rules between cells show through the gap */
+  gap: 1px;
+  font-family: var(--font-board);
+}
+
+.field__cell {
+  position: relative;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  font-size: calc(var(--cell-size, 48px) * 0.55);
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 120ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+.field__cell:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -4px;
+}
+.field__value {
+  position: absolute;
+  top: 4%;
+  right: 6%;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: calc(var(--cell-size, 48px) * 0.18);
+  color: var(--muted);
+}
+.field__cell[data-state="picked"] {
+  color: var(--seat-ink);
+  transform: scale(1.08);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  z-index: 1;
+}
+.field__cell[data-state="picked"] .field__value {
+  color: var(--ink);
+  font-weight: 500;
+}
+.field__cell[data-state="previewed"] {
+  box-shadow: inset 0 0 0 2px transparent;
+  outline: 2px dotted var(--ink);
+  outline-offset: -2px;
+}
+.field__cell[data-state="pinned"] {
+  color: var(--seat-ink);
+  outline: 2px dashed var(--seat-ink);
+  outline-offset: -2px;
+}
+.field__cell[data-state="frozen"],
+.field__cell[data-state="scored"] {
+  color: var(--seat-ink);
+  cursor: default;
+}
+.field__cell[data-state="frozen"] .field__value,
+.field__cell[data-state="scored"] .field__value {
+  color: var(--seat-ink);
+}
+.field__cell[data-state="shared"] {
+  color: var(--ink);
+  font-weight: 700;
+}
+.field__cell--shake {
+  animation: field-shake 300ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.field__bands {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.field__cell {
+  z-index: 0;
+  background: transparent;
+}
+.field::before {
+  /* paper behind transparent cells so bands sit visually under the letters */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  z-index: -1;
+}
+
+/* ---------- Ledger (§5.4) ---------- */
+.ledger {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-top: 1.5px solid var(--ink);
+  font-family: var(--font-board);
+  color: var(--ink);
+}
+.ledger__caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 0;
+}
+.ledger__wordmark {
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: lowercase;
+}
+.ledger__mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ledger__header {
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+.ledger__seat {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.ledger__rows {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr;
+  grid-auto-rows: minmax(0, 1fr);
+  column-gap: 8px;
+}
+.ledger__row {
+  display: contents;
+}
+.ledger__row > * {
+  border-bottom: 1px solid var(--rule);
+  padding: 4px 0;
+  min-width: 0;
+}
+.ledger__round {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.ledger__row--future .ledger__round {
+  color: var(--future-label);
+}
+.ledger__words {
+  position: relative;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--seat-ink);
+  overflow-wrap: anywhere;
+}
+.ledger__total {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+.ledger__live-row {
+  background: var(--tint);
+  border-left: 3px solid var(--ink);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.ledger__territory {
+  display: flex;
+  height: 4px;
+  margin-top: 12px;
+  background: var(--rule);
+}
+.ledger__territory-you { background: var(--you); }
+.ledger__territory-opp { background: var(--opp); }
+.ledger__hint {
+  padding: 8px 0;
+}
+.ledger__notice {
+  background: var(--tint);
+  border-left: 3px solid var(--ink);
+  padding: 8px 10px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.ledger__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+.ledger__actions {
+  display: flex;
+  gap: 14px;
+}
+
+/* ---------- Actions (§5.5) ---------- */
+.action-primary,
+.action-secondary {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.action-primary {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 14px;
+}
+.action-secondary {
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+}
+.action-primary:disabled,
+.action-secondary:disabled {
+  color: var(--muted);
+  background: transparent;
+  cursor: default;
+}
+
+/* ---------- Motion (§6) ---------- */
+@keyframes field-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6%); }
+  50% { transform: translateX(6%); }
+  75% { transform: translateX(-3%); }
+}
+@keyframes band-draw {
+  from { transform: scale(var(--band-from-x, 0), var(--band-from-y, 1)); }
+  to { transform: scale(1, 1); }
+}
+@keyframes count-up {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+@keyframes lane-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.35; }
+}
+@keyframes lane-search {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100% / 0.12 - 100%)); }
+}
+@keyframes letter-land {
+  from { opacity: 0; transform: translateY(-8%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pin-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room *,
+  .room *::before,
+  .room *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+  }
+  .player-bar__lane--low .player-bar__lane-fill {
+    animation: none;
+    opacity: 1;
+  }
+}
