@@ -73,8 +73,8 @@ The project follows a spec-driven workflow using [Speckit](#speckit-workflow).
 plus `042-instant-scoring-reveal` and `043-scoring-resolution-viz`. The `020`–`041` range was used for
 the previous visual redesign (April–June 2026), which was tracked as phase branches and plans under
 `docs/superpowers/plans/` rather than as `specs/` directories — that is why the `specs/` numbering has
-a gap. That redesign is superseded by `044-field-ledger-redesign` (in progress); specs whose UI it
-retires carry a `SUPERSEDED.md`.
+a gap. That redesign is superseded by `044-field-ledger-redesign` (shipped 2026-09-14); specs whose UI it
+retired carry a `SUPERSEDED.md`.
 
 > **Note on spec status headers**: individual `spec.md` files often still read `**Status**: Draft` even
 > after the feature has shipped. Treat git merge history, not the spec header, as the record of what is
@@ -123,8 +123,6 @@ migrations, seeds data, and writes `.env.local` for you. There are no committed 
 | `SUPABASE_DB_PASSWORD`              | Optional Postgres password for CLI scripts                                            | `postgres-password`                     |
 | `PLAYTEST_INVITE_EXPIRY_SECONDS`    | How long direct invites remain valid before expiring                                  | `30`                                    |
 | `PLAYTEST_MAX_CONCURRENT_MATCHES`   | Guardrail limiting simultaneous matches on a single Supabase stack                    | `20`                                    |
-| `NEXT_PUBLIC_ENABLE_PLAYTEST_LOBBY` | Set to `true` to surface lobby preview UI                                             | _unset_ (false)                         |
-| `NEXT_PUBLIC_ENABLE_PLAYTEST_MATCH` | Set to `true` to surface match summary preview UI                                     | _unset_ (false)                         |
 | `PLAYTEST_SESSION_SECURE`           | Force secure cookies (`true`/`false`); override for local Playwright                  | auto (`true` in production)             |
 | `RATE_LIMIT_DISABLED_SCOPES`        | Comma-separated list of scopes to bypass (e.g., `auth:login`)                         | _unset_                                 |
 | `CRON_SECRET`                       | Shared secret for `/api/cron/*` routes; must match Postgres `app.cron_secret` setting | _unset_ (required in prod)              |

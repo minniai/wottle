@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap letters on a 10×10 field to form Icelandic words, each on one match-long clock, with spatial tile-freezing strategy.
 
-**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-one Speckit specs have shipped. The previous visual redesign (April–June 2026, phases 1a–6) shipped in full and is now **superseded by the Field & Ledger rebuild** — spec `specs/044-field-ledger-redesign/spec.md`, design system and plan via `docs/design/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The rebuild replaces every player-facing screen with one room (two player bars, the field, one ledger) in steps P0–P5 of the design plan §11; until a step lands, the components it retires are still the live code.
+**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-two Speckit specs have shipped. **Field & Ledger shipped (2026-09-14, spec `specs/044-field-ledger-redesign/spec.md`)**: every player-facing screen is one room — two player bars, the field, one ledger — with lobby, queue, found, match, final and profile as states of it; the design system and plan are reached via `docs/design/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The previous look (April–June 2026) and every component it used are gone from the tree; its documents live under `docs/archive/`.
 
 ## Design (MANDATORY for any UI change)
 
@@ -392,14 +392,6 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 - **Round**: Round state with submissions and resolution (rounds table)
 - **MoveSubmission**: Player's move for a round (move_submissions table)
 
-## Feature Flags
-
-Located in `/lib/constants/featureFlags.ts`:
-
-- `NEXT_PUBLIC_ENABLE_PLAYTEST_LOBBY` - Show lobby UI
-- `NEXT_PUBLIC_ENABLE_PLAYTEST_MATCH` - Show match UI
-- `NEXT_PUBLIC_DISABLE_REALTIME` - Force polling mode
-
 ## Testing Strategy
 
 This project follows strict TDD principles. All code changes require tests.
@@ -440,6 +432,7 @@ Playtest configuration:
 - `PLAYTEST_MAX_CONCURRENT_MATCHES` - Concurrent match limit (default: 20)
 - `PLAYTEST_SESSION_SECURE` - Force secure cookies (auto true in prod)
 - `RATE_LIMIT_DISABLED_SCOPES` - Bypass rate limits (comma-separated, e.g., `auth:login`)
+- `NEXT_PUBLIC_DISABLE_REALTIME` - Force the polling transport (read by `useMatchTransport` and the presence store); there are no other feature flags
 
 ## Common Workflows
 
