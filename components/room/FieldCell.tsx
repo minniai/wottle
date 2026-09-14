@@ -16,6 +16,8 @@ export interface FieldCellProps {
   seat: Seat | null;
   ownerName?: string;
   shake?: boolean;
+  /** Queue: this letter just landed (letter-land motion). */
+  landing?: boolean;
   /** Frozen/pinned letters stay clickable so the reducer can shake them; aria-disabled marks them. */
   disabled?: boolean;
   tabIndex?: number;
@@ -32,13 +34,13 @@ export function cellLabel(x: number, y: number, letter: string, value: number, s
 }
 
 export function FieldCell(props: FieldCellProps) {
-  const { x, y, letter, value, state, seat, ownerName, shake, disabled, tabIndex = -1, onActivate, onKeyDown } = props;
+  const { x, y, letter, value, state, seat, ownerName, shake, landing, disabled, tabIndex = -1, onActivate, onKeyDown } = props;
   const style = seat ? ({ "--seat-ink": getSeatColors(seat).ink } as CSSProperties) : undefined;
   return (
     <button
       type="button"
       role="gridcell"
-      className={`field__cell${shake ? " field__cell--shake" : ""}`}
+      className={`field__cell${shake ? " field__cell--shake" : ""}${landing ? " field__cell--landing" : ""}`}
       data-testid="field-cell"
       data-x={x}
       data-y={y}
@@ -53,7 +55,7 @@ export function FieldCell(props: FieldCellProps) {
     >
       <span aria-hidden>{letter}</span>
       <span className="field__value" aria-hidden>
-        {value}
+        {letter ? value : ""}
       </span>
     </button>
   );

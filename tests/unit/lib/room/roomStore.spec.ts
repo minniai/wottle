@@ -104,4 +104,18 @@ describe("roomStore (spec 044 data-model §3.1)", () => {
     useRoomStore.getState().setConnection("polling");
     expect(useRoomStore.getState().connection).toBe("polling");
   });
+
+  it("queue: letters landed count advances; found writes the opponent and counts down", () => {
+    const s = useRoomStore.getState;
+    s().startQueue(0);
+    s().setLettersLanded(58);
+    expect(s().queue?.lettersLanded).toBe(58);
+    const kari = { id: "k", username: "kari", displayName: "Kári", status: "in_match" as const, lastSeenAt: "" };
+    s().setFound(kari, 3);
+    expect(s().phase).toBe("found");
+    expect(s().opponent?.displayName).toBe("Kári");
+    expect(s().found).toEqual({ countdown: 3 });
+    expect(s().queue).toBeNull();
+  });
 });
+

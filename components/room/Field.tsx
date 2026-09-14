@@ -24,6 +24,8 @@ export interface FieldProps {
   highlightRound?: number | null;
   drawnCount?: number | null;
   drawingIndex?: number | null;
+  /** Queue: only the first `landedCount` letters (reading order) are shown; null = all. */
+  landedCount?: number | null;
   cellStateFor?: (coord: Coordinate, base: CellState) => CellState;
   seatFor?: (coord: Coordinate) => Seat | null;
   shakeAt?: Coordinate | null;
@@ -44,7 +46,7 @@ function letterValue(letter: string): number {
  * pick/preview/commit reducer drives it from P3 through `cellStateFor`.
  */
 export function Field(props: FieldProps) {
-  const { board, frozenTiles = {}, viewerSlot, ownerNames = {}, disabled, bands = [], highlightRound = null, drawnCount = null, drawingIndex = null } = props;
+  const { board, frozenTiles = {}, viewerSlot, ownerNames = {}, disabled, bands = [], highlightRound = null, drawnCount = null, drawingIndex = null, landedCount = null } = props;
   const shared = useMemo(() => new Set([...(props.sharedCells ?? []), ...sharedFromBands(bands)]), [props.sharedCells, bands]);
   const { cellStateFor, seatFor, shakeAt, focusAt, onActivate, onKeyDown } = props;
   const ref = useRef<HTMLDivElement | null>(null);
@@ -66,6 +68,8 @@ export function Field(props: FieldProps) {
       {board.map((row, y) =>
         row.map((letter, x) => {
           const key = `${x},${y}`;
+          const index = y * 10 + x;
+          const landed = landedCount === null || index < landedCount;
           const frozen = frozenTiles[key];
           const bandSeat = seatOfCell(bands, { x, y });
           const base: CellState = shared.has(key) ? "shared" : bandSeat ? "scored" : frozen ? "frozen" : "free";
@@ -76,8 +80,9 @@ export function Field(props: FieldProps) {
               key={key}
               x={x}
               y={y}
-              letter={letter}
-              value={letterValue(letter)}
+              letter={landed ? letter : ""}
+              value={landed ? letterValue(letter) : 0}
+              landing={landedCount !== null && index === landedCount - 1}
               state={state}
               seat={state === "shared" ? null : seat}
               ownerName={frozen ? ownerNames[frozen.owner] : undefined}

@@ -37,6 +37,10 @@ export interface RoomState {
   setPhase: (phase: RoomPhase) => void;
   startQueue: (now?: number) => void;
   cancelQueue: () => void;
+  /** Placeholder letters landed so far (queue state). */
+  setLettersLanded: (count: number) => void;
+  /** Opponent found: the top bar writes them in and counts round 1 down. */
+  setFound: (opponent: PlayerIdentity | null, countdown: 3 | 2 | 1) => void;
   /** Load a server snapshot; derives viewerSlot and picks match|final from `state`. */
   hydrateMatch: (state: MatchState, viewerId: string | null) => void;
   /** Merge a broadcast/polled snapshot, keeping scores and the last summary sticky. */
@@ -91,6 +95,10 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     set({ phase: "queue", queue: { startedAt: now, lettersLanded: 0 }, opponent: null, match: null }),
 
   cancelQueue: () => set({ phase: "lobby", queue: null, found: null }),
+
+  setLettersLanded: (count) => set((s) => (s.queue ? { queue: { ...s.queue, lettersLanded: count } } : {})),
+
+  setFound: (opponent, countdown) => set({ phase: "found", opponent, found: { countdown }, queue: null }),
 
   hydrateMatch: (state, viewerId) =>
     set({
