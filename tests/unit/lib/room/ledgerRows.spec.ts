@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildLedgerRows, buildMatchLedger, buildTerritory, buildVerdict, foldRows, liveText } from "@/lib/room/ledgerRows";
+import { buildLedgerRows, buildMatchLedger, buildTerritory, buildVerdict, finalCaption, foldRows, liveText, ratingLine } from "@/lib/room/ledgerRows";
 
 const A = "a";
 const B = "b";
@@ -99,6 +99,20 @@ describe("buildVerdict (design system §8)", () => {
     expect(v.winnerSeat).toBeNull();
     expect(v.scoreLine).toBe("draw 90–90");
     expect(v.scoreLine + v.detailLine).not.toContain("!");
+  });
+});
+
+describe("final bars (design system §5.3, §8)", () => {
+  it("rating line shows before → after · ±n and wins for the winner; pending when absent", () => {
+    const rows = [{ playerId: "a", ratingBefore: 1191, ratingAfter: 1203, ratingDelta: 12 }, { playerId: "b", ratingBefore: 1204, ratingAfter: 1192, ratingDelta: -12 }];
+    expect(ratingLine(rows, "a", true)).toBe("1191 → 1203 · +12 · wins");
+    expect(ratingLine(rows, "b", false)).toBe("1204 → 1192 · −12");
+    expect(ratingLine(null, "a", true)).toBe("rating pending");
+    expect(ratingLine(rows, "zzz", false)).toBe("rating pending");
+  });
+  it("final caption reports the clock time both players used", () => {
+    expect(finalCaption(300_000 - 500_000 / 2, 300_000 - 630_000 / 2)).toBe("final · 10 rounds · 9:25");
+    expect(finalCaption(300_000, 300_000)).toBe("final · 10 rounds · 0:00");
   });
 });
 

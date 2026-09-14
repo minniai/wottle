@@ -1,4 +1,5 @@
-import { drawLine, PLAYED, picking, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, PLAYED, picking, RATING_PENDING, ratingSubline, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { formatClock, MATCH_CLOCK_BUDGET_MS } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { bandIdForWord } from "./bandGeometry";
@@ -137,4 +138,24 @@ export function buildVerdict(v: VerdictInput): Verdict {
     scoreLine: draw ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
     detailLine: verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo),
   };
+}
+
+export interface RatingRow {
+  playerId: string;
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingDelta: number;
+}
+
+/** `1191 → 1203 · +12 · wins` or `rating pending` for the final bars (design system §5.3). */
+export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSeatIsThis: boolean): string {
+  const row = rows?.find((r) => r.playerId === playerId);
+  if (!row) return RATING_PENDING;
+  return ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);
+}
+
+/** `final · 10 rounds · 18:50` — clock time both players spent. */
+export function finalCaption(remainingA: number, remainingB: number): string {
+  const used = Math.max(0, 2 * MATCH_CLOCK_BUDGET_MS - remainingA - remainingB);
+  return finalContext(formatClock(used));
 }
