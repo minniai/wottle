@@ -124,3 +124,10 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   leaveToLobby: () =>
     set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null }),
 }));
+
+/** One `room:phase-change` mark per transition (spec 044 T100); the room never remounts, so this is the only phase signal. */
+useRoomStore.subscribe((state, previous) => {
+  if (state.phase === previous.phase) return;
+  if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
+  performance.mark("room:phase-change", { detail: { from: previous.phase, to: state.phase } });
+});

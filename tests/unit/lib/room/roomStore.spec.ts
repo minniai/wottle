@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { MatchState, RoundSummary } from "@/lib/types/match";
@@ -119,3 +119,18 @@ describe("roomStore (spec 044 data-model §3.1)", () => {
   });
 });
 
+
+describe("roomStore performance marks (spec 044 T100)", () => {
+  it("marks room:phase-change once per phase transition, not on same-phase updates", () => {
+    const mark = vi.spyOn(performance, "mark").mockImplementation(() => ({}) as PerformanceMark);
+    useRoomStore.getState().leaveToLobby();
+    mark.mockClear();
+    useRoomStore.getState().startQueue(1_000);
+    useRoomStore.getState().setLettersLanded(5);
+    useRoomStore.getState().cancelQueue();
+    const phaseMarks = mark.mock.calls.filter(([name]) => name === "room:phase-change");
+    expect(phaseMarks).toHaveLength(2);
+    expect(phaseMarks[0][1]).toEqual({ detail: { from: "lobby", to: "queue" } });
+    mark.mockRestore();
+  });
+});
