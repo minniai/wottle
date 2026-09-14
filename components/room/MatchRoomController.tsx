@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { claimWinAction } from "@/app/actions/match/claimWin";
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
-import { DisconnectionModal } from "@/components/match/DisconnectionModal";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
@@ -26,6 +25,7 @@ import { useClockTick } from "./hooks/useClockTick";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
+import { useNowTick } from "./hooks/useNowTick";
 
 export interface MatchRoomControllerProps {
   initialState: MatchState;
@@ -140,8 +140,20 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     router.push(`/match/${matchId}/summary`);
   }, [completed, matchId, router, sound, haptics]);
 
-  const disconnectedAt = match.disconnectedPlayerId === oppTimer.playerId && isActive ? match.disconnectedAt ?? null : null;
-  const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + (match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT) - Date.now()) : null;
+  // Disconnect (design system §5.3, §7 "Disconnect"): no overlay. The opponent's bar
+  // counts the server-anchored window down, both lanes hold, and once the window
+  // has elapsed the ledger offers the claim as a line.
+  const opponentGone = match.disconnectedPlayerId === oppTimer.playerId && isActive;
+  const disconnectedAt = opponentGone ? match.disconnectedAt ?? null : null;
+  const now = useNowTick(Boolean(disconnectedAt));
+  const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
+  const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + windowMs - now) : null;
+  const claimable = reconnectMsLeft === 0;
+  useEffect(() => {
+    if (claimable) push({ kind: "claimWin", opponentName: opp.displayName });
+    else dismiss("claimWin");
+  }, [claimable, opp.displayName, push, dismiss]);
+  const clocksHeld = match.disconnectedPlayerId != null && isActive;
 
   // First match (server-side gamesPlayed === 0, Clarifications Q2): the three-sentence rules live in the ledger.
   const firstMatch = you.gamesPlayed === 0;
@@ -174,14 +186,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   return (
     <>
-      {disconnectedAt && reconnectMsLeft !== null ? (
-        <DisconnectionModal opponentDisplayName={opp.displayName} disconnectedAt={new Date(disconnectedAt).getTime()} windowMs={match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT} onClose={() => undefined} onClaimWin={() => handleAction("claimWin")} isClaiming={false} />
-      ) : null}
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, rating: you.eloRating ?? null, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running", score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
-        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running", score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
+        you={{ name: you.displayName, rating: you.eloRating ?? null, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running" && !clocksHeld, score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
+        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
         currentRound={match.currentRound}
         completed={completed}
         words={words}

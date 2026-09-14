@@ -150,10 +150,36 @@ describe("MatchRoomController", () => {
     expect(resignMatch).toHaveBeenCalledWith("m1");
   });
 
-  it("does not show the disconnection modal for completed or pending matches and navigates to the summary when completed", () => {
+  it("a completed match never shows a reconnect countdown and navigates to the summary", () => {
     renderController(state({ state: "completed", disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z" }));
-    expect(screen.queryByTestId("disconnection-modal")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
     expect(mockPush).toHaveBeenCalledWith("/match/m1/summary");
+  });
+
+  it("opponent disconnect: sub-line counts down from the server anchor, lane dashed, both clocks hold, no overlay", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:10Z"));
+    renderController(state({ disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
+    const top = screen.getByTestId("player-bar-top");
+    expect(top).toHaveTextContent("reconnecting · 1:20 left");
+    expect(top.querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("data-mode", "disconnected");
+    expect(screen.getByTestId("player-bar-bottom").querySelector('[data-testid="player-bar-clock"]')).toHaveAttribute("data-running", "false");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(2_000);
+    });
+    expect(top).toHaveTextContent("reconnecting · 1:18 left");
+    vi.useRealTimers();
+  });
+
+  it("once the window has elapsed the ledger offers the claim as a line", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
+    renderController(state({ disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
+    expect(screen.getByTestId("notice-claim-win")).toBeInTheDocument();
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 0:00 left");
+    vi.useRealTimers();
   });
 
   it("frozen letters carry the scorer's seat and a tap writes the frozen notice", () => {
