@@ -24,6 +24,8 @@ export const wordScoreSchema = z.object({
   bonusPoints: z.number().int().min(0),
   totalPoints: z.number().int().min(0),
   coordinates: z.array(coordinateSchema).min(1),
+  /** Derived from tile order (spec 044); optional so older payloads still validate. */
+  direction: z.enum(["ltr", "rtl", "ttb", "btt"]).optional(),
 });
 
 export const scoreTotalsSchema = z.object({
