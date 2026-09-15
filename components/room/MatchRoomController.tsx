@@ -208,15 +208,23 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       feedbackRef.current.haptics.vibrateMatchEnd();
     }
     let active = true;
+    let retry: ReturnType<typeof setTimeout> | undefined;
     const load = async (attempt: number) => {
-      const result = await getMatchRatings(matchId).catch(() => null);
+      // Promise.resolve, not a bare .catch: the action is called through a
+      // boundary that can hand back a non-promise, and this runs inside a timer
+      // with nothing to catch the TypeError — it surfaces as an unhandled
+      // rejection and fails the run even when every test passes.
+      const result = await Promise.resolve(getMatchRatings(matchId)).catch(() => null);
       if (!active) return;
       if (result?.status === "ok" && result.ratings) setRatings(result.ratings);
-      else if (attempt < 1) setTimeout(() => void load(attempt + 1), 3_000);
+      else if (attempt < 1) retry = setTimeout(() => void load(attempt + 1), 3_000);
     };
     void load(0);
     return () => {
       active = false;
+      // The flag stops the state update; the timer has to be stopped too, or it
+      // fires three seconds after unmount into a torn-down component.
+      if (retry) clearTimeout(retry);
     };
   }, [completed, matchId]);
 
