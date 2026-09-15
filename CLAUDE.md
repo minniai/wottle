@@ -35,6 +35,8 @@ pnpm test                    # Run unit tests (Vitest)
 pnpm test:unit               # Unit + contract tests
 pnpm test:integration        # Integration tests (requires Supabase)
 pnpm exec playwright test    # E2E browser tests (CI auto-starts services)
+pnpm test:visual             # Visual suite: /dev/room fixtures at 3 viewports, no Supabase
+                             # `pnpm test:visual --update-snapshots` is the only way to change a baseline
 pnpm lint                    # ESLint with zero-warnings policy
 pnpm typecheck               # TypeScript type check
 ```
