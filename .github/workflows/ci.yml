@@ -237,7 +237,12 @@ jobs:
     # Spec 045 US1: the room renders from static fixtures, so this job needs no
     # Supabase, no Docker and no second player. Blocking since US7: the
     # baselines are committed, so an unintended change to the room fails here.
-    # `pnpm test:visual --update-snapshots` is the only way to move one.
+    #
+    # The linux baselines must come from THIS job — a production build on this
+    # runner. Images generated locally against `pnpm dev`, even in the matching
+    # Playwright container, differ by ~4% of pixels. To refresh them: take the
+    # `*-actual.png` files out of the room-fixtures-screenshots artifact below,
+    # copy them over the matching `*-linux.png`, and look at one before you do.
     env:
       ROOM_FIXTURES: "1"
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
