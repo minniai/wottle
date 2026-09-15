@@ -8,7 +8,7 @@ import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { ProfilePage } from "@/components/profile/ProfilePage";
-import { OPPONENT, TAP_SECOND_LETTER, roundOneIn, settingField } from "@/lib/constants/copy";
+import { OPPONENT, TAP_SECOND_LETTER, roundOneIn, searchingSubline, settingField } from "@/lib/constants/copy";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { LiveState } from "@/lib/room/ledgerRows";
@@ -157,7 +157,8 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
           opponent={found ? KARI : null}
           found={found ? { countdown: 3 } : null}
           elapsed={QUEUE_ELAPSED}
-          hint={found ? roundOneIn(3) : settingField(QUEUE_LETTERS_LANDED)}
+          live={found ? roundOneIn(3) : settingField(QUEUE_LETTERS_LANDED)}
+          hint={searchingSubline(QUEUE_ELAPSED)}
           onAction={NO_OP}
         >
           <Field

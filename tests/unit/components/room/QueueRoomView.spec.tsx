@@ -19,7 +19,8 @@ function view(overrides: Partial<Parameters<typeof QueueRoomView>[0]> = {}) {
       opponent={null}
       found={null}
       elapsed="0:07"
-      hint="setting the field · 58 of 100 letters"
+      live="setting the field · 58 of 100 letters"
+      hint="ranked · 0:07 · cancel ▸"
       onAction={vi.fn()}
       {...overrides}
     >
@@ -40,6 +41,17 @@ describe("QueueRoomView (spec 045 US1, FR-003)", () => {
     expect(screen.getByTestId("field-slot")).toBeTruthy();
     expect(screen.getByTestId("room-slot-bottom")).toBeTruthy();
     expect(screen.getByTestId("room-slot-ledger")).toBeTruthy();
+  });
+
+  it("prints the queue's progress in a live row, above the hint", () => {
+    render(view());
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("setting the field · 58 of 100 letters");
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("ranked · 0:07 · cancel ▸");
+  });
+
+  it("found: the live row counts round 1 in", () => {
+    render(view({ opponent: kari, found: { countdown: 3 }, live: "round 1 in 3" }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("round 1 in 3");
   });
 
   it("searching: the top bar hunts and offers cancel", () => {

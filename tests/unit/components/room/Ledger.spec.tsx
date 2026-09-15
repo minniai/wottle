@@ -33,6 +33,17 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.getByTestId("ledger-row-1").querySelector('.ledger__words[data-seat="you"]')).toHaveTextContent("BORÐ");
   });
 
+  it("queue variant prints its progress in a live row, not the plain hint (spec 045 B7)", () => {
+    const queue = { ...model, rows: [], live: "setting the field · 58 of 100 letters", hint: "ranked · 0:07 · cancel ▸" };
+    render(<Ledger variant="queue" model={queue} viewerName="Birna" opponentName={null} onAction={() => {}} />);
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live).toHaveTextContent("setting the field · 58 of 100 letters");
+    expect(live.style.gridColumn).toBe("1 / -1");
+    // Above the hint, which keeps its own line.
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("ranked · 0:07 · cancel ▸");
+    expect(live.compareDocumentPosition(screen.getByTestId("ledger-hint")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("caption shows the lowercase wordmark and the match context", () => {
     render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("wottle");
@@ -46,6 +57,15 @@ describe("Ledger (design system §5.4)", () => {
     for (let r = 1; r <= 10; r += 1) expect(screen.getByTestId(`ledger-row-${r}`)).toBeInTheDocument();
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("picking · T (2)");
     expect(screen.getByTestId("ledger-live-row")).toHaveAttribute("aria-live", "polite");
+
+    // Spec 045 B2: Fig. 2 tints the whole row with the 3px rule at its left
+    // edge. Spanning columns 2-3 left the round label outside the tint.
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live.style.gridColumn).toBe("1 / -1");
+    expect(live).toHaveTextContent("R4");
+    expect(live.querySelector('[data-testid="ledger-live-round"]')).not.toBeNull();
+    // Exactly one round label for the live round, and it is inside the tint.
+    expect(screen.queryAllByText("R4")).toHaveLength(1);
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("aria-label", "territory 32–25");
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("role", "img"); // aria-label needs a role (axe aria-prohibited-attr)
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("tap a second letter");

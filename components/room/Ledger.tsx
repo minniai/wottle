@@ -69,14 +69,18 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
       onMouseEnter={() => onRowHover?.(row.round)}
       onMouseLeave={() => onRowHover?.(null)}
     >
-      {/* Future numerals are a progression mark, not a fact for AT: the caption carries the round (design system §7). */}
-      <div className="ledger__round" aria-hidden={row.status === "future" || undefined}>R{row.round}</div>
       {row.status === "live" ? (
-        <div className="ledger__live-row" style={{ gridColumn: "span 2" }} data-testid="ledger-live-row" aria-live="polite">
-          {row.liveText ?? ""}
+        /* One element across all three columns so the tint reaches both edges
+           with the 3px rule at its left; the inner grid keeps the label aligned
+           with the rows above (Fig. 2, spec 045 B2). */
+        <div className="ledger__live-row" style={{ gridColumn: "1 / -1" }} data-testid="ledger-live-row" aria-live="polite">
+          <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
+          <div className="ledger__live-text">{row.liveText ?? ""}</div>
         </div>
       ) : (
         <>
+          {/* Future numerals are a progression mark, not a fact for AT: the caption carries the round (design system §7). */}
+          <div className="ledger__round" aria-hidden={row.status === "future" || undefined}>R{row.round}</div>
           <SeatWords cell={row.you} seat="you" showPoints={hovered} folded={row.folded} />
           <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded={row.folded} />
         </>
@@ -202,6 +206,12 @@ export function Ledger(props: LedgerProps) {
         </>
       ) : (
         body
+      )}
+
+      {model.live !== undefined && (
+        <div className="ledger__live-row" style={{ gridColumn: "1 / -1" }} data-testid="ledger-live-row" aria-live="polite">
+          <div className="ledger__live-text ledger__live-text--full">{model.live}</div>
+        </div>
       )}
 
       <div className="ledger__hint ledger__mono" data-testid="ledger-hint">

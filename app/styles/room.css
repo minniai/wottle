@@ -12,7 +12,11 @@
   --ledger-width: 340px;
   --field-size: 480px; /* overwritten by useFieldSize (ResizeObserver) */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--ledger-width);
+  /* The field column is sized by the field, not by the window, so the gutter to
+     the ledger is exactly --room-gutter at every width and the pair is centred
+     as one composition (design system §4). */
+  grid-template-columns: auto var(--ledger-width);
+  justify-content: center;
   column-gap: var(--room-gutter);
   align-items: start;
   width: 100%;
@@ -30,7 +34,7 @@
   gap: var(--bar-gap);
   width: var(--field-size);
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .room__field-slot {
@@ -422,12 +426,26 @@
   min-height: 1.4em;
 }
 .ledger__live-row {
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr;
+  column-gap: 8px;
+  align-items: baseline;
   background: var(--tint);
-  border-left: 3px solid var(--ink);
-  padding: 8px 10px;
+  /* An inset rule, not a border: a border would shift the inner grid out of
+     alignment with the rows above (design system §5.5). */
+  box-shadow: inset 3px 0 0 var(--ink);
+  padding: 8px 10px 8px 0;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.04em;
+}
+.ledger__live-text {
+  grid-column: 2 / -1;
+}
+/* The queue has no round to label, so its line starts at the rule. */
+.ledger__live-text--full {
+  grid-column: 1 / -1;
+  padding-left: 10px;
 }
 .ledger__territory {
   display: flex;

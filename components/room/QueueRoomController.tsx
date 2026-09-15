@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { roundOneIn, settingField } from "@/lib/constants/copy";
+import { roundOneIn, searchingSubline, settingField } from "@/lib/constants/copy";
 import { diffBoards, generateBoard } from "@/lib/game-engine/boardGenerator";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
@@ -143,7 +143,8 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
       opponent={opponent}
       found={phase === "found" && found ? { countdown: found.countdown } : null}
       elapsed={elapsed}
-      hint={phase === "found" && found ? roundOneIn(found.countdown) : settingField(Math.min(landed, 100))}
+      live={phase === "found" && found ? roundOneIn(found.countdown) : settingField(Math.min(landed, 100))}
+      hint={searchingSubline(elapsed)}
       onAction={handleAction}
     >
       <Field board={board} viewerSlot="player_a" disabled landedCount={phase === "queue" ? landed : null} />

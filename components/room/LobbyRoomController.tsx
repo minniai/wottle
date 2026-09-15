@@ -7,7 +7,7 @@ import { logoutAction } from "@/app/actions/auth/logout";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { generateBoard } from "@/lib/game-engine/boardGenerator";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
-import { EMPTY_LOBBY_HINT, TAP_SECOND_LETTER } from "@/lib/constants/copy";
+import { EMPTY_LOBBY_HINT, NO_SUCH_MATCH, TAP_SECOND_LETTER } from "@/lib/constants/copy";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
@@ -67,6 +67,18 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   }, [me, initialPlayers, connect, disconnect]);
 
   const { notices, push, dismiss } = useNotices();
+
+  // A match that does not exist redirects here with ?notice=no-match; show it
+  // once and clear the param so a reload does not repeat it (spec 045 FR-017).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notice") !== "no-match") return;
+    push({ kind: "text", text: NO_SUCH_MATCH });
+    params.delete("notice");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [push]);
+
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
   const previewEnabled = usePreferencesStore((s) => s.previewEnabled) && Boolean(me);
 

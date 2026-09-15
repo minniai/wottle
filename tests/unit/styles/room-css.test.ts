@@ -29,8 +29,26 @@ describe("room.css motion (design system §6)", () => {
 
   it("no radii, shadows or gradients", () => {
     expect(css).not.toMatch(/border-radius:\s+(?!0\b)/);
-    expect(css).not.toMatch(/box-shadow:\s+(?!inset 0 0 0 2px var\(--ink\)|none)/);
     expect(css).not.toContain("gradient");
+  });
+
+  /**
+   * Design system §2: shadows are banned, but `box-shadow: inset` with no blur
+   * is how the system draws lines that must not affect layout — the picked
+   * letter's 2px ring and the live row's 3px rule.
+   */
+  it("every box-shadow is an unblurred inset line in a token colour", () => {
+    const shadows = [...css.matchAll(/box-shadow:\s*([^;]+);/g)].map((m) => m[1].trim());
+    expect(shadows.length).toBeGreaterThan(0);
+    for (const shadow of shadows) {
+      if (shadow === "none") continue;
+      expect(shadow, `${shadow} is not inset`).toMatch(/^inset /);
+      const lengths = shadow.match(/-?\d+(\.\d+)?px/g) ?? [];
+      expect(lengths.length, `${shadow} must be offset-x, offset-y, blur, spread`).toBeLessThanOrEqual(4);
+      const blur = lengths[2];
+      if (blur) expect(blur, `${shadow} is blurred`).toBe("0px");
+      expect(shadow, `${shadow} must use a token`).toMatch(/var\(--[a-z-]+\)/);
+    }
   });
 });
 
@@ -99,5 +117,28 @@ describe("room.css field paint (spec 045 US2)", () => {
 
   it("does not inset the bars, so the seat square aligns with the field frame", () => {
     expect(block(".player-bar")).toMatch(/padding:\s*0\s*;/);
+  });
+});
+
+/**
+ * Design system §4 and spec 045 US3 (FR-014). The field and the ledger are one
+ * composition separated by one gutter; centring the stack inside its own column
+ * put the slack between them instead, so the gutter grew with the window.
+ */
+describe("room.css composition (spec 045 US3)", () => {
+  const room = block(".room");
+
+  it("sizes the first column to the field and centres the pair", () => {
+    expect(room).toMatch(/grid-template-columns:\s*auto var\(--ledger-width\)/);
+    expect(room).toMatch(/justify-content:\s*center/);
+  });
+
+  it("does not centre the stack inside its own column", () => {
+    expect(block(".room__stack")).not.toMatch(/margin:\s*0 auto/);
+  });
+
+  it("keeps one column below 900px", () => {
+    const phone = css.slice(css.indexOf("@media (max-width: 900px)"));
+    expect(phone).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
   });
 });

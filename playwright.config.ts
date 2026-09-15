@@ -48,6 +48,8 @@ export default defineConfig({
     })),
     {
       name: "playtest-firefox",
+      // As for chromium: the visual suite owns its viewports and its baselines.
+      testIgnore: /room-fixtures\.spec\.ts/,
       use: { ...devices["Desktop Firefox"], baseURL },
       timeout: 300_000, // First test has cold-start; presence settles can be slow.
     },

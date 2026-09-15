@@ -18,6 +18,8 @@ export interface QueueRoomViewProps {
   found: { countdown: 3 | 2 | 1 } | null;
   /** Time in the queue, already formatted (`0:07`). */
   elapsed: string;
+  /** The live line: `setting the field · n of 100 letters`, then `round 1 in 3`. */
+  live: string;
   hint: string;
   onAction: (action: LedgerAction) => void;
   /** The field slot — the placeholder field, wired by the controller. */
@@ -36,11 +38,11 @@ const FULL_CLOCK_MS = 300_000;
  * (spec 045 FR-003).
  */
 export function QueueRoomView(props: QueueRoomViewProps) {
-  const { viewer, opponent, found, elapsed, hint, onAction, children } = props;
+  const { viewer, opponent, found, elapsed, live, hint, onAction, children } = props;
 
   const model: LedgerModel = useMemo(
-    () => ({ caption: QUEUE_CONTEXT, rows: emptyRows(), territory: EMPTY_TERRITORY, hint }),
-    [hint],
+    () => ({ caption: QUEUE_CONTEXT, rows: emptyRows(), territory: EMPTY_TERRITORY, hint, live }),
+    [hint, live],
   );
 
   const cancelButton = (testId: string, className: string) => (

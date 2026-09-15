@@ -57,7 +57,10 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     });
     expect(letterAt(5)).not.toBe("");
     expect(letterAt(60)).toBe("");
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent(/setting the field · \d+ of 100 letters/);
+    // Spec 045 B7: the progress is a live row, as Fig. 7 draws it; the hint
+    // keeps the queue's context line.
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/setting the field · \d+ of 100 letters/);
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent(/ranked · \d+:\d\d · cancel ▸/);
     fireEvent.click(screen.getByTestId("ledger-cancel-queue"));
     expect(useRoomStore.getState().phase).toBe("lobby");
     expect(mockReplace).toHaveBeenCalledWith("/lobby");

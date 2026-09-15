@@ -76,3 +76,5 @@ export const CHALLENGE = "challenge ▸";
 export const HERE_NOW = "here now · challenge for a ranked match";
 export const YOUR_LAST_MATCHES = "your last matches";
 export const EMPTY_LOBBY_HINT = "No runs yet. Start one from the lobby.";
+/** A match id that resolves to nothing: the room says so, no page of its own. */
+export const NO_SUCH_MATCH = "that match does not exist";

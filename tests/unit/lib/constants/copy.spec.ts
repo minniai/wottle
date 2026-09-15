@@ -42,4 +42,10 @@ describe("copy (design system §8)", () => {
     expect(copy.verdictLine("Kári", 170, 127)).toBe("Kári wins 170–127");
     expect(copy.reconnecting("0:42")).toBe("reconnecting · 0:42 left");
   });
+
+  test("names a missing match in the room's own voice (spec 045 B10)", () => {
+    expect(copy.NO_SUCH_MATCH).toBe("that match does not exist");
+    expect(copy.NO_SUCH_MATCH).toBe(copy.NO_SUCH_MATCH.toLowerCase());
+    expect(copy.NO_SUCH_MATCH).not.toContain("!");
+  });
 });

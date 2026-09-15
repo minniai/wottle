@@ -108,3 +108,32 @@ test.describe("@visual the field is painted to the design", () => {
     expect(paint.chevronStroke).toBe("1.5");
   });
 });
+
+/**
+ * Design system §4 and spec 045 FR-014. The gutter is the measurement the
+ * review made to find B1: centring the stack in its own column put the slack
+ * between field and ledger, about 168px at 1440x900 instead of 56.
+ */
+test.describe("@visual the room is one composition", () => {
+  test("one gutter between field and ledger, the pair centred", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "visual-390x844", "one column below 900px");
+    const expected = testInfo.project.use.viewport!.width >= 1100 ? 56 : 40;
+
+    await page.goto("/dev/room?phase=match");
+    await expect(page.getByTestId("field")).toBeVisible();
+
+    const { gutter, leftMargin, rightMargin } = await page.evaluate(() => {
+      const field = document.querySelector('[data-testid="room-slot-field"]')!.getBoundingClientRect();
+      const ledger = document.querySelector('[data-testid="room-slot-ledger"]')!.getBoundingClientRect();
+      return {
+        gutter: ledger.left - field.right,
+        leftMargin: field.left,
+        rightMargin: window.innerWidth - ledger.right,
+      };
+    });
+
+    expect(Math.round(gutter)).toBeCloseTo(expected, 0);
+    // Centred as a unit: the slack is outside the pair, not between them.
+    expect(Math.abs(leftMargin - rightMargin)).toBeLessThanOrEqual(1);
+  });
+});

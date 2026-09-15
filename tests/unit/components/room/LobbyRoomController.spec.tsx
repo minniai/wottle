@@ -140,4 +140,12 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
     expect(useRoomStore.getState().viewer).toBeNull();
   });
+
+  it("shows a notice when redirected from a match that does not exist", async () => {
+    window.history.replaceState(null, "", "/lobby?notice=no-match");
+    render(<LobbyRoomController viewer={me} initialPlayers={[]} recentGames={null} />);
+    await waitFor(() => expect(screen.getByTestId("ledger-notice")).toHaveTextContent("that match does not exist"));
+    // Cleared from the URL so a reload does not repeat it.
+    await waitFor(() => expect(window.location.search).toBe(""));
+  });
 });
