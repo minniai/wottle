@@ -40,19 +40,34 @@ targets() {
   done
 }
 
+# A line carrying this marker names a retired term in order to remove it — a task
+# that says "delete --p1" is the opposite of drift — rather than using it to
+# describe the product. It exempts its own line only. Added with spec 045, whose
+# T029/T033 cannot name the tokens they delete without it.
+EXEMPT_MARKER='<!-- retired-name -->'
+
+# Prints every unexempted hit for one phrase in one file; returns 1 if there were any.
+report_hits() { # file phrase mode(fixed|word)
+  local file="$1" p="$2" mode="$3" hits
+  if [[ "$mode" == word ]]; then
+    hits="$(grep -nwF -- "$p" "$file" || true)"
+  else
+    hits="$(grep -nF -- "$p" "$file" || true)"
+  fi
+  [[ -n "$hits" ]] || return 0
+  hits="$(printf '%s\n' "$hits" | grep -vF -- "$EXEMPT_MARKER" || true)"
+  [[ -n "$hits" ]] || return 0
+  printf '%s\n' "$hits" | sed "s#^#${file}:#; s#\$#    [${p}]#"
+  return 1
+}
+
 status=0
 while IFS= read -r file; do
   for p in "${PHRASES[@]}"; do
-    if grep -nF -- "$p" "$file" >/dev/null; then
-      grep -nF -- "$p" "$file" | sed "s#^#${file}:#; s#\$#    [${p}]#"
-      status=1
-    fi
+    report_hits "$file" "$p" fixed || status=1
   done
   for p in "${WORD_PHRASES[@]}"; do
-    if grep -nwF -- "$p" "$file" >/dev/null; then
-      grep -nwF -- "$p" "$file" | sed "s#^#${file}:#; s#\$#    [${p}]#"
-      status=1
-    fi
+    report_hits "$file" "$p" word || status=1
   done
 done < <(targets)
 
