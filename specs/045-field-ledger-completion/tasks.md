@@ -215,8 +215,8 @@ Single Next.js application at the repository root: `app/`, `components/`, `lib/`
 
 ## Phase 10: Polish & Cross-Cutting Concerns
 
-- [ ] T043 [P] Update `CLAUDE.md`: the Current State paragraph gains "completion (spec 045, <date>): fixture route `/dev/room`, `pnpm test:visual`, eight tokens"; the Testing section lists `pnpm test:visual`; `README.md`'s Testing section lists it too
-- [ ] T044 Write the Outcome section of `specs/045-field-ledger-completion/spec.md`: which findings closed, which decisions were implemented as recommended and which inverted, and the date of the real run
+- [x] T043 [P] Update `CLAUDE.md`: the Current State paragraph gains "completion (spec 045, <date>): fixture route `/dev/room`, `pnpm test:visual`, eight tokens"; the Testing section lists `pnpm test:visual`; `README.md`'s Testing section lists it too
+- [x] T044 Write the Outcome section of `specs/045-field-ledger-completion/spec.md`: which findings closed, which decisions were implemented as recommended and which inverted, and the date of the real run
 
 ---
 

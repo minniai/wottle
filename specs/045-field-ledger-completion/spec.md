@@ -303,3 +303,79 @@ A person compares each room state, at desktop and phone size, against the figure
 - The legacy `boards` table cleanup, board-generation improvements and production readiness items listed as next steps in the repository's guidance.
 - Re-drawing the audit figures, or any new design work beyond correcting the bundle's text to the recorded decisions.
 - Player-facing navigation to the fixture route.
+
+## Outcome (2026-09-15)
+
+Shipped. Forty-two of forty-four tasks complete; the two that remain need a
+person, not a change (see Left open).
+
+### What closed
+
+All twenty-five review findings. The ones worth naming:
+
+- **A1–A3, the field.** It painted `--rule` grey with its cell rules invisible,
+  letters fixed at 26px, and chevrons at 0.15 device pixels. It now matches the
+  review's fixture B, asserted by computed style in a browser rather than by
+  eye: paper ground, 1px rules crossing the bands, letters at 55% of the
+  measured cell, 1.5px chevrons at each word's reading start.
+- **A4, the phone.** The ledger stacked under the bottom bar and the page
+  scrolled. It collapses to caption, live row and territory, and `LedgerSheet` —
+  which was `position: fixed` at `z-index: 3`, so wiring it up as written would
+  have put a panel *over the field* — is now in flow beneath the live row.
+- **B1, the composition.** The stack was centred inside its own column, so the
+  gutter grew with the window: about 168px at 1440×900 against a designed 56.
+- **C1–C3, the hand and the keyboard.** Drag, tap-outside and `?`/`M` were all
+  specified and none was implemented; the reducer had accepted `drag` and
+  `tapOutside` since spec 044 with nothing dispatching either.
+- **E1, the root cause.** `/dev/room?phase=…` renders every room state from
+  static fixtures with no database, and `pnpm test:visual` compares 54 committed
+  baselines (both platforms) in a blocking CI job.
+
+All three decisions of 15 September are implemented: unranked challenges,
+`--opp-text`, and the phone numeral floor.
+
+### What the work changed about the plan
+
+- **`app/__room` cannot be a route.** Next's App Router treats underscore-prefixed
+  folders as private, so the path the review, the handoff and every planning
+  artifact specified returns 404. It is `/dev/room`.
+- **The handoff's cell-rule selector was wrong.** `:nth-last-of-type(-n + 10)`
+  matches all ten cells of every row, because `Field.tsx` wraps each row in a
+  `display: contents` element — it would have stripped every horizontal rule.
+- **A rematch must inherit `rated`**, which the handoff omits: a rematch of a
+  directory challenge is still a self-chosen opponent.
+- **The final caption keeps its phase word.** This spec's own contract table had
+  it becoming `unranked · 10 rounds · …`, which would have replaced `final` — a
+  string the review lists as already matching the design, and SC-012 forbids
+  changing. It reads `final · unranked · 10 rounds · …`.
+- **Collapse applies only to a ledger with a rounds table.** Applied to the
+  lobby it hid the here-now directory behind `history ▸`; the directory is the
+  lobby's content, not its history. Found by the real two-player run.
+- **An unranked match says so** rather than showing `rating pending` forever,
+  waiting on a rating that decision 1 guarantees will never be written.
+
+### Verified
+
+| Check | Result |
+| --- | --- |
+| `pnpm test` | 1074 passed, 2 skipped, 141 files |
+| `pnpm test:visual` | 40 passed on macOS, 34 on Linux, against committed baselines |
+| Playwright chromium (real Supabase) | 23 passed |
+| Playwright Firefox ten-round playtest | 1 passed |
+| axe | clean on landing, lobby, queue, match, final, profile — **no coral exclusions** |
+| `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` | clean |
+
+Spec 044's "Not run locally: no Supabase" notes are replaced with this run.
+
+### Left open
+
+- **T040, the human visual comparison.** `checklists/visual.md` against Fig. 2
+  and 5–10 is the one acceptance criterion a person must sign; the baselines are
+  committed and ready for it.
+- **Rematch events do not survive the polling fallback.** `useMatchTransport`
+  wires `onRematchEvent` only inside the realtime branch and returns early when
+  `usePolling` is set, so with `NEXT_PUBLIC_DISABLE_REALTIME=true` the rematch
+  notice never arrives. Found by this feature's test run, but it predates the
+  feature and belongs to the transport, not the room. Not fixed here.
+- **`docs/archive/ds-bundle-warm-editorial/`** is 9.8MB and remains untracked,
+  as `ds-bundle/` always was. Only the pointer README at the old path is tracked.
