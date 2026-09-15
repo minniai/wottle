@@ -26,9 +26,9 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
       <div className="ledger__mono lobby-ledger__title">{HERE_NOW}</div>
       <div className="lobby-ledger__table" data-testid="ledger-here-now" role="table" aria-label="here now">
         {loadingPlayers ? (
-          <div className="lobby-ledger__row ledger__mono" role="row">—</div>
+          <div className="lobby-ledger__row ledger__mono" role="row"><span role="cell">—</span></div>
         ) : others.length === 0 ? (
-          <div className="lobby-ledger__row ledger__mono" role="row" data-testid="ledger-here-now-empty">—</div>
+          <div className="lobby-ledger__row ledger__mono" role="row" data-testid="ledger-here-now-empty"><span role="cell">—</span></div>
         ) : (
           others.map((p) => (
             <div className="lobby-ledger__row" role="row" data-testid="ledger-here-now-row" data-player-id={p.id} key={p.id}>
@@ -58,9 +58,9 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
           <div className="ledger__mono lobby-ledger__title">{YOUR_LAST_MATCHES}</div>
           <div className="lobby-ledger__table" data-testid="ledger-last-matches" role="table" aria-label="your last matches">
             {recentGames === null ? (
-              <div className="lobby-ledger__row ledger__mono" role="row">—</div>
+              <div className="lobby-ledger__row ledger__mono" role="row"><span role="cell">—</span></div>
             ) : recentGames.length === 0 ? (
-              <div className="lobby-ledger__row ledger__mono" role="row">—</div>
+              <div className="lobby-ledger__row ledger__mono" role="row"><span role="cell">—</span></div>
             ) : (
               recentGames.map((g) => (
                 <div className="lobby-ledger__row" role="row" key={g.matchId} data-testid="ledger-last-match-row">

@@ -30,6 +30,8 @@ describe("LobbyLedger (design system §5.6)", () => {
     const { rerender } = render(<LobbyLedger players={[me]} viewer={me} recentGames={null} loadingPlayers onAction={() => {}} />);
     expect(screen.getByTestId("ledger-here-now")).toHaveTextContent("—");
     expect(screen.getByTestId("ledger-last-matches")).toHaveTextContent("—");
+    // Every role=row has at least one role=cell (axe aria-required-children).
+    for (const row of screen.getAllByRole("row")) expect(row.querySelector('[role="cell"]')).not.toBeNull();
     rerender(<LobbyLedger players={[me]} viewer={me} recentGames={[{ matchId: "m", result: "win", opponentId: "k", opponentUsername: "kari", opponentDisplayName: "Kári", yourScore: 170, opponentScore: 127, wordsFound: 10, completedAt: "" }]} onAction={() => {}} />);
     expect(screen.getByTestId("ledger-here-now-empty")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-last-match-row")).toHaveTextContent("Kári");

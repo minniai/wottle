@@ -7,6 +7,8 @@ import { formatClock, isLowClock, laneFraction, MATCH_CLOCK_BUDGET_MS } from "@/
 export type LaneMode = "clock" | "searching" | "disconnected" | "empty";
 
 interface ClockLaneProps {
+  /** Accessible name of the progressbar (`your clock` / `opponent's clock`). */
+  label: string;
   clockMs: number;
   running: boolean;
   budgetMs?: number;
@@ -19,7 +21,7 @@ interface ClockLaneProps {
  * (colour only); disconnected it is dashed and held; searching it carries a
  * travelling segment.
  */
-export function ClockLane({ clockMs, running, budgetMs = MATCH_CLOCK_BUDGET_MS, mode = "clock" }: ClockLaneProps) {
+export function ClockLane({ label, clockMs, running, budgetMs = MATCH_CLOCK_BUDGET_MS, mode = "clock" }: ClockLaneProps) {
   const fraction = mode === "empty" ? 0 : laneFraction(clockMs, budgetMs);
   const low = mode === "clock" && isLowClock(clockMs);
   const seconds = Math.max(0, Math.floor(clockMs / 1000));
@@ -41,6 +43,7 @@ export function ClockLane({ clockMs, running, budgetMs = MATCH_CLOCK_BUDGET_MS, 
       data-low={low || undefined}
       data-mode={mode}
       role="progressbar"
+      aria-label={label}
       aria-valuemin={0}
       aria-valuemax={Math.round(budgetMs / 1000)}
       aria-valuenow={mode === "searching" ? undefined : seconds}

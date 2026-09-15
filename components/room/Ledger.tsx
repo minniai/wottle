@@ -191,7 +191,7 @@ export function Ledger(props: LedgerProps) {
               <Row key={row.round} row={row} hovered={hovered === row.round} onRowHover={hover} />
             ))}
           </div>
-          <div className="ledger__territory" data-testid="ledger-territory" aria-label={`territory ${territory.you}–${territory.opp}`}>
+          <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={`territory ${territory.you}–${territory.opp}`}>
             <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
             <span style={{ flex: 1 }} />
             <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
