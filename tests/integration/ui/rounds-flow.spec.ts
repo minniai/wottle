@@ -39,7 +39,9 @@ test.describe("Round flow", () => {
       // After round 10 the same room turns final: verdict in the ledger, field kept.
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
       await expect(pageA.getByTestId("verdict")).toBeVisible();
-      await expect(pageA.getByTestId("ledger-caption")).toContainText(/final · 10 rounds · \d+:\d\d/);
+      // Started by direct invite, so unranked since 15 September 2026
+      // (spec 045 decision 1).
+      await expect(pageA.getByTestId("ledger-caption")).toContainText(/final · unranked · 10 rounds · \d+:\d\d/);
       await expect(pageA.getByTestId("field")).toBeVisible();
     } finally {
       await contextA.close();

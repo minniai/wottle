@@ -289,8 +289,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youTimer.playerId, youScoreWins) : undefined, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running" && !clocksHeld, score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
-        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppTimer.playerId, !youScoreWins && !draw) : undefined, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
+        you={{ name: you.displayName, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youTimer.playerId, youScoreWins, match.rated !== false) : undefined, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running" && !clocksHeld, score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
+        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppTimer.playerId, !youScoreWins && !draw, match.rated !== false) : undefined, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
         currentRound={match.currentRound}
         completed={completed}
         rated={match.rated !== false}

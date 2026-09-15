@@ -217,9 +217,10 @@ test.describe("@room-flow US5 the hand and the keyboard", () => {
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
-      // ? opens the rules, wherever focus is.
+      // ? opens the rules, wherever focus is. Target the kind: a first match
+      // already shows its own rules line, so `ledger-notice` is ambiguous.
       await pageA.keyboard.press("?");
-      await expect(pageA.getByTestId("ledger-notice")).toBeVisible();
+      await expect(pageA.locator('[data-kind="firstMatchRules"]').first()).toBeVisible();
 
       // A pick cancels when the pointer goes down outside the field.
       await pageA.locator('[data-x="3"][data-y="3"]').click();

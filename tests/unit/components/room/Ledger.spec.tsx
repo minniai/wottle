@@ -155,6 +155,16 @@ describe("Ledger (design system §5.4)", () => {
       expect(document.activeElement).toBe(trigger);
     });
 
+    it("does not collapse the lobby: its directory is the content, not history", () => {
+      // The lobby ledger has no rounds table and no territory; folding its body
+      // away would hide the here-now list behind `history ▸` with nothing left.
+      render(
+        <Ledger variant="lobby" collapsed model={{ ...model, rows: [] }} viewerName="Birna" opponentName={null} body={<div data-testid="lobby-body">here now</div>} onAction={() => {}} />,
+      );
+      expect(screen.getByTestId("lobby-body")).toBeInTheDocument();
+      expect(screen.queryByTestId("ledger-live-trigger")).toBeNull();
+    });
+
     it("forgets an open sheet when the room widens back to desktop", () => {
       const { rerender } = render(
         <Ledger variant="match" collapsed model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />,

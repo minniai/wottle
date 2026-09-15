@@ -169,7 +169,34 @@ Single Next.js application at the repository root: `app/`, `components/`, `lib/`
 
 - [ ] T040 [US7] Create `specs/045-field-ledger-completion/checklists/visual.md` and tick every line for each phase at 1440×900 and 390×844: **Fig. 2 match** — bars 60px `1fr auto 1fr`, 12px seat square aligned with the field frame, clock 26px mono (ink 500 running / muted 400 stopped), total 40px in the seat colour, 4px lane on the bar's inner edge, paper field with 1px rules and a 1.5px frame, bands at 14% with 1.5px chevrons at the reading start, letters 55%, numerals top-right, ledger caption / seat header / ten rows sharing the height / full-width live row / territory / hint / foot, ledger top rule and foot aligned with the bars; **Fig. 5 phone** — bar 56 / field 358 / bar 56 / live row, no page scroll, sheet in flow; **Fig. 6 lobby** — `No opponent yet`, warm-up field, `here now` and `your last matches`; **Fig. 7 queue** — `Finding an opponent`, travelling 12% lane segment, live row `setting the field · n of 100 letters`; **Fig. 8 final** — verdict block above the header, rating lines in both bars, foot `rematch ▸ · new opponent ▸ · lobby`; **Fig. 9 profile** — 14px square, 28px name, 48px rating, hairline chart with unstretched labels; **Fig. 10 states** — landing input in the bar, disconnect dashed lane + `reconnecting · 0:42 left`. Record who compared what and when
 - [ ] T041 [US7] Commit the `toHaveScreenshot` baselines (`tests/integration/ui/room-fixtures.spec.ts-snapshots/`, chromium, 9 phases × 3 projects = 27 images); remove `continue-on-error` from the CI `visual` job; document `pnpm test:visual --update-snapshots` as the only way to change a baseline, with a screenshot in the PR
-- [ ] T042 [US7] Run the Supabase-backed suite once end to end (`pnpm quickstart && pnpm exec playwright test`), axe clean on landing, lobby, queue, match, final and profile; record pass/fail per spec in this file and replace spec 044's "Not run locally: no Supabase" notes in `specs/044-field-ledger-redesign/tasks.md` with the run date and result
+- [x] T042 [US7] Run the Supabase-backed suite once end to end (`pnpm quickstart && pnpm exec playwright test`), axe clean on landing, lobby, queue, match, final and profile; record pass/fail per spec in this file and replace spec 044's "Not run locally: no Supabase" notes in `specs/044-field-ledger-redesign/tasks.md` with the run date and result
+
+  **Run 2026-09-15, local Supabase (CLI 2.117.0, Docker), `pnpm dev` with
+  `NEXT_PUBLIC_DISABLE_REALTIME=false`, rate limits off, `--workers=1`:**
+
+  | Suite | Result |
+  | --- | --- |
+  | chromium, all specs except `@two-player-playtest` | **23 passed, 0 failed** (1.9 min) |
+  | `playtest-firefox` `@two-player-playtest` (ten rounds) | **1 passed** (1.5 min) |
+  | axe (`@room-layout`) | clean on landing, lobby, queue, match, final, profile — with **no coral exclusions**, which decision 2 removed |
+
+  Four failures on the first attempt, none of them regressions in the room:
+  - two were caused by `NEXT_PUBLIC_DISABLE_REALTIME=true` in the local
+    `.env.local`. `onRematchEvent` is delivered only through the realtime
+    channel — `useMatchTransport` returns early when `usePolling` — so the
+    rematch notice can never arrive in polling mode. **A real gap in the
+    polling fallback, filed below, not fixed here.**
+  - one was my own run: the auth rate limit is enforced by the server, and I
+    had set `RATE_LIMIT_DISABLE_ALL` on the test runner instead.
+  - one was a genuine bug this run found: the phone lobby collapsed its ledger
+    and hid the here-now directory behind `history ▸`. Fixed — only a ledger
+    with a rounds table collapses.
+
+  Three assertions were updated because they pinned behaviour this spec
+  deliberately changed: the final caption (now `final · unranked · …` for the
+  invite-created matches the suite uses), the queue progress (now a live row),
+  and the winner's sub-line (now `unranked · no rating change` rather than a
+  `rating pending` that would never resolve).
 
 ---
 

@@ -38,6 +38,8 @@ export const NO_ACCOUNT_NEEDED = "no account needed";
 export const YOU = "you";
 export const OPPONENT = "opponent";
 export const RATING_PENDING = "rating pending";
+/** An unranked match never writes a rating, so its bars say so once, not "pending" forever. */
+export const NO_RATING = "unranked · no rating change";
 export const reconnecting = (remainingMmSs: string): string =>
   `reconnecting · ${remainingMmSs} left`;
 export const ratingSubline = (before: number, after: number, delta: number, wins: boolean) =>

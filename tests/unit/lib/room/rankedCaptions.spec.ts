@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { finalContext, HERE_NOW, rankLabel, roundContext } from "@/lib/constants/copy";
-import { finalCaption } from "@/lib/room/ledgerRows";
+import { finalContext, HERE_NOW, NO_RATING, rankLabel, RATING_PENDING, roundContext } from "@/lib/constants/copy";
+import { finalCaption, ratingLine } from "@/lib/room/ledgerRows";
 
 /**
  * Spec 045 decision 1 (15 September 2026): a directory challenge lets a player
@@ -38,5 +38,14 @@ describe("rank labelling", () => {
   test("rated defaults to true, so every existing caller is unchanged", () => {
     expect(roundContext(1)).toBe(roundContext(1, true));
     expect(finalContext("0:00")).toBe(finalContext("0:00", true));
+  });
+
+  test("an unranked final says so once, rather than pending forever", () => {
+    // No rating row is ever written for an unranked match, so `rating pending`
+    // would never resolve.
+    expect(ratingLine(null, "p1", true, false)).toBe(NO_RATING);
+    expect(ratingLine([], "p1", true, false)).toBe(NO_RATING);
+    // A rated match with no row yet is still genuinely pending.
+    expect(ratingLine(null, "p1", true)).toBe(RATING_PENDING);
   });
 });

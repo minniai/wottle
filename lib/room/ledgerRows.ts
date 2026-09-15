@@ -1,4 +1,4 @@
-import { drawLine, finalContext, PLAYED, picking, RATING_PENDING, ratingSubline, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, NO_RATING, PLAYED, picking, RATING_PENDING, ratingSubline, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { formatClock, MATCH_CLOCK_BUDGET_MS } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
@@ -149,8 +149,19 @@ export interface RatingRow {
   ratingDelta: number;
 }
 
-/** `1191 → 1203 · +12 · wins` or `rating pending` for the final bars (design system §5.3). */
-export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSeatIsThis: boolean): string {
+/**
+ * `1191 → 1203 · +12 · wins` for the final bars (design system §5.3).
+ *
+ * An unranked match writes no rating row at all, so `rating pending` would
+ * never resolve — it says what actually happened instead (spec 045 decision 1).
+ */
+export function ratingLine(
+  rows: RatingRow[] | null,
+  playerId: string,
+  winnerSeatIsThis: boolean,
+  rated = true,
+): string {
+  if (!rated) return NO_RATING;
   const row = rows?.find((r) => r.playerId === playerId);
   if (!row) return RATING_PENDING;
   return ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);

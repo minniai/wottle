@@ -154,8 +154,14 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
-  const { variant, model, collapsed = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
+  const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
+  /**
+   * Only a ledger with a rounds table collapses. The lobby's body is the here-now
+   * directory and the queue's is its own progress — those are the primary content
+   * of those states, not history to be folded away behind a button.
+   */
+  const collapsed = collapsedProp && showsTable;
   const { territory } = model;
   const rowsRef = useRef<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
