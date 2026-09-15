@@ -141,6 +141,28 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     expect(useRoomStore.getState().viewer).toBeNull();
   });
 
+  it("never returns to a match it was bounced out of", async () => {
+    // The match page redirects here when a match fails to load, and the invite
+    // poll reports the same match as active. Without this the two bounce the
+    // player between them forever (Vercel, 2026-09-15).
+    window.history.replaceState(null, "", "/lobby?notice=no-match&match=m-broken");
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ pending: [], match: { id: "m-broken" } }) });
+
+    render(<LobbyRoomController viewer={me} initialPlayers={[]} recentGames={null} />);
+    await waitFor(() => expect(screen.getByTestId("ledger-notice")).toHaveTextContent("that match does not exist"));
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockReplace).not.toHaveBeenCalledWith("/match/m-broken");
+  });
+
+  it("still follows the poll to a different active match", async () => {
+    window.history.replaceState(null, "", "/lobby?notice=no-match&match=m-broken");
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ pending: [], match: { id: "m-other" } }) });
+
+    render(<LobbyRoomController viewer={me} initialPlayers={[]} recentGames={null} />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m-other"));
+  });
+
   it("shows a notice when redirected from a match that does not exist", async () => {
     window.history.replaceState(null, "", "/lobby?notice=no-match");
     render(<LobbyRoomController viewer={me} initialPlayers={[]} recentGames={null} />);

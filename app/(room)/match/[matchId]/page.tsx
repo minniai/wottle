@@ -35,9 +35,11 @@ export default async function MatchPage({
   const matchState = await loadMatchState(supabase, matchId);
 
   // Nothing renders outside the room: a missing match is a lobby notice, not a
-  // page of its own (spec 045 FR-017).
+  // page of its own (spec 045 FR-017). The id travels with the notice: the lobby
+  // polls for an active match and would otherwise send us straight back here,
+  // and a match that fails to load fails to load every time — an endless loop.
   if (!matchState) {
-    redirect("/lobby?notice=no-match");
+    redirect(`/lobby?notice=no-match&match=${encodeURIComponent(matchId)}`);
   }
 
   // FR-043a: a signed-in non-participant may view a completed match read-only;

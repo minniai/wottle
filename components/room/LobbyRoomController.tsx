@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { logoutAction } from "@/app/actions/auth/logout";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
@@ -71,11 +71,14 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
 
   // A match that does not exist redirects here with ?notice=no-match; show it
   // once and clear the param so a reload does not repeat it (spec 045 FR-017).
+  const unreachableMatch = useRef<string | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("notice") !== "no-match") return;
+    unreachableMatch.current = params.get("match");
     push({ kind: "text", text: NO_SUCH_MATCH });
     params.delete("notice");
+    params.delete("match");
     const query = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
   }, [push]);
@@ -102,7 +105,15 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     (invite: PendingInvite) => push({ kind: "challenge", fromName: invite.sender.displayName ?? invite.sender.username, inviteId: invite.id }),
     [push],
   );
-  const onActiveMatch = useCallback((matchId: string) => router.replace(`/match/${matchId}`), [router]);
+  const onActiveMatch = useCallback(
+    (activeMatchId: string) => {
+      // Never return to a match we were just bounced out of: it would fail to
+      // load again and bounce again, forever.
+      if (activeMatchId === unreachableMatch.current) return;
+      router.replace(`/match/${activeMatchId}`);
+    },
+    [router],
+  );
   useLobbyInvites({ enabled: Boolean(me), onInvite, onActiveMatch });
 
   const handleAction = useCallback(
