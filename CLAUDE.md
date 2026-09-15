@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap letters on a 10×10 field to form Icelandic words, each on one match-long clock, with spatial tile-freezing strategy.
 
-**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-two Speckit specs have shipped. **Field & Ledger shipped (2026-09-14, spec `specs/044-field-ledger-redesign/spec.md`)**: every player-facing screen is one room — two player bars, the field, one ledger — with lobby, queue, found, match, final and profile as states of it; the design system and plan are reached via `docs/design/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The previous look (April–June 2026) and every component it used are gone from the tree; its documents live under `docs/archive/`.
+**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-two Speckit specs have shipped. **Field & Ledger shipped (2026-09-14, spec `specs/044-field-ledger-redesign/spec.md`)**: every player-facing screen is one room — two player bars, the field, one ledger — with lobby, queue, found, match, final and profile as states of it; the design system and plan are reached via `docs/design/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The previous look (April–June 2026) and every component it used are gone from the tree; its documents live under `docs/archive/`. **Completion shipped (2026-09-15, spec `specs/045-field-ledger-completion/spec.md`)**: the twenty-five findings of the implementation review are closed — the field paints as designed, the room is one composition, the phone ledger collapses, drag and the hotkeys work, the palette is eight tokens and directory challenges are unranked. It also added the thing whose absence caused those defects: `/dev/room?phase=…` renders every room state from static fixtures with no database, and `pnpm test:visual` compares them against committed baselines in a blocking CI job.
 
 ## Design (MANDATORY for any UI change)
 
-- The UI follows `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (entry point `docs/design/README.md`). Do not add colours, radii, shadows, gradients, blur or fonts outside it. Seven colour tokens (`--paper`, `--ink`, `--rule`, `--tint`, `--muted`, `--you`, `--opp`); two type families (`--font-board` slab serif, `--font-mono`).
+- The UI follows `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (entry point `docs/design/README.md`). Do not add colours, radii, shadows, gradients, blur or fonts outside it. Eight colour tokens (`--paper`, `--ink`, `--rule`, `--tint`, `--muted`, `--you`, `--opp`, and `--opp-text` for coral **text below 17px** only); two type families (`--font-board` slab serif, `--font-mono`).
 - Every visible element is a letter (or a state of a letter) on the **field**, a fact about one player in that player's **bar**, or a fact about the match in the **ledger**. If a new element is none of these, do not add it.
 - Colours are **seat-relative**: `--you` teal, `--opp` coral, always via `getSeatColors(viewerSlot, slot)`. Never map colour to `player_a` / `player_b`.
 - **Nothing is ever positioned over the field.** No modals, banners, toasts, overlays or confetti during a match; state changes are written into the bars or the ledger's live row.
@@ -35,6 +35,8 @@ pnpm test                    # Run unit tests (Vitest)
 pnpm test:unit               # Unit + contract tests
 pnpm test:integration        # Integration tests (requires Supabase)
 pnpm exec playwright test    # E2E browser tests (CI auto-starts services)
+pnpm test:visual             # Visual suite: /dev/room fixtures at 3 viewports, no Supabase
+                             # `pnpm test:visual --update-snapshots` is the only way to change a baseline
 pnpm lint                    # ESLint with zero-warnings policy
 pnpm typecheck               # TypeScript type check
 ```
@@ -522,6 +524,8 @@ Key files:
 ## Active Technologies
 - TypeScript 5.x, Node.js 22, React 19, Next.js 16 (App Router) + Tailwind CSS 4.x, `next/font/google` (Zilla Slab, Red Hat Mono), Supabase JS v2, Zod, zustand (`roomStore`, `preferencesStore`); dev: `@axe-core/playwright`. No Framer Motion. (044-field-ledger-redesign)
 - No schema change — reads existing `word_score_entries.tiles` (order encodes reading direction), `matches`, `match_ratings`; `localStorage` `PlayerPreferences` gains `previewEnabled`. (044-field-ledger-redesign)
+- TypeScript 5.x, Node.js 22, React 19, Next.js 16 (App Router) + Tailwind CSS 4.x (seven-token theme in `tailwind.config.ts`), `next/font/google` (Zilla Slab, Red Hat Mono), zustand (`roomStore`, `preferencesStore`), Supabase JS v2, Zod. No Framer Motion; no new runtime dependency is introduced by this feature. (045-field-ledger-completion)
+- Supabase PostgreSQL. One additive migration: `matches.rated boolean not null default true`. No other schema change; the fixture route touches no database at all. (045-field-ledger-completion)
 
 - **Runtime (current)**: Node.js 22 (`.nvmrc`, `engines.node >=22`), pnpm 11.7 (`packageManager`; settings live in `pnpm-workspace.yaml`). Per-spec lines below that say "Node.js 20" are historical.
 - TypeScript 5.x, Node.js 20 + Next.js 16 (App Router), Supabase JS v2, Zod (007-server-authoritative-timer)

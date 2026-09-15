@@ -119,7 +119,14 @@ wottle-game-design.zip
 
 # design-sync (machine state / staged converter / build output)
 .ds-sync/
-ds-bundle/
+# The Warm Editorial bundle: 9.8MB of render sheets and fonts, never tracked.
+# Archived to docs/archive/ (spec 045 D3); the pointer README at the old path is.
+ds-bundle/*
+!ds-bundle/
+!ds-bundle/README.md
+docs/archive/ds-bundle-warm-editorial/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
+
+.zennotes/

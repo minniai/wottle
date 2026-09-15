@@ -22,9 +22,9 @@ The design surfaces facts the engine already computes but does not expose cleanl
 
 1. **Reading direction on scored words.** Rules §3.1 already fixes four orthogonal directions (`read forward or reversed`). Each scored word record must carry `direction: "ltr" | "rtl" | "ttb" | "btt"` so the field can place the chevron. Where: the word-extraction / scoring step in `lib/game-engine/` (the function that returns `WordHistory` / `wordHistory.coordinates`). Add the field to the `WordHistory` type in `lib/types/match.ts` and to the `words_found` JSONB shape if it is persisted. If the team confirms double scoring (DOCS_CONSISTENCY §1.2), a run valid both ways produces **two** records; tests: FÁR/RÁF scoring 24, LÁN/NÁL, a single-direction word producing one record.
 2. **Whole-run rule.** Already enforced (`violatesFrozenAdjacencyOnSameAxis`, rules §3.5a / I7a). Add a regression test named `BORÐA + GILT` so the example in the design doc is pinned.
-3. **Clock model.** `TimerState { playerId, remainingMs, status: running | paused | expired }` in `lib/types/match.ts` already carries per-player match time. Confirm the server ticks it as a 10:00 per-player budget that runs only while that player's move is open; the client reads `remainingMs` and `status` per seat for the lanes. Do not remove anything the server relies on.
+3. **Clock model.** `TimerState { playerId, remainingMs, status: running | paused | expired }` in `lib/types/match.ts` already carries per-player match time. Confirm the server ticks it as a 5:00 per-player budget (`MATCH_CLOCK_BUDGET_MS = 300_000`) that runs only while that player's move is open; the client reads `remainingMs` and `status` per seat for the lanes. Do not remove anything the server relies on.
 4. **Clock at 0:00.** The rules document must state the consequence (see `DOCS_CONSISTENCY.md`, open question 3). Implement whatever the team decides; the bar can render any answer.
-5. **Preview/commit.** No engine change: the second tap becomes a client-side preview; the commit sends the same `submitSwap` payload as today.
+5. **Preview/commit.** No engine change. **Decided 14 September 2026: the second tap commits, as it always has; the preview is opt-in from the `⋯` menu** and persists with the sound preference. When it is on, the second tap previews and a third commits. The preview is priced by a read-only Server Action (`previewSwap`), not client-side — the 55MB dictionary cannot ship to the browser — and the hint reads `tap again to play` until the price lands.
 
 ---
 
@@ -58,8 +58,8 @@ Files: `components/game/BoardGrid.tsx`, `components/game/Board.tsx`, `components
 2. **Word bands (new layer).** Derive from `wordHistory` + `frozenTiles`: one band per scored word record, a 14% tint of the scorer's ink, square ends, inset 20% of a cell on its short axis and 5% on its long axis (clipped to frozen letters for partial freezes). A 1.5px chevron of the scorer's ink, opened to ~150° (arm depth 9% of a cell across the band height), at the end where reading begins: left edge pointing right (`ltr`), right edge pointing left (`rtl`), top pointing down (`ttb`), bottom pointing up (`btt`). A run with two records gets both chevrons. Letters inside a band take the scorer's ink; a letter shared by both seats' words is `--ink` at 700. Bands are `position:absolute` siblings under the cell grid, percent-positioned from cell indices; render as one `<svg>` overlay or as divs with an inline chevron `<svg>` (either is fine; keep it under 60 lines).
 3. **Pick → preview → commit** state machine in `BoardGrid` (replaces `handleTileClick → animateSwap` direct submit):
    - `idle` → tap A → `picked(A)`: letter turns your ink, `scale(1.08)`, inset 2px `--ink` ring, value shows at full ink. Sound `tile-select`.
-   - `picked(A)` → tap B → `preview(A,B)`: the two letters exchange in 150ms; both carry a 2px dotted `--ink` ring; the ledger hint line prints the word total the preview would make (client-side scoring of the visible board, same function as the engine; do not hint new words on the field). Nothing sent.
-   - `preview` → tap A or B, or Enter → `committed`: send `submitSwap`; rings become 2px dashed in your ink (pinned); your lane stops. Sound `valid-swap`, haptic where available.
+   - With the preview setting **on** (off by default): `picked(A)` → tap B → `preview(A,B)`: the two letters exchange in 150ms; both carry a 2px dotted `--ink` ring; the ledger hint line prints the word total the preview would make (client-side scoring of the visible board, same function as the engine; do not hint new words on the field). Nothing sent.
+   - Default (preview off): `picked(A)` → tap B → `committed` directly. With preview on: `preview` → tap A or B, or Enter → `committed`: send `submitSwap`; rings become 2px dashed in your ink (pinned); your lane stops. Sound `valid-swap`, haptic where available.
    - Any state → Esc, tap elsewhere, or tap A again → `idle` (preview reverses). No sound.
    - Setting `instantCommit` (user setting, default off) makes the second tap commit directly.
    - Pointer drag A→B produces `preview(A,B)`.
@@ -74,9 +74,9 @@ Files: `components/game/BoardGrid.tsx`, `components/game/Board.tsx`, `components
 
 **new `components/room/PlayerBar.tsx`** (replaces `HudCard.tsx`, `PlayerPanel.tsx`, `TimerDisplay.tsx`, `PlayerAvatar.tsx`, `MatchCenterChrome.tsx`, `RoundPipBar.tsx`, the mobile compact bars).
 
-Props: `seat: "you" | "opp"`, `position: "top" | "bottom"`, `name`, `rating`, `subline` (string, one line, nowrap), `clockMs`, `clockRunning`, `score`, `laneFraction` (0–1 of 10:00), `state?: "empty" | "searching" | "found" | "playing" | "final"`, `action?: ReactNode` (the primary action when the seat is empty).
+Props: `seat: "you" | "opp"`, `position: "top" | "bottom"`, `name`, `rating`, `subline` (string, one line, nowrap), `clockMs`, `clockRunning`, `score`, `laneFraction` (0–1 of 5:00), `state?: "empty" | "searching" | "found" | "playing" | "final"`, `action?: ReactNode` (the primary action when the seat is empty).
 
-Layout: 60px tall (56px on phones), `grid-template-columns: 1fr auto 1fr`, 16px gap. Left: 12px ink square in the seat colour (dashed outline when the seat is empty) + name (`--font-board` 600 17px) + sub-line (`--font-mono` 11px, 0.12em tracking, uppercase, `--muted`, one line). Centre: mm:ss in `--font-mono` 26px, `--ink` 500 while running, `--muted` 400 when stopped. Right: total in `--font-mono` 40px in the seat colour, or the primary action. The bar's edge nearest the field is a 4px lane: full width = 10:00; filled portion in the seat colour, remainder `--rule`. Under 1:00 the lane is 8px and blinks at 1Hz (colour only); reduced motion holds it solid. Disconnect: lane becomes a 6px/4px dashed pattern in the seat colour and holds; sub-line counts the grace period.
+Layout: 60px tall (56px on phones), `grid-template-columns: 1fr auto 1fr`, 16px gap. Left: 12px ink square in the seat colour (dashed outline when the seat is empty) + name (`--font-board` 600 17px) + sub-line (`--font-mono` 11px, 0.12em tracking, uppercase, `--muted`, one line). Centre: mm:ss in `--font-mono` 26px, `--ink` 500 while running, `--muted` 400 when stopped. Right: total in `--font-mono` 40px in the seat colour, or the primary action. The bar's edge nearest the field is a 4px lane: full width = 5:00; filled portion in the seat colour, remainder `--rule`. Under 1:00 the lane is 8px and blinks at 1Hz (colour only); reduced motion holds it solid. Disconnect: lane becomes a 6px/4px dashed pattern in the seat colour and holds; sub-line counts the grace period.
 
 Use `deriveClockUrgency.ts` for the <1:00 threshold; delete its yellow/red tones.
 
@@ -87,7 +87,7 @@ Use `deriveClockUrgency.ts` for the <1:00 threshold; delete its yellow/red tones
 **new `components/room/Ledger.tsx`** (replaces `MatchLeftRail.tsx`, `HowToPlayCard.tsx`, `LegendCard.tsx`, `YourMoveCard.tsx`, `ScoredWordsCard.tsx`, `TilesClaimedCard.tsx`, `ScoreDeltaPopup.tsx`, `RoundSummaryPanel.tsx`, `RoundHistoryPanel.tsx`, `HudCard` centre chrome, the resign button).
 
 Structure (top → bottom, `display:flex; flex-direction:column`, height = the stack's height, 1.5px `--ink` top rule):
-1. Caption line: `wottle` (`--font-board` 700 16px) left; right in mono uppercase: `ranked · round 4 of 10` (match), `lobby · 4 here`, `ranked · 10 rounds · 10:00 clocks` (queue), `final · 10 rounds · 18:50`.
+1. Caption line: `wottle` (`--font-board` 700 16px) left; right in mono uppercase: `ranked · round 4 of 10` (match), `lobby · 4 here`, `ranked · 10 rounds · 5:00 clocks` (queue), `final · 10 rounds · 18:50`.
 2. Match/final only — column header: `■ Birna · you` / `■ Kári`, 1px `--ink` rule beneath.
 3. Rounds table: CSS grid `34px 1fr 1fr`, `grid-auto-rows: minmax(0,1fr)`, `flex:1`, so ten rows share the available height. Cell: words joined by ` · ` in `--font-board` 600 in the seat colour, wrapping as needed, round total pinned top-right in mono 12px. Empty future rows show only the round label in `#B9B4A6`. Live row: `--tint` background, 3px `--ink` left rule, states `picking · T (2)` / `played ●` / then the words as they land. Hover/tap a row → the field highlights that row's bands (dim others to 6%); per-word points show in the row while hovered.
 4. Post-game only — verdict block above the header: `Kári wins 170–127` (`--font-board` 600 20px) + `by 43 points · 10 words to 8 · territory 32–25` in mono.
@@ -108,7 +108,7 @@ Files: `app/(landing)/page.tsx`, `components/landing/LandingScreen.tsx` (delete)
 1. **Landing** = lobby room with the bottom bar in `state="empty"`: the name slot is an inline underlined input (`your name`), sub-line `no account needed`, primary action `play ▸`. Submitting writes the lobby session and turns the bar into the signed-in bar without navigation.
 2. **Lobby**: top bar `state="empty"` (`No opponent yet`, `ranked · about 0:10 to find one`, action `play ranked ▸`); field is a **warm-up field**: a real random board; pick/preview works and the live row prices the word the preview would make; nothing is submitted or scored. Ledger = `LobbyLedger`. Challenge from the directory starts an unranked match with that player (existing challenge path).
 3. **Queue**: top bar `state="searching"` (`Finding an opponent`, `ranked · 0:07 · cancel ▸`, a 12%-wide coral segment travelling the lane at 1 cycle/3s). The field **sets itself**: the next match's letters land in reading order at ~100ms each (if the server only sends the board on match start, set a placeholder board and swap letters that differ when the real one arrives). Ledger rows empty; live row `setting the field · 58 of 100 letters · an opponent joins when the last one lands`; foot `cancel ▸`.
-4. **Found**: the top bar writes the name/rating in (200ms), lane fills to 10:00, sub-line counts `round 1 in 3 · 2 · 1`; then `state="match"`. No versus screen, no route flash.
+4. **Found**: the top bar writes the name/rating in (200ms), lane fills to 5:00, sub-line counts `round 1 in 3 · 2 · 1`; then `state="match"`. No versus screen, no route flash.
 5. **Final**: field freezes with all bands; bars show final totals and `1191 → 1203 · +12 · wins` / `1204 → 1192 · −12` sub-lines; ledger shows the verdict block, all rows, territory, the rematch notice when requested, and actions `rematch ▸ · new opponent ▸ · lobby`. Rating pending: sub-line `rating pending`. The field stays until the player leaves.
 6. **Disconnect**: opponent bar sub-line `reconnecting · 0:42 left`, lane dashed and held; your clock holds too. No overlay.
 
@@ -122,15 +122,15 @@ Files: `components/profile/*`. Replace `ProfileSidebar`, `ProfileStat`, `Profile
 
 ## 9. Copy
 
-All copy in `WOTTLE_DESIGN_SYSTEM.md §8`. Replace: `Ranked · 5+0 · Icelandic nouns` → `ranked · 10 rounds · 10:00 clocks`; `outrun the chess clock` and the hero paragraph → removed with the hero; `Move submitted — waiting for opponent` → removed (lane holds instead); `Hidden from opponent until both submit` → removed (it is false since #210); `wants a rematch!` → `asks for a rematch · accept ▸ · decline`; first-match text: `Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds ten minutes for all of them.` No exclamation marks anywhere.
+All copy in `WOTTLE_DESIGN_SYSTEM.md §8`. Replace: `Ranked · 5+0 · Icelandic nouns` → `ranked · 10 rounds · 5:00 clocks`; `outrun the chess clock` and the hero paragraph → removed with the hero; `Move submitted — waiting for opponent` → removed (lane holds instead); `Hidden from opponent until both submit` → removed (it is false since #210); `wants a rematch!` → `asks for a rematch · accept ▸ · decline`; first-match text: `Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds five minutes for all of them.` No exclamation marks anywhere.
 
 ---
 
 ## 10. Tests and acceptance
 
-- **Unit**: seat colour mapping; band geometry (direction → chevron edge; both → two chevrons; partial freeze clipping); preview scoring equals engine scoring for the same board; ledger fold rule.
+- **Unit**: seat colour mapping; band geometry (direction → chevron edge; one record per run, so one chevron per band; partial freeze clipping); preview scoring equals engine scoring for the same board; ledger fold rule.
 - **Playwright** (`tests/e2e` two-player flow): update selectors from `hud-card`, `round-pip-bar`, `your-move-card`, `scored-words-card`, `tiles-claimed-card`, `lock-banner`, `round-announce`, `match-ring`, `post-game-scoreboard-card`, `rematch-banner` to `player-bar-top`, `player-bar-bottom`, `ledger`, `ledger-live-row`, `field`, `field-band`, `verdict`. Add: pick → preview → commit; Esc cancels a preview; opponent pin arrives during preview; rematch notice in the live row; landing name entry without navigation.
-- **Visual acceptance** (compare to the figures): no element overlaps the field; ledger height equals the stack height at ≥1100px and its foot is flush with the bottom bar; no scrolling on a 1440×900 window with browser chrome; field ≥ 560px at 1280×800; phone portrait shows bar / field / bar / live row without scrolling on 390×844; every colour on screen is one of the seven tokens; grep for `rounded-`, `shadow-`, `gradient`, `emerald`, `red-`, `amber`, `Fraunces`, `Inter`, `JetBrains` returns nothing in `app/` and `components/`.
+- **Visual acceptance** (compare to the figures): no element overlaps the field; ledger height equals the stack height at ≥1100px and its foot is flush with the bottom bar; no scrolling on a 1440×900 window with browser chrome; field ≥ 560px at 1280×800; phone portrait shows bar / field / bar / live row without scrolling on 390×844; every colour on screen is one of the eight tokens; a **case-insensitive** grep for `rounded-`, `shadow-`, `gradient`, `emerald`, `red-`, `amber`, `fraunces`, `inter`, `jetbrains` and the retired colour families returns nothing in `app/` and `components/`.
 - **Accessibility**: cells have coordinate + letter + state in `aria-label`; arrow keys move focus on the field, Space picks/previews, Enter commits; lanes have `role="progressbar"` with `aria-valuetext="6:45 remaining"`; live row is `aria-live="polite"`; contrast: mono labels use `--muted` (5.7:1 on paper), never lighter.
 
 ---
@@ -150,10 +150,21 @@ Each step ends with: the acceptance greps for that step's removed components ret
 
 ---
 
-## 12. Open decisions the team must make before P3/P4
+## 12. Decisions — all settled
 
-1. Preview → commit default on (recommended) or instant-commit default, given first-submission-wins conflicts.
-2. What 0:00 on a clock means for the remaining rounds.
-3. Queue field: does the player see the real match board while waiting (recommended, symmetric for both) or a placeholder that is replaced on match start?
-4. Whether the warm-up field ever keeps score (recommended: no).
-5. Ranked challenges from the directory (recommended: unranked only for now).
+Nothing here is open. The first five were taken on **14 September 2026** and
+shipped with spec 044; the last three on **15 September 2026** and shipped with
+spec 045. Where this bundle and a decision disagreed, the bundle has been
+corrected — these are the corrections.
+
+| # | Question | Decision | Where it shows |
+| --- | --- | --- | --- |
+| 1 | Preview on by default, or instant commit? | **Instant commit.** The second tap plays. Preview is opt-in from the `⋯` menu and persists with the sound setting; it is priced by a read-only Server Action, because the 55MB dictionary cannot ship to the browser. | §4.3, §5 |
+| 2 | What does 0:00 mean for the rounds that remain? | **A timeout pass** in each of them. The player keeps their score and territory; both at 0:00 ends the match. The bar renders `0:00` with an empty lane. | rules §2a |
+| 3 | Does the queue show the real board or a placeholder? | **A placeholder**, seeded per player; the letters that differ swap in when the real board arrives. The live-row clause *an opponent joins when the last one lands* is dropped. | §7 |
+| 4 | Does the warm-up field keep score? | **No.** It swaps locally and prices only when signed in with preview on. | §7 |
+| 5 | Are directory challenges ranked? | **Unranked** (15 September). Choosing your own opponent must not move a rating. `matches.rated` is false for an invite-created match and is inherited by its rematches; captions read `unranked` and the lobby offers `challenge for an unranked match`. This supersedes spec 044's clarification that every match is rated. | §8, spec 045 |
+| 6 | The clock budget | **5:00 per player for the whole match** (14 September), `aria-valuemax=300`. | §5.3, §8, §9 |
+| 7 | A run valid in both directions | **Scores once**, read forward, so every band carries exactly one chevron. | §5.2, rules §3.1 |
+| 8 | Coral as text below 17px (3.4:1) | **`--opp-text` `#C2402A`** (15 September), a text-only eighth value at 5.1:1. Letters, lanes, totals and squares keep `--opp`. | §2 |
+| 9 | The value numeral at phone cell sizes | **`max(9px, 18%)`**, hidden below a 32px cell (15 September); the `aria-label` still carries the value. | §5.1 |

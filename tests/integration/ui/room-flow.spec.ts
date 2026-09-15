@@ -199,3 +199,51 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
   });
 });
 
+/**
+ * Spec 045 US5. These need a live move, so they stay in the Supabase-backed
+ * suite: the fixture route is static by design and dispatches nothing.
+ */
+test.describe("@room-flow US5 the hand and the keyboard", () => {
+  test("drag commits a swap; tapping the ledger cancels a pick; ? and M reach the room", async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    try {
+      const userA = generateTestUsername("drag-a");
+      const userB = generateTestUsername("drag-b");
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
+      await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
+      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+
+      // ? opens the rules, wherever focus is. Target the kind: a first match
+      // already shows its own rules line, so `ledger-notice` is ambiguous.
+      await pageA.keyboard.press("?");
+      await expect(pageA.locator('[data-kind="firstMatchRules"]').first()).toBeVisible();
+
+      // A pick cancels when the pointer goes down outside the field.
+      await pageA.locator('[data-x="3"][data-y="3"]').click();
+      await expect(pageA.locator('[data-x="3"][data-y="3"]')).toHaveAttribute("data-state", "picked");
+      await pageA.getByTestId("ledger-caption").click();
+      await expect(pageA.locator('[data-state="picked"]')).toHaveCount(0);
+
+      // Drag A onto B commits that swap, without leaving a letter picked.
+      const a = pageA.locator('[data-x="0"][data-y="0"]');
+      const b = pageA.locator('[data-x="1"][data-y="0"]');
+      const boxA = (await a.boundingBox())!;
+      const boxB = (await b.boundingBox())!;
+      await pageA.mouse.move(boxA.x + boxA.width / 2, boxA.y + boxA.height / 2);
+      await pageA.mouse.down();
+      await pageA.mouse.move(boxB.x + boxB.width / 2, boxB.y + boxB.height / 2, { steps: 8 });
+      await pageA.mouse.up();
+
+      await expect(a).toHaveAttribute("data-state", "pinned", { timeout: 10_000 });
+      await expect(b).toHaveAttribute("data-state", "pinned");
+      await expect(pageA.getByTestId("ledger-live-row")).toContainText("played");
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+});

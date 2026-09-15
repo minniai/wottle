@@ -15,16 +15,29 @@ describe("seat colours (design system §2)", () => {
     expect(seatForSlot(null, "player_b")).toBe("opp");
   });
 
-  test("colours are CSS variable references to the seven-token set", () => {
+  test("colours are CSS variable references to the palette", () => {
     expect(getSeatColors("you")).toEqual({
       ink: "var(--you)",
       band: "var(--you-band)",
       live: "var(--you-live)",
+      text: "var(--you)",
     });
     expect(getSeatColors("opp")).toEqual({
       ink: "var(--opp)",
       band: "var(--opp-band)",
       live: "var(--opp-live)",
+      text: "var(--opp-text)",
     });
+  });
+
+  test("gives the opponent a text colour that passes AA below 17px (spec 045 decision 2)", () => {
+    // Teal is 4.9:1 on paper and needs no variant; coral is 3.4:1 and does.
+    expect(getSeatColors("you").text).toBe("var(--you)");
+    expect(getSeatColors("opp").text).toBe("var(--opp-text)");
+  });
+
+  test("keeps ink for everything that is not small text", () => {
+    expect(getSeatColors("opp").ink).toBe("var(--opp)");
+    expect(getSeatColors("you").ink).toBe("var(--you)");
   });
 });

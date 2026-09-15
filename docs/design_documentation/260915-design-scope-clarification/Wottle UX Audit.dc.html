@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Red+Hat+Mono:wght@400;500;600&display=swap">
+<style>
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:300 900;font-display:swap;src:url(./fonts/fraunces-02.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:'Fraunces';font-style:italic;font-weight:300 900;font-display:swap;src:url(./fonts/fraunces-02.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;src:url(./fonts/inter-09.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(./fonts/jetbrainsmono-15.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url(./fonts/jetbrainsmono-15.woff2) format('woff2');unicode-range:U+0000-00FF,U+2000-206F}
+html,body{margin:0;background:#FFFDF7;color:#0F1A24}
+body{-webkit-font-smoothing:antialiased;text-wrap:pretty}
+a{color:#0F1A24;text-decoration:underline;text-decoration-color:#B9B4A6;text-underline-offset:3px}
+a:hover{color:#147D7A;text-decoration-color:#147D7A}
+ol,ul{margin:0}
+</style>
+</helmet>
+
+<div style="font-family:'Alegreya',Georgia,serif;font-size:18px;line-height:1.55;color:#0F1A24;background:#FFFDF7;min-height:100vh">
+<div style="max-width:1120px;margin:0 auto;padding:56px 32px 120px">
+
+<!-- ───────── HEADER ───────── -->
+<header data-screen-label="Cover" style="display:flex;flex-wrap:wrap;gap:24px 40px;align-items:flex-end;padding-bottom:40px;border-bottom:1px solid #0F1A24">
+  <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">Wottle<br>Game UX audit<br>September 2026</div>
+  <div style="flex:1 1 520px;min-width:0">
+    <h1 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:clamp(40px,6vw,64px);line-height:1;letter-spacing:-0.01em">The field, the bars and&nbsp;the ledger</h1>
+    <p style="margin:20px 0 0;font-size:22px;line-height:1.4;max-width:680px">An audit of Wottle as it is built today, and a proposal to rebuild the whole game — lobby, queue, match, result and profile — around the field, two player bars and a ledger, and nothing else.</p>
+    <p style="margin:20px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;color:#5A6572">Read from source: components/match/*, components/game/*, app/styles/board.css, lib/constants/*, docs/prd_and_requirements/wottle_game_rules.md, docs/superpowers/specs (O-59, O-71), ds-bundle render sheets.</p>
+  </div>
+</header>
+
+<!-- ───────── CONTENTS ───────── -->
+<nav style="display:flex;flex-wrap:wrap;gap:8px 28px;padding:20px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.04em">
+  <a href="#s1" style="text-decoration:none">01 What the game is</a>
+  <a href="#s2" style="text-decoration:none">02 The panel as built</a>
+  <a href="#s3" style="text-decoration:none">03 Findings</a>
+  <a href="#s4" style="text-decoration:none">04 Proposal</a>
+  <a href="#s5" style="text-decoration:none">05 Round choreography</a>
+  <a href="#s6" style="text-decoration:none">06 Layouts</a>
+  <a href="#s7" style="text-decoration:none">07 Interaction spec</a>
+  <a href="#s8" style="text-decoration:none">08 Migration</a>
+  <a href="#s9" style="text-decoration:none">09 The rest of the game</a>
+</nav>
+
+<!-- ───────── 01 WHAT THE GAME IS ───────── -->
+<section id="s1" data-screen-label="01 What the game is" style="display:flex;flex-wrap:wrap;gap:24px 40px;padding:56px 0 48px">
+  <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">01<br>What the game is</div>
+  <div style="flex:1 1 520px;min-width:0;max-width:720px">
+    <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Ten minutes, ten swaps, a hundred letters</h2>
+    <p style="margin:20px 0 0">Wottle asks one thing of a player every round: find, among a hundred letters, the single swap that makes the most valuable word, and make it before the other player does. Everything else on the screen exists either to support that act or to record its result. That is the test every element has to pass.</p>
+    <p style="margin:16px 0 0">A match is ten rounds. Each player has one ten-minute clock for the whole match; it runs while their move for the round is open and stops when they submit, so time spent on this round is taken from the rounds to come. The game rests on three skills and two resources.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:#DDD9CE;border:1px solid #DDD9CE;margin:28px 0 0">
+      <div style="background:#FFFDF7;padding:18px 20px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Skill · Scanning</div><p style="margin:8px 0 0;font-size:16px;line-height:1.5">Word-search perception. The eye runs rows and columns looking for near-words. The field must be a clean text to read, not a set of objects to inspect.</p></div>
+      <div style="background:#FFFDF7;padding:18px 20px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Skill · Valuation</div><p style="margin:8px 0 0;font-size:16px;line-height:1.5">Letter points (Krafla table, Þ&nbsp;7, X&nbsp;10) plus (length−2)×5 plus a combo bonus. Valuation happens after a candidate is found, never while scanning.</p></div>
+      <div style="background:#FFFDF7;padding:18px 20px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Skill · Timing</div><p style="margin:8px 0 0;font-size:16px;line-height:1.5">The first submission wins coordinate conflicts and freezes tiles instantly, denying them to the opponent. Speed is rewarded twice: it takes letters from the opponent and it banks clock for later rounds.</p></div>
+      <div style="background:#FFFDF7;padding:18px 20px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Resource · Time</div><p style="margin:8px 0 0;font-size:16px;line-height:1.5">One 10:00 clock per player, running only while your move is open. A long think now is borrowed from the rounds to come, and the opponent's clock tells you whether they can afford one.</p></div>
+      <div style="background:#FFFDF7;padding:18px 20px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Resource · Territory</div><p style="margin:8px 0 0;font-size:16px;line-height:1.5">Scored letters freeze in the scorer's colour. Territory shrinks the field, feeds the tiebreak, and, by rule §3.5a, always comes in whole words of three or more.</p></div>
+      <div style="background:#FFFDF7;padding:18px 20px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Rhythm · A round</div><p style="margin:8px 0 0;font-size:16px;line-height:1.5">Set → think → commit → reveal → settle. Five beats, ten times. The panel's job is to make each beat unmistakable with exactly one signal.</p></div>
+    </div>
+
+    <h3 style="margin:40px 0 0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Principles derived from the rules</h3>
+    <ol style="margin:12px 0 0;padding:0 0 0 28px;display:flex;flex-direction:column;gap:10px">
+      <li><strong>The field is the game.</strong> Nothing covers it, nothing competes with it, and nothing on it that is not a letter or a state of a letter. What frames it above and below belongs to the two players and to nothing else.</li>
+      <li><strong>Show words, not tiles.</strong> Territory is stored per tile but earned per word. Draw the word.</li>
+      <li><strong>Two budgets, one scale.</strong> Both clocks are match-long budgets. Draw them as two lengths on one axis so who can afford to think is a glance, and keep the numerals in the ledger.</li>
+      <li><strong>One ledger.</strong> Every number about the match (scores, rounds, words, territory) lives in one scorecard, in one place, in one register.</li>
+      <li><strong>Colour is identity.</strong> Two inks belong to the two seats: you are always teal, the opponent always coral. The system itself speaks only in ink and paper; alarm is weight and motion, not a third hue.</li>
+      <li><strong>Each beat has one signal.</strong> A round announcement, a lock banner, a ring flash, a popup and a list update for the same event is five signals for one fact.</li>
+      <li><strong>Teach once, then leave.</strong> Rules are for the first match and a help key, not for the panel of every match.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ───────── 02 THE PANEL AS BUILT ───────── -->
+<section id="s2" data-screen-label="02 The panel as built" style="padding:48px 0 0;border-top:1px solid #DDD9CE">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">02<br>The panel as built</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Fourteen objects around a hundred letters</h2>
+      <p style="margin:20px 0 0">The desktop match screen, recreated from <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">MatchClient.tsx</span>, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">board.css</span> and the rail card components, at the moment Birna (player A) has picked her first tile in round 4 and Kári (player B) has already played. Values, spacing and colours are the production tokens.</p>
+    </div>
+  </div>
+
+  <!-- AS-IS DESKTOP MOCK -->
+  <div data-measure="asis" style="width:100%;margin:36px 0 0;border:1px solid #DDD9CE;overflow:hidden;background:oklch(0.975 0.012 85)">
+  <div style="width:1320px;zoom: {{ asisZoom }};font-family:'Inter',system-ui,sans-serif;color:oklch(0.22 0.025 258)">
+    <!-- TopBar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:color-mix(in oklab, oklch(0.975 0.012 85) 85%, transparent)">
+      <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Fraunces',serif;font-style:italic;font-size:22px;letter-spacing:-0.02em;line-height:1">Wottle</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.52 0.02 258)">word · battle</span></div>
+      <div style="display:flex;align-items:center;gap:20px;font-size:13px;color:oklch(0.38 0.024 258)"><span>Lobby</span><span>Profile</span><span style="width:1px;height:20px;background:color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent)"></span><span style="display:flex;align-items:center;gap:8px"><span style="width:24px;height:24px;border-radius:50%;background:oklch(0.68 0.14 60);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">B</span>Birna <span style="font-size:10px">▾</span></span></div>
+    </div>
+    <div style="margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <!-- HUD strip -->
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center">
+        <div style="position:relative;padding:16px 18px;background:oklch(0.975 0.012 85);border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);border-radius:12px;display:flex;align-items:center;gap:14px;overflow:hidden;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:oklch(0.68 0.14 60)"></div>
+          <div style="width:32px;height:32px;border-radius:50%;background:oklch(0.68 0.14 60);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">B</div>
+          <div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:15px;font-weight:500;line-height:1.1">Birna</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.52 0.02 258);margin-top:3px">You · 1204</span></div>
+          <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:700;line-height:1;letter-spacing:0.01em;padding:6px 12px;border-radius:8px;font-variant-numeric:tabular-nums;background:color-mix(in oklab, oklch(0.62 0.12 150) 15%, oklch(0.975 0.012 85));color:color-mix(in oklab, oklch(0.62 0.12 150) 80%, oklch(0.22 0.025 258));border:1px solid color-mix(in oklab, oklch(0.62 0.12 150) 40%, transparent)">6:45</span>
+          <span style="font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:34px;line-height:1;font-variant-numeric:tabular-nums">57</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 16px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Round 4 / 10</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="width:22px;height:3px;border-radius:2px;background:oklch(0.29 0.027 258)"></span><span style="width:22px;height:3px;border-radius:2px;background:oklch(0.29 0.027 258)"></span><span style="width:22px;height:3px;border-radius:2px;background:oklch(0.29 0.027 258)"></span><span style="width:22px;height:5px;border-radius:2px;background:oklch(0.58 0.14 60)"></span><span style="width:22px;height:3px;border-radius:2px;background:color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent)"></span><span style="width:22px;height:3px;border-radius:2px;background:color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent)"></span><span style="width:22px;height:3px;border-radius:2px;background:color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent)"></span><span style="width:22px;height:3px;border-radius:2px;background:color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent)"></span><span style="width:22px;height:3px;border-radius:2px;background:color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent)"></span><span style="width:22px;height:3px;border-radius:2px;background:color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent)"></span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Your move · swap two tiles</span>
+        </div>
+        <div style="position:relative;padding:16px 18px;background:oklch(0.975 0.012 85);border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);border-radius:12px;display:flex;align-items:center;gap:14px;overflow:hidden;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+          <div style="position:absolute;right:0;top:0;bottom:0;width:3px;background:oklch(0.56 0.08 220)"></div>
+          <span style="font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:34px;line-height:1;font-variant-numeric:tabular-nums">59</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:700;line-height:1;letter-spacing:0.01em;padding:6px 12px;border-radius:8px;font-variant-numeric:tabular-nums;background:color-mix(in oklab, oklch(0.7 0.15 40) 16%, oklch(0.975 0.012 85));color:color-mix(in oklab, oklch(0.7 0.15 40) 80%, oklch(0.22 0.025 258));border:1px solid color-mix(in oklab, oklch(0.7 0.15 40) 50%, transparent)">4:31</span>
+          <div style="display:flex;flex-direction:column;min-width:0;margin-left:auto;align-items:flex-end;text-align:right"><span style="font-size:15px;font-weight:500;line-height:1.1">Kári</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.52 0.02 258);margin-top:3px">Opponent · 1191</span></div>
+          <div style="width:32px;height:32px;border-radius:50%;background:oklch(0.56 0.08 220);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">K</div>
+        </div>
+      </div>
+      <!-- board row -->
+      <div style="display:grid;grid-template-columns:18rem auto 20rem;gap:24px;align-items:start;justify-content:center">
+        <!-- left rail -->
+        <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div style="border-radius:12px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:16px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">How to play</div>
+            <ol style="margin:10px 0 0;padding-left:20px;font-size:13px;line-height:1.7;color:oklch(0.38 0.024 258)"><li>Tap any unfrozen tile.</li><li>Tap a second tile to swap.</li><li>New 3+ letter words in any direction score.</li><li>Claimed letters freeze in your color.</li></ol>
+          </div>
+          <div style="border-radius:12px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:16px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Legend</div>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:oklch(0.38 0.024 258)">
+              <div style="display:flex;align-items:center;gap:12px"><span style="width:22px;height:22px;border-radius:4px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:color-mix(in oklab, oklch(0.92 0.06 70) 75%, oklch(0.975 0.012 85));box-shadow:inset 3px 0 0 oklch(0.68 0.14 60)"></span>Your territory</div>
+              <div style="display:flex;align-items:center;gap:12px"><span style="width:22px;height:22px;border-radius:4px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:color-mix(in oklab, oklch(0.92 0.035 220) 75%, oklch(0.975 0.012 85));box-shadow:inset 3px 0 0 oklch(0.56 0.08 220)"></span>Opponent's territory</div>
+              <div style="display:flex;align-items:center;gap:12px"><span style="width:22px;height:22px;border-radius:4px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:linear-gradient(135deg, oklch(0.92 0.06 70) 50%, oklch(0.92 0.035 220) 50%)"></span>Shared letter</div>
+            </div>
+          </div>
+          <div style="border-radius:12px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:16px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Your move</div>
+            <div style="margin-top:10px;font-size:13px;line-height:1.6;color:oklch(0.38 0.024 258)">Picked <b style="font-family:'JetBrains Mono',monospace;font-weight:500;color:oklch(0.22 0.025 258)">F8</b>. Pick a second.</div>
+          </div>
+          <div style="border-radius:12px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:16px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:oklch(0.68 0.14 60)"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Your words</span></div>
+            <div style="margin-top:8px;font-size:13px;color:oklch(0.38 0.024 258)">
+              <div style="padding:6px 0"><div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Round 3</div><div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-family:'JetBrains Mono',monospace;letter-spacing:0.03em">SKÁLD</span><span style="color:oklch(0.52 0.02 258)">+28</span></div></div>
+              <div style="padding:6px 0;border-top:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent)"><div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Round 2</div><div style="font-size:11px;font-style:italic;color:color-mix(in oklab, oklch(0.52 0.02 258) 50%, transparent)">no words</div></div>
+              <div style="padding:6px 0;border-top:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent)"><div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Round 1</div><div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-family:'JetBrains Mono',monospace;letter-spacing:0.03em">BORÐA</span><span style="color:oklch(0.52 0.02 258)">+29</span></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- board with coord labels -->
+        <div style="width:608px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;gap:4px">
+          <div style="grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(10,1fr);padding:0 16px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:oklch(0.52 0.02 258);text-align:center"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>I</span><span>J</span></div>
+          <div style="grid-column:1;grid-row:2;display:grid;grid-template-rows:repeat(10,1fr);padding:16px 0;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;color:oklch(0.52 0.02 258);align-items:center;text-align:center;width:14px"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+          <div style="grid-column:2;grid-row:2;min-width:0;position:relative;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6.5px;padding:16px;border-radius:16px;aspect-ratio:1;background:linear-gradient(145deg, color-mix(in oklab, oklch(0.975 0.012 85) 92%, transparent), color-mix(in oklab, oklch(0.975 0.012 85) 77%, transparent));box-shadow:inset 0 1px 0 color-mix(in oklab, oklch(0.68 0.14 60) 8%, transparent), 0 18px 28px -24px color-mix(in oklab, oklch(0.68 0.14 60) 50%, transparent)">
+            <sc-for list="{{ asisCells }}" as="c" hint-placeholder-count="100">
+              <div style="position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-width:0;border-radius:0.65rem;background: {{ c.bg }};border: {{ c.border }};box-shadow: {{ c.shadow }};color:oklch(0.22 0.025 258);font-weight:500;font-size:29px;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;bottom:2px;right:4px;font-size:10px;opacity:0.5;line-height:1">{{ c.value }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <!-- right rail -->
+        <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div style="border-radius:12px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:16px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Tiles claimed</div>
+            <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">You</div><div style="font-family:'Fraunces',serif;font-style:italic;font-size:32px;line-height:1;color:oklch(0.48 0.14 55)">10</div></div>
+              <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Opponent</div><div style="font-family:'Fraunces',serif;font-style:italic;font-size:32px;line-height:1;color:oklch(0.38 0.08 220)">12</div></div>
+            </div>
+            <div style="margin-top:12px;display:flex;height:6px;gap:4px;overflow:hidden;border-radius:4px"><div style="flex:10;background:oklch(0.68 0.14 60)"></div><div style="flex:12;background:oklch(0.56 0.08 220)"></div><div style="flex:78;background:oklch(0.925 0.016 80)"></div></div>
+          </div>
+          <div style="border-radius:12px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:16px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)">
+            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:oklch(0.56 0.08 220)"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Opponent's words</span></div>
+            <div style="margin-top:8px;font-size:13px;color:oklch(0.38 0.024 258)">
+              <div style="padding:6px 0"><div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Round 3</div><div style="font-size:11px;font-style:italic;color:color-mix(in oklab, oklch(0.52 0.02 258) 50%, transparent)">no words</div></div>
+              <div style="padding:6px 0;border-top:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent)"><div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Round 2</div><div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-family:'JetBrains Mono',monospace;letter-spacing:0.03em">VINUR</span><span style="color:oklch(0.52 0.02 258)">+25</span></div><div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-family:'JetBrains Mono',monospace;letter-spacing:0.03em">UNA</span><span style="color:oklch(0.52 0.02 258)">+9</span></div></div>
+              <div style="padding:6px 0;border-top:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent)"><div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:oklch(0.52 0.02 258)">Round 1</div><div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-family:'JetBrains Mono',monospace;letter-spacing:0.03em">ÞOKA</span><span style="color:oklch(0.52 0.02 258)">+25</span></div></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px"><div style="flex:1;border-radius:8px;border:1px solid rgba(248,113,113,0.5);padding:8px 12px;font-size:14px;color:#dc2626;text-align:center">Resign</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 1 — Desktop match screen as built (≥900px). TopBar.tsx · HudCard.tsx · MatchCenterChrome.tsx · RoundPipBar.tsx · MatchLeftRail.tsx (HowToPlayCard, LegendCard, YourMoveCard) · ScoredWordsCard.tsx ×2 · TilesClaimedCard.tsx · BoardCoordLabels.tsx · BoardGrid.tsx.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:40px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Census of the panel</h3>
+      <div style="margin:14px 0 0;display:grid;grid-template-columns:minmax(0,1fr) auto;border-top:1px solid #0F1A24;font-size:16px">
+        <div style="padding:10px 0;border-bottom:1px solid #DDD9CE">Persistent objects around the field (top bar, 2 HUD cards, centre chrome, 7 rail cards, resign)</div><div style="padding:10px 0 10px 24px;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;text-align:right">14</div>
+        <div style="padding:10px 0;border-bottom:1px solid #DDD9CE">…of which change state during a round (two clocks, "Your move")</div><div style="padding:10px 0 10px 24px;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;text-align:right">3</div>
+        <div style="padding:10px 0;border-bottom:1px solid #DDD9CE">Large numerals in the HUD strip (two 36px clocks, two 34px scores)</div><div style="padding:10px 0 10px 24px;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;text-align:right">4</div>
+        <div style="padding:10px 0;border-bottom:1px solid #DDD9CE">Places the round number is shown (label, pip bar, "R4" on each mobile bar)</div><div style="padding:10px 0 10px 24px;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;text-align:right">3</div>
+        <div style="padding:10px 0;border-bottom:1px solid #DDD9CE">Glyphs on the field that are not letters (letter values ×100, coordinate labels ×20)</div><div style="padding:10px 0 10px 24px;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;text-align:right">120</div>
+        <div style="padding:10px 0;border-bottom:1px solid #DDD9CE">Distinct signals fired by one round resolution (FLIP, ring flash, held ring, delta popup, card update ×3, announce overlay)</div><div style="padding:10px 0 10px 24px;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;text-align:right">8</div>
+        <div style="padding:10px 0;border-bottom:1px solid #DDD9CE">Meanings carried by the colour ochre (brand, player A, current pip, waiting clock, lock banner, waiting frame)</div><div style="padding:10px 0 10px 24px;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;text-align:right">6</div>
+      </div>
+      <p style="margin:20px 0 0">The panel is not ugly. It is a well-made magazine page with a puzzle in the middle. The trouble is that the puzzle is the game, and the page keeps talking.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── 03 FINDINGS ───────── -->
+<section id="s3" data-screen-label="03 Findings" style="padding:48px 0 0;border-top:1px solid #DDD9CE;margin-top:48px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">03<br>Findings</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Nineteen findings in the match, four of them bugs</h2>
+      <p style="margin:20px 0 0">Each finding names the file it was read from. Tags: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;background:#0F1A24;color:#FFFDF7;padding:1px 6px">BUG</span> is wrong today, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;border:1px solid #0F1A24;padding:0 6px">NOISE</span> competes with the field, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;border:1px solid #0F1A24;padding:0 6px">REDUNDANT</span> repeats a fact already shown, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;border:1px solid #0F1A24;padding:0 6px">RISK</span> costs the player a round or a match.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;border-top:1px solid #0F1A24">
+    <sc-for list="{{ findings }}" as="f" hint-placeholder-count="6">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline">
+        <div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">{{ f.id }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background: {{ f.tagBg }};color: {{ f.tagFg }}">{{ f.tag }}</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">{{ f.group }}</div></div>
+        <div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">{{ f.title }}</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">{{ f.body }}</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">{{ f.src }}</div></div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- ───────── 04 PROPOSAL ───────── -->
+<section id="s4" data-screen-label="04 Proposal" style="padding:48px 0 0;border-top:1px solid #DDD9CE;margin-top:48px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">04<br>Proposal</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Field, two bars, ledger</h2>
+      <p style="margin:20px 0 0">Everything the panel currently does is re-homed into three places, arranged as online chess arranges them. The <strong>field</strong> is the hundred letters and the state of each letter. Two <strong>player bars</strong> frame it, the opponent's above and yours below, each carrying only what belongs to that player: name, rating, clock and total, with the bar's edge nearest the field serving as that player's clock lane. The <strong>ledger</strong> beside them holds what belongs to the match: round, words, territory and the two quiet controls. There are no cards, no top bar, no overlays and no third colour. Opponent above, self below is the arrangement every board-game player already knows; the eye finds the opponent's time exactly where it finds the opponent.</p>
+      <div style="margin:24px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:#DDD9CE;border:1px solid #DDD9CE;font-size:15px;line-height:1.45">
+        <div style="background:#FFFDF7;padding:16px 18px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px">Field</div><div style="margin-top:6px;color:#5A6572;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase">replaces</div><div style="margin-top:4px">Board grid, letterpress tiles, coordinate labels, letter-value numerals, lock banner, round-announce overlay, legend card</div></div>
+        <div style="background:#FFFDF7;padding:16px 18px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px">Bars</div><div style="margin-top:6px;color:#5A6572;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase">replaces</div><div style="margin-top:4px">Both HUD cards, both mobile player bars, both clocks and timer pills, five clock tones, the pulsing "waiting" frame</div></div>
+        <div style="background:#FFFDF7;padding:16px 18px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px">Ledger</div><div style="margin-top:6px;color:#5A6572;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase">replaces</div><div style="margin-top:4px">Centre chrome, pip bar, "Your move", "Your words", "Opponent's words", "Tiles claimed", score-delta popup, history modal, resign button, top bar</div></div>
+      </div>
+
+      <h3 style="margin:44px 0 0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Identity: set in type, marked in two inks</h3>
+      <p style="margin:12px 0 0">Warm Editorial borrows its look from magazines. The proposal takes its look from the game's own material: a printed word-search page, set in a slab serif so Þ, Ð, Æ and Ö carry weight, marked up by two players with two inks. Paper and ink are the system; coral and teal are the players. No gradients, no shadows, no rounded cards, no italic display type.</p>
+    </div>
+  </div>
+
+  <!-- palette + specimen -->
+  <div style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:stretch">
+    <div style="border:1px solid #0F1A24;padding:20px">
+      <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Palette · five values, no more</div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px">
+        <div><div style="height:56px;background:#FFFDF7;border:1px solid #0F1A24"></div><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;line-height:1.5">paper<br>#FFFDF7</div></div>
+        <div><div style="height:56px;background:#0F1A24"></div><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;line-height:1.5">ink<br>#0F1A24</div></div>
+        <div><div style="height:56px;background:#E6E2D6"></div><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;line-height:1.5">rule<br>#E6E2D6</div></div>
+        <div><div style="height:56px;background:#147D7A"></div><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;line-height:1.5">teal · you<br>#147D7A</div></div>
+        <div><div style="height:56px;background:#E4573D"></div><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;line-height:1.5">coral · opponent<br>#E4573D</div></div>
+      </div>
+      <p style="margin:14px 0 0;font-size:15px;line-height:1.5">Inks belong to seats, not to accounts: you are always teal, the opponent always coral, on every device and in every match, so your own words are the same colour every time you play. Inks are used at full strength for letters and at 14% as the tint of a settled word. There is no alarm colour: urgency is thickness, size and blink in ink. Coral and teal are separable for the common colour-vision deficiencies and also differ in lightness, so runs read apart in greyscale.</p>
+    </div>
+    <div style="border:1px solid #0F1A24;padding:20px;display:flex;flex-direction:column">
+      <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">Type · Zilla Slab for letters, Red Hat Mono for numbers</div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:0.04em">ÞÐÆÖÝ<br><span style="color:#147D7A">SKÁLD</span> <span style="color:#E4573D">KÝR</span></div>
+      <div style="margin-top:14px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:22px;letter-spacing:0.02em">57 · R4 · 50 &nbsp; +18 &nbsp; 0:09</div>
+      <p style="margin:14px 0 0;font-size:15px;line-height:1.5;max-width:520px">A slab's even stroke and flat serifs keep a hundred capitals aligned like set type, and its Icelandic glyphs are drawn, not borrowed. The mono carries every numeral so digits line up in the ledger. Body copy outside the match (lobby, profile) can stay in a text face; the match itself uses only these two.</p>
+    </div>
+  </div>
+
+  <!-- PROPOSAL DESKTOP MOCK -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">The match screen, rebuilt</h3>
+      <p style="margin:12px 0 0">The same moment as Fig. 1: round 4, Birna has 6:45 on her clock and has picked <em>T</em>; Kári has 4:31 and has played. Fourteen objects have become a field, two bars and a ledger.</p>
+    </div>
+  </div>
+  <div data-measure="prop" style="width:100%;margin:24px 0 0;border:1px solid #0F1A24;overflow:hidden;background:#FFFDF7">
+  <div style="width:1180px;zoom: {{ mockZoom }};padding:36px 44px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:56px;align-items:start;box-sizing:border-box">
+    <!-- field column -->
+    <div style="max-width:660px;width:100%;justify-self:center">
+<div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 2px 8px;margin:0 0 12px;border-top:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#E4573D"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1">Kári</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">1191 · opponent</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">4:31</div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#E4573D;text-align:right">59</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:45%;background:#E4573D"></div></div>
+      </div>
+      <!-- field -->
+      <div style="position:relative;width:100%;aspect-ratio:1;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+        <sc-for list="{{ fieldMain.runs }}" as="r" hint-placeholder-count="0">
+          <div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div>
+        </sc-for>
+        <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr))">
+          <sc-for list="{{ fieldMain.cells }}" as="c" hint-placeholder-count="100">
+            <div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-5px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:5.4cqi;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;top:4%;right:6%;font-family:'Red Hat Mono',ui-monospace,monospace;font-weight: {{ c.valWeight }};font-size:1.7cqi;line-height:1;color: {{ c.valColor }};font-variant-numeric:tabular-nums">{{ c.val }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:8px 2px 0;margin:12px 0 0;border-bottom:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#147D7A"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1">Birna</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">1204 · you</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#0F1A24;font-weight:500">6:45</div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#147D7A;text-align:right">57</div>
+        <div style="position:absolute;left:0;right:0;top:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:67.5%;background:#147D7A"></div></div>
+      </div>
+    </div>
+    <!-- ledger -->
+    <div style="border-top:1.5px solid #0F1A24;padding-top:10px;display:flex;flex-direction:column;height:804px;box-sizing:border-box">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:700;font-size:16px;letter-spacing:0.02em;text-transform:none;color:#0F1A24">wottle</span><span>ranked · round 4 of 10</span></div>
+      <div style="display:grid;grid-template-columns:34px 1fr 1fr;margin-top:18px;padding-bottom:6px;border-bottom:1px solid #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><div></div><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;background:#147D7A"></span>Birna · you</div><div style="display:flex;align-items:center;gap:6px;padding-left:8px"><span style="width:8px;height:8px;background:#E4573D"></span>Kári</div></div>
+      <div style="display:grid;grid-template-columns:34px 1fr 1fr;grid-auto-rows:minmax(0,1fr);flex:1;min-height:0;font-size:14px">
+        <sc-for list="{{ ledgerRows }}" as="row" hint-placeholder-count="3">
+          <div style="display:contents">
+            <div style="padding:9px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">{{ row.r }}</div>
+            <div style="padding:9px 8px 9px 0;border-bottom:1px solid #E6E2D6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;letter-spacing:0.04em;color:#147D7A;min-width:0;line-height:1.25">{{ row.a }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ row.ap }}</span></div>
+            <div style="padding:9px 0 9px 8px;border-bottom:1px solid #E6E2D6;border-left:1px solid #E6E2D6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;letter-spacing:0.04em;color:#E4573D;min-width:0;line-height:1.25">{{ row.b }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ row.bp }}</span></div>
+          </div>
+        </sc-for>
+        <!-- live row -->
+        <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#0F1A24;font-weight:600;box-shadow:inset 3px 0 0 #0F1A24;background:#F4F1E8;padding-left:8px">R4</div>
+        <div style="padding:10px 8px 10px 0;border-bottom:1px solid #E6E2D6;background:#F4F1E8;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#147D7A">picking · T (2)</div>
+        <div style="padding:10px 0 10px 8px;border-bottom:1px solid #E6E2D6;border-left:1px solid #E6E2D6;background:#F4F1E8;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#E4573D">played ●</div>
+        <sc-for list="{{ emptyRows }}" as="e" hint-placeholder-count="6">
+          <div style="display:contents">
+            <div style="padding:8px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#B9B4A6">{{ e }}</div>
+            <div style="padding:8px 0;border-bottom:1px solid #E6E2D6"></div>
+            <div style="padding:8px 0;border-bottom:1px solid #E6E2D6;border-left:1px solid #E6E2D6"></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:16px;display:flex;height:4px"><div style="flex:10;background:#147D7A"></div><div style="flex:78;background:#E6E2D6"></div><div style="flex:12;background:#E4573D"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;white-space:nowrap;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span><span style="color:#147D7A">■</span> 10 &nbsp; 78 free &nbsp; 12 <span style="color:#E4573D">■</span></span><span>tap a second letter</span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;white-space:nowrap;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span>? rules</span><span>⋯ sound · resign · leave</span></div>
+    </div>
+  </div>
+  </div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 2 — Proposed desktop match screen at 1180px. Opponent bar above the field, your bar below, as in online chess; each bar's edge nearest the field is that player's clock lane on one 10:00 scale. Field 660px; ledger 340px, spanning the full height of the stack with ten equal round rows; no top bar. Settled words are tinted bands with a fine chevron at the first letter giving the reading direction; Kári's played letters are pinned in coral; Birna's pick is ringed in ink with its value in full-strength ink.</p>
+
+  <!-- field details -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">The field</h3>
+      <p style="margin:12px 0 0">A ruled grid of one hundred capitals in ink on paper, framed above and below by the two player bars and by nothing else: no labels, no hint line. Cells are flat; the rules between them are a hairline; the frame is 1.5px ink. Each cell carries its Krafla value as a small mono numeral tucked into the top-right corner, which the word bands are inset to clear, so it can be read when a player is comparing two candidate swaps and ignored when they are not. On a scored letter the numeral takes the scorer's ink, so the word and its values read as one mark. Eight things can happen to a letter, and each has one mark.</p>
+    </div>
+  </div>
+  <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:24px">
+    <div>
+      <div style="position:relative;width:100%;aspect-ratio:5/3;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+        <sc-for list="{{ fieldCross.runs }}" as="r" hint-placeholder-count="0"><div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div></sc-for>
+        <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr))">
+          <sc-for list="{{ fieldCross.cells }}" as="c" hint-placeholder-count="15"><div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-5px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:11cqi;text-transform:uppercase;line-height:1">{{ c.letter }}</div></sc-for>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px">Settled words are runs</div>
+      <p style="margin:4px 0 0;font-size:15px;line-height:1.5">One band per scored word: a 14% tint of the scorer's ink with square ends aligned to the cell grid. A fine chevron in that ink, opened to about 150°, sits on the band's leading edge and gives the reading direction; the end of the word needs no mark, because the band simply stops. A word may be read in any of the four directions, and the chevron sits at the end where reading begins: on the right, pointing left, for a right-to-left word; at the bottom, pointing up, for one read upwards. A run that is a valid word both ways (FÁR and RÁF, LÁN and NÁL) scores twice and carries a chevron at each end. Start and direction are read in a glance, and the last letter looks like every other letter in the word. A scored word is always the whole run: it may not abut another scored word in its own line unless the combined run is itself a word (BORÐA and GILT are words, BORÐAGILT is not, so GILT laid against BORÐA scores nothing). Two bands therefore never touch end to end, and the field stays readable as words. The band is inset to 60% of the cell across its short axis, which leaves the top of every cell — the numeral gutter — on clean paper, so a value glyph never crosses a band edge. A crossing shows both bands; the shared letter is set in ink black. Territory reads as words, which is what it is. Partial freezes (the 24-tile floor, rule §6) draw the run only over the frozen letters.</p>
+    </div>
+    <div>
+      <div style="position:relative;width:100%;aspect-ratio:5/3;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+        <sc-for list="{{ fieldPick.runs }}" as="r" hint-placeholder-count="0"><div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div></sc-for>
+        <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr))">
+          <sc-for list="{{ fieldPick.cells }}" as="c" hint-placeholder-count="15"><div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-5px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:11cqi;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;top:4%;right:6%;font-family:'Red Hat Mono',ui-monospace,monospace;font-weight: {{ c.valWeight }};font-size:3.2cqi;line-height:1;color: {{ c.valColor }};font-variant-numeric:tabular-nums">{{ c.val }}</span></div></sc-for>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px">Picked, previewed, pinned</div>
+      <p style="margin:4px 0 0;font-size:15px;line-height:1.5">A picked letter turns your ink, grows 8% and gets an ink square ring; its value goes to full-strength ink. Touching a second letter previews the exchange in place, and the ledger's hint line prints the total of the word the preview makes, so the choice between two candidate swaps is a comparison of two numbers rather than mental arithmetic. Once committed, both letters are <em>pinned</em>: your ink, dashed ring, no fill. The opponent's played letters pin in their ink the moment they play, as rule §2 broadcasts them.</p>
+    </div>
+    <div>
+      <div style="border:1.5px solid #0F1A24;padding:22px 20px;background:#FFFDF7;aspect-ratio:5/3;display:flex;flex-direction:column;justify-content:center;gap:18px;box-sizing:border-box">
+        <div><div style="display:flex;justify-content:space-between;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-bottom:6px"><span>your clock · 6:45 · running</span></div><div style="height:4px;background:#E6E2D6;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:67.5%;background:#147D7A"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-bottom:6px"><span>opponent's clock · 4:31 · stopped, has played</span></div><div style="height:4px;background:#E6E2D6;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:45%;background:#E4573D"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-bottom:6px"><span>under 1:00 · thickens, numeral, blinks</span></div><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:8px;background:#E6E2D6;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:8%;background:#147D7A"></div></div><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-weight:600;font-size:24px;line-height:1;color:#147D7A">0:48</span></div></div>
+      </div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px">The clocks</div>
+      <p style="margin:4px 0 0;font-size:15px;line-height:1.5">Each player bar's edge nearest the field is that player's clock lane: as wide as the field, on one scale, full width being the 10:00 each started with. The opponent's lane closes the top bar, yours opens the bottom bar, so the two lanes bracket the field with a shared left origin and who can afford to think is read as a difference in length, not by subtracting two numerals. A running lane drains; a stopped lane holds, so “waiting” is your lane standing still while the opponent's moves. The mm:ss stands at the centre of the bar, in ink while running and muted when stopped. Under 1:00 a lane doubles in thickness and blinks at 1 Hz; under reduced motion it holds solid. This keeps O-59's intent without five tones or two renderings.</p>
+    </div>
+  </div>
+
+  <!-- ledger details -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">The ledger</h3>
+      <p style="margin:12px 0 0">A scorecard with ten rows, one per round, and two columns, one per player. It is the only place a number appears. It holds what belongs to the match rather than to a player: the round count, one row per round with each player's words and round total, the live row showing each player's state (<em>picking</em>, <em>played</em>, then the words), territory, the one-line hint for the current state, and the two quiet controls (rules, menu). It runs the full height of the stack, from the top of the opponent's bar to the bottom of yours, and the ten round rows share that height equally, so each row has room for three lines of words before anything needs to collapse. Because the ledger is a table and not a stack of cards, it also serves as round history, post-game recap and spectator view without a second component.</p>
+      <ul style="margin:14px 0 0;padding-left:24px;display:flex;flex-direction:column;gap:6px;font-size:16px">
+        <li>A round can score up to eight readings per player (across and down at each swapped letter, each run possibly valid in both directions). The cell lists them in play order separated by a middle dot and wraps to a second line when it must, with the round total pinned at the right; per-word points show on hover or tap, when the field also lights that word's band. Rows grow only as needed. Only if a row would overflow its three lines do rounds older than the last three collapse to totals, so ten rows always fit beside the field without scrolling.</li>
+        <li>The score delta is not a popup. At the reveal, the word and its points are written into the live row while the total in the header counts up over 400 ms. The eye is already there.</li>
+        <li>Combo and duplicate outcomes appear as suffixes in the row: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">+18 · +2 combo</span>, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">SKÁL · again · 0</span>.</li>
+        <li>Territory is a two-ink bar under the table (10 · 81 free · 9). The tiebreak is visible all match without a card.</li>
+        <li>Elo, mode and format belong to the pre-match screen and the ledger's caption line, not the HUD.</li>
+        <li>Hover or tap a row and the field highlights those runs; the same gesture drives the post-game recap.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── 05 CHOREOGRAPHY ───────── -->
+<section id="s5" data-screen-label="05 Round choreography" style="padding:48px 0 0;border-top:1px solid #DDD9CE;margin-top:48px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">05<br>Round choreography</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Five beats, one signal each</h2>
+      <p style="margin:20px 0 0">Nothing is ever placed over the field: a player who has finished thinking is already scanning for the next round, and the current lock banner and round announcement take that time away. Detail of rows 7–10, columns D–J.</p>
+    </div>
+  </div>
+  <div style="margin-top:32px;display:flex;flex-wrap:wrap;gap:16px">
+    <sc-for list="{{ beats }}" as="b" hint-placeholder-count="5">
+      <div style="flex:1 1 200px;min-width:0;max-width:340px;background:#FFFDF7;border:1px solid #DDD9CE;padding:18px 16px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px">{{ b.n }} {{ b.name }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">{{ b.dur }}</span></div>
+        <div style="height:3px;background:#E6E2D6;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width: {{ b.railB }};background:#E4573D"></div></div>
+        <div style="position:relative;width:100%;aspect-ratio:7/4;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+          <sc-for list="{{ b.field.runs }}" as="r" hint-placeholder-count="0"><div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div></sc-for>
+          <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr))">
+            <sc-for list="{{ b.field.cells }}" as="c" hint-placeholder-count="28"><div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-3px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:8cqi;text-transform:uppercase;line-height:1">{{ c.letter }}</div></sc-for>
+          </div>
+        </div>
+        <div style="height:3px;background:#E6E2D6;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width: {{ b.railA }};background:#147D7A"></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;line-height:1.6;color:#0F1A24;border-left:2px solid #0F1A24;padding-left:8px">{{ b.ledger }}</div>
+        <p style="margin:0;font-size:14.5px;line-height:1.5">{{ b.text }}</p>
+      </div>
+    </sc-for>
+  </div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 3 — One round from Birna's seat. Kári's lane above the field detail, Birna's below, and the ledger's live row at each beat. All motion is 400 ms or shorter and disappears under prefers-reduced-motion, where runs and pins appear in their end state.</p>
+</section>
+
+<!-- ───────── 06 LAYOUTS ───────── -->
+<section id="s6" data-screen-label="06 Layouts" style="padding:48px 0 0;border-top:1px solid #DDD9CE;margin-top:48px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">06<br>Layouts</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">The field always fits without scrolling</h2>
+      <p style="margin:20px 0 0">The layout rule is a single constraint: the field is the largest square that fits the viewport after the two player bars are placed above and below it. On wide screens the full ledger sits beside the stack; on narrow screens it collapses to its live row beneath your bar, and the rest pulls up. There is no third breakpoint and no sticky navigation during a match.</p>
+    </div>
+  </div>
+  <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px">
+    <div>
+      <div style="border:1px solid #0F1A24;aspect-ratio:16/10;padding:5%;display:grid;grid-template-columns:1fr 34%;gap:6%;box-sizing:border-box"><div style="display:flex;flex-direction:column;gap:3%"><div style="height:8%;background:#0F1A24;opacity:0.85;border-bottom:2px solid #E4573D"></div><div style="flex:1;border:1px solid #0F1A24;background:repeating-linear-gradient(0deg,transparent 0 9%,#E6E2D6 9% 10%),repeating-linear-gradient(90deg,transparent 0 9%,#E6E2D6 9% 10%)"></div><div style="height:8%;background:#0F1A24;opacity:0.85;border-top:2px solid #147D7A"></div></div><div style="border-top:1.5px solid #0F1A24;display:flex;flex-direction:column;gap:6%;padding-top:6%"><div style="height:6%;background:#0F1A24;opacity:0.85"></div><div style="flex:1;background:repeating-linear-gradient(0deg,#E6E2D6 0 1px,transparent 1px 12%)"></div><div style="height:3%;background:linear-gradient(90deg,#147D7A 0 10%,#E6E2D6 10% 91%,#E4573D 91%)"></div></div></div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px">Desktop ≥ 1100</div>
+      <p style="margin:4px 0 0;font-size:15px;line-height:1.5">Opponent bar, field, your bar stacked left; ledger 340px right, 56px gutter. The field is min(viewport height − 2 bars − 48px, 720px) square, so tiles run 50–70px.</p>
+    </div>
+    <div>
+      <div style="border:1px solid #0F1A24;aspect-ratio:16/10;padding:5%;display:grid;grid-template-columns:1fr 30%;gap:5%;box-sizing:border-box"><div style="display:flex;flex-direction:column;gap:3%"><div style="height:8%;background:#0F1A24;opacity:0.85;border-bottom:2px solid #E4573D"></div><div style="flex:1;border:1px solid #0F1A24;background:repeating-linear-gradient(0deg,transparent 0 9%,#E6E2D6 9% 10%),repeating-linear-gradient(90deg,transparent 0 9%,#E6E2D6 9% 10%)"></div><div style="height:8%;background:#0F1A24;opacity:0.85;border-top:2px solid #147D7A"></div></div><div style="border-top:1.5px solid #0F1A24;display:flex;flex-direction:column;gap:6%;padding-top:6%"><div style="height:6%;background:#0F1A24;opacity:0.85"></div><div style="flex:1;background:repeating-linear-gradient(0deg,#E6E2D6 0 1px,transparent 1px 14%)"></div></div></div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px">Laptop 900–1100</div>
+      <p style="margin:4px 0 0;font-size:15px;line-height:1.5">Same arrangement; the ledger narrows to 260px and drops word points to a hover. The field keeps priority: on a 13-inch display at 100% zoom it is 560px, never below the fold. Today's layout budgets 48px of chrome (board.css) but spends about 190px.</p>
+    </div>
+    <div>
+      <div style="border:1px solid #0F1A24;aspect-ratio:16/10;padding:4%;display:grid;grid-template-columns:1fr 26%;gap:4%;box-sizing:border-box"><div style="display:flex;flex-direction:column;gap:3%"><div style="height:8%;background:#0F1A24;opacity:0.85;border-bottom:2px solid #E4573D"></div><div style="flex:1;border:1px solid #0F1A24;background:repeating-linear-gradient(0deg,transparent 0 9%,#E6E2D6 9% 10%),repeating-linear-gradient(90deg,transparent 0 9%,#E6E2D6 9% 10%)"></div><div style="height:8%;background:#0F1A24;opacity:0.85;border-top:2px solid #147D7A"></div></div><div style="border-top:1.5px solid #0F1A24;display:flex;flex-direction:column;gap:8%;padding-top:8%"><div style="height:6%;background:#0F1A24;opacity:0.85"></div><div style="height:8%;background:#F4F1E8;box-shadow:inset 2px 0 0 #0F1A24"></div></div></div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px">Phone landscape</div>
+      <p style="margin:4px 0 0;font-size:15px;line-height:1.5">Bars shrink to one line each and the field fills the remaining height; the ledger shows the round count and live row only, with the history behind a tap.</p>
+    </div>
+    <div>
+      <div style="border:1px solid #0F1A24;aspect-ratio:16/10;padding:5% 32%;display:flex;flex-direction:column;gap:4%;box-sizing:border-box"><div style="height:8%;background:#0F1A24;opacity:0.85;border-bottom:2px solid #E4573D"></div><div style="flex:1;border:1px solid #0F1A24;background:repeating-linear-gradient(0deg,transparent 0 9%,#E6E2D6 9% 10%),repeating-linear-gradient(90deg,transparent 0 9%,#E6E2D6 9% 10%)"></div><div style="height:8%;background:#0F1A24;opacity:0.85;border-top:2px solid #147D7A"></div><div style="height:9%;background:#F4F1E8;box-shadow:inset 2px 0 0 #0F1A24"></div></div>
+      <div style="margin-top:10px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px">Phone portrait</div>
+      <p style="margin:4px 0 0;font-size:15px;line-height:1.5">Opponent bar, full-width field, your bar, live row: the desktop arrangement unchanged, with the ledger folded to its live row. The two compact bars with two clock pills, two scores and two "R4" labels become two bars whose inner edges are the clocks.</p>
+    </div>
+  </div>
+
+  <!-- PHONES -->
+  <div style="margin-top:40px;display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-start">
+    <div style="zoom:0.7">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="padding:60px 0 0;font-family:'Inter',system-ui,sans-serif;background:oklch(0.975 0.012 85);min-height:100%;box-sizing:border-box;color:oklch(0.22 0.025 258)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent)"><div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Fraunces',serif;font-style:italic;font-size:22px;line-height:1">Wottle</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:oklch(0.52 0.02 258)">word · battle</span></div><div style="display:flex;gap:8px;font-size:13px;color:oklch(0.38 0.024 258)"><span style="padding:8px">Lobby</span><span style="padding:8px">Profile</span></div></div>
+          <div style="padding:24px 16px 0;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px;border-radius:8px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:6px 12px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)"><span style="width:32px;height:32px;border-radius:50%;background:oklch(0.56 0.08 220);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">K</span><span style="font-size:14px;font-weight:600">Kári</span><span style="margin-left:auto;font-size:12px;color:oklch(0.52 0.02 258)">R4</span><span style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:24px;padding:6px 12px;min-width:96px;text-align:center;border-radius:8px;background:color-mix(in oklab, oklch(0.7 0.15 40) 85%, transparent);box-shadow:0 0 0 2px rgba(245,158,11,0.6), 0 0 12px rgba(245,158,11,0.3)">4:31</span><span style="font-weight:900;font-size:28px;color:oklch(0.56 0.08 220)">59</span></div>
+            <div style="display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;gap:4px">
+              <div style="grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(10,1fr);padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:oklch(0.52 0.02 258);text-align:center"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>I</span><span>J</span></div>
+              <div style="grid-column:1;grid-row:2;display:grid;grid-template-rows:repeat(10,1fr);padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:9px;color:oklch(0.52 0.02 258);align-items:center;text-align:center;width:12px"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+              <div style="grid-column:2;grid-row:2;min-width:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;padding:8px;border-radius:12px;aspect-ratio:1;background:linear-gradient(145deg, color-mix(in oklab, oklch(0.975 0.012 85) 92%, transparent), color-mix(in oklab, oklch(0.975 0.012 85) 77%, transparent));box-shadow:inset 0 1px 0 color-mix(in oklab, oklch(0.68 0.14 60) 8%, transparent), 0 18px 28px -24px color-mix(in oklab, oklch(0.68 0.14 60) 50%, transparent)">
+                <sc-for list="{{ asisCells }}" as="c" hint-placeholder-count="100"><div style="position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-width:0;border-radius:7px;background: {{ c.bg }};border: {{ c.border }};box-shadow: {{ c.shadow }};font-weight:500;font-size:16px;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;bottom:1px;right:2px;font-size:6px;opacity:0.5;line-height:1">{{ c.value }}</span></div></sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;border-radius:8px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 14%, transparent);background:oklch(0.975 0.012 85);padding:6px 12px;box-shadow:0 1px 0 color-mix(in oklab, oklch(0.22 0.025 258) 8%, transparent)"><span style="width:32px;height:32px;border-radius:50%;background:oklch(0.68 0.14 60);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">B</span><span style="font-size:14px;font-weight:600">Birna</span><span style="margin-left:auto;font-size:12px;color:oklch(0.52 0.02 258)">R4</span><span style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:24px;padding:6px 12px;min-width:96px;text-align:center;border-radius:8px;background:color-mix(in oklab, oklch(0.62 0.12 150) 85%, transparent)">6:45</span><span style="font-weight:900;font-size:28px;color:oklch(0.68 0.14 60)">57</span></div>
+            <div style="margin-top:4px;border-radius:8px;border:1px solid color-mix(in oklab, oklch(0.22 0.025 258) 22%, transparent);padding:8px 12px;font-size:14px;color:oklch(0.52 0.02 258);text-align:center">History (3)</div>
+          </div>
+        </div>
+      </x-import>
+      <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6;max-width:402px">Fig. 4 — Phone as built (PlayerPanel.tsx ×2, TimerDisplay.tsx, BoardCoordLabels, History trigger).</p>
+    </div>
+    <div style="zoom:0.7">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="padding:64px 16px 0;background:#FFFDF7;min-height:100%;box-sizing:border-box;color:#0F1A24">
+          <div style="border-top:1.5px solid #0F1A24;display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:700;font-size:14px;letter-spacing:0.02em;text-transform:none;color:#0F1A24">wottle</span><span>ranked · round 4 of 10</span></div>
+          <div style="position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:10px 0 12px;margin:0 0 10px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:#E4573D"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:15px;line-height:1.1">Kári</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:3px">1191 · opponent</div></div></div>
+            <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:22px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">4:31</div>
+            <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:30px;line-height:1;color:#E4573D;text-align:right">59</div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:45%;background:#E4573D"></div></div>
+          </div>
+          <div style="position:relative;width:100%;aspect-ratio:1;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+            <sc-for list="{{ fieldMain.runs }}" as="r" hint-placeholder-count="0"><div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div></sc-for>
+            <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr))">
+              <sc-for list="{{ fieldMain.cells }}" as="c" hint-placeholder-count="100"><div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-4px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:5.6cqi;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;top:4%;right:6%;font-family:'Red Hat Mono',ui-monospace,monospace;font-weight: {{ c.valWeight }};font-size:1.8cqi;line-height:1;color: {{ c.valColor }};font-variant-numeric:tabular-nums">{{ c.val }}</span></div></sc-for>
+            </div>
+          </div>
+          <div style="position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:12px 0 10px;margin:10px 0 0">
+            <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:#147D7A"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:15px;line-height:1.1">Birna</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:3px">1204 · you</div></div></div>
+            <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:22px;line-height:1;font-variant-numeric:tabular-nums;color:#0F1A24;font-weight:500">6:45</div>
+            <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:30px;line-height:1;color:#147D7A;text-align:right">57</div>
+            <div style="position:absolute;left:0;right:0;top:0;height:3px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:67.5%;background:#147D7A"></div></div>
+          </div>
+          <div style="display:flex;height:3px;margin-top:10px"><div style="flex:10;background:#147D7A"></div><div style="flex:78;background:#E6E2D6"></div><div style="flex:12;background:#E4573D"></div></div>
+          <div style="margin-top:14px;display:grid;grid-template-columns:30px 1fr 1fr;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;background:#F4F1E8;box-shadow:inset 3px 0 0 #0F1A24">
+            <div style="padding:10px 0 10px 8px;font-size:11px;font-weight:600">R4</div><div style="padding:10px 8px 10px 0;color:#147D7A">picking · T (2)</div><div style="padding:10px 0 10px 8px;border-left:1px solid #E6E2D6;color:#E4573D">played ●</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:14px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span>▴ rounds 1–3 · words</span><span>? · ⋯</span></div>
+        </div>
+      </x-import>
+      <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6;max-width:402px">Fig. 5 — Phone proposed. Opponent bar, field, your bar, live row: the chess arrangement as-is, the ledger folded to its live row. The field is 30px wider than today because the coordinate labels and card borders are gone; tiles are 37px with a 44px hit area.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── 07 INTERACTION SPEC ───────── -->
+<section id="s7" data-screen-label="07 Interaction spec" style="padding:48px 0 0;border-top:1px solid #DDD9CE;margin-top:48px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">07<br>Interaction spec</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Pick, preview, commit</h2>
+      <p style="margin:20px 0 0">Today the second tap submits an irrevocable move. The proposal inserts one beat: the second tap <em>previews</em> the exchange in place, and the player commits by tapping either previewed letter again (or Enter). The preview lets the player read the word they are about to make, which is the check most mis-taps fail. The cost is one tap; the alternative is a lost round. An "instant commit" setting can remove the beat for players who want it.</p>
+      <div style="margin:24px 0 0;border-top:1px solid #0F1A24;font-size:16px">
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tap A</div><div>Pick. Letter turns your ink, grows 8%, ink square ring, value shown. Sound: tile-select.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tap B</div><div>Preview. The two letters exchange places in 150 ms; both carry a dotted ink ring, and the ledger's hint line prints the word total. Nothing is sent. Any new run through A or B is <em>not</em> hinted; that would be a spoiler.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tap A or B again · Enter</div><div>Commit. Rings turn dashed (pinned), your clock lane stops, ledger row writes <em>played</em>. Sound: valid-swap, haptic.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tap elsewhere · Esc · tap A</div><div>Cancel. Preview reverses; pick clears. No sound.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">drag A → B (pointer)</div><div>Same as tap A, tap B: a preview, not a commit. Fulfils PRD §1.3 desktop drag without a separate path.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tap a frozen or pinned letter</div><div>Letter shakes 300 ms in its own ink; the live row reads <em>frozen · Kári R2</em> for 2 s. No red, no blue: an error is a fact about the board, not a colour.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">long-press · hover 600 ms</div><div>Highlight every letter of the same value on the field, for players hunting a high-value swap. The full Krafla table lives behind the ledger's <em>?</em>.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">opponent plays</div><div>Their two letters pin in their ink at once (rule §2). If one of them was your pick, your pick clears and the live row says so, as spec 042 FR-004 already requires.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">keyboard</div><div>Arrows move a focus ring in ink, Space picks or previews, Enter commits. Coordinates stay in the accessible name of each cell for screen readers; they are no longer printed.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(120px,0.35fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">first match</div><div>Three sentences before round 1, over a live field, dismissed by the first pick: <em>Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds ten minutes for all of them.</em> Never shown again; <em>?</em> in the ledger foot reopens it.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── 08 MIGRATION ───────── -->
+<section id="s8" data-screen-label="08 Migration" style="padding:48px 0 0;border-top:1px solid #DDD9CE;margin-top:48px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">08<br>Migration</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Fix, remove, replace, then restyle</h2>
+      <p style="margin:20px 0 0">The order matters: the first two steps ship inside the current look and each removes something the third step would otherwise have to migrate. No server or type changes anywhere; every step is client-side and covered by the existing Playwright flow.</p>
+      <div style="margin:24px 0 0;border-top:1px solid #0F1A24;font-size:16px">
+        <div style="display:grid;grid-template-columns:minmax(64px,0.14fr) minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">P0 · fix</div><div>F5 round-announce colour; F7 "hidden from opponent" copy; F12 invalid flash to a non-player colour; F18 matchmaking and hero copy. Half a day. <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12.5px;color:#5A6572">board.css · YourMoveCard.tsx · MatchmakingClient.tsx · LobbyHero.tsx</span></div></div>
+        <div style="display:grid;grid-template-columns:minmax(64px,0.14fr) minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">P1 · remove</div><div>Letter-value numerals restyled to the corner-set mono numeral (kept on every tile), coordinate labels (keep in aria), How-to-play and Legend cards (first-match overlay), Your-move card, the lock banner and the pulsing frame, "R4" on the mobile bars, the top bar during a match. One to two days. <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12.5px;color:#5A6572">BoardGrid.tsx · BoardCoordLabels.tsx · MatchLeftRail.tsx · PlayerPanel.tsx · app/layout.tsx</span></div></div>
+        <div style="display:grid;grid-template-columns:minmax(64px,0.14fr) minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">P2 · ledger</div><div>New <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">PlayerBar</span> (top and bottom) and <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">MatchLedger</span> fed by <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">accumulatedWords</span>, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">accumulatedScores</span>, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">frozenTiles</span> and the two timers, all of which MatchClient already holds. Retire HudCard, MatchCenterChrome, RoundPipBar, ScoredWordsCard, TilesClaimedCard, ScoreDeltaPopup and the history modal. The ledger's clock lanes replace both clock renderings and reuse <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">deriveClockUrgency</span> for the under-1:00 threshold. Three days.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(64px,0.14fr) minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">P3 · field</div><div>Runs layer derived from <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">wordHistory.coordinates</span> and <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">frozenTiles</span> (clip to frozen letters for partial freezes); pick / preview / commit state machine in BoardGrid; reveal choreography replacing the recap phase machine's ring-flash, held-ring and announce timers. Three to four days, plus the Playwright two-player flow update.</div></div>
+        <div style="display:grid;grid-template-columns:minmax(64px,0.14fr) minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid #DDD9CE"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">P4 · identity</div><div>Tokens (five values), Zilla Slab and Red Hat Mono via next/font, and the pre-match and post-game screens rebuilt on the ledger. Lobby and profile can follow later; they are not in the loop.</div></div>
+      </div>
+
+      <h3 style="margin:44px 0 0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Open questions for the team</h3>
+      <ul style="margin:12px 0 0;padding-left:24px;display:flex;flex-direction:column;gap:8px;font-size:16px">
+        <li>O-59 asked for prominent timers and got two 36px clocks. The lanes are larger by area than today's clocks and bracket the board as the inner edges of the player bars, with the mm:ss at each bar's centre. Is that prominent enough for the people who filed O-59?</li>
+        <li>The commit beat adds roughly 300 ms to every move in a game where the first submission wins conflicts. Ship it default-on with an instant-commit setting, or default-off?</li>
+        <li>Partial freezes can leave a run half frozen. Draw the run over frozen letters only (proposed), or over the whole word with unfrozen letters hollow?</li>
+        <li>Coral/teal are proposed inks; the brand ochre can take the opponent's seat if the brand needs it on the board, provided it stops meaning anything else.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<!-- ───────── 09 THE REST OF THE GAME ───────── -->
+<section id="s9" data-screen-label="09 The rest of the game" style="padding:48px 0 0;border-top:1px solid #DDD9CE;margin-top:48px">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">09<br>The rest of the game</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">One room: the board never leaves</h2>
+      <p style="margin:20px 0 0">Outside the match, a player wants two things: the next match in as few steps as possible, and to know how they are doing. Today that costs five pages (landing, lobby, matchmaking, match, summary) in three visual registers, with the board visible on one of them. The proposal is a single room. The field, the two bars and the ledger are on screen from the moment a person arrives to the moment they leave; the lobby, the queue, the match and the result are states of those three objects, not pages. Nothing has to be learned twice, and the letters are always there to be looked at.</p>
+      <ul style="margin:14px 0 0;padding-left:24px;display:flex;flex-direction:column;gap:8px;font-size:16px">
+        <li><strong>The opponent's bar is the door.</strong> Empty, it holds the one action: play ranked. Searching, it counts the wait. Found, it writes the opponent's name in. The lobby needs no hero and no Play card.</li>
+        <li><strong>The field is the waiting room.</strong> In the lobby it is a warm-up field: swap letters, see values and word totals, nobody keeps score. In the queue the next match's letters land in reading order; when the last one lands, the opponent is usually there. No spinner, no ring.</li>
+        <li><strong>The ledger is the record.</strong> In the lobby it lists who is here and your last matches. In the match it is the scorecard. Afterwards it is the result, with the field frozen beside it so the match can be read back. On the profile it is the same table over a longer time.</li>
+        <li><strong>A name is the only account.</strong> The landing screen is the lobby with the bottom bar asking for your name. Type it, press play, you are in the queue.</li>
+      </ul>
+      <div style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:#DDD9CE;border:1px solid #DDD9CE"><div style="background:#FFFDF7;padding:14px 16px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">01</div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:18px;margin-top:6px">lobby</div><div style="font-size:14px;line-height:1.45;margin-top:4px;color:#0F1A24">one room, board present, one action</div></div><div style="background:#FFFDF7;padding:14px 16px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">02</div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:18px;margin-top:6px">matchmaking</div><div style="font-size:14px;line-height:1.45;margin-top:4px;color:#0F1A24">same room; the opponent bar fills in</div></div><div style="background:#FFFDF7;padding:14px 16px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">03</div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:18px;margin-top:6px">match</div><div style="font-size:14px;line-height:1.45;margin-top:4px;color:#0F1A24">ten rounds; bars and ledger</div></div><div style="background:#FFFDF7;padding:14px 16px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">04</div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:18px;margin-top:6px">post-game</div><div style="font-size:14px;line-height:1.45;margin-top:4px;color:#0F1A24">same room; field freezes, ledger completes</div></div><div style="background:#FFFDF7;padding:14px 16px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">05</div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:18px;margin-top:6px">rematch · lobby</div><div style="font-size:14px;line-height:1.45;margin-top:4px;color:#0F1A24">the room resets</div></div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:44px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px"><h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Findings outside the match</h3></div>
+  </div>
+  <div style="margin-top:14px;border-top:1px solid #0F1A24"><div style="break-inside:avoid;display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline"><div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">F20</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background:transparent;color:#0F1A24">NOISE</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">F · the loop</div></div><div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">Landing and lobby are two screens for one act</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">A visitor names themself on LandingScreen, is redirected to /lobby, then presses Play. Two page loads and a hero stand between a person and a board.</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">app/(landing)/page.tsx · LandingScreen.tsx</div></div></div>
+<div style="break-inside:avoid;display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline"><div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">F21</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background:transparent;color:#0F1A24">NOISE</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">F · the loop</div></div><div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">The lobby hero sells the game to someone already inside it</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">Fraunces wordmark at 96px, an ORÐUSTA kicker, a radial glow, a cycling tile word and copy about outrunning the chess clock. It is a landing page pasted above the lobby, and it pushes Play and the directory below the fold on a laptop.</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">LobbyHero.tsx · lobby/page.tsx</div></div></div>
+<div style="break-inside:avoid;display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline"><div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">F22</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background:transparent;color:#0F1A24">NOISE</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">F · the loop</div></div><div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">The directory is a card wall</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">Online players as two columns of rounded cards with avatars, skeleton shimmer and a show-more toggle. A list of names with ratings and a challenge affordance is the whole requirement; the challenge path is also disconnected from the ranked queue.</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">LobbyDirectory.tsx · LobbyCard.tsx</div></div></div>
+<div style="break-inside:avoid;display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline"><div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">F23</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background:transparent;color:#0F1A24">NOISE</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">F · the loop</div></div><div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">Matchmaking is a separate page with three animations and no letters</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">A spinning ochre ring around a gradient avatar, an elapsed counter, then a versus block, on a page of its own. The player stares at a spinner while the one thing that would prepare them for round 1, the field, is out of sight.</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">MatchmakingClient.tsx · MatchRing.tsx · board.css .match-ring</div></div></div>
+<div style="break-inside:avoid;display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline"><div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">F24</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background:transparent;color:#0F1A24">NOISE</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">F · the loop</div></div><div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">The post-game hides the board and says the result five times</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">A verdict component, two HUD-style cards with 56px italic scores and “8 words · 26 frozen · best —” lines, a rating line per card, a word-history list and a rematch banner. The field, the one artefact that shows how the match was won, is gone.</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">FinalSummary.tsx · PostGameVerdict.tsx · PostGameScoreboard.tsx</div></div></div>
+<div style="break-inside:avoid;display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline"><div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">F25</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background:#0F1A24;color:#FFFDF7">BUG</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">F · the loop</div></div><div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">Rematch and resign use colours from outside the token set</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">RematchBanner is Tailwind emerald (border-emerald-400/40, bg-emerald-500/10, bg-emerald-500) and Resign is Tailwind red-400 / red-600. Neither is a Warm Editorial token; green here also collides with the “active clock” green.</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">RematchBanner.tsx · MatchClient.tsx resign button</div></div></div>
+<div style="break-inside:avoid;display:flex;flex-wrap:wrap;gap:8px 24px;padding:18px 0;border-bottom:1px solid #DDD9CE;align-items:baseline"><div style="flex:0 0 160px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:10px;align-items:baseline"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600">F26</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;padding:1px 6px;border:1px solid #0F1A24;background:transparent;color:#0F1A24">NOISE</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">F · the loop</div></div><div style="flex:1 1 480px;min-width:0;max-width:720px"><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:19px;line-height:1.25">The profile is a dashboard</div><p style="margin:6px 0 0;font-size:16px;line-height:1.5">A sidebar, four stat tiles, a 30-day chart card, a word cloud card and a history card. The word cloud sizes words by score and thereby hides the score, the one number a player wants next to a word.</p><div style="margin-top:6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;color:#5A6572">ProfilePage.tsx · ProfileWordCloud.tsx</div></div></div></div>
+
+  <!-- LOBBY -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px"><h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Lobby</h3><p style="margin:12px 0 0">Birna has signed in. The opponent's seat is empty and carries the only primary action on the screen. The field is a warm-up field; she has picked Ó and the live row prices the word it could make. The ledger lists who is here, with rating and the difference to hers, and her last three matches.</p></div>
+  </div>
+  <div style="width:100%;margin:24px 0 0;border:1px solid #0F1A24;overflow:hidden;background:#FFFDF7"><div style="width:1180px;zoom: {{ mockZoom }};padding:36px 44px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:56px;align-items:start;box-sizing:border-box">
+    <div style="max-width:660px;width:100%;justify-self:center">
+      <div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 2px 8px;margin:0 0 12px;border-top:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;border:1.5px dashed #E4573D;box-sizing:border-box"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#5A6572">No opponent yet</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">ranked · about 0:10 to find one</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">10:00</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="background:#0F1A24;color:#FFFDF7;padding:10px 14px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase">play ranked ▸</span></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:0%;background:#E4573D"></div></div>
+      </div>
+      <div style="position:relative;width:100%;aspect-ratio:1;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+        <sc-for list="{{ fieldLobby.runs }}" as="r" hint-placeholder-count="0">
+          <div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div>
+        </sc-for>
+        <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr))">
+          <sc-for list="{{ fieldLobby.cells }}" as="c" hint-placeholder-count="100">
+            <div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-5px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:5.4cqi;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;top:4%;right:6%;font-family:'Red Hat Mono',ui-monospace,monospace;font-weight: {{ c.valWeight }};font-size:1.7cqi;line-height:1;color: {{ c.valColor }};font-variant-numeric:tabular-nums">{{ c.val }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:8px 2px 0;margin:12px 0 0;border-bottom:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#147D7A"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#0F1A24">Birna</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">1204 · you</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">10:00</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#147D7A">—</span></div>
+        <div style="position:absolute;left:0;right:0;top:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:100%;background:#147D7A"></div></div>
+      </div>
+    </div>
+    <div style="border-top:1.5px solid #0F1A24;padding-top:10px;display:flex;flex-direction:column;height:804px;box-sizing:border-box">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:700;font-size:16px;letter-spacing:0.02em;text-transform:none;color:#0F1A24">wottle</span><span>lobby · 4 here</span></div>
+      <div style="margin-top:18px;padding-bottom:6px;border-bottom:1px solid #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">here now · challenge for an unranked match</div>
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0 14px;align-items:baseline;font-size:14px">
+        <sc-for list="{{ lobbyPlayers }}" as="p" hint-placeholder-count="4"><div style="display:contents">
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;display:flex;align-items:center;gap:8px;font-family:'Zilla Slab',Georgia,serif;font-weight:600"><span style="width:8px;height:8px;background:#E4573D"></span>{{ p.n }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ p.r }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572">{{ p.d }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase">challenge ▸</div>
+        </div></sc-for>
+      </div>
+      <div style="margin-top:26px;padding-bottom:6px;border-bottom:1px solid #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">your last matches</div>
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:0 14px;align-items:baseline;font-size:14px">
+        <sc-for list="{{ lastMatches }}" as="m" hint-placeholder-count="3"><div style="display:contents">
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Zilla Slab',Georgia,serif;font-weight:600">{{ m.o }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ m.s }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color: {{ m.c }}">{{ m.d }}</div>
+        </div></sc-for>
+      </div>
+      <div style="margin-top:auto"></div>
+      <div style="margin-top:14px;padding:12px 10px;background:#F4F1E8;box-shadow:inset 3px 0 0 #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;color:#0F1A24">warm-up · Ó picked · pick a second letter · values show, nobody keeps score</div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;white-space:nowrap;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span>? rules</span><span>⋯ sound · sign out</span></div>
+    </div>
+  </div></div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 6 — Lobby. Same frame as the match: the empty opponent bar holds the one primary action, the field is a warm-up field, the ledger is the directory and the record. No hero, no cards, no Play card. The landing screen is this screen with the bottom bar asking for a name (Fig. 10).</p>
+
+  <!-- MATCHMAKING -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px"><h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Matchmaking</h3><p style="margin:12px 0 0">Seven seconds in. The opponent bar counts the wait and offers cancel; a short coral segment travels its lane. The next match's letters land on the field in reading order, about one per 100 ms, so the player is already scanning before an opponent exists. When one is found, the name writes itself into the bar, both lanes fill, and the live row counts three to round 1.</p></div>
+  </div>
+  <div style="width:100%;margin:24px 0 0;border:1px solid #0F1A24;overflow:hidden;background:#FFFDF7"><div style="width:1180px;zoom: {{ mockZoom }};padding:36px 44px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:56px;align-items:start;box-sizing:border-box">
+    <div style="max-width:660px;width:100%;justify-self:center">
+      <div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 2px 8px;margin:0 0 12px;border-top:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;border:1.5px dashed #E4573D;box-sizing:border-box"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#5A6572">Finding an opponent</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">ranked · 0:07 · cancel ▸</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">10:00</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#E4573D">—</span></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:31%;top:0;bottom:0;width:12%;background:#E4573D"></div></div>
+      </div>
+      <div style="position:relative;width:100%;aspect-ratio:1;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+        <sc-for list="{{ fieldSetting.runs }}" as="r" hint-placeholder-count="0">
+          <div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div>
+        </sc-for>
+        <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr))">
+          <sc-for list="{{ fieldSetting.cells }}" as="c" hint-placeholder-count="100">
+            <div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-5px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:5.4cqi;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;top:4%;right:6%;font-family:'Red Hat Mono',ui-monospace,monospace;font-weight: {{ c.valWeight }};font-size:1.7cqi;line-height:1;color: {{ c.valColor }};font-variant-numeric:tabular-nums">{{ c.val }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:8px 2px 0;margin:12px 0 0;border-bottom:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#147D7A"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#0F1A24">Birna</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">1204 · you</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">10:00</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#147D7A">—</span></div>
+        <div style="position:absolute;left:0;right:0;top:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:100%;background:#147D7A"></div></div>
+      </div>
+    </div>
+    <div style="border-top:1.5px solid #0F1A24;padding-top:10px;display:flex;flex-direction:column;height:804px;box-sizing:border-box">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:700;font-size:16px;letter-spacing:0.02em;text-transform:none;color:#0F1A24">wottle</span><span>ranked · 10 rounds · 10:00 clocks</span></div>
+      <div style="display:grid;grid-template-columns:34px 1fr 1fr;margin-top:18px;padding-bottom:6px;border-bottom:1px solid #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><div></div><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;background:#147D7A"></span>Birna · you</div><div style="display:flex;align-items:center;gap:6px;padding-left:8px"><span style="width:8px;height:8px;border:1.5px dashed #E4573D;box-sizing:border-box"></span>opponent</div></div>
+      <div style="display:grid;grid-template-columns:34px 1fr 1fr;grid-auto-rows:minmax(0,1fr);flex:1;min-height:0;font-size:14px">
+        <sc-for list="{{ emptyTen }}" as="row" hint-placeholder-count="10"><div style="display:contents">
+          <div style="padding:9px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">{{ row.r }}</div>
+          <div style="padding:9px 8px 9px 0;border-bottom:1px solid #E6E2D6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;letter-spacing:0.04em;color:#147D7A;min-width:0;line-height:1.25">{{ row.a }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ row.ap }}</span></div>
+          <div style="padding:9px 0 9px 8px;border-bottom:1px solid #E6E2D6;border-left:1px solid #E6E2D6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;letter-spacing:0.04em;color:#E4573D;min-width:0;line-height:1.25">{{ row.b }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ row.bp }}</span></div>
+        </div></sc-for>
+      </div>
+      <div style="margin-top:14px;padding:12px 10px;background:#F4F1E8;box-shadow:inset 3px 0 0 #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;color:#0F1A24">setting the field · 58 of 100 letters · an opponent joins when the last one lands</div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;white-space:nowrap;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span>cancel ▸</span><span>⋯ sound</span></div>
+    </div>
+  </div></div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 7 — Matchmaking. No page change and no spinner: the wait is expressed by the objects that will be used in the match. Cancel is in the bar and in the ledger foot; both return to the lobby state without a navigation.</p>
+
+  <!-- POST-GAME -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px"><h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Post-game</h3><p style="margin:12px 0 0">The match is over and Birna has lost. Nothing is replaced: the field stays with every word marked, the bars show the final totals and the rating change, and the ledger writes the verdict as its first line. Hovering a row lights its words on the field, so the match can be read back; FÁR · RÁF and TAL · LAT show the double reading, SÓL a word read right to left. A loss is stated once, in the same voice as a win; there is no red, no confetti and no modal.</p></div>
+  </div>
+  <div style="width:100%;margin:24px 0 0;border:1px solid #0F1A24;overflow:hidden;background:#FFFDF7"><div style="width:1180px;zoom: {{ mockZoom }};padding:36px 44px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:56px;align-items:start;box-sizing:border-box">
+    <div style="max-width:660px;width:100%;justify-self:center">
+      <div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 2px 8px;margin:0 0 12px;border-top:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#E4573D"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#0F1A24">Kári</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">1191 → 1203 · +12 · wins</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">1:12</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#E4573D">170</span></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:12%;background:#E4573D"></div></div>
+      </div>
+      <div style="position:relative;width:100%;aspect-ratio:1;border:1.5px solid #0F1A24;background:#FFFDF7;container-type:inline-size">
+        <sc-for list="{{ fieldPost.runs }}" as="r" hint-placeholder-count="0">
+          <div style="position:absolute;left: {{ r.left }};top: {{ r.top }};width: {{ r.width }};height: {{ r.height }};background: {{ r.bg }}"><svg style="position:absolute;left:0;top:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.pts }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg><svg style="position:absolute;right:0;bottom:0;width: {{ r.chevW }};height: {{ r.chevH }};display: {{ r.chevEndDisplay }};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="{{ r.ptsEnd }}" fill="none" stroke="{{ r.ink }}" stroke-width="1.5" stroke-linejoin="miter" vector-effect="non-scaling-stroke"></polyline></svg></div>
+        </sc-for>
+        <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr))">
+          <sc-for list="{{ fieldPost.cells }}" as="c" hint-placeholder-count="100">
+            <div style="position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border-right:1px solid #E6E2D6;border-bottom:1px solid #E6E2D6;color: {{ c.color }};box-shadow: {{ c.shadow }};outline: {{ c.outline }};outline-offset:-5px;transform: {{ c.transform }};font-family:'Zilla Slab',Georgia,serif;font-weight: {{ c.weight }};font-size:5.4cqi;text-transform:uppercase;line-height:1">{{ c.letter }}<span style="position:absolute;top:4%;right:6%;font-family:'Red Hat Mono',ui-monospace,monospace;font-weight: {{ c.valWeight }};font-size:1.7cqi;line-height:1;color: {{ c.valColor }};font-variant-numeric:tabular-nums">{{ c.val }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:8px 2px 0;margin:12px 0 0;border-bottom:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#147D7A"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#0F1A24">Birna</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">1204 → 1192 · −12</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">0:58</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#147D7A">127</span></div>
+        <div style="position:absolute;left:0;right:0;top:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:10%;background:#147D7A"></div></div>
+      </div>
+    </div>
+    <div style="border-top:1.5px solid #0F1A24;padding-top:10px;display:flex;flex-direction:column;height:804px;box-sizing:border-box">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:700;font-size:16px;letter-spacing:0.02em;text-transform:none;color:#0F1A24">wottle</span><span>final · 10 rounds · 18:50</span></div>
+      <div style="margin-top:14px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px;line-height:1.2">Kári wins 170–127</div>
+      <div style="margin-top:4px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">by 43 points · 10 words to 8 · territory 32–25</div>
+      <div style="display:grid;grid-template-columns:34px 1fr 1fr;margin-top:18px;padding-bottom:6px;border-bottom:1px solid #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><div></div><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;background:#147D7A"></span>Birna · you</div><div style="display:flex;align-items:center;gap:6px;padding-left:8px"><span style="width:8px;height:8px;background:#E4573D"></span>Kári</div></div>
+      <div style="display:grid;grid-template-columns:34px 1fr 1fr;grid-auto-rows:minmax(0,1fr);flex:1;min-height:0;font-size:14px">
+        <sc-for list="{{ postRows }}" as="row" hint-placeholder-count="10"><div style="display:contents">
+          <div style="padding:9px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">{{ row.r }}</div>
+          <div style="padding:9px 8px 9px 0;border-bottom:1px solid #E6E2D6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;letter-spacing:0.04em;color:#147D7A;min-width:0;line-height:1.25">{{ row.a }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ row.ap }}</span></div>
+          <div style="padding:9px 0 9px 8px;border-bottom:1px solid #E6E2D6;border-left:1px solid #E6E2D6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;letter-spacing:0.04em;color:#E4573D;min-width:0;line-height:1.25">{{ row.b }}</span><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ row.bp }}</span></div>
+        </div></sc-for>
+      </div>
+      <div style="margin-top:16px;display:flex;height:4px"><div style="flex:25;background:#147D7A"></div><div style="flex:43;background:#E6E2D6"></div><div style="flex:32;background:#E4573D"></div></div><div style="display:flex;justify-content:space-between;margin-top:8px;white-space:nowrap;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span><span style="color:#147D7A">■</span> 25 &nbsp; 43 free &nbsp; 32 <span style="color:#E4573D">■</span></span><span>hover a row to see its words</span></div>
+      <div style="margin-top:14px;padding:12px 10px;background:#F4F1E8;box-shadow:inset 3px 0 0 #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;color:#0F1A24">Kári asks for a rematch · accept ▸ · decline</div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;white-space:nowrap;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span>rematch ▸ · new opponent ▸ · lobby</span><span>⋯</span></div>
+    </div>
+  </div></div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 8 — Post-game. The same three objects, frozen. Verdict, rating change and rematch live where their facts already were: the verdict heads the ledger, the rating sits under each name, the rematch request is the live row. The board stays for as long as the player wants to read it.</p>
+
+  <!-- PROFILE -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px"><h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Profile</h3><p style="margin:12px 0 0">The profile is the ledger over a longer time. Left: the player, the rating drawn as a hairline over thirty days, and the record in one line. Right: best words with their points and opponents, then recent matches. No tiles, no cloud, no sidebar. Another player's profile is the same page in coral, reached by tapping a name anywhere it appears.</p></div>
+  </div>
+  <div style="width:100%;margin:24px 0 0;border:1px solid #0F1A24;overflow:hidden;background:#FFFDF7"><div style="width:1180px;zoom: {{ mockZoom }};padding:36px 44px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:56px;align-items:start;box-sizing:border-box">
+    <div style="border-top:1.5px solid #0F1A24;padding-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div style="display:flex;align-items:center;gap:12px"><span style="width:14px;height:14px;background:#147D7A"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:28px;line-height:1">Birna</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:6px">playing since march · 80 matches</div></div></div>
+        <div style="text-align:right"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:48px;line-height:1;color:#147D7A">1192</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:6px">rating · peak 1262 · −12 this week</div></div>
+      </div>
+      <div style="margin-top:28px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">rating · last 30 days</div>
+      <div style="position:relative;margin-top:10px;height:200px;border-bottom:1px solid #0F1A24;border-left:1px solid #0F1A24">
+        <svg viewBox="0 0 600 200" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"><line x1="0" y1="100" x2="600" y2="100" stroke="#E6E2D6" stroke-width="1"></line><line x1="0" y1="50" x2="600" y2="50" stroke="#E6E2D6" stroke-width="1"></line><line x1="0" y1="150" x2="600" y2="150" stroke="#E6E2D6" stroke-width="1"></line><polyline points="{{ ratingPts }}" fill="none" stroke="#147D7A" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"></polyline></svg>
+        <span style="position:absolute;right:0;top:44px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">1250</span><span style="position:absolute;right:0;top:94px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">1200</span><span style="position:absolute;right:0;top:144px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">1150</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span>15 aug</span><span>today</span></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);margin-top:28px;border-top:1px solid #0F1A24">
+        <div style="padding:12px 0;border-right:1px solid #E6E2D6"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:24px">41</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">won</div></div>
+        <div style="padding:12px 12px;border-right:1px solid #E6E2D6"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:24px">36</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">lost</div></div>
+        <div style="padding:12px 12px;border-right:1px solid #E6E2D6"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:24px">3</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">drawn</div></div>
+        <div style="padding:12px 12px"><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:24px">51%</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">win rate</div></div>
+      </div>
+    </div>
+    <div style="border-top:1.5px solid #0F1A24;padding-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span style="font-family:'Zilla Slab',Georgia,serif;font-weight:700;font-size:16px;letter-spacing:0.02em;text-transform:none;color:#0F1A24">best words</span><span>all time</span></div>
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:0 14px;align-items:baseline;font-size:14px;margin-top:12px">
+        <sc-for list="{{ bestWords }}" as="w" hint-placeholder-count="5"><div style="display:contents">
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Zilla Slab',Georgia,serif;font-weight:600;letter-spacing:0.04em;color:#147D7A">{{ w.w }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ w.p }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;color:#5A6572">vs {{ w.vs }}</div>
+        </div></sc-for>
+      </div>
+      <div style="margin-top:26px;padding-bottom:6px;border-bottom:1px solid #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572">recent matches</div>
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:0 14px;align-items:baseline;font-size:14px">
+        <sc-for list="{{ lastMatches }}" as="m" hint-placeholder-count="3"><div style="display:contents">
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Zilla Slab',Georgia,serif;font-weight:600">{{ m.o }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px">{{ m.s }}</div>
+          <div style="padding:10px 0;border-bottom:1px solid #E6E2D6;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color: {{ m.c }}">{{ m.d }}</div>
+        </div></sc-for>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;white-space:nowrap;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572"><span>◂ lobby</span><span>change name · sign out</span></div>
+    </div>
+  </div></div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 9 — Profile. The rating chart is a hairline on the grid, the record is one ruled row, best words are a ledger with the number next to the word. Tapping a match opens its frozen field and ledger, exactly as the post-game left them.</p>
+
+  <!-- STATES -->
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:48px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px"><h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">States that used to be components</h3><p style="margin:12px 0 0">Everything that was a banner, a modal or a page is now a line written into a bar or a row. The colour rule holds throughout: teal and coral mean the two seats and nothing else; emphasis is weight and position.</p></div>
+  </div>
+  <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:24px">
+    <div><div style="border:1px solid #0F1A24;padding:12px 14px 0;background:#FFFDF7"><div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:8px 2px 0;margin:0 0 12px;border-bottom:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;border:1.5px dashed #147D7A;box-sizing:border-box"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#0F1A24"><span style="border-bottom:1.5px solid #0F1A24;padding-bottom:2px;color:#5A6572">your name</span></div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">no account needed</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">10:00</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="background:#0F1A24;color:#FFFDF7;padding:10px 14px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase">play ▸</span></div>
+        <div style="position:absolute;left:0;right:0;top:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:0%;background:#147D7A"></div></div>
+      </div></div><div style="margin-top:8px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:16px">Landing</div><p style="margin:4px 0 0;font-size:14.5px;line-height:1.5">The lobby with the bottom bar asking for a name. Typing it and pressing play joins the queue; the lane fills as the name is accepted.</p></div>
+    <div><div style="border:1px solid #0F1A24;padding:0 14px 12px;background:#FFFDF7"><div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 2px 8px;margin:12px 0 0;border-top:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#E4573D"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#0F1A24">Kári</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">1191 · round 1 in 3</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">10:00</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#E4573D">0</span></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:100%;background:#E4573D"></div></div>
+      </div></div><div style="margin-top:8px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:16px">Opponent found</div><p style="margin:4px 0 0;font-size:14.5px;line-height:1.5">The name writes itself into the bar, the lane fills to 10:00, and the sub-line counts three. No versus screen.</p></div>
+    <div><div style="border:1px solid #0F1A24;padding:0 14px 12px;background:#FFFDF7"><div style="height:60px;box-sizing:border-box;position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 2px 8px;margin:12px 0 0;border-top:1px solid #E6E2D6">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;background:#E4573D"></span><div><div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:17px;line-height:1.1;color:#0F1A24">Kári</div><div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;margin-top:4px;white-space:nowrap">reconnecting · 0:42 left</div></div></div>
+        <div style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:#5A6572;font-weight:400">4:31</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center"><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:40px;line-height:1;color:#E4573D">59</span></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#E6E2D6"><div style="position:absolute;left:0;top:0;bottom:0;width:45%;background:repeating-linear-gradient(90deg,#E4573D 0 6px,transparent 6px 10px)"></div></div>
+      </div></div><div style="margin-top:8px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:16px">Disconnect</div><p style="margin:4px 0 0;font-size:14.5px;line-height:1.5">The opponent's lane turns dashed and holds; the sub-line counts down the grace period. Your clock also holds. No overlay on the field.</p></div>
+    <div><div style="border:1px solid #0F1A24;padding:14px;background:#FFFDF7"><div style="margin-top:0;padding:12px 10px;background:#F4F1E8;box-shadow:inset 3px 0 0 #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;color:#0F1A24">resign the match? · yes, resign ▸ · no</div></div><div style="margin-top:8px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:16px">Resign</div><p style="margin:4px 0 0;font-size:14.5px;line-height:1.5">Chosen from the ledger's menu; the confirmation is the live row for five seconds, then it reverts. No dialog, no red button.</p></div>
+    <div><div style="border:1px solid #0F1A24;padding:14px;background:#FFFDF7"><div style="margin-top:0;padding:12px 10px;background:#F4F1E8;box-shadow:inset 3px 0 0 #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;color:#0F1A24">Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds ten minutes for all of them.<br><span style="color:#5A6572">dismissed by your first pick · ? reopens</span></div></div><div style="margin-top:8px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:16px">First match</div><p style="margin:4px 0 0;font-size:14.5px;line-height:1.5">Three sentences in the live row over a live field, once. The warm-up field in the lobby has usually taught the rest already.</p></div>
+    <div><div style="border:1px solid #0F1A24;padding:14px;background:#FFFDF7"><div style="margin-top:0;padding:12px 10px;background:#F4F1E8;box-shadow:inset 3px 0 0 #0F1A24;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;color:#0F1A24">R7 · <span style="color:#147D7A">frozen · Kári R2 · pick another</span> · <span style="color:#E4573D">played ●</span></div></div><div style="margin-top:8px;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:16px">Illegal pick</div><p style="margin:4px 0 0;font-size:14.5px;line-height:1.5">The letter shakes in its own ink; the live row states the fact and the next action for two seconds. No red flash, no toast.</p></div>
+  </div>
+  <p style="margin:12px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;color:#5A6572;line-height:1.6">Fig. 10 — States. Landing, opponent found, disconnect, resign, first match and an illegal pick, each as a line in a bar or the live row.</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px;margin-top:44px">
+    <div style="flex:0 1 160px;min-width:140px"></div>
+    <div style="flex:1 1 520px;min-width:0;max-width:720px">
+      <h3 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:22px">Open questions for the loop</h3>
+      <ul style="margin:12px 0 0;padding-left:24px;display:flex;flex-direction:column;gap:8px;font-size:16px">
+        <li>Setting the field in the queue previews the real match letters. If both players see them before round 1, the pre-scan is symmetric; if the queue is long, should the letters reshuffle when the opponent arrives?</li>
+        <li>The warm-up field never keeps score. Should it, as a solo mode with a personal best, or would that pull players out of the ranked loop?</li>
+        <li>What happens when a clock reaches 0:00 is not in the rules document read for this audit. The bar can carry any answer (the lane empties and the sub-line states the consequence), but the rule has to be decided first.</li>
+        <li>Challenges from the directory are proposed as unranked. Is a ranked challenge wanted, and if so, does it need a consent step in the challenged player's bar?</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer style="margin-top:72px;padding-top:20px;border-top:1px solid #0F1A24;display:flex;flex-wrap:wrap;gap:12px 32px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.06em;color:#5A6572;line-height:1.7">
+  <span>Board letters and words from the ds-bundle canonical fixture; scores computed with the Krafla table and (n−2)×5.</span>
+  <span>Figures 1 and 4 are recreations of production components, not screenshots.</span>
+</footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mainBeat&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;think&quot;,&quot;options&quot;:[&quot;think&quot;,&quot;commit&quot;,&quot;reveal&quot;,&quot;settle&quot;],&quot;tsType&quot;:&quot;'think' | 'commit' | 'reveal' | 'settle'&quot;,&quot;section&quot;:&quot;Proposed field (Fig. 2 &amp; 5)&quot;},&quot;showValues&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Proposed field (Fig. 2 &amp; 5)&quot;}}">
+const ROWS = ["TAKRÓSEMIN","ÚLFUREKATS","NBORÐAGILT","GÝMÆTÖNFÁR","ASKÁLDISTÓ","HREVINUROF","ÞOKANENMUR","EIKURTAFLI","LÁNSEADLÓS","GRÖFILNKÝR"];
+const VALUES = {A:1,Á:3,B:5,D:5,Ð:2,E:3,É:7,F:3,G:3,H:4,I:1,Í:4,J:6,K:2,L:2,M:2,N:1,O:5,Ó:3,P:5,R:1,S:1,T:2,U:2,Ú:4,V:5,X:10,Y:6,Ý:5,Þ:7,Æ:4,Ö:6};
+const WORDS = [
+  {w:"BORÐA",x:1,y:2,dir:"h",p:"a",r:1},{w:"ÞOKA",x:0,y:6,dir:"h",p:"b",r:1},
+  {w:"VINUR",x:3,y:5,dir:"h",p:"b",r:2},{w:"UNA",x:6,y:5,dir:"v",p:"b",r:2},{w:"SKÁLD",x:1,y:4,dir:"h",p:"a",r:3},
+  {w:"TAFL",x:5,y:7,dir:"h",p:"a",r:4},{w:"TAL",x:5,y:7,dir:"v",p:"a",r:4,both:true},{w:"KÝR",x:7,y:9,dir:"h",p:"b",r:4}
+];
+const POST_WORDS = WORDS.concat([
+  {w:"RÓS",x:3,y:0,dir:"h",p:"a",r:5},{w:"ÚLFUR",x:0,y:1,dir:"h",p:"b",r:5},
+  {w:"EIK",x:0,y:7,dir:"h",p:"a",r:6},{w:"MÆT",x:2,y:3,dir:"h",p:"b",r:7},
+  {w:"FÁR",x:7,y:3,dir:"h",p:"b",r:8,both:true},{w:"SÓL",x:7,y:8,dir:"h",p:"b",r:9,rev:true},
+  {w:"LÁN",x:0,y:8,dir:"h",p:"a",r:10},{w:"GRÖF",x:0,y:9,dir:"h",p:"b",r:10}
+]);
+const POST_ROWS = [
+  {r:"R1",a:"BORÐA",ap:"+29",b:"ÞOKA",bp:"+25"},{r:"R2",a:"—",ap:"",b:"VINUR · UNA",bp:"+34"},{r:"R3",a:"SKÁLD",ap:"+28",b:"—",bp:""},{r:"R4",a:"TAFL · TAL · LAT",ap:"+38",b:"KÝR",bp:"+13"},
+  {r:"R5",a:"RÓS",ap:"+10",b:"ÚLFUR",bp:"+27"},{r:"R6",a:"EIK",ap:"+11",b:"—",bp:""},{r:"R7",a:"—",ap:"",b:"MÆT",bp:"+13"},{r:"R8",a:"—",ap:"",b:"FÁR · RÁF",bp:"+24"},{r:"R9",a:"—",ap:"",b:"SÓL",bp:"+11"},{r:"R10",a:"LÁN",ap:"+11",b:"GRÖF",bp:"+23"}
+];
+const RATING = [1204,1210,1198,1215,1222,1236,1229,1244,1262,1251,1240,1233,1247,1238,1226,1219,1231,1224,1212,1205,1218,1226,1214,1209,1221,1215,1204,1210,1204,1192];
+const MINI_ROWS = ["ASKÁL","TÖÝEN","ORRÐU"];
+const MINI_WORDS = [{w:"SKÁL",x:1,y:0,dir:"h",p:"a",r:1},{w:"KÝR",x:2,y:0,dir:"v",p:"b",r:2}];
+const INK="#0F1A24", CORAL="#147D7A", TEAL="#E4573D";
+const PAPER="oklch(0.975 0.012 85)", PAPER2="oklch(0.955 0.014 82)", OINK="oklch(0.22 0.025 258)";
+const LETTERPRESS = "inset 0 1px 0 color-mix(in oklab, #fff 80%, transparent), inset 0 -1px 0 color-mix(in oklab, "+OINK+" 10%, transparent), inset 0 0 0 1px color-mix(in oklab, "+OINK+" 8%, transparent), 0 1px 0 color-mix(in oklab, "+OINK+" 6%, transparent)";
+
+function key(x,y){ return x+","+y; }
+function wordKeys(wd){ const ks=[]; for(let i=0;i<wd.w.length;i++) ks.push(wd.dir==="h"?key(wd.x+i,wd.y):key(wd.x,wd.y+i)); return ks; }
+
+function buildAsIs(){
+  const frozen={}; WORDS.filter(w=>w.r<=3).forEach(w=>wordKeys(w).forEach(k=>frozen[k]=w.p));
+  const sel="5,7"; const opp=new Set(["7,8","7,9"]);
+  const out=[];
+  ROWS.forEach((row,y)=>[...row].forEach((ch,x)=>{
+    const k=key(x,y);
+    let bg="linear-gradient(180deg, "+PAPER+" 0%, color-mix(in oklab, "+PAPER2+" 95%, "+PAPER+") 100%)";
+    let border="1px solid color-mix(in oklab, "+OINK+" 8%, transparent)", shadow=LETTERPRESS;
+    if(frozen[k]) bg = frozen[k]==="a" ? "oklch(0.68 0.14 60 / 0.4)" : "oklch(0.56 0.08 220 / 0.4)";
+    if(k===sel){ bg="oklch(0.92 0.06 70 / 0.85)"; border="2px solid oklch(0.48 0.14 55)"; shadow="0 0 0 3px color-mix(in oklab, oklch(0.48 0.14 55) 45%, transparent)"; }
+    if(opp.has(k)){ bg="oklch(0.86 0.04 220 / 0.85)"; border="2px solid oklch(0.38 0.08 220)"; }
+    out.push({k,letter:ch,value:VALUES[ch]??1,bg,border,shadow});
+  }));
+  return out;
+}
+
+function buildField(cfg){
+  const {rows=ROWS,words=WORDS,x0=0,y0=0,w=10,h=10,frozenRounds=3,reveal=[],selected=[],pinsA=[],pinsB=[],showAllValues=false}=cfg;
+  const owner={};
+  words.forEach(wd=>{ if(wd.r<=frozenRounds||reveal.includes(wd.r)) wordKeys(wd).forEach(k=>{ owner[k]= owner[k]&&owner[k]!==wd.p ? "both" : wd.p; }); });
+  const sel=new Set(selected), pa=new Set(pinsA), pb=new Set(pinsB);
+  const cells=[];
+  for(let y=y0;y<y0+h;y++) for(let x=x0;x<x0+w;x++){
+    const ch=rows[y][x], k=key(x,y), o=owner[k];
+    let color=o==="a"?CORAL:o==="b"?TEAL:INK, shadow="none", outline="none", transform="none", val=showAllValues?String(VALUES[ch]??1):"", weight=500, valColor="#5A6572", valWeight=400;
+    if(o==="both") weight=700;
+    if(o) valColor = o==="a"?CORAL:o==="b"?TEAL:INK;
+    if(sel.has(k)){ color=CORAL; shadow="inset 0 0 0 2px "+INK; transform="scale(1.08)"; val=String(VALUES[ch]??1); weight=700; valColor=INK; valWeight=500; }
+    if(pa.has(k)){ color=CORAL; outline="2px dashed "+CORAL; }
+    if(pb.has(k)){ color=TEAL; outline="2px dashed "+TEAL; }
+    cells.push({k,letter:ch,color,shadow,outline,transform,val,weight,valColor,valWeight});
+  }
+  const runs=[]; const cw=100/w, ch=100/h, along=0.05, cross=0.2;
+  words.forEach(wd=>{
+    const settled=wd.r<=frozenRounds, live=reveal.includes(wd.r); if(!settled&&!live) return;
+    const len=wd.w.length;
+    const xs=Math.max(wd.x,x0), xe=Math.min(wd.dir==="h"?wd.x+len:wd.x+1, x0+w);
+    const ys=Math.max(wd.y,y0), ye=Math.min(wd.dir==="v"?wd.y+len:wd.y+1, y0+h);
+    if(xe<=xs||ye<=ys) return;
+    const tint = wd.p==="a" ? (live?"rgba(20,125,122,0.3)":"rgba(20,125,122,0.14)") : (live?"rgba(228,87,61,0.3)":"rgba(228,87,61,0.14)");
+    const ink = wd.p==="a" ? CORAL : TEAL, isH = wd.dir==="h";
+    // start and end of the word may fall outside a cropped specimen
+    const startVis = isH ? wd.x>=x0 : wd.y>=y0, endVis = isH ? wd.x+len<=x0+w : wd.y+len<=y0+h;
+    const inS = startVis?along:0, inE = endVis?along:0;
+    const visLen = isH ? (xe-xs) : (ye-ys), spanLen = visLen-inS-inE;
+    const left = isH ? (xs-x0)+inS : (xs-x0)+cross, top = isH ? (ys-y0)+cross : (ys-y0)+inS;
+    const width = isH ? spanLen : 1-2*cross, height = isH ? 1-2*cross : spanLen;
+    // fine chevron on the leading edge, opened to ~150°, gives the reading direction; the end is a plain square stop
+    const depth = 0.09, chevW = isH ? (depth/spanLen*100)+"%" : "100%", chevH = isH ? "100%" : (depth/spanLen*100)+"%";
+    const fwd = !wd.rev || wd.both, back = !!(wd.rev || wd.both);
+    const pts = isH ? "0,0 100,50 0,100" : "0,0 50,100 100,0";
+    const ptsEnd = isH ? "100,0 0,50 100,100" : "0,100 50,0 100,100";
+    runs.push({left:left*cw+"%", top:top*ch+"%", width:width*cw+"%", height:height*ch+"%", bg:tint, ink, pts, ptsEnd, chevW, chevH,
+      chevDisplay: (fwd && startVis) ? "block" : "none", chevEndDisplay: (back && endVis) ? "block" : "none"});
+  });
+  return {cells,runs};
+}
+
+const CROP={x0:3,y0:6,w:7,h:4};
+const FINDINGS=[
+ {id:"F1",tag:"NOISE",group:"A · field",title:"Letter values are needed, but they are drawn as tile decoration",body:"Values are how a player chooses between two candidate swaps, so they belong on the board. The rendering works against that: 0.35em at 50% opacity inside the tile's own optical box, so the digit is hard to read yet still crowds the letter, and the sum a player actually wants — the value of the word in front of them — is never shown anywhere.",src:"BoardGrid.tsx board-grid__tile-score · board.css .board-grid__tile-score"},
+ {id:"F2",tag:"NOISE",group:"A · field",title:"Letterpress tiles spend contrast on decoration",body:"Each of 100 cells carries a two-stop gradient, four layered shadows, a 0.65rem radius and a 2px hover lift; the board wrapper adds a gradient and a tinted drop shadow. It is the Scrabble-tile trope, and it lowers letter contrast against the cell.",src:"board.css .board-grid__cell, .board-grid"},
+ {id:"F3",tag:"REDUNDANT",group:"A · field",title:"Coordinate labels serve a card, not the player",body:"A–J and 1–10 exist so the Your-move card can say “Picked F8”. Nothing in play uses chess notation: no notation input, no replay, no chat. They add 20 glyphs and 18px to the field's footprint.",src:"BoardCoordLabels.tsx · YourMoveCard.tsx formatCoord"},
+ {id:"F4",tag:"NOISE",group:"A · field",title:"The lock banner covers the first row of letters",body:"“Move submitted — waiting for opponent” is absolutely positioned 0.5rem from the top of the grid and sits over row 1, at exactly the moment a player who has finished wants to pre-scan for the next round.",src:"board.css .board-grid__lock-banner · BoardGrid.tsx showLockBanner"},
+ {id:"F5",tag:"BUG",group:"A · field",title:"The round announcement is invisible",body:".round-announce sets color: var(--paper) on a 92% paper background. Only the text-shadow glow renders. “Round 5” and “Final Round” have not been readable since the theme flipped from dark to paper.",src:"board.css .round-announce (color, background)"},
+ {id:"F6",tag:"NOISE",group:"B · chrome",title:"Seven cards frame the board, two of them are a tutorial",body:"How to play and Legend are shown in every match to every player forever. Your move, Your words, Opponent's words and Tiles claimed are four containers for facts that belong in one scorecard.",src:"MatchLeftRail.tsx · MatchClient.tsx rails"},
+ {id:"F7",tag:"BUG",group:"B · chrome",title:"“Hidden from opponent until both submit” is no longer true",body:"Since #210 the swap is broadcast and animated on the opponent's board the moment it is submitted (rules §2). The Your-move card still tells the player the opposite.",src:"YourMoveCard.tsx SubmittedState · wottle_game_rules.md §2"},
+ {id:"F8",tag:"RISK",group:"B · chrome",title:"Two match budgets drawn as two unrelated numerals",body:"Each clock is a player's remaining budget for the whole match, so the strategic reading is the comparison: who can still afford to think. The build sets the two numerals some 800px apart in separate cards, each on its own tone ramp, so comparing them means reading both and subtracting, and the pace a player has to hold (time left over rounds left) is never shown.",src:"HudCard.tsx · board.css .hud-card__clock (O-59)"},
+ {id:"F9",tag:"REDUNDANT",group:"B · chrome",title:"The round number is shown three times",body:"“Round 4 / 10” in text, a ten-pip bar beneath it, and on mobile “R4” on both player bars.",src:"MatchCenterChrome.tsx · RoundPipBar.tsx · PlayerPanel.tsx"},
+ {id:"F10",tag:"RISK",group:"B · chrome",title:"Navigation stays sticky and the height budget is wrong",body:"The TopBar (wordmark, Lobby, Profile, user menu) remains pinned during a live match. board.css budgets 48px of chrome for the board's height, but the top bar, HUD strip and paddings spend about 190px, so on displays under ~820px tall the bottom rows scroll off.",src:"app/layout.tsx · TopBar.tsx · board.css .match-layout__board --chrome-height"},
+ {id:"F11",tag:"RISK",group:"C · state & colour",title:"Picking and having played look identical",body:"PLAYER_A_SELECTED_BG equals PLAYER_A_LOCKED_BG and the borders match, by design. The most important state distinction in the round, “I am choosing” versus “I have committed”, has no visual difference on the tile.",src:"lib/constants/playerColors.ts · board.css --selected / --locked"},
+ {id:"F12",tag:"BUG",group:"C · state & colour",title:"Errors flash in the opponent's colour",body:".board-grid__cell--invalid borders in --p2 (blue), which is player B's identity colour, not --bad. For player B an invalid move looks like their own selection; the PRD asked for a red flash.",src:"board.css .board-grid__cell--invalid · wottle_prd.md §7.2"},
+ {id:"F13",tag:"NOISE",group:"C · state & colour",title:"Ochre means six things",body:"Brand accent, player A identity (--p1 ≈ --ochre), the current pip, the waiting clock (--warn is a near hue), the lock banner and the pulsing waiting frame. A player cannot learn what ochre means because it means everything.",src:"globals.css --ochre/--p1/--warn · board.css"},
+ {id:"F14",tag:"NOISE",group:"C · state & colour",title:"One clock, five tones, two renderings",body:"active, warning (yellow→red), critical (blink), expired, waiting: rendered as 16% tints on desktop and 85% saturated fills on mobile, so the same state looks different on the two surfaces. The submitted glow hard-codes rgba(245,158,11), Tailwind amber, outside the token set.",src:"HudCard.tsx · TimerDisplay.tsx · deriveClockUrgency.ts"},
+ {id:"F15",tag:"NOISE",group:"C · state & colour",title:"Territory is painted per tile, so words disappear",body:"A frozen five-letter word is five separately tinted squares; a crossing is a diagonal split. The rules guarantee every frozen letter belongs to a run of three or more (§3.5a), yet the field never shows the run.",src:"BoardGrid.tsx FROZEN_COLORS · playerColors.ts BOTH_GRADIENT"},
+ {id:"F16",tag:"NOISE",group:"D · rhythm",title:"The reveal, the round's climax, is eight small signals",body:"FLIP swap, 450ms delay, 700ms ring flash, a held 3px ring, an 11px green “+18 letters, +10 length” for 3s, three cards updating, and a 1.2s announce. The highest-drama moment has the smallest type on the page and no single beat.",src:"MatchClient.tsx round-recap effect · ScoreDeltaPopup.tsx · board.css keyframes"},
+ {id:"F17",tag:"RISK",group:"D · rhythm",title:"The second tap is irrevocable",body:"handleTileClick submits on the second tap; the swap is broadcast and may be instantly scored server-side, so there is no undo. A mis-tap costs the whole round. The PRD's desktop drag-to-swap was never built.",src:"BoardGrid.tsx handleTileClick → animateSwap · wottle_prd.md §1.3"},
+ {id:"F18",tag:"BUG",group:"D · rhythm",title:"Copy describes a different game",body:"Matchmaking reads “Ranked · 5+0 · Icelandic nouns”; the lobby hero says “outrun the chess clock”. The match is ten rounds on a ten-minute clock per player, validated against the full BÍN inflected list.",src:"MatchmakingClient.tsx · LobbyHero.tsx · game-config.ts · rules §3.3"},
+ {id:"F19",tag:"NOISE",group:"E · identity",title:"Warm Editorial is the period style, not Wottle's",body:"Cream paper, Fraunces italic display, mono uppercase kickers, hairline cards with left-stripe accents and Inter body is the prevailing 2024–26 editorial-app look. It reads as a magazine; nothing in it comes from Icelandic letterforms or from word-search.",src:"ds-bundle/README.md · globals.css · HudCard left stripe"}
+];
+
+class Component extends DCLogic {
+  state = { zoom: 1, asisZoom: 1 };
+  componentDidMount(){
+    const el = document.querySelector('[data-measure="asis"]');
+    if(!el) return;
+    const apply = () => { const w = el.getBoundingClientRect().width; if(w>0) this.setState({ zoom: Math.min(1, (w-2)/1180), asisZoom: Math.min(1, (w-2)/1320) }); };
+    apply();
+    if (typeof ResizeObserver !== "undefined") { this._ro = new ResizeObserver(apply); this._ro.observe(el); }
+  }
+  componentWillUnmount(){ if(this._ro) this._ro.disconnect(); }
+  renderVals(){
+    const showAllValues = this.props.showValues ?? true;
+    const beatCfg = {
+      think: {selected:["5,7"], pinsB:["7,8","7,9"]},
+      commit: {pinsA:["4,7","5,7"], pinsB:["7,8","7,9"]},
+      reveal: {reveal:[4]},
+      settle: {frozenRounds:4}
+    };
+    const think = {...(beatCfg[this.props.mainBeat ?? "think"] ?? beatCfg.think), showAllValues};
+    const beats = [
+      {n:"1",name:"Set",dur:"0.4 s",railA:"70%",railB:"52%",field:buildField({...CROP}),ledger:"R4 · Birna — · Kári —",text:"A new ledger row opens with the round number and both clocks resume: Birna 7:02, Kári 5:10. The field is untouched; whoever pre-scanned during the last reveal keeps that lead."},
+      {n:"2",name:"Think",dur:"what you can afford",railA:"67.5%",railB:"45%",field:buildField({...CROP,...think}),ledger:"R4 · picking T (2) · played ●",text:"Birna has picked T; her lane keeps draining (6:45). Kári played after 39 s: his letters pin in coral the instant the broadcast lands, his lane stands at 4:31, and the live row says played."},
+      {n:"3",name:"Commit",dur:"one tap",railA:"65%",railB:"45%",field:buildField({...CROP,pinsA:["4,7","5,7"],pinsB:["7,8","7,9"]}),ledger:"R4 · played · played ●",text:"Birna previews R↔T, taps again. Both letters pin in teal and her lane stops at 6:30. Both lanes now stand still: the round is closed and the reveal follows."},
+      {n:"4",name:"Reveal",dur:"1.2 s",railA:"65%",railB:"45%",field:buildField({...CROP,reveal:[4]}),ledger:"R4 · TAFL 18 · TAL 10 · LAT 10 → +38 · KÝR +13",text:"Bands draw themselves along each word, 400 ms per word, staggered; TAL reads both ways, so its band gets a chevron at each end and scores twice. The ledger writes the word and points into the row; totals count 57→95 and 59→72."},
+      {n:"5",name:"Settle",dur:"0.6 s",railA:"65%",railB:"45%",field:buildField({...CROP,frozenRounds:4}),ledger:"R5 · Birna — · Kári —",text:"Pins fade, live bands settle to the territory tint, the territory bar updates, and R5 opens with both clocks running again. Nothing has covered the field at any point."}
+    ];
+    return {
+      mockZoom: this.state.zoom,
+      asisZoom: this.state.asisZoom,
+      asisCells: buildAsIs(),
+      fieldMain: buildField(think),
+      fieldCross: buildField({rows:MINI_ROWS,words:MINI_WORDS,w:5,h:3,frozenRounds:2}),
+      fieldPick: buildField({x0:3,y0:6,w:5,h:3,selected:["5,7"],pinsB:["7,8"],showAllValues:true}),
+      ledgerRows: [
+        {r:"R1",a:"BORÐA",ap:"+29",b:"ÞOKA",bp:"+25"},
+        {r:"R2",a:"—",ap:"",b:"VINUR · UNA",bp:"+34"},
+        {r:"R3",a:"SKÁLD",ap:"+28",b:"—",bp:""}
+      ],
+      emptyRows: ["R5","R6","R7","R8","R9","R10"],
+      emptyTen: Array.from({length:10},(_,i)=>({r:"R"+(i+1),a:"",ap:"",b:"",bp:""})),
+      fieldLobby: buildField({frozenRounds:0, selected:["4,0"], showAllValues}),
+      fieldSetting: (()=>{ const f=buildField({frozenRounds:0, showAllValues}); f.cells=f.cells.map((c,i)=> i>=58 ? {...c, letter:"", val:""} : c); return f; })(),
+      fieldPost: buildField({words:POST_WORDS, frozenRounds:10, showAllValues}),
+      postRows: POST_ROWS,
+      lobbyPlayers: [{n:"Kári",r:"1191",d:"−13"},{n:"Elín",r:"1240",d:"+36"},{n:"Sigrún",r:"1108",d:"−96"},{n:"Þór",r:"1199",d:"−5"}],
+      lastMatches: [{o:"Kári",s:"127–170",d:"−12",c:"#5A6572"},{o:"Elín",s:"152–120",d:"+15",c:INK},{o:"Þór",s:"98–131",d:"−11",c:"#5A6572"}],
+      bestWords: [{w:"SKÁLDSKAPUR",p:"+67",vs:"Kári"},{w:"TAFL · TAL · LAT",p:"+38",vs:"Kári"},{w:"BORÐA",p:"+29",vs:"Kári"},{w:"ÚLFUR",p:"+27",vs:"Elín"},{w:"GRÖF",p:"+23",vs:"Sigrún"}],
+      ratingPts: RATING.map((v,i)=> (i*(600/(RATING.length-1))).toFixed(1)+","+(200-((v-1130)/(1290-1130))*200).toFixed(1)).join(" "),
+      findings: FINDINGS.map(f=>({...f, tagBg: f.tag==="BUG" ? INK : "transparent", tagFg: f.tag==="BUG" ? "#FFFDF7" : INK})),
+      beats
+    };
+  }
+}
+</script>
+</body>
+</html>

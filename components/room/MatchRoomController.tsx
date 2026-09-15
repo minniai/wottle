@@ -12,7 +12,7 @@ import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
 import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
-import { buildVerdict, finalCaption, ratingLine, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
+import { buildVerdict, finalCaption, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
 import { LOBBY, NEW_OPPONENT, REMATCH, waitingForRematch } from "@/lib/constants/copy";
@@ -24,12 +24,14 @@ import type { Coordinate } from "@/lib/types/board";
 import type { MatchPlayerProfiles, MatchState, PlayerSlot } from "@/lib/types/match";
 import { Field } from "./Field";
 import { MatchRoomView } from "./MatchRoomView";
+import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import { useAccumulatedRounds } from "./hooks/useAccumulatedRounds";
 import { useClockTick } from "./hooks/useClockTick";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
+import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
 import { buildPartialRevealKey } from "@/lib/match/partialReveal";
@@ -40,6 +42,23 @@ export interface MatchRoomControllerProps {
   matchId: string;
   playerProfiles: MatchPlayerProfiles;
   pollIntervalMs?: number;
+}
+
+const LETTER_VALUES = LETTER_SCORING_VALUES_IS as Record<string, number>;
+
+function letterValue(letter: string): number {
+  return LETTER_VALUES[letter.toUpperCase()] ?? LETTER_VALUES[letter] ?? 0;
+}
+
+/**
+ * The round a frozen letter was scored in. A letter covered by two scored words
+ * takes the earlier round — that is when it actually froze (spec 045 FR-012).
+ */
+function frozenRound(words: AccumulatedWord[], at: Coordinate, fallback: number): number {
+  const rounds = words
+    .filter((w) => w.coordinates.some((c) => c.x === at.x && c.y === at.y))
+    .map((w) => w.roundNumber);
+  return rounds.length > 0 ? Math.min(...rounds) : fallback;
 }
 
 /**
@@ -93,9 +112,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     (kind: "frozen" | "pinned" | "pickCleared", at?: Coordinate) => {
       if (kind === "pickCleared") return push({ kind: "pickCleared", reason: "opponentPinned" });
       const owner = at ? frozenTiles[`${at.x},${at.y}`]?.owner : undefined;
-      push(frozenNotice(owner ? ownerNames[owner] : opp.displayName, match.currentRound));
+      push(frozenNotice(owner ? ownerNames[owner] : opp.displayName, at ? frozenRound(words, at, match.currentRound) : match.currentRound));
     },
-    [push, frozenTiles, ownerNames, opp.displayName, match.currentRound],
+    [push, frozenTiles, ownerNames, opp.displayName, words, match.currentRound],
   );
   const onRejected = useCallback((message: string) => push({ kind: "text", text: message.toLowerCase() }), [push]);
   const onCommitted = useCallback(() => {
@@ -156,7 +175,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     if (youTimer.status === "paused" || field.interaction.kind === "committed") return { kind: "played" };
     if (field.interaction.kind === "picked") {
       const letter = match.board[field.interaction.a.y]?.[field.interaction.a.x] ?? "";
-      return { kind: "picking", letter, value: 0 };
+      return { kind: "picking", letter, value: letterValue(letter) };
     }
     return { kind: "idle" };
   }, [match.state, youTimer.status, field.interaction, match.board]);
@@ -251,6 +270,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     [matchId, push, dismiss, rematch, router],
   );
 
+  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  useRoomHotkeys(handleAction);
+
   const rematchLine =
     rematch.phase === "waiting" ? waitingForRematch(opp.displayName) : rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;
   const allNotices: Notice[] = [
@@ -267,11 +289,12 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youTimer.playerId, youScoreWins) : undefined, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running" && !clocksHeld, score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
-        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppTimer.playerId, !youScoreWins && !draw) : undefined, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
+        you={{ name: you.displayName, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youTimer.playerId, youScoreWins, match.rated !== false) : undefined, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running" && !clocksHeld, score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
+        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppTimer.playerId, !youScoreWins && !draw, match.rated !== false) : undefined, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
         currentRound={match.currentRound}
         completed={completed}
-        caption={completed ? finalCaption(match.timers.playerA.remainingMs, match.timers.playerB.remainingMs) : undefined}
+        rated={match.rated !== false}
+        caption={completed ? finalCaption(match.timers.playerA.remainingMs, match.timers.playerB.remainingMs, match.rated !== false) : undefined}
         verdict={
           completed
             ? buildVerdict({
@@ -330,6 +353,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           shakeAt={field.shakeAt}
           focusAt={field.focusAt}
           onActivate={(at) => field.dispatch({ type: "tap", at })}
+        onDrag={(from, to) => field.dispatch({ type: "drag", from, to })}
+        exchange={field.ownPins}
           onKeyDown={field.onKeyDown}
         />
       </MatchRoomView>

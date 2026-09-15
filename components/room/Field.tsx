@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
@@ -35,6 +35,10 @@ export interface FieldProps {
   shakeAt?: Coordinate | null;
   focusAt?: Coordinate | null;
   onActivate?: (coord: Coordinate) => void;
+  /** Pointer down on one letter, up on another (spec 045 FR-024). */
+  onDrag?: (from: Coordinate, to: Coordinate) => void;
+  /** The two cells whose letters have just traded places; they travel (FR-027). */
+  exchange?: [Coordinate, Coordinate] | null;
   onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>, coord: Coordinate) => void;
 }
 
@@ -66,8 +70,74 @@ export function Field(props: FieldProps) {
     () => new Set([...(props.sharedCells ?? []), ...sharedFromBands(bands)]),
     [props.sharedCells, bands],
   );
-  const { cellStateFor, seatFor, shakeAt, focusAt, onActivate, onKeyDown } = props;
+  const { cellStateFor, seatFor, shakeAt, focusAt, onActivate, onDrag, onKeyDown, exchange = null } = props;
   const ref = useRef<HTMLDivElement | null>(null);
+  const dragFrom = useRef<Coordinate | null>(null);
+  /** Set when a drag resolves, so the click the browser fires next is not a tap. */
+  const swallowClick = useRef(false);
+
+  const onPointerDown = useCallback((x: number, y: number) => {
+    dragFrom.current = { x, y };
+  }, []);
+
+  const onPointerUp = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      const from = dragFrom.current;
+      dragFrom.current = null;
+      if (!from) return;
+      // jsdom has no hit testing; in a browser this is the cell under the finger.
+      const under = document.elementFromPoint(event.clientX, event.clientY);
+      const cell = under?.closest<HTMLElement>("[data-x][data-y]") ?? null;
+      if (!cell || !ref.current?.contains(cell)) {
+        swallowClick.current = true;
+        return;
+      }
+      const to = { x: Number(cell.dataset.x), y: Number(cell.dataset.y) };
+      if (to.x === from.x && to.y === from.y) return; // a tap; let the click run
+      swallowClick.current = true;
+      onDrag?.(from, to);
+    },
+    [onDrag],
+  );
+
+  const onActivateCell = useCallback(
+    (x: number, y: number) => {
+      if (swallowClick.current) {
+        swallowClick.current = false;
+        return;
+      }
+      onActivate?.({ x, y });
+    },
+    [onActivate],
+  );
+
+  // FLIP: each letter starts at the other's offset and animates home. The
+  // offset is the distance between the two cells, so it needs no measurement
+  // before the swap — the grid is uniform.
+  const [travelling, setTravelling] = useState<Map<string, { dx: number; dy: number }>>(new Map());
+  useEffect(() => {
+    if (!exchange) return setTravelling(new Map());
+    const [a, b] = exchange;
+    const cellOf = (c: Coordinate) => ref.current?.querySelector<HTMLElement>(`[data-x="${c.x}"][data-y="${c.y}"]`);
+    const boxA = cellOf(a)?.getBoundingClientRect();
+    const boxB = cellOf(b)?.getBoundingClientRect();
+    if (!boxA || !boxB) return;
+    setTravelling(
+      new Map([
+        [`${a.x},${a.y}`, { dx: boxB.left - boxA.left, dy: boxB.top - boxA.top }],
+        [`${b.x},${b.y}`, { dx: boxA.left - boxB.left, dy: boxA.top - boxB.top }],
+      ]),
+    );
+  }, [exchange]);
+
+  const onExchangeEnd = useCallback((x: number, y: number) => {
+    setTravelling((current) => {
+      if (!current.has(`${x},${y}`)) return current;
+      const next = new Map(current);
+      next.delete(`${x},${y}`);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     performance.mark?.("field:hydrated");
@@ -130,7 +200,11 @@ export function Field(props: FieldProps) {
                 shake={shakeAt?.x === x && shakeAt?.y === y}
                 disabled={disabled || Boolean(frozen)}
                 tabIndex={x === 0 && y === 0 ? 0 : -1}
-                onActivate={(cx, cy) => !disabled && onActivate?.({ x: cx, y: cy })}
+                onActivate={(cx, cy) => !disabled && onActivateCell(cx, cy)}
+                onPointerDown={(cx, cy) => !disabled && onPointerDown(cx, cy)}
+                onPointerUp={onPointerUp}
+                exchange={travelling.get(key) ?? null}
+                onExchangeEnd={onExchangeEnd}
                 onKeyDown={(event, cx, cy) => onKeyDown?.(event, { x: cx, y: cy })}
               />
             );

@@ -32,6 +32,8 @@ interface MatchBootstrapInput {
   playerBId: string;
   roundLimit?: number;
   rematchOf?: string;
+  /** False for a directory challenge: no rating change (spec 045 decision 1). */
+  rated?: boolean;
 }
 
 export interface ActiveMatchSummary {
@@ -159,6 +161,10 @@ export async function bootstrapMatchRecord(
     payload.rematch_of = input.rematchOf;
   }
 
+  if (input.rated === false) {
+    payload.rated = false;
+  }
+
   const { data, error } = await client
     .from("matches")
     .upsert(payload, { onConflict: "id" })
@@ -170,6 +176,16 @@ export async function bootstrapMatchRecord(
   }
 
   return data.id;
+}
+
+/**
+ * Whether a match counts towards ratings. A rematch inherits it: a rematch of a
+ * directory challenge is still a self-chosen opponent (spec 045 decision 1).
+ * Defaults to rated for a row written before the column existed.
+ */
+export async function isMatchRated(client: AnyClient, matchId: string): Promise<boolean> {
+  const { data } = await client.from("matches").select("rated").eq("id", matchId).maybeSingle();
+  return data?.rated !== false;
 }
 
 export async function findActiveMatchForPlayer(

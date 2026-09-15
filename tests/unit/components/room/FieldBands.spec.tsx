@@ -23,6 +23,18 @@ describe("FieldBands (design system §5.2)", () => {
     expect(els[1]).toHaveClass("field__band--live");
   });
 
+  it("draws the chevron at the design's 1.5px, not a hairline (spec 045 A3)", () => {
+    // vector-effect="non-scaling-stroke" measures the width in device pixels,
+    // so 0.15 rendered as a sixth of one pixel — invisible at every field size.
+    const { container } = render(<FieldBands bands={bands} highlightRound={null} />);
+    const paths = [...container.querySelectorAll("path")];
+    expect(paths).toHaveLength(2);
+    for (const path of paths) {
+      expect(path).toHaveAttribute("stroke-width", "1.5");
+      expect(path).toHaveAttribute("vector-effect", "non-scaling-stroke");
+    }
+  });
+
   it("dims bands of other rounds while a ledger row is hovered", () => {
     render(<FieldBands bands={bands} highlightRound={2} />);
     const els = screen.getAllByTestId("field-band");

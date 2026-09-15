@@ -40,19 +40,52 @@ targets() {
   done
 }
 
+# A line carrying this marker names a retired term in order to remove it — a task
+# that says "delete --p1" is the opposite of drift — rather than using it to
+# describe the product. It exempts its own line only. Added with spec 045, whose
+# T029/T033 cannot name the tokens they delete without it.
+EXEMPT_MARKER='<!-- retired-name -->'
+
+# Prints every unexempted hit for one phrase in one file; returns 1 if there were any.
+report_hits() { # file phrase mode(fixed|word)
+  local file="$1" p="$2" mode="$3" hits
+  if [[ "$mode" == word ]]; then
+    hits="$(grep -nwF -- "$p" "$file" || true)"
+  else
+    hits="$(grep -nF -- "$p" "$file" || true)"
+  fi
+  [[ -n "$hits" ]] || return 0
+  hits="$(printf '%s\n' "$hits" | grep -vF -- "$EXEMPT_MARKER" || true)"
+  [[ -n "$hits" ]] || return 0
+  printf '%s\n' "$hits" | sed "s#^#${file}:#; s#\$#    [${p}]#"
+  return 1
+}
+
+# The *current* design bundle is binding on implementers, so it must say what the
+# code does. Scoped to that one folder: the archived bundles under
+# docs/design_documentation/2604* legitimately contain their own retired words
+# and must keep them (spec 045 research §7).
+BUNDLE_DIR="docs/design_documentation/260914-wottle-new-design"
+BUNDLE_PHRASES=("10:00" "ten-minute" "ten minutes" "two chevrons" "chevron at each end" "preview by default" "seven tokens" "Seven values")
+
+bundle_targets() {
+  [[ -d "$BUNDLE_DIR" ]] || return 0
+  find "$BUNDLE_DIR" -type f -name '*.md'
+}
+
 status=0
 while IFS= read -r file; do
+  for p in "${BUNDLE_PHRASES[@]}"; do
+    report_hits "$file" "$p" fixed || status=1
+  done
+done < <(bundle_targets)
+
+while IFS= read -r file; do
   for p in "${PHRASES[@]}"; do
-    if grep -nF -- "$p" "$file" >/dev/null; then
-      grep -nF -- "$p" "$file" | sed "s#^#${file}:#; s#\$#    [${p}]#"
-      status=1
-    fi
+    report_hits "$file" "$p" fixed || status=1
   done
   for p in "${WORD_PHRASES[@]}"; do
-    if grep -nwF -- "$p" "$file" >/dev/null; then
-      grep -nwF -- "$p" "$file" | sed "s#^#${file}:#; s#\$#    [${p}]#"
-      status=1
-    fi
+    report_hits "$file" "$p" word || status=1
   done
 done < <(targets)
 

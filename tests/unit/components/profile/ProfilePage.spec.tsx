@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }) }));
 vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "ok" }) }));
 
 import { ProfilePage } from "@/components/profile/ProfilePage";
+import { ProfileRatingChart } from "@/components/profile/ProfileRatingChart";
 import type { PlayerProfile } from "@/lib/types/match";
 
 const profile: PlayerProfile = {
@@ -69,5 +70,51 @@ describe("ProfilePage (design system Fig. 9, spec 044 US10)", () => {
     expect(screen.getByTestId("profile-page")).toHaveAttribute("data-seat", "opp");
     expect(screen.queryByTestId("profile-sign-out")).toBeNull();
     expect(screen.getByTestId("profile-best-words")).toHaveTextContent("—");
+  });
+});
+
+/**
+ * Spec 045 B9 (FR-038). `preserveAspectRatio="none"` on a fixed 600x180 viewBox
+ * stretches everything the SVG draws — including the mono axis labels — at any
+ * other aspect. The chart measures its container instead.
+ */
+describe("ProfileRatingChart labels (spec 045 B9)", () => {
+  class RO {
+    static instances: RO[] = [];
+    cb: ResizeObserverCallback;
+    constructor(cb: ResizeObserverCallback) {
+      this.cb = cb;
+      RO.instances.push(this);
+    }
+    observe() {}
+    disconnect() {}
+    unobserve() {}
+  }
+
+  beforeEach(() => {
+    RO.instances = [];
+    vi.stubGlobal("ResizeObserver", RO);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const history = [1188, 1204, 1216].map((rating, i) => ({
+    rating,
+    recordedAt: `2026-09-0${i + 1}T12:00:00.000Z`,
+  }));
+
+  it("never stretches what it draws", () => {
+    render(<ProfileRatingChart history={history} seat="you" />);
+    expect(screen.getByTestId("profile-rating-chart")).toHaveAttribute("preserveAspectRatio", "xMinYMin meet");
+  });
+
+  it("takes its coordinate width from the container, so one unit is one pixel", () => {
+    const { container } = render(<ProfileRatingChart history={history} seat="you" />);
+    const wrapper = container.querySelector(".profile-chart__frame")!;
+    Object.defineProperty(wrapper, "clientWidth", { value: 420, configurable: true });
+    act(() => RO.instances[0].cb([], RO.instances[0] as unknown as ResizeObserver));
+
+    expect(screen.getByTestId("profile-rating-chart")).toHaveAttribute("viewBox", "0 0 420 180");
   });
 });

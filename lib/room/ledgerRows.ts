@@ -1,4 +1,4 @@
-import { drawLine, finalContext, PLAYED, picking, RATING_PENDING, ratingSubline, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, NO_RATING, PLAYED, picking, RATING_PENDING, ratingSubline, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { formatClock, MATCH_CLOCK_BUDGET_MS } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
@@ -36,6 +36,8 @@ export interface BuildRowsInput {
   playerAId: string;
   viewerSlot: PlayerSlot | null;
   live: LiveState;
+  /** False for a directory challenge: the caption reads unranked. */
+  rated?: boolean;
 }
 
 function toCell(words: AccumulatedWord[]): SeatCell | null {
@@ -96,7 +98,7 @@ export interface BuildLedgerInput extends BuildRowsInput {
 
 export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
   return {
-    caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS)),
+    caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS), input.rated ?? true),
     rows: buildLedgerRows(input),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),
     hint: input.hint ?? TAP_SECOND_LETTER,
@@ -147,15 +149,26 @@ export interface RatingRow {
   ratingDelta: number;
 }
 
-/** `1191 → 1203 · +12 · wins` or `rating pending` for the final bars (design system §5.3). */
-export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSeatIsThis: boolean): string {
+/**
+ * `1191 → 1203 · +12 · wins` for the final bars (design system §5.3).
+ *
+ * An unranked match writes no rating row at all, so `rating pending` would
+ * never resolve — it says what actually happened instead (spec 045 decision 1).
+ */
+export function ratingLine(
+  rows: RatingRow[] | null,
+  playerId: string,
+  winnerSeatIsThis: boolean,
+  rated = true,
+): string {
+  if (!rated) return NO_RATING;
   const row = rows?.find((r) => r.playerId === playerId);
   if (!row) return RATING_PENDING;
   return ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);
 }
 
-/** `final · 10 rounds · 18:50` — clock time both players spent. */
-export function finalCaption(remainingA: number, remainingB: number): string {
+/** `ranked · 10 rounds · 18:50` — clock time both players spent. */
+export function finalCaption(remainingA: number, remainingB: number, rated = true): string {
   const used = Math.max(0, 2 * MATCH_CLOCK_BUDGET_MS - remainingA - remainingB);
-  return finalContext(formatClock(used));
+  return finalContext(formatClock(used), rated);
 }

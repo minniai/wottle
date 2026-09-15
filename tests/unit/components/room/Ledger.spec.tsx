@@ -33,6 +33,17 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.getByTestId("ledger-row-1").querySelector('.ledger__words[data-seat="you"]')).toHaveTextContent("BORÐ");
   });
 
+  it("queue variant prints its progress in a live row, not the plain hint (spec 045 B7)", () => {
+    const queue = { ...model, rows: [], live: "setting the field · 58 of 100 letters", hint: "ranked · 0:07 · cancel ▸" };
+    render(<Ledger variant="queue" model={queue} viewerName="Birna" opponentName={null} onAction={() => {}} />);
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live).toHaveTextContent("setting the field · 58 of 100 letters");
+    expect(live.style.gridColumn).toBe("1 / -1");
+    // Above the hint, which keeps its own line.
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("ranked · 0:07 · cancel ▸");
+    expect(live.compareDocumentPosition(screen.getByTestId("ledger-hint")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("caption shows the lowercase wordmark and the match context", () => {
     render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("wottle");
@@ -46,6 +57,15 @@ describe("Ledger (design system §5.4)", () => {
     for (let r = 1; r <= 10; r += 1) expect(screen.getByTestId(`ledger-row-${r}`)).toBeInTheDocument();
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("picking · T (2)");
     expect(screen.getByTestId("ledger-live-row")).toHaveAttribute("aria-live", "polite");
+
+    // Spec 045 B2: Fig. 2 tints the whole row with the 3px rule at its left
+    // edge. Spanning columns 2-3 left the round label outside the tint.
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live.style.gridColumn).toBe("1 / -1");
+    expect(live).toHaveTextContent("R4");
+    expect(live.querySelector('[data-testid="ledger-live-round"]')).not.toBeNull();
+    // Exactly one round label for the live round, and it is inside the tint.
+    expect(screen.queryAllByText("R4")).toHaveLength(1);
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("aria-label", "territory 32–25");
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("role", "img"); // aria-label needs a role (axe aria-prohibited-attr)
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("tap a second letter");
@@ -83,5 +103,78 @@ describe("Ledger (design system §5.4)", () => {
     render(<Ledger variant="final" model={{ ...model, verdict: { winnerSeat: "opp", scoreLine: "Kári wins 170–127", detailLine: "by 43 points · 10 words to 8 · territory 32–25" } }} viewerName="B" opponentName="K" onAction={() => {}} />);
     expect(screen.getByTestId("verdict")).toHaveAttribute("aria-live", "assertive");
     expect(screen.getByTestId("verdict")).toHaveTextContent("Kári wins 170–127");
+  });
+
+  /**
+   * Spec 045 US4 (FR-018 to FR-020), Fig. 5. Below 900px the ledger shows only
+   * what a player needs at a glance; the rest opens from the live row, in flow
+   * beneath it, so nothing is ever placed over the field.
+   */
+  describe("collapsed, on a phone", () => {
+    const collapsed = () =>
+      render(<Ledger variant="match" collapsed model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+
+    it("shows the caption, the live row and territory, and nothing else", () => {
+      collapsed();
+      expect(screen.getByTestId("ledger-caption")).toBeInTheDocument();
+      expect(screen.getByTestId("ledger-live-trigger")).toBeInTheDocument();
+      expect(screen.getByTestId("ledger-territory")).toBeInTheDocument();
+
+      expect(screen.queryByTestId("ledger-header")).toBeNull();
+      expect(screen.queryByTestId("ledger-rows")).toBeNull();
+      expect(screen.queryByTestId("ledger-hint")).toBeNull();
+      expect(screen.queryByTestId("ledger-foot")).toBeNull();
+    });
+
+    it("offers the history from the live row itself", () => {
+      collapsed();
+      const trigger = screen.getByTestId("ledger-live-trigger");
+      expect(trigger.tagName).toBe("BUTTON");
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).toHaveTextContent("history ▸");
+      expect(trigger).toHaveTextContent("picking · T (2)");
+    });
+
+    it("opens the rounds, notices and foot beneath the live row", () => {
+      collapsed();
+      fireEvent.click(screen.getByTestId("ledger-live-trigger"));
+      const sheet = screen.getByTestId("ledger-sheet");
+      expect(screen.getByTestId("ledger-live-trigger")).toHaveAttribute("aria-expanded", "true");
+      expect(sheet.querySelector('[data-testid="ledger-header"]')).not.toBeNull();
+      expect(sheet.querySelector('[data-testid="ledger-rows"]')).not.toBeNull();
+      expect(sheet.querySelector('[data-testid="ledger-foot"]')).not.toBeNull();
+    });
+
+    it("closes on Escape and returns focus to the live row", () => {
+      collapsed();
+      const trigger = screen.getByTestId("ledger-live-trigger");
+      fireEvent.click(trigger);
+      fireEvent.keyDown(screen.getByTestId("ledger-sheet"), { key: "Escape" });
+      expect(screen.queryByTestId("ledger-sheet")).toBeNull();
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    it("does not collapse the lobby: its directory is the content, not history", () => {
+      // The lobby ledger has no rounds table and no territory; folding its body
+      // away would hide the here-now list behind `history ▸` with nothing left.
+      render(
+        <Ledger variant="lobby" collapsed model={{ ...model, rows: [] }} viewerName="Birna" opponentName={null} body={<div data-testid="lobby-body">here now</div>} onAction={() => {}} />,
+      );
+      expect(screen.getByTestId("lobby-body")).toBeInTheDocument();
+      expect(screen.queryByTestId("ledger-live-trigger")).toBeNull();
+    });
+
+    it("forgets an open sheet when the room widens back to desktop", () => {
+      const { rerender } = render(
+        <Ledger variant="match" collapsed model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />,
+      );
+      fireEvent.click(screen.getByTestId("ledger-live-trigger"));
+      expect(screen.getByTestId("ledger-sheet")).toBeInTheDocument();
+
+      rerender(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      expect(screen.queryByTestId("ledger-sheet")).toBeNull();
+      expect(screen.getByTestId("ledger-rows")).toBeInTheDocument();
+    });
   });
 });

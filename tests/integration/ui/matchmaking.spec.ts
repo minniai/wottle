@@ -25,7 +25,9 @@ test.describe("@matchmaking queue → found → match in the room", () => {
       await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
       await expect(page.getByTestId("player-bar-top")).toContainText("Finding an opponent");
       await expect(page.getByTestId("player-bar-top").getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "searching");
-      await expect(page.getByTestId("ledger-hint")).toContainText(/setting the field · \d+ of 100 letters/);
+      // Spec 045 B7: the queue's progress is a live row, as Fig. 7 draws it;
+      // the hint keeps the queue's own context line.
+      await expect(page.getByTestId("ledger-live-row")).toContainText(/setting the field · \d+ of 100 letters/);
       await page.getByTestId("ledger-cancel-queue").click();
       await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
       await expect(page).toHaveURL(/\/lobby$/);

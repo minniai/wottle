@@ -1,30 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
 
 import { logoutAction } from "@/app/actions/auth/logout";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { generateBoard } from "@/lib/game-engine/boardGenerator";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
-import { EMPTY_LOBBY_HINT, lobbyContext, NO_ACCOUNT_NEEDED, NO_OPPONENT, NO_OPPONENT_SUBLINE, PLAY_RANKED, TAP_SECOND_LETTER, YOU } from "@/lib/constants/copy";
+import { EMPTY_LOBBY_HINT, NO_SUCH_MATCH, TAP_SECOND_LETTER } from "@/lib/constants/copy";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
-import type { LedgerAction, LedgerModel } from "@/lib/room/ledgerTypes";
-import { EMPTY_TERRITORY } from "@/lib/room/ledgerTypes";
+import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { Coordinate } from "@/lib/types/board";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { PlayerIdentity } from "@/lib/types/match";
 import { Field } from "./Field";
-import { Ledger } from "./Ledger";
-import { LobbyLedger } from "./LobbyLedger";
-import { NameInput } from "./NameInput";
-import { PlayerBar } from "./PlayerBar";
-import { Room } from "./Room";
+import { LobbyRoomView } from "./LobbyRoomView";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useLobbyInvites, type PendingInvite } from "./hooks/useLobbyInvites";
+import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useNotices } from "./hooks/useNotices";
 
 export interface LobbyRoomControllerProps {
@@ -72,6 +68,18 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   }, [me, initialPlayers, connect, disconnect]);
 
   const { notices, push, dismiss } = useNotices();
+
+  // A match that does not exist redirects here with ?notice=no-match; show it
+  // once and clear the param so a reload does not repeat it (spec 045 FR-017).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notice") !== "no-match") return;
+    push({ kind: "text", text: NO_SUCH_MATCH });
+    params.delete("notice");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [push]);
+
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
   const previewEnabled = usePreferencesStore((s) => s.previewEnabled) && Boolean(me);
 
@@ -125,64 +133,34 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     [router, push, dismiss, disconnect, setViewer],
   );
 
+  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  useRoomHotkeys(handleAction);
+
   const onSignedIn = useCallback((player: PlayerIdentity) => setViewer(player), [setViewer]);
 
-  const model: LedgerModel = useMemo(
-    () => ({
-      caption: lobbyContext(players.filter((p) => p.id !== me?.id).length),
-      rows: [],
-      territory: EMPTY_TERRITORY,
-      hint: me ? (previewEnabled ? field.hint : TAP_SECOND_LETTER) : EMPTY_LOBBY_HINT,
-    }),
-    [players, me, previewEnabled, field.hint],
-  );
-
   return (
-    <Room
-      topBar={
-        <PlayerBar
-          seat="opp"
-          position="top"
-          state="empty"
-          name={NO_OPPONENT}
-          subline={NO_OPPONENT_SUBLINE}
-          action={
-            <button type="button" className="action-primary" data-testid="player-bar-action-ranked" disabled={!me} onClick={() => handleAction("playRanked")}>
-              {PLAY_RANKED}
-            </button>
-          }
-        />
-      }
-      field={
-        <Field
-          board={board}
-          viewerSlot="player_a"
-          cellStateFor={field.cellStateFor}
-          seatFor={field.seatFor}
-          shakeAt={field.shakeAt}
-          focusAt={field.focusAt}
-          onActivate={(at) => field.dispatch({ type: "tap", at })}
-          onKeyDown={field.onKeyDown}
-        />
-      }
-      bottomBar={
-        me ? (
-          <PlayerBar seat="you" position="bottom" state="idle" name={me.displayName} subline={`${me.eloRating ?? "unrated"} · ${YOU}`} />
-        ) : (
-          <PlayerBar seat="you" position="bottom" state="empty" subline={NO_ACCOUNT_NEEDED} nameInput={<NameInput onSignedIn={onSignedIn} />} />
-        )
-      }
-      ledger={
-        <Ledger
-          variant="lobby"
-          model={model}
-          notices={notices}
-          viewerName={me?.displayName ?? ""}
-          opponentName={null}
-          body={<LobbyLedger players={players} viewer={me} recentGames={me ? recentGames : null} loadingPlayers={Boolean(me) && presenceStatus === "connecting" && players.length === 0} onAction={handleAction} />}
-          onAction={handleAction}
-        />
-      }
-    />
+    <LobbyRoomView
+      viewer={me}
+      players={players}
+      recentGames={recentGames}
+      loadingPlayers={Boolean(me) && presenceStatus === "connecting" && players.length === 0}
+      hint={me ? (previewEnabled ? field.hint : TAP_SECOND_LETTER) : EMPTY_LOBBY_HINT}
+      notices={notices}
+      onAction={handleAction}
+      onSignedIn={onSignedIn}
+    >
+      <Field
+        board={board}
+        viewerSlot="player_a"
+        cellStateFor={field.cellStateFor}
+        seatFor={field.seatFor}
+        shakeAt={field.shakeAt}
+        focusAt={field.focusAt}
+        onActivate={(at) => field.dispatch({ type: "tap", at })}
+        onDrag={(from, to) => field.dispatch({ type: "drag", from, to })}
+        exchange={field.ownPins}
+        onKeyDown={field.onKeyDown}
+      />
+    </LobbyRoomView>
   );
 }

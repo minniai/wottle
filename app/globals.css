@@ -16,6 +16,10 @@
   --muted: #5A6572;
   --you: #147D7A;
   --opp: #E4573D;
+  /* Coral as *text* below 17px: the ledger's words, the numeral on a scored
+     letter, the profile's vs rows. 5.1:1 on paper, where --opp is 3.4:1
+     (spec 045 decision 2). Never for letters, lanes, totals or seat squares. */
+  --opp-text: #C2402A;
 
   /* The only permitted alphas: 14% settled band, 30% live reveal. */
   --you-band: color-mix(in srgb, var(--you) 14%, transparent);
@@ -29,33 +33,6 @@
   /* Type: --font-board (Zilla Slab) and --font-mono (Red Hat Mono) are set by next/font on <html>. */
   --font-board: var(--font-zilla-slab), "Zilla Slab", Georgia, serif;
   --font-mono: var(--font-red-hat-mono), "Red Hat Mono", ui-monospace, monospace;
-
-  /*
-   * Legacy aliases — kept only while pre-rebuild components are still live.
-   * Each resolves to a token so every colour on screen is already one of the
-   * seven. Removed with their last consumer (design plan §11).
-   */
-  --paper-2: var(--tint);
-  --paper-3: var(--tint);
-  --ink-2: var(--ink);
-  --ink-3: var(--ink);
-  --ink-soft: var(--muted);
-  --ochre: var(--ink);
-  --ochre-deep: var(--ink);
-  --ochre-tint: var(--tint);
-  --p1: var(--you);
-  --p1-tint: var(--you-band);
-  --p1-deep: var(--you);
-  --p2: var(--opp);
-  --p2-tint: var(--opp-band);
-  --p2-deep: var(--opp);
-  --good: var(--ink);
-  --warn: var(--ink);
-  --bad: var(--ink);
-  --hair: var(--rule);
-  --hair-strong: var(--rule);
-  --font-fraunces: var(--font-board);
-  --font-jetbrains-mono: var(--font-mono);
 }
 
 html,

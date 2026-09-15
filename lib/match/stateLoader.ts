@@ -370,6 +370,7 @@ export async function loadMatchState(
         player_a_timer_ms,
         player_b_timer_ms,
         frozen_tiles,
+        rated,
         winner_id,
         created_at
       `,
@@ -648,6 +649,8 @@ export async function loadMatchState(
     scores,
     lastSummary,
     frozenTiles: coerceFrozenTileMap((match as { frozen_tiles?: unknown }).frozen_tiles),
+    // Absent on a row written before the column existed; those are rated.
+    rated: (match as { rated?: boolean | null }).rated !== false,
     disconnectedPlayerId,
     disconnectedAt,
     reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,

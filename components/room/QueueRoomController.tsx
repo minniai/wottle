@@ -1,21 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { CANCEL, FINDING_OPPONENT, OPPONENT, QUEUE_CONTEXT, roundOneIn, searchingSubline, settingField, YOU } from "@/lib/constants/copy";
+import { roundOneIn, searchingSubline, settingField } from "@/lib/constants/copy";
 import { diffBoards, generateBoard } from "@/lib/game-engine/boardGenerator";
 import { formatClock } from "@/lib/room/clock";
-import type { LedgerAction, LedgerModel } from "@/lib/room/ledgerTypes";
-import { EMPTY_TERRITORY, emptyRows } from "@/lib/room/ledgerTypes";
+import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useMatchmaking } from "@/lib/room/useMatchmaking";
 import type { MatchPlayerProfiles, MatchState, PlayerIdentity } from "@/lib/types/match";
 import { Field } from "./Field";
-import { Ledger } from "./Ledger";
 import { MatchRoomController } from "./MatchRoomController";
-import { PlayerBar } from "./PlayerBar";
-import { Room } from "./Room";
+import { QueueRoomView } from "./QueueRoomView";
+import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 
 export const LETTER_LAND_MS = 100;
@@ -134,15 +132,8 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
     [cancel, cancelQueue, router],
   );
 
-  const model: LedgerModel = useMemo(
-    () => ({
-      caption: QUEUE_CONTEXT,
-      rows: emptyRows(),
-      territory: EMPTY_TERRITORY,
-      hint: phase === "found" && found ? roundOneIn(found.countdown) : settingField(Math.min(landed, 100)),
-    }),
-    [phase, found, landed],
-  );
+  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  useRoomHotkeys(handleAction);
 
   if (phase === "match" && ready) {
     return <MatchRoomController initialState={ready.state} currentPlayerId={viewer.id} matchId={ready.matchId} playerProfiles={ready.profiles} />;
@@ -151,43 +142,16 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
   const opponent = useRoomStore.getState().opponent;
   const elapsed = state.kind === "searching" ? formatClock(state.elapsedSeconds * 1000) : "0:00";
   return (
-    <Room
-      topBar={
-        phase === "found" && found ? (
-          <PlayerBar seat="opp" position="top" state="found" name={opponent?.displayName ?? "opponent"} subline={`${opponent?.eloRating ?? "unrated"} · ${OPPONENT} · ${roundOneIn(found.countdown)}`} clockMs={300_000} clockRunning={false} score={0} />
-        ) : (
-          <PlayerBar
-            seat="opp"
-            position="top"
-            state="searching"
-            name={FINDING_OPPONENT}
-            subline={searchingSubline(elapsed)}
-            action={
-              <button type="button" className="action-secondary" data-testid="player-bar-action-cancel" onClick={() => handleAction("cancelQueue")}>
-                {CANCEL}
-              </button>
-            }
-          />
-        )
-      }
-      field={<Field board={board} viewerSlot="player_a" disabled landedCount={phase === "queue" ? landed : null} />}
-      bottomBar={<PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} subline={`${viewer.eloRating ?? "unrated"} · ${YOU}`} />}
-      ledger={
-        <Ledger
-          variant="queue"
-          model={model}
-          viewerName={viewer.displayName}
-          opponentName={opponent?.displayName ?? null}
-          footActions={
-            phase === "queue" ? (
-              <button type="button" className="action-secondary" data-testid="ledger-cancel-queue" onClick={() => handleAction("cancelQueue")}>
-                {CANCEL}
-              </button>
-            ) : null
-          }
-          onAction={handleAction}
-        />
-      }
-    />
+    <QueueRoomView
+      viewer={viewer}
+      opponent={opponent}
+      found={phase === "found" && found ? { countdown: found.countdown } : null}
+      elapsed={elapsed}
+      live={phase === "found" && found ? roundOneIn(found.countdown) : settingField(Math.min(landed, 100))}
+      hint={searchingSubline(elapsed)}
+      onAction={handleAction}
+    >
+      <Field board={board} viewerSlot="player_a" disabled landedCount={phase === "queue" ? landed : null} />
+    </QueueRoomView>
   );
 }

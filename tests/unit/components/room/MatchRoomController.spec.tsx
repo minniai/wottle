@@ -40,6 +40,7 @@ import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
+import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 
 const profiles: MatchPlayerProfiles = {
   playerA: { playerId: "player-1", displayName: "Alice", username: "alice", avatarUrl: null, eloRating: 1200 },
@@ -110,7 +111,8 @@ describe("MatchRoomController", () => {
   it("second tap commits: your letters pin and the live row reads played", () => {
     renderController();
     fireEvent.click(cell(0, 0));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("picking · A");
+    // The board's A is worth 1 (spec 045 B3: the value was hard-coded to 0).
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
     fireEvent.click(cell(1, 0));
     expect(cell(0, 0)).toHaveAttribute("data-state", "pinned");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("played ●");
@@ -260,6 +262,13 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("ledger-notice")).toHaveTextContent("frozen · Bob R3 · pick another");
   });
 
+  it("the frozen notice names the round the letter froze in, not the current one", () => {
+    // Round 4 is live; the letter at 1,2 froze in round 3 with `þar` (spec 045 B4).
+    renderController(state({ currentRound: 4, lastSummary: summary, frozenTiles: { "1,2": { owner: "player_a" } } }));
+    fireEvent.click(cell(1, 2));
+    expect(screen.getByTestId("ledger-notice")).toHaveTextContent("frozen · Alice R3 · pick another");
+  });
+
   it("shows the rules line on a player's first match (gamesPlayed 0) and on ? rules", () => {
     const first = { ...profiles, playerA: { ...profiles.playerA, gamesPlayed: 0 } };
     render(<MatchRoomController initialState={state()} currentPlayerId="player-1" matchId="m1" playerProfiles={first} />);
@@ -295,7 +304,9 @@ describe("MatchRoomController", () => {
   });
 
   it("reveal under reduced motion: end state immediately", () => {
-    vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+    // Answer per query: a blanket `matches: true` also claims a phone, which
+    // collapses the ledger and hides the rows this test reads.
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("reduced-motion"), addEventListener() {}, removeEventListener() {} }));
     vi.useFakeTimers();
     renderController(state({ currentRound: 3 }));
     act(() => mockCallbacks.onSummary!(summary));

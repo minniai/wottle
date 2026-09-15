@@ -10,10 +10,18 @@ export const WORDMARK = "wottle";
 
 // Ledger context captions
 export const QUEUE_CONTEXT = "ranked · 10 rounds · 5:00 clocks";
-export const roundContext = (round: number): string => `ranked · round ${round} of 10`;
+/** A directory challenge does not move ratings, and says so (spec 045 decision 1). */
+export const rankLabel = (rated: boolean): string => (rated ? "ranked" : "unranked");
+export const roundContext = (round: number, rated = true): string =>
+  `${rankLabel(rated)} · round ${round} of 10`;
 export const lobbyContext = (hereCount: number): string => `lobby · ${hereCount} here`;
-export const finalContext = (durationMmSs: string): string =>
-  `final · 10 rounds · ${durationMmSs}`;
+/**
+ * `final` is the phase word here, as `lobby` is in lobbyContext — the review's
+ * §3 lists this string as already matching the design, so it stays. An unranked
+ * match says so; a ranked one needs no label, since its rating lines say it.
+ */
+export const finalContext = (durationMmSs: string, rated = true): string =>
+  rated ? `final · 10 rounds · ${durationMmSs}` : `final · unranked · 10 rounds · ${durationMmSs}`;
 
 // Player bar — empty / searching seats
 export const NO_OPPONENT = "No opponent yet";
@@ -30,6 +38,8 @@ export const NO_ACCOUNT_NEEDED = "no account needed";
 export const YOU = "you";
 export const OPPONENT = "opponent";
 export const RATING_PENDING = "rating pending";
+/** An unranked match never writes a rating, so its bars say so once, not "pending" forever. */
+export const NO_RATING = "unranked · no rating change";
 export const reconnecting = (remainingMmSs: string): string =>
   `reconnecting · ${remainingMmSs} left`;
 export const ratingSubline = (before: number, after: number, delta: number, wins: boolean) =>
@@ -73,6 +83,10 @@ export const REMATCH = "rematch ▸";
 export const NEW_OPPONENT = "new opponent ▸";
 export const LOBBY = "lobby";
 export const CHALLENGE = "challenge ▸";
-export const HERE_NOW = "here now · challenge for a ranked match";
+export const HERE_NOW = "here now · challenge for an unranked match";
 export const YOUR_LAST_MATCHES = "your last matches";
 export const EMPTY_LOBBY_HINT = "No runs yet. Start one from the lobby.";
+/** The phone ledger's live row opens the rest of the ledger (design system §4). */
+export const HISTORY = "history ▸";
+/** A match id that resolves to nothing: the room says so, no page of its own. */
+export const NO_SUCH_MATCH = "that match does not exist";

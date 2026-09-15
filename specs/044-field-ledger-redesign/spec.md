@@ -28,7 +28,7 @@ Lobby, matchmaking, match, post-game and profile become **states of the same roo
 
 ### Session 2026-09-14
 
-- Q: Are challenge (direct-invite) matches rated, given the spec said "unranked" but every match writes Elo today? → A: All matches stay rated as today; lobby copy reads `here now · challenge for a ranked match`; no `unranked` label anywhere.
+- Q: Are challenge (direct-invite) matches rated, given the spec said "unranked" but every match writes Elo today? → A: All matches stay rated as today; lobby copy reads `here now · challenge for a ranked match`; no `unranked` label anywhere. **Reversed on 15 September 2026 — see `specs/045-field-ledger-completion/spec.md`: a directory challenge lets a player pick their opponent, so it is unranked (`matches.rated`). This answer is superseded and the copy it names no longer exists.**
 - Q: How is a player's "first match" detected for the three-sentence rules line? → A: Server-side — the viewer's `gamesPlayed` count (existing profile stats) is 0 when the match starts; no per-device flag.
 - Q: At round resolution, do bands already drawn by the instant first-mover reveal animate again? → A: No — only words not yet drawn animate; already-drawn bands settle 30 % → 14 % with the rest, and totals count up by the remaining delta only.
 - Q: Who can open `/match/[id]` for a match they are not playing? → A: Signed-in non-participants may open a **completed** match as the read-only final room (seat colours resolve with the viewer as neither seat: player A teal, player B coral, header without `· you`); non-participants opening a **live** match are redirected to the lobby. Signed-out visitors are redirected to the landing room.

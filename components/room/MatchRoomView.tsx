@@ -8,6 +8,7 @@ import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/ro
 import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
+import { useIsPhone } from "./hooks/useIsPhone";
 import { PlayerBar } from "./PlayerBar";
 import { Room } from "./Room";
 import { useCountUp } from "./hooks/useCountUp";
@@ -32,6 +33,8 @@ export interface MatchRoomViewProps {
   opp: SeatFacts;
   currentRound: number;
   completed: boolean;
+  /** False for a directory challenge: the caption reads unranked. */
+  rated?: boolean;
   words: AccumulatedWord[];
   playerAId: string;
   frozenTiles: FrozenTileMap;
@@ -58,16 +61,17 @@ function subline(facts: SeatFacts, seatWord: string | null): string {
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
-  const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
+  const { matchId, viewerSlot, you, opp, currentRound, completed, rated = true, words, playerAId, frozenTiles, live } = props;
+  const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children } = props;
   const reducedMotion = useReducedMotion();
   const youScore = useCountUp(you.score, reducedMotion);
   const oppScore = useCountUp(opp.score, reducedMotion);
 
   const model = useMemo(() => {
-    const base = buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint });
+    const base = buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, rated });
     return { ...base, caption: caption ?? base.caption, verdict };
-  }, [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict]);
+  }, [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, rated]);
 
   return (
     <Room
@@ -102,6 +106,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       ledger={
         <Ledger
           variant={completed ? "final" : "match"}
+          collapsed={isPhone}
           model={model}
           notices={notices}
           viewerName={you.name}

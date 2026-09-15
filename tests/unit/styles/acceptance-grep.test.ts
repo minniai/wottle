@@ -9,7 +9,12 @@ import { describe, expect, test } from "vitest";
  */
 const ROOT = resolve(__dirname, "../../..");
 const SCOPE = ["app", "components", "lib/room", "lib/constants/seatColors.ts", "lib/constants/copy.ts"];
-const BANNED = /rounded-|shadow-|gradient|emerald|red-\d|amber|Fraunces|\bInter\b|JetBrains/;
+/**
+ * Case-insensitive (spec 045 D1): the retired font aliases were declared in
+ * lower case, so `/Fraunces|JetBrains/` passed over the very tokens it existed
+ * to forbid. The retired colour families are named here for the same reason.
+ */
+const BANNED = /rounded-|shadow-|gradient|emerald|red-\d|amber|fraunces|\binter\b|jetbrains|--ochre|--p1-|--p2-|--good|--warn|--bad|--hair/i;
 const ALLOWLIST: RegExp[] = [];
 
 function files(path: string): string[] {

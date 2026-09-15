@@ -34,8 +34,10 @@ export default async function MatchPage({
 
   const matchState = await loadMatchState(supabase, matchId);
 
+  // Nothing renders outside the room: a missing match is a lobby notice, not a
+  // page of its own (spec 045 FR-017).
   if (!matchState) {
-    return <div>Match not found</div>;
+    redirect("/lobby?notice=no-match");
   }
 
   // FR-043a: a signed-in non-participant may view a completed match read-only;

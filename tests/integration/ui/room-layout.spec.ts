@@ -116,7 +116,7 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       const top = await box(pageA, "player-bar-top");
       const field = await box(pageA, "room-slot-field");
       const bottom = await box(pageA, "player-bar-bottom");
-      const live = await box(pageA, "ledger-live-row");
+      const live = await box(pageA, "ledger-live-trigger");
       for (const b of [top, field, bottom, live]) expect(b.y + b.height).toBeLessThanOrEqual(844);
       expect(field.width).toBeGreaterThanOrEqual(358); // full width minus 16px gutters
       const cell = await pageA.getByTestId("field-cell").first().boundingBox();
@@ -133,15 +133,21 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
  * plus reference screenshots at 1440×900 and 390×844 attached to the report for
  * comparison with the audit figures (Fig. 2, 5, 6, 7, 8, 9).
  *
- * Three deliberate exclusions, all traced to the design system itself: the
- * opponent's 14px ledger words and the coral value numerals inside frozen cells
- * (§7 allows coral text only ≥ 17px, yet §5 asks for both in seat colour), and the
- * future-round numerals in `#B9B4A6` (§2 names them as the one exception to the
- * seven tokens; they are aria-hidden — the caption carries the round). Logged in
- * specs/044-field-ledger-redesign/tasks.md (T099). Everything else is checked.
+ * One deliberate exclusion, and it is the design system's own: the future-round
+ * numerals in `#B9B4A6` (§2 names them as the single exception to the palette;
+ * they are aria-hidden — the caption carries the round). The two coral
+ * exclusions spec 044 carried are gone: decision 2 gave coral a text-only
+ * variant, so those selectors pass on their own (spec 045 T036).
  */
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
-const CONTRAST_EXCLUSIONS = ['.ledger__words[data-seat="opp"]', '.field__cell[data-seat="opp"] .field__value', ".ledger__row--future .ledger__round"];
+/**
+ * One exclusion, not three. Decision 2 of 15 September gave coral a text-only
+ * variant, so the opponent's 14px ledger words and the numerals on scored
+ * letters now pass AA on their own (spec 045 FR-032, FR-033). What remains is
+ * the design system's single grey exception: future-round numerals, which are
+ * aria-hidden because the caption carries the round.
+ */
+const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__round"];
 
 async function expectAxeClean(page: Page, label: string) {
   let builder = new AxeBuilder({ page }).withTags(AXE_TAGS);

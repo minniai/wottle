@@ -179,6 +179,7 @@ to invoke directly for ad-hoc cleanup.
 | `pnpm test:unit`            | Vitest unit + contract suite.                                         |
 | `pnpm test:integration`     | Vitest integration/regression suite (Supabase-backed).                |
 | `pnpm exec playwright test` | Browser automation suite (CI starts Supabase + server automatically). |
+| `pnpm test:visual`          | Every room state at 1440×900, 1280×800 and 390×844 against committed baselines — **no Supabase needed**, it renders `/dev/room` from static fixtures. `--update-snapshots` is the only way to change a baseline. |
 
 ### Performance
 

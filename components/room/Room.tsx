@@ -5,6 +5,9 @@ import { useRef, type CSSProperties, type ReactNode } from "react";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useFieldSize } from "./hooks/useFieldSize";
 
+/** Below this the design's 18% value numeral is unreadable (spec 045 decision 3). */
+const CELL_SIZE_SMALL_PX = 32;
+
 interface RoomProps {
   matchId?: string;
   topBar: ReactNode;
@@ -28,7 +31,11 @@ export function Room({ matchId, topBar, field, bottomBar, ledger }: RoomProps) {
     <div ref={roomRef} className="room" data-testid="room" data-phase={phase} data-match-id={matchId} style={style}>
       <div className="room__stack">
         <div data-testid="room-slot-top">{topBar}</div>
-        <div className="room__field-slot" data-testid="room-slot-field">
+        <div
+          className="room__field-slot"
+          data-testid="room-slot-field"
+          data-cell-size={fieldSize > 0 && fieldSize / 10 < CELL_SIZE_SMALL_PX ? "small" : "regular"}
+        >
           {field}
         </div>
         <div data-testid="room-slot-bottom">{bottomBar}</div>

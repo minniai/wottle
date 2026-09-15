@@ -43,6 +43,12 @@ export interface LedgerModel {
   territory: Territory;
   hint: string;
   verdict?: Verdict;
+  /**
+   * The queue's live line. Match and final carry theirs on the live `LedgerRow`;
+   * the queue has no rows, so it had nowhere to put `setting the field · n of
+   * 100 letters` and printed it in `hint` instead (spec 045 B7).
+   */
+  live?: string;
 }
 
 export type LedgerAction =

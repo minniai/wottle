@@ -22,6 +22,11 @@ export interface FieldCellProps {
   disabled?: boolean;
   tabIndex?: number;
   onActivate?: (x: number, y: number) => void;
+  onPointerDown?: (x: number, y: number) => void;
+  onPointerUp?: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  /** FLIP offset: where this letter starts before travelling home (FR-027). */
+  exchange?: { dx: number; dy: number } | null;
+  onExchangeEnd?: (x: number, y: number) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => void;
 }
 
@@ -34,13 +39,16 @@ export function cellLabel(x: number, y: number, letter: string, value: number, s
 }
 
 export function FieldCell(props: FieldCellProps) {
-  const { x, y, letter, value, state, seat, ownerName, shake, landing, disabled, tabIndex = -1, onActivate, onKeyDown } = props;
-  const style = seat ? ({ "--seat-ink": getSeatColors(seat).ink } as CSSProperties) : undefined;
+  const { x, y, letter, value, state, seat, ownerName, shake, landing, disabled, tabIndex = -1, onActivate, onPointerDown, onPointerUp, onKeyDown, exchange = null, onExchangeEnd } = props;
+  const style = {
+    ...(seat ? { "--seat-ink": getSeatColors(seat).ink } : {}),
+    ...(exchange ? { "--dx": `${exchange.dx}px`, "--dy": `${exchange.dy}px` } : {}),
+  } as CSSProperties;
   return (
     <button
       type="button"
       role="gridcell"
-      className={`field__cell${shake ? " field__cell--shake" : ""}${landing ? " field__cell--landing" : ""}`}
+      className={`field__cell${shake ? " field__cell--shake" : ""}${landing ? " field__cell--landing" : ""}${exchange ? " field__cell--exchange" : ""}`}
       data-testid="field-cell"
       data-x={x}
       data-y={y}
@@ -51,9 +59,13 @@ export function FieldCell(props: FieldCellProps) {
       tabIndex={tabIndex}
       style={style}
       onClick={() => onActivate?.(x, y)}
+      onPointerDown={() => onPointerDown?.(x, y)}
+      onPointerUp={(event) => onPointerUp?.(event)}
       onKeyDown={(event) => onKeyDown?.(event, x, y)}
     >
-      <span aria-hidden>{letter}</span>
+      <span aria-hidden onAnimationEnd={() => exchange && onExchangeEnd?.(x, y)}>
+        {letter}
+      </span>
       <span className="field__value" aria-hidden>
         {letter ? value : ""}
       </span>
