@@ -544,7 +544,9 @@ jobs:
               echo "Skipping playtest suite: no '@two-player-playtest' tests found yet."
             fi
           else
-            pnpm exec playwright test --config=playwright.config.ts --project=chromium --reporter=line --grep-invert "@two-player-playtest"
+            # One worker: the room specs share one server, one DB and one ranked queue; parallel
+            # workers pair each other's queued players and stretch broadcast latency past the asserts.
+            pnpm exec playwright test --config=playwright.config.ts --project=chromium --reporter=line --workers=1 --grep-invert "@two-player-playtest"
           fi
       - name: Stop Next.js server
         if: always()
