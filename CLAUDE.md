@@ -10,7 +10,7 @@ Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScr
 
 ## Design (MANDATORY for any UI change)
 
-- The UI follows `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (entry point `docs/design/README.md`). Do not add colours, radii, shadows, gradients, blur or fonts outside it. Seven colour tokens (`--paper`, `--ink`, `--rule`, `--tint`, `--muted`, `--you`, `--opp`); two type families (`--font-board` slab serif, `--font-mono`).
+- The UI follows `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (entry point `docs/design/README.md`). Do not add colours, radii, shadows, gradients, blur or fonts outside it. Eight colour tokens (`--paper`, `--ink`, `--rule`, `--tint`, `--muted`, `--you`, `--opp`, and `--opp-text` for coral **text below 17px** only); two type families (`--font-board` slab serif, `--font-mono`).
 - Every visible element is a letter (or a state of a letter) on the **field**, a fact about one player in that player's **bar**, or a fact about the match in the **ledger**. If a new element is none of these, do not add it.
 - Colours are **seat-relative**: `--you` teal, `--opp` coral, always via `getSeatColors(viewerSlot, slot)`. Never map colour to `player_a` / `player_b`.
 - **Nothing is ever positioned over the field.** No modals, banners, toasts, overlays or confetti during a match; state changes are written into the bars or the ledger's live row.

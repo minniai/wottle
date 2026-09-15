@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
@@ -71,6 +71,37 @@ describe("scripts/docs/consistency-grep.sh — retired-name exemption", () => {
 
   test("the living documentation is clean", () => {
     // No fixture: the repository as it stands must pass, markers included.
+    expect(runCheck().code).toBe(0);
+  });
+});
+
+describe("scripts/docs/consistency-grep.sh — the current design bundle", () => {
+  const BUNDLE = join(ROOT, "docs/design_documentation/260914-wottle-new-design");
+
+  test("the bundle says what the code does", () => {
+    // Spec 045 T040 / FR-040. The bundle is binding on implementers, so its
+    // drift is a CI failure — unlike the archived bundles, which keep their own
+    // retired words on purpose.
+    expect(runCheck().code).toBe(0);
+  });
+
+  test("a retired statement in the bundle fails the check", () => {
+    const file = join(BUNDLE, "tmp-drift-check.md");
+    try {
+      writeFileSync(file, "The lane's full width is 10:00.\n", "utf8");
+      const { code, output } = runCheck();
+      expect(code).toBe(1);
+      expect(output).toContain("[10:00]");
+    } finally {
+      rmSync(file, { force: true });
+    }
+  });
+
+  test("the archived bundles keep their retired words", () => {
+    // docs/design_documentation/2604* documents the previous look and must be
+    // allowed to name it; only the current bundle is checked.
+    const archived = join(ROOT, "docs/design_documentation");
+    expect(existsSync(archived)).toBe(true);
     expect(runCheck().code).toBe(0);
   });
 });

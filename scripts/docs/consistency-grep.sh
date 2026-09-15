@@ -61,7 +61,25 @@ report_hits() { # file phrase mode(fixed|word)
   return 1
 }
 
+# The *current* design bundle is binding on implementers, so it must say what the
+# code does. Scoped to that one folder: the archived bundles under
+# docs/design_documentation/2604* legitimately contain their own retired words
+# and must keep them (spec 045 research §7).
+BUNDLE_DIR="docs/design_documentation/260914-wottle-new-design"
+BUNDLE_PHRASES=("10:00" "ten-minute" "ten minutes" "two chevrons" "chevron at each end" "preview by default" "seven tokens" "Seven values")
+
+bundle_targets() {
+  [[ -d "$BUNDLE_DIR" ]] || return 0
+  find "$BUNDLE_DIR" -type f -name '*.md'
+}
+
 status=0
+while IFS= read -r file; do
+  for p in "${BUNDLE_PHRASES[@]}"; do
+    report_hits "$file" "$p" fixed || status=1
+  done
+done < <(bundle_targets)
+
 while IFS= read -r file; do
   for p in "${PHRASES[@]}"; do
     report_hits "$file" "$p" fixed || status=1

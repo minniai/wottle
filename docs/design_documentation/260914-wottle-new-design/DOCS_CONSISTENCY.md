@@ -10,16 +10,16 @@ Conventions used in the edits: the company/product name is written `Wottle`; pla
 
 The rules document is the authority the design was built on, and it is already right on most of what the UI now renders: §3.1 fixes the **four orthogonal reading directions** (no diagonals), §3.5a and invariant I7a fix the **standalone / whole-run rule** (`violatesFrozenAdjacencyOnSameAxis`), §4 fixes per-letter coverage. Only these additions are needed:
 
-1. **Clock model.** The document has no time-control section (grep for `chess clock`, `per round`, `10:00` returns nothing). Add one: each player has one 10:00 clock for the whole match; it runs while that player's move for the current round is open and stops when they submit; time spent in one round is not restored later. Name the type that carries it (`TimerState { playerId, remainingMs, status }` in `lib/types/match.ts`). State what happens at 0:00 (team decision — see plan §12).
-2. **Double reading.** §3.1 says a run is valid "read forward or reversed". Add one sentence stating whether a run that is a valid word in **both** directions is scored **twice**, once per direction (the design assumes yes: FÁR and RÁF, LÁN and NÁL each produce two word records), and pin it with a regression test. If the answer is no, the field shows one chevron per run and the ledger one word; nothing else in the design changes.
+1. **Clock model.** The document has no time-control section (grep for `chess clock`, `per round`, a clock budget returns nothing). Add one: each player has one 5:00 clock for the whole match (decided 14 September 2026); it runs while that player's move for the current round is open and stops when they submit; time spent in one round is not restored later. Name the type that carries it (`TimerState { playerId, remainingMs, status }` in `lib/types/match.ts`). State what happens at 0:00 (team decision — see plan §12).
+2. **Double reading.** §3.1 says a run is valid "read forward or reversed". **Decided 14 September 2026: it scores once**, read forward, so FÁR/RÁF is one record — pinned by `doubleReading.test.ts`. The field shows one chevron per run and the ledger one word.
 3. **Worked example for the UI.** Add BORÐA + GILT → BORÐAGILT to the §3.5a examples, since it is the case the design uses to explain why two bands never touch end to end.
-4. Add a short **"What the player sees"** subsection that maps each rule to its rendering: frozen words → tinted band with a chevron at the reading start; two directions → two chevrons; shared letter → ink letter inside two bands; clock → the lane at the edge of the player's bar; broadcast of the opponent's swap (§2) → their two letters pinned in their colour immediately.
+4. Add a short **"What the player sees"** subsection that maps each rule to its rendering: frozen words → tinted band with a chevron at the reading start; a run valid both ways scores once, so one chevron per band; shared letter → ink letter inside two bands; clock → the lane at the edge of the player's bar; broadcast of the opponent's swap (§2) → their two letters pinned in their colour immediately.
 
 ## 2. `docs/prd_and_requirements/wottle_prd.md`, `wottle_technical_architecture.md`, `wottle_ideation.md`
 
 The PRD predates the engine and contradicts the rules document. `wottle_technical_architecture.md` still specifies an 8-direction word finder (`type Direction = 'N' | 'NE' | …`, "Scan 8 directions", lines ~161, 241, 481, 534, 983–1059, 2842) and `wottle_ideation.md` line 17 says "readable in any direction"; align both with rules §3.1 (four orthogonal directions) or mark them historical. PRD edits:
 
-- **Time control.** Replace the 5-minute chess-clock description and any "5+0" notation with the 10:00-per-player model from the rules document.
+- **Time control.** Replace any "5+0" notation with the 5:00-per-player match budget from the rules document — one clock per player for all ten rounds, not per round.
 - **Scoring directions.** Replace "eight directions" (and any diagonal mention) with the four axial directions; add the double-scoring and whole-run rules by reference to the rules document.
 - **Dictionary.** Replace "Icelandic nouns" with "the full BÍN inflected list" (matches `game-config.ts` and rules §3.3).
 - **§1.3 desktop drag-to-swap.** Mark as delivered by the pick → preview → commit interaction (drag A→B produces a preview).
@@ -48,7 +48,7 @@ Add a `SUPERSEDED.md` (one paragraph, link to the plan, name of the replacing co
 
 ## 7. `README.md` (repo root)
 
-- **Overview**: keep the game description; replace any mention of the chess clock / per-round timer with the 10:00-per-player model.
+- **Overview**: keep the game description; replace any mention of the chess clock / per-round timer with the 5:00-per-player match budget.
 - **UI / design** paragraph: replace the Warm Editorial description with two sentences: "Wottle's UI is the Field & Ledger system: a ruled field of letters framed by two player bars, with a single ledger beside it. Everything about the look is in `docs/design/WOTTLE_DESIGN_SYSTEM.md`; all UI work must follow it."
 - **Project structure**: add `components/room/` (Room, PlayerBar, Ledger, Field) and remove the deleted component folders as they go.
 - **Screens**: replace the five-page list with the room and its states.

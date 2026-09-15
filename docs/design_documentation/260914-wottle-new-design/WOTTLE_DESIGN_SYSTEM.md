@@ -22,7 +22,8 @@ Wottle is a two-player Icelandic word duel. Its look comes from the game's own m
 
 ## 2. Colour
 
-Seven values. Nothing else may appear on screen.
+Eight values. Nothing else may appear on screen. Seven are the palette; the
+eighth exists only because coral is not legible as small text.
 
 | Token | Value | Use |
 | --- | --- | --- |
@@ -32,14 +33,16 @@ Seven values. Nothing else may appear on screen.
 | `--tint` | `#F4F1E8` | Background of the live row and other "current" rows. |
 | `--muted` | `#5A6572` | Secondary mono labels, stopped clocks, sub-lines. Minimum for text; never lighter (5.7:1 on paper). |
 | `--you` | `#147D7A` teal | Your seat: your letters in scored words, your bands (14% tint), your lane, your total, your ink square. |
-| `--opp` | `#E4573D` coral | The opponent's seat, same uses. |
+| `--opp` | `#E4573D` coral | The opponent's seat, same uses — but only at 17px and above, or where it is not text. |
+| `--opp-text` | `#C2402A` coral | The opponent's seat wherever it is **text below 17px**: ledger words, the numeral on a scored letter, the profile's best-word names. 5.1:1 on paper, where `--opp` is 3.4:1. |
 
 Rules:
 - Seat colours are **relative to the viewer** and resolved through one function (`getSeatColors(viewerSlot, slot)`). Never bind a colour to `player_a` / `player_b`.
-- Seat colours at full strength for letters, numerals on scored letters, lanes, totals and squares; at **14%** as the band tint of a settled word; at **30%** during a live reveal. No other alpha values.
+- Seat colours at full strength for letters, lanes, totals and squares; at **14%** as the band tint of a settled word; at **30%** during a live reveal. No other alpha values.
+- Coral as text below 17px uses `--opp-text`; teal needs no variant (4.9:1 on paper). `getSeatColors` returns both, so no caller decides. Decided 15 September 2026; it replaced two contrast exclusions in the axe suite.
 - A letter shared by both seats' words is `--ink` at weight 700.
 - No gradients, no shadows, no radii, no blur, no third accent. `border-radius` is `0` everywhere and stays there.
-- Future-round labels in the ledger use `#B9B4A6`; this is the only exception to the seven values and appears only there.
+- Future-round labels in the ledger use `#B9B4A6`; this is the only exception to the eight values and appears only there. They are `aria-hidden` — the caption carries the round — and are the single permitted exclusion from the automated contrast check.
 
 Contrast: `--ink` on `--paper` 16:1; `--muted` on `--paper` 5.7:1; `--you` on `--paper` 4.9:1; `--opp` on `--paper` 3.4:1 (used only at ≥17px or for non-text marks; the coral total is 40px).
 
@@ -54,7 +57,7 @@ Two families in the room. A text face may be used for long-form pages outside th
 | `--font-board` | Zilla Slab (500, 600, 700; latin + latin-ext) | Every letter on the field (600), names (600), words in the ledger (600, 0.04em tracking), headings (600), the wordmark `wottle` (700, lowercase). |
 | `--font-mono` | Red Hat Mono (400, 500, 600; latin + latin-ext) | Every numeral: clocks, totals, points, ratings, values. Labels: 11px, 0.12em tracking, uppercase. Tabular numerals on. |
 
-Scale (desktop → phone): field letter 55% of cell height; value numeral 18% of cell height; bar name 17 → 15; bar sub-line 11 → 10; clock 26 → 22; total 40 → 30; ledger words 14; ledger points 12; verdict 20; caption wordmark 16; profile name 28; profile rating 48.
+Scale (desktop → phone): field letter 55% of cell height; value numeral `max(9px, 18% of cell height)`, hidden entirely below a 32px cell where 18% is unreadable — the cell's `aria-label` still carries the value (decided 15 September 2026); bar name 17 → 15; bar sub-line 11 → 10; clock 26 → 22; total 40 → 30; ledger words 14; ledger points 12; verdict 20; caption wordmark 16; profile name 28; profile rating 48.
 
 Casing: the product name is always lowercase `wottle` in the wordmark; sentence case for sentences; mono labels uppercase. No italics anywhere in the room.
 
@@ -65,7 +68,9 @@ Casing: the product name is always lowercase `wottle` in the wordmark; sentence 
 - 4px base. Bars are 60px (56px on phones); the gap between a bar and the field is 12px; the room gutter is 56px (≥1100px) or 40px (900–1100px); the ledger is 340px (≥1100px) or 260px (900–1100px).
 - **Room grid**: `minmax(0,1fr) 340px`. Left column is the stack `bar / field / bar`; right column is the ledger, whose top rule aligns with the top bar's top edge and whose foot is flush with the bottom bar's bottom edge.
 - **Field size**: the largest square that fits after the two bars are placed: `min(availableHeight − 2×60 − 2×12 − 48, 720)`. Never below the fold; never scrolls; computed with a ResizeObserver, not viewport units.
-- Below 900px: single column `bar / field / bar / live row`; the rest of the ledger opens as a sheet from the live row. The field is full width; cells are ≥37px with the whole cell as hit target (≥44px effective on 390px phones).
+- Below 900px: single column `bar / field / bar / live row`. The ledger shows only its caption, the live row and the territory bar; the live row is a button (`aria-expanded`) whose right cell reads `history ▸`.
+- The sheet it opens sits **in flow beneath the live row** — it takes the space left in the ledger column and scrolls inside it. It is never fixed, never has a backdrop, and its top edge never rises above the bottom bar: nothing is placed over the field, on a phone least of all. Escape or `close` returns focus to the live row.
+- At 390×844 the page itself does not scroll, with the sheet closed or open. The field is the full width less the room's 16px gutters (358px), so cells are 35px with the whole cell as hit target. Discrete controls in the sheet are ≥44px; the 35px cell is the grid's own floor and meets WCAG 2.5.8 (AA).
 - Flush-left alignment everywhere; the only centred element is the clock in a bar.
 
 ---
@@ -88,10 +93,10 @@ Letter states (each has exactly one mark):
 | keyboard focus | 2px `--ink` outline at −4px offset |
 
 ### 5.2 Word band
-One band per scored word record. 14% tint of the scorer's seat colour; square ends aligned to the cell grid; inset 20% of a cell across its short axis (leaves the numeral gutter clean) and 5% along its long axis (never enters the neighbouring cell). A 1.5px chevron in the seat colour, opened to about 150° (arm depth 9% of a cell across the band's height), sits at the end where reading **begins**: left edge pointing right (ltr), right edge pointing left (rtl), top pointing down (ttb), bottom pointing up (btt). A run valid in both directions carries a chevron at each end. Bands of the same seat never touch end to end (the whole-run rule guarantees it). Crossings show both bands.
+One band per scored word record. 14% tint of the scorer's seat colour; square ends aligned to the cell grid; inset 20% of a cell across its short axis (leaves the numeral gutter clean) and 5% along its long axis (never enters the neighbouring cell). A 1.5px chevron in the seat colour, opened to about 150° (arm depth 9% of a cell across the band's height), sits at the end where reading **begins**: left edge pointing right (ltr), right edge pointing left (rtl), top pointing down (ttb), bottom pointing up (btt). A run valid in both directions scores **once**, read forward, so every band carries exactly one chevron (rules §3.1, decided 14 September 2026). Bands of the same seat never touch end to end (the whole-run rule guarantees it). Crossings show both bands.
 
 ### 5.3 Player bar
-60px, `1fr auto 1fr`. Left: 12px square in the seat colour (1.5px dashed outline when the seat is empty) + name + one-line mono sub-line (`1204 · you`, `1191 · opponent`, `1191 → 1203 · +12 · wins`, `reconnecting · 0:42 left`, `ranked · 0:07 · cancel ▸`). Centre: clock mm:ss, `--ink` 500 while running, `--muted` 400 when stopped. Right: total in the seat colour, or the primary action when the seat is empty. The bar's edge nearest the field is the **clock lane**: 4px; full width = 10:00; filled part in the seat colour, rest `--rule`. Under 1:00: 8px and blinking at 1Hz (colour only). Disconnected: 6px/4px dashed pattern in the seat colour, held. The opponent's bar is always on top, yours always at the bottom.
+60px, `1fr auto 1fr`. Left: 12px square in the seat colour (1.5px dashed outline when the seat is empty) + name + one-line mono sub-line (`1204 · you`, `1191 · opponent`, `1191 → 1203 · +12 · wins`, `reconnecting · 0:42 left`, `ranked · 0:07 · cancel ▸`). Centre: clock mm:ss, `--ink` 500 while running, `--muted` 400 when stopped. Right: total in the seat colour, or the primary action when the seat is empty. The bar's edge nearest the field is the **clock lane**: 4px; full width = 5:00 (`aria-valuemax=300`); filled part in the seat colour, rest `--rule`. Under 1:00: 8px and blinking at 1Hz (colour only). Disconnected: 6px/4px dashed pattern in the seat colour, held. The opponent's bar is always on top, yours always at the bottom.
 
 ### 5.4 Ledger
 1.5px `--ink` top rule; height = the stack's height. Caption line (wordmark left, mono context right) → column header (`■ Birna · you` / `■ Kári`) → rounds table (`34px 1fr 1fr`, ten rows sharing the height equally; words in seat colour joined by ` · `, wrapping; round total pinned top-right; future rows show only their label) → territory bar and counts → hint line → notices → foot (`? rules` left, actions and `⋯` right). The **live row** (current round) has `--tint` background and a 3px `--ink` left rule and carries state text: `picking · T (2)`, `played ●`, then the words as they land. Notices (rematch request, resign confirmation, first-match sentences, illegal pick) are rendered as live-row-styled lines; they never open a dialog. Hovering a row lights its bands on the field. The ledger never scrolls; if a row would exceed three lines, rounds older than the last three collapse to totals.
@@ -112,7 +117,7 @@ A `<svg>` polyline, 1.5px in the seat colour, over three 1px `--rule` gridlines,
 
 ## 6. Motion
 
-Motion is a state change, not a performance. Durations: ring/pin changes 120ms; preview exchange 150ms; band draw 400ms per word, staggered 120ms; total count-up 400ms; pin fade 200ms; found-opponent name write 200ms; lane blink 1Hz colour-only; setting-field letters ~100ms apart. Easing `cubic-bezier(0.2,0,0.2,1)`. Geometry does not animate except the two listed (preview exchange, picked scale). Nothing is ever placed over the field. Under `prefers-reduced-motion`, everything is 0ms and end-state only; the lane holds solid instead of blinking.
+Motion is a state change, not a performance. Durations: ring/pin changes 120ms; letter exchange 150ms (preview **and** commit — the two letters travel to each other's places, they never teleport); band draw 400ms per word, staggered 120ms; total count-up 400ms; pin fade 200ms; found-opponent name write 200ms; lane blink 1Hz colour-only; setting-field letters ~100ms apart. Easing `cubic-bezier(0.2,0,0.2,1)`. Geometry does not animate except the two listed (preview exchange, picked scale). Nothing is ever placed over the field. Under `prefers-reduced-motion`, everything is 0ms and end-state only; the lane holds solid instead of blinking.
 
 Sounds: `tile-select` on pick, `valid-swap` on commit (with haptic where available), band-draw tick on reveal. Nothing on cancel or error. Sound is toggled from the `⋯` menu.
 
@@ -136,8 +141,8 @@ Sounds: `tile-select` on pick, `valid-swap` on commit (with haptic where availab
 - One idea per line. State the fact, then the next action: `frozen · Kári R2 · pick another`; `No runs yet. Start one from the lobby.`
 - No exclamation marks. No apologies. No metaphors about speed, power or brains. Never personify the system.
 - Numbers are numerals with their unit or context: `6:45 · running`, `+34`, `1191 → 1203 · +12`.
-- Fixed strings: `play ranked ▸` · `No opponent yet` · `ranked · about 0:10 to find one` · `Finding an opponent` · `ranked · 0:07 · cancel ▸` · `round 1 in 3` · `picking · T (2)` · `played ●` · `tap a second letter` · `tap again to play` · `esc cancels` · `frozen · <name> R<n> · pick another` · `reconnecting · 0:42 left` · `<name> asks for a rematch · accept ▸ · decline` · `resign the match? · yes, resign ▸ · no` · `<name> wins 170–127` · `by 43 points · 10 words to 8 · territory 32–25` · `rating pending` · `hover a row to see its words` · first match: `Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds ten minutes for all of them.`
-- Ledger context strings: `lobby · 4 here` · `ranked · 10 rounds · 10:00 clocks` · `ranked · round 4 of 10` · `final · 10 rounds · 18:50`.
+- Fixed strings (`lib/constants/copy.ts` is the source of truth): `play ranked ▸` · `No opponent yet` · `ranked · about 0:10 to find one` · `Finding an opponent` · `ranked · 0:07 · cancel ▸` · `round 1 in 3` · `picking · T (2)` · `played ●` · `tap a second letter` · `tap again to play` · `esc cancels` · `frozen · <name> R<n> · pick another` · `reconnecting · 0:42 left` · `<name> asks for a rematch · accept ▸ · decline` · `resign the match? · yes, resign ▸ · no` · `<name> wins 170–127` · `by 43 points · 10 words to 8 · territory 32–25` · `rating pending` · `hover a row to see its words` · `history ▸` · `that match does not exist` · `here now · challenge for an unranked match` · first match: `Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds five minutes for all of them.`
+- Ledger context strings: `lobby · 4 here` · `ranked · 10 rounds · 5:00 clocks` · `ranked · round 4 of 10` · `final · 10 rounds · 18:50`.
 
 ---
 
