@@ -104,4 +104,67 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.getByTestId("verdict")).toHaveAttribute("aria-live", "assertive");
     expect(screen.getByTestId("verdict")).toHaveTextContent("Kári wins 170–127");
   });
+
+  /**
+   * Spec 045 US4 (FR-018 to FR-020), Fig. 5. Below 900px the ledger shows only
+   * what a player needs at a glance; the rest opens from the live row, in flow
+   * beneath it, so nothing is ever placed over the field.
+   */
+  describe("collapsed, on a phone", () => {
+    const collapsed = () =>
+      render(<Ledger variant="match" collapsed model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+
+    it("shows the caption, the live row and territory, and nothing else", () => {
+      collapsed();
+      expect(screen.getByTestId("ledger-caption")).toBeInTheDocument();
+      expect(screen.getByTestId("ledger-live-trigger")).toBeInTheDocument();
+      expect(screen.getByTestId("ledger-territory")).toBeInTheDocument();
+
+      expect(screen.queryByTestId("ledger-header")).toBeNull();
+      expect(screen.queryByTestId("ledger-rows")).toBeNull();
+      expect(screen.queryByTestId("ledger-hint")).toBeNull();
+      expect(screen.queryByTestId("ledger-foot")).toBeNull();
+    });
+
+    it("offers the history from the live row itself", () => {
+      collapsed();
+      const trigger = screen.getByTestId("ledger-live-trigger");
+      expect(trigger.tagName).toBe("BUTTON");
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).toHaveTextContent("history ▸");
+      expect(trigger).toHaveTextContent("picking · T (2)");
+    });
+
+    it("opens the rounds, notices and foot beneath the live row", () => {
+      collapsed();
+      fireEvent.click(screen.getByTestId("ledger-live-trigger"));
+      const sheet = screen.getByTestId("ledger-sheet");
+      expect(screen.getByTestId("ledger-live-trigger")).toHaveAttribute("aria-expanded", "true");
+      expect(sheet.querySelector('[data-testid="ledger-header"]')).not.toBeNull();
+      expect(sheet.querySelector('[data-testid="ledger-rows"]')).not.toBeNull();
+      expect(sheet.querySelector('[data-testid="ledger-foot"]')).not.toBeNull();
+    });
+
+    it("closes on Escape and returns focus to the live row", () => {
+      collapsed();
+      const trigger = screen.getByTestId("ledger-live-trigger");
+      fireEvent.click(trigger);
+      fireEvent.keyDown(screen.getByTestId("ledger-sheet"), { key: "Escape" });
+      expect(screen.queryByTestId("ledger-sheet")).toBeNull();
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    it("forgets an open sheet when the room widens back to desktop", () => {
+      const { rerender } = render(
+        <Ledger variant="match" collapsed model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />,
+      );
+      fireEvent.click(screen.getByTestId("ledger-live-trigger"));
+      expect(screen.getByTestId("ledger-sheet")).toBeInTheDocument();
+
+      rerender(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      expect(screen.queryByTestId("ledger-sheet")).toBeNull();
+      expect(screen.getByTestId("ledger-rows")).toBeInTheDocument();
+    });
+  });
 });

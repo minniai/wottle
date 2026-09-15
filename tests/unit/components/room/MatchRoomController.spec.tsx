@@ -304,7 +304,9 @@ describe("MatchRoomController", () => {
   });
 
   it("reveal under reduced motion: end state immediately", () => {
-    vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+    // Answer per query: a blanket `matches: true` also claims a phone, which
+    // collapses the ledger and hides the rows this test reads.
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("reduced-motion"), addEventListener() {}, removeEventListener() {} }));
     vi.useFakeTimers();
     renderController(state({ currentRound: 3 }));
     act(() => mockCallbacks.onSummary!(summary));

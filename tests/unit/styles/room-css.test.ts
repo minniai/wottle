@@ -142,3 +142,33 @@ describe("room.css composition (spec 045 US3)", () => {
     expect(phone).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
   });
 });
+
+/**
+ * Spec 045 US4 (FR-019). "Nothing is ever positioned over the field" is the
+ * design's central rule; the sheet as written was a fixed panel at z-index 3
+ * pinned to the bottom of the viewport, which would have covered the field and
+ * the bottom bar the moment it was wired up.
+ */
+describe("room.css phone ledger sheet (spec 045 US4)", () => {
+  const sheet = block(".ledger-sheet");
+
+  it("sits in flow and scrolls within itself", () => {
+    expect(sheet).toMatch(/flex:\s*1/);
+    expect(sheet).toMatch(/min-height:\s*0/);
+    expect(sheet).toMatch(/overflow-y:\s*auto/);
+  });
+
+  it("is never positioned over the room", () => {
+    expect(sheet).not.toMatch(/position:\s*(fixed|absolute)/);
+    expect(sheet).not.toMatch(/z-index/);
+    expect(sheet).not.toMatch(/max-height:\s*\d+dvh/);
+  });
+
+  it("gives the phone ledger a column that can shrink, so the sheet can scroll", () => {
+    const phone = css.slice(css.indexOf("@media (max-width: 900px)"));
+    const ledger = phone.slice(phone.indexOf(".room__ledger"), phone.indexOf("}", phone.indexOf(".room__ledger")));
+    expect(ledger).toMatch(/display:\s*flex/);
+    expect(ledger).toMatch(/flex-direction:\s*column/);
+    expect(ledger).toMatch(/min-height:\s*0/);
+  });
+});

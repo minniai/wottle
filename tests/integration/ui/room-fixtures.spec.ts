@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 /**
@@ -135,5 +136,104 @@ test.describe("@visual the room is one composition", () => {
     expect(Math.round(gutter)).toBeCloseTo(expected, 0);
     // Centred as a unit: the slack is outside the pair, not between them.
     expect(Math.abs(leftMargin - rightMargin)).toBeLessThanOrEqual(1);
+  });
+});
+
+/**
+ * Spec 045 US4 (FR-018 to FR-023), Fig. 5. The page never scrolls and nothing
+ * is ever placed over the field: the sheet opens in flow beneath the live row.
+ */
+test.describe("@visual the room fits a phone", () => {
+  test.beforeEach(({}, testInfo) => {
+    test.skip(testInfo.project.name !== "visual-390x844", "the phone layout, at the phone viewport");
+  });
+
+  test("bar / field / bar / live row, and the page does not scroll", async ({ page }) => {
+    await page.goto("/dev/room?phase=match");
+    await expect(page.getByTestId("field")).toBeVisible();
+
+    // Collapsed: the glance only.
+    await expect(page.getByTestId("ledger-live-trigger")).toBeVisible();
+    await expect(page.getByTestId("ledger-territory")).toBeVisible();
+    await expect(page.getByTestId("ledger-rows")).toHaveCount(0);
+    await expect(page.getByTestId("ledger-foot")).toHaveCount(0);
+
+    const closed = await page.evaluate(() => ({
+      scrollHeight: document.scrollingElement!.scrollHeight,
+      innerHeight: window.innerHeight,
+    }));
+    expect(closed.scrollHeight).toBeLessThanOrEqual(closed.innerHeight);
+
+    // Cells stay comfortably tappable at the design's own floor.
+    const cell = await page.getByTestId("field-cell").first().boundingBox();
+    expect(cell!.width).toBeGreaterThanOrEqual(35);
+  });
+
+  test("the sheet opens in flow, below the bottom bar, and still does not scroll the page", async ({ page }) => {
+    await page.goto("/dev/room?phase=match");
+    await page.getByTestId("ledger-live-trigger").click();
+
+    const sheet = page.getByTestId("ledger-sheet");
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByTestId("ledger-rows")).toBeVisible();
+
+    const geometry = await page.evaluate(() => {
+      const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
+      return {
+        sheetTop: rect("ledger-sheet").top,
+        bottomBar: rect("player-bar-bottom").bottom,
+        fieldBottom: rect("field").bottom,
+        scrollHeight: document.scrollingElement!.scrollHeight,
+        innerHeight: window.innerHeight,
+      };
+    });
+
+    // Never over the field or the bars — the design's central rule.
+    expect(geometry.sheetTop).toBeGreaterThanOrEqual(geometry.bottomBar);
+    expect(geometry.sheetTop).toBeGreaterThanOrEqual(geometry.fieldBottom);
+    expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.innerHeight);
+  });
+
+  test("Escape closes the sheet and returns focus to the live row", async ({ page }) => {
+    await page.goto("/dev/room?phase=match");
+    const trigger = page.getByTestId("ledger-live-trigger");
+    await trigger.click();
+    await expect(page.getByTestId("ledger-sheet")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("ledger-sheet")).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+
+  test("every control in the sheet meets the 44px touch minimum", async ({ page }) => {
+    await page.goto("/dev/room?phase=match");
+    await page.getByTestId("ledger-live-trigger").click();
+    const sheet = page.getByTestId("ledger-sheet");
+
+    const small = await sheet.evaluate((el) =>
+      [...el.querySelectorAll("button, a[href], [role=\"button\"]")]
+        .map((n) => ({ label: n.textContent?.trim() ?? "", rect: n.getBoundingClientRect() }))
+        .filter(({ rect }) => rect.width > 0 && (rect.width < 44 || rect.height < 44))
+        .map(({ label, rect }) => `${label}: ${Math.round(rect.width)}x${Math.round(rect.height)}`),
+    );
+    expect(small, "controls below the 44px touch minimum").toEqual([]);
+  });
+
+  test("axe is clean with the sheet open", async ({ page }) => {
+    await page.goto("/dev/room?phase=match");
+    await page.getByTestId("ledger-live-trigger").click();
+    await expect(page.getByTestId("ledger-sheet")).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      // The design system's one grey exception: future-round numerals, aria-hidden,
+      // with the round carried by the caption (spec 045 FR-033).
+      .exclude(".ledger__row--future .ledger__round")
+      // Carried from spec 044: the opponent's 14px words are coral at 3.4:1.
+      // Decision 2 replaces them with --opp-text; T036 deletes this line.
+      .exclude('.ledger__words[data-seat="opp"]')
+      .analyze();
+
+    expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
   });
 });

@@ -1,20 +1,23 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-import { WORDMARK } from "@/lib/constants/copy";
+import { HISTORY, WORDMARK } from "@/lib/constants/copy";
 import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { LedgerAction, LedgerModel, LedgerRow, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
+import { LedgerSheet } from "./LedgerSheet";
 import type { RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
 
 export interface LedgerProps {
   variant: LedgerVariant;
+  /** Below 900px: caption, live row and territory only; the rest opens from the live row. */
+  collapsed?: boolean;
   model: LedgerModel;
   notices?: Notice[];
   viewerName: string;
@@ -150,11 +153,21 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
-  const { variant, model, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
+  const { variant, model, collapsed = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
   const { territory } = model;
   const rowsRef = useRef<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const liveRef = useRef<HTMLButtonElement | null>(null);
+  // Widening back to desktop shows everything again, so an open sheet is moot.
+  useEffect(() => {
+    if (!collapsed) setSheetOpen(false);
+  }, [collapsed]);
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    liveRef.current?.focus();
+  }, []);
   const lineCounts = useMeasuredLines(rowsRef, ".ledger__words", [model.rows]);
   const rows = foldRows(model.rows, lineCounts);
   const hover = (round: number | null) => {
@@ -162,6 +175,46 @@ export function Ledger(props: LedgerProps) {
     onRowHover?.(round);
   };
   const total = Math.max(1, territory.you + territory.opp + territory.free);
+
+  const table = (
+    <>
+      <div className="ledger__header" data-testid="ledger-header">
+        <span />
+        <span>
+          <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden /> {viewerName}{readOnly ? "" : " · you"}
+        </span>
+        <span>
+          <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden /> {opponentName ?? "—"}
+        </span>
+      </div>
+      <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
+        {rows.map((row) => (
+          <Row key={row.round} row={row} hovered={hovered === row.round} onRowHover={hover} />
+        ))}
+      </div>
+    </>
+  );
+
+  const territoryBlock = showsTable ? (
+    <>
+      <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={`territory ${territory.you}–${territory.opp}`}>
+        <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
+        <span style={{ flex: 1 }} />
+        <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
+      </div>
+      <div className="ledger__mono">
+        {territory.you} · {territory.free} free · {territory.opp}
+      </div>
+    </>
+  ) : null;
+
+  const noticeLines = notices.map((notice, i) => (
+    <div key={`${notice.kind}-${i}`} className="ledger__notice" data-testid="ledger-notice" data-kind={notice.kind} aria-live="polite">
+      {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
+    </div>
+  ));
+
+  const collapsedLiveText = model.live ?? rows.find((row) => row.status === "live")?.liveText ?? model.hint;
 
   return (
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
@@ -179,52 +232,56 @@ export function Ledger(props: LedgerProps) {
         </div>
       ) : null}
 
-      {showsTable ? (
+      {showsTable && !collapsed ? (
         <>
-          <div className="ledger__header" data-testid="ledger-header">
-            <span />
-            <span>
-              <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden /> {viewerName}{readOnly ? "" : " · you"}
+          {table}
+          {territoryBlock}
+        </>
+      ) : null}
+
+      {collapsed || showsTable ? null : body}
+
+      {collapsed ? (
+        <>
+          {/* Fig. 5: the live row carries the glance and opens the rest. */}
+          <button
+            ref={liveRef}
+            type="button"
+            className="ledger__live-row ledger__live-row--trigger"
+            /* Distinct from the table's own live row, which the sheet also shows. */
+            data-testid="ledger-live-trigger"
+            aria-expanded={sheetOpen}
+            onClick={() => (sheetOpen ? closeSheet() : setSheetOpen(true))}
+          >
+            <span className="ledger__live-text" aria-live="polite">
+              {collapsedLiveText}
             </span>
-            <span>
-              <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden /> {opponentName ?? "—"}
-            </span>
-          </div>
-          <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
-            {rows.map((row) => (
-              <Row key={row.round} row={row} hovered={hovered === row.round} onRowHover={hover} />
-            ))}
-          </div>
-          <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={`territory ${territory.you}–${territory.opp}`}>
-            <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
-            <span style={{ flex: 1 }} />
-            <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
-          </div>
-          <div className="ledger__mono">
-            {territory.you} · {territory.free} free · {territory.opp}
-          </div>
+            <span className="ledger__live-more">{HISTORY}</span>
+          </button>
+          {territoryBlock}
+          <LedgerSheet open={sheetOpen} onClose={closeSheet}>
+            {showsTable ? table : body}
+            {noticeLines}
+            <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />
+          </LedgerSheet>
         </>
       ) : (
-        body
+        <>
+          {model.live !== undefined && (
+            <div className="ledger__live-row" style={{ gridColumn: "1 / -1" }} data-testid="ledger-live-row" aria-live="polite">
+              <div className="ledger__live-text ledger__live-text--full">{model.live}</div>
+            </div>
+          )}
+
+          <div className="ledger__hint ledger__mono" data-testid="ledger-hint">
+            {model.hint}
+          </div>
+
+          {noticeLines}
+
+          <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />
+        </>
       )}
-
-      {model.live !== undefined && (
-        <div className="ledger__live-row" style={{ gridColumn: "1 / -1" }} data-testid="ledger-live-row" aria-live="polite">
-          <div className="ledger__live-text ledger__live-text--full">{model.live}</div>
-        </div>
-      )}
-
-      <div className="ledger__hint ledger__mono" data-testid="ledger-hint">
-        {model.hint}
-      </div>
-
-      {notices.map((notice, i) => (
-        <div key={`${notice.kind}-${i}`} className="ledger__notice" data-testid="ledger-notice" data-kind={notice.kind} aria-live="polite">
-          {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
-        </div>
-      ))}
-
-      <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />
     </section>
   );
 }

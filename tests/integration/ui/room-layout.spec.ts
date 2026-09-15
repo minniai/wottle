@@ -116,7 +116,7 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       const top = await box(pageA, "player-bar-top");
       const field = await box(pageA, "room-slot-field");
       const bottom = await box(pageA, "player-bar-bottom");
-      const live = await box(pageA, "ledger-live-row");
+      const live = await box(pageA, "ledger-live-trigger");
       for (const b of [top, field, bottom, live]) expect(b.y + b.height).toBeLessThanOrEqual(844);
       expect(field.width).toBeGreaterThanOrEqual(358); // full width minus 16px gutters
       const cell = await pageA.getByTestId("field-cell").first().boundingBox();

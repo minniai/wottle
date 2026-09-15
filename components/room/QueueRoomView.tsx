@@ -7,6 +7,7 @@ import type { LedgerAction, LedgerModel } from "@/lib/room/ledgerTypes";
 import { EMPTY_TERRITORY, emptyRows } from "@/lib/room/ledgerTypes";
 import type { PlayerIdentity } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
+import { useIsPhone } from "./hooks/useIsPhone";
 import { PlayerBar } from "./PlayerBar";
 import { Room } from "./Room";
 
@@ -39,6 +40,7 @@ const FULL_CLOCK_MS = 300_000;
  */
 export function QueueRoomView(props: QueueRoomViewProps) {
   const { viewer, opponent, found, elapsed, live, hint, onAction, children } = props;
+  const isPhone = useIsPhone();
 
   const model: LedgerModel = useMemo(
     () => ({ caption: QUEUE_CONTEXT, rows: emptyRows(), territory: EMPTY_TERRITORY, hint, live }),
@@ -83,6 +85,7 @@ export function QueueRoomView(props: QueueRoomViewProps) {
       ledger={
         <Ledger
           variant="queue"
+          collapsed={isPhone}
           model={model}
           viewerName={viewer.displayName}
           opponentName={opponent?.displayName ?? null}

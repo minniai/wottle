@@ -8,6 +8,7 @@ import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/ro
 import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
+import { useIsPhone } from "./hooks/useIsPhone";
 import { PlayerBar } from "./PlayerBar";
 import { Room } from "./Room";
 import { useCountUp } from "./hooks/useCountUp";
@@ -59,6 +60,7 @@ function subline(facts: SeatFacts, seatWord: string | null): string {
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
   const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
+  const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children } = props;
   const reducedMotion = useReducedMotion();
   const youScore = useCountUp(you.score, reducedMotion);
@@ -102,6 +104,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       ledger={
         <Ledger
           variant={completed ? "final" : "match"}
+          collapsed={isPhone}
           model={model}
           notices={notices}
           viewerName={you.name}

@@ -8,6 +8,7 @@ import { EMPTY_TERRITORY } from "@/lib/room/ledgerTypes";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { PlayerIdentity } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
+import { useIsPhone } from "./hooks/useIsPhone";
 import { LobbyLedger } from "./LobbyLedger";
 import { NameInput } from "./NameInput";
 import { PlayerBar } from "./PlayerBar";
@@ -38,6 +39,7 @@ export interface LobbyRoomViewProps {
  */
 export function LobbyRoomView(props: LobbyRoomViewProps) {
   const { viewer, players, recentGames, loadingPlayers, hint, notices, onAction, onSignedIn, children } = props;
+  const isPhone = useIsPhone();
 
   const model: LedgerModel = useMemo(
     () => ({
@@ -82,6 +84,7 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
       ledger={
         <Ledger
           variant="lobby"
+          collapsed={isPhone}
           model={model}
           notices={notices}
           viewerName={viewer?.displayName ?? ""}
