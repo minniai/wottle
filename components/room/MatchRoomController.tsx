@@ -12,7 +12,7 @@ import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
 import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
-import { buildVerdict, finalCaption, ratingLine, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
+import { buildVerdict, finalCaption, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
 import { LOBBY, NEW_OPPONENT, REMATCH, waitingForRematch } from "@/lib/constants/copy";
@@ -24,6 +24,7 @@ import type { Coordinate } from "@/lib/types/board";
 import type { MatchPlayerProfiles, MatchState, PlayerSlot } from "@/lib/types/match";
 import { Field } from "./Field";
 import { MatchRoomView } from "./MatchRoomView";
+import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import { useAccumulatedRounds } from "./hooks/useAccumulatedRounds";
 import { useClockTick } from "./hooks/useClockTick";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
@@ -40,6 +41,23 @@ export interface MatchRoomControllerProps {
   matchId: string;
   playerProfiles: MatchPlayerProfiles;
   pollIntervalMs?: number;
+}
+
+const LETTER_VALUES = LETTER_SCORING_VALUES_IS as Record<string, number>;
+
+function letterValue(letter: string): number {
+  return LETTER_VALUES[letter.toUpperCase()] ?? LETTER_VALUES[letter] ?? 0;
+}
+
+/**
+ * The round a frozen letter was scored in. A letter covered by two scored words
+ * takes the earlier round — that is when it actually froze (spec 045 FR-012).
+ */
+function frozenRound(words: AccumulatedWord[], at: Coordinate, fallback: number): number {
+  const rounds = words
+    .filter((w) => w.coordinates.some((c) => c.x === at.x && c.y === at.y))
+    .map((w) => w.roundNumber);
+  return rounds.length > 0 ? Math.min(...rounds) : fallback;
 }
 
 /**
@@ -93,9 +111,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     (kind: "frozen" | "pinned" | "pickCleared", at?: Coordinate) => {
       if (kind === "pickCleared") return push({ kind: "pickCleared", reason: "opponentPinned" });
       const owner = at ? frozenTiles[`${at.x},${at.y}`]?.owner : undefined;
-      push(frozenNotice(owner ? ownerNames[owner] : opp.displayName, match.currentRound));
+      push(frozenNotice(owner ? ownerNames[owner] : opp.displayName, at ? frozenRound(words, at, match.currentRound) : match.currentRound));
     },
-    [push, frozenTiles, ownerNames, opp.displayName, match.currentRound],
+    [push, frozenTiles, ownerNames, opp.displayName, words, match.currentRound],
   );
   const onRejected = useCallback((message: string) => push({ kind: "text", text: message.toLowerCase() }), [push]);
   const onCommitted = useCallback(() => {
@@ -156,7 +174,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     if (youTimer.status === "paused" || field.interaction.kind === "committed") return { kind: "played" };
     if (field.interaction.kind === "picked") {
       const letter = match.board[field.interaction.a.y]?.[field.interaction.a.x] ?? "";
-      return { kind: "picking", letter, value: 0 };
+      return { kind: "picking", letter, value: letterValue(letter) };
     }
     return { kind: "idle" };
   }, [match.state, youTimer.status, field.interaction, match.board]);

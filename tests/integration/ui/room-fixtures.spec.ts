@@ -54,3 +54,57 @@ test.describe("@visual the room renders without a database", () => {
     expect(supabaseCalls, "the fixture route must reach no backend").toEqual([]);
   });
 });
+
+/**
+ * Computed styles, not just pixels (spec 045 US2). A screenshot diff says
+ * "something changed"; these say which value is wrong, and they are what
+ * fixture B of the implementation review specifies.
+ */
+test.describe("@visual the field is painted to the design", () => {
+  test("paper ground, 1px rules inside a 1.5px frame, type that follows the cell", async ({ page }) => {
+    await page.goto("/dev/room?phase=match");
+    const field = page.getByTestId("field");
+    await expect(field).toBeVisible();
+
+    const paint = await field.evaluate((el) => {
+      const cells = [...el.querySelectorAll<HTMLElement>('[data-testid="field-cell"]')];
+      const style = (n: Element) => getComputedStyle(n);
+      const interior = cells[11]; // x 1, y 1 — not on any outer edge
+      const lastColumn = cells[9]; // x 9, y 0
+      const lastRow = cells[90]; // x 0, y 9
+      const box = interior.getBoundingClientRect();
+      const numeral = interior.querySelector(".field__value");
+      return {
+        fieldBackground: style(el).backgroundColor,
+        fieldBorderColor: style(el).borderTopColor,
+        cellBackground: style(interior).backgroundColor,
+        ruleWidth: style(interior).borderRightWidth,
+        ruleColor: style(interior).borderRightColor,
+        lastColumnRight: style(lastColumn).borderRightWidth,
+        lastRowBottom: style(lastRow).borderBottomWidth,
+        cellWidth: box.width,
+        letterSize: Number.parseFloat(style(interior).fontSize),
+        numeralSize: numeral ? Number.parseFloat(style(numeral).fontSize) : null,
+        chevronStroke: el.querySelector("path")?.getAttribute("stroke-width"),
+      };
+    });
+
+    expect(paint.fieldBackground, "the field is paper, not the rule grey (A1)").toBe("rgb(255, 253, 247)");
+    expect(paint.cellBackground, "cells are transparent so the bands show through").toBe("rgba(0, 0, 0, 0)");
+    expect(paint.ruleWidth).toBe("1px");
+    expect(paint.ruleColor).toBe("rgb(230, 226, 214)");
+    // The frame's declared 1.5px is pinned in room-css.test.ts; the browser
+    // rounds border widths to device pixels, so assert the colour here — an ink
+    // frame around rule-grey divisions is what distinguishes it.
+    expect(paint.fieldBorderColor).toBe("rgb(15, 26, 36)");
+    expect(paint.lastColumnRight, "no rule outside the frame").toBe("0px");
+    expect(paint.lastRowBottom, "no rule outside the frame").toBe("0px");
+
+    // A2: the letter follows the cell at every size, within a rounding pixel.
+    expect(paint.letterSize).toBeCloseTo(paint.cellWidth * 0.55, 0);
+    expect(paint.numeralSize).toBeCloseTo(Math.max(9, paint.cellWidth * 0.18), 0);
+
+    // A3: 1.5 device pixels, not 0.15.
+    expect(paint.chevronStroke).toBe("1.5");
+  });
+});

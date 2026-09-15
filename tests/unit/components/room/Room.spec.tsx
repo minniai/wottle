@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Room } from "@/components/room/Room";
 import { RoomShell } from "@/components/room/RoomShell";
@@ -16,6 +16,37 @@ describe("Room", () => {
     );
     expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(screen.getByTestId("room-slot-field")).toHaveTextContent("FIELD");
+  });
+
+  it("flags a small cell so the value numeral can hide (spec 045 decision 3)", () => {
+    // A 310px field is a 31px cell, where the design's 18% numeral is 5.6px.
+    class RO {
+      static instances: RO[] = [];
+      cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+        RO.instances.push(this);
+      }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal("ResizeObserver", RO);
+    const sizes = [310, 720];
+    for (const size of sizes) {
+      RO.instances = [];
+      const { unmount } = render(<Room topBar={null} field={null} bottomBar={null} ledger={null} />);
+      const room = screen.getByTestId("room");
+      Object.defineProperty(room, "clientWidth", { value: size, configurable: true });
+      Object.defineProperty(room, "clientHeight", { value: 2000, configurable: true });
+      act(() => RO.instances[0].cb([], RO.instances[0] as unknown as ResizeObserver));
+      expect(screen.getByTestId("room-slot-field")).toHaveAttribute(
+        "data-cell-size",
+        size < 320 ? "small" : "regular",
+      );
+      unmount();
+    }
+    vi.unstubAllGlobals();
   });
 
   it("exposes the store phase as data-phase", () => {
