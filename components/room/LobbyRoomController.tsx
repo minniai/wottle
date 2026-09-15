@@ -55,6 +55,12 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     if (board.length === 0) hydrateBoard();
   }, [setPhase, board.length, hydrateBoard]);
 
+  // `/` and `/lobby` are one page (app/(room)/LobbyRoomPage). A signed-in viewer's URL is /lobby, rewritten
+  // in place: routing would swap the page segment and remount the field (spec 044 SC-008).
+  useEffect(() => {
+    if (me && window.location.pathname === "/") window.history.replaceState(null, "", "/lobby");
+  }, [me]);
+
   const players = useLobbyPresenceStore((s) => s.players);
   const presenceStatus = useLobbyPresenceStore((s) => s.status);
   const connect = useLobbyPresenceStore((s) => s.connect);
@@ -119,13 +125,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     [router, push, dismiss, disconnect, setViewer],
   );
 
-  const onSignedIn = useCallback(
-    (player: PlayerIdentity) => {
-      setViewer(player);
-      router.replace("/lobby");
-    },
-    [setViewer, router],
-  );
+  const onSignedIn = useCallback((player: PlayerIdentity) => setViewer(player), [setViewer]);
 
   const model: LedgerModel = useMemo(
     () => ({
