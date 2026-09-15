@@ -7,7 +7,8 @@
 #   README.md, CLAUDE.md, docs/ and the active spec folders under specs/.
 # Excluded:
 #   docs/archive/                                  — history, kept verbatim
-#   docs/design_documentation/260914-wottle-new-design/ — the bundle that defines the list
+#   docs/design_documentation/                        — design bundles are inputs, not living docs (the
+#                                                       Field & Ledger bundle defines this very list)
 #   specs/<n>-*/ carrying SUPERSEDED.md, and shipped specs 001–043 — immutable records of what
 #                                                     was built; retired UI specs carry SUPERSEDED.md
 set -u
@@ -29,7 +30,7 @@ targets() {
   printf '%s\n' README.md CLAUDE.md
   find docs -type f \( -name '*.md' -o -name '*.html' -o -name '*.txt' \) \
     -not -path 'docs/archive/*' \
-    -not -path 'docs/design_documentation/260914-wottle-new-design/*'
+    -not -path 'docs/design_documentation/*'
   for dir in specs/*/; do
     dir="${dir%/}"
     num="${dir#specs/}"; num="${num%%-*}"
