@@ -50,7 +50,15 @@ export function ClockLane({ label, clockMs, running, budgetMs = MATCH_CLOCK_BUDG
       aria-valuetext={valueText}
       style={{ "--lane-fraction": fraction } as CSSProperties}
     >
-      <div className="player-bar__lane-fill" />
+      {mode === "disconnected" ? (
+        /* The design's 6px/4px pattern. A CSS dashed border would be whatever
+           the browser chooses — about 12/12 in Chrome (spec 045 FR-029). */
+        <svg className="player-bar__lane-dash" width="100%" height="4" aria-hidden="true">
+          <line x1="0" y1="2" x2="100%" y2="2" stroke="var(--seat-ink)" strokeWidth="4" strokeDasharray="6 4" />
+        </svg>
+      ) : (
+        <div className="player-bar__lane-fill" />
+      )}
     </div>
   );
 }

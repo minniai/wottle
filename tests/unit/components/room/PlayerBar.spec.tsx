@@ -65,4 +65,23 @@ describe("PlayerBar (design system §5.3)", () => {
     expect(screen.getByTestId("player-bar-name-input")).toBeInTheDocument();
     expect(screen.queryByTestId("player-bar-name")).toBeNull();
   });
+
+  /**
+   * Spec 045 FR-029. A CSS dashed border lets the browser choose the pattern
+   * (Chrome draws about 12/12); the design is 6px on, 4px off.
+   */
+  it("draws the disconnected lane as the design's dash pattern, not the browser's", () => {
+    render(
+      <PlayerBar seat="opp" position="top" state="playing" name="Kári" subline="reconnecting · 0:42 left" clockMs={151_000} clockRunning={false} score={15} disconnected />,
+    );
+    const lane = screen.getByTestId("player-bar-lane");
+    expect(lane).toHaveAttribute("data-mode", "disconnected");
+
+    const line = lane.querySelector("svg line");
+    expect(line, "the lane is an svg line, so the pattern is ours").not.toBeNull();
+    expect(line).toHaveAttribute("stroke-dasharray", "6 4");
+    expect(line).toHaveAttribute("stroke-width", "4");
+    expect(line).toHaveAttribute("stroke", "var(--seat-ink)");
+    expect(lane.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
 });

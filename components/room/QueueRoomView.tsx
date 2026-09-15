@@ -66,6 +66,7 @@ export function QueueRoomView(props: QueueRoomViewProps) {
             clockMs={FULL_CLOCK_MS}
             clockRunning={false}
             score={0}
+            writing
           />
         ) : (
           <PlayerBar

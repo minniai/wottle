@@ -20,6 +20,7 @@ import { Field } from "./Field";
 import { LobbyRoomView } from "./LobbyRoomView";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useLobbyInvites, type PendingInvite } from "./hooks/useLobbyInvites";
+import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useNotices } from "./hooks/useNotices";
 
 export interface LobbyRoomControllerProps {
@@ -132,6 +133,9 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     [router, push, dismiss, disconnect, setViewer],
   );
 
+  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  useRoomHotkeys(handleAction);
+
   const onSignedIn = useCallback((player: PlayerIdentity) => setViewer(player), [setViewer]);
 
   return (
@@ -153,6 +157,8 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
         shakeAt={field.shakeAt}
         focusAt={field.focusAt}
         onActivate={(at) => field.dispatch({ type: "tap", at })}
+        onDrag={(from, to) => field.dispatch({ type: "drag", from, to })}
+        exchange={field.ownPins}
         onKeyDown={field.onKeyDown}
       />
     </LobbyRoomView>

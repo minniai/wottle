@@ -86,6 +86,10 @@ describe("room.css field paint (spec 045 US2)", () => {
     expect(css).not.toMatch(/\.field::before\s*{/);
   });
 
+  it("owns its pointer gestures, so a drag does not pan the page", () => {
+    expect(field).toMatch(/touch-action:\s*none/);
+  });
+
   it("keeps the 1.5px ink frame", () => {
     expect(field).toMatch(/border:\s*1\.5px solid var\(--ink\)/);
   });
@@ -170,5 +174,33 @@ describe("room.css phone ledger sheet (spec 045 US4)", () => {
     expect(ledger).toMatch(/display:\s*flex/);
     expect(ledger).toMatch(/flex-direction:\s*column/);
     expect(ledger).toMatch(/min-height:\s*0/);
+  });
+});
+
+/**
+ * Design system §6 and spec 045 US5 (FR-027 to FR-030). Motion is a state
+ * change: letters travel to each other's places, a released pin fades, a found
+ * opponent's name is written in. All of it 0ms under reduced motion.
+ */
+describe("room.css motion, spec 045 US5", () => {
+  it("exchanges two letters over 150ms by translating them", () => {
+    expect(css).toMatch(/@keyframes letter-exchange\s*{[\s\S]*?translate\(var\(--dx\), var\(--dy\)\)/);
+    const exchange = block(".field__cell--exchange > span:first-child");
+    expect(exchange).toMatch(/letter-exchange 150ms/);
+    expect(exchange).toMatch(/cubic-bezier\(0\.2, 0, 0\.2, 1\)/);
+  });
+
+  it("fades a released pin over 200ms with the keyframe that was declared and never used", () => {
+    expect(block(".field__cell--unpinned")).toMatch(/pin-fade 200ms/);
+  });
+
+  it("writes a found opponent's name in over 200ms", () => {
+    expect(block(".player-bar__name--writing")).toMatch(/200ms/);
+  });
+
+  it("all three are instant under reduced motion", () => {
+    const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    // The blanket rule covers every animation inside .room.
+    expect(reduced).toMatch(/\.room \*[\s\S]*animation-duration: 0ms !important/);
   });
 });

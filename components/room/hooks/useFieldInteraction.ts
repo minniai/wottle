@@ -151,6 +151,20 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
     dispatchRef.current = dispatch;
   }, [dispatch]);
 
+  // Tapping anywhere outside the field cancels a pick (FR-025). Controls that
+  // must act without cancelling — the ledger's actions — carry data-field-safe.
+  const picking = interaction.kind !== "idle" && interaction.kind !== "committed";
+  useEffect(() => {
+    if (!picking) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest(".field") || target?.closest("[data-field-safe]")) return;
+      dispatchRef.current({ type: "tapOutside" });
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [picking]);
+
   // These react to *inputs* only; going through dispatchRef keeps a re-created
   // dispatch (new context) from re-firing them and resetting a live pick.
   const { opponentPins, currentRound } = opts;

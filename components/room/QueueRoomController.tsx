@@ -13,6 +13,7 @@ import type { MatchPlayerProfiles, MatchState, PlayerIdentity } from "@/lib/type
 import { Field } from "./Field";
 import { MatchRoomController } from "./MatchRoomController";
 import { QueueRoomView } from "./QueueRoomView";
+import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 
 export const LETTER_LAND_MS = 100;
@@ -130,6 +131,9 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
     },
     [cancel, cancelQueue, router],
   );
+
+  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  useRoomHotkeys(handleAction);
 
   if (phase === "match" && ready) {
     return <MatchRoomController initialState={ready.state} currentPlayerId={viewer.id} matchId={ready.matchId} playerProfiles={ready.profiles} />;

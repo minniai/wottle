@@ -32,7 +32,7 @@ function Harness(props: Partial<FieldInteractionOptions> & { frozen?: Record<str
     <>
       <div data-testid="hint">{field.hint}</div>
       <div data-testid="kind">{field.interaction.kind}</div>
-      <Field board={board()} frozenTiles={frozen} viewerSlot="player_a" cellStateFor={field.cellStateFor} seatFor={field.seatFor} shakeAt={field.shakeAt} focusAt={field.focusAt} onActivate={(at: Coordinate) => field.dispatch({ type: "tap", at })} onKeyDown={field.onKeyDown} />
+      <Field board={board()} frozenTiles={frozen} viewerSlot="player_a" cellStateFor={field.cellStateFor} seatFor={field.seatFor} shakeAt={field.shakeAt} focusAt={field.focusAt} onActivate={(at: Coordinate) => field.dispatch({ type: "tap", at })} onDrag={(from: Coordinate, to: Coordinate) => field.dispatch({ type: "drag", from, to })} onKeyDown={field.onKeyDown} />
     </>
   );
 }
@@ -149,5 +149,156 @@ describe("Field interaction (spec 044 US2)", () => {
     expect(screen.getByTestId("kind")).toHaveTextContent("committed");
     rerender(<Harness currentRound={2} />);
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
+  });
+
+  /**
+   * Spec 045 US5 (FR-024). The reducer has accepted a `drag` event since spec
+   * 044; nothing ever dispatched one. A pointer that goes down on one letter
+   * and up on another is a swap, and must not also read as a tap.
+   */
+  describe("pointer drag", () => {
+    /** jsdom implements no hit testing at all, so the API has to be supplied. */
+    let under: Element | null = null;
+    beforeEach(() => {
+      under = null;
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: () => under,
+      });
+    });
+    afterEach(() => {
+      Reflect.deleteProperty(document, "elementFromPoint");
+    });
+
+    function releaseOver(target: Element | null) {
+      under = target;
+    }
+
+    it("down on A, up on B commits that swap once and registers no tap", async () => {
+      const onCommitted = vi.fn();
+      render(<Harness onCommitted={onCommitted} />);
+
+      fireEvent.pointerDown(cell(1, 1));
+      releaseOver(cell(2, 1));
+      fireEvent.pointerUp(cell(2, 1));
+      // The browser fires a click after pointerup; it must not become a pick.
+      fireEvent.click(cell(2, 1));
+
+      await waitFor(() => expect(onCommitted).toHaveBeenCalledTimes(1));
+      // A committed swap pins both letters until the round resolves, exactly as
+      // the second tap does — the drag is another way in, not another outcome.
+      expect(screen.getByTestId("kind")).toHaveTextContent("committed");
+      expect(cell(1, 1)).toHaveAttribute("data-state", "pinned");
+      expect(cell(2, 1)).toHaveAttribute("data-state", "pinned");
+    });
+
+    it("down and up on the same letter is a tap, not a drag", () => {
+      render(<Harness />);
+      fireEvent.pointerDown(cell(3, 3));
+      releaseOver(cell(3, 3));
+      fireEvent.pointerUp(cell(3, 3));
+      fireEvent.click(cell(3, 3));
+
+      expect(cell(3, 3)).toHaveAttribute("data-state", "picked");
+      expect(screen.getByTestId("kind")).toHaveTextContent("picked");
+    });
+
+    it("releasing outside the field cancels and dispatches nothing", () => {
+      render(<Harness />);
+      fireEvent.pointerDown(cell(4, 4));
+      releaseOver(document.body);
+      fireEvent.pointerUp(cell(4, 4));
+
+      expect(screen.getByTestId("kind")).toHaveTextContent("idle");
+      expect(cell(4, 4)).not.toHaveAttribute("data-state", "picked");
+    });
+
+    it("a drag onto a frozen letter shakes it rather than swapping", () => {
+      render(<Harness frozen={{ "5,5": { owner: "player_b" } }} />);
+      fireEvent.pointerDown(cell(4, 5));
+      releaseOver(cell(5, 5));
+      fireEvent.pointerUp(cell(5, 5));
+
+      expect(screen.getByTestId("kind")).toHaveTextContent("idle");
+    });
+  });
+
+  /**
+   * Spec 045 US5 (FR-025). `tapOutside` is reduced but was never dispatched:
+   * only Escape and re-tapping the first letter cancelled a pick.
+   */
+  describe("tap outside", () => {
+    it("cancels a pick when the pointer goes down outside the field", () => {
+      render(<Harness />);
+      fireEvent.click(cell(6, 6));
+      expect(screen.getByTestId("kind")).toHaveTextContent("picked");
+
+      fireEvent.pointerDown(document.body);
+      expect(screen.getByTestId("kind")).toHaveTextContent("idle");
+    });
+
+    it("leaves the pick alone for a control marked safe, so the ledger still acts", () => {
+      render(
+        <>
+          <button type="button" data-field-safe data-testid="safe">rules</button>
+          <Harness />
+        </>,
+      );
+      fireEvent.click(cell(6, 6));
+      fireEvent.pointerDown(screen.getByTestId("safe"));
+      expect(screen.getByTestId("kind")).toHaveTextContent("picked");
+    });
+
+    it("listens only while a letter is picked", () => {
+      const add = vi.spyOn(document, "addEventListener");
+      render(<Harness />);
+      const before = add.mock.calls.filter(([type]) => type === "pointerdown").length;
+      expect(before).toBe(0);
+
+      fireEvent.click(cell(7, 7));
+      expect(add.mock.calls.filter(([type]) => type === "pointerdown").length).toBeGreaterThan(before);
+      add.mockRestore();
+    });
+  });
+
+  /**
+   * Spec 045 FR-027. The letters used to teleport: `applyLetterSwaps` changed
+   * the board and React re-rendered two different characters in place.
+   */
+  describe("the exchange", () => {
+    function Swapper({ swapped }: { swapped: boolean }) {
+      const grid = board();
+      if (swapped) {
+        const a = grid[0][0];
+        grid[0][0] = grid[0][1];
+        grid[0][1] = a;
+      }
+      return <Field board={grid} viewerSlot="player_a" exchange={swapped ? [{ x: 0, y: 0 }, { x: 1, y: 0 }] : null} />;
+    }
+
+    it("marks exactly the two exchanged letters and gives each the other's offset", () => {
+      const { rerender } = render(<Swapper swapped={false} />);
+      expect(document.querySelectorAll(".field__cell--exchange")).toHaveLength(0);
+
+      rerender(<Swapper swapped />);
+      const moving = [...document.querySelectorAll<HTMLElement>(".field__cell--exchange")];
+      expect(moving).toHaveLength(2);
+      for (const el of moving) {
+        expect(el.style.getPropertyValue("--dx")).not.toBe("");
+        expect(el.style.getPropertyValue("--dy")).not.toBe("");
+      }
+    });
+
+    it("clears the mark when the animation ends, so it can run again", () => {
+      const { rerender } = render(<Swapper swapped={false} />);
+      rerender(<Swapper swapped />);
+      // Each letter clears on its own animation, so both must end.
+      const moving = [...document.querySelectorAll<HTMLElement>(".field__cell--exchange")];
+      fireEvent.animationEnd(moving[0].querySelector("span")!);
+      expect(document.querySelectorAll(".field__cell--exchange")).toHaveLength(1);
+
+      fireEvent.animationEnd(document.querySelector(".field__cell--exchange span")!);
+      expect(document.querySelectorAll(".field__cell--exchange")).toHaveLength(0);
+    });
   });
 });

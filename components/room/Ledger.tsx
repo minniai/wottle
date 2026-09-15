@@ -209,7 +209,7 @@ export function Ledger(props: LedgerProps) {
   ) : null;
 
   const noticeLines = notices.map((notice, i) => (
-    <div key={`${notice.kind}-${i}`} className="ledger__notice" data-testid="ledger-notice" data-kind={notice.kind} aria-live="polite">
+    <div key={`${notice.kind}-${i}`} className="ledger__notice" data-testid="ledger-notice" data-field-safe data-kind={notice.kind} aria-live="polite">
       {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
     </div>
   ));

@@ -17,6 +17,8 @@ export interface PlayerBarProps {
   subline: string;
   clockMs?: number;
   clockRunning?: boolean;
+  /** The opponent has just been found: their name is written in (FR-028). */
+  writing?: boolean;
   budgetMs?: number;
   score?: number;
   disconnected?: boolean;
@@ -38,7 +40,7 @@ function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
  * bar, the viewer the bottom; the lane sits on the edge nearest the field.
  */
 export function PlayerBar(props: PlayerBarProps) {
-  const { seat, position, state, name, subline, clockMs = MATCH_CLOCK_BUDGET_MS, clockRunning = false } = props;
+  const { seat, position, state, name, subline, clockMs = MATCH_CLOCK_BUDGET_MS, clockRunning = false, writing = false } = props;
   const { budgetMs = MATCH_CLOCK_BUDGET_MS, score, disconnected = false, action, nameInput } = props;
   const showsClock = state === "playing" || state === "final";
   const showsScore = showsClock && typeof score === "number";
@@ -56,7 +58,7 @@ export function PlayerBar(props: PlayerBarProps) {
         <span className="player-bar__seat" aria-hidden />
         <div className="player-bar__text">
           {nameInput ?? (
-            <span className="player-bar__name" data-testid="player-bar-name">
+            <span className={`player-bar__name${writing ? " player-bar__name--writing" : ""}`} data-testid="player-bar-name">
               {name ?? ""}
             </span>
           )}

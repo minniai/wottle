@@ -31,6 +31,7 @@ import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
+import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
 import { buildPartialRevealKey } from "@/lib/match/partialReveal";
@@ -269,6 +270,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     [matchId, push, dismiss, rematch, router],
   );
 
+  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  useRoomHotkeys(handleAction);
+
   const rematchLine =
     rematch.phase === "waiting" ? waitingForRematch(opp.displayName) : rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;
   const allNotices: Notice[] = [
@@ -348,6 +352,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           shakeAt={field.shakeAt}
           focusAt={field.focusAt}
           onActivate={(at) => field.dispatch({ type: "tap", at })}
+        onDrag={(from, to) => field.dispatch({ type: "drag", from, to })}
+        exchange={field.ownPins}
           onKeyDown={field.onKeyDown}
         />
       </MatchRoomView>
