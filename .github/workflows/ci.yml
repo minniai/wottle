@@ -235,9 +235,9 @@ jobs:
     needs: build
     timeout-minutes: 20
     # Spec 045 US1: the room renders from static fixtures, so this job needs no
-    # Supabase, no Docker and no second player. Until US7 commits the baselines
-    # it only uploads them — they would otherwise enshrine defects A1-A4.
-    continue-on-error: true
+    # Supabase, no Docker and no second player. Blocking since US7: the
+    # baselines are committed, so an unintended change to the room fails here.
+    # `pnpm test:visual --update-snapshots` is the only way to move one.
     env:
       ROOM_FIXTURES: "1"
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000

@@ -168,7 +168,20 @@ Single Next.js application at the repository root: `app/`, `components/`, `lib/`
 **Depends on**: US2–US6 (it is the check they are measured by).
 
 - [ ] T040 [US7] Create `specs/045-field-ledger-completion/checklists/visual.md` and tick every line for each phase at 1440×900 and 390×844: **Fig. 2 match** — bars 60px `1fr auto 1fr`, 12px seat square aligned with the field frame, clock 26px mono (ink 500 running / muted 400 stopped), total 40px in the seat colour, 4px lane on the bar's inner edge, paper field with 1px rules and a 1.5px frame, bands at 14% with 1.5px chevrons at the reading start, letters 55%, numerals top-right, ledger caption / seat header / ten rows sharing the height / full-width live row / territory / hint / foot, ledger top rule and foot aligned with the bars; **Fig. 5 phone** — bar 56 / field 358 / bar 56 / live row, no page scroll, sheet in flow; **Fig. 6 lobby** — `No opponent yet`, warm-up field, `here now` and `your last matches`; **Fig. 7 queue** — `Finding an opponent`, travelling 12% lane segment, live row `setting the field · n of 100 letters`; **Fig. 8 final** — verdict block above the header, rating lines in both bars, foot `rematch ▸ · new opponent ▸ · lobby`; **Fig. 9 profile** — 14px square, 28px name, 48px rating, hairline chart with unstretched labels; **Fig. 10 states** — landing input in the bar, disconnect dashed lane + `reconnecting · 0:42 left`. Record who compared what and when
-- [ ] T041 [US7] Commit the `toHaveScreenshot` baselines (`tests/integration/ui/room-fixtures.spec.ts-snapshots/`, chromium, 9 phases × 3 projects = 27 images); remove `continue-on-error` from the CI `visual` job; document `pnpm test:visual --update-snapshots` as the only way to change a baseline, with a screenshot in the PR
+- [x] T041 [US7] Commit the `toHaveScreenshot` baselines (`tests/integration/ui/room-fixtures.spec.ts-snapshots/`, chromium, 9 phases × 3 projects = 27 images); remove `continue-on-error` from the CI `visual` job; document `pnpm test:visual --update-snapshots` as the only way to change a baseline, with a screenshot in the PR
+
+  **54 baselines, not 27:** Playwright suffixes a snapshot with the platform, and
+  CI runs ubuntu while development here is macOS. Committing darwin images alone
+  would have made the blocking job fail on its first push for a reason that has
+  nothing to do with the room. The linux set was generated in
+  `mcr.microsoft.com/playwright:v1.60.0-noble`, the image CI uses, and both sets
+  pass without `--update-snapshots`.
+
+  That cross-platform run also caught a test bug: the composition spec measured
+  centring against `window.innerWidth`, but `scrollbar-gutter: stable` reserves
+  15px that both `innerWidth` and `clientWidth` still count, so Linux reported a
+  correctly centred room as 15px off. It now measures inside the room's own box,
+  which is what "centred" means and is platform-independent.
 - [x] T042 [US7] Run the Supabase-backed suite once end to end (`pnpm quickstart && pnpm exec playwright test`), axe clean on landing, lobby, queue, match, final and profile; record pass/fail per spec in this file and replace spec 044's "Not run locally: no Supabase" notes in `specs/044-field-ledger-redesign/tasks.md` with the run date and result
 
   **Run 2026-09-15, local Supabase (CLI 2.117.0, Docker), `pnpm dev` with

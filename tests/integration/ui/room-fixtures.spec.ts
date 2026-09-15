@@ -124,12 +124,17 @@ test.describe("@visual the room is one composition", () => {
     await expect(page.getByTestId("field")).toBeVisible();
 
     const { gutter, leftMargin, rightMargin } = await page.evaluate(() => {
+      const room = document.querySelector('[data-testid="room"]')!.getBoundingClientRect();
       const field = document.querySelector('[data-testid="room-slot-field"]')!.getBoundingClientRect();
       const ledger = document.querySelector('[data-testid="room-slot-ledger"]')!.getBoundingClientRect();
       return {
         gutter: ledger.left - field.right,
-        leftMargin: field.left,
-        rightMargin: window.innerWidth - ledger.right,
+        // Measured inside the room, not the viewport: `scrollbar-gutter: stable`
+        // reserves space that both innerWidth and clientWidth still count, so a
+        // classic-scrollbar platform (Linux CI) would report a centred pair as
+        // 15px off. Centred in its own box is what the design asks for.
+        leftMargin: field.left - room.left,
+        rightMargin: room.right - ledger.right,
       };
     });
 
