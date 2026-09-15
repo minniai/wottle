@@ -4,17 +4,14 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaBar } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 test.skip(({ browserName }) => browserName !== "chromium", "profile smoke runs on chromium only");
 
 async function login(page: Page, prefix: string) {
   const username = generateTestUsername(prefix);
-  await page.goto("/");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
+  await loginViaBar(page, username);
   return username;
 }
 

@@ -12,7 +12,8 @@ test.describe("@lobby-logout sign out from the ⋯ menu", () => {
     await page.goto("/");
     await page.getByTestId("player-bar-name-input").fill(userA);
     await page.getByTestId("player-bar-action-play").click();
-    await expect(page.getByTestId("player-bar-bottom")).toContainText(userA, { timeout: 15_000 });
+    // The bar shows the display name (first letter capitalised by formatDisplayName); compare case-insensitively.
+    await expect(page.getByTestId("player-bar-bottom")).toContainText(userA, { timeout: 15_000, ignoreCase: true });
 
     await page.getByTestId("ledger-menu-trigger").click();
     await page.getByTestId("ledger-menu-item-signout").click();
@@ -20,7 +21,7 @@ test.describe("@lobby-logout sign out from the ⋯ menu", () => {
 
     await page.getByTestId("player-bar-name-input").fill(userB);
     await page.getByTestId("player-bar-action-play").click();
-    await expect(page.getByTestId("player-bar-bottom")).toContainText(userB, { timeout: 15_000 });
-    await expect(page.getByTestId("player-bar-bottom")).not.toContainText(userA);
+    await expect(page.getByTestId("player-bar-bottom")).toContainText(userB, { timeout: 15_000, ignoreCase: true });
+    await expect(page.getByTestId("player-bar-bottom")).not.toContainText(userA, { ignoreCase: true });
   });
 });

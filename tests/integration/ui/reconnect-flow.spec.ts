@@ -5,7 +5,7 @@
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
-import { generateTestUsername, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 test.skip(({ browserName }) => browserName !== "chromium", "two-context realtime flow runs on chromium only");
@@ -13,10 +13,7 @@ test.skip(({ browserName }) => browserName !== "chromium", "two-context realtime
 async function loginAs(context: BrowserContext, prefix: string) {
   const page = await context.newPage();
   const username = generateTestUsername(prefix);
-  await page.goto("/");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
+  await loginViaBar(page, username);
   return { page, username };
 }
 

@@ -5,6 +5,8 @@ const CONFIRM_TIMEOUT_MS = 5_000;
 const CONFIRM_POLL_INTERVAL_MS = 200;
 const TILE_CLICK_TIMEOUT_MS = 2_000;
 const UNLOCK_TIMEOUT_MS = 10_000;
+/** The live row is replaced by a notice line while one shows; reads must not wait for it. */
+const READ_TIMEOUT_MS = 1_000;
 
 /**
  * Submits a swap on the field by tapping two adjacent free letters, then
@@ -65,7 +67,7 @@ async function clickPair([a, b]: [Locator, Locator]): Promise<void> {
 export async function waitForBoardUnlocked(page: Page): Promise<void> {
   const deadline = Date.now() + UNLOCK_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const live = await page.getByTestId("ledger-live-row").textContent().catch(() => null);
+    const live = await page.getByTestId("ledger-live-row").textContent({ timeout: READ_TIMEOUT_MS }).catch(() => null);
     if (!live || !/played/.test(live)) return;
     await page.waitForTimeout(CONFIRM_POLL_INTERVAL_MS);
   }
@@ -74,7 +76,7 @@ export async function waitForBoardUnlocked(page: Page): Promise<void> {
 async function waitForSubmissionConfirmed(page: Page, roundLabelBefore: string | null): Promise<boolean> {
   const deadline = Date.now() + CONFIRM_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const live = await page.getByTestId("ledger-live-row").textContent().catch(() => null);
+    const live = await page.getByTestId("ledger-live-row").textContent({ timeout: READ_TIMEOUT_MS }).catch(() => null);
     if (live && /played/.test(live)) return true;
     if (roundLabelBefore) {
       const now = await readRoundLabel(page);
@@ -86,5 +88,5 @@ async function waitForSubmissionConfirmed(page: Page, roundLabelBefore: string |
 }
 
 async function readRoundLabel(page: Page): Promise<string | null> {
-  return page.getByTestId("round-indicator").textContent().catch(() => null);
+  return page.getByTestId("round-indicator").textContent({ timeout: READ_TIMEOUT_MS }).catch(() => null);
 }

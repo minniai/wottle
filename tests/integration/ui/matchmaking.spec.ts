@@ -4,7 +4,7 @@
  */
 import { expect, test, type BrowserContext } from "@playwright/test";
 
-import { generateTestUsername } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaBar } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 test.skip(({ browserName }) => browserName !== "chromium", "two-context queue flow runs on chromium only");
@@ -12,10 +12,7 @@ test.skip(({ browserName }) => browserName !== "chromium", "two-context queue fl
 async function loginAs(context: BrowserContext, prefix: string) {
   const page = await context.newPage();
   const username = generateTestUsername(prefix);
-  await page.goto("/");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
+  await loginViaBar(page, username);
   return { page, username };
 }
 
@@ -46,7 +43,7 @@ test.describe("@matchmaking queue → found → match in the room", () => {
       for (const p of [a.page, b.page]) {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", /found|match/, { timeout: 60_000 });
       }
-      await expect(a.page.getByTestId("player-bar-top")).toContainText(b.username.slice(0, 8), { timeout: 20_000 });
+      await expect(a.page.getByTestId("player-bar-top")).toContainText(b.username.slice(0, 8), { timeout: 20_000, ignoreCase: true });
       await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(b.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(a.page).toHaveURL(/\/match\/[0-9a-f-]+/);
