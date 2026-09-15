@@ -265,7 +265,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 ### Current Test Health
 
 - **134 unit/contract test files, 972 tests passing** (2 intentionally skipped), zero failures (measured 2026-09-14 on `044-field-ledger-redesign` after the retired-component sweep).
-- CI splits Playwright by tag: specs tagged `@two-player-playtest` (`board-ui`, `match-completion`, `round-history`, `round-summary`, `rounds-flow`, `swap-flow`, `z-final-summary`) run on the `playtest-firefox` project with `--workers=1`; everything else runs on `chromium`. Locally, run two-player spec files one at a time to avoid Realtime contention.
+- CI splits Playwright by tag: the one spec tagged `@two-player-playtest` (`rounds-flow`, a whole ten-round match) runs on the `playtest-firefox` project with `--workers=1`; every other room spec runs on `chromium`. On failure the job uploads `playwright-results-<suite>` (traces + `error-context.md` page snapshots). Locally, run two-player spec files one at a time to avoid Realtime contention; sign in through `loginViaBar` (`tests/integration/ui/helpers/matchmaking.ts`).
 - Lint (zero-warnings policy), typecheck and `pnpm docs:check` pass cleanly.
 
 ### Implementation Status by Area
