@@ -1,4 +1,19 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+
+/**
+ * Signs in through the bottom bar's name input (spec 044 US7) and waits until
+ * the room is actually the signed-in lobby: URL `/lobby` (the in-place
+ * `history.replaceState` after the Server Action) and the here-now table.
+ * Use this in every spec; navigating away before the URL settled is a race.
+ */
+export async function loginViaBar(page: Page, username: string): Promise<void> {
+  await page.goto("/");
+  await page.getByTestId("player-bar-name-input").fill(username);
+  await page.getByTestId("player-bar-action-play").click();
+  await expect(page).toHaveURL(/\/lobby$/, { timeout: 20_000 });
+  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("player-bar-action-ranked")).toBeEnabled({ timeout: 10_000 });
+}
 
 /**
  * Generates a unique username for test isolation.

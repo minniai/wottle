@@ -81,7 +81,7 @@ export function PlayerBar(props: PlayerBarProps) {
           {action}
         </div>
       )}
-      <ClockLane clockMs={clockMs} running={clockRunning} budgetMs={budgetMs} mode={laneMode(state, disconnected)} />
+      <ClockLane label={seat === "you" ? "your clock" : "opponent's clock"} clockMs={clockMs} running={clockRunning} budgetMs={budgetMs} mode={laneMode(state, disconnected)} />
     </div>
   );
 }

@@ -99,6 +99,16 @@ export function selectQueueOpponent<T extends { id: string; lastSeenAt: string }
   )[0];
 }
 
+/**
+ * Two players who see each other in the queue on the same poll would both pass
+ * the conditional claim (each is still `matchmaking` when the other reads) and
+ * create two matches. Only the side whose id sorts higher claims; the other
+ * stays queued and picks the match up on its next poll via findActiveMatchForPlayer.
+ */
+export function shouldClaimOpponent(selfId: string, opponentId: string): boolean {
+  return selfId > opponentId;
+}
+
 export async function sendDirectInvite(
   client: AnyClient,
   params: SendDirectInviteParams
@@ -335,7 +345,7 @@ export async function startAutoQueue(
     params.playerId
   );
 
-  if (!opponent) {
+  if (!opponent || !shouldClaimOpponent(params.playerId, opponent.id)) {
     return {
       status: "queued",
       estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS,

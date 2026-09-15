@@ -15,6 +15,7 @@ import {
   calculateInviteExpiry,
   isInviteExpired,
   selectQueueOpponent,
+  shouldClaimOpponent,
   startAutoQueue,
 } from "@/lib/matchmaking/inviteService";
 import {
@@ -45,6 +46,13 @@ describe("inviteService helpers", () => {
       "self"
     );
     expect(candidate?.id).toBe("a");
+  });
+
+  it("exactly one side of a simultaneous pair claims: the player whose id sorts higher", () => {
+    // Both players see each other in the queue at the same instant; without a
+    // deterministic side the two conditional claims both succeed and two matches appear.
+    expect(shouldClaimOpponent("player-1", "opponent-1")).toBe(true);
+    expect(shouldClaimOpponent("opponent-1", "player-1")).toBe(false);
   });
 
   it("returns null when no valid opponents are found", () => {
@@ -86,8 +94,10 @@ function makeMockChain(resolvedValue: unknown) {
 
 function makeAutoQueueClient({
   claimResult,
+  opponentId = OPPONENT_ID,
 }: {
   claimResult: { data: { id: string }[] | null };
+  opponentId?: string;
 }) {
   let playersCallCount = 0;
   return {
@@ -110,7 +120,7 @@ function makeAutoQueueClient({
           return makeMockChain({
             data: [
               {
-                id: OPPONENT_ID,
+                id: opponentId,
                 username: "opp",
                 last_seen_at: "2025-11-17T12:00:00Z",
               },
@@ -142,6 +152,15 @@ describe("startAutoQueue", () => {
     vi.mocked(bootstrapMatchRecord).mockReset();
     vi.mocked(findActiveMatchForPlayer).mockResolvedValue(null);
     vi.mocked(bootstrapMatchRecord).mockResolvedValue("match-123");
+  });
+
+  it("defers to the opponent when their id sorts higher: stays queued, never claims or bootstraps", async () => {
+    const client = makeAutoQueueClient({ claimResult: { data: [{ id: "zz-opponent" }] }, opponentId: "zz-opponent" });
+    const result = await startAutoQueue(client as any, { playerId: PLAYER_ID });
+    expect(result.status).toBe("queued");
+    expect(bootstrapMatchRecord).not.toHaveBeenCalled();
+    // players: status check, set matchmaking, candidates — no fourth (claim) call
+    expect(client.from.mock.calls.filter(([t]: [string]) => t === "players")).toHaveLength(3);
   });
 
   it("creates match when opponent claim succeeds", async () => {

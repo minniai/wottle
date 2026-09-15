@@ -47,6 +47,7 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("picking · T (2)");
     expect(screen.getByTestId("ledger-live-row")).toHaveAttribute("aria-live", "polite");
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("aria-label", "territory 32–25");
+    expect(screen.getByTestId("ledger-territory")).toHaveAttribute("role", "img"); // aria-label needs a role (axe aria-prohibited-attr)
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("tap a second letter");
   });
 

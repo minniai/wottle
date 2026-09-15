@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { logoutAction } from "@/app/actions/auth/logout";
-import { deriveRecentRatingDelta, sliceRatingHistoryWindow } from "@/components/profile/deriveProfileChartData";
+import {
+  deriveRecentRatingDelta,
+  sliceRatingHistoryWindow,
+} from "@/components/profile/deriveProfileChartData";
 import { ProfileRatingChart } from "@/components/profile/ProfileRatingChart";
 import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -67,12 +70,17 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
               <h1 className="profile__name">{identity.displayName}</h1>
               <p className="ledger__mono" data-testid="profile-handle">
                 @{identity.username}
-                {playingSince ? ` · playing since ${playingSince}` : ""} · {stats.gamesPlayed} matches
+                {playingSince ? ` · playing since ${playingSince}` : ""} ·{" "}
+                {stats.gamesPlayed} matches
               </p>
             </div>
           </div>
           <div className="profile__rating-block">
-            <div className="profile__rating" style={{ color: seatInk }} data-testid="profile-rating">
+            <div
+              className="profile__rating"
+              style={{ color: seatInk }}
+              data-testid="profile-rating"
+            >
               {stats.eloRating}
             </div>
             <p className="ledger__mono">
@@ -83,18 +91,25 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
 
         <ProfileRatingChart history={thirtyDay} seat={seat} />
 
-        <div className="profile__record" data-testid="profile-record" role="table" aria-label="record">
-          {[
-            ["won", stats.wins],
-            ["lost", stats.losses],
-            ["drawn", stats.draws],
-            ["win rate", winRate(stats.winRate)],
-          ].map(([label, value]) => (
-            <div className="profile__record-cell" role="cell" key={String(label)}>
-              <span className="profile__record-value">{value}</span>
-              <span className="ledger__mono">{label}</span>
-            </div>
-          ))}
+        <div
+          className="profile__record"
+          data-testid="profile-record"
+          role="table"
+          aria-label="record"
+        >
+          <div className="profile__record-row" role="row">
+            {[
+              ["won", stats.wins],
+              ["lost", stats.losses],
+              ["drawn", stats.draws],
+              ["win rate", winRate(stats.winRate)],
+            ].map(([label, value]) => (
+              <div className="profile__record-cell" role="cell" key={String(label)}>
+                <span className="profile__record-value">{value}</span>
+                <span className="ledger__mono">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -105,15 +120,37 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
         </div>
 
         <div className="ledger__mono lobby-ledger__title">best words</div>
-        <div className="lobby-ledger__table" data-testid="profile-best-words" role="table" aria-label="best words">
+        <div
+          className="lobby-ledger__table"
+          data-testid="profile-best-words"
+          role="table"
+          aria-label="best words"
+        >
           {words.length === 0 ? (
-            <div className="lobby-ledger__row ledger__mono" role="row">—</div>
+            <div className="lobby-ledger__row ledger__mono" role="row">
+              <span role="cell">—</span>
+            </div>
           ) : (
             words.map((w) => (
-              <div className="lobby-ledger__row" role="row" key={`${w.word}-${w.points}`} data-testid="profile-best-word">
-                <span className="lobby-ledger__name" role="cell" style={{ color: seatInk }}>{w.word}</span>
-                <span className="ledger__mono" role="cell">{w.points}</span>
-                <span className="ledger__mono" role="cell">{w.opponentName ? `vs ${w.opponentName}` : ""}</span>
+              <div
+                className="lobby-ledger__row"
+                role="row"
+                key={`${w.word}-${w.points}`}
+                data-testid="profile-best-word"
+              >
+                <span
+                  className="lobby-ledger__name"
+                  role="cell"
+                  style={{ color: seatInk }}
+                >
+                  {w.word}
+                </span>
+                <span className="ledger__mono" role="cell">
+                  {w.points}
+                </span>
+                <span className="ledger__mono" role="cell">
+                  {w.opponentName ? `vs ${w.opponentName}` : ""}
+                </span>
                 <span role="cell" />
               </div>
             ))
@@ -121,33 +158,67 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
         </div>
 
         <div className="ledger__mono lobby-ledger__title">recent matches</div>
-        <div className="lobby-ledger__table" data-testid="profile-recent-matches" role="table" aria-label="recent matches">
+        <div
+          className="lobby-ledger__table"
+          data-testid="profile-recent-matches"
+          role="table"
+          aria-label="recent matches"
+        >
           {matches.length === 0 ? (
-            <div className="lobby-ledger__row ledger__mono" role="row">—</div>
+            <div className="lobby-ledger__row ledger__mono" role="row">
+              <span role="cell">—</span>
+            </div>
           ) : (
             matches.map((m) => (
-              <Link href={`/match/${m.matchId}`} className="lobby-ledger__row profile__match" role="row" key={m.matchId} data-testid="profile-recent-match">
-                <span className="lobby-ledger__name" role="cell">{m.opponentDisplayName}</span>
+              <div
+                className="lobby-ledger__row profile__match"
+                role="row"
+                key={m.matchId}
+                data-testid="profile-recent-match"
+              >
+                <span className="lobby-ledger__name" role="cell">
+                  <Link href={`/match/${m.matchId}`} className="profile__match-link">
+                    {m.opponentDisplayName}
+                  </Link>
+                </span>
                 <span className="ledger__mono" role="cell">
                   {m.yourScore}–{m.opponentScore}
                 </span>
-                <span className="ledger__mono" role="cell">{m.result}</span>
-                <span className="ledger__mono" role="cell">▸</span>
-              </Link>
+                <span className="ledger__mono" role="cell">
+                  {m.result}
+                </span>
+                <span className="ledger__mono" role="cell">
+                  ▸
+                </span>
+              </div>
             ))
           )}
         </div>
 
         <div className="ledger__foot" data-testid="profile-foot">
-          <Link href="/lobby" className="action-secondary" data-testid="profile-back-lobby">
+          <Link
+            href="/lobby"
+            className="action-secondary"
+            data-testid="profile-back-lobby"
+          >
             ◂ lobby
           </Link>
           {isSelf ? (
             <div className="ledger__actions">
-              <button type="button" className="action-secondary" data-testid="profile-change-name" onClick={() => signOut("/")}>
+              <button
+                type="button"
+                className="action-secondary"
+                data-testid="profile-change-name"
+                onClick={() => signOut("/")}
+              >
                 change name
               </button>
-              <button type="button" className="action-secondary" data-testid="profile-sign-out" onClick={() => signOut("/")}>
+              <button
+                type="button"
+                className="action-secondary"
+                data-testid="profile-sign-out"
+                onClick={() => signOut("/")}
+              >
                 sign out
               </button>
             </div>

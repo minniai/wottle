@@ -1,0 +1,28 @@
+import { getRecentGames } from "@/app/actions/match/getRecentGames";
+import { LobbyRoomController } from "@/components/room/LobbyRoomController";
+import { fetchLobbySnapshot, healStuckInMatchStatus, type LobbySession } from "@/lib/matchmaking/profile";
+
+/**
+ * The lobby room for both `/` and `/lobby` (spec 044 US7). One server component
+ * behind both routes so that signing in — which makes the router re-render the
+ * current route after the session cookie is set — changes the controller's props
+ * instead of swapping page segments and remounting the field. Signed out, the
+ * bottom seat is empty; the controller rewrites the URL to `/lobby` once a viewer exists.
+ */
+export async function LobbyRoomPage({ session }: { session: LobbySession | null }) {
+  if (!session) {
+    return <LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />;
+  }
+
+  await healStuckInMatchStatus(session.player.id);
+
+  const [initialPlayers, recentGamesResult] = await Promise.all([
+    fetchLobbySnapshot(),
+    getRecentGames({ playerId: session.player.id, limit: 6 }).catch((error) => {
+      console.error(JSON.stringify({ event: "lobby.recent_games.failed", error: error instanceof Error ? error.message : String(error) }));
+      return { games: [] };
+    }),
+  ]);
+
+  return <LobbyRoomController viewer={session.player} initialPlayers={initialPlayers} recentGames={recentGamesResult.games} />;
+}

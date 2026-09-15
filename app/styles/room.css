@@ -210,6 +210,9 @@
   font-family: var(--font-board);
 }
 
+.field__row {
+  display: contents;
+}
 .field__cell {
   position: relative;
   appearance: none;
@@ -689,10 +692,13 @@
   font-size: 22px;
   font-weight: 500;
 }
-.profile__match {
+.profile__record-row {
+  display: contents;
+}
+.profile__match-link {
   color: inherit;
   text-decoration: none;
 }
-.profile__match:hover .lobby-ledger__name {
+.profile__match-link:hover {
   text-decoration: underline;
 }

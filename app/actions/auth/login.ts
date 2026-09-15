@@ -2,7 +2,6 @@
 
 import "server-only";
 
-import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -49,10 +48,10 @@ export async function loginAction(
     console.log(`[LOGIN_DEBUG] performUsernameLogin success. Player: ${player.id}, Token: ${sessionToken.slice(0, 10)}...`);
     
     await persistLobbySession({ player, sessionToken });
-    console.log(`[LOGIN_DEBUG] persistLobbySession complete. Revalidating / and returning success.`);
+    console.log(`[LOGIN_DEBUG] persistLobbySession complete. Returning success.`);
 
-    revalidatePath("/");
-    
+    // No revalidatePath("/"): the room converts the bar in place and rewrites the URL to /lobby
+    // (spec 044 US7). A server re-render of / here would hit its signed-in redirect and remount the field.
     return { status: "success", player, sessionToken };
   } catch (error) {
     console.error(`[LOGIN_DEBUG] Error during login:`, error);

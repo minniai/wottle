@@ -544,7 +544,9 @@ jobs:
               echo "Skipping playtest suite: no '@two-player-playtest' tests found yet."
             fi
           else
-            pnpm exec playwright test --config=playwright.config.ts --project=chromium --reporter=line --grep-invert "@two-player-playtest"
+            # One worker: the room specs share one server, one DB and one ranked queue; parallel
+            # workers pair each other's queued players and stretch broadcast latency past the asserts.
+            pnpm exec playwright test --config=playwright.config.ts --project=chromium --reporter=line --workers=1 --grep-invert "@two-player-playtest"
           fi
       - name: Stop Next.js server
         if: always()
@@ -555,7 +557,7 @@ jobs:
             echo "--> Secure Cookie Logic:"
             grep "shouldUseSecureCookies" next.log || echo "No secure cookie logs found"
             echo "--> Errors:"
-            grep -i "error" next.log | grep -v "React Router" || echo "No errors found"
+            grep -n "⨯\|rror" next.log | grep -v "React Router" | tail -n 200 || echo "No errors found"
             echo "--> Last 100 lines:"
             tail -n 100 next.log
             echo "==========================="
@@ -588,6 +590,14 @@ jobs:
         with:
           name: quickstart-playwright-${{ matrix.suite }}-log
           path: quickstart-playwright.ndjson
+          if-no-files-found: warn
+      - name: Upload Playwright failure evidence (traces, error-context snapshots)
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results-${{ matrix.suite }}
+          path: test-results/
+          retention-days: 7
           if-no-files-found: warn
 
   perf-gate:

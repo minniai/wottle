@@ -44,8 +44,20 @@ describe("ProfilePage (design system Fig. 9, spec 044 US10)", () => {
     expect(best[0]).toHaveTextContent("61");
     expect(best[0]).toHaveTextContent("vs Kári");
     const match = screen.getByTestId("profile-recent-match");
-    expect(match).toHaveAttribute("href", "/match/m1");
+    expect(match).toHaveAttribute("role", "row");
+    expect(match.tagName).not.toBe("A");
+    expect(match.querySelector("a")).toHaveAttribute("href", "/match/m1");
     expect(match).toHaveTextContent("170–127");
+  });
+
+  it("table semantics: every role=table holds role=row children and every row holds cells (axe)", () => {
+    render(<ProfilePage profile={profile} words={[]} matches={[]} isSelf />);
+    for (const table of screen.getAllByRole("table")) {
+      const rows = table.querySelectorAll(':scope > [role="row"]');
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) expect(row.querySelector('[role="cell"]')).not.toBeNull();
+      expect(table.querySelector(':scope > [role="cell"]')).toBeNull();
+    }
   });
 
   it("foot: ◂ lobby, and change name · sign out only for the owner", () => {

@@ -3,14 +3,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername } from "./helpers/matchmaking";
-
-async function loginAs(page: Page, username: string) {
-  await page.goto("/");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
-}
+import { generateTestUsername, loginViaBar } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 
@@ -23,8 +16,8 @@ test.describe("@lobby-presence here now", () => {
     try {
       const userA = generateTestUsername("pres-a");
       const userB = generateTestUsername("pres-b");
-      await loginAs(pageA, userA);
-      await loginAs(pageB, userB);
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
       await expect(pageA.getByTestId("ledger-here-now").getByText(`@${userB}`)).toBeVisible({ timeout: 10_000 });
       await expect(pageB.getByTestId("ledger-here-now").getByText(`@${userA}`)).toBeVisible({ timeout: 10_000 });
       await expect(pageA.getByTestId("round-indicator")).toContainText(/lobby · \d+ here/);

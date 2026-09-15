@@ -20,6 +20,12 @@ describe("PlayerBar (design system §5.3)", () => {
     expect(lane).toHaveAttribute("aria-valuenow", "210");
     expect(lane).toHaveAttribute("aria-valuetext", "3:30 remaining, running");
     expect(lane.style.getPropertyValue("--lane-fraction")).toBe("0.7");
+    expect(lane).toHaveAttribute("aria-label", "opponent's clock");
+  });
+
+  it("empty seat: the lane still has an accessible name (axe aria-progressbar-name)", () => {
+    render(<PlayerBar seat="you" position="bottom" state="empty" subline="no account needed" />);
+    expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("aria-label", "your clock");
   });
 
   it("stopped clock is muted and the lane holds", () => {

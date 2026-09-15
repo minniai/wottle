@@ -12,28 +12,39 @@ vi.mock("@/lib/matchmaking/profile", () => ({
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import LandingPage from "@/app/(room)/page";
+import { LobbyRoomPage } from "@/app/(room)/LobbyRoomPage";
 
+const session = {
+  token: "tok",
+  issuedAt: Date.now(),
+  player: {
+    id: "abc",
+    username: "ari",
+    displayName: "Ari",
+    status: "available" as const,
+    lastSeenAt: new Date().toISOString(),
+    eloRating: 1200,
+  },
+};
+
+/**
+ * `/` and `/lobby` are one room (spec 044 US7). The server never redirects a
+ * signed-in visitor away from `/`: the cookie-setting login action makes the
+ * router re-render the current route, and a redirect there swapped the page
+ * segment and remounted the field. The client rewrites the URL to /lobby.
+ */
 describe("LandingPage route", () => {
-  test("redirects to /lobby when a session exists", async () => {
-    vi.mocked(readLobbySession).mockResolvedValueOnce({
-      token: "tok",
-      issuedAt: Date.now(),
-      player: {
-        id: "abc",
-        username: "ari",
-        displayName: "Ari",
-        status: "available",
-        lastSeenAt: new Date().toISOString(),
-        eloRating: 1200,
-      },
-    });
-
-    await expect(LandingPage()).rejects.toThrow("NEXT_REDIRECT:/lobby");
+  test("renders the signed-in lobby room at / — no redirect", async () => {
+    vi.mocked(readLobbySession).mockResolvedValueOnce(session);
+    const element = await LandingPage();
+    expect(element.type).toBe(LobbyRoomPage);
+    expect(element.props.session).toEqual(session);
   });
 
-  test("renders the landing screen when no session exists", async () => {
+  test("renders the empty-seat room when no session exists", async () => {
     vi.mocked(readLobbySession).mockResolvedValueOnce(null);
     const element = await LandingPage();
-    expect(element).toBeTruthy();
+    expect(element.type).toBe(LobbyRoomPage);
+    expect(element.props.session).toBeNull();
   });
 });

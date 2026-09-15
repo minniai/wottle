@@ -13,6 +13,17 @@ function board(): string[][] {
 }
 
 describe("Field (design system §5.1, §9)", () => {
+  it("grid → ten rows → ten gridcells each (ARIA structure; axe aria-required-children/parent)", () => {
+    render(<Field board={board()} viewerSlot="player_a" />);
+    const grid = screen.getByRole("grid");
+    const rows = screen.getAllByRole("row");
+    expect(rows).toHaveLength(10);
+    for (const row of rows) {
+      expect(row.parentElement).toBe(grid);
+      expect(row.querySelectorAll('[role="gridcell"]')).toHaveLength(10);
+    }
+  });
+
   it("renders 100 gridcells with coordinate + letter + value + state labels", () => {
     render(<Field board={board()} viewerSlot="player_a" />);
     const cells = screen.getAllByRole("gridcell");

@@ -5,14 +5,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, startMatchWithDirectInvite } from "./helpers/matchmaking";
-
-async function loginPlayer(page: Page, username: string) {
-  await page.goto("/");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
-}
+import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 
@@ -25,8 +18,8 @@ test.describe("@match-completion final room state", () => {
     try {
       const userA = generateTestUsername("fin-a");
       const userB = generateTestUsername("fin-b");
-      await loginPlayer(pageA, userA);
-      await loginPlayer(pageB, userB);
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 

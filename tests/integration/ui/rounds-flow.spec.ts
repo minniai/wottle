@@ -1,78 +1,15 @@
+/**
+ * Spec 002 / 044 — a whole match in the room: ten rounds of pick → commit on
+ * both fields, the caption advancing each round, then the final room state.
+ * Tagged @two-player-playtest so CI runs it alone on the playtest project.
+ */
 import { expect, test } from "@playwright/test";
 
+import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
 import { submitSwap } from "./helpers/swaps";
-import {
-  generateTestUsername,
-  startMatchWithDirectInvite,
-} from "./helpers/matchmaking";
-
-async function loginPlayer(
-  page: import("@playwright/test").Page,
-  username: string,
-) {
-  await page.goto("/");
-  await page.getByTestId("player-bar-name-input").fill(username);
-
-  // Click submit - the Server Action sets a cookie, calls revalidatePath("/"),
-  // and the form component calls router.refresh() on success.
-  await page.getByTestId("player-bar-action-play").click();
-
-  // Wait for the Server Action to complete and cookie to settle
-  await page.waitForTimeout(1500);
-
-  // Check if router.refresh() re-rendered the page with the session.
-  // If not (e.g. Client Router Cache in production), fall back to goto("/")
-  // which loads the page fresh. Unlike page.reload(), goto("/") creates a
-  // brand-new JS context so the Zustand store has no trackedPlayerId and
-  // disconnect() won't send a DELETE.
-  const lobbyVisible = await page
-    .getByTestId("ledger-here-now")
-    .isVisible()
-    .catch(() => false);
-
-  if (!lobbyVisible) {
-    await page.goto("/");
-  }
-
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({
-    timeout: 20_000,
-  });
-
-  // Then check for matchmaker controls
-  await expect(page.getByTestId("player-bar-action-ranked")).toBeVisible({
-    timeout: 10_000,
-  });
-}
-
-async function loginAndStartMatch(
-  pageA: import("@playwright/test").Page,
-  pageB: import("@playwright/test").Page,
-  userA: string,
-  userB: string,
-) {
-  // Login players sequentially to avoid race conditions
-  await loginPlayer(pageA, userA);
-  await loginPlayer(pageB, userB);
-
-  // Use direct invite for reliable matchmaking (avoids queue race conditions)
-  // Pass playerBUsername for test isolation when running in parallel
-  // Use a generous timeout for CI where presence propagation is slower
-  const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, {
-    timeoutMs: 120_000,
-    playerBUsername: userB,
-  });
-
-  expect(matchIdA).toBeTruthy();
-  expect(matchIdA).toEqual(matchIdB);
-
-  await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 10_000 });
-  await expect(pageB.getByTestId("room")).toBeVisible({ timeout: 10_000 });
-}
 
 test.describe("Round flow", () => {
-  test("completes 10 rounds with reconnect safety + late swap guards @two-player-playtest", async ({
-    browser,
-  }) => {
+  test("completes 10 rounds with reconnect safety + late swap guards @two-player-playtest", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
@@ -81,36 +18,30 @@ test.describe("Round flow", () => {
     try {
       const userA = generateTestUsername("flow-alpha");
       const userB = generateTestUsername("flow-beta");
-      await loginAndStartMatch(pageA, pageB, userA, userB);
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
 
-      // Complete all 10 rounds (pick unfrozen tile pairs dynamically)
+      const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 120_000, playerBUsername: userB });
+      expect(matchIdA).toBeTruthy();
+      expect(matchIdA).toEqual(matchIdB);
+      for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
+
       for (let round = 1; round <= 10; round += 1) {
         await submitSwap(pageA);
         await submitSwap(pageB);
-        // Give advanceRound time to run (async after second submit). CI runners
-        // are slower; Realtime may fall back to polling. First round often has
-        // cold-start latency for word engine.
-        const settleMs = round === 1 ? 6_000 : 3_000;
-        await pageA.waitForTimeout(settleMs);
+        // advanceRound runs after the second submit; round 1 pays the word-engine cold start.
+        await pageA.waitForTimeout(round === 1 ? 6_000 : 3_000);
         if (round < 10) {
-          // Wait for round to resolve and advance — rounds auto-advance after recap animation
-          await expect(pageA.getByTestId("round-indicator")).toContainText(
-            new RegExp(`r${round + 1}`, "i"),
-            { timeout: 45_000 }
-          );
+          await expect(pageA.getByTestId("round-indicator")).toContainText(`round ${round + 1} of 10`, { timeout: 45_000 });
         }
       }
 
-      // After round 10, should see final summary (navigation + render can be slow in CI/Docker)
-      const summaryView = pageA.getByTestId("final-summary-root");
-      await expect(summaryView).toBeVisible({ timeout: 30_000 });
-
-      // Verify match ended properly. Phase 2 redesign moved the ended-reason
-      // text inside the post-game-verdict card as `reasonLabel`.
-      await expect(pageA.getByTestId("post-game-verdict")).toContainText(/round/i);
+      // After round 10 the same room turns final: verdict in the ledger, field kept.
+      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
+      await expect(pageA.getByTestId("verdict")).toBeVisible();
+      await expect(pageA.getByTestId("ledger-caption")).toContainText(/final · 10 rounds · \d+:\d\d/);
+      await expect(pageA.getByTestId("field")).toBeVisible();
     } finally {
-      await pageA.close();
-      await pageB.close();
       await contextA.close();
       await contextB.close();
     }

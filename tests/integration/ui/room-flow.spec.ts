@@ -7,14 +7,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, startMatchWithDirectInvite } from "./helpers/matchmaking";
-
-async function loginPlayer(page: Page, username: string) {
-  await page.goto("/");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
-}
+import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 const cell = (page: Page, x: number, y: number) => page.locator(`[data-testid="field-cell"][data-x="${x}"][data-y="${y}"]`);
 
@@ -45,8 +38,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("flow-a");
       const userB = generateTestUsername("flow-b");
-      await loginPlayer(pageA, userA);
-      await loginPlayer(pageB, userB);
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(pageB.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
@@ -57,11 +50,12 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(cell(pageA, ax1, 0)).toHaveAttribute("data-state", "picked");
       await expect(pageA.getByTestId("ledger-live-row")).toContainText(/picking ·/);
       await cell(pageA, ax2, 0).click();
-      await expect(cell(pageA, ax1, 0)).toHaveAttribute("data-state", "pinned");
+      // `scored` if the instant first-mover reveal (spec 042) already landed on these letters.
+      await expect(cell(pageA, ax1, 0)).toHaveAttribute("data-state", /pinned|scored/);
       await expect(pageA.getByTestId("ledger-live-row")).toContainText("played ●");
 
       // B sees A's letters pinned in coral on their own field.
-      await expect(cell(pageB, ax1, 0)).toHaveAttribute("data-state", "pinned", { timeout: 15_000 });
+      await expect(cell(pageB, ax1, 0)).toHaveAttribute("data-state", /pinned|scored/, { timeout: 15_000 });
       await expect(cell(pageB, ax1, 0)).toHaveAttribute("data-seat", "opp");
 
       // B: opt into preview — second tap previews, Esc reverses, third tap commits.
@@ -84,11 +78,11 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(cell(pageA, ax1, 0)).not.toHaveAttribute("data-state", "pinned");
 
       // US3 — bands: one per word in the ledger's row 1, chevron edge per direction.
-      const wordCells = pageA.getByTestId("ledger-row-1").locator(".ledger__words");
-      const rowText = (await wordCells.allTextContents()).join(" ");
-      const wordCount = rowText.split("·").map((w) => w.trim()).filter((w) => /^[^\d]+$/.test(w) && w.length > 0).length;
+      // One <span> per word directly under .ledger__words; the pinned total is `.ledger__total`.
+      // The row fills from the round summary a beat after the caption advances; wait for both to agree.
+      const words = pageA.getByTestId("ledger-row-1").locator(".ledger__words > span:not(.ledger__total)");
       const bands = pageA.getByTestId("field-band");
-      expect(await bands.count()).toBe(wordCount);
+      await expect.poll(async () => (await bands.count()) - (await words.count()), { timeout: 15_000 }).toBe(0);
       for (let i = 0; i < (await bands.count()); i += 1) {
         const dir = await bands.nth(i).getAttribute("data-direction");
         expect(["ltr", "rtl", "ttb", "btt"]).toContain(dir);
@@ -109,8 +103,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("frz-a");
       const userB = generateTestUsername("frz-b");
-      await loginPlayer(pageA, userA);
-      await loginPlayer(pageB, userB);
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -118,10 +112,11 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       const [bx1, bx2] = await twoFreeCells(pageB, 5);
       await cell(pageB, bx1, 5).click();
       await cell(pageB, bx2, 5).click();
-      await expect(cell(pageA, bx1, 5)).toHaveAttribute("data-state", "pinned", { timeout: 15_000 });
+      await expect(cell(pageA, bx1, 5)).toHaveAttribute("data-state", /pinned|scored/, { timeout: 15_000 });
       await cell(pageA, bx1, 5).dispatchEvent("click");
       await expect(cell(pageA, bx1, 5)).not.toHaveAttribute("data-state", "picked");
-      await expect(pageA.getByTestId("ledger-notice")).toContainText(/frozen ·|pinned/, { timeout: 5_000 });
+      // Several notices can be up at once (first-match rules, pinned, frozen); match the one we caused.
+      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: /frozen ·|pinned/ }).first()).toBeVisible({ timeout: 5_000 });
     } finally {
       await contextA.close();
       await contextB.close();
@@ -136,8 +131,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("ldg-a");
       const userB = generateTestUsername("ldg-b");
-      await loginPlayer(pageA, userA);
-      await loginPlayer(pageB, userB);
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -178,8 +173,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("rvl-a");
       const userB = generateTestUsername("rvl-b");
-      await loginPlayer(pageA, userA);
-      await loginPlayer(pageB, userB);
+      await loginViaBar(pageA, userA);
+      await loginViaBar(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 

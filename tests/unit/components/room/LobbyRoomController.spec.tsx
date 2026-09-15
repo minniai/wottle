@@ -77,6 +77,8 @@ describe("LobbyRoomController (spec 044 US7)", () => {
   });
 
   it("signing in converts the bottom bar in place and replaces the URL with /lobby", async () => {
+    window.history.replaceState(null, "", "/");
+    const replaceState = vi.spyOn(window.history, "replaceState").mockImplementation(() => undefined);
     render(<LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />);
     const field = screen.getByTestId("field");
     fireEvent.change(screen.getByTestId("player-bar-name-input"), { target: { value: "birna" } });
@@ -84,8 +86,20 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Birna"));
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1204 · you");
     expect(screen.queryByTestId("player-bar-name-input")).toBeNull();
-    expect(mockReplace).toHaveBeenCalledWith("/lobby");
+    // Same page element: the URL is rewritten in place, never routed (a route swap would remount the field).
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/lobby");
+    expect(mockReplace).not.toHaveBeenCalled();
     expect(screen.getByTestId("field")).toBe(field);
+    replaceState.mockRestore();
+  });
+
+  it("signed-in render at / rewrites the URL to /lobby in place (the server never redirects /; the field must not remount)", () => {
+    window.history.replaceState(null, "", "/");
+    const replaceState = vi.spyOn(window.history, "replaceState").mockImplementation(() => undefined);
+    render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/lobby");
+    expect(mockReplace).not.toHaveBeenCalled();
+    replaceState.mockRestore();
   });
 
   it("signed in: here-now lists others with challenge ▸; challenging sends the invite; preview prices the warm-up", async () => {

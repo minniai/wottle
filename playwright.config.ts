@@ -36,6 +36,11 @@ export default defineConfig({
   ],
   use: {
     baseURL,
+    // Failure evidence for CI: the trace + error-context page snapshot land in test-results/.
+    // No single action may hang a test for its whole budget (a locator read waiting on an element that left the DOM did).
+    actionTimeout: 15_000,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   // In CI the server is started by the workflow; avoid double-starting.
   webServer: process.env.CI
