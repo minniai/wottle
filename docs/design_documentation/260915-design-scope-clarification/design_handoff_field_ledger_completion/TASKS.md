@@ -1,0 +1,113 @@
+# Tasks: Field & Ledger Completion
+
+**Input**: `README.md` (this handoff), `IMPLEMENTATION_REVIEW.md` (findings with evidence), `WOTTLE_DESIGN_SYSTEM.md`, `Wottle UX Audit.dc.html` (Fig. 2, 5–10), `Wottle Implementation Review.dc.html` (fixture B = target field).
+**Prerequisites**: spec 044 merged (all T001–T101 ticked). Decisions 1–3 default to the README's recommendations; T030–T032 are the only tasks that change if the team decides otherwise.
+
+**Tests**: mandatory, TDD. Within each step the test task comes first and MUST fail before the implementation task that follows. Commit each passing test separately (`test(scope): …`), never a failing one. Static stylesheet assertions go in `tests/unit/styles/room-css.test.ts` (existing pattern: read `app/styles/room.css`, match rule blocks). Rendered assertions go in Playwright against the fixture route from R1.
+
+**Organization**: seven steps R1–R7, one PR each, in order. Each PR ends with `pnpm lint && pnpm typecheck && pnpm test && pnpm docs:check` green; from R2 on, the PR carries `/__room` screenshots at 1440×900, 1280×800 and 390×844 for every phase it touched.
+
+## Format: `[ID] [P?] [Step] Description`
+
+- **[P]**: can run in parallel within its step (different files)
+- Every task names the exact file(s) it creates or edits
+
+## Path conventions
+
+Single Next.js app at the repository root: `app/`, `components/room/`, `lib/room/`, `tests/{unit,integration}/`. New: `app/__room/`, `tests/integration/ui/room-fixtures.spec.ts`, `tests/integration/ui/__screenshots__/`.
+
+---
+
+## R1 — Seen: the room renders without a database (review E1)
+
+**Purpose**: every later step is judged on screenshots of this route.
+
+- [ ] T001 [R1] Write failing tests `tests/unit/components/room/LobbyRoomView.spec.tsx` and `QueueRoomView.spec.tsx` (render from props: bars, field, ledger present; no store or transport imports) then extract `components/room/LobbyRoomView.tsx` and `components/room/QueueRoomView.tsx` from their controllers exactly as `MatchRoomView.tsx` is split from `MatchRoomController.tsx`; controllers keep store, transport, timers and pass props; `LobbyRoomController.spec.tsx` and `QueueRoomController.spec.tsx` stay green unchanged
+- [ ] T002 [P] [R1] Create `app/__room/fixtures.ts`: the README's 10-row board, players (Birna 1204 you / Kári 1187 opp), rounds 1–3 (`BORÐ` you R1 ltr x2–5 y2; `GILT` opp R2 ttb x7 y4–7; a third word of your choice from the board for R3), clocks (you 4:12, opp 2:31 of 5:00), territory, final verdict `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25`, disconnect (`reconnecting · 0:42 left`), profile fixture (rating history 12 points, record row, best words, recent matches); typed with the existing `MatchState`, `LedgerModel`, `AccumulatedWord`, profile types — no new types
+- [ ] T003 [R1] Create `app/__room/page.tsx` (client component under a server wrapper): `notFound()` when `process.env.NODE_ENV === "production" && !process.env.ROOM_FIXTURES`; reads `phase` (`landing | lobby | queue | found | match | reveal | final | disconnect | profile`); seeds `useRoomStore` / `usePreferencesStore` from fixtures; renders `RoomShell` → `Room` with the presentational views; `reveal` mounts `useReveal` on the R3 words once; `match` starts with `T` at x0 y9 picked; no Supabase import anywhere under `app/__room/` (add `tests/unit/app/roomFixtures.imports.test.ts` asserting the folder imports nothing from `lib/supabase/**` or `app/actions/**`)
+- [ ] T004 [R1] Create `tests/integration/ui/room-fixtures.spec.ts`: for each phase × viewport {1440×900, 1280×800, 390×844} load `/__room?phase=…`, wait for fonts (`document.fonts.ready`) and the field's 100 cells, `expect(page).toHaveScreenshot(\`${phase}-${w}x${h}.png\`, { maxDiffPixelRatio: 0.002, animations: "disabled" })`; add `"test:visual": "playwright test room-fixtures --project=chromium"` to `package.json`; document `pnpm test:visual --update-snapshots` in `CLAUDE.md` → Testing; baselines are NOT committed in R1 (they would enshrine A1–A4) — the spec runs with `--update-snapshots` locally until R7
+- [ ] T005 [R1] Add a CI job `visual` running `pnpm build && ROOM_FIXTURES=1 pnpm start & wait-on http://localhost:3000/__room?phase=match && pnpm test:visual` without Supabase services; until R7 the step runs with `continue-on-error: true` and uploads the screenshots as artifacts
+
+**Checkpoint**: `/__room?phase=match` renders on a laptop with no `.env.local`; the screenshots show the grey field of review fixture A (this is the "before").
+
+---
+
+## R2 — Field paint (review A1, A2, A3, B3, B4, B8)
+
+- [ ] T006 [R2] Write failing assertions in `tests/unit/styles/room-css.test.ts`: `.field` block declares `background: var(--paper)`, has no `gap` other than `0`, declares `--cell-size: calc(var(--field-size) / 10)`; no `.field::before` rule exists; `.field__cell` declares `border-right: 1px solid var(--rule)` and `border-bottom: 1px solid var(--rule)` and `background: transparent`; `.field__cell:nth-of-type(10n)` has `border-right: 0`; `.field__cell:nth-last-of-type(-n + 10)` has `border-bottom: 0`; letter `font-size: calc(var(--cell-size) * 0.55)` and numeral `calc(var(--cell-size) * 0.18)` with no `48px` fallback; `.player-bar` declares `padding: 0`
+- [ ] T007 [R2] Edit `app/styles/room.css` per README "Field (R2)": paper ground, `gap: 0`, delete `.field::before`, merge the two `.field__cell` blocks into one (transparent background, borders), the two `nth-of-type` exclusions, `--cell-size` on `.field`, remove both `, 48px` fallbacks, `.player-bar { padding: 0 }`; keep the bands SVG at `z-index: 0` beneath the cells
+- [ ] T008 [P] [R2] Write failing assertion in `tests/unit/components/room/FieldBands.spec.tsx` (`stroke-width="1.5"` on every chevron path, `vector-effect="non-scaling-stroke"` retained) then change `components/room/FieldBands.tsx` `strokeWidth={0.15}` → `strokeWidth={1.5}`
+- [ ] T009 [R2] Write failing tests in `tests/unit/components/room/hooks.spec.tsx` (`computeFieldSize(390, 844, 56, { paddingX: 32 })` → 358; `useFieldSize` uses 56 when `matchMedia("(max-width: 900px)").matches`) then edit `components/room/hooks/useFieldSize.ts` to subtract horizontal padding read from `getComputedStyle(el)` and pick the bar height from `matchMedia`; edit `room.css` so `.room__field-slot { width: var(--field-size) }` also below 900px (remove the `width: 100%` override for the slot; keep it for `.room__stack`); `Room.tsx` sets `data-cell-size={fieldSize / 10 < 32 ? "small" : "regular"}` on `.room__field-slot`
+- [ ] T010 [P] [R2] Write failing test in `tests/unit/components/room/MatchRoomController.spec.tsx` (picking `T` shows `picking · T (${LETTER_SCORING_VALUES_IS.T})`) then replace `value: 0` in `components/room/MatchRoomController.tsx` with `LETTER_SCORING_VALUES_IS[letter] ?? 0` (import as `components/room/Field.tsx` does)
+- [ ] T011 [P] [R2] Write failing test in `MatchRoomController.spec.tsx` (tapping a letter frozen in round 2 while in round 4 shows `frozen · Kári R2 · pick another`) then in `MatchRoomController.tsx` `onNotice("frozen", at)` resolve the round from the accumulated word whose `coordinates` include `at` (`useAccumulatedRounds` output), falling back to `match.currentRound`
+- [ ] T012 [R2] Screenshot `/__room?phase=match` at 1440×900 and 390×844; compare with review fixture B and Fig. 2: paper cells, 1 px rules crossing the bands, 1.5 px frame, letters 55 % of the cell (39.6 px at 720; 19.7 px at 358), 1.5 px chevrons at the reading start of `BORÐ` (left edge) and `GILT` (top edge); attach to the PR
+
+**Checkpoint**: the field looks like fixture B at both sizes.
+
+---
+
+## R3 — Composition (review B1, B2, B7, B10)
+
+- [ ] T013 [R3] Write failing assertions in `room-css.test.ts` (`.room` declares `grid-template-columns: auto var(--ledger-width)` and `justify-content: center`; `.room__stack` has no `margin: 0 auto`) and in `tests/integration/ui/room-layout.spec.ts` (`ledger.left − field.right` equals 56 ± 1 at 1440×900 and 40 ± 1 at 1000×800) then edit `app/styles/room.css`; the ≤ 900px rule keeps `minmax(0, 1fr)`
+- [ ] T014 [R3] Write failing test in `tests/unit/components/room/Ledger.spec.tsx` (exactly one `[data-testid="ledger-live-row"]`, it contains the round label `R4`, `picking · T (1)` and `played ●`, and its style has `gridColumn: "1 / -1"`) then edit `components/room/Ledger.tsx`: the live row is one element spanning all three columns with `var(--tint)` and `inset 3px 0 0 var(--ink)`, containing an inner `34px 1fr 1fr` grid; move the label inside; `room.css` `.ledger__live-row` updated
+- [ ] T015 [R3] Write failing tests in `tests/unit/lib/room/ledgerRows.spec.ts` (queue model has `live: "setting the field · 58 of 100 letters"` while landing, `live: "round 1 in 3"` when found) and `Ledger.spec.tsx` (queue variant renders the live row with that text above the hint) then add `live?: string` to `LedgerModel` in `lib/room/ledgerTypes.ts`, set it in `components/room/QueueRoomController.tsx` (move the strings out of `hint`), render it in `Ledger.tsx` for the queue variant
+- [ ] T016 [P] [R3] Write failing tests (`tests/unit/lib/constants/copy.spec.ts`: `NO_SUCH_MATCH === "that match does not exist"`; `LobbyRoomController.spec.tsx`: `?notice=no-match` shows a `text` notice with that copy in the live-row style) then edit `app/(room)/match/[matchId]/page.tsx` to `redirect("/lobby?notice=no-match")` instead of the bare `<div>`, add the constant to `lib/constants/copy.ts`, read the param in `LobbyRoomController.tsx` and clear it with `history.replaceState` after showing
+- [ ] T017 [R3] Screenshots of `lobby`, `queue`, `found`, `match` at 1440×900 and 1280×800; check against Fig. 6, 7, 2: one gutter, live row tinted edge to edge with the 3 px rule at its left, ledger top rule and foot aligned with the bars' outer edges
+
+---
+
+## R4 — Phone (review A4 / C4) — Fig. 5
+
+- [ ] T018 [P] [R4] Write failing test `tests/unit/components/room/hooks.useIsPhone.spec.tsx` (false on SSR; follows `matchMedia("(max-width: 900px)")` and its `change` event) then create `components/room/hooks/useIsPhone.ts`
+- [ ] T019 [R4] Write failing tests in `Ledger.spec.tsx` (with `collapsed`: renders caption, the live row as `<button aria-expanded="false">` whose opponent cell reads `history ▸`, the territory bar and counts line, and NOT the seat header, rows, hint or foot; clicking it renders `[data-testid="ledger-sheet"]` containing header, rows, foot and sets `aria-expanded="true"`; Esc closes and focus returns to the button) and extend `LedgerSheet.spec.tsx` (no `position: fixed`, `overflow-y: auto`) then edit `components/room/Ledger.tsx` (prop `collapsed`, local `sheetOpen`, renders `LedgerSheet` from `components/room/LedgerSheet.tsx`), pass `collapsed={isPhone}` from `MatchRoomView.tsx`, `LobbyRoomView.tsx`, `QueueRoomView.tsx`
+- [ ] T020 [R4] Write failing assertions in `room-css.test.ts` (`.ledger-sheet` declares `flex: 1`, `min-height: 0`, `overflow-y: auto`, and no `position: fixed|absolute`; in the ≤ 900px block `.room__ledger` declares `display: flex`, `flex-direction: column`, `min-height: 0`) then edit `app/styles/room.css`; the sheet occupies the space between the live row and the bottom of the room, scrolls internally, never overlaps `.room__stack`
+- [ ] T021 [R4] Extend `tests/integration/ui/room-layout.spec.ts` phone test (390×844, `/__room?phase=match`): `document.scrollingElement.scrollHeight <= window.innerHeight` with the sheet closed and open; every `[data-testid="field-cell"]` ≥ 35 px square; sheet `getBoundingClientRect().top >= bottomBar.bottom`; axe (`@axe-core/playwright`) clean with the sheet open; touch targets in the sheet ≥ 44 px
+- [ ] T022 [R4] Screenshots of `match`, `final`, `lobby` at 390×844 with the sheet closed and open; check against Fig. 5
+
+---
+
+## R5 — Interaction & motion (review C1, C2, C3, B5, B6)
+
+- [ ] T023 [R5] Write failing tests in `tests/unit/components/room/Field.interaction.spec.tsx` (`pointerdown` on A then `pointerup` over B — stub `document.elementFromPoint` — dispatches `{ type: "drag", from: A, to: B }` once and no `tap`; `pointerdown`/`pointerup` on the same cell dispatches one `tap`) then add `onPointerDown`/`onPointerUp` to `components/room/FieldCell.tsx` and resolution + click suppression (ref flag cleared on the next `click`) to `components/room/Field.tsx` / `hooks/useFieldInteraction.ts`; `.field { touch-action: none }` in `room.css` (assert in `room-css.test.ts`)
+- [ ] T024 [P] [R5] Write failing test in `Field.interaction.spec.tsx` (state `picked`, `pointerdown` on `document.body` → `tapOutside`; on an element with `data-field-safe` → nothing; state `idle` → no listener) then add the document listener to `hooks/useFieldInteraction.ts` and `data-field-safe` to the action buttons in `components/room/LedgerFoot.tsx` and the notice buttons in `Ledger.tsx`
+- [ ] T025 [P] [R5] Write failing test `tests/unit/components/room/hooks.useRoomHotkeys.spec.tsx` (`?` → `onAction("rules")`, `m` and `M` → `onAction("toggleSound")`, ignored on `<input>`/`<textarea>`/`[contenteditable]` targets and with `metaKey|ctrlKey|altKey`) then create `components/room/hooks/useRoomHotkeys.ts` and call it from `LobbyRoomController.tsx`, `QueueRoomController.tsx`, `MatchRoomController.tsx` with their existing `onAction`
+- [ ] T026 [R5] Write failing assertions in `room-css.test.ts` (`@keyframes letter-exchange` from `translate(var(--dx), var(--dy))` to `translate(0, 0)`; `.field__cell--exchange` 150ms `cubic-bezier(0.2, 0, 0.2, 1)`; `.field__cell--unpinned` uses `pin-fade` 200ms; `.player-bar__name--writing` opacity 0 → 1 over 200ms; all three inside the `prefers-reduced-motion` block set to `0ms` or `none`) and in `hooks.spec.tsx` (a `displayBoard` change that swaps two cells sets `--dx`/`--dy` and the class on exactly those two cells and clears them after the animation ends) then implement: `components/room/Field.tsx` computes the offsets from the two cells' `getBoundingClientRect` before/after the swap (FLIP), `FieldCell.tsx` accepts `exchange?: { dx: number; dy: number }` and `unpinned?: boolean`, `components/room/PlayerBar.tsx` accepts `writing?: boolean` and `QueueRoomController.tsx` sets it when the opponent is found; apply `pin-fade` where a cell leaves `pinned`
+- [ ] T027 [P] [R5] Write failing test in `tests/unit/components/room/PlayerBar.spec.tsx` (disconnected lane renders `<svg>` with `<line stroke-dasharray="6 4" stroke-width="4">`, no `border-top` rule) then edit `components/room/ClockLane.tsx` per README and delete `.player-bar__lane--disconnected .player-bar__lane-fill { border-top: … dashed }` from `room.css`
+- [ ] T028 [R5] Extend `tests/integration/ui/room-flow.spec.ts` (real match): drag A → B commits a swap; with a letter picked, tapping the ledger caption cancels (`idle`, no notice); `?` opens rules; `M` flips the sound preference — keep these in the Supabase-backed suite (they need a live move); add a fixture-route variant for `?` and `M` in `room-fixtures.spec.ts`
+
+---
+
+## R6 — Debt, decisions, documents (review D1–D4, B9, B11, E2; decisions 1–3)
+
+- [ ] T029 [P] [R6] Edit `tests/unit/styles/tokens.test.ts` to assert the `:root` declaration set equals EXACTLY `SEVEN ∪ DERIVED` (plus `--opp-text` after T031) and `tests/unit/styles/acceptance-grep.test.ts` to compile `BANNED` with the `i` flag and add `--ochre|--p1-|--p2-|--good|--warn|--bad|--hair|font-fraunces|jetbrains` (fails) then delete the legacy alias block from `app/globals.css` (≈ l. 33–58) and the `/* legacy */` block from `tailwind.config.ts` (≈ l. 31–43, 49); update `tests/unit/styles/tailwind-config.test.ts` to assert the legacy keys are absent
+- [ ] T030 [P] [R6] Decision 1 (default: unranked challenges). Grep first (`ranked|rated`) — nothing exists. Write failing tests: contract `tests/contract/post-invite.contract.test.ts` (invite-created match has `rated: false`), `tests/unit/lib/rating/**` (no rating update when `rated === false`), `tests/unit/lib/room/ledgerRows.spec.ts` (caption `unranked · round n of 10`, final `unranked · 10 rounds · mm:ss`), `copy.spec.ts` (`HERE_NOW` contains `challenge for an unranked match`) then: migration `supabase/migrations/<ts>_matches_rated.sql` (`rated boolean not null default true`), `rated` on `MatchState` (`lib/types/match.ts`) and the state loader, invite acceptance path in `lib/matchmaking/**` sets `false`, rating module skips, `ledgerRows.ts` caption functions take `rated`, `copy.ts` edit. **If the team keeps challenges ranked: skip this task and record it in the design bundle (T033).**
+- [ ] T031 [P] [R6] Decision 2 (default: `--opp-text`). Write failing tests: `tokens.test.ts` (`--opp-text: #C2402A`, eight colour tokens), `tests/unit/lib/constants/seatColors.spec.ts` (`getSeatColors(...).text` is `var(--you)` for the viewer and `var(--opp-text)` for the opponent), `Ledger.spec.tsx` (opponent words use `text`), `Field.spec.tsx` (scored numeral on an opponent cell uses `text`) then add the token to `app/globals.css` and `tailwind.config.ts`, `text` to `lib/constants/seatColors.ts`, apply in `Ledger.tsx`, `room.css` (`.field__cell[data-state="scored"][data-seat="opp"] .field__value`), `components/profile/ProfilePage.tsx` `vs` rows; remove the axe `disableRules`/`exclude` for those selectors in `tests/integration/ui/*.spec.ts`; `CLAUDE.md` "Seven colour tokens" → "Eight colour tokens (`--opp-text` is text-only)"
+- [ ] T032 [P] [R6] Decision 3 (default: numeral floor). Write failing assertions in `room-css.test.ts` (`.field__value` `font-size: max(9px, calc(var(--cell-size) * 0.18))`; `[data-cell-size="small"] .field__value { display: none }`) then edit `room.css`; `Room.spec.tsx` asserts `data-cell-size="small"` at `fieldSize = 310`
+- [ ] T033 [R6] Update the design bundle in `docs/design_documentation/260914-wottle-new-design/`: `WOTTLE_DESIGN_SYSTEM.md` §2 (eight tokens, `--opp-text` text-only rule), §4 (phone: caption + live row + territory; sheet in flow below the live row, never over the field or bars), §5.1 (numeral `max(9px, 18%)`, hidden below 32 px cells), §5.2 (one chevron per band; delete the two-chevron clause; cite rules §3.1), §5.3/§8/§9 (5:00, `ranked · 10 rounds · 5:00 clocks`, `aria-valuemax=300`), §6 (150 ms exchange applies to preview and commit), §8 (`unranked` captions and `challenge for an unranked match` — or the ranked wording if decision 1 is inverted), §9 (remove the coral-under-17px exception); `WOTTLE_DESIGN_PLAN.md` §1.3, §4.3 (preview opt-in), §5, §12 (mark the five decisions + these three as decided, with dates); copy `IMPLEMENTATION_REVIEW.md` into the folder; add both to `docs/design/README.md`; run `pnpm docs:check` and extend `scripts/docs/consistency-grep.sh` with `10:00 clock|ten-minute|two chevrons|preview by default` over `docs/design_documentation/**/*.md`
+- [ ] T034 [P] [R6] Delete `lib/ui/tokens.ts`, `lib/ui/avatarGradient.ts` and their tests under `tests/unit/lib/ui/` after `grep -r "lib/ui/" app components lib` returns nothing; remove `lib/ui/` if empty
+- [ ] T035 [P] [R6] `git mv ds-bundle docs/archive/ds-bundle-warm-editorial`, then recreate `ds-bundle/README.md` as the one-paragraph pointer (the current text), add the entry to `docs/archive/README.md`; `pnpm docs:check` green
+- [ ] T036 [P] [R6] `lib/constants/game-config.ts`: grep `timePerRoundMs`; if unused remove it from `DEFAULT_GAME_CONFIG` and `GameConfig` (`lib/types/**`), else rename to `matchClockBudgetMs: MATCH_CLOCK_BUDGET_MS` imported from `lib/room/clock.ts`; update its test
+- [ ] T037 [P] [R6] Write failing test in `tests/unit/components/profile/ProfilePage.spec.tsx` (chart `viewBox` width equals the measured container width; `preserveAspectRatio` is `xMinYMin meet`; axis labels keep `font-size: 11px`) then edit `components/profile/ProfileRatingChart.tsx` to measure its container (ResizeObserver, same pattern as `useMeasuredLines`) and set `viewBox="0 0 ${width} 180"`
+
+---
+
+## R7 — Baselines and the real run (review C5, plan 044 §10)
+
+- [ ] T038 [R7] Human comparison. For each phase at 1440×900 and 390×844, tick every line in `specs/045-field-ledger-completion/checklists/visual.md` against the figure: **Fig. 2 match** — bars 60 px, `1fr auto 1fr`, 12 px seat square aligned with the field frame, clock 26 px mono (ink 500 running / muted 400 stopped), total 40 px in seat colour, lane 4 px on the bar's inner edge, field paper with 1 px rules and 1.5 px frame, bands 14 % with 1.5 px chevrons at the reading start, letters 55 %, numerals top-right, ledger caption / seat header / ten rows sharing the height / full-width live row / territory / hint / foot, ledger top rule and foot aligned with the bars; **Fig. 5 phone** — bar 56 / field 358 / bar 56 / live row, no page scroll, sheet in flow; **Fig. 6 lobby** — `No opponent yet` top bar, warm-up field, `here now` and `your last matches` tables; **Fig. 7 queue** — `Finding an opponent`, travelling 12 % lane segment, live row `setting the field · n of 100 letters`; **Fig. 8 final** — verdict block above the header, rating lines in both bars, foot `rematch ▸ · new opponent ▸ · lobby`; **Fig. 9 profile** — 14 px square, 28 px name, 48 px rating, hairline chart with unstretched labels; **Fig. 10 states** — landing input in the bar, disconnect dashed lane + `reconnecting · 0:42 left`
+- [ ] T039 [R7] Commit the `toHaveScreenshot` baselines (`tests/integration/ui/__screenshots__/`, chromium, 9 phases × 3 viewports); remove `continue-on-error` from the CI `visual` job; document `pnpm test:visual --update-snapshots` as the only way to change a baseline, with a screenshot in the PR
+- [ ] T040 [R7] Run the Supabase-backed suite once end to end (`pnpm quickstart && pnpm exec playwright test`), axe clean on landing, lobby, queue, match, final, profile; record pass/fail per spec in `specs/045-field-ledger-completion/tasks.md` and replace spec 044's "Not run locally: no Supabase" notes in `specs/044-field-ledger-redesign/tasks.md` with the run date and result
+- [ ] T041 [R7] `CLAUDE.md`: Current State paragraph gains "completion (spec 045, <date>): fixture route `/__room`, `pnpm test:visual`, eight tokens"; `README.md` Testing section lists `pnpm test:visual`; spec 045 `spec.md` Outcome section written
+
+---
+
+## Dependencies
+
+- R1 before everything (screenshots are the acceptance of R2–R6).
+- R2 before R3 (the gutter measurement assumes the field's true size); R3 before R4 (the phone ledger reuses the full-width live row).
+- R5 is independent of R3–R4 and may run in parallel with them.
+- T033 (design bundle) last within R6, after T030–T032 are decided.
+- R7 last.
+
+## Estimates
+
+R1 ½ d · R2 ½ d · R3 ½ d · R4 1 d · R5 1 d · R6 1 d · R7 1 d — about 5½ days.

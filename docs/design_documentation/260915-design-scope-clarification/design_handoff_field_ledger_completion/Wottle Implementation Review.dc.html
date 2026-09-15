@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Red+Hat+Mono:wght@400;500;600&display=swap">
+<style>
+html,body{margin:0;background:#FFFDF7;color:#0F1A24}
+body{-webkit-font-smoothing:antialiased;text-wrap:pretty}
+a{color:#0F1A24;text-decoration:underline;text-decoration-color:#B9B4A6;text-underline-offset:3px}
+a:hover{color:#147D7A;text-decoration-color:#147D7A}
+ol,ul{margin:0}
+/* Fixture A reproduces app/styles/room.css §Field verbatim (the code under review). Fixture B is the same sheet with the three paint fixes from finding A1–A3. */
+.fx{--paper:#FFFDF7;--ink:#0F1A24;--rule:#E6E2D6;--muted:#5A6572;--you:#147D7A;--opp:#E4573D;--you-band:color-mix(in srgb,var(--you) 14%,transparent);--opp-band:color-mix(in srgb,var(--opp) 14%,transparent);--font-board:'Zilla Slab',Georgia,serif;--font-mono:'Red Hat Mono',ui-monospace,monospace}
+.fx .field{position:relative;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);width:100%;height:100%;box-sizing:border-box;border:1.5px solid var(--ink);background:var(--rule);gap:1px;font-family:var(--font-board)}
+.fx .field__cell{position:relative;appearance:none;border:0;padding:0;margin:0;background:var(--paper);color:var(--ink);font:inherit;font-weight:600;font-size:calc(var(--cell-size,48px) * 0.55);line-height:1;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fx .field__value{position:absolute;top:4%;right:6%;font-family:var(--font-mono);font-weight:400;font-size:calc(var(--cell-size,48px) * 0.18);color:var(--muted)}
+.fx .field__cell[data-state="picked"]{color:var(--seat-ink);transform:scale(1.08);box-shadow:inset 0 0 0 2px var(--ink);z-index:1}
+.fx .field__cell[data-state="picked"] .field__value{color:var(--ink);font-weight:500}
+.fx .field__cell[data-state="scored"]{color:var(--seat-ink);cursor:default}
+.fx .field__cell[data-state="scored"] .field__value{color:var(--seat-ink)}
+.fx .field__bands{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.fx .field__cell{z-index:0;background:transparent}
+.fx .field::before{content:"";position:absolute;inset:0;background:var(--paper);z-index:-1}
+/* Fixture B — the fixes */
+.fxB .field{background:var(--paper);gap:0;--cell-size:calc(var(--field-size) / 10)}
+.fxB .field::before{content:none}
+.fxB .field__cell{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.fxB .field__cell:nth-of-type(10n){border-right:0}
+.fxB .field__cell:nth-last-of-type(-n+10){border-bottom:0}
+</style>
+</helmet>
+
+<div style="font-family:'Alegreya',Georgia,serif;font-size:18px;line-height:1.55;color:#0F1A24;background:#FFFDF7;min-height:100vh">
+<div style="max-width:1120px;margin:0 auto;padding:56px 32px 120px">
+
+<header data-screen-label="Cover" style="display:flex;flex-wrap:wrap;gap:24px 40px;align-items:flex-end;padding-bottom:40px;border-bottom:1px solid #0F1A24">
+  <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">Wottle<br>Implementation review<br>14 September 2026</div>
+  <div style="flex:1 1 520px;min-width:0">
+    <h1 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:clamp(40px,6vw,64px);line-height:1;letter-spacing:-0.01em">Built, but never seen</h1>
+    <p style="margin:20px 0 0;font-size:22px;line-height:1.4;max-width:680px">The Field &amp; Ledger rebuild (spec 044) is structurally complete: one room, seat colours, bands with chevrons, the ledger, every state. Three paint defects in the field, an unwired phone ledger and a handful of deviations stand between it and the design.</p>
+    <p style="margin:20px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;color:#5A6572">Read from source: components/room/*, lib/room/*, app/styles/room.css, app/globals.css, tailwind.config.ts, lib/constants/*, specs/044-field-ledger-redesign/*, tests/unit/**, tests/integration/ui/*, CLAUDE.md, README.md, docs/**. Companion: handoff/IMPLEMENTATION_REVIEW.md.</p>
+  </div>
+</header>
+
+<nav style="display:flex;flex-wrap:wrap;gap:8px 28px;padding:20px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.04em">
+  <a href="#r1" style="text-decoration:none">01 Verdict</a>
+  <a href="#r2" style="text-decoration:none">02 The field as painted</a>
+  <a href="#r3" style="text-decoration:none">03 Findings</a>
+  <a href="#r4" style="text-decoration:none">04 Team decisions</a>
+  <a href="#r5" style="text-decoration:none">05 Plan to complete</a>
+  <a href="#r6" style="text-decoration:none">06 Decisions given</a>
+</nav>
+
+<!-- 01 VERDICT -->
+<section id="r1" data-screen-label="01 Verdict" style="display:flex;flex-wrap:wrap;gap:24px 40px;padding:56px 0 48px">
+  <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">01<br>Verdict</div>
+  <div style="flex:1 1 520px;min-width:0;max-width:760px">
+    <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">The architecture is right; the pixels were never checked</h2>
+    <p style="margin:20px 0 0">Every object the design asked for exists and is where it should be: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">Room</span> measures the field with a ResizeObserver, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">PlayerBar</span> carries the lane on its inner edge, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">FieldBands</span> draws one tinted band and one chevron per word record from the reading direction, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">Ledger</span> shares ten rows across its height and folds them, notices are live-row lines, colour is resolved through one seat function, the seven tokens and two fonts are the only ones declared, and the old components are gone from the tree. The reveal choreography, the disconnect line, the verdict block, the warm-up field, the placeholder queue and the profile on the room grid are all there.</p>
+    <p style="margin:16px 0 0">What is not there is a rendered check. The task log records the Playwright suite and the reference screenshots as <em>not run locally — no Supabase</em>, and the unit tests run in JSDOM, which does not paint. As a result three defects shipped that any screenshot would have caught: the field's paper ground is hidden under its own rule colour (finding A1), the letter size never follows the cell size (A2), and the chevron is a 0.15px hairline (A3). Section 02 reproduces the field with the stylesheet as written.</p>
+    <p style="margin:16px 0 0">Five of the design's open questions were decided by the team on 14 September (section 04). Three of those decisions change the design's copy and scale, and the implementation follows the decisions, not the documents. That is correct behaviour, and the design bundle should now be updated to match.</p>
+
+    <div style="display:grid;grid-template-columns:72px 1fr 120px;gap:0;margin:32px 0 0;border-top:1px solid #0F1A24;font-size:15px">
+      <div style="padding:10px 0 6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;border-bottom:1px solid #0F1A24">Step</div>
+      <div style="padding:10px 0 6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;border-bottom:1px solid #0F1A24">Plan §11 scope · state</div>
+      <div style="padding:10px 0 6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;border-bottom:1px solid #0F1A24;text-align:right">Adherence</div>
+
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">P0</div>
+      <div style="padding:10px 12px 10px 0;border-bottom:1px solid #DDD9CE"><strong>Engine contracts.</strong> Reading direction derived from stored tile order, optional on <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">WordScore</span>; BORÐA + GILT and FÁR/RÁF pinned by tests; rules §2a (clock) and §12 (what the player sees) written; copy module. Complete.</div>
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#147D7A">complete</div>
+
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">P1</div>
+      <div style="padding:10px 12px 10px 0;border-bottom:1px solid #DDD9CE"><strong>Tokens, fonts, shell, bars.</strong> Seven tokens + 14%/30% alphas, Zilla Slab / Red Hat Mono via next/font, no TopBar, room grid at three breakpoints, bar geometry and type to the pixel, lane states. Legacy aliases still declared (D1); stack centred instead of flush (B1).</div>
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#147D7A">complete · debt</div>
+
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">P2</div>
+      <div style="padding:10px 12px 10px 0;border-bottom:1px solid #DDD9CE"><strong>Ledger.</strong> Caption, seat header, ten shared rows, live row, fold rule (measured), hover → bands, territory, hint, notices, verdict, foot with ⋯ menu, lobby tables. Live row tint stops short of the round label (B2); picking value prints 0 (B3); frozen notice names the wrong round (B4).</div>
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#147D7A">complete · 3 fixes</div>
+
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">P3</div>
+      <div style="padding:10px 12px 10px 0;border-bottom:1px solid #DDD9CE"><strong>Field.</strong> Cells, bands, chevrons, pick → (preview) → commit reducer, shake + notice, opponent pins, reveal plan (400/120/400/200 ms), sounds and haptics, keyboard arrows/Space/Enter/Esc. Paint broken (A1–A3); no drag, no tap-outside, no 150 ms exchange, pin fade unused, no ? / M keys (C1–C5).</div>
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#E4573D">not to design</div>
+
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">P4</div>
+      <div style="padding:10px 12px 10px 0;border-bottom:1px solid #DDD9CE"><strong>Room states.</strong> Landing name-in-bar, lobby with warm-up field, queue with self-setting placeholder, found countdown, final with verdict and rating lines, disconnect line and claim, rematch notice, read-only replay. Phone: the ledger never collapses to its live row; <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">LedgerSheet</span> exists but nothing renders it (A4).</div>
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#147D7A">desktop complete</div>
+
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">P5</div>
+      <div style="padding:10px 12px 10px 0;border-bottom:1px solid #DDD9CE"><strong>Profile, tests, docs.</strong> Profile on the room grid with hairline chart and record row; unit tests for every pure module and component; Playwright layout/flow/axe specs written; CLAUDE.md, README, rules, spec outcomes updated; docs grep in CI. Playwright and screenshots never executed (C5, E1); ds-bundle not moved (D3); chart labels stretch (B9).</div>
+      <div style="padding:10px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#147D7A">complete · unverified</div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 FIELD AS PAINTED -->
+<section id="r2" data-screen-label="02 The field as painted" style="padding:48px 0 0;border-top:1px solid #DDD9CE">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">02<br>The field<br>as painted</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:760px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Same markup, the stylesheet as written, and with the field paint fixed</h2>
+      <p style="margin:20px 0 0">Both fixtures render the field at 360px, the width it gets on a 390px phone, from the rules in <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">app/styles/room.css</span> and the SVG in <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">FieldBands.tsx</span>. Left is the code as committed. Right paints the field paper and draws the rules as cell borders (as Fig. 2 does), declares <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">--cell-size</span>, and sets a 1.5px chevron stroke. Letter values are illustrative.</p>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:40px;margin:36px 0 0">
+    <figure style="margin:0;flex:0 1 360px;min-width:280px">
+      <div class="fx fxA" style="width:100%;aspect-ratio:1;--field-size:360px">
+        <div class="field" role="img" aria-label="the field as room.css paints it">
+          <svg class="field__bands" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="20.5" y="22" width="39" height="6" fill="var(--you-band)"></rect>
+            <path d="M 20.5 22 L 21.4 25 L 20.5 28" fill="none" stroke="var(--you)" stroke-width="0.15" vector-effect="non-scaling-stroke"></path>
+            <rect x="72" y="40.5" width="6" height="39" fill="var(--opp-band)"></rect>
+            <path d="M 72 40.5 L 75 41.4 L 78 40.5" fill="none" stroke="var(--opp)" stroke-width="0.15" vector-effect="non-scaling-stroke"></path>
+          </svg>
+          <sc-for list="{{ cells }}" as="c" hint-placeholder-count="100">
+            <div class="field__cell" data-state="{{ c.state }}" style="{{ c.style }}"><span>{{ c.letter }}</span><span class="field__value">{{ c.value }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <figcaption style="margin:14px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;color:#5A6572"><span style="color:#0F1A24">A · as committed.</span> Cells are transparent over a <span style="color:#0F1A24">--rule</span> ground; the paper <span style="color:#0F1A24">::before</span> sits at z-index −1 in the root stacking context, beneath the field's own background. No cell rules are visible. Letters are 26.4px whatever the cell size (the 48px fallback). Chevrons are 0.15 device pixels.</figcaption>
+    </figure>
+    <figure style="margin:0;flex:0 1 360px;min-width:280px">
+      <div class="fx fxB" style="width:100%;aspect-ratio:1;--field-size:360px">
+        <div class="field" role="img" aria-label="the field as designed">
+          <svg class="field__bands" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="20.5" y="22" width="39" height="6" fill="var(--you-band)"></rect>
+            <path d="M 20.5 22 L 21.4 25 L 20.5 28" fill="none" stroke="var(--you)" stroke-width="1.5" vector-effect="non-scaling-stroke"></path>
+            <rect x="72" y="40.5" width="6" height="39" fill="var(--opp-band)"></rect>
+            <path d="M 72 40.5 L 75 41.4 L 78 40.5" fill="none" stroke="var(--opp)" stroke-width="1.5" vector-effect="non-scaling-stroke"></path>
+          </svg>
+          <sc-for list="{{ cells }}" as="c" hint-placeholder-count="100">
+            <div class="field__cell" data-state="{{ c.state }}" style="{{ c.style }}"><span>{{ c.letter }}</span><span class="field__value">{{ c.value }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <figcaption style="margin:14px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;color:#5A6572"><span style="color:#0F1A24">B · with A1–A3 fixed.</span> Paper field, 1px rules as cell borders crossing the bands, 1.5px frame; letters at 55% and numerals at 18% of the cell; 1.5px chevrons at the reading start (BORÐ left-to-right, GILT top-to-bottom); T at row 10 picked. Note the 6.5px numeral: the design's 18% scale is too small at phone cell sizes (open decision 3).</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 03 FINDINGS -->
+<section id="r3" data-screen-label="03 Findings" style="padding:56px 0 0;margin-top:56px;border-top:1px solid #DDD9CE">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">03<br>Findings</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:760px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Twenty-five findings in five groups</h2>
+      <p style="margin:20px 0 0">A: visible defects that make the room look unlike the design. B: implemented, but not as specified. C: specified, not implemented. D: correct, but left over from the previous look. E: process. File and line references are in the companion markdown.</p>
+    </div>
+  </div>
+
+  <div style="margin:36px 0 0;font-size:15px;line-height:1.5">
+    <div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px;padding:0 0 8px;border-bottom:1px solid #0F1A24">A · Visible defects</div>
+    <div style="display:grid;grid-template-columns:44px minmax(0,1.3fr) minmax(0,1fr);column-gap:16px">
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">A1</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>The field ground is grey, not paper, and the cell rules are invisible.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">.field</span> has <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">background:var(--rule)</span>, cells are made transparent, and the paper <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">::before</span> at z-index −1 is painted behind the field because the field creates no stacking context. Isolating the field is not the fix either: the pseudo would then cover the gaps and the rules would vanish into paper.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Paint <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">.field</span> paper, drop the gap and the pseudo, draw the rules as <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">border-right/-bottom: 1px solid var(--rule)</span> on each cell (none on the last column and row), as Fig. 2 does. Bands stay under the cells. Browser-mode test: field background #FFFDF7, cell border #E6E2D6.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">A2</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Letters do not scale with the cell.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">--cell-size</span> is read with a 48px fallback and never declared: letters are always 26.4px (37% of a 72px desktop cell; 73% of a 36px phone cell) and numerals 8.6px.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Declare <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">--cell-size: calc(var(--field-size) / 10)</span> on <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">.field</span>. Below 900px derive it from the measured width.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">A3</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Chevrons are hairlines.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">strokeWidth={0.15}</span> together with <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">vectorEffect="non-scaling-stroke"</span> means 0.15 device pixels. The design is 1.5px.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Set <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">strokeWidth={1.5}</span>; keep non-scaling-stroke.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">A4</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>On phones the whole ledger stacks under the bottom bar and the page scrolls.</strong> Below 900px the grid becomes one column and the ledger renders in full; <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">LedgerSheet</span> is imported only by its own test. The phone Playwright check passes because the live row happens to be near the top of the stacked ledger.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Below 900px render caption + live row + territory + <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">history ▸</span>; open <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">LedgerSheet</span> from it. Assert <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">scrollHeight ≤ innerHeight</span> at 390×844.</div>
+    </div>
+
+    <div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px;padding:40px 0 8px;border-bottom:1px solid #0F1A24">B · Implemented, not as specified</div>
+    <div style="display:grid;grid-template-columns:44px minmax(0,1.3fr) minmax(0,1fr);column-gap:16px">
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B1</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>The stack is centred in its column.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">.room__stack{margin:0 auto}</span> puts slack on both sides of the field; at 1440×900 the field-to-ledger gutter is about 168px, not 56. Design system §4: flush-left, one 56px gutter.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Either <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">margin:0</span> on the stack, or size the first column <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">auto</span> and centre the whole room with <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">justify-content:center</span>. Recommended: the second.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B2</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Live row tint stops short of the round label.</strong> The tinted cell spans columns 2–3 (<span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">gridColumn:"span 2"</span>); the label sits on paper outside it. Fig. 2 tints the whole row with the 3px rule at its left edge.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Render the live row as one element spanning all three columns with the label inside.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B3</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">picking · T (0)</span></strong> — the letter value is hard-coded to 0 in the controller's live state.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Look the value up from <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">LETTER_SCORING_VALUES_IS</span>.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B4</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">frozen · Kári R&lt;n&gt;</span> names the current round</strong>, not the round the word froze in; <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">FrozenTile</span> carries no round.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Find the accumulated word covering the cell and use its <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">roundNumber</span>.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B5</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Motion: the preview does not exchange in 150ms</strong> — letters swap instantly; the 200ms pin fade is declared as a keyframe but never applied; the found-opponent name has no 200ms write.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">FLIP the two letter spans with a 150ms transform; apply <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">pin-fade</span> on settle; fade the name in.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B6</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Disconnected lane uses a CSS dashed border</strong>, whose dash pattern the browser chooses (about 12/12), not the 6px/4px pattern.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">An inline <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">&lt;svg&gt;</span> line with <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">stroke-dasharray="6 4"</span>; gradients are banned.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B7</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Queue ledger has no live row.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">setting the field · 58 of 100 letters</span> and <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">round 1 in 3</span> print in the plain hint line, not a tinted live row as in Fig. 7.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Give the queue variant one live-row element above the hint.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B8</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Bars are inset 4px</strong> (<span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">padding:0 4px</span>); the seat square and the total no longer align with the field's frame.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Padding 0.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B9</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Profile chart labels stretch.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">preserveAspectRatio="none"</span> on a 600×180 viewBox distorts the mono axis text at any other aspect.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Measure the container and set the viewBox width to it, or render labels as HTML beside the SVG.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B10</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>A bare page outside the room.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">/match/[id]</span> returns an unstyled <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">&lt;div&gt;Match not found&lt;/div&gt;</span>.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Redirect to the lobby with a notice line: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">that match does not exist</span>.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">B11</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Lobby copy says <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">challenge for a ranked match</span></strong>; the plan says unranked, and the invite path has no ranked flag, so challenge matches are rated exactly like queue matches.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Decided 15 September 2026: unranked (section 06, item 1). The invite path gets a <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">rated</span> flag; captions and lobby copy say unranked.</div>
+    </div>
+
+    <div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px;padding:40px 0 8px;border-bottom:1px solid #0F1A24">C · Specified, not implemented</div>
+    <div style="display:grid;grid-template-columns:44px minmax(0,1.3fr) minmax(0,1fr);column-gap:16px">
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">C1</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Pointer drag A → B</strong> (FR-020). The reducer accepts a <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">drag</span> event; no component dispatches it.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">pointerdown on a cell, pointerup on another → <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">drag</span>; a pointerup on the same cell stays a tap.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">C2</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Tap elsewhere cancels.</strong> <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tapOutside</span> is reduced but never dispatched; only Esc and re-tapping A cancel.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Document pointerdown outside <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">.field</span> and the ledger's action buttons → <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">tapOutside</span>.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">C3</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Keyboard <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">?</span> opens rules, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">M</span> toggles sound</strong> (FR-023). Absent.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Window keydown handler in the controllers, ignored while the name input has focus.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">C4</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Phone ledger sheet</strong> — see A4.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">—</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">C5</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Visual acceptance</strong> (plan §10): the greps run in CI, but the 1440×900 / 1280×800 / 390×844 screenshots compared against Fig. 2, 5–9 were never produced.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">See plan step R6.</div>
+    </div>
+
+    <div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px;padding:40px 0 8px;border-bottom:1px solid #0F1A24">D · Correct behaviour, dead weight</div>
+    <div style="display:grid;grid-template-columns:44px minmax(0,1.3fr) minmax(0,1fr);column-gap:16px">
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">D1</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Legacy token aliases still declared</strong> — <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">--ochre, --p1, --p2, --good, --warn, --bad, --paper-2, --hair, --font-fraunces, --font-jetbrains-mono</span> in globals.css and a matching legacy block in tailwind.config.ts, "kept while pre-rebuild components are live" — CLAUDE.md says none are. The two font aliases pass the acceptance grep only because it is case-sensitive.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Delete both blocks; make the grep case-insensitive; tokens.test.ts asserts exactly seven colours.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">D2</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Warm Editorial code in the tree</strong>: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">lib/ui/tokens.ts</span> (ochre hex scale) and <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">lib/ui/avatarGradient.ts</span> (gradient avatars), no callers in the room.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Delete with their tests.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">D3</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong><span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">ds-bundle/</span> was not moved.</strong> Its README says it lives at <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">docs/archive/ds-bundle-warm-editorial/</span>; that folder does not exist and the full bundle (components, fonts, render sheets) is still at the root.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Move it; leave the one-paragraph README.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">D4</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>Stale engine config</strong>: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">DEFAULT_GAME_CONFIG.timePerRoundMs: 60000</span> contradicts rules §2a (no per-round timer).</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Remove the field or rename it to the 5:00 match budget.</div>
+    </div>
+
+    <div style="font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:20px;padding:40px 0 8px;border-bottom:1px solid #0F1A24">E · Process</div>
+    <div style="display:grid;grid-template-columns:44px minmax(0,1.3fr) minmax(0,1fr);column-gap:16px">
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">E1</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>No rendered check exists that runs without a database.</strong> Every visual assertion lives in Playwright specs that need two signed-in players on Supabase; the unit layer is JSDOM. This is how A1–A3 shipped.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">A fixture route (<span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#0F1A24">/__room?phase=match</span>, non-production only) rendering each room state from static data, plus Vitest browser mode for the field's computed styles.</div>
+
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">E2</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE"><strong>The design bundle still says 10:00, preview-by-default, two chevrons.</strong> The spec records where each is read with the decided value substituted; the documents themselves were left as authored, so the next reader inherits the gap.</div>
+      <div style="padding:12px 0;border-bottom:1px solid #DDD9CE;color:#5A6572">Update WOTTLE_DESIGN_SYSTEM.md §5.2, §5.3, §8, §9 and the plan §1, §4.3, §5, §12 to the decisions in section 04.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 TEAM DECISIONS -->
+<section id="r4" data-screen-label="04 Team decisions" style="display:flex;flex-wrap:wrap;gap:24px 40px;padding:56px 0 0;margin-top:56px;border-top:1px solid #DDD9CE">
+  <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">04<br>Team decisions<br>14 Sep 2026</div>
+  <div style="flex:1 1 520px;min-width:0;max-width:760px">
+    <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Five questions answered; the implementation follows the answers</h2>
+    <p style="margin:20px 0 0">Recorded in <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">specs/044-field-ledger-redesign/spec.md</span> (Decisions) and <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">docs/prd_and_requirements/wottle_game_rules.md</span> §2a, §3.1. None is a defect; each changes what the design bundle should say.</p>
+    <ol style="margin:20px 0 0;padding:0 0 0 28px;display:flex;flex-direction:column;gap:12px">
+      <li><strong>Clock budget stays 5:00.</strong> Lane full width = 5:00, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">aria-valuemax=300</span>, copy <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">ranked · 10 rounds · 5:00 clocks</span>, first-match line says five minutes. Implemented consistently.</li>
+      <li><strong>Second tap commits; preview is opt-in</strong> from the ⋯ menu, persisted with the sound preference. The preview is priced by a read-only server action (<span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">previewSwap</span>), not client-side: the 55MB dictionary cannot ship to the browser. The hint reads <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">tap again to play</span> until the price lands. Sound.</li>
+      <li><strong>Queue field is a placeholder</strong> seeded per player; letters that differ swap in when the real board arrives. The live-row clause <em>an opponent joins when the last one lands</em> is dropped. Implemented.</li>
+      <li><strong>One record per run.</strong> A run valid both ways (FÁR/RÁF) scores once, read forward, so every band carries one chevron. Pinned by <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">doubleReading.test.ts</span>. Design system §5.2's two-chevron clause is moot.</li>
+      <li><strong>0:00 means a timeout pass</strong> in every remaining round; the player keeps score and territory; both at 0:00 ends the match. Renders as <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">0:00</span> with an empty lane. Implemented server-side; the bar renders it.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- 05 PLAN -->
+<section id="r5" data-screen-label="05 Plan to complete" style="padding:56px 0 0;margin-top:56px;border-top:1px solid #DDD9CE">
+  <div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+    <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">05<br>Plan to<br>complete</div>
+    <div style="flex:1 1 520px;min-width:0;max-width:760px">
+      <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Six steps, about five days, each shippable alone</h2>
+      <p style="margin:20px 0 0">Order matters: R1 first, because nothing can be judged until the field paints; R6 last, because it is the check the others are measured by. Each step ends with the greps green, the unit suite green, and — from R6 on — the three reference screenshots attached to the PR.</p>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:56px minmax(0,1fr) 72px;column-gap:16px;margin:36px 0 0;border-top:1px solid #0F1A24;font-size:15px;line-height:1.5">
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">R1</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE"><strong>Field paint.</strong> A1 paper field with cell-border rules, A2 <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">--cell-size</span>, A3 stroke, B3 picking value, B4 frozen round, B8 bar padding. Add <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tests/unit/components/room/Field.paint.spec.tsx</span> in Vitest browser mode: field background #FFFDF7, cell border 1px #E6E2D6, letter font-size = 0.55 × cell, chevron stroke 1.5. Acceptance: fixture B in section 02.</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#5A6572">½ day</div>
+
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">R2</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE"><strong>Room composition.</strong> B1 centre the room, not the stack (<span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">grid-template-columns:auto 340px; justify-content:center</span>); B2 full-width live row; B7 queue live row; B10 no bare page. Acceptance: at 1440×900 the field-to-ledger gutter measures 56px and the ledger's top rule and foot align with the bars (room-layout.spec already asserts the latter).</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#5A6572">½ day</div>
+
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">R3</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE"><strong>Phone.</strong> A4: below 900px the <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">Ledger</span> renders caption, live row, territory line and <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">history ▸</span>; <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">LedgerSheet</span> opens from the live row with the rounds table, notices and foot; <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">useFieldSize</span> takes the 56px bar height below 900px. Acceptance: 390×844 shows bar / field / bar / live row with <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">scrollHeight ≤ innerHeight</span>; cells ≥ 35px; axe clean with the sheet open.</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#5A6572">1 day</div>
+
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">R4</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE"><strong>Interaction and motion.</strong> C1 pointer drag, C2 tap-outside, C3 <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">?</span> / <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">M</span>, B5 150ms exchange (FLIP on the two letter spans), pin fade on settle, 200ms name write on found, B6 dashed lane as SVG. All 0ms under reduced motion. Acceptance: room-flow.spec gains drag-to-commit and tap-outside-cancels; reducer tests already cover the events.</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#5A6572">1 day</div>
+
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">R5</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE"><strong>Debt and documents.</strong> D1 delete legacy aliases and the tailwind legacy block, case-insensitive grep; D2 delete <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">lib/ui/*</span>; D3 move <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">ds-bundle/</span>; D4 game config; B9 chart labels; E2 update the design bundle to the five decisions and to the resolution of the open decisions below; B11 as decided. Acceptance: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">tokens.test.ts</span> asserts exactly seven colours; <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">pnpm docs:check</span> green.</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#5A6572">½ day</div>
+
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">R6</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE"><strong>Seen.</strong> E1 fixture route <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px">/__room?phase=lobby|queue|found|match|reveal|final|profile</span> rendering the controllers' views from static fixtures (no Supabase, non-production); Playwright screenshots of each at 1440×900, 1280×800 and 390×844 committed as baselines and compared to Fig. 2, 5, 6, 7, 8, 9; then the two-player suite against a real database once. Acceptance: every plan §10 visual line checked by a human against the figures; screenshots in the PR.</div>
+    <div style="padding:14px 0;border-bottom:1px solid #DDD9CE;text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;color:#5A6572">1½ days</div>
+  </div>
+</section>
+
+<!-- 06 DECISIONS GIVEN -->
+<section id="r6" data-screen-label="06 Decisions given" style="display:flex;flex-wrap:wrap;gap:24px 40px;padding:56px 0 0;margin-top:56px;border-top:1px solid #DDD9CE">
+  <div style="flex:0 1 160px;min-width:140px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#5A6572;line-height:1.7">06<br>Decisions<br>given</div>
+  <div style="flex:1 1 520px;min-width:0;max-width:760px">
+    <h2 style="margin:0;font-family:'Zilla Slab',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1">Three decisions, given 15 September 2026</h2>
+    <p style="margin:16px 0 0;font-size:16px;line-height:1.55">The team took the review's recommendation on all three. They are binding for the completion (handoff R6, tasks T030–T032), not defaults.</p>
+    <ol style="margin:20px 0 0;padding:0 0 0 28px;display:flex;flex-direction:column;gap:14px">
+      <li><strong>Ranked challenges → unranked.</strong> The code rates every match and the lobby copy says so; the plan recommended unranked challenges. Decided: unranked, because a directory challenge lets a player pick their opponent, which the rating should not reward. Needs an <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">rated</span> flag on the invite path and the copy <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">challenge for an unranked match</span>.</li>
+      <li><strong>Coral text below 17px → <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">--opp-text</span>.</strong> The implementer excluded two selectors from the axe contrast rule: ledger words (14px) and value numerals on scored letters are coral at 3.4:1, while design system §9 allows coral text only at ≥17px. Decided: add one text-only token, <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">--opp-text #C2402A</span> (5.1:1 on paper), used wherever coral is text under 17px — ledger words, scored numerals, the profile's <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">vs</span> rows. Letters on the field, lanes, totals and squares stay <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">--opp</span>. This amends §2 to eight values and removes the exclusion.</li>
+      <li><strong>Numeral scale on phones → floor.</strong> Fixture B shows the design's own 18% value numeral at 6.5px in a 36px cell. Decided: <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">max(9px, 18%)</span>, and hide the numeral below 32px cells; the letter's <span style="font-family:'Red Hat Mono',ui-monospace,monospace;font-size:14px">aria-label</span> still carries the value.</li>
+    </ol>
+    <p style="margin:28px 0 0;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;color:#5A6572">Companion document with file and line references: handoff/IMPLEMENTATION_REVIEW.md. Design source: Wottle UX Audit.dc.html, Fig. 2–10.</p>
+  </div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const rows = ["ÞAKREISTÖL","GÆFUNDIRÓM","SKBORÐTÝUN","ÁLNIRÖSKUM","EYÐIHVAGTL","RÚNTÆKSIÐÓ","ÖFLUGRÁLEK","MÝSJAÐETRI","ISKÓPUNÆHÖ","TRAUÐLEGIS"];
+    const values = {A:1,E:1,I:1,N:1,R:1,S:1,T:1,U:1,L:1,K:2,G:2,M:2,D:2,F:3,H:3,V:3,J:4,P:4,B:4,Ð:3,Þ:4,Æ:4,Ö:3,Ó:3,Ú:3,Á:2,Ý:4,Í:3,É:5,Y:4};
+    const cells = [];
+    rows.forEach((row, y) => [...row].forEach((letter, x) => {
+      let state = "free", seat = null;
+      if (y === 2 && x >= 2 && x <= 5) { state = "scored"; seat = "you"; }
+      if (x === 7 && y >= 4 && y <= 7) { state = "scored"; seat = "opp"; }
+      if (x === 0 && y === 9) { state = "picked"; seat = "you"; }
+      cells.push({ letter, value: values[letter] ?? 1, state, style: seat ? { "--seat-ink": `var(--${seat})` } : {} });
+    }));
+    return { cells };
+  }
+}
+</script>
+</body>
+</html>
