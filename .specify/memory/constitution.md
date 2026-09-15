@@ -1,9 +1,9 @@
 # Wottle Constitution
 
 <!-- Sync Impact Report:
-  Version: 1.3.0 → 1.4.0 (MINOR: new principle added)
+  Version: 1.4.0 → 1.5.0 (MINOR: Principle IV bullet materially redefined)
   Created: 2025-01-08
-  Last Amended: 2025-11-05
+  Last Amended: 2026-09-15
 
   Principles Added (v1.0.0):
   - I. Server-Authoritative Game Logic (NON-NEGOTIABLE)
@@ -24,6 +24,17 @@
   Principles Added (v1.4.0):
   - IX. Commit Message Standards
 
+  Principles Amended (v1.5.0, 2026-09-15) — two bullets of one principle, adopted together:
+  - IV. Progressive Enhancement & Mobile-First — board-responsiveness bullet replaced:
+    scrollable container with pinch-to-zoom (50–150%) → the field fills the available
+    width without scrolling or zoom, cells never below 35px, the page never scrolls.
+    Adopted from the amendment drafted under spec 044; tested by spec 045 FR-021.
+  - IV. Progressive Enhancement & Mobile-First — touch-target bullet scoped: the flat
+    "44×44px minimum targets" applied to the field's cells as well, contradicting the
+    35px grid floor above. 44px now binds discrete controls; grid-sized cells are held
+    to WCAG 2.5.8 (AA), which 35px meets. Found by /speckit.analyze (finding D1) the
+    same day, before either bullet was committed, so both land as one version.
+
   Sections Added:
   - Technology Stack Standards
   - Code Organization & Patterns
@@ -34,6 +45,8 @@
   - ✅ updated: .specify/templates/spec-template.md - no changes required
   - ✅ updated: .specify/templates/tasks-template.md - no changes required
   - ✅ reviewed: commit message guidance requires no template changes (covered under Development Workflow)
+  - ✅ reviewed (v1.5.0): no template references the retired pinch-zoom bullet; plan/spec/tasks templates unchanged
+  - ✅ updated (v1.5.0): specs/045-field-ledger-completion/plan.md Constitution Check + Complexity Tracking
 -->
 
 ## Core Principles
@@ -80,9 +93,9 @@ Server Actions provide compile-time guarantees from server to client.
 
 Game MUST be playable on all screen sizes with graceful degradation.
 
-- Primary interaction: Touch-first swap controls (44×44px minimum targets)
+- Primary interaction: touch-first. Discrete controls — buttons, menu items, ledger actions, sheet rows — MUST be at least 44×44px. The field is not a control strip: its cells are sized by the grid (next bullet) and meet WCAG 2.5.8 Target Size (Minimum, AA) at every supported width. The 44px figure is 2.5.5 (AAA) and is held for everything the grid does not size
 - Desktop: Keyboard shortcuts and mouse drag-and-drop as enhancements
-- Board responsiveness: Scrollable container with pinch-to-zoom (50–150%)
+- Board responsiveness: the field fills the available width without scrolling or zoom; cells never fall below 35px, and the page itself never scrolls (spec 045 FR-021)
 - Realtime fallback: Polling when WebSocket fails (2s intervals)
 - Offline detection: Show connection status; queue moves if temporarily offline
 
@@ -286,16 +299,22 @@ necessary context without cluttering the one-liner history.
   4. Update to dependent templates (plan, spec, tasks)
   5. Version bump per semantic versioning (MAJOR.MINOR.PATCH)
 
-- **Pending amendment (drafted 2026-09-14, spec 044 — not yet adopted; principle text above unchanged):**
-  Principle IV's "Board responsiveness: Scrollable container with pinch-to-zoom (50–150%)" no longer
-  describes the product. The Field & Ledger design renders the field at full width on every viewport
-  (`min(100vw − 32px, 100vh − bars − live row)` on phones), never scrolls it, and has no zoom; letters
-  stay ≥ 34px cells at 390px. Proposed replacement bullet: "Board responsiveness: the field fills the
-  viewport width without scrolling or zoom; cells never fall below 34px." Rationale: the previous
-  `usePinchZoom`/`BoardCoordLabels` path was retired with the design; a zoomable, scrollable board
-  contradicts "nothing is positioned over the field" and the fixed bar / field / bar / live-row stack.
-  Impact: `usePinchZoom` and its tests are already deleted (spec 044 P3); no other implementation
-  depends on the bullet. Requires tech-lead approval and a MINOR version bump when adopted.
+- **Adopted 2026-09-15 (drafted 2026-09-14 under spec 044): Principle IV board responsiveness.**
+  The former bullet "Board responsiveness: Scrollable container with pinch-to-zoom (50–150%)" no longer
+  described the product and has been replaced. The Field & Ledger design renders the field as the
+  largest square that fits between the two player bars, at full available width on phones, and never
+  scrolls or zooms it. Rationale: a zoomable, scrollable board contradicts "nothing is positioned over
+  the field" and the fixed bar / field / bar / live-row stack; the `usePinchZoom` / `BoardCoordLabels`
+  path it described was deleted with the previous design (spec 044 P3). Impact: no implementation
+  depends on the retired bullet. The 35px cell floor is the measured value at the 390px reference
+  width (390 − 2×16px room padding = 358 ÷ 10 = 35.8px) and is the figure spec 045 FR-021 tests.
+  Spec `011-board-ui-polish` remains the historical record of the retired behaviour.
+  Adopted with it, after `/speckit.analyze` found the two bullets in conflict: the principle's
+  touch-target bullet read "44×44px minimum targets" without qualification, which the field's own
+  35px cells cannot meet and never did — spec 044's claim of "44px effective size" at 390×844 was
+  arithmetically impossible. 44px now binds discrete controls (buttons, menu items, ledger actions,
+  sheet rows); cells sized by the grid are held to WCAG 2.5.8 Target Size (Minimum, AA, 24px), which
+  35px clears. 2.5.5's 44px remains AAA and is not claimed.
 
 ## Governance
 
@@ -311,4 +330,4 @@ necessary context without cluttering the one-liner history.
 
 **Documentation**: All Server Actions MUST document input/output types in JSDoc; game engine modules require algorithmic complexity notes.
 
-**Version**: 1.4.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2025-11-05
+**Version**: 1.5.0 | **Ratified**: 2025-01-08 | **Last Amended**: 2026-09-15
