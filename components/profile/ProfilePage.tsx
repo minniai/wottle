@@ -47,6 +47,8 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
   const setViewer = useRoomStore((s) => s.setViewer);
   const seat: Seat = isSelf ? "you" : "opp";
   const seatInk = getSeatColors(seat).ink;
+  /** 14px best-word names: the text variant passes AA where --opp does not. */
+  const seatText = getSeatColors(seat).text;
   const { identity, stats, peakRating, ratingHistory } = profile;
   const thirtyDay = sliceRatingHistoryWindow(ratingHistory, 30);
   const weekDelta = deriveRecentRatingDelta(ratingHistory, 7);
@@ -141,7 +143,7 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
                 <span
                   className="lobby-ledger__name"
                   role="cell"
-                  style={{ color: seatInk }}
+                  style={{ color: seatText }}
                 >
                   {w.word}
                 </span>

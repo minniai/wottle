@@ -5,7 +5,6 @@ export interface GameConfig {
   /** The maximum number of rounds to play before the match ends. */
   maxRounds: number;
   /** The time limit for a single round in milliseconds. */
-  timePerRoundMs: number;
   /** The minimum allowed length for a submitted word. */
   minimumWordLength: number;
   /** The maximum allowed length for a submitted word. If omitted, constrained by board. */

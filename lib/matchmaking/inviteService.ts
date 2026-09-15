@@ -218,6 +218,9 @@ export async function respondToInvite(
     boardSeed: randomUUID(),
     playerAId: invite.sender_id,
     playerBId: invite.recipient_id,
+    // A directory challenge lets a player pick their opponent, which the rating
+    // must not reward (spec 045 decision 1).
+    rated: false,
   });
 
   await client

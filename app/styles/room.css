@@ -322,6 +322,12 @@
 .field__cell[data-state="scored"] .field__value {
   color: var(--seat-ink);
 }
+/* The numeral is 18% of a cell — well under 17px — so the opponent's takes the
+   text variant (spec 045 decision 2). The letter itself keeps --opp. */
+.field__cell[data-seat="opp"][data-state="frozen"] .field__value,
+.field__cell[data-seat="opp"][data-state="scored"] .field__value {
+  color: var(--opp-text);
+}
 .field__cell[data-state="shared"] {
   color: var(--ink);
   font-weight: 700;
@@ -747,6 +753,9 @@
   font-size: 48px;
   font-weight: 500;
   line-height: 1;
+}
+.profile-chart__frame {
+  width: 100%;
 }
 .profile-chart {
   display: block;

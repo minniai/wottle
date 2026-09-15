@@ -9,7 +9,7 @@ const theme = config.theme?.extend as {
   boxShadow?: unknown;
 };
 
-const TOKEN_REF = /^var\(--(paper|ink|rule|tint|muted|you|opp|you-band|you-live|opp-band|opp-live|future-label)\)$/;
+const TOKEN_REF = /^var\(--(paper|ink|rule|tint|muted|you|opp|opp-text|you-band|you-live|opp-band|opp-live|future-label)\)$/;
 
 function flatten(colors: Record<string, string | Record<string, string>>): Array<[string, string]> {
   return Object.entries(colors).flatMap(([k, v]) =>

@@ -36,7 +36,7 @@ This feature adds **one column, one type field, one interface field, one model f
 | Place | `rated = true` | `rated = false` |
 | --- | --- | --- |
 | match caption | `ranked · round n of 10` | `unranked · round n of 10` |
-| final caption | `ranked · 10 rounds · mm:ss` | `unranked · 10 rounds · mm:ss` |
+| final caption | `final · 10 rounds · mm:ss` | `final · unranked · 10 rounds · mm:ss` |
 | final rating line | `1191 → 1203 · +12 · wins` | no rating line |
 | lobby `here now` | — | `challenge for an unranked match` |
 

@@ -36,6 +36,8 @@ export interface BuildRowsInput {
   playerAId: string;
   viewerSlot: PlayerSlot | null;
   live: LiveState;
+  /** False for a directory challenge: the caption reads unranked. */
+  rated?: boolean;
 }
 
 function toCell(words: AccumulatedWord[]): SeatCell | null {
@@ -96,7 +98,7 @@ export interface BuildLedgerInput extends BuildRowsInput {
 
 export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
   return {
-    caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS)),
+    caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS), input.rated ?? true),
     rows: buildLedgerRows(input),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),
     hint: input.hint ?? TAP_SECOND_LETTER,
@@ -154,8 +156,8 @@ export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSea
   return ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);
 }
 
-/** `final · 10 rounds · 18:50` — clock time both players spent. */
-export function finalCaption(remainingA: number, remainingB: number): string {
+/** `ranked · 10 rounds · 18:50` — clock time both players spent. */
+export function finalCaption(remainingA: number, remainingB: number, rated = true): string {
   const used = Math.max(0, 2 * MATCH_CLOCK_BUDGET_MS - remainingA - remainingB);
-  return finalContext(formatClock(used));
+  return finalContext(formatClock(used), rated);
 }

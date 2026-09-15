@@ -14,6 +14,13 @@ export interface SeatColors {
   band: string;
   /** 30% tint — live reveal band. */
   live: string;
+  /**
+   * Seat colour for text below 17px. The same as `ink` for the viewer (teal is
+   * 4.9:1 on paper); a darker coral for the opponent, where `ink` is 3.4:1 and
+   * fails AA (spec 045 decision 2). The asymmetry lives here so no caller has
+   * to know about it.
+   */
+  text: string;
 }
 
 export function resolveSeat(viewerSlot: PlayerSlot, slot: PlayerSlot): Seat {
@@ -31,5 +38,6 @@ export function getSeatColors(seat: Seat): SeatColors {
     ink: `var(--${seat})`,
     band: `var(--${seat}-band)`,
     live: `var(--${seat}-live)`,
+    text: seat === "opp" ? "var(--opp-text)" : "var(--you)",
   };
 }

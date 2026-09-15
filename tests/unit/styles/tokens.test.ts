@@ -14,6 +14,13 @@ const SEVEN: Record<string, string> = {
   "--muted": "#5A6572",
   "--you": "#147D7A",
   "--opp": "#E4573D",
+  /**
+   * Decision 2 of 15 September: coral is 3.4:1 on paper and the design system
+   * allows it as text only at 17px and above. This is the text-only variant at
+   * 5.1:1, used wherever coral is text below that — never for letters, lanes,
+   * totals or seat squares, which stay --opp.
+   */
+  "--opp-text": "#C2402A",
 };
 
 const DERIVED = ["--you-band", "--you-live", "--opp-band", "--opp-live", "--future-label", "--font-board", "--font-mono"];
@@ -57,9 +64,18 @@ describe("globals.css — Field & Ledger tokens (design system §2)", () => {
   });
 
   test("no retired token families, shadows, gradients or third-hue names remain", () => {
-    for (const banned of ["oklch(", "--shadow-", "gradient", "--clock-warn", "Inter", "Fraunces", "JetBrains"]) {
-      expect(css).not.toContain(banned);
+    // Case-insensitive: the aliases were declared --font-fraunces and
+    // --font-jetbrains-mono, which a case-sensitive check sailed past for a
+    // whole feature (spec 045 D1, research §8).
+    for (const banned of ["oklch(", "--shadow-", "gradient", "--clock-warn", "inter", "fraunces", "jetbrains", "--ochre", "--p1", "--p2", "--good", "--warn", "--bad", "--hair", "--paper-2", "--paper-3", "--ink-2", "--ink-3", "--ink-soft"]) {
+      expect(css.toLowerCase(), `${banned} is retired`).not.toContain(banned);
     }
+  });
+
+  test("the :root set is exactly the palette — no alias may be kept alive here", () => {
+    const declared = [...decls.keys()].sort();
+    const expected = [...Object.keys(SEVEN), ...DERIVED].sort();
+    expect(declared).toEqual(expected);
   });
 
   test("light colour scheme and paper body", () => {

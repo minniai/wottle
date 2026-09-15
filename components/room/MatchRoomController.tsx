@@ -293,7 +293,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppTimer.playerId, !youScoreWins && !draw) : undefined, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
         currentRound={match.currentRound}
         completed={completed}
-        caption={completed ? finalCaption(match.timers.playerA.remainingMs, match.timers.playerB.remainingMs) : undefined}
+        rated={match.rated !== false}
+        caption={completed ? finalCaption(match.timers.playerA.remainingMs, match.timers.playerB.remainingMs, match.rated !== false) : undefined}
         verdict={
           completed
             ? buildVerdict({

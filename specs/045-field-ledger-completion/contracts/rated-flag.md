@@ -46,7 +46,7 @@ interface MatchBootstrapInput {
 | Place | rated | unrated |
 | --- | --- | --- |
 | match caption | `ranked · round n of 10` | `unranked · round n of 10` |
-| final caption | `ranked · 10 rounds · mm:ss` | `unranked · 10 rounds · mm:ss` |
+| final caption | `final · 10 rounds · mm:ss` | `final · unranked · 10 rounds · mm:ss` |
 | queue caption | `ranked · 10 rounds · 5:00 clocks` | n/a — the queue is always ranked |
 | final rating line | `1191 → 1203 · +12 · wins` | omitted |
 | lobby `here now` | — | `challenge for an unranked match` |

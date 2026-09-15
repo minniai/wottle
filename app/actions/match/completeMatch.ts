@@ -23,6 +23,8 @@ interface MatchRow {
   ended_reason: string | null;
   round_limit: number;
   frozen_tiles: Record<string, unknown> | null;
+  /** Absent on rows written before the column existed; those are rated. */
+  rated?: boolean | null;
 }
 
 export interface CompleteMatchResult {
@@ -38,7 +40,7 @@ export interface CompleteMatchResult {
 async function fetchMatch(client: ReturnType<typeof getServiceRoleClient>, matchId: string) {
   const { data, error } = await client
     .from("matches")
-    .select("id,state,player_a_id,player_b_id,winner_id,ended_reason,round_limit,frozen_tiles")
+    .select("id,state,player_a_id,player_b_id,winner_id,ended_reason,round_limit,frozen_tiles,rated")
     .eq("id", matchId)
     .single();
 
@@ -159,9 +161,12 @@ export async function completeMatchInternal(
     .eq("id", matchId);
 
   // Calculate and persist Elo rating changes — skip for abandoned matches
-  // since no winner means no meaningful rating delta.
+  // since no winner means no meaningful rating delta, and for unrated matches:
+  // a directory challenge lets a player pick their opponent, which the rating
+  // must not reward (spec 045 decision 1).
   let ratingChanges: RatingChange | undefined;
-  if (reason !== "abandoned") {
+  const rated = match.rated !== false;
+  if (reason !== "abandoned" && rated) {
     try {
       ratingChanges = await applyRatingChanges(
         supabase,

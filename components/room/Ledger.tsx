@@ -40,7 +40,8 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
 
 function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
   if (!cell) return <div className="ledger__words" data-seat={seat} />;
-  const style = { "--seat-ink": getSeatColors(seat).ink } as CSSProperties;
+  // 14px words: the text variant, which passes AA on paper (decision 2).
+  const style = { "--seat-ink": getSeatColors(seat).text } as CSSProperties;
   if (folded) {
     return (
       <div className="ledger__words ledger__words--folded" style={style} data-seat={seat} title={cell.words.map((w) => w.word).join(" · ")}>

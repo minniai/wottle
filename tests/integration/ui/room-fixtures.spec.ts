@@ -229,9 +229,6 @@ test.describe("@visual the room fits a phone", () => {
       // The design system's one grey exception: future-round numerals, aria-hidden,
       // with the round carried by the caption (spec 045 FR-033).
       .exclude(".ledger__row--future .ledger__round")
-      // Carried from spec 044: the opponent's 14px words are coral at 3.4:1.
-      // Decision 2 replaces them with --opp-text; T036 deletes this line.
-      .exclude('.ledger__words[data-seat="opp"]')
       .analyze();
 
     expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
