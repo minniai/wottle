@@ -194,6 +194,46 @@ test.describe("@visual the ledger is the height of the stack", () => {
 });
 
 /**
+ * Spec 047 US3 (FR-008, review S3, S6). One continuous rule per row, owned by
+ * the row; the live row's label clears its 3px rule; the hint line is gone
+ * during a match.
+ */
+test.describe("@visual the ledger rows", () => {
+  test("each row draws one rule; the live label is clear of the live rule; no hint", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "visual-390x844", "the rows live in the sheet on a phone");
+    await page.goto("/dev/room?phase=picking");
+    await expect(page.getByTestId("field")).toBeVisible();
+
+    const rows = await page.evaluate(() =>
+      Array.from({ length: 10 }, (_, i) => {
+        const row = document.querySelector(`[data-testid="ledger-row-${i + 1}"]`) as HTMLElement;
+        const style = getComputedStyle(row);
+        return {
+          rule: style.borderBottomWidth,
+          childRules: [...row.children].map((c) => getComputedStyle(c).borderBottomWidth),
+          width: row.getBoundingClientRect().width,
+          rowsWidth: row.parentElement!.getBoundingClientRect().width,
+        };
+      }),
+    );
+    for (const row of rows) {
+      expect(row.rule).toBe("1px");
+      expect(row.childRules.every((w) => w === "0px")).toBe(true);
+      expect(Math.abs(row.width - row.rowsWidth)).toBeLessThanOrEqual(1);
+    }
+
+    const label = page.getByTestId("ledger-live-round");
+    await expect(label).toHaveText("R4");
+    // The label's box starts at the row's edge; the text is inset past the 3px rule.
+    const inset = await label.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));
+    expect(inset).toBeGreaterThanOrEqual(6);
+
+    await expect(page.getByTestId("ledger-hint")).toBeHidden();
+    await expect(page.getByTestId("ledger-live-row")).toContainText("tap a second letter");
+  });
+});
+
+/**
  * Spec 045 US4 (FR-018 to FR-023), Fig. 5. The page never scrolls and nothing
  * is ever placed over the field: the sheet opens in flow beneath the live row.
  */
