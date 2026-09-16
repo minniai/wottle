@@ -16,10 +16,10 @@ The Speckit features that implement it: `specs/044-field-ledger-redesign/` (the 
 
 The 260914 bundle was updated in place, so the tables below are a record, not a substitution list.
 
-| Decided | What |
-| --- | --- |
-| 2026-09-14 (spec 044) | 5:00 clocks, lane = 5:00; second tap commits, preview is opt-in; placeholder queue board; one chevron per run |
-| 2026-09-15 (spec 045) | directory challenges are **unranked** (`matches.rated`, copy `challenge for an unranked match`); `--opp-text` for coral text under 17px (eight tokens); numeral floor `max(9px, 18%)`, hidden below 32px cells |
+| Decided               | What                                                                                                                                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-14 (spec 044) | 5:00 clocks, lane = 5:00; second tap commits, preview is opt-in; placeholder queue board; one chevron per run                                                                                                           |
+| 2026-09-15 (spec 045) | directory challenges are **unranked** (`matches.rated`, copy `challenge for an unranked match`); `--opp-text` for coral text under 17px (eight tokens); numeral floor `max(9px, 18%)`, hidden below 32px cells          |
 | 2026-09-16 (spec 047) | P1 the live row carries state and instruction, the hint collapses; P2 a fixture phase per signal (`/dev/room?phase=…`); P3 the ledger is the height of the stack, never stretched; P4 shared letters are ink throughout |
 
 ## The one rule
