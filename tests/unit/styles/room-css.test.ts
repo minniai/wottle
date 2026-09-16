@@ -168,6 +168,13 @@ describe("room.css phone ledger sheet (spec 045 US4)", () => {
     expect(sheet).not.toMatch(/max-height:\s*\d+dvh/);
   });
 
+  it("reserves no scrollbar gutter on a phone, where the room cannot scroll", () => {
+    // 15px of reserved gutter took the cell to 34px on a classic-scrollbar
+    // platform, under the floor FR-021 states (CI, 2026-09-16).
+    const phone = css.slice(css.indexOf("@media (max-width: 900px)"));
+    expect(phone).toMatch(/scrollbar-gutter:\s*auto/);
+  });
+
   it("gives the phone ledger a column that can shrink, so the sheet can scroll", () => {
     const phone = css.slice(css.indexOf("@media (max-width: 900px)"));
     const ledger = phone.slice(phone.indexOf(".room__ledger"), phone.indexOf("}", phone.indexOf(".room__ledger")));
