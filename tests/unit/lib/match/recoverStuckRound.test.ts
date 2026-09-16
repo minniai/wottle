@@ -49,6 +49,7 @@ type RoundRow = {
     board_snapshot_after: string[][] | null;
     started_at: string | null;
     resolution_started_at: string | null;
+    frozen_tiles_before?: Record<string, unknown>;
 };
 
 type SubmissionRow = {
@@ -66,7 +67,9 @@ interface BuildClientOpts {
     match: MatchRow;
     round?: RoundRow;
     submissions?: SubmissionRow[];
-    existingWordEntries?: Array<{ id: string }>;
+    /** What `matches` returns on every read after the first — the row as it is
+     *  once scoring has persisted its freezes (spec 047 FR-006). */
+    freshMatch?: MatchRow;
     /** Scoreboard snapshots already persisted for the round. `null` (default) =
      *  missing → recovery should call publishRoundSummary. */
     existingSnapshot?: { round_number: number } | null;
@@ -76,9 +79,11 @@ function buildMockClient({
     match,
     round,
     submissions = [],
-    existingWordEntries = [],
+    freshMatch,
     existingSnapshot = null,
 }: BuildClientOpts) {
+    let matchReads = 0;
+    const readMatch = () => (matchReads++ === 0 ? match : (freshMatch ?? match));
     // Track writes for assertions
     const matchUpdates: Array<Record<string, unknown>> = [];
     const roundUpdates: Array<Record<string, unknown>> = [];
@@ -90,8 +95,8 @@ function buildMockClient({
             return {
                 select: vi.fn(() => ({
                     eq: vi.fn().mockReturnThis(),
-                    single: vi.fn().mockResolvedValue({ data: match, error: null }),
-                    maybeSingle: vi.fn().mockResolvedValue({ data: match, error: null }),
+                    single: vi.fn(() => Promise.resolve({ data: readMatch(), error: null })),
+                    maybeSingle: vi.fn(() => Promise.resolve({ data: readMatch(), error: null })),
                 })),
                 update: vi.fn((patch: Record<string, unknown>) => {
                     matchUpdates.push(patch);
@@ -127,14 +132,6 @@ function buildMockClient({
                 }),
             }));
             return { select, update };
-        }
-        if (table === "word_score_entries") {
-            return {
-                select: vi.fn(() => ({
-                    eq: vi.fn().mockReturnThis(),
-                    limit: vi.fn().mockResolvedValue({ data: existingWordEntries, error: null }),
-                })),
-            };
         }
         if (table === "scoreboard_snapshots") {
             return {
@@ -231,18 +228,19 @@ describe("recoverStuckRound", () => {
     });
 
     describe("shape A: round stuck in 'resolving'", () => {
-        it("runs scoring when word_score_entries is empty, marks round completed, advances match, calls completeMatchInternal", async () => {
+        it("runs scoring when board_snapshot_after is missing, marks round completed, advances match, calls completeMatchInternal", async () => {
             const { client, matchUpdates, roundUpdates, submissionUpdates } = buildMockClient({
                 match: baseMatch(),
-                round: baseRound({ state: "resolving" }),
+                round: baseRound({ state: "resolving", board_snapshot_after: null }),
                 submissions: baseSubmissions("pending"),
-                existingWordEntries: [],
             });
             vi.mocked(getServiceRoleClient).mockReturnValue(client);
 
             await recoverStuckRound(MATCH_ID);
 
             expect(computeWordScoresForRound).toHaveBeenCalledTimes(1);
+            // The combined pass's marker is written, so a second recovery is idempotent
+            expect(roundUpdates.find((u) => u.state === "completed")?.board_snapshot_after).toEqual(BOARD);
             // Both pending submissions → promoted to accepted
             expect(submissionUpdates.some((u) => u.id === "sub-a" && u.patch.status === "accepted")).toBe(true);
             expect(submissionUpdates.some((u) => u.id === "sub-b" && u.patch.status === "accepted")).toBe(true);
@@ -256,12 +254,14 @@ describe("recoverStuckRound", () => {
             expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
         });
 
-        it("skips re-scoring when word_score_entries already present (idempotency)", async () => {
+        // Spec 047 FR-006: `board_snapshot_after` is written only by the combined
+        // scoring pass, so it — not the presence of word_score_entries rows, which
+        // the first mover's fast path also writes — says whether scoring ran.
+        it("skips re-scoring when board_snapshot_after is already persisted (idempotency)", async () => {
             const { client } = buildMockClient({
                 match: baseMatch(),
-                round: baseRound({ state: "resolving" }),
+                round: baseRound({ state: "resolving", board_snapshot_after: BOARD_AFTER }),
                 submissions: baseSubmissions("accepted"),
-                existingWordEntries: [{ id: "existing-word-entry" }],
             });
             vi.mocked(getServiceRoleClient).mockReturnValue(client);
 
@@ -271,6 +271,55 @@ describe("recoverStuckRound", () => {
             // Snapshot still missing → publishRoundSummary backfills it
             expect(publishRoundSummary).toHaveBeenCalledWith(MATCH_ID, 10);
             expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "round_limit");
+        });
+
+        it("re-runs the combined scoring when only the first mover's fast-path rows exist", async () => {
+            // The fast path writes word_score_entries but never board_snapshot_after.
+            const { client, roundUpdates } = buildMockClient({
+                match: baseMatch({ current_round: 4 }),
+                round: baseRound({ state: "resolving", board_snapshot_after: null }),
+                submissions: baseSubmissions("accepted"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(computeWordScoresForRound).toHaveBeenCalledTimes(1);
+            expect(roundUpdates.find((u) => u.state === "completed")?.board_snapshot_after).toEqual(BOARD);
+        });
+
+        it("scores against the round's own freeze baseline, not the match row's current map", async () => {
+            const roundBaseline = { "3,3": { owner: PLAYER_B } };
+            const { client } = buildMockClient({
+                // The match row already carries a later (or polluted) map.
+                match: baseMatch({ current_round: 4, frozen_tiles: { "3,3": { owner: PLAYER_B }, "7,7": { owner: PLAYER_A } } }),
+                round: baseRound({ state: "resolving", board_snapshot_after: null, frozen_tiles_before: roundBaseline }),
+                submissions: baseSubmissions("accepted"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(vi.mocked(computeWordScoresForRound).mock.calls[0]?.[7]).toEqual(roundBaseline);
+        });
+
+        it("seeds the next round's freeze baseline from a fresh read after scoring", async () => {
+            const preScoring = { "0,0": { owner: PLAYER_A } };
+            const postScoring = { "0,0": { owner: PLAYER_A }, "5,5": { owner: PLAYER_B } };
+            const { client, roundInserts } = buildMockClient({
+                match: baseMatch({ current_round: 4, frozen_tiles: preScoring }),
+                freshMatch: baseMatch({ current_round: 4, frozen_tiles: postScoring }),
+                round: baseRound({ state: "resolving", board_snapshot_after: null }),
+                submissions: baseSubmissions("accepted"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(roundInserts).toHaveLength(1);
+            expect(roundInserts[0]?.frozen_tiles_before).toEqual(postScoring);
+            // and the next round starts from the scored board, not the pre-swap one
+            expect(roundInserts[0]?.board_snapshot_before).toEqual(BOARD);
         });
     });
 
@@ -422,9 +471,8 @@ describe("recoverStuckRound", () => {
             // First run: shape A → scoring + complete match
             const ctx1 = buildMockClient({
                 match: baseMatch(),
-                round: baseRound({ state: "resolving" }),
+                round: baseRound({ state: "resolving", board_snapshot_after: null }),
                 submissions: baseSubmissions("pending"),
-                existingWordEntries: [],
             });
             vi.mocked(getServiceRoleClient).mockReturnValue(ctx1.client);
             await recoverStuckRound(MATCH_ID);
