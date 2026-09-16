@@ -74,11 +74,16 @@ describe("Field (design system §5.1, §9)", () => {
     expect(cells[1]).toHaveAttribute("data-seat", "opp");
   });
 
-  it("shared cells render in ink without a seat", () => {
+  // Spec 047 amendment P4 (review S7): letter and numeral both ink — no seat
+  // colour reaches a shared cell, so the stylesheet's shared rule decides.
+  it("shared cells render in ink without a seat, numeral included", () => {
     render(<Field board={board()} viewerSlot="player_a" frozenTiles={{ "0,0": { owner: "player_a" } }} sharedCells={new Set(["0,0"])} />);
     const cell = screen.getAllByRole("gridcell")[0];
     expect(cell).toHaveAttribute("data-state", "shared");
     expect(cell).not.toHaveAttribute("data-seat");
+    expect(cell.style.getPropertyValue("--seat-ink")).toBe("");
+    expect(cell.querySelector(".field__value")).not.toBeNull();
+    expect(cell.querySelector(".field__value")).not.toHaveAttribute("style");
   });
 
   it("cells inside a band take the scorer's seat and render as scored; the bands SVG sits under the cells", () => {

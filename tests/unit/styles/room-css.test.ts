@@ -148,6 +148,22 @@ describe("room.css composition (spec 045 US3)", () => {
 });
 
 /**
+ * Spec 047 US4 (FR-010, review S7, amendment P4). A letter in both seats' words
+ * is ink 700; its numeral is ink too, never the last record's seat colour. The
+ * opponent's scored numerals keep the text variant (spec 045 decision 2).
+ */
+describe("room.css shared and scored numerals (spec 047 US4)", () => {
+  it("shared numerals are ink", () => {
+    expect(block('.field__cell[data-state="shared"] .field__value')).toMatch(/color:\s*var\(--ink\)/);
+  });
+
+  it("the opponent's scored numerals use the text variant of coral", () => {
+    const scored = css.slice(css.indexOf('.field__cell[data-seat="opp"][data-state="frozen"] .field__value'));
+    expect(scored.slice(0, scored.indexOf("}"))).toMatch(/color:\s*var\(--opp-text\)/);
+  });
+});
+
+/**
  * Spec 047 US2 (FR-007, review S1, amendment P3). The ledger is the height of
  * the stack — bars, gaps and field — never of the viewport. `align-self:
  * stretch` filled the grid row (100dvh) so the foot landed ~330px under the
