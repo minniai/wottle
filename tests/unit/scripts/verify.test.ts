@@ -94,6 +94,17 @@ describe("verifySupabase instrumentation", () => {
       { column: "board_id", value: PRIMARY_BOARD_ID },
     ]);
     expect(stub.history.boardLimitValues).toEqual([1]);
+    // Spec 047 FR-005: the frozen-tiles compare-and-set function is probed with the nil uuid.
+    expect(stub.history.rpcCalls).toEqual([
+      {
+        fn: "update_frozen_tiles_if_unchanged",
+        args: {
+          p_match_id: "00000000-0000-0000-0000-000000000000",
+          p_new_frozen_tiles: {},
+          p_previous_frozen_tiles: {},
+        },
+      },
+    ]);
     expect(result.status).toBe("healthy");
   });
 });
