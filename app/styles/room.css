@@ -56,6 +56,15 @@
 }
 
 @media (max-width: 900px) {
+  /* The room is exactly one viewport tall here and hides its overflow, so no
+     scrollbar can appear — reserving a gutter for one only narrows the field.
+     On a classic-scrollbar platform that cost 15px and pushed cells to 34px,
+     under the 35px floor (spec 045 FR-021); a phone with overlay scrollbars
+     never showed the difference. */
+  html,
+  body {
+    scrollbar-gutter: auto;
+  }
   .room {
     --bar-height: 56px;
     --room-gutter: 16px;
