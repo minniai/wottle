@@ -2,7 +2,7 @@
 
 **Feature Branch**: `047-phone-field-full-width` (spec numbered 047; the handoff bundle says "spec 046" and is corrected in the repo copy)
 **Created**: 2026-09-16
-**Status**: Draft
+**Status**: Implemented (2026-09-16)
 **Input**: User description: "Design review done by Claude Design resulted in number of improvements of the current implementation. The review result is in docs/design_documentation/260916-design-scope-clarification/. Analyse the design review and do a plan to fix and adhere to the design. Be mindful of UX Design best practices."
 
 **Sources** (binding for this feature):
@@ -24,7 +24,7 @@ The review also amends the design: the instruction travels with the state in a t
 
 - Q: Spec number and branch? → A: **047 on the current branch**; the bundle's "spec 046" is corrected in the repo copy.
 - Q: How wide does the S5 fix go when the seen match is not in the local database? → A: **Fix every certain defect found** — the client accumulator (no reset on rematch, no history on reload, orphaned partials), the missing frozen-tiles CAS migration (every freeze write is a blind overwrite), and the stuck-round recovery baseline — and run the prod diagnostic once to name the regression test.
-- Q: The working tree moved `docs/design/README.md` to `docs/design_documentation/README.md`. → A: **Commit the move, repoint every live reference, refresh the README's stale decisions table.**
+- Q: The working tree moved `docs/design_documentation/README.md` to `docs/design_documentation/README.md`. → A: **Commit the move, repoint every live reference, refresh the README's stale decisions table.**
 - Q: The handoff names `/__room` and `tests/integration/ui/__screenshots__/`. → A: **Keep the repo's paths**: `/dev/room` and `tests/integration/ui/room-fixtures.spec.ts-snapshots/`.
 
 ### Verified against the code before any task was written
@@ -128,3 +128,31 @@ DS §4, §5.1, §5.4, §7, §8 carry P1–P4; `CLAUDE.md` carries the three sent
 - Any change to scoring, the dictionary, or the reading-direction rules.
 - New tokens, fonts, radii or shadows. The palette stays at eight values.
 - Re-baselining the pre-existing phases beyond what the ledger and band changes force.
+
+## Outcome (2026-09-16)
+
+### What closed
+
+- **S5 / S4 (P0)** — three defects, each confirmed in the seen match by the prod diagnostic (`research.md` §2): the frozen-tiles compare-and-set function now exists as a migration and the blind-update fallback is gone (`lib/match/frozenTilePersistence.ts`); recovery marks scoring by `board_snapshot_after`, scores on the round's own baseline and seeds the next round from a fresh read; the client hydrates completed rounds from `GET /api/match/[matchId]/words`, resets per `matchId` and drops a partial once its canonical summary lands; the store ignores foreign snapshots and summaries. Settled bands draw only over frozen letters and never under two cells; `assertWordsSpellBoard` runs in development. The column-0 band in the screenshot was `róla`, round 10 of the players' previous match.
+- **S1 / P3** — `.room__ledger` is `align-self: start` with `height` bound to the stack; `height: auto` on phones. Asserted at 1440×900, 1280×800 and 1024×1100.
+- **S2 / P1** — `liveText` returns `{ line1, line2 }`; idle reads `pick a letter`; the hint defaults to `""` and hides when empty; the preview price and `esc cancels` moved to the live row; an illegal pick is a two-second live state.
+- **S3 / S6** — the row is the grid item and owns its rule; `.ledger__round` is inset 6px.
+- **S7 / P4** — `.field__cell[data-state="shared"] .field__value { color: var(--ink) }`.
+- **S8** — verified already closed (spec 045 decision 2). **S9** — not a defect; the seat header's rule is ink by design, now stated in DS §5.4.
+- **P2** — sixteen fixture phases from literals; the preview word `tak` priced against the real dictionary.
+
+### Acceptance checklist (darwin baselines, 2026-09-16)
+
+1. ☑ Ledger top rule on the top bar's top; foot on the bottom bar's bottom (1440×900, 1280×800, 1024×1100 — asserted, ±1px).
+2. ☑ Every row one continuous `--rule` line; `R4` fully visible (asserted: row rule 1px, children 0px, label inset 6px).
+3. ☑ `idle`: `pick a letter`, hint hidden. `picking`: `picking · T (1)` over `tap a second letter`. `played`: `played ●`, your clock stopped.
+4. ☑ Every band spells its word in the chevron's direction; one chevron per band (fixture pinned by `fixtures.spec.ts`; live matches by the dev assertion).
+5. ☑ Shared letter L at (7,6) in ink with an ink numeral; opponent's scored numerals `--opp-text`; letters, lanes, totals and squares `--opp`.
+6. ☑ `low-clock`: 8px lane; under reduced motion the lane's animation duration is `0s` (asserted).
+7. ☑ 390×844: cells ≥ 35px, numerals hidden, sheet in flow beneath the trigger with both live lines and `history ▸`; the page does not scroll.
+
+### Left open
+
+- Linux baselines for `picking`, `reveal`, `final`, `disconnect` and the eight new phases are produced by the CI visual job on the first push and must be committed from its artifact before the job is green.
+- The migration `20260916001_update_frozen_tiles_if_unchanged.sql` must be applied to production before this branch deploys: without it every freeze write there now throws instead of overwriting.
+- `tests/integration/ui/room-layout.spec.ts` and `room-flow.spec.ts` (Supabase, two players) were updated but not run locally in this session.

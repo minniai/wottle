@@ -2,7 +2,7 @@
 
 Documents here are kept for history and are **not** a source for current work. They describe the
 product as it was before the Field & Ledger rebuild (spec `specs/044-field-ledger-redesign/`,
-design system via `docs/design/README.md`) or earlier, and they are excluded from the documentation
+design system via `docs/design_documentation/README.md`) or earlier, and they are excluded from the documentation
 consistency check (`pnpm docs:check`), so they may still use retired names, fonts, colours, clock
 notation and the eight-direction word finder.
 

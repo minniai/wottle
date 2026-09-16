@@ -81,7 +81,7 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `tests
 - [x] T031 [US1] Wire `Room.tsx` for `phase: match`: map `roomStore.match` → two `PlayerBar`s (opponent top via `resolveSeat`), `Field` with board + frozen tiles, `Ledger` caption `ranked · round n of 10`; delete the old HUD/rail/panel rendering from `components/match/MatchClient.tsx` and render it only as a temporary logic host (no visible chrome)
 - [x] T032 [US1] Create `components/room/LedgerSheet.tsx` (below 900 px: live row under the bottom bar opens a focus-trapped sheet using `lib/a11y/useFocusTrap.ts`) with test `tests/unit/components/room/LedgerSheet.spec.tsx`; add `.ledger-sheet` styles
 - [x] T033 [US1] Delete `components/match/{HudCard,PlayerPanel,PlayerAvatar,TimerDisplay,MatchCenterChrome,RoundPipBar,MatchShell}.tsx`, `components/ui/{TopBar,UserMenu,LogoutConfirmDialog}.tsx` and their tests; delete `tests/integration/ui/{hud-classic,match-surfaces,theme-flip}.spec.ts`; widen T022 grep to `components/match/`
-- [x] T034 [US1] Update `docs/design/README.md` and `CLAUDE.md` component list to mark P1 retirements done; run `pnpm lint && pnpm typecheck && pnpm test:unit` and the two-player flow
+- [x] T034 [US1] Update `docs/design_documentation/README.md` and `CLAUDE.md` component list to mark P1 retirements done; run `pnpm lint && pnpm typecheck && pnpm test:unit` and the two-player flow
 
 **Checkpoint**: The match renders as bar / field / bar + ledger. MVP demonstrable.
 
@@ -239,7 +239,7 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `tests
 - [x] T095 [P] [US11] Update `README.md` project structure (remove deleted component folders, add `components/room/`, `lib/room/`) and `CLAUDE.md` Architecture directory list, "Frontend Communication", "Common Workflows" for the room; mark P0–P5 rows Done in the CLAUDE.md step table
 - [x] T096 [P] [US11] Move historical plans/specs still containing grep-list phrases into `docs/archive/` (`docs/superpowers/plans/2026-04-*-phase-*.md`, `docs/superpowers/specs/2026-04-19-wottle-design-implementation.md`, `docs/superpowers/specs/2026-06-16-scored-words-side-panels-design.md`, `docs/archive/superpowers/specs/2026-06-18-prominent-match-timers-design.md`) and add `docs/archive/README.md` explaining the archive; for retired `specs/0xx` folders keep them in place and add the phrase-free `SUPERSEDED.md` pointer at the top of each `spec.md`
 - [x] T097 [US11] Add `scripts/docs/consistency-grep.sh` running the `DOCS_CONSISTENCY.md §10` list over `README.md CLAUDE.md docs specs` excluding `docs/archive` and `docs/design_documentation/260914-wottle-new-design`; wire it as `pnpm docs:check` in `package.json` and into `.github/workflows/ci.yml` lint job *(Done 2026-09-14. Scope decision: `specs/` = active spec folders only — shipped specs 001–043 are immutable records and carry `SUPERSEDED.md` where their UI was retired; FR-055 and the US11 independent test were amended to say so.)*
-- [x] T098 [US11] Update `docs/prd_and_requirements/wottle_game_rules.md` §11 code references (`readingDirection.ts`, `wordScoreRow.ts`, `boardGenerator.ts`, `previewSwap.ts`) and §12 if rendering changed; update `docs/design/README.md` status to "implemented"
+- [x] T098 [US11] Update `docs/prd_and_requirements/wottle_game_rules.md` §11 code references (`readingDirection.ts`, `wordScoreRow.ts`, `boardGenerator.ts`, `previewSwap.ts`) and §12 if rendering changed; update `docs/design_documentation/README.md` status to "implemented"
 
 ---
 

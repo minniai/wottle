@@ -56,7 +56,7 @@ The swap mechanic is the *only* way to mutate the board. Scoring is a pure funct
 ### 2a. Time control (clock model)
 
 - Each player has **one clock for the whole match** — a single budget that must cover all ten of their moves. There is no per-round timer and no increment.
-- The budget today is **5:00 (300 000 ms) per player**, stored in `matches.player_a_timer_ms` / `player_b_timer_ms` and carried to the client as `TimerState { playerId, remainingMs, status: "running" | "paused" | "expired" }` (`lib/types/match.ts`, `MatchState.timers`). The Field & Ledger design (`docs/design/README.md`) draws each clock as a lane whose full width is this budget. The design documents were written assuming 10:00; the team decided on 2026-09-14 to keep **5:00** (`specs/044-field-ledger-redesign/spec.md`, Decisions Q1), so every `10:00` in the design bundle is read as `5:00`.
+- The budget today is **5:00 (300 000 ms) per player**, stored in `matches.player_a_timer_ms` / `player_b_timer_ms` and carried to the client as `TimerState { playerId, remainingMs, status: "running" | "paused" | "expired" }` (`lib/types/match.ts`, `MatchState.timers`). The Field & Ledger design (`docs/design_documentation/README.md`) draws each clock as a lane whose full width is this budget. The design documents were written assuming 10:00; the team decided on 2026-09-14 to keep **5:00** (`specs/044-field-ledger-redesign/spec.md`, Decisions Q1), so every `10:00` in the design bundle is read as `5:00`.
 - A player's clock **runs while their move for the current round is open** — from `rounds.started_at` until their submission is recorded — and **stops when they submit**. Time spent in one round is not restored later. Enforcement is server-side (spec 007): the deduction is computed from `rounds.started_at` and `move_submissions.submitted_at`, never from the client.
 - **At 0:00** the player can submit no further swaps. The server synthesises a **timeout pass** for that player in every remaining round (`roundEngine.ts`, spec 007), so the round resolves with the opponent's swap alone and the match continues to round 10. A player whose clock has expired keeps their score and frozen tiles; if both clocks expire the match completes immediately. The expired clock renders as `0:00` with an empty lane.
 - Disconnection does not stop a clock by itself; the 90-second reconnection window and the claim-win path are described in `CLAUDE.md` (Disconnect Handling).
@@ -355,7 +355,7 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 
 ## 12. What the player sees
 
-The Field & Ledger design (`docs/design/README.md`) renders each rule above as exactly one mark. This table is the contract between the rules and the UI; a rendering that needs a second mark for the same fact is a design bug.
+The Field & Ledger design (`docs/design_documentation/README.md`) renders each rule above as exactly one mark. This table is the contract between the rules and the UI; a rendering that needs a second mark for the same fact is a design bug.
 
 | Rule | Rendering |
 | --- | --- |
