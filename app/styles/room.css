@@ -43,9 +43,13 @@
   max-width: 100%;
 }
 
+/* The ledger is the height of the stack — bars, gaps, field — never of the
+   viewport (design system §4, spec 047 amendment P3). Stretching it to the grid
+   row put the foot ~330px under the bottom bar whenever the field cap or the
+   width bound the stack (review S1). */
 .room__ledger {
-  align-self: stretch;
-  min-height: calc(var(--field-size) + 2 * var(--bar-height) + 2 * var(--bar-gap));
+  align-self: start;
+  height: calc(var(--field-size) + 2 * var(--bar-height) + 2 * var(--bar-gap));
 }
 
 @media (max-width: 1100px) {
@@ -86,6 +90,7 @@
   .room__ledger {
     display: flex;
     flex-direction: column;
+    height: auto;
     min-height: 0;
   }
   /* Every control a thumb reaches in the sheet (constitution IV). A text link
