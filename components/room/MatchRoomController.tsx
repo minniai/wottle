@@ -10,6 +10,7 @@ import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
+import { assertWordsSpellBoard } from "@/lib/room/wordIntegrity";
 import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { buildVerdict, finalCaption, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
@@ -88,6 +89,17 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
   const history = useWordHistory(matchId, match.currentRound);
   const words = useAccumulatedRounds(match, history);
+
+  // Spec 047 FR-002: outside production, a band that would not spell its word
+  // is reported once per match — the review saw NHMÖ drawn under "úðu".
+  const integrityReported = useRef<string | null>(null);
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" || integrityReported.current === matchId) return;
+    const problems = assertWordsSpellBoard(match.board, words);
+    if (problems.length === 0) return;
+    integrityReported.current = matchId;
+    console.error(`[wordIntegrity] ${matchId}`, problems);
+  }, [matchId, match.board, words]);
   const { notices, push, dismiss } = useNotices();
   const clocks = useClockTick(match.timers);
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
@@ -163,7 +175,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const hiddenWordIds = useMemo(() => new Set(newIds.slice(progress.wordsWritten)), [newIds, progress.wordsWritten]);
 
   const bands = useMemo(() => {
-    const all = bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId, liveRound: revealing ? reveal.round : null });
+    const all = bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId, liveRound: revealing ? reveal.round : null, trustRound: reveal.round });
     // New bands of the running reveal go last so `drawnCount` can gate them.
     const fresh = new Set(newIds);
     return [...all.filter((b) => !fresh.has(b.id)), ...all.filter((b) => fresh.has(b.id))];
