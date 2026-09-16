@@ -34,6 +34,7 @@ type RoundRow = {
     board_snapshot_after: unknown;
     started_at: string | null;
     resolution_started_at: string | null;
+    frozen_tiles_before: Record<string, unknown> | null;
 };
 
 type SubmissionRow = {
@@ -68,9 +69,11 @@ type SubmissionRow = {
  *      step 16 (`completeMatchInternal`) threw. Just re-invoke it;
  *      `completeMatchInternal` is idempotent when `winner_id` is already set.
  *
- * Idempotent on repeat invocation: re-scoring is guarded by checking
- * `word_score_entries` (insert is not upserted), and `completeMatchInternal`
- * early-returns when `winner_id` is already set.
+ * Idempotent on repeat invocation: re-scoring is guarded by
+ * `rounds.board_snapshot_after`, which only the combined scoring pass writes
+ * (the first mover's fast path writes `word_score_entries` rows but never the
+ * snapshot — spec 047 FR-006), and `completeMatchInternal` early-returns when
+ * `winner_id` is already set.
  */
 export async function recoverStuckRound(matchId: string): Promise<void> {
     const supabase = getServiceRoleClient();
@@ -142,7 +145,7 @@ async function loadCurrentRound(
     const { data, error } = await supabase
         .from("rounds")
         .select(
-            "id, state, board_snapshot_before, board_snapshot_after, started_at, resolution_started_at",
+            "id, state, board_snapshot_before, board_snapshot_after, started_at, resolution_started_at, frozen_tiles_before",
         )
         .eq("match_id", matchId)
         .eq("round_number", roundNumber)
@@ -159,7 +162,7 @@ async function finalizeResolvingRound(
     match: MatchRow,
     round: RoundRow,
 ): Promise<void> {
-    const scoringAlreadyRan = await scoringRan(supabase, round.id);
+    const scoringAlreadyRan = round.board_snapshot_after != null;
     const submissions = await fetchSubmissions(supabase, round.id);
     const nonTimeout = submissions.filter((s) => s.status !== "timeout");
 
@@ -194,34 +197,55 @@ async function finalizeResolvingRound(
     ]);
 
     if (!scoringAlreadyRan) {
-        try {
-            const board = boardGridSchema.parse(round.board_snapshot_before);
-            await computeWordScoresForRound(
-                match.id,
-                round.id,
-                match.current_round,
-                board,
-                acceptedMoves.map((m) => ({
-                    player_id: m.player_id,
-                    from_x: m.from_x,
-                    from_y: m.from_y,
-                    to_x: m.to_x,
-                    to_y: m.to_y,
-                    created_at: m.created_at,
-                })),
-                match.player_a_id,
-                match.player_b_id,
-                (match.frozen_tiles ?? {}) as Record<string, { owner: string }>,
-            );
-        } catch (error) {
-            console.error("[recoverStuckRound] scoring failed:", error);
-        }
+        await runCombinedScoring(match, round, acceptedMoves);
     }
 
     await supabase
         .from("rounds")
-        .update({ state: "completed", completed_at: new Date().toISOString() })
+        .update({
+            state: "completed",
+            completed_at: new Date().toISOString(),
+            board_snapshot_after: round.board_snapshot_after,
+        })
         .eq("id", round.id);
+}
+
+/**
+ * The combined scoring pass `advanceRound` step 9 would have run. Scores
+ * against the round's own freeze baseline (`rounds.frozen_tiles_before`), as
+ * `roundEngine` does — never `matches.frozen_tiles`, which a late fast path may
+ * already have moved on — and records the scored board on the round row so the
+ * caller can mark it and the next round can start from it.
+ */
+async function runCombinedScoring(
+    match: MatchRow,
+    round: RoundRow,
+    acceptedMoves: MoveSubmission[],
+): Promise<void> {
+    try {
+        const board = boardGridSchema.parse(round.board_snapshot_before);
+        const baseline = round.frozen_tiles_before ?? match.frozen_tiles ?? {};
+        const result = await computeWordScoresForRound(
+            match.id,
+            round.id,
+            match.current_round,
+            board,
+            acceptedMoves.map((m) => ({
+                player_id: m.player_id,
+                from_x: m.from_x,
+                from_y: m.from_y,
+                to_x: m.to_x,
+                to_y: m.to_y,
+                created_at: m.created_at,
+            })),
+            match.player_a_id,
+            match.player_b_id,
+            baseline as Record<string, { owner: string }>,
+        );
+        round.board_snapshot_after = result.finalBoard;
+    } catch (error) {
+        console.error("[recoverStuckRound] scoring failed:", error);
+    }
 }
 
 async function finalizeCompletedRound(
@@ -266,8 +290,10 @@ async function finalizeCompletedRound(
 
 /**
  * Insert the next round seeded from the just-completed round's authoritative
- * post-board (`board_snapshot_after`) and the match's current freeze map —
- * the same inputs `advanceRound` step 13 uses. Idempotent: a concurrent
+ * post-board (`board_snapshot_after`) and the match's freeze map **as it is
+ * after scoring** — read fresh here, because the `match` row this recovery
+ * loaded predates `finalizeResolvingRound`'s writes (spec 047 FR-006). These
+ * are the same inputs `advanceRound` step 13 uses. Idempotent: a concurrent
  * `advanceRound` that resumes after Vercel termination may also try to create
  * round N+1, so a duplicate hit on the `(match_id, round_number)` unique
  * constraint is logged and ignored rather than thrown.
@@ -279,13 +305,14 @@ async function createNextRound(
     nextRound: number,
 ): Promise<void> {
     const boardBefore = round.board_snapshot_after ?? round.board_snapshot_before;
+    const frozenTiles = await loadFrozenTiles(supabase, match.id);
 
     const { error } = await supabase.from("rounds").insert({
         match_id: match.id,
         round_number: nextRound,
         state: "collecting",
         board_snapshot_before: boardBefore,
-        frozen_tiles_before: match.frozen_tiles ?? {},
+        frozen_tiles_before: frozenTiles,
         started_at: new Date().toISOString(),
     });
 
@@ -321,13 +348,17 @@ function computeDeductedTimers(
     return { newATimerMs, newBTimerMs };
 }
 
-async function scoringRan(supabase: Supabase, roundId: string): Promise<boolean> {
+async function loadFrozenTiles(
+    supabase: Supabase,
+    matchId: string,
+): Promise<Record<string, unknown>> {
     const { data } = await supabase
-        .from("word_score_entries")
-        .select("id")
-        .eq("round_id", roundId)
-        .limit(1);
-    return (data ?? []).length > 0;
+        .from("matches")
+        .select("frozen_tiles")
+        .eq("id", matchId)
+        .single();
+    const map = (data as { frozen_tiles?: unknown } | null)?.frozen_tiles;
+    return map && typeof map === "object" ? (map as Record<string, unknown>) : {};
 }
 
 async function fetchSubmissions(supabase: Supabase, roundId: string): Promise<SubmissionRow[]> {
