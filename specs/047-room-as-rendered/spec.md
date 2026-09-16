@@ -155,4 +155,4 @@ DS §4, §5.1, §5.4, §7, §8 carry P1–P4; `CLAUDE.md` carries the three sent
 
 - Linux baselines for `picking`, `reveal`, `final`, `disconnect` and the eight new phases are produced by the CI visual job on the first push and must be committed from its artifact before the job is green.
 - The migration `20260916001_update_frozen_tiles_if_unchanged.sql` must be applied to production before this branch deploys: without it every freeze write there now throws instead of overwriting.
-- `tests/integration/ui/room-layout.spec.ts` and `room-flow.spec.ts` (Supabase, two players) were updated but not run locally in this session.
+- `room-layout.spec.ts` and `room-flow.spec.ts` (Supabase, two players) ran green locally against the production build with `RATE_LIMIT_DISABLED_SCOPES=auth:login` (5/5 each); the CI Playwright job runs them again.
