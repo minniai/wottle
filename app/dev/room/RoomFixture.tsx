@@ -13,7 +13,8 @@ import { OPPONENT, TAP_SECOND_LETTER, roundOneIn, searchingSubline, settingField
 import type { Seat } from "@/lib/constants/seatColors";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
-import { useRoomStore } from "@/lib/room/roomStore";
+import { same } from "@/lib/room/fieldInteraction";
+import { useRoomStore, type RoomPhase as StorePhase } from "@/lib/room/roomStore";
 import type { LiveState } from "@/lib/room/ledgerRows";
 import type { Coordinate } from "@/lib/types/board";
 import type { MatchResult } from "@/lib/types/match";
@@ -68,18 +69,18 @@ interface FieldMarks {
   shakeAt?: Coordinate;
 }
 
-const same = (a: Coordinate | undefined, b: Coordinate) => a?.x === b.x && a?.y === b.y;
+const isPicked = (marks: FieldMarks, at: Coordinate) => marks.picked !== undefined && same(marks.picked, at);
 const inPair = (pair: [Coordinate, Coordinate] | undefined, at: Coordinate) => pair?.some((c) => same(c, at)) ?? false;
 
 function markedState(marks: FieldMarks, at: Coordinate, base: CellState): CellState {
-  if (same(marks.picked, at)) return "picked";
+  if (isPicked(marks, at)) return "picked";
   if (inPair(marks.previewed, at)) return "previewed";
   if (inPair(marks.pins?.cells, at)) return "pinned";
   return base;
 }
 
 function markedSeat(marks: FieldMarks, at: Coordinate): Seat | null {
-  if (same(marks.picked, at) || inPair(marks.previewed, at)) return "you";
+  if (isPicked(marks, at) || inPair(marks.previewed, at)) return "you";
   if (inPair(marks.pins?.cells, at)) return marks.pins?.seat ?? null;
   return null;
 }
@@ -141,11 +142,14 @@ interface MatchPhaseSpec {
   youRunning?: boolean;
 }
 
+const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {} };
 const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL } };
 
+type MatchPhase = Exclude<RoomPhase, "landing" | "lobby" | "queue" | "found" | "profile">;
+
 /** Every match-state phase as literals (spec 047 amendment P2). */
-const MATCH_PHASES: Partial<Record<RoomPhase, MatchPhaseSpec>> = {
-  idle: { live: { kind: "idle" }, marks: {} },
+const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
+  idle: IDLE,
   picking: PICKING,
   "phone-sheet": PICKING,
   reveal: PICKING,
@@ -154,9 +158,12 @@ const MATCH_PHASES: Partial<Record<RoomPhase, MatchPhaseSpec>> = {
   "opp-played": { live: { kind: "idle" }, marks: { pins: { cells: OPP_PINS, seat: "opp" } } },
   "low-clock": { ...PICKING, youClockMs: LOW_CLOCK_MS },
   illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL } },
-  final: { live: { kind: "idle" }, marks: {} },
-  disconnect: { live: { kind: "idle" }, marks: {} },
+  final: IDLE,
+  disconnect: IDLE,
 };
+
+/** The store phase each fixture phase seeds; everything not listed is a match state. */
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { landing: "lobby", profile: "lobby", queue: "queue", found: "found", final: "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: RoomPhase }) {
@@ -168,7 +175,7 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
     const store = useRoomStore.getState();
     store.setViewer(phase === "landing" ? null : BIRNA);
     store.setBoard(FIXTURE_BOARD);
-    store.setPhase(phase === "final" ? "final" : phase === "landing" || phase === "profile" ? "lobby" : phase === "queue" || phase === "found" ? phase : "match");
+    store.setPhase(STORE_PHASE[phase] ?? "match");
   }, [phase]);
 
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
@@ -245,7 +252,7 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
   const completed = phase === "final";
   const disconnected = phase === "disconnect";
   const state = completed ? FINAL_STATE : disconnected ? DISCONNECT_STATE : MATCH_STATE;
-  const spec = MATCH_PHASES[phase] ?? PICKING;
+  const spec = MATCH_PHASES[phase];
   const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? RECONNECT_MS_LEFT : null, youClockMs: spec.youClockMs, youRunning: spec.youRunning });
 
   return (

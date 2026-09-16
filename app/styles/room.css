@@ -453,15 +453,21 @@
   padding: 4px 0;
   min-width: 0;
 }
-/* Fig. 2: the whole row tinted, the 3px rule at its left edge (spec 045 B2). */
+/* Fig. 2: the live row — the table's and the queue's — is tinted with the 3px
+   rule at its left edge (spec 045 B2). An inset rule, not a border: a border
+   would shift the inner grid out of alignment with the rows above (design
+   system §5.5). */
+.ledger__live-row,
 .ledger__row--live {
   background: var(--tint);
   box-shadow: inset 3px 0 0 var(--ink);
   align-items: baseline;
-  padding-right: 10px;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.04em;
+}
+.ledger__row--live {
+  padding-right: 10px;
 }
 /* 6px clears the live row's rule; every label keeps the same left edge (review S3). */
 .ledger__round {
@@ -503,15 +509,7 @@
   display: grid;
   grid-template-columns: 34px 1fr 1fr;
   column-gap: 8px;
-  align-items: baseline;
-  background: var(--tint);
-  /* An inset rule, not a border: a border would shift the inner grid out of
-     alignment with the rows above (design system §5.5). */
-  box-shadow: inset 3px 0 0 var(--ink);
   padding: 8px 10px 8px 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
 }
 .ledger__live-text {
   grid-column: 2 / -1;

@@ -52,7 +52,7 @@ export interface FieldStep {
 export const IDLE: FieldInteraction = { kind: "idle" };
 
 export const key = (c: Coordinate): string => `${c.x},${c.y}`;
-const same = (a: Coordinate, b: Coordinate): boolean => a.x === b.x && a.y === b.y;
+export const same = (a: Coordinate, b: Coordinate): boolean => a.x === b.x && a.y === b.y;
 const step = (next: FieldInteraction, ...effects: FieldEffect[]): FieldStep => ({ next, effects });
 
 function blockedBy(at: Coordinate, ctx: FieldContext): "frozen" | "pinned" | null {

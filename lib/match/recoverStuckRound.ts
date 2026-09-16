@@ -10,6 +10,8 @@ import {
 import { publishMatchState } from "./statePublisher";
 import { resolveConflicts } from "./conflictResolver";
 import { computeElapsedMs } from "./clockEnforcer";
+import { loadFrozenTiles } from "./frozenTilePersistence";
+import type { BoardGrid } from "@/lib/types/board";
 import type { MoveSubmission } from "@/lib/types/match";
 
 type Supabase = ReturnType<typeof getServiceRoleClient>;
@@ -97,13 +99,13 @@ export async function recoverStuckRound(matchId: string): Promise<void> {
     }
 
     // Shape A/B need the current round.
-    const round = await loadCurrentRound(supabase, matchId, match.current_round);
+    let round = await loadCurrentRound(supabase, matchId, match.current_round);
     if (!round) return;
 
     let roundCompleted = round.state === "completed";
 
     if (round.state === "resolving") {
-        await finalizeResolvingRound(supabase, match, round);
+        round = await finalizeResolvingRound(supabase, match, round);
         roundCompleted = true;
     }
 
@@ -157,12 +159,12 @@ async function loadCurrentRound(
     return data as RoundRow;
 }
 
+/** Marks the round completed and returns it with the scored board on it. */
 async function finalizeResolvingRound(
     supabase: Supabase,
     match: MatchRow,
     round: RoundRow,
-): Promise<void> {
-    const scoringAlreadyRan = round.board_snapshot_after != null;
+): Promise<RoundRow> {
     const submissions = await fetchSubmissions(supabase, round.id);
     const nonTimeout = submissions.filter((s) => s.status !== "timeout");
 
@@ -196,32 +198,34 @@ async function finalizeResolvingRound(
         ),
     ]);
 
-    if (!scoringAlreadyRan) {
-        await runCombinedScoring(match, round, acceptedMoves);
-    }
+    const scored: RoundRow =
+        round.board_snapshot_after != null
+            ? round
+            : { ...round, board_snapshot_after: await runCombinedScoring(match, round, acceptedMoves) };
 
     await supabase
         .from("rounds")
         .update({
             state: "completed",
             completed_at: new Date().toISOString(),
-            board_snapshot_after: round.board_snapshot_after,
+            board_snapshot_after: scored.board_snapshot_after,
         })
         .eq("id", round.id);
+    return scored;
 }
 
 /**
  * The combined scoring pass `advanceRound` step 9 would have run. Scores
  * against the round's own freeze baseline (`rounds.frozen_tiles_before`), as
  * `roundEngine` does — never `matches.frozen_tiles`, which a late fast path may
- * already have moved on — and records the scored board on the round row so the
- * caller can mark it and the next round can start from it.
+ * already have moved on — and returns the scored board, or `null` when scoring
+ * failed, so the caller can mark the round and the next round can start from it.
  */
 async function runCombinedScoring(
     match: MatchRow,
     round: RoundRow,
     acceptedMoves: MoveSubmission[],
-): Promise<void> {
+): Promise<BoardGrid | null> {
     try {
         const board = boardGridSchema.parse(round.board_snapshot_before);
         const baseline = round.frozen_tiles_before ?? match.frozen_tiles ?? {};
@@ -242,9 +246,10 @@ async function runCombinedScoring(
             match.player_b_id,
             baseline as Record<string, { owner: string }>,
         );
-        round.board_snapshot_after = result.finalBoard;
+        return result.finalBoard;
     } catch (error) {
         console.error("[recoverStuckRound] scoring failed:", error);
+        return null;
     }
 }
 
@@ -305,7 +310,10 @@ async function createNextRound(
     nextRound: number,
 ): Promise<void> {
     const boardBefore = round.board_snapshot_after ?? round.board_snapshot_before;
-    const frozenTiles = await loadFrozenTiles(supabase, match.id);
+    const frozenTiles = await loadFrozenTiles(supabase, match.id).catch((error: unknown) => {
+        console.error("[recoverStuckRound] failed to read frozen tiles:", error);
+        return {};
+    });
 
     const { error } = await supabase.from("rounds").insert({
         match_id: match.id,
@@ -348,18 +356,6 @@ function computeDeductedTimers(
     return { newATimerMs, newBTimerMs };
 }
 
-async function loadFrozenTiles(
-    supabase: Supabase,
-    matchId: string,
-): Promise<Record<string, unknown>> {
-    const { data } = await supabase
-        .from("matches")
-        .select("frozen_tiles")
-        .eq("id", matchId)
-        .single();
-    const map = (data as { frozen_tiles?: unknown } | null)?.frozen_tiles;
-    return map && typeof map === "object" ? (map as Record<string, unknown>) : {};
-}
 
 async function fetchSubmissions(supabase: Supabase, roundId: string): Promise<SubmissionRow[]> {
     const { data } = await supabase

@@ -64,7 +64,8 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
 }
 
 /** The live row's state line and, only while there is one, the instruction beneath it (amendment P1). */
-function LiveText({ live }: { live: LiveLines }) {
+function LiveText({ live }: { live?: LiveLines }) {
+  if (!live) return null;
   return (
     <>
       <span className="ledger__live-line1">{live.line1}</span>
@@ -72,8 +73,6 @@ function LiveText({ live }: { live: LiveLines }) {
     </>
   );
 }
-
-const NO_LINES: LiveLines = { line1: "", line2: "" };
 
 function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; onRowHover?: (round: number | null) => void }) {
   return (
@@ -92,7 +91,7 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
         <>
           <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
-            <LiveText live={row.live ?? NO_LINES} />
+            <LiveText live={row.live} />
           </div>
         </>
       ) : (
@@ -235,7 +234,7 @@ export function Ledger(props: LedgerProps) {
     </div>
   ));
 
-  const collapsedLive: LiveLines = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live")?.live ?? NO_LINES;
+  const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live")?.live;
 
   return (
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">

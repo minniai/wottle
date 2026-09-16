@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { HistoryWord, MatchWordHistory } from "@/lib/match/wordHistory";
 
@@ -34,19 +34,13 @@ async function fetchHistory(matchId: string): Promise<HistoryWord[] | null> {
  */
 export function useWordHistory(matchId: string, currentRound: number): HistoryWord[] | null {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const inFlight = useRef<string | null>(null);
   const stale = loaded?.matchId !== matchId || currentRound - loaded.round > 1;
 
   useEffect(() => {
     if (!stale) return;
-    const key = `${matchId}:${currentRound}`;
-    if (inFlight.current === key) return;
-    inFlight.current = key;
     let active = true;
     void fetchHistory(matchId).then((words) => {
-      if (!active) return;
-      inFlight.current = null;
-      if (words) setLoaded({ matchId, round: currentRound, words });
+      if (active && words) setLoaded({ matchId, round: currentRound, words });
     });
     return () => {
       active = false;

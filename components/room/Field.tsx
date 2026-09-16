@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
+import { letterValue } from "@/lib/room/liveState";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
@@ -40,12 +40,6 @@ export interface FieldProps {
   /** The two cells whose letters have just traded places; they travel (FR-027). */
   exchange?: [Coordinate, Coordinate] | null;
   onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>, coord: Coordinate) => void;
-}
-
-const VALUES = LETTER_SCORING_VALUES_IS as Record<string, number>;
-
-function letterValue(letter: string): number {
-  return VALUES[letter.toUpperCase()] ?? VALUES[letter] ?? 0;
 }
 
 /**

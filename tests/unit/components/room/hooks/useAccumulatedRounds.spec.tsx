@@ -38,10 +38,11 @@ function state(matchId: string, overrides: Partial<MatchState> = {}): MatchState
   };
 }
 
-const history = (matchId: string): HistoryWord[] => [
+const HISTORY: HistoryWord[] = [
   { ...word(A, "borð", 0, 0), roundNumber: 1, isDuplicate: false },
   { ...word(B, "gilt", 0, 1), roundNumber: 2, isDuplicate: false },
-].map((w) => ({ ...w, matchId })) as unknown as HistoryWord[];
+];
+const history = (): HistoryWord[] => HISTORY;
 
 type Props = { match: MatchState; history: HistoryWord[] | null };
 
@@ -51,12 +52,12 @@ function render(initial: Props) {
 
 describe("useAccumulatedRounds", () => {
   it("seeds every completed round from the history", () => {
-    const { result } = render({ match: state("m1", { currentRound: 3 }), history: history("m1") });
+    const { result } = render({ match: state("m1", { currentRound: 3 }), history: history() });
     expect(result.current.map((w) => [w.roundNumber, w.word])).toEqual([[1, "borð"], [2, "gilt"]]);
   });
 
   it("starts the new match empty when matchId changes (rematch in place)", () => {
-    const { result, rerender } = render({ match: state("m1", { currentRound: 3 }), history: history("m1") });
+    const { result, rerender } = render({ match: state("m1", { currentRound: 3 }), history: history() });
     expect(result.current).toHaveLength(2);
     act(() => rerender({ match: state("m2"), history: null }));
     expect(result.current).toEqual([]);

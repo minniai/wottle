@@ -1,4 +1,5 @@
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
+import { isFrozen } from "@/lib/game-engine/frozenTiles";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot, ReadingDirection } from "@/lib/types/match";
@@ -120,16 +121,22 @@ const isDev = process.env.NODE_ENV !== "production";
  * their freezes land with the reveal or the next snapshot. A band under two
  * cells is never drawn.
  */
-function bandCells(w: AccumulatedWord, input: BandsInput): Coordinate[] | null {
-  const frozen = w.coordinates.filter((c) => `${c.x},${c.y}` in input.frozenTiles);
-  const live = input.liveRound != null && w.roundNumber === input.liveRound;
-  const trusted = live || (input.trustRound != null && w.roundNumber === input.trustRound);
+function bandCells(w: AccumulatedWord, frozenTiles: FrozenTileMap, trusted: boolean): Coordinate[] | null {
+  const frozen = w.coordinates.filter((c) => isFrozen(frozenTiles, c));
   if (!trusted && frozen.length !== w.coordinates.length) {
-    if (isDev) console.warn(`[bands] R${w.roundNumber} ${w.word}: ${w.coordinates.length - frozen.length} letter(s) not frozen`);
+    warnOnce(`[bands] R${w.roundNumber} ${w.word}: ${w.coordinates.length - frozen.length} letter(s) not frozen`);
     return null;
   }
   const cells = trusted && frozen.length === 0 ? w.coordinates : frozen;
   return cells.length < 2 ? null : cells;
+}
+
+/** `bandsFromWords` runs on every snapshot; a disagreeing record is reported once, not every poll. */
+const warned = new Set<string>();
+function warnOnce(message: string): void {
+  if (!isDev || warned.has(message)) return;
+  warned.add(message);
+  console.warn(message);
 }
 
 /**
@@ -145,7 +152,9 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
     const id = bandId(w, direction);
     if (seen.has(id)) continue;
     seen.add(id);
-    const cells = bandCells(w, input);
+    const live = input.liveRound != null && w.roundNumber === input.liveRound;
+    const trusted = live || (input.trustRound != null && w.roundNumber === input.trustRound);
+    const cells = bandCells(w, input.frozenTiles, trusted);
     if (!cells) continue;
     const slot: PlayerSlot = w.playerId === input.playerAId ? "player_a" : "player_b";
     bands.push({
@@ -153,7 +162,7 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
       seat: seatForSlot(input.viewerSlot, slot),
       cells,
       direction,
-      strength: input.liveRound != null && w.roundNumber === input.liveRound ? "live" : "settled",
+      strength: live ? "live" : "settled",
       round: w.roundNumber,
       word: w.word,
     });

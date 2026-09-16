@@ -11,7 +11,7 @@ export interface NoticesApi {
   dismiss: (kind: Notice["kind"]) => void;
 }
 
-/** Live-row-styled notices with expiry (frozen 2 s, resign confirm 5 s). */
+/** Live-row-styled notices with expiry (resign confirm 5 s). */
 export function useNotices(): NoticesApi {
   const [notices, setNotices] = useState<Notice[]>([]);
   const push = useCallback((notice: Notice) => setNotices((prev) => addNotice(prev, notice)), []);
