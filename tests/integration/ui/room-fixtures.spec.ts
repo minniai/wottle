@@ -145,6 +145,36 @@ test.describe("@visual the room is one composition", () => {
 });
 
 /**
+ * Spec 047 US2 (FR-007, review S1, amendment P3). The ledger's top rule sits on
+ * the top bar's top and its foot on the bottom bar's bottom; the ten rows share
+ * the stack's height. Asserted on the reference viewports and on a tall,
+ * narrow one where the width binds the field and the old `align-self: stretch`
+ * dropped the foot ~330px below the bar.
+ */
+test.describe("@visual the ledger is the height of the stack", () => {
+  test("ledger edges meet the bars' outer edges; ten rows share one height", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "visual-390x844", "one column below 900px");
+    const viewports = [testInfo.project.use.viewport!, { width: 1024, height: 1100 }];
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await page.goto("/dev/room?phase=match");
+      await expect(page.getByTestId("field")).toBeVisible();
+
+      const boxes = await page.evaluate(() => {
+        const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
+        const rows = Array.from({ length: 10 }, (_, i) => rect(`ledger-row-${i + 1}`).height);
+        return { top: rect("player-bar-top"), bottom: rect("player-bar-bottom"), ledger: rect("ledger"), rows };
+      });
+
+      expect(Math.abs(boxes.ledger.top - boxes.top.top), `top at ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(1);
+      expect(Math.abs(boxes.ledger.bottom - boxes.bottom.bottom), `bottom at ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(1);
+      expect(Math.max(...boxes.rows) - Math.min(...boxes.rows)).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+/**
  * Spec 045 US4 (FR-018 to FR-023), Fig. 5. The page never scrolls and nothing
  * is ever placed over the field: the sheet opens in flow beneath the live row.
  */

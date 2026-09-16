@@ -148,6 +148,34 @@ describe("room.css composition (spec 045 US3)", () => {
 });
 
 /**
+ * Spec 047 US2 (FR-007, review S1, amendment P3). The ledger is the height of
+ * the stack — bars, gaps and field — never of the viewport. `align-self:
+ * stretch` filled the grid row (100dvh) so the foot landed ~330px under the
+ * bottom bar whenever the 720px field cap or the width bound the stack.
+ */
+describe("room.css ledger height (spec 047 US2)", () => {
+  const ledger = block(".room__ledger");
+
+  it("binds the ledger to the stack's height at ≥900px", () => {
+    expect(ledger).toMatch(/align-self:\s*start/);
+    expect(ledger).toMatch(
+      /height:\s*calc\(var\(--field-size\) \+ 2 \* var\(--bar-height\) \+ 2 \* var\(--bar-gap\)\)/,
+    );
+  });
+
+  it("is never stretched", () => {
+    expect(ledger).not.toMatch(/align-self:\s*stretch/);
+    expect(ledger).not.toMatch(/min-height/);
+  });
+
+  it("lets the phone ledger take its own height", () => {
+    const phone = css.slice(css.indexOf("@media (max-width: 900px)"));
+    const phoneLedger = phone.slice(phone.indexOf(".room__ledger"), phone.indexOf("}", phone.indexOf(".room__ledger")));
+    expect(phoneLedger).toMatch(/height:\s*auto/);
+  });
+});
+
+/**
  * Spec 045 US4 (FR-019). "Nothing is ever positioned over the field" is the
  * design's central rule; the sheet as written was a fixed panel at z-index 3
  * pinned to the bottom of the viewport, which would have covered the field and
