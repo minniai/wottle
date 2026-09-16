@@ -1,16 +1,32 @@
 name: Deploy Migrations
 
 # Keeps the production Supabase schema in lockstep with merged code.
+#
 # Linear O-62 post-mortem: code querying rounds.frozen_tiles_before reached
 # Vercel while the migration adding the column never reached production,
-# hanging every match at round 1 resolution. This workflow applies pending
-# migrations to the production project on every merge to main that touches
-# supabase/migrations/.
+# hanging every match at round 1 resolution. It happened again on 2026-09-15
+# with matches.rated (spec 045), because this workflow was failing silently —
+# first for a missing project ref, then for a rejected access token — and
+# nothing watches a workflow that only runs on migration pushes.
 #
-# Required repository secrets:
-#   SUPABASE_ACCESS_TOKEN  — personal access token (Supabase dashboard → Account → Access Tokens)
-#   SUPABASE_DB_PASSWORD   — production database password
-#   SUPABASE_PROJECT_ID    — production project ref (e.g. vcjmanighljftajzizat)
+# It now connects straight to the database instead of going through
+# `supabase link`. That drops the Management API, and with it the personal
+# access token whose rejection blocked the last attempt: applying a migration
+# only ever needed the database, never the project's control plane.
+#
+# Required repository secret:
+#   SUPABASE_DB_URL — the production connection string, percent-encoded.
+#
+#     postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+#
+#   It must be the SESSION pooler on port 5432, for two reasons:
+#     - db.<ref>.supabase.co resolves to IPv6 only, and GitHub runners are
+#       IPv4 only, so the direct host is unreachable from here;
+#     - the transaction pooler (6543) does not hold session state, and
+#       migrations need advisory locks and multi-statement transactions.
+#
+#   Percent-encode the password: an @ or / in it silently truncates the URL
+#   into something that points at the wrong host.
 
 on:
   push:
@@ -25,10 +41,6 @@ jobs:
     name: Apply migrations to production
     runs-on: ubuntu-latest
     environment: production
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -38,11 +50,51 @@ jobs:
         with:
           version: latest
 
-      - name: Link production project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Check the connection string is usable
+        # Fail with a sentence someone can act on, rather than an "Unauthorized"
+        # or a parse error from three layers down. Every check below has already
+        # cost a real run.
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL is not set. Supabase dashboard → Connect → Session pooler, copied verbatim."
+            exit 1
+          fi
+          case "$SUPABASE_DB_URL" in
+            *"<"*|*">"*)
+              echo "::error::SUPABASE_DB_URL still contains a <placeholder>. Copy the real string from the Supabase dashboard → Connect → Session pooler; do not fill in the example by hand."
+              exit 1 ;;
+          esac
+          case "$SUPABASE_DB_URL" in
+            postgresql://*|postgres://*) ;;
+            *) echo "::error::SUPABASE_DB_URL must start with postgresql://"; exit 1 ;;
+          esac
+          case "$SUPABASE_DB_URL" in
+            *:6543/*)
+              echo "::error::That is the transaction pooler (6543). Migrations need session state — use the session pooler on 5432."
+              exit 1 ;;
+          esac
+          case "$SUPABASE_DB_URL" in
+            *db.*.supabase.co*)
+              echo "::error::The direct host resolves to IPv6 only and GitHub runners are IPv4 only. Use the session pooler host (aws-0-<region>.pooler.supabase.com:5432)."
+              exit 1 ;;
+          esac
+          echo "Connection string looks well formed."
+
+      - name: Show pending migrations
+        # Before, not after: if the push fails, the log still says what it was
+        # about to apply.
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase migration list --db-url "$SUPABASE_DB_URL"
 
       - name: Apply pending migrations
-        run: supabase db push
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase db push --db-url "$SUPABASE_DB_URL"
 
-      - name: List applied migrations
-        run: supabase migration list --linked
+      - name: Confirm what is applied
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase migration list --db-url "$SUPABASE_DB_URL"
