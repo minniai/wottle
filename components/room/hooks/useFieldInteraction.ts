@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { previewSwap } from "@/app/actions/match/previewSwap";
 import type { CellState } from "@/components/room/FieldCell";
-import { PLAYED, TAP_AGAIN_TO_PLAY, TAP_SECOND_LETTER } from "@/lib/constants/copy";
 import type { Seat } from "@/lib/constants/seatColors";
 import {
   IDLE,
@@ -41,7 +40,6 @@ export interface FieldInteractionApi {
   ownPins: [Coordinate, Coordinate] | null;
   shakeAt: Coordinate | null;
   focusAt: Coordinate | null;
-  hint: string;
   dispatch: (event: FieldEvent) => void;
   cellStateFor: (coord: Coordinate, base: CellState) => CellState;
   seatFor: (coord: Coordinate) => Seat | null;
@@ -67,13 +65,6 @@ function moveFocus(from: Coordinate, keyName: string): Coordinate | null {
   const d = ARROWS[keyName];
   if (!d) return null;
   return { x: Math.min(9, Math.max(0, from.x + d[0])), y: Math.min(9, Math.max(0, from.y + d[1])) };
-}
-
-function hintFor(interaction: FieldInteraction): string {
-  if (interaction.kind === "committed") return PLAYED;
-  if (interaction.kind !== "preview" || interaction.price === "pending") return interaction.kind === "preview" ? TAP_AGAIN_TO_PLAY : TAP_SECOND_LETTER;
-  const { words, total } = interaction.price;
-  return words.length > 0 ? `${total} · ${words.map((w) => w.word).join(" · ")} · ${TAP_AGAIN_TO_PLAY}` : TAP_AGAIN_TO_PLAY;
 }
 
 const sameCoord = (a: Coordinate, b: Coordinate) => a.x === b.x && a.y === b.y;
@@ -217,5 +208,5 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
     [dispatch],
   );
 
-  return { interaction, ownPins, shakeAt, focusAt, hint: hintFor(interaction), dispatch, cellStateFor, seatFor, onKeyDown };
+  return { interaction, ownPins, shakeAt, focusAt, dispatch, cellStateFor, seatFor, onKeyDown };
 }

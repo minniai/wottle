@@ -11,6 +11,7 @@ import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
 import { assertWordsSpellBoard } from "@/lib/room/wordIntegrity";
+import { liveStateFor } from "@/lib/room/liveState";
 import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { buildVerdict, finalCaption, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
@@ -18,7 +19,7 @@ import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
 import { LOBBY, NEW_OPPONENT, REMATCH, waitingForRematch } from "@/lib/constants/copy";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
-import { frozen as frozenNotice, resignConfirm } from "@/lib/room/notices";
+import { resignConfirm } from "@/lib/room/notices";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import type { Coordinate } from "@/lib/types/board";
@@ -46,6 +47,8 @@ export interface MatchRoomControllerProps {
   pollIntervalMs?: number;
 }
 
+/** How long an illegal pick holds the live row before it returns to idle (spec 047 P1). */
+const ILLEGAL_HOLD_MS = 2000;
 const LETTER_VALUES = LETTER_SCORING_VALUES_IS as Record<string, number>;
 
 function letterValue(letter: string): number {
@@ -122,13 +125,24 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const frozenKeys = useMemo(() => new Set(Object.keys(frozenTiles)), [frozenTiles]);
   const ownerNames = useMemo(() => ({ player_a: playerProfiles.playerA.displayName, player_b: playerProfiles.playerB.displayName }), [playerProfiles]);
 
+  // An illegal pick is a live-row state for two seconds, not a notice line
+  // (spec 047 amendment P1): the beat stays where the player is reading.
+  const [illegal, setIllegal] = useState<{ ownerName: string; round: number } | null>(null);
+  const illegalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showIllegal = useCallback((ownerName: string, round: number) => {
+    if (illegalTimer.current) clearTimeout(illegalTimer.current);
+    setIllegal({ ownerName, round });
+    illegalTimer.current = setTimeout(() => setIllegal(null), ILLEGAL_HOLD_MS);
+  }, []);
+  useEffect(() => () => { if (illegalTimer.current) clearTimeout(illegalTimer.current); }, []);
+
   const onNotice = useCallback(
     (kind: "frozen" | "pinned" | "pickCleared", at?: Coordinate) => {
       if (kind === "pickCleared") return push({ kind: "pickCleared", reason: "opponentPinned" });
       const owner = at ? frozenTiles[`${at.x},${at.y}`]?.owner : undefined;
-      push(frozenNotice(owner ? ownerNames[owner] : opp.displayName, at ? frozenRound(words, at, match.currentRound) : match.currentRound));
+      showIllegal(owner ? ownerNames[owner] : opp.displayName, at ? frozenRound(words, at, match.currentRound) : match.currentRound);
     },
-    [push, frozenTiles, ownerNames, opp.displayName, words, match.currentRound],
+    [push, showIllegal, frozenTiles, ownerNames, opp.displayName, words, match.currentRound],
   );
   const onRejected = useCallback((message: string) => push({ kind: "text", text: message.toLowerCase() }), [push]);
   const onCommitted = useCallback(() => {
@@ -184,15 +198,20 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightRound, setHighlightRound] = useState<number | null>(null);
 
+  const letterAt = useCallback(
+    (at: Coordinate) => {
+      const letter = match.board[at.y]?.[at.x] ?? "";
+      return { letter, value: letterValue(letter) };
+    },
+    [match.board],
+  );
   const live: LiveState = useMemo(() => {
     if (match.state === "resolving") return { kind: "resolving" };
-    if (youTimer.status === "paused" || field.interaction.kind === "committed") return { kind: "played" };
-    if (field.interaction.kind === "picked") {
-      const letter = match.board[field.interaction.a.y]?.[field.interaction.a.x] ?? "";
-      return { kind: "picking", letter, value: letterValue(letter) };
-    }
-    return { kind: "idle" };
-  }, [match.state, youTimer.status, field.interaction, match.board]);
+    if (youTimer.status === "paused") return { kind: "played" };
+    const fromField = liveStateFor(field.interaction, letterAt);
+    if (fromField.kind === "idle" && illegal) return { kind: "illegal", ...illegal };
+    return fromField;
+  }, [match.state, youTimer.status, field.interaction, letterAt, illegal]);
 
   const dualTimeout = match.timers.playerA.remainingMs <= 0 && match.timers.playerB.remainingMs <= 0;
   const timeoutFired = useRef(false);
@@ -355,7 +374,6 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         playerAId={match.timers.playerA.playerId}
         frozenTiles={frozenTiles}
         live={live}
-        hint={field.hint}
         notices={allNotices}
         onRowHover={setHighlightRound}
         onAction={handleAction}

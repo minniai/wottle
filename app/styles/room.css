@@ -417,6 +417,7 @@
   grid-template-columns: 34px 1fr 1fr;
   gap: 8px;
   padding: 6px 0;
+  /* The seat header's rule is ink (Fig. 2); rules between rows are --rule (review S9). */
   border-bottom: 1px solid var(--ink);
   font-weight: 600;
   font-size: 14px;
@@ -431,23 +432,40 @@
 .ledger__rows {
   flex: 1;
   display: grid;
-  grid-template-columns: 34px 1fr 1fr;
   grid-auto-rows: minmax(0, 1fr);
-  column-gap: 8px;
 }
+/* One grid item per round: the row owns its rule, so it is one continuous
+   line instead of three dashes across the column gaps (review S6). */
 .ledger__row {
-  display: contents;
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr;
+  column-gap: 8px;
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--rule);
+  min-width: 0;
 }
 .ledger__row > * {
-  border-bottom: 1px solid var(--rule);
   padding: 4px 0;
   min-width: 0;
 }
+/* Fig. 2: the whole row tinted, the 3px rule at its left edge (spec 045 B2). */
+.ledger__row--live {
+  background: var(--tint);
+  box-shadow: inset 3px 0 0 var(--ink);
+  align-items: baseline;
+  padding-right: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+/* 6px clears the live row's rule; every label keeps the same left edge (review S3). */
 .ledger__round {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--muted);
+  padding-left: 6px;
 }
+/* Future numerals are a progression mark, not a fact; the caption carries the round. */
 .ledger__row--future .ledger__round {
   color: var(--future-label);
 }
@@ -493,6 +511,11 @@
 .ledger__live-text {
   grid-column: 2 / -1;
 }
+/* Amendment P1: the instruction beneath the state, muted, only while there is one. */
+.ledger__live-line2 {
+  display: block;
+  color: var(--muted);
+}
 /* The queue has no round to label, so its line starts at the rule. */
 .ledger__live-row--trigger {
   grid-template-columns: 1fr auto;
@@ -527,6 +550,10 @@
 .ledger__territory-opp { background: var(--opp); }
 .ledger__hint {
   padding: 8px 0;
+}
+/* Match-level lines only; during a match there is usually nothing to say. */
+.ledger__hint:empty {
+  display: none;
 }
 .ledger__notice {
   background: var(--tint);

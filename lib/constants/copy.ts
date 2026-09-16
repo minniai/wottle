@@ -52,6 +52,15 @@ export const PLAYED = "played ●";
 export const TAP_SECOND_LETTER = "tap a second letter";
 export const TAP_AGAIN_TO_PLAY = "tap again to play";
 export const ESC_CANCELS = "esc cancels";
+/** Spec 047 amendment P1: the live row's two lines — a state, then an instruction. */
+export const PICK_A_LETTER = "pick a letter";
+export const PREVIEWING = "previewing";
+export const NO_WORD = "no word";
+export const RESOLVING = "resolving";
+export const PREVIEW_INSTRUCTION = `${TAP_AGAIN_TO_PLAY} · ${ESC_CANCELS}`;
+/** `24 · hestur` or `0 · no word` — the priced preview on the live row's first line. */
+export const previewLine = (total: number, words: string[]): string =>
+  `${total} · ${words.length > 0 ? words.join(" · ") : NO_WORD}`;
 export const HOVER_ROW_HINT = "hover a row to see its words";
 export const frozenNotice = (ownerName: string, round: number): string =>
   `frozen · ${ownerName} R${round} · pick another`;

@@ -7,7 +7,7 @@ import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
-import type { LedgerAction, LedgerModel, LedgerRow, Notice, SeatCell } from "@/lib/room/ledgerTypes";
+import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
 import type { RoomMenuVariant } from "./RoomMenu";
@@ -63,6 +63,18 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   );
 }
 
+/** The live row's state line and, only while there is one, the instruction beneath it (amendment P1). */
+function LiveText({ live }: { live: LiveLines }) {
+  return (
+    <>
+      <span className="ledger__live-line1">{live.line1}</span>
+      {live.line2 ? <span className="ledger__live-line2">{live.line2}</span> : null}
+    </>
+  );
+}
+
+const NO_LINES: LiveLines = { line1: "", line2: "" };
+
 function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; onRowHover?: (round: number | null) => void }) {
   return (
     <div
@@ -74,13 +86,15 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
       onMouseLeave={() => onRowHover?.(null)}
     >
       {row.status === "live" ? (
-        /* One element across all three columns so the tint reaches both edges
-           with the 3px rule at its left; the inner grid keeps the label aligned
-           with the rows above (Fig. 2, spec 045 B2). */
-        <div className="ledger__live-row" style={{ gridColumn: "1 / -1" }} data-testid="ledger-live-row" aria-live="polite">
+        /* The row itself is the tinted grid item with the 3px rule at its left
+           edge (Fig. 2); the label sits in the same column as every other row's
+           (spec 047 FR-008, review S3 and S6). */
+        <>
           <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
-          <div className="ledger__live-text">{row.liveText ?? ""}</div>
-        </div>
+          <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
+            <LiveText live={row.live ?? NO_LINES} />
+          </div>
+        </>
       ) : (
         <>
           {/* Future numerals are a progression mark, not a fact for AT: the caption carries the round (design system §7). */}
@@ -221,7 +235,7 @@ export function Ledger(props: LedgerProps) {
     </div>
   ));
 
-  const collapsedLiveText = model.live ?? rows.find((row) => row.status === "live")?.liveText ?? model.hint;
+  const collapsedLive: LiveLines = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live")?.live ?? NO_LINES;
 
   return (
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
@@ -261,7 +275,7 @@ export function Ledger(props: LedgerProps) {
             onClick={() => (sheetOpen ? closeSheet() : setSheetOpen(true))}
           >
             <span className="ledger__live-text" aria-live="polite">
-              {collapsedLiveText}
+              <LiveText live={collapsedLive} />
             </span>
             <span className="ledger__live-more">{HISTORY}</span>
           </button>
@@ -275,7 +289,7 @@ export function Ledger(props: LedgerProps) {
       ) : (
         <>
           {model.live !== undefined && (
-            <div className="ledger__live-row" style={{ gridColumn: "1 / -1" }} data-testid="ledger-live-row" aria-live="polite">
+            <div className="ledger__live-row" data-testid="ledger-live-row" aria-live="polite">
               <div className="ledger__live-text ledger__live-text--full">{model.live}</div>
             </div>
           )}

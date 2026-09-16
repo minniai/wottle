@@ -16,12 +16,18 @@ export interface SeatCell {
   total: number;
 }
 
+/** The live row's two lines (spec 047 amendment P1): a state, then an instruction or nothing. */
+export interface LiveLines {
+  line1: string;
+  line2: string;
+}
+
 export interface LedgerRow {
   round: number;
   status: "past" | "live" | "future";
   you: SeatCell | null;
   opp: SeatCell | null;
-  liveText?: string;
+  live?: LiveLines;
   folded: boolean;
 }
 
