@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { ROOM_PHASES } from "../../../app/dev/room/fixtures";
+
 /**
  * The visual suite (spec 045 US1, FR-004). Every room state, from static
  * fixtures, with no Supabase running — this is the check whose absence let the
@@ -10,25 +12,21 @@ import { expect, test } from "@playwright/test";
  * `visual-1280x800`, `visual-390x844`), so Playwright resolves a separate
  * baseline per viewport and a failure names the one that broke.
  *
- * Baselines are not committed until US7 — they would enshrine defects A1–A4.
- * Until then, run with `--update-snapshots` and compare by eye against the
- * figures. `pnpm test:visual --update-snapshots` is the only way to change one.
+ * Baselines are committed (spec 045 US7, spec 047 R5); darwin ones come from a
+ * local run, linux ones from the CI job's artifact. `pnpm test:visual
+ * --update-snapshots` is the only way to change one, and a human compares the
+ * result with the figures before it is committed.
+ *
+ * Spec 047 amendment P2: one phase per asymmetric signal. `phone-sheet` is the
+ * picking phase with the sheet open, so it exists only at 390×844; `low-clock`
+ * is also captured under reduced motion, where the lane holds solid.
  */
-const PHASES = [
-  "landing",
-  "lobby",
-  "queue",
-  "found",
-  "match",
-  "reveal",
-  "final",
-  "disconnect",
-  "profile",
-] as const;
+const PHONE_ONLY = new Set<(typeof ROOM_PHASES)[number]>(["phone-sheet"]);
 
 test.describe("@visual the room, from fixtures", () => {
-  for (const phase of PHASES) {
-    test(`${phase} matches its baseline`, async ({ page }) => {
+  for (const phase of ROOM_PHASES) {
+    test(`${phase} matches its baseline`, async ({ page }, testInfo) => {
+      test.skip(PHONE_ONLY.has(phase) && testInfo.project.name !== "visual-390x844", "the open sheet exists only on a phone");
       await page.goto(`/dev/room?phase=${phase}`);
 
       // Application state, not font state: Playwright already awaits
@@ -36,9 +34,30 @@ test.describe("@visual the room, from fixtures", () => {
       if (phase === "profile") await expect(page.getByTestId("profile-page")).toBeVisible();
       else await expect(page.getByTestId("field")).toBeVisible();
 
+      if (phase === "phone-sheet") {
+        await page.getByTestId("ledger-live-trigger").click();
+        await expect(page.getByTestId("ledger-sheet")).toBeVisible();
+      }
+
       await expect(page).toHaveScreenshot(`${phase}.png`);
     });
   }
+
+  test("low-clock under reduced motion: the lane holds solid", async ({ browser }, testInfo) => {
+    const context = await browser.newContext({ viewport: testInfo.project.use.viewport!, reducedMotion: "reduce" });
+    const page = await context.newPage();
+    try {
+      await page.goto("/dev/room?phase=low-clock");
+      await expect(page.getByTestId("field")).toBeVisible();
+      const lane = page.getByTestId("player-bar-bottom").locator(".player-bar__lane--low");
+      await expect(lane).toHaveCount(1);
+      const animation = await lane.locator(".player-bar__lane-fill").evaluate((el) => getComputedStyle(el).animationDuration);
+      expect(animation, "0ms under prefers-reduced-motion (design system §6)").toBe("0s");
+      await expect(page).toHaveScreenshot("low-clock-reduced-motion.png");
+    } finally {
+      await context.close();
+    }
+  });
 });
 
 test.describe("@visual the room renders without a database", () => {
@@ -48,7 +67,7 @@ test.describe("@visual the room renders without a database", () => {
       if (/supabase|\/api\/match|\/api\/lobby/.test(request.url())) supabaseCalls.push(request.url());
     });
 
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
     await expect(page.getByTestId("field").getByRole("gridcell")).toHaveCount(100);
 
@@ -63,7 +82,7 @@ test.describe("@visual the room renders without a database", () => {
  */
 test.describe("@visual the field is painted to the design", () => {
   test("paper ground, 1px rules inside a 1.5px frame, type that follows the cell", async ({ page }) => {
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     const field = page.getByTestId("field");
     await expect(field).toBeVisible();
 
@@ -120,7 +139,7 @@ test.describe("@visual the room is one composition", () => {
     test.skip(testInfo.project.name === "visual-390x844", "one column below 900px");
     const expected = testInfo.project.use.viewport!.width >= 1100 ? 56 : 40;
 
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
 
     const { gutter, leftMargin, rightMargin } = await page.evaluate(() => {
@@ -158,7 +177,7 @@ test.describe("@visual the ledger is the height of the stack", () => {
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
-      await page.goto("/dev/room?phase=match");
+      await page.goto("/dev/room?phase=picking");
       await expect(page.getByTestId("field")).toBeVisible();
 
       const boxes = await page.evaluate(() => {
@@ -184,7 +203,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("bar / field / bar / live row, and the page does not scroll", async ({ page }) => {
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
 
     // Collapsed: the glance only.
@@ -205,7 +224,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("the sheet opens in flow, below the bottom bar, and still does not scroll the page", async ({ page }) => {
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();
 
     const sheet = page.getByTestId("ledger-sheet");
@@ -230,7 +249,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("Escape closes the sheet and returns focus to the live row", async ({ page }) => {
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     const trigger = page.getByTestId("ledger-live-trigger");
     await trigger.click();
     await expect(page.getByTestId("ledger-sheet")).toBeVisible();
@@ -241,7 +260,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("every control in the sheet meets the 44px touch minimum", async ({ page }) => {
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();
     const sheet = page.getByTestId("ledger-sheet");
 
@@ -255,7 +274,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("axe is clean with the sheet open", async ({ page }) => {
-    await page.goto("/dev/room?phase=match");
+    await page.goto("/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();
     await expect(page.getByTestId("ledger-sheet")).toBeVisible();
 
