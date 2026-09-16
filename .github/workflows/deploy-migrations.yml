@@ -50,14 +50,37 @@ jobs:
         with:
           version: latest
 
-      - name: Check the connection string is configured
-        # Fail with a sentence someone can act on, rather than an
-        # "Unauthorized" from three layers down.
+      - name: Check the connection string is usable
+        # Fail with a sentence someone can act on, rather than an "Unauthorized"
+        # or a parse error from three layers down. Every check below has already
+        # cost a real run.
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
-            echo "::error::SUPABASE_DB_URL is not set. Add it as a repository secret — the session pooler URL on port 5432, password percent-encoded. See the header of this file."
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL is not set. Supabase dashboard → Connect → Session pooler, copied verbatim."
             exit 1
           fi
+          case "$SUPABASE_DB_URL" in
+            *"<"*|*">"*)
+              echo "::error::SUPABASE_DB_URL still contains a <placeholder>. Copy the real string from the Supabase dashboard → Connect → Session pooler; do not fill in the example by hand."
+              exit 1 ;;
+          esac
+          case "$SUPABASE_DB_URL" in
+            postgresql://*|postgres://*) ;;
+            *) echo "::error::SUPABASE_DB_URL must start with postgresql://"; exit 1 ;;
+          esac
+          case "$SUPABASE_DB_URL" in
+            *:6543/*)
+              echo "::error::That is the transaction pooler (6543). Migrations need session state — use the session pooler on 5432."
+              exit 1 ;;
+          esac
+          case "$SUPABASE_DB_URL" in
+            *db.*.supabase.co*)
+              echo "::error::The direct host resolves to IPv6 only and GitHub runners are IPv4 only. Use the session pooler host (aws-0-<region>.pooler.supabase.com:5432)."
+              exit 1 ;;
+          esac
+          echo "Connection string looks well formed."
 
       - name: Show pending migrations
         # Before, not after: if the push fails, the log still says what it was
