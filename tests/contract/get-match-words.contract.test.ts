@@ -35,7 +35,9 @@ describe("GET /api/match/[matchId]/words (spec 047 FR-003)", () => {
     vi.mocked(loadMatchWordHistory).mockResolvedValue(WORDS as never);
     mockMatch({ player_a_id: "player-a", player_b_id: "player-b", state: "in_progress", current_round: 3 });
   });
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 401 without a session", async () => {
     vi.mocked(readLobbySession).mockResolvedValue(null);
