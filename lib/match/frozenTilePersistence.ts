@@ -64,9 +64,10 @@ async function retryWithFreshBaseline(
   }
 }
 
-async function loadFrozenTiles(supabase: Supabase, matchId: string): Promise<FrozenTileMap> {
+/** The match's current freeze map, `{}` when the column is null. */
+export async function loadFrozenTiles(supabase: Supabase, matchId: string): Promise<FrozenTileMap> {
   const { data, error } = await supabase.from("matches").select("frozen_tiles").eq("id", matchId).single();
   if (error) throw new Error(`Failed to reload frozen tiles: ${error.message}`);
-  const map = data?.frozen_tiles;
+  const map = (data as { frozen_tiles?: unknown } | null)?.frozen_tiles;
   return map && typeof map === "object" ? (map as FrozenTileMap) : {};
 }

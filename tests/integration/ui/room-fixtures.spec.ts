@@ -21,12 +21,10 @@ import { ROOM_PHASES } from "../../../app/dev/room/fixtures";
  * picking phase with the sheet open, so it exists only at 390×844; `low-clock`
  * is also captured under reduced motion, where the lane holds solid.
  */
-const PHONE_ONLY = new Set<(typeof ROOM_PHASES)[number]>(["phone-sheet"]);
-
 test.describe("@visual the room, from fixtures", () => {
   for (const phase of ROOM_PHASES) {
     test(`${phase} matches its baseline`, async ({ page }, testInfo) => {
-      test.skip(PHONE_ONLY.has(phase) && testInfo.project.name !== "visual-390x844", "the open sheet exists only on a phone");
+      test.skip(phase === "phone-sheet" && testInfo.project.name !== "visual-390x844", "the open sheet exists only on a phone");
       await page.goto(`/dev/room?phase=${phase}`);
 
       // Application state, not font state: Playwright already awaits

@@ -80,7 +80,6 @@ export type LedgerAction =
   | { declineChallenge: string };
 
 export type Notice =
-  | { kind: "frozen"; ownerName: string; round: number; expiresAt: number }
   | { kind: "pickCleared"; reason: "opponentPinned" | "frozen" }
   | { kind: "rematchRequest"; requesterName: string }
   | { kind: "resignConfirm"; expiresAt: number }

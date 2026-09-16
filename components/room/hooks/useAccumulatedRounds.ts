@@ -15,14 +15,11 @@ import type { MatchState } from "@/lib/types/match";
  * Keyed on `matchId`: a rematch replaces the match in place and starts empty.
  * A partial never outlives the canonical summary for its round.
  */
-export function useAccumulatedRounds(match: MatchState | null, history: HistoryWord[] | null): AccumulatedWord[] {
+export function useAccumulatedRounds(match: MatchState, history: HistoryWord[] | null): AccumulatedWord[] {
   const [state, setState] = useState<AccumulatedWords>(EMPTY_WORDS);
-  const matchId = match?.matchId ?? null;
-  const lastSummary = match?.lastSummary;
-  const partialSummary = match?.partialSummary;
+  const { matchId, lastSummary, partialSummary } = match;
 
   useEffect(() => {
-    if (!matchId) return;
     setState((previous) => accumulate(previous, { matchId, history, lastSummary, partialSummary }));
   }, [matchId, history, lastSummary, partialSummary]);
 
