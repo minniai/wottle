@@ -47,10 +47,18 @@ const profiles: MatchPlayerProfiles = {
   playerB: { playerId: "player-2", displayName: "Bob", username: "bob", avatarUrl: null, eloRating: 1191 },
 };
 
+/** The summary's words spell their runs on this board (spec 047 FR-002), so the integrity check stays silent. */
+function board(): string[][] {
+  const grid = Array.from({ length: 10 }, (_, y) => Array.from({ length: 10 }, (_, x) => "ABCDEFGHIJ"[(x + y) % 10]));
+  [..."ÞAR"].forEach((letter, i) => (grid[2][1 + i] = letter));
+  [..."ORÐ"].forEach((letter, i) => (grid[5][5 + i] = letter));
+  return grid;
+}
+
 function state(overrides: Partial<MatchState> = {}): MatchState {
   return {
     matchId: "m1",
-    board: Array.from({ length: 10 }, (_, y) => Array.from({ length: 10 }, (_, x) => "ABCDEFGHIJ"[(x + y) % 10])),
+    board: board(),
     currentRound: 3,
     state: "collecting",
     timers: {
@@ -92,6 +100,18 @@ describe("MatchRoomController", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it("reports a word record the board does not spell once per match, in development", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const wrong: RoundSummary = { ...summary, words: [{ ...summary.words[0], word: "urg" }] };
+    const { rerender } = renderController(state({ lastSummary: wrong }));
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error.mock.calls[0]?.[0]).toBe("[wordIntegrity] m1");
+    expect(error.mock.calls[0]?.[1]).toEqual(["R3 urg: board spells ÞAR at (1,2)…(3,2)"]);
+    rerender(<MatchRoomController initialState={state({ lastSummary: wrong, currentRound: 4 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
+    expect(error).toHaveBeenCalledTimes(1);
+    error.mockRestore();
   });
 
   it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer", () => {
