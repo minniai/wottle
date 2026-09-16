@@ -31,7 +31,21 @@ Three viewports run as three Playwright projects, so a failure names the one tha
 | `visual-1280x800` | 1280 × 800 | Fig. 2 at the narrow gutter |
 | `visual-390x844` | 390 × 844 | Fig. 5 |
 
-**Until R7, baselines are not committed.** Run with `--update-snapshots` and compare the images by eye against the figures; the review's companion, section 02 fixture B, is the target for the field.
+Baselines are committed for **two platforms**, because Playwright suffixes a
+snapshot with the platform and CI runs Linux while most development here is
+macOS.
+
+**The Linux set must come from a production build**, and the safest source is CI
+itself: download the `room-fixtures-screenshots` artifact from a visual-job run
+and copy its `*-actual.png` files over the matching `*-linux.png` baselines.
+Generating them locally against `pnpm dev` produces images that differ from CI
+by about 4% of pixels — the dev server and `pnpm start` do not lay the room out
+identically, and on Linux the reserved scrollbar gutter shifts the centred pair.
+That mistake cost a red CI run on this feature.
+
+Whatever the source, **look at the image before adopting it**. A baseline is
+only as good as the render it captures; adopting a broken one silently makes the
+defect the standard.
 
 ## The full gate, per PR
 

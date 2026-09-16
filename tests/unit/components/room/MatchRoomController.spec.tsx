@@ -332,5 +332,38 @@ describe("MatchRoomController", () => {
     expect(bands.find((b) => b.classList.contains("field__band--drawing"))).toHaveAttribute("data-word", "orð");
     vi.useRealTimers();
   });
-});
 
+  /**
+   * CI, 2026-09-15: every test passed and the run still failed. The ratings
+   * retry called `.catch` on whatever the action returned and fired from a
+   * timer after unmount, so a non-promise became an unhandled rejection with no
+   * test left to attribute it to.
+   */
+  it("survives a ratings call that does not return a promise", async () => {
+    vi.mocked(getMatchRatings).mockReturnValueOnce(undefined as never);
+    const { unmount } = render(
+      <MatchRoomController initialState={state({ state: "completed", currentRound: 10 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />,
+    );
+    await waitFor(() => expect(getMatchRatings).toHaveBeenCalled());
+    expect(screen.getByTestId("verdict")).toBeInTheDocument();
+    unmount();
+  });
+
+  it("stops retrying ratings once unmounted", async () => {
+    vi.useFakeTimers();
+    vi.mocked(getMatchRatings).mockClear();
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "error" } as never);
+    const { unmount } = render(
+      <MatchRoomController initialState={state({ state: "completed", currentRound: 10 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />,
+    );
+    await vi.waitFor(() => expect(getMatchRatings).toHaveBeenCalledTimes(1));
+
+    unmount();
+    const callsAtUnmount = vi.mocked(getMatchRatings).mock.calls.length;
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(vi.mocked(getMatchRatings).mock.calls.length).toBe(callsAtUnmount);
+    vi.useRealTimers();
+  });
+});
