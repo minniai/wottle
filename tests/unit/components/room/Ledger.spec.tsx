@@ -6,9 +6,9 @@ import { EMPTY_TERRITORY, emptyRows, type LedgerModel } from "@/lib/room/ledgerT
 
 const model: LedgerModel = {
   caption: "ranked · round 4 of 10",
-  rows: emptyRows().map((r) => (r.round === 4 ? { ...r, status: "live", liveText: "picking · T (2)" } : r)),
+  rows: emptyRows().map((r) => (r.round === 4 ? { ...r, status: "live", live: { line1: "picking · T (2)", line2: "tap a second letter" } } : r)),
   territory: { you: 32, opp: 25, free: 43 },
-  hint: "tap a second letter",
+  hint: "",
 };
 
 describe("Ledger (design system §5.4)", () => {
@@ -38,7 +38,6 @@ describe("Ledger (design system §5.4)", () => {
     render(<Ledger variant="queue" model={queue} viewerName="Birna" opponentName={null} onAction={() => {}} />);
     const live = screen.getByTestId("ledger-live-row");
     expect(live).toHaveTextContent("setting the field · 58 of 100 letters");
-    expect(live.style.gridColumn).toBe("1 / -1");
     // Above the hint, which keeps its own line.
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("ranked · 0:07 · cancel ▸");
     expect(live.compareDocumentPosition(screen.getByTestId("ledger-hint")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -58,17 +57,28 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("picking · T (2)");
     expect(screen.getByTestId("ledger-live-row")).toHaveAttribute("aria-live", "polite");
 
-    // Spec 045 B2: Fig. 2 tints the whole row with the 3px rule at its left
-    // edge. Spanning columns 2-3 left the round label outside the tint.
-    const live = screen.getByTestId("ledger-live-row");
-    expect(live.style.gridColumn).toBe("1 / -1");
-    expect(live).toHaveTextContent("R4");
-    expect(live.querySelector('[data-testid="ledger-live-round"]')).not.toBeNull();
-    // Exactly one round label for the live round, and it is inside the tint.
+    // Spec 047 FR-008 (review S3, S6): the row itself is the tinted grid item
+    // with the rule at its left edge; nothing nested, no inline grid placement.
+    const row = screen.getByTestId("ledger-row-4");
+    expect(row).toHaveAttribute("data-status", "live");
+    expect(row.style.gridColumn).toBe("");
+    expect(row.querySelector(".ledger__live-row")).toBeNull();
+    expect(row.querySelector('[data-testid="ledger-live-round"]')).toHaveTextContent("R4");
     expect(screen.queryAllByText("R4")).toHaveLength(1);
+    // Amendment P1: the state on line 1, the instruction beneath it.
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live.querySelector(".ledger__live-line1")).toHaveTextContent("picking · T (2)");
+    expect(live.querySelector(".ledger__live-line2")).toHaveTextContent("tap a second letter");
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("aria-label", "territory 32–25");
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("role", "img"); // aria-label needs a role (axe aria-prohibited-attr)
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("tap a second letter");
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
+  });
+
+  it("a one-line live state renders no second line", () => {
+    const idle = { ...model, rows: model.rows.map((r) => (r.round === 4 ? { ...r, live: { line1: "pick a letter", line2: "" } } : r)) };
+    render(<Ledger variant="match" model={idle} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick a letter");
+    expect(screen.getByTestId("ledger-live-row").querySelector(".ledger__live-line2")).toBeNull();
   });
 
   it("foot has ? rules and the ⋯ menu; menu items dispatch actions", () => {
@@ -133,6 +143,8 @@ describe("Ledger (design system §5.4)", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
       expect(trigger).toHaveTextContent("history ▸");
       expect(trigger).toHaveTextContent("picking · T (2)");
+      // Both lines travel to the phone: the instruction is not desktop-only.
+      expect(trigger.querySelector(".ledger__live-line2")).toHaveTextContent("tap a second letter");
     });
 
     it("opens the rounds, notices and foot beneath the live row", () => {

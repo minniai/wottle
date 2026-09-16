@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 
 import { bandsFromWords, chevronPath, computeBandRect, sharedCells, seatOfCell } from "@/lib/room/bandGeometry";
 
@@ -31,35 +31,71 @@ describe("bandsFromWords", () => {
     { roundNumber: 1, playerId: A, word: "þar", totalPoints: 15, coordinates: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], direction: "ltr" as const },
     { roundNumber: 2, playerId: B, word: "orð", totalPoints: 13, coordinates: [{ x: 3, y: 6 }, { x: 3, y: 5 }, { x: 3, y: 4 }] },
   ];
+  const allFrozen = (list: typeof words) =>
+    Object.fromEntries(list.flatMap((w) => w.coordinates.map((c) => [`${c.x},${c.y}`, { owner: "player_a" as const }])));
 
-  it("one band per record, viewer-relative seat, direction from the record or the tiles, clipped to frozen letters", () => {
-    const bands = bandsFromWords({ words, frozenTiles: frozen, viewerSlot: "player_b", playerAId: A });
+  let warn: MockInstance;
+  beforeEach(() => {
+    warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    warn.mockRestore();
+  });
+
+  it("one band per record, viewer-relative seat, direction from the record or the tiles", () => {
+    const bands = bandsFromWords({ words, frozenTiles: allFrozen(words), viewerSlot: "player_b", playerAId: A });
     expect(bands).toHaveLength(2);
     expect(bands[0]).toMatchObject({ seat: "opp", direction: "ltr", round: 1, strength: "settled" });
     expect(bands[0].cells).toHaveLength(3);
-    // orð read bottom-to-top; only (3,5) froze → the band clips to it.
     expect(bands[1]).toMatchObject({ seat: "you", direction: "btt" });
-    expect(bands[1].cells).toEqual([{ x: 3, y: 5 }]);
+    expect(bands[1].cells).toHaveLength(3);
+    expect(warn).not.toHaveBeenCalled();
   });
 
-  it("a word none of whose letters froze keeps its full run; duplicate ids collapse; live round marked", () => {
-    const bands = bandsFromWords({ words: [...words, words[0]], frozenTiles: {}, viewerSlot: "player_a", playerAId: A, liveRound: 2 });
-    expect(bands).toHaveLength(2);
-    expect(bands[1].cells).toHaveLength(3);
-    expect(bands[1].strength).toBe("live");
-    expect(bands[0].strength).toBe("settled");
+  // Spec 047 FR-001 (review S4): a settled word is drawn only over letters that
+  // are still frozen. A partial freeze used to clip the band to one cell, which
+  // painted a chevron with no band under it.
+  it("a settled word with an unfrozen letter is skipped with one development warning", () => {
+    const bands = bandsFromWords({ words, frozenTiles: frozen, viewerSlot: "player_b", playerAId: A });
+    expect(bands.map((b) => b.word)).toEqual(["þar"]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toMatch(/R2 orð: 2 letter\(s\) not frozen/);
+  });
+
+  it("a settled word none of whose letters froze is skipped", () => {
+    const bands = bandsFromWords({ words: [words[0]], frozenTiles: {}, viewerSlot: "player_a", playerAId: A });
+    expect(bands).toEqual([]);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("the live round keeps its full run before its freezes land; duplicate ids collapse", () => {
+    const bands = bandsFromWords({ words: [words[1], words[1]], frozenTiles: {}, viewerSlot: "player_a", playerAId: A, liveRound: 2 });
+    expect(bands).toHaveLength(1);
+    expect(bands[0].cells).toHaveLength(3);
+    expect(bands[0].strength).toBe("live");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("the most recently scored round is drawn from its coordinates, settled, until its freezes land", () => {
+    const bands = bandsFromWords({ words: [words[1]], frozenTiles: {}, viewerSlot: "player_a", playerAId: A, trustRound: 2 });
+    expect(bands).toHaveLength(1);
+    expect(bands[0]).toMatchObject({ strength: "settled", round: 2 });
+    expect(bands[0].cells).toHaveLength(3);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("never returns a band with fewer than two cells", () => {
+    const one = { roundNumber: 2, playerId: B, word: "o", totalPoints: 1, coordinates: [{ x: 3, y: 5 }], direction: "ltr" as const };
+    expect(bandsFromWords({ words: [one], frozenTiles: frozen, viewerSlot: "player_a", playerAId: A, liveRound: 2 })).toEqual([]);
+    expect(bandsFromWords({ words: [one], frozenTiles: frozen, viewerSlot: "player_a", playerAId: A })).toEqual([]);
   });
 
   it("sharedCells finds letters covered by both seats; seatOfCell resolves a letter's seat", () => {
-    const bands = bandsFromWords({
-      words: [
-        { roundNumber: 1, playerId: A, word: "abc", totalPoints: 1, coordinates: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }] },
-        { roundNumber: 2, playerId: B, word: "bxy", totalPoints: 1, coordinates: [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 1, y: 2 }] },
-      ],
-      frozenTiles: {},
-      viewerSlot: "player_a",
-      playerAId: A,
-    });
+    const crossing = [
+      { roundNumber: 1, playerId: A, word: "abc", totalPoints: 1, coordinates: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }] },
+      { roundNumber: 2, playerId: B, word: "bxy", totalPoints: 1, coordinates: [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 1, y: 2 }] },
+    ];
+    const bands = bandsFromWords({ words: crossing, frozenTiles: allFrozen(crossing), viewerSlot: "player_a", playerAId: A });
     expect([...sharedCells(bands)]).toEqual(["1,0"]);
     expect(seatOfCell(bands, { x: 0, y: 0 })).toBe("you");
     expect(seatOfCell(bands, { x: 1, y: 2 })).toBe("opp");

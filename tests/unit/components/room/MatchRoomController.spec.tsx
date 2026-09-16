@@ -47,10 +47,18 @@ const profiles: MatchPlayerProfiles = {
   playerB: { playerId: "player-2", displayName: "Bob", username: "bob", avatarUrl: null, eloRating: 1191 },
 };
 
+/** The summary's words spell their runs on this board (spec 047 FR-002), so the integrity check stays silent. */
+function board(): string[][] {
+  const grid = Array.from({ length: 10 }, (_, y) => Array.from({ length: 10 }, (_, x) => "ABCDEFGHIJ"[(x + y) % 10]));
+  [..."ÞAR"].forEach((letter, i) => (grid[2][1 + i] = letter));
+  [..."ORÐ"].forEach((letter, i) => (grid[5][5 + i] = letter));
+  return grid;
+}
+
 function state(overrides: Partial<MatchState> = {}): MatchState {
   return {
     matchId: "m1",
-    board: Array.from({ length: 10 }, (_, y) => Array.from({ length: 10 }, (_, x) => "ABCDEFGHIJ"[(x + y) % 10])),
+    board: board(),
     currentRound: 3,
     state: "collecting",
     timers: {
@@ -94,6 +102,18 @@ describe("MatchRoomController", () => {
     vi.unstubAllGlobals();
   });
 
+  it("reports a word record the board does not spell once per match, in development", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const wrong: RoundSummary = { ...summary, words: [{ ...summary.words[0], word: "urg" }] };
+    const { rerender } = renderController(state({ lastSummary: wrong }));
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error.mock.calls[0]?.[0]).toBe("[wordIntegrity] m1");
+    expect(error.mock.calls[0]?.[1]).toEqual(["R3 urg: board spells ÞAR at (1,2)…(3,2)"]);
+    rerender(<MatchRoomController initialState={state({ lastSummary: wrong, currentRound: 4 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
+    expect(error).toHaveBeenCalledTimes(1);
+    error.mockRestore();
+  });
+
   it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer", () => {
     renderController();
     const room = screen.getByTestId("room");
@@ -108,15 +128,23 @@ describe("MatchRoomController", () => {
     expect(ids.indexOf("field")).toBeLessThan(ids.indexOf("player-bar-bottom"));
   });
 
-  it("second tap commits: your letters pin and the live row reads played", () => {
+  // Spec 047 amendment P1 (review S2): the live row carries the state and,
+  // beneath it, the instruction; the hint line has nothing to say in a match.
+  it("idle reads pick a letter; a pick adds the instruction; a commit reads played once", () => {
     renderController();
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick a letter");
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
     fireEvent.click(cell(0, 0));
     // The board's A is worth 1 (spec 045 B3: the value was hard-coded to 0).
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live.querySelector(".ledger__live-line1")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
+    expect(live.querySelector(".ledger__live-line2")).toHaveTextContent("tap a second letter");
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
     fireEvent.click(cell(1, 0));
     expect(cell(0, 0)).toHaveAttribute("data-state", "pinned");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("played ●");
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("played ●");
+    expect(screen.getByTestId("ledger-live-row").querySelector(".ledger__live-line2")).toBeNull();
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
   });
 
   it("the opponent's pending move pins their letters in coral and shows the swapped letters", () => {
@@ -254,19 +282,35 @@ describe("MatchRoomController", () => {
     vi.useRealTimers();
   });
 
-  it("frozen letters carry the scorer's seat and a tap writes the frozen notice", () => {
+  // Spec 047 amendment P1: an illegal pick is a live-row state for two seconds,
+  // not a notice line — the beat stays in the one place the player is reading.
+  it("frozen letters carry the scorer's seat; a tap writes the frozen state into the live row, then it clears", () => {
+    vi.useFakeTimers();
     renderController(state({ frozenTiles: { "2,2": { owner: "player_b" } } }));
     expect(cell(2, 2)).toHaveAttribute("data-state", "frozen");
     expect(cell(2, 2)).toHaveAttribute("data-seat", "opp");
     fireEvent.click(cell(2, 2));
-    expect(screen.getByTestId("ledger-notice")).toHaveTextContent("frozen · Bob R3 · pick another");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Bob R3 · pick another");
+    expect(screen.queryByTestId("ledger-notice")).toBeNull();
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick a letter");
   });
 
-  it("the frozen notice names the round the letter froze in, not the current one", () => {
+  it("a legal pick supersedes the frozen state at once", () => {
+    vi.useFakeTimers();
+    renderController(state({ frozenTiles: { "2,2": { owner: "player_b" } } }));
+    fireEvent.click(cell(2, 2));
+    fireEvent.click(cell(0, 0));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
+  });
+
+  it("the frozen state names the round the letter froze in, not the current one", () => {
     // Round 4 is live; the letter at 1,2 froze in round 3 with `þar` (spec 045 B4).
     renderController(state({ currentRound: 4, lastSummary: summary, frozenTiles: { "1,2": { owner: "player_a" } } }));
     fireEvent.click(cell(1, 2));
-    expect(screen.getByTestId("ledger-notice")).toHaveTextContent("frozen · Alice R3 · pick another");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Alice R3 · pick another");
   });
 
   it("shows the rules line on a player's first match (gamesPlayed 0) and on ? rules", () => {

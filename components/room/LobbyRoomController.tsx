@@ -8,9 +8,11 @@ import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking
 import { generateBoard } from "@/lib/game-engine/boardGenerator";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import { EMPTY_LOBBY_HINT, NO_SUCH_MATCH, TAP_SECOND_LETTER } from "@/lib/constants/copy";
+import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
+import { hintLine } from "@/lib/room/liveState";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { Coordinate } from "@/lib/types/board";
@@ -41,6 +43,13 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const storeViewer = useRoomStore((s) => s.viewer);
   const setViewer = useRoomStore((s) => s.setViewer);
   const board = useRoomStore((s) => s.board);
+  const letterAt = useCallback(
+    (at: Coordinate) => {
+      const letter = board[at.y]?.[at.x] ?? "";
+      return { letter, value: (LETTER_SCORING_VALUES_IS as Record<string, number>)[letter.toUpperCase()] ?? 0 };
+    },
+    [board],
+  );
   const setBoard = useRoomStore((s) => s.setBoard);
   const setPhase = useRoomStore((s) => s.setPhase);
   const hydrateBoard = useCallback(() => setBoard(generateBoard({ seed: `warmup:${Date.now()}` })), [setBoard]);
@@ -155,7 +164,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       players={players}
       recentGames={recentGames}
       loadingPlayers={Boolean(me) && presenceStatus === "connecting" && players.length === 0}
-      hint={me ? (previewEnabled ? field.hint : TAP_SECOND_LETTER) : EMPTY_LOBBY_HINT}
+      hint={me ? (previewEnabled ? hintLine(field.interaction, letterAt) : TAP_SECOND_LETTER) : EMPTY_LOBBY_HINT}
       notices={notices}
       onAction={handleAction}
       onSignedIn={onSignedIn}

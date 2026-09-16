@@ -88,6 +88,33 @@ describe("roomStore (spec 044 data-model §3.1)", () => {
     expect(s().match!.currentRound).toBe(2);
   });
 
+  // Spec 047 FR-004 (review S5): a rematch replaces the match in place, and the
+  // store must not carry the previous match's summary or scores into the new one.
+  it("applySnapshot for another matchId drops the previous lastSummary and scores", () => {
+    const s = useRoomStore.getState;
+    const summary: RoundSummary = {
+      matchId: "m1", roundNumber: 1, words: [], deltas: { playerA: 5, playerB: 0 },
+      totals: { playerA: 5, playerB: 0 }, highlights: [], resolvedAt: "2026-01-01T00:00:00Z", moves: [],
+    };
+    s().hydrateMatch(matchState({ scores: { playerA: 5, playerB: 0 }, lastSummary: summary }), A);
+    s().applySnapshot(matchState({ matchId: "m2", scores: { playerA: 0, playerB: 0 }, lastSummary: null, currentRound: 1 }));
+    expect(s().match!.matchId).toBe("m2");
+    expect(s().match!.scores).toEqual({ playerA: 0, playerB: 0 });
+    expect(s().match!.lastSummary).toBeNull();
+  });
+
+  it("applySummary ignores a summary addressed to another match", () => {
+    const s = useRoomStore.getState;
+    s().hydrateMatch(matchState(), A);
+    const foreign: RoundSummary = {
+      matchId: "m2", roundNumber: 1, words: [], deltas: { playerA: 0, playerB: 9 },
+      totals: { playerA: 0, playerB: 9 }, highlights: [], resolvedAt: "2026-01-01T00:00:00Z", moves: [],
+    };
+    s().applySummary(foreign);
+    expect(s().match!.scores).toEqual({ playerA: 0, playerB: 0 });
+    expect(s().match!.lastSummary ?? null).toBeNull();
+  });
+
   it("applySummary updates totals and lastSummary", () => {
     const s = useRoomStore.getState;
     s().hydrateMatch(matchState(), A);

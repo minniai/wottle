@@ -66,7 +66,7 @@ Casing: the product name is always lowercase `wottle` in the wordmark; sentence 
 ## 4. Space and layout
 
 - 4px base. Bars are 60px (56px on phones); the gap between a bar and the field is 12px; the room gutter is 56px (≥1100px) or 40px (900–1100px); the ledger is 340px (≥1100px) or 260px (900–1100px).
-- **Room grid**: `minmax(0,1fr) 340px`. Left column is the stack `bar / field / bar`; right column is the ledger, whose top rule aligns with the top bar's top edge and whose foot is flush with the bottom bar's bottom edge.
+- **Room grid**: `auto 340px`, the pair centred. Left column is the stack `bar / field / bar`; right column is the ledger, whose top rule aligns with the top bar's top edge and whose foot is flush with the bottom bar's bottom edge. The ledger is the height of the stack, never of the viewport: when the 720px cap or the width binds the stack, the room top-aligns at its 24px padding and the ledger keeps the stack's height. It is never stretched (amended 16 September 2026, P3).
 - **Field size**: the largest square that fits after the two bars are placed: `min(availableHeight − 2×60 − 2×12 − 48, 720)`. Never below the fold; never scrolls; computed with a ResizeObserver, not viewport units.
 - Below 900px: single column `bar / field / bar / live row`. The ledger shows only its caption, the live row and the territory bar; the live row is a button (`aria-expanded`) whose right cell reads `history ▸`.
 - The sheet it opens sits **in flow beneath the live row** — it takes the space left in the ledger column and scrolls inside it. It is never fixed, never has a backdrop, and its top edge never rises above the bottom bar: nothing is placed over the field, on a phone least of all. Escape or `close` returns focus to the live row.
@@ -78,7 +78,7 @@ Casing: the product name is always lowercase `wottle` in the wordmark; sentence 
 ## 5. Components
 
 ### 5.1 Field
-A ruled grid of one hundred capitals. 1.5px `--ink` frame; 1px `--rule` between cells; flat `--paper` cells. Letter centred in `--font-board` 600. Value numeral in the top-right gutter (`top:4%; right:6%`) in `--font-mono` 400, `--muted`; on a scored letter it takes the scorer's seat colour; on a picked letter it is `--ink` 500.
+A ruled grid of one hundred capitals. 1.5px `--ink` frame; 1px `--rule` between cells; flat `--paper` cells. Letter centred in `--font-board` 600. Value numeral in the top-right gutter (`top:4%; right:6%`) in `--font-mono` 400, `--muted`; on a scored letter it takes the scorer's seat colour (`--opp-text` for the opponent, as it is text under 17px); on a picked letter it is `--ink` 500; on a shared letter it is `--ink` 400 (amended 16 September 2026, P4).
 
 Letter states (each has exactly one mark):
 | State | Mark |
@@ -88,7 +88,7 @@ Letter states (each has exactly one mark):
 | previewed (both letters) | exchanged in place, 2px dotted `--ink` ring |
 | pinned (committed, either seat) | seat colour, 2px dashed ring in that colour, no fill |
 | scored / frozen | seat colour letter inside that seat's band |
-| shared | `--ink` 700 inside two bands |
+| shared | `--ink` 700 inside two bands; numeral `--ink` too — never the seat of whichever record was resolved last |
 | illegal pick | 300ms shake in its own colour; live row states the fact |
 | keyboard focus | 2px `--ink` outline at −4px offset |
 
@@ -99,7 +99,7 @@ One band per scored word record. 14% tint of the scorer's seat colour; square en
 60px, `1fr auto 1fr`. Left: 12px square in the seat colour (1.5px dashed outline when the seat is empty) + name + one-line mono sub-line (`1204 · you`, `1191 · opponent`, `1191 → 1203 · +12 · wins`, `reconnecting · 0:42 left`, `ranked · 0:07 · cancel ▸`). Centre: clock mm:ss, `--ink` 500 while running, `--muted` 400 when stopped. Right: total in the seat colour, or the primary action when the seat is empty. The bar's edge nearest the field is the **clock lane**: 4px; full width = 5:00 (`aria-valuemax=300`); filled part in the seat colour, rest `--rule`. Under 1:00: 8px and blinking at 1Hz (colour only). Disconnected: 6px/4px dashed pattern in the seat colour, held. The opponent's bar is always on top, yours always at the bottom.
 
 ### 5.4 Ledger
-1.5px `--ink` top rule; height = the stack's height. Caption line (wordmark left, mono context right) → column header (`■ Birna · you` / `■ Kári`) → rounds table (`34px 1fr 1fr`, ten rows sharing the height equally; words in seat colour joined by ` · `, wrapping; round total pinned top-right; future rows show only their label) → territory bar and counts → hint line → notices → foot (`? rules` left, actions and `⋯` right). The **live row** (current round) has `--tint` background and a 3px `--ink` left rule and carries state text: `picking · T (2)`, `played ●`, then the words as they land. Notices (rematch request, resign confirmation, first-match sentences, illegal pick) are rendered as live-row-styled lines; they never open a dialog. Hovering a row lights its bands on the field. The ledger never scrolls; if a row would exceed three lines, rounds older than the last three collapse to totals.
+1.5px `--ink` top rule; height = the stack's height. Caption line (wordmark left, mono context right) → column header (`■ Birna · you` / `■ Kári`; its rule is `--ink`, the one ink rule inside the ledger) → rounds table (one grid row per round, `34px 1fr 1fr` inside it; the rule between rounds is `--rule` and belongs to the row, so it is one continuous line; ten rows sharing the height equally; round labels inset 6px; words in seat colour joined by ` · `, wrapping; round total pinned top-right; future rows show only their label) → territory bar and counts → hint line (match-level lines only, hidden when empty) → notices → foot (`? rules` left, actions and `⋯` right). The **live row** (current round) is the grid row itself with `--tint` background and a 3px `--ink` left rule; it carries two lines — the state (`pick a letter`, `picking · T (2)`, `24 · hestur`, `played ●`, `frozen · Kári R2 · pick another`) and, beneath it in `--muted`, the instruction (`tap a second letter`, `tap again to play · esc cancels`) while there is one — then the words as they land (amended 16 September 2026, P1). Notices (rematch request, resign confirmation, first-match sentences) are rendered as live-row-styled lines; they never open a dialog. An illegal pick is a live-row state for two seconds, not a notice. Hovering a row lights its bands on the field. The ledger never scrolls; if a row would exceed three lines, rounds older than the last three collapse to totals.
 
 ### 5.5 Primary action
 Text in `--font-mono` 12px uppercase 0.12em on an `--ink` fill with `--paper` text, `10px 14px` padding, square, followed by ` ▸`. One per screen at most (`play ▸`, `play ranked ▸`). Secondary actions are mono uppercase text with ` ▸` in `--ink` (`challenge ▸`, `rematch ▸`, `cancel ▸`). Destructive actions have no colour of their own; they are a confirmation line in the live row (`resign the match? · yes, resign ▸ · no`).
@@ -128,7 +128,7 @@ Sounds: `tile-select` on pick, `valid-swap` on commit (with haptic where availab
 | Beat | Field | Bars | Ledger |
 | --- | --- | --- | --- |
 | Set | untouched | both lanes resume | new row opens with the round label |
-| Think | pick / preview marks; opponent pins on broadcast | your lane drains; theirs stops when they play | `picking · T (2)` / `played ●`; preview total in the hint line |
+| Think | pick / preview marks; opponent pins on broadcast | your lane drains; theirs stops when they play | state and instruction in the live row: `pick a letter` → `picking · T (2)` over `tap a second letter` → `24 · hestur` over `tap again to play · esc cancels` |
 | Commit | your two letters pin | your lane stops | `played` |
 | Reveal | bands draw along each word (30% tint) | totals count up | words and points written into the row |
 | Settle | pins fade; tint settles to 14% | — | territory updates; next row opens |
@@ -141,8 +141,20 @@ Sounds: `tile-select` on pick, `valid-swap` on commit (with haptic where availab
 - One idea per line. State the fact, then the next action: `frozen · Kári R2 · pick another`; `No runs yet. Start one from the lobby.`
 - No exclamation marks. No apologies. No metaphors about speed, power or brains. Never personify the system.
 - Numbers are numerals with their unit or context: `6:45 · running`, `+34`, `1191 → 1203 · +12`.
-- Fixed strings (`lib/constants/copy.ts` is the source of truth): `play ranked ▸` · `No opponent yet` · `ranked · about 0:10 to find one` · `Finding an opponent` · `ranked · 0:07 · cancel ▸` · `round 1 in 3` · `picking · T (2)` · `played ●` · `tap a second letter` · `tap again to play` · `esc cancels` · `frozen · <name> R<n> · pick another` · `reconnecting · 0:42 left` · `<name> asks for a rematch · accept ▸ · decline` · `resign the match? · yes, resign ▸ · no` · `<name> wins 170–127` · `by 43 points · 10 words to 8 · territory 32–25` · `rating pending` · `hover a row to see its words` · `history ▸` · `that match does not exist` · `here now · challenge for an unranked match` · first match: `Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds five minutes for all of them.`
+- Fixed strings (`lib/constants/copy.ts` is the source of truth): `play ranked ▸` · `No opponent yet` · `ranked · about 0:10 to find one` · `Finding an opponent` · `ranked · 0:07 · cancel ▸` · `round 1 in 3` · `pick a letter` · `picking · T (2)` · `previewing` · `24 · hestur` · `0 · no word` · `played ●` · `resolving` · `tap a second letter` · `tap again to play · esc cancels` · `frozen · <name> R<n> · pick another` · `reconnecting · 0:42 left` · `<name> asks for a rematch · accept ▸ · decline` · `resign the match? · yes, resign ▸ · no` · `<name> wins 170–127` · `by 43 points · 10 words to 8 · territory 32–25` · `rating pending` · `hover a row to see its words` · `history ▸` · `that match does not exist` · `here now · challenge for an unranked match` · first match: `Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds five minutes for all of them.`
 - Ledger context strings: `lobby · 4 here` · `ranked · 10 rounds · 5:00 clocks` · `ranked · round 4 of 10` · `final · 10 rounds · 18:50`.
+- Live-row states (amended 16 September 2026, P1). Line 1 is the state, line 2 the instruction, present only while there is a next step:
+
+  | State | Line 1 | Line 2 |
+  | --- | --- | --- |
+  | idle, your move | `pick a letter` | — |
+  | one letter picked | `picking · T (2)` | `tap a second letter` |
+  | previewing, unpriced | `previewing` | `tap again to play · esc cancels` |
+  | previewing, priced | `24 · hestur` (or `0 · no word`) | `tap again to play · esc cancels` |
+  | committed | `played ●` | — |
+  | illegal pick (two seconds) | `frozen · Kári R2 · pick another` | — |
+  | resolving | `resolving` | — |
+  | opponent played | unchanged — their pins on the field, their clock `--muted` | unchanged |
 
 ---
 

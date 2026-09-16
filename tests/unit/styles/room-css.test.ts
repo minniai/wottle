@@ -148,6 +148,97 @@ describe("room.css composition (spec 045 US3)", () => {
 });
 
 /**
+ * Spec 047 US4 (FR-010, review S7, amendment P4). A letter in both seats' words
+ * is ink 700; its numeral is ink too, never the last record's seat colour. The
+ * opponent's scored numerals keep the text variant (spec 045 decision 2).
+ */
+describe("room.css shared and scored numerals (spec 047 US4)", () => {
+  it("shared numerals are ink", () => {
+    expect(block('.field__cell[data-state="shared"] .field__value')).toMatch(/color:\s*var\(--ink\)/);
+  });
+
+  it("the opponent's scored numerals use the text variant of coral", () => {
+    const scored = css.slice(css.indexOf('.field__cell[data-seat="opp"][data-state="frozen"] .field__value'));
+    expect(scored.slice(0, scored.indexOf("}"))).toMatch(/color:\s*var\(--opp-text\)/);
+  });
+});
+
+/**
+ * Spec 047 US2 (FR-007, review S1, amendment P3). The ledger is the height of
+ * the stack — bars, gaps and field — never of the viewport. `align-self:
+ * stretch` filled the grid row (100dvh) so the foot landed ~330px under the
+ * bottom bar whenever the 720px field cap or the width bound the stack.
+ */
+describe("room.css ledger height (spec 047 US2)", () => {
+  const ledger = block(".room__ledger");
+
+  it("binds the ledger to the stack's height at ≥900px", () => {
+    expect(ledger).toMatch(/align-self:\s*start/);
+    expect(ledger).toMatch(
+      /height:\s*calc\(var\(--field-size\) \+ 2 \* var\(--bar-height\) \+ 2 \* var\(--bar-gap\)\)/,
+    );
+  });
+
+  it("is never stretched", () => {
+    expect(ledger).not.toMatch(/align-self:\s*stretch/);
+    expect(ledger).not.toMatch(/min-height/);
+  });
+
+  it("lets the phone ledger take its own height", () => {
+    const phone = css.slice(css.indexOf("@media (max-width: 900px)"));
+    const phoneLedger = phone.slice(phone.indexOf(".room__ledger"), phone.indexOf("}", phone.indexOf(".room__ledger")));
+    expect(phoneLedger).toMatch(/height:\s*auto/);
+  });
+});
+
+/**
+ * Spec 047 US3 (FR-008, review S3, S6, amendment P1). One grid item per round:
+ * the row owns its rule, so it is one continuous line instead of three dashes
+ * across the column gaps; the label clears the live row's 3px rule; the hint
+ * line disappears when it has nothing to say.
+ */
+describe("room.css ledger rows (spec 047 US3)", () => {
+  it("the rows container stacks rows without columns or gaps of its own", () => {
+    const rows = block(".ledger__rows");
+    expect(rows).toMatch(/display:\s*grid/);
+    expect(rows).toMatch(/grid-auto-rows:\s*minmax\(0, 1fr\)/);
+    expect(rows).not.toMatch(/grid-template-columns/);
+    expect(rows).not.toMatch(/column-gap/);
+  });
+
+  it("the row is the grid item and owns the rule", () => {
+    const row = block(".ledger__row");
+    expect(row).toMatch(/display:\s*grid/);
+    expect(row).toMatch(/grid-template-columns:\s*34px 1fr 1fr/);
+    expect(row).toMatch(/column-gap:\s*8px/);
+    expect(row).toMatch(/grid-column:\s*1 \/ -1/);
+    expect(row).toMatch(/border-bottom:\s*1px solid var\(--rule\)/);
+    expect(block(".ledger__row > *")).not.toMatch(/border/);
+  });
+
+  it("the live row is tinted with the 3px rule at its left edge", () => {
+    const live = block(".ledger__row--live");
+    expect(live).toMatch(/background:\s*var\(--tint\)/);
+    expect(live).toMatch(/box-shadow:\s*inset 3px 0 0 var\(--ink\)/);
+  });
+
+  it("round labels clear the live rule", () => {
+    expect(block(".ledger__round")).toMatch(/padding-left:\s*6px/);
+  });
+
+  it("the seat header rule is ink (Fig. 2); the hint collapses when empty", () => {
+    expect(block(".ledger__header")).toMatch(/border-bottom:\s*1px solid var\(--ink\)/);
+    expect(block(".ledger__hint:empty")).toMatch(/display:\s*none/);
+  });
+
+  it("the second live line is muted and on its own line", () => {
+    const line2 = block(".ledger__live-line2");
+    expect(line2).toMatch(/display:\s*block/);
+    expect(line2).toMatch(/color:\s*var\(--muted\)/);
+  });
+});
+
+/**
  * Spec 045 US4 (FR-019). "Nothing is ever positioned over the field" is the
  * design's central rule; the sheet as written was a fixed panel at z-index 3
  * pinned to the bottom of the viewport, which would have covered the field and

@@ -13,7 +13,7 @@ See `CLAUDE.md` for the full command reference (setup, testing, Supabase operati
 
 - **Runtime**: Node.js 22 (`.nvmrc`, `engines`), pnpm 11.7 (`packageManager`; settings in `pnpm-workspace.yaml`).
 - **Verify a change**: `pnpm lint` (zero warnings), `pnpm typecheck`, `pnpm test:unit`; `pnpm test:integration` and `pnpm exec playwright test` need the Supabase stack (and, for Playwright, the dev server) running.
-- **UI work** must follow `docs/design/README.md` → `WOTTLE_DESIGN_SYSTEM.md` (Field & Ledger, spec `specs/044-field-ledger-redesign/`).
+- **UI work** must follow `docs/design_documentation/README.md` → `WOTTLE_DESIGN_SYSTEM.md` (Field & Ledger, spec `specs/044-field-ledger-redesign/`).
 - **Scoring / round-engine work** must be checked against `docs/prd_and_requirements/wottle_game_rules.md` (§10 regression log first).
 - **Feature work** follows Speckit: `/speckit.specify` → `clarify` → `plan` → `tasks` → `implement`, TDD throughout.
 

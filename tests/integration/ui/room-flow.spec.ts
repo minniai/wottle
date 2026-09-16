@@ -64,7 +64,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await cell(pageB, bx1, 9).click();
       await cell(pageB, bx2, 9).click();
       await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "previewed");
-      await expect(pageB.getByTestId("ledger-hint")).toContainText(/tap again to play/);
+      // Spec 047 amendment P1: the preview line lives in the live row, not the hint.
+      await expect(pageB.getByTestId("ledger-live-row")).toContainText(/tap again to play/);
       await pageB.keyboard.press("Escape");
       await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "free");
       await cell(pageB, bx1, 9).click();
@@ -115,8 +116,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(cell(pageA, bx1, 5)).toHaveAttribute("data-state", /pinned|scored/, { timeout: 15_000 });
       await cell(pageA, bx1, 5).dispatchEvent("click");
       await expect(cell(pageA, bx1, 5)).not.toHaveAttribute("data-state", "picked");
-      // Several notices can be up at once (first-match rules, pinned, frozen); match the one we caused.
-      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: /frozen ·|pinned/ }).first()).toBeVisible({ timeout: 5_000 });
+      // Spec 047 amendment P1: the illegal pick is a live-row state, not a notice line.
+      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/frozen ·/, { timeout: 5_000 });
     } finally {
       await contextA.close();
       await contextB.close();

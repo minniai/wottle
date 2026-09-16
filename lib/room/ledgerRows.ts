@@ -1,11 +1,11 @@
-import { drawLine, finalContext, NO_RATING, PLAYED, picking, RATING_PENDING, ratingSubline, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, frozenNotice, NO_RATING, PICK_A_LETTER, PLAYED, PREVIEW_INSTRUCTION, PREVIEWING, picking, previewLine, RATING_PENDING, ratingSubline, RESOLVING, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { formatClock, MATCH_CLOCK_BUDGET_MS } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { bandIdForWord } from "./bandGeometry";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot, ReadingDirection } from "@/lib/types/match";
-import { emptyRows, type LedgerModel, type LedgerRow, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
+import { emptyRows, type LedgerModel, type LedgerRow, type LiveLines, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
 
 export const TOTAL_ROUNDS = 10;
 
@@ -24,7 +24,11 @@ export interface AccumulatedWord {
 export type LiveState =
   | { kind: "idle" }
   | { kind: "picking"; letter: string; value: number }
+  /** Opt-in preview: `total` is null until the server has priced the swap. */
+  | { kind: "previewing"; total: number | null; words: string[] }
   | { kind: "played" }
+  /** A frozen letter was tapped; held for two seconds, then back to idle. */
+  | { kind: "illegal"; ownerName: string; round: number }
   | { kind: "resolving" };
 
 export interface BuildRowsInput {
@@ -52,11 +56,26 @@ function toCell(words: AccumulatedWord[]): SeatCell | null {
   return { words: cells, total: cells.reduce((sum, c) => sum + c.points, 0) };
 }
 
-export function liveText(live: LiveState): string {
-  if (live.kind === "picking") return picking(live.letter, live.value);
-  if (live.kind === "played") return PLAYED;
-  if (live.kind === "resolving") return "resolving";
-  return "";
+/**
+ * The live row's two lines (spec 047 amendment P1, design system §7): line 1
+ * is the state, line 2 the instruction — present only while there is a next
+ * step to take. Every beat has a signal, and nothing is said twice.
+ */
+export function liveText(live: LiveState): LiveLines {
+  switch (live.kind) {
+    case "picking":
+      return { line1: picking(live.letter, live.value), line2: TAP_SECOND_LETTER };
+    case "previewing":
+      return { line1: live.total === null ? PREVIEWING : previewLine(live.total, live.words), line2: PREVIEW_INSTRUCTION };
+    case "played":
+      return { line1: PLAYED, line2: "" };
+    case "illegal":
+      return { line1: frozenNotice(live.ownerName, live.round), line2: "" };
+    case "resolving":
+      return { line1: RESOLVING, line2: "" };
+    default:
+      return { line1: PICK_A_LETTER, line2: "" };
+  }
 }
 
 /** One row per round; the current round is the live row (design system §5.4). */
@@ -70,7 +89,7 @@ export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
     const landed = row.round === input.currentRound && inRound.length > 0;
     const isPast = row.round < input.currentRound || landed || (input.completed && row.round <= input.currentRound);
     const isLive = !input.completed && row.round === input.currentRound && !landed;
-    if (isLive) return { ...row, status: "live", liveText: liveText(input.live) };
+    if (isLive) return { ...row, status: "live", live: liveText(input.live) };
     if (!isPast) return row;
     return {
       ...row,
@@ -93,6 +112,7 @@ export function buildTerritory(frozenTiles: FrozenTileMap, viewerSlot: PlayerSlo
 
 export interface BuildLedgerInput extends BuildRowsInput {
   frozenTiles: FrozenTileMap;
+  /** Match-level lines only; the field's instruction lives on the live row. Empty hides the line. */
   hint?: string;
 }
 
@@ -101,7 +121,7 @@ export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
     caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS), input.rated ?? true),
     rows: buildLedgerRows(input),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),
-    hint: input.hint ?? TAP_SECOND_LETTER,
+    hint: input.hint ?? "",
   };
 }
 

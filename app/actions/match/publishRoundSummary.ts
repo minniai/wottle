@@ -6,7 +6,7 @@ import { aggregateRoundSummary, calculateWordScore } from "@/lib/scoring/roundSu
 import { recordScoreSnapshot } from "@/lib/matchmaking/service";
 import { withRetry } from "@/lib/game-engine/retry";
 import { logPlaytestError, logPlaytestInfo } from "@/lib/observability/log";
-import { mergeNewFreezesOntoFresh } from "@/lib/match/frozenTileMerge";
+import { persistFrozenTilesAtomically } from "@/lib/match/frozenTilePersistence";
 import { completeMatchInternal } from "./completeMatch";
 import type { RoundSummary, RoundMove, WordScore, ScoreTotals, FrozenTileMap } from "@/lib/types/match";
 import type { Coordinate } from "@/lib/types/board";
@@ -170,102 +170,6 @@ export async function publishRoundSummary(
     });
 
     return summary;
-}
-
-/**
- * Persist frozen tiles atomically using conditional update (FR-027).
- *
- * Uses optimistic locking: the UPDATE only succeeds if the current
- * frozen_tiles value matches `previousFrozenTiles`. If stale (another
- * round updated first), reloads current state, re-applies only this round's
- * new freezes onto it, and retries once.
- */
-async function persistFrozenTilesAtomically(
-    supabase: ReturnType<typeof getServiceRoleClient>,
-    matchId: string,
-    newFrozenTiles: FrozenTileMap,
-    previousFrozenTiles: FrozenTileMap,
-): Promise<void> {
-    // Attempt conditional update: only apply if frozen_tiles hasn't changed
-    const { data, error } = await supabase
-        .rpc("update_frozen_tiles_if_unchanged", {
-            p_match_id: matchId,
-            p_new_frozen_tiles: newFrozenTiles,
-            p_previous_frozen_tiles: previousFrozenTiles,
-        });
-
-    // If RPC doesn't exist yet, fall back to plain update with a log warning
-    if (error?.message?.includes("function") || error?.code === "42883") {
-        logPlaytestInfo("frozen-tiles.fallback-update", {
-            matchId,
-            metadata: { reason: "RPC not available, using plain update" },
-        });
-
-        const { error: updateError } = await supabase
-            .from("matches")
-            .update({
-                frozen_tiles: newFrozenTiles,
-                updated_at: new Date().toISOString(),
-            })
-            .eq("id", matchId);
-
-        if (updateError) {
-            throw new Error(
-                `Failed to persist frozen tiles: ${updateError.message}`,
-            );
-        }
-        return;
-    }
-
-    if (error) {
-        throw new Error(
-            `Failed to persist frozen tiles atomically: ${error.message}`,
-        );
-    }
-
-    // If conditional update returned 0 rows affected, the value was stale
-    if (data === 0) {
-        logPlaytestInfo("frozen-tiles.stale-retry", {
-            matchId,
-            metadata: { reason: "Stale frozen_tiles, retrying with fresh state" },
-        });
-
-        // Reload current frozen tiles and re-apply only THIS round's new
-        // freezes onto the fresh state. The previous implementation reloaded
-        // `match.frozen_tiles` but then ignored it and blindly wrote
-        // `newFrozenTiles` (computed against the now-stale baseline), silently
-        // dropping the concurrent round's freezes — a data-loss race
-        // (2026-06-18 code-quality review §2).
-        const { data: match } = await supabase
-            .from("matches")
-            .select("frozen_tiles")
-            .eq("id", matchId)
-            .single();
-
-        const freshFrozenTiles =
-            match?.frozen_tiles && typeof match.frozen_tiles === "object"
-                ? (match.frozen_tiles as FrozenTileMap)
-                : {};
-        const mergedFrozenTiles = mergeNewFreezesOntoFresh(
-            freshFrozenTiles,
-            previousFrozenTiles,
-            newFrozenTiles,
-        );
-
-        const { error: retryError } = await supabase
-            .from("matches")
-            .update({
-                frozen_tiles: mergedFrozenTiles,
-                updated_at: new Date().toISOString(),
-            })
-            .eq("id", matchId);
-
-        if (retryError) {
-            throw new Error(
-                `Failed to persist frozen tiles on retry: ${retryError.message}`,
-            );
-        }
-    }
 }
 
 /**

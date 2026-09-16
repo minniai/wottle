@@ -3,15 +3,19 @@
 import { useEffect, useState } from "react";
 
 import { Field } from "@/components/room/Field";
+import type { CellState } from "@/components/room/FieldCell";
 import { LobbyRoomView } from "@/components/room/LobbyRoomView";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { ProfilePage } from "@/components/profile/ProfilePage";
 import { OPPONENT, TAP_SECOND_LETTER, roundOneIn, searchingSubline, settingField } from "@/lib/constants/copy";
+import type { Seat } from "@/lib/constants/seatColors";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
+import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { LiveState } from "@/lib/room/ledgerRows";
+import type { Coordinate } from "@/lib/types/board";
 import type { MatchResult } from "@/lib/types/match";
 import {
   BIRNA,
@@ -21,13 +25,21 @@ import {
   FIXTURE_BOARD,
   FIXTURE_FROZEN,
   FIXTURE_WORDS,
+  ILLEGAL_CELL,
+  ILLEGAL_LIVE,
   KARI,
   LOBBY_PLAYERS,
+  LOW_CLOCK_MS,
   MATCH_STATE,
   OPP_CLOCK_MS,
   OPP_FINAL_LINE,
   OPP_ID,
+  OPP_PINS,
+  PICKED_CELL,
   PICKED_LIVE,
+  PLAYED_PINS,
+  PREVIEW_CELLS,
+  PREVIEW_LIVE,
   PROFILE_FIXTURE,
   QUEUE_ELAPSED,
   QUEUE_LETTERS_LANDED,
@@ -40,7 +52,6 @@ import {
 } from "./fixtures";
 
 const NO_OP = () => undefined;
-const PICKED_CELL = { x: 0, y: 9 };
 
 const BANDS = bandsFromWords({
   words: FIXTURE_WORDS,
@@ -49,30 +60,65 @@ const BANDS = bandsFromWords({
   playerAId: YOU_ID,
 });
 
-/** The match field, with `T` picked at x 0, y 9 and rounds 1–3 drawn as bands. */
-function MatchField({ drawnCount }: { drawnCount: number | null }) {
+/** The marks one match phase puts on the field (spec 047 amendment P2). */
+interface FieldMarks {
+  picked?: Coordinate;
+  previewed?: [Coordinate, Coordinate];
+  pins?: { cells: [Coordinate, Coordinate]; seat: Seat };
+  shakeAt?: Coordinate;
+}
+
+const same = (a: Coordinate | undefined, b: Coordinate) => a?.x === b.x && a?.y === b.y;
+const inPair = (pair: [Coordinate, Coordinate] | undefined, at: Coordinate) => pair?.some((c) => same(c, at)) ?? false;
+
+function markedState(marks: FieldMarks, at: Coordinate, base: CellState): CellState {
+  if (same(marks.picked, at)) return "picked";
+  if (inPair(marks.previewed, at)) return "previewed";
+  if (inPair(marks.pins?.cells, at)) return "pinned";
+  return base;
+}
+
+function markedSeat(marks: FieldMarks, at: Coordinate): Seat | null {
+  if (same(marks.picked, at) || inPair(marks.previewed, at)) return "you";
+  if (inPair(marks.pins?.cells, at)) return marks.pins?.seat ?? null;
+  return null;
+}
+
+/** The match field with rounds 1–3 drawn as bands and one phase's marks on it. */
+function MatchField({ drawnCount, marks }: { drawnCount: number | null; marks: FieldMarks }) {
+  const board = marks.previewed ? applyLetterSwaps(FIXTURE_BOARD, [marks.previewed]) : FIXTURE_BOARD;
   return (
     <Field
-      board={FIXTURE_BOARD}
+      board={board}
       frozenTiles={FIXTURE_FROZEN}
       viewerSlot="player_a"
       ownerNames={{ player_a: BIRNA.displayName, player_b: KARI.displayName }}
       bands={BANDS}
       drawnCount={drawnCount}
-      cellStateFor={(at, base) => (at.x === PICKED_CELL.x && at.y === PICKED_CELL.y ? "picked" : base)}
-      seatFor={(at) => (at.x === PICKED_CELL.x && at.y === PICKED_CELL.y ? "you" : null)}
+      cellStateFor={(at, base) => markedState(marks, at, base)}
+      seatFor={(at) => markedSeat(marks, at)}
+      shakeAt={marks.shakeAt ?? null}
+      exchange={marks.previewed ?? null}
       onActivate={NO_OP}
     />
   );
 }
 
-function matchSeats(completed: boolean, reconnectMsLeft: number | null) {
+interface SeatOptions {
+  completed: boolean;
+  reconnectMsLeft: number | null;
+  youClockMs?: number;
+  /** Your clock stops once you have played. */
+  youRunning?: boolean;
+}
+
+function matchSeats({ completed, reconnectMsLeft, youClockMs = YOU_CLOCK_MS, youRunning = true }: SeatOptions) {
   return {
     you: {
       name: BIRNA.displayName,
       rating: BIRNA.eloRating ?? null,
-      clockMs: completed ? 41_000 : YOU_CLOCK_MS,
-      running: !completed && reconnectMsLeft === null,
+      clockMs: completed ? 41_000 : youClockMs,
+      running: !completed && reconnectMsLeft === null && youRunning,
       score: completed ? 127 : 46,
       finalLine: completed ? YOU_FINAL_LINE : undefined,
     },
@@ -88,6 +134,30 @@ function matchSeats(completed: boolean, reconnectMsLeft: number | null) {
   };
 }
 
+interface MatchPhaseSpec {
+  live: LiveState;
+  marks: FieldMarks;
+  youClockMs?: number;
+  youRunning?: boolean;
+}
+
+const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL } };
+
+/** Every match-state phase as literals (spec 047 amendment P2). */
+const MATCH_PHASES: Partial<Record<RoomPhase, MatchPhaseSpec>> = {
+  idle: { live: { kind: "idle" }, marks: {} },
+  picking: PICKING,
+  "phone-sheet": PICKING,
+  reveal: PICKING,
+  previewed: { live: PREVIEW_LIVE, marks: { previewed: PREVIEW_CELLS } },
+  played: { live: { kind: "played" }, marks: { pins: { cells: PLAYED_PINS, seat: "you" } }, youRunning: false },
+  "opp-played": { live: { kind: "idle" }, marks: { pins: { cells: OPP_PINS, seat: "opp" } } },
+  "low-clock": { ...PICKING, youClockMs: LOW_CLOCK_MS },
+  illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL } },
+  final: { live: { kind: "idle" }, marks: {} },
+  disconnect: { live: { kind: "idle" }, marks: {} },
+};
+
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: RoomPhase }) {
   const [revealed, setRevealed] = useState(phase === "reveal" ? 0 : null);
@@ -98,7 +168,7 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
     const store = useRoomStore.getState();
     store.setViewer(phase === "landing" ? null : BIRNA);
     store.setBoard(FIXTURE_BOARD);
-    store.setPhase(phase === "final" ? "final" : phase === "landing" ? "lobby" : phase === "reveal" ? "match" : phase === "disconnect" ? "match" : phase === "profile" ? "lobby" : phase);
+    store.setPhase(phase === "final" ? "final" : phase === "landing" || phase === "profile" ? "lobby" : phase === "queue" || phase === "found" ? phase : "match");
   }, [phase]);
 
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
@@ -175,8 +245,8 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
   const completed = phase === "final";
   const disconnected = phase === "disconnect";
   const state = completed ? FINAL_STATE : disconnected ? DISCONNECT_STATE : MATCH_STATE;
-  const seats = matchSeats(completed, disconnected ? RECONNECT_MS_LEFT : null);
-  const live: LiveState = completed || disconnected ? { kind: "idle" } : PICKED_LIVE;
+  const spec = MATCH_PHASES[phase] ?? PICKING;
+  const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? RECONNECT_MS_LEFT : null, youClockMs: spec.youClockMs, youRunning: spec.youRunning });
 
   return (
     <RoomShell viewer={BIRNA}>
@@ -190,13 +260,13 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
         words={FIXTURE_WORDS}
         playerAId={YOU_ID}
         frozenTiles={FIXTURE_FROZEN}
-        live={live}
+        live={spec.live}
         verdict={completed ? FINAL_VERDICT : undefined}
         notices={disconnected ? [{ kind: "claimWin", opponentName: KARI.displayName }] : []}
         hint={disconnected ? `${KARI.displayName} · ${OPPONENT}` : undefined}
         onAction={NO_OP}
       >
-        <MatchField drawnCount={revealed} />
+        <MatchField drawnCount={revealed} marks={spec.marks} />
       </MatchRoomView>
     </RoomShell>
   );

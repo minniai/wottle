@@ -25,7 +25,7 @@ Word validity is decided against the BÍN-derived Icelandic word list in `data/w
 Wottle's UI is the **Field & Ledger** system: a ruled field of letters framed by two player bars (the
 opponent's above, yours below), with a single ledger beside it. Lobby, matchmaking, match, result and
 profile are states of that one room, not pages. Everything about the look is in
-[`docs/design/README.md`](docs/design/README.md) →
+[`docs/design_documentation/README.md`](docs/design_documentation/README.md) →
 `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`; all UI work must follow it.
 The implementing feature is `specs/044-field-ledger-redesign/`.
 

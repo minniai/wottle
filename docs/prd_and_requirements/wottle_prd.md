@@ -20,7 +20,7 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 ### 1.3 Move Mechanics
 
 - **Swapping Letters:** A **move** consists of selecting any two letter tiles on the board (they do **not** need to be adjacent) and swapping their positions. This is the only move action in the game. After a swap, the resulting board is automatically checked for new words formed by that swap.
-- **Controls — pick → commit, optional preview** (Field & Ledger design, `docs/design/README.md`):
+- **Controls — pick → commit, optional preview** (Field & Ledger design, `docs/design_documentation/README.md`):
   - Tapping a letter **picks** it (letter in your colour, slight scale-up, ink ring). By default, tapping a second letter **commits** the swap. Escape, tapping elsewhere or tapping the first letter again cancels a pick.
   - **Preview (opt-in setting, default off — decision Q2, spec 044):** with it on, the second tap **previews** the swap — the two letters exchange in place and the ledger's hint line shows the total the swap would score, nothing is sent — and a third tap on either letter, or Enter, commits. Escape reverses the preview.
   - **Desktop:** the same steps by click; dragging one letter onto another acts as the second tap. Keyboard: arrows move focus, Space picks (and previews when the setting is on), Enter commits, Escape cancels.
@@ -90,7 +90,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 ### 3.1 User Registration & Lobby Flow
 
-**One room, not pages** (Field & Ledger design, `docs/design/README.md`). Landing, lobby, matchmaking queue, opponent found, match, final result and profile are **states of the same room**: an opponent bar above a field of letters, the player's own bar below it, and a ledger beside them. The field never leaves the screen and nothing is ever drawn over it. Routes may change but the room does not flash.
+**One room, not pages** (Field & Ledger design, `docs/design_documentation/README.md`). Landing, lobby, matchmaking queue, opponent found, match, final result and profile are **states of the same room**: an opponent bar above a field of letters, the player's own bar below it, and a ledger beside them. The field never leaves the screen and nothing is ever drawn over it. Routes may change but the room does not flash.
 
 **Landing & Authentication (lobby state, empty seat):**
 
@@ -200,7 +200,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 ### 7.0 Design
 
-All UI follows the **Field & Ledger** design system — `docs/design/README.md` →
+All UI follows the **Field & Ledger** design system — `docs/design_documentation/README.md` →
 `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`. It is binding for every screen
 and component; when it and the code disagree, the code is wrong. The implementing feature is
 `specs/044-field-ledger-redesign/`. The one rule: every visible element is a letter (or a state of a letter)

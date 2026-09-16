@@ -62,9 +62,13 @@ function deriveViewerSlot(state: MatchState, viewerId: string | null): PlayerSlo
   return null;
 }
 
-/** Ported from MatchClient.applySnapshot: a fresh poll may lag a broadcast; never regress. */
+/**
+ * Ported from MatchClient.applySnapshot: a fresh poll may lag a broadcast; never
+ * regress. A snapshot for another match (a rematch replaced the match in place)
+ * carries nothing over — spec 047 FR-004.
+ */
 function mergeSnapshot(previous: MatchState | null, snapshot: MatchState): MatchState {
-  if (!previous) return snapshot;
+  if (!previous || previous.matchId !== snapshot.matchId) return snapshot;
   const scores =
     snapshot.scores.playerA === 0 && snapshot.scores.playerB === 0 &&
     (previous.scores.playerA > 0 || previous.scores.playerB > 0)
@@ -117,7 +121,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   applySummary: (summary) => {
     const current = get().match;
-    if (!current) return;
+    if (!current || summary.matchId !== current.matchId) return;
     set({ match: { ...current, scores: summary.totals, lastSummary: summary } });
   },
 

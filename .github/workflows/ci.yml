@@ -280,7 +280,7 @@ jobs:
       - name: Start the app
         run: |
           pnpm start &
-          npx wait-on "http://127.0.0.1:3000/dev/room?phase=match" --timeout 60000
+          npx wait-on "http://127.0.0.1:3000/dev/room?phase=picking" --timeout 60000
       - name: Visual suite
         run: pnpm test:visual --reporter=line
       - name: Upload screenshots

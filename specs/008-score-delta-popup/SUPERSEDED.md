@@ -3,7 +3,7 @@
 **Scope superseded:** the whole UI part.
 
 The UI described in this spec was retired by the Field & Ledger rebuild (2026-09-14). Its replacement
-is the ledger live row, which writes each word and its points as its band lands (`Ledger`); `ScoreDeltaPopup` is retired. See `docs/design/README.md`, the plan
+is the ledger live row, which writes each word and its points as its band lands (`Ledger`); `ScoreDeltaPopup` is retired. See `docs/design_documentation/README.md`, the plan
 `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_PLAN.md` (§11 order of work) and the
 feature spec `specs/044-field-ledger-redesign/spec.md`.
 

@@ -6,6 +6,8 @@ vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
 import { previewSwap } from "@/app/actions/match/previewSwap";
 import { Field } from "@/components/room/Field";
 import { useFieldInteraction, type FieldInteractionOptions } from "@/components/room/hooks/useFieldInteraction";
+import { liveText } from "@/lib/room/ledgerRows";
+import { liveStateFor } from "@/lib/room/liveState";
 import type { Coordinate } from "@/lib/types/board";
 
 function board(): string[][] {
@@ -28,9 +30,11 @@ function Harness(props: Partial<FieldInteractionOptions> & { frozen?: Record<str
     onRejected: props.onRejected ?? (() => undefined),
     onNotice: props.onNotice ?? (() => undefined),
   });
+  // Spec 047 amendment P1: the field state becomes the live row's two lines.
+  const live = liveText(liveStateFor(field.interaction, () => ({ letter: "B", value: 1 })));
   return (
     <>
-      <div data-testid="hint">{field.hint}</div>
+      <div data-testid="live">{live.line2 ? `${live.line1} / ${live.line2}` : live.line1}</div>
       <div data-testid="kind">{field.interaction.kind}</div>
       <Field board={board()} frozenTiles={frozen} viewerSlot="player_a" cellStateFor={field.cellStateFor} seatFor={field.seatFor} shakeAt={field.shakeAt} focusAt={field.focusAt} onActivate={(at: Coordinate) => field.dispatch({ type: "tap", at })} onDrag={(from: Coordinate, to: Coordinate) => field.dispatch({ type: "drag", from, to })} onKeyDown={field.onKeyDown} />
     </>
@@ -57,11 +61,11 @@ describe("Field interaction (spec 044 US2)", () => {
     expect(cell(1, 1)).toHaveAttribute("data-state", "picked");
     expect(cell(1, 1)).toHaveAttribute("data-seat", "you");
     expect(onPick).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("hint")).toHaveTextContent("tap a second letter");
+    expect(screen.getByTestId("live")).toHaveTextContent("picking · B (1) / tap a second letter");
     fireEvent.click(cell(4, 1));
     expect(cell(1, 1)).toHaveAttribute("data-state", "pinned");
     expect(cell(4, 1)).toHaveAttribute("data-state", "pinned");
-    expect(screen.getByTestId("hint")).toHaveTextContent("played ●");
+    expect(screen.getByTestId("live")).toHaveTextContent("played ●");
     expect(fetchMock).toHaveBeenCalledWith("/api/match/m1/move", expect.objectContaining({ method: "POST", body: JSON.stringify({ fromX: 1, fromY: 1, toX: 4, toY: 1 }) }));
     await waitFor(() => expect(onCommitted).toHaveBeenCalled());
     expect(previewSwap).not.toHaveBeenCalled();
@@ -76,7 +80,8 @@ describe("Field interaction (spec 044 US2)", () => {
     expect(cell(4, 1)).toHaveAttribute("data-state", "previewed");
     expect(fetchMock).not.toHaveBeenCalled();
     expect(previewSwap).toHaveBeenCalledWith({ kind: "match", matchId: "m1", from: { x: 1, y: 1 }, to: { x: 4, y: 1 } });
-    await waitFor(() => expect(screen.getByTestId("hint")).toHaveTextContent("24 · hestur · tap again to play"));
+    expect(screen.getByTestId("live")).toHaveTextContent("previewing / tap again to play · esc cancels");
+    await waitFor(() => expect(screen.getByTestId("live")).toHaveTextContent("24 · hestur / tap again to play · esc cancels"));
     fireEvent.click(cell(4, 1));
     expect(screen.getByTestId("kind")).toHaveTextContent("committed");
     expect(fetchMock).toHaveBeenCalledTimes(1);

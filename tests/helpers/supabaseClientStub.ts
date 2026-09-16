@@ -25,6 +25,7 @@ export interface SupabaseClientStubOptions {
 
 export interface SupabaseClientStubHistory {
   fromTables: string[];
+  rpcCalls: Array<{ fn: string; args: unknown }>;
   boardSelectColumns: Array<string | undefined>;
   boardSelectFilters: Array<{ column: string; value: unknown }>;
   boardLimitValues: number[];
@@ -63,9 +64,14 @@ export function createSupabaseClientStub(
     movesDeleteFilters: [],
     genericSelectTables: [],
     genericSelectLimitValues: [],
+    rpcCalls: [],
   };
 
   const clientImpl = {
+    rpc: vi.fn(async (fn: string, args: unknown) => {
+      history.rpcCalls.push({ fn, args });
+      return { data: 0, error: null };
+    }),
     from: vi.fn((table: string) => {
       history.fromTables.push(table);
 

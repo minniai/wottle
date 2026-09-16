@@ -99,13 +99,42 @@ export interface BandsInput {
   frozenTiles: FrozenTileMap;
   viewerSlot: PlayerSlot | null;
   playerAId: string;
+  /** The round being revealed: drawn at 30% from its coordinates. */
   liveRound?: number | null;
+  /**
+   * The most recently scored round. Its summary can reach the client a poll
+   * before the snapshot that carries its freezes, so it is drawn from its
+   * coordinates (settled) rather than blinking out until the freezes land.
+   */
+  trustRound?: number | null;
+}
+
+const isDev = process.env.NODE_ENV !== "production";
+
+/**
+ * The cells a word's band covers, or `null` when it must not be drawn
+ * (spec 047 FR-001, review S4). A settled word is drawn only over letters
+ * that are still frozen: if any is not, the record and the board disagree
+ * and a band would paint a chevron over letters that do not spell the word.
+ * The live round and the most recently scored round keep their full run —
+ * their freezes land with the reveal or the next snapshot. A band under two
+ * cells is never drawn.
+ */
+function bandCells(w: AccumulatedWord, input: BandsInput): Coordinate[] | null {
+  const frozen = w.coordinates.filter((c) => `${c.x},${c.y}` in input.frozenTiles);
+  const live = input.liveRound != null && w.roundNumber === input.liveRound;
+  const trusted = live || (input.trustRound != null && w.roundNumber === input.trustRound);
+  if (!trusted && frozen.length !== w.coordinates.length) {
+    if (isDev) console.warn(`[bands] R${w.roundNumber} ${w.word}: ${w.coordinates.length - frozen.length} letter(s) not frozen`);
+    return null;
+  }
+  const cells = trusted && frozen.length === 0 ? w.coordinates : frozen;
+  return cells.length < 2 ? null : cells;
 }
 
 /**
- * Build bands from the accumulated word records. A partial freeze (24-unfrozen
- * safeguard) clips the band to the letters that actually froze; a word none of
- * whose letters froze keeps its full run. Duplicate records collapse by id.
+ * Build bands from the accumulated word records. Settled words draw over their
+ * frozen letters only (see `bandCells`); duplicate records collapse by id.
  */
 export function bandsFromWords(input: BandsInput): WordBand[] {
   const seen = new Set<string>();
@@ -116,8 +145,8 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
     const id = bandId(w, direction);
     if (seen.has(id)) continue;
     seen.add(id);
-    const frozenCells = w.coordinates.filter((c) => `${c.x},${c.y}` in input.frozenTiles);
-    const cells = frozenCells.length > 0 ? frozenCells : w.coordinates;
+    const cells = bandCells(w, input);
+    if (!cells) continue;
     const slot: PlayerSlot = w.playerId === input.playerAId ? "player_a" : "player_b";
     bands.push({
       id,
