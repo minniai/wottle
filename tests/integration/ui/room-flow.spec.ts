@@ -64,7 +64,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await cell(pageB, bx1, 9).click();
       await cell(pageB, bx2, 9).click();
       await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "previewed");
-      await expect(pageB.getByTestId("ledger-hint")).toContainText(/tap again to play/);
+      // Spec 047 amendment P1: the preview line lives in the live row, not the hint.
+      await expect(pageB.getByTestId("ledger-live-row")).toContainText(/tap again to play/);
       await pageB.keyboard.press("Escape");
       await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "free");
       await cell(pageB, bx1, 9).click();

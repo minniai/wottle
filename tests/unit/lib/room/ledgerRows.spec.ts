@@ -22,7 +22,7 @@ describe("buildLedgerRows (design system §5.4)", () => {
     expect(rows[1].you?.words.map((w) => w.points)).toEqual([20, 0]);
     expect(rows[1].you?.total).toBe(20);
     expect(rows[1].opp).toBeNull();
-    expect(rows[2]).toMatchObject({ status: "live", liveText: "picking · T (2)" });
+    expect(rows[2]).toMatchObject({ status: "live", live: { line1: "picking · T (2)", line2: "tap a second letter" } });
     expect(rows.slice(3).every((r) => r.status === "future")).toBe(true);
   });
 
@@ -45,9 +45,17 @@ describe("buildLedgerRows (design system §5.4)", () => {
     expect(rows[9].status).toBe("past");
   });
 
-  it("live text follows the state", () => {
-    expect(liveText({ kind: "played" })).toBe("played ●");
-    expect(liveText({ kind: "idle" })).toBe("");
+  // Spec 047 amendment P1 (review S2): the instruction travels with the state.
+  // Line 1 says where the player is; line 2, when present, what to do next.
+  it("live text is a state line and an instruction line", () => {
+    expect(liveText({ kind: "idle" })).toEqual({ line1: "pick a letter", line2: "" });
+    expect(liveText({ kind: "picking", letter: "T", value: 2 })).toEqual({ line1: "picking · T (2)", line2: "tap a second letter" });
+    expect(liveText({ kind: "previewing", total: null, words: [] })).toEqual({ line1: "previewing", line2: "tap again to play · esc cancels" });
+    expect(liveText({ kind: "previewing", total: 24, words: ["hestur"] })).toEqual({ line1: "24 · hestur", line2: "tap again to play · esc cancels" });
+    expect(liveText({ kind: "previewing", total: 0, words: [] })).toEqual({ line1: "0 · no word", line2: "tap again to play · esc cancels" });
+    expect(liveText({ kind: "played" })).toEqual({ line1: "played ●", line2: "" });
+    expect(liveText({ kind: "illegal", ownerName: "Kári", round: 2 })).toEqual({ line1: "frozen · Kári R2 · pick another", line2: "" });
+    expect(liveText({ kind: "resolving" })).toEqual({ line1: "resolving", line2: "" });
   });
 });
 
@@ -59,10 +67,10 @@ describe("buildTerritory", () => {
 });
 
 describe("buildMatchLedger", () => {
-  it("caption reads the round context and hint defaults to tap a second letter", () => {
+  it("caption reads the round context; the hint is empty unless a match-level line is given", () => {
     const model = buildMatchLedger({ currentRound: 4, completed: false, words: [], playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} });
     expect(model.caption).toBe("ranked · round 4 of 10");
-    expect(model.hint).toBe("tap a second letter");
+    expect(model.hint).toBe("");
     expect(model.territory.free).toBe(100);
   });
 });
