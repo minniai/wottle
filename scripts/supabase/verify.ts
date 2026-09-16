@@ -48,6 +48,13 @@ export async function verifySupabase(options: VerifyOptions = {}): Promise<Verif
         supabase.from("move_submissions").select("id").limit(1),
         supabase.from("match_logs").select("id").limit(1),
         supabase.from("match_heartbeats").select("match_id").limit(1),
+        // Spec 047 FR-005: the frozen-tiles compare-and-set function must exist.
+        // The nil uuid matches no row, so the probe writes nothing and returns 0.
+        supabase.rpc("update_frozen_tiles_if_unchanged", {
+          p_match_id: "00000000-0000-0000-0000-000000000000",
+          p_new_frozen_tiles: {},
+          p_previous_frozen_tiles: {},
+        }),
       ]);
 
       const failed = checks.find((result) => result.error);
