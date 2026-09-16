@@ -116,8 +116,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(cell(pageA, bx1, 5)).toHaveAttribute("data-state", /pinned|scored/, { timeout: 15_000 });
       await cell(pageA, bx1, 5).dispatchEvent("click");
       await expect(cell(pageA, bx1, 5)).not.toHaveAttribute("data-state", "picked");
-      // Several notices can be up at once (first-match rules, pinned, frozen); match the one we caused.
-      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: /frozen ·|pinned/ }).first()).toBeVisible({ timeout: 5_000 });
+      // Spec 047 amendment P1: the illegal pick is a live-row state, not a notice line.
+      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/frozen ·/, { timeout: 5_000 });
     } finally {
       await contextA.close();
       await contextB.close();
