@@ -10,10 +10,15 @@
  * would differ on every run.
  *
  * The board is the one the implementation review's companion renders, so a
- * screenshot of `?phase=match` is directly comparable with its fixture B.
+ * screenshot of `?phase=picking` is directly comparable with its fixture B.
+ *
+ * Spec 047 amendment P2: one phase per asymmetric signal — idle, picking,
+ * previewed, played, opp-played, low-clock, illegal — and `phone-sheet`, which
+ * the visual spec opens at 390×844.
  */
 
 import type { AccumulatedWord, LiveState } from "@/lib/room/ledgerRows";
+import type { Coordinate } from "@/lib/types/board";
 import type { Territory, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, MatchState, PlayerIdentity } from "@/lib/types/match";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -23,11 +28,18 @@ export const ROOM_PHASES = [
   "lobby",
   "queue",
   "found",
-  "match",
+  "idle",
+  "picking",
+  "previewed",
+  "played",
+  "opp-played",
+  "low-clock",
+  "illegal",
   "reveal",
   "final",
   "disconnect",
   "profile",
+  "phone-sheet",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -46,7 +58,7 @@ export function isRoomPhase(value: string | undefined): value is RoomPhase {
  * ÖFLUGRÁLEK   LEK   you  R3  ltr  x 7–9, y 6  — shares (7,6) with GILT
  * MÝSJAÐETRI
  * ISKÓPUNÆHÖ
- * TRAUÐLEGIS   T at x 0, y 9 is picked in the match phase
+ * TRAUÐLEGIS   T at x 0, y 9 is picked in the picking phase
  */
 export const FIXTURE_BOARD: string[][] = [
   [..."ÞAKREISTÖL"],
@@ -159,8 +171,28 @@ export const MATCH_STATE: MatchState = {
   frozenTiles: FIXTURE_FROZEN,
 };
 
-/** The picked letter in the match phase: T at x 0, y 9, worth one point. */
+/** The picked letter in the picking phase: T at x 0, y 9, worth one point. */
+export const PICKED_CELL: Coordinate = { x: 0, y: 9 };
 export const PICKED_LIVE: LiveState = { kind: "picking", letter: "T", value: 1 };
+
+/**
+ * The preview phase: T (0,9) and Þ (0,0) exchanged. Priced once against the
+ * real dictionary with `priceSwap` on this board: TAK across row 0, 10 points.
+ */
+export const PREVIEW_CELLS: [Coordinate, Coordinate] = [{ x: 0, y: 9 }, { x: 0, y: 0 }];
+export const PREVIEW_LIVE: LiveState = { kind: "previewing", total: 10, words: ["tak"] };
+
+/** Your played swap: two free letters pinned in your colour, your clock stopped. */
+export const PLAYED_PINS: [Coordinate, Coordinate] = [{ x: 3, y: 5 }, { x: 6, y: 8 }];
+/** The opponent's pending swap, seen from your seat: two coral pins, their clock stopped. */
+export const OPP_PINS: [Coordinate, Coordinate] = [{ x: 1, y: 1 }, { x: 8, y: 3 }];
+
+/** 0:48 of a 5:00 budget: the lane is 8px and blinks (design system §5.3). */
+export const LOW_CLOCK_MS = 48_000;
+
+/** An illegal pick: (7,4) is GILT's G, frozen by Kári in round 2. */
+export const ILLEGAL_CELL: Coordinate = { x: 7, y: 4 };
+export const ILLEGAL_LIVE: LiveState = { kind: "illegal", ownerName: "Kári", round: 2 };
 
 export const DISCONNECT_STATE: MatchState = {
   ...MATCH_STATE,

@@ -21,7 +21,7 @@ export default async function RoomFixturePage({ searchParams }: PageProps) {
   if (process.env.NODE_ENV === "production" && !process.env.ROOM_FIXTURES) notFound();
 
   const { phase } = await searchParams;
-  const resolved: RoomPhase = isRoomPhase(phase) ? phase : "match";
+  const resolved: RoomPhase = isRoomPhase(phase) ? phase : "picking";
 
   return <RoomFixture phase={resolved} />;
 }
