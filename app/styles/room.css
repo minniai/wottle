@@ -346,6 +346,11 @@
   color: var(--ink);
   font-weight: 700;
 }
+/* Amendment P4 (review S7): a shared letter's numeral is ink too, weight 400 —
+   never the seat of whichever record happened to be resolved last. */
+.field__cell[data-state="shared"] .field__value {
+  color: var(--ink);
+}
 .field__cell--landing > span:first-child {
   animation: letter-land 120ms cubic-bezier(0.2, 0, 0.2, 1) both;
 }
