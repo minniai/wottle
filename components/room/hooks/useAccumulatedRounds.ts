@@ -1,52 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import type { HistoryWord } from "@/lib/match/wordHistory";
+import { accumulate, EMPTY_WORDS, flattenWords, type AccumulatedWords } from "@/lib/room/accumulatedWords";
 import type { AccumulatedWord } from "@/lib/room/ledgerRows";
-import type { MatchState, PartialRoundSummary, RoundSummary } from "@/lib/types/match";
-
-function fromSummary(summary: RoundSummary): AccumulatedWord[] {
-  return summary.words.map((w) => ({
-    roundNumber: summary.roundNumber,
-    playerId: w.playerId,
-    word: w.word,
-    totalPoints: w.totalPoints,
-    coordinates: w.coordinates,
-    direction: w.direction,
-  }));
-}
-
-function fromPartial(partial: PartialRoundSummary): AccumulatedWord[] {
-  return partial.words.map((w) => ({
-    roundNumber: partial.roundNumber,
-    playerId: w.playerId,
-    word: w.word,
-    totalPoints: w.totalPoints,
-    coordinates: w.coordinates,
-    direction: w.direction,
-  }));
-}
-
-const wordKey = (w: AccumulatedWord) => `${w.roundNumber}:${w.playerId}:${w.word}:${w.coordinates[0]?.x},${w.coordinates[0]?.y}`;
+import type { MatchState } from "@/lib/types/match";
 
 /**
- * Words accumulated across rounds from every delivery path (summary broadcast,
- * state snapshot's lastSummary, instant first-mover partial). Deduped by round +
- * player + word + start tile, so a repeated broadcast never doubles a row.
+ * Every scored word of the match the room is showing, from the history route
+ * (completed rounds), the summary broadcast (the round that just resolved) and
+ * the instant first-mover partial (the live round) — spec 047 FR-003.
+ *
+ * Keyed on `matchId`: a rematch replaces the match in place and starts empty.
+ * A partial never outlives the canonical summary for its round.
  */
-export function useAccumulatedRounds(match: MatchState | null): AccumulatedWord[] {
-  const [words, setWords] = useState<AccumulatedWord[]>([]);
-  const seen = useRef(new Set<string>());
+export function useAccumulatedRounds(match: MatchState | null, history: HistoryWord[] | null): AccumulatedWord[] {
+  const [state, setState] = useState<AccumulatedWords>(EMPTY_WORDS);
+  const matchId = match?.matchId ?? null;
+  const lastSummary = match?.lastSummary;
+  const partialSummary = match?.partialSummary;
 
   useEffect(() => {
-    const incoming = [
-      ...(match?.lastSummary ? fromSummary(match.lastSummary) : []),
-      ...(match?.partialSummary ? fromPartial(match.partialSummary) : []),
-    ].filter((w) => !seen.current.has(wordKey(w)));
-    if (incoming.length === 0) return;
-    incoming.forEach((w) => seen.current.add(wordKey(w)));
-    setWords((prev) => [...prev, ...incoming]);
-  }, [match?.lastSummary, match?.partialSummary]);
+    if (!matchId) return;
+    setState((previous) => accumulate(previous, { matchId, history, lastSummary, partialSummary }));
+  }, [matchId, history, lastSummary, partialSummary]);
 
-  return words;
+  return useMemo(() => (state.matchId === matchId ? flattenWords(state) : []), [state, matchId]);
 }

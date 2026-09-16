@@ -26,6 +26,7 @@ import { Field } from "./Field";
 import { MatchRoomView } from "./MatchRoomView";
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import { useAccumulatedRounds } from "./hooks/useAccumulatedRounds";
+import { useWordHistory } from "./hooks/useWordHistory";
 import { useClockTick } from "./hooks/useClockTick";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
@@ -85,7 +86,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const onNewMatch = useCallback((newMatchId: string) => router.replace(`/match/${newMatchId}`), [router]);
   const rematch = useRematchNegotiation({ matchId, currentPlayerId, onNewMatch });
   const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
-  const words = useAccumulatedRounds(match);
+  const history = useWordHistory(matchId, match.currentRound);
+  const words = useAccumulatedRounds(match, history);
   const { notices, push, dismiss } = useNotices();
   const clocks = useClockTick(match.timers);
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
