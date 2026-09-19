@@ -1,8 +1,0 @@
-# Files
-
-- [Data Model & Persistence](data-model.md) - The Supabase Postgres schema behind Wottle's game state — core tables, DB-enforced invariants, server-authoritative timing columns, and Row-Level Security — plus how lib/types rows map to TypeScript.
-- [Frontend & Client State](frontend-ui.md) - How the Next.js client layer renders server-authoritative match state, structures its game/match/lobby/profile components, manages client state (Zustand stores and local React state), and delivers sensory feedback and accessibility under the Warm Editorial visual system.
-- [Match & Round Runtime](match-runtime.md) - The server-authoritative match lifecycle in Wottle — round phases, submission collection, conflict resolution, chess-clock enforcement, scoring/resolution, instant-scoring reveal, resilience recovery, and match completion with Elo.
-- [Matchmaking, Lobby & Presence](matchmaking-lobby.md) - How players log in, appear in the lobby directory, track presence, join auto-queue or send direct invites, and get bootstrapped into a match row seeded with a board and both player ids.
-- [System Architecture Overview](overview.md) - How Wottle's layers fit together — Next.js App Router client, Server Actions and API Route Handlers, the lib/ domain modules, and Supabase for persistence, auth, and realtime — with a server-authoritative boundary for all game state.
-- [Realtime Channels & State Broadcasting](realtime-and-presence.md) - How the game uses Supabase Realtime to broadcast authoritative match state, round summaries, and rematch signals over a per-match channel, how the client reconciles that state, and how presence channels plus polling fallbacks keep the UI live when Realtime is degraded.
