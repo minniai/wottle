@@ -99,10 +99,9 @@ export const isGone = (name: string): string => `${name} is gone`;
 export const RECONNECT_SPENT = "0:00 left to reconnect";
 export const CLAIM_THE_WIN = "claim the win ▸";
 export const MATCH_OVER = "match over";
-export const matchOverReason = (reason: "rounds" | "resigned" | "timeout" | "abandoned", opponentName: string): string =>
-  reason === "resigned" ? " · resigned" : reason === "timeout" ? " · out of time" : reason === "abandoned" ? ` · ${opponentName} left` : "";
-export const matchOverLabel = (rounds: number, durationMmSs: string, reasonSuffix = ""): string =>
-  `${MATCH_OVER} · ${rounds} rounds · ${durationMmSs}${reasonSuffix}`;
+/** `match over · 10 rounds · 18:50`. Why it ended is the verdict's detail line, said once. */
+export const matchOverLabel = (rounds: number, durationMmSs: string): string =>
+  `${MATCH_OVER} · ${rounds} ${rounds === 1 ? "round" : "rounds"} · ${durationMmSs}`;
 export const winsHeadline = (winnerName: string): string => `${winnerName} wins`;
 export const DRAW = "draw";
 export const REVIEW_FIELD = "review the field ▸";
@@ -115,6 +114,9 @@ export const DECLINE = "decline";
 export const verdictLine = (winnerName: string, a: number, b: number): string =>
   `${winnerName} wins ${a}–${b}`;
 export const drawLine = (a: number, b: number): string => `draw ${a}–${b}`;
+/** A forced end states what ended it, because `by 0 points` beside a rating change is a lie. */
+export const forcedDetail = (loserName: string, reason: "forfeit" | "disconnect" | "timeout"): string =>
+  reason === "forfeit" ? `${loserName} resigned` : reason === "disconnect" ? `${loserName} left` : `${loserName} ran out of time`;
 export const verdictDetail = (margin: number, wordsA: number, wordsB: number, terrA: number, terrB: number) =>
   `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
 

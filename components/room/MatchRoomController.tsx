@@ -291,8 +291,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const clocksHeld = match.disconnectedPlayerId != null && isActive;
   const youScore = match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const oppScore = match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"];
-  const youScoreWins = youScore > oppScore;
-  const draw = youScore === oppScore;
+  // A win can be forced (resignation, a disconnect past the window): the server's
+  // winner decides the verdict and the bars, not the totals (spec 048 US1).
+  const recordedWinnerSeat = match.winnerId ? (match.winnerId === youTimer.playerId ? "you" : "opp") : null;
+  const youScoreWins = recordedWinnerSeat ? recordedWinnerSeat === "you" : youScore > oppScore;
+  const draw = recordedWinnerSeat ? false : youScore === oppScore;
   const verdict = useMemo(
     () =>
       completed
@@ -304,9 +307,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
             viewerWords: words.filter((w) => w.playerId === youTimer.playerId).length,
             opponentWords: words.filter((w) => w.playerId === oppTimer.playerId).length,
             territory: buildTerritory(frozenTiles, viewerSlot),
+            winnerSeat: recordedWinnerSeat,
+            endedReason: match.endedReason,
           })
         : null,
-    [completed, you.displayName, opp.displayName, youScore, oppScore, words, youTimer.playerId, oppTimer.playerId, frozenTiles, viewerSlot],
+    [completed, you.displayName, opp.displayName, youScore, oppScore, words, youTimer.playerId, oppTimer.playerId, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason],
   );
   // The match-over slip (spec 048 US1) replaces the ledger's rematch notices.
   const [revealedOnce, setRevealedOnce] = useState(false);

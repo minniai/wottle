@@ -375,6 +375,7 @@ The Field & Ledger design (`docs/design_documentation/README.md`) renders each r
 | Duplicate word (§5.4) | Listed in the row with `0` points; its band is still drawn (the tiles freeze). |
 | Reconnection window | The disconnected player's lane becomes a dashed pattern and holds; their sub-line counts `reconnecting · 0:42 left`. When the window is spent, the claim is put to the player on a **slip** over the field (`Kári is gone` · `claim the win ▸` · `keep waiting ▸`). |
 | Match over (§2, §5.5) | A slip over the field, 600ms after the final settle: `Kári wins` in the winner's ink (`draw` in ink), both totals, the detail line, both rating lines, then `rematch ▸` · `new opponent ▸` · `review the field ▸` · `lobby`. The ledger keeps the verdict beneath it. |
+| A forced win (resign, disconnect, spent clock) | The winner is the one the server recorded, not the higher total; the detail line reads `<loser> resigned` / `<loser> left` / `<loser> ran out of time` in place of the counted line. |
 | Resigning | A slip: `Resign the match?` with the round and the player's clock, `yes, resign ▸` · `keep playing ▸`; the clocks keep running. |
 | Every match is rated | No caption or state says otherwise; a rating line reads `rating pending` until the row is written. |
 

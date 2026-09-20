@@ -130,6 +130,13 @@ export interface MatchState {
   /** In-flight swaps for the current round. Populated only during `collecting`. */
   pendingMoves?: PendingMove[];
   /**
+   * Set once the match is completed. A win can be forced (a resignation, a
+   * disconnect past the window), in which case the totals do not name the
+   * winner and the verdict must read these instead (spec 048 US1).
+   */
+  winnerId?: string | null;
+  endedReason?: MatchEndedReason | null;
+  /**
    * Set while the current round is still `collecting` and the first player's
    * instant-scoring pass has fired (spec 042 / Linear O-57). Cleared when the
    * round transitions out of `collecting` — at that point `lastSummary`

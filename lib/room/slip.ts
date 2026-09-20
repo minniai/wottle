@@ -7,6 +7,7 @@ import type { RematchPhase } from "./useRematchNegotiation";
  * field. Exactly four kinds, one at a time, ranked so a higher-stakes slip
  * always replaces a lower one and is never replaced by it.
  */
+/** Why the match ended. The verdict's detail line states it; the slip's label counts the match. */
 export type EndReason = "rounds" | "resigned" | "timeout" | "abandoned";
 
 export type SlipState =
@@ -16,7 +17,6 @@ export type SlipState =
   | {
       kind: "matchOver";
       verdict: Verdict;
-      reason: EndReason;
       rounds: number;
       durationMmSs: string;
       /** Totals by seat; the winner is printed first. */

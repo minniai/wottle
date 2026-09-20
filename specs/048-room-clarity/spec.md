@@ -142,7 +142,7 @@ The two decisions that end a match early are put to the player on a slip, in the
 
 ### Edge Cases
 
-- A match ends by resignation, clock expiry or abandonment: the match-over slip lands with the reason in its label line (`match over · resigned`, `match over · out of time`, `match over · Kári left`).
+- A match ends by resignation, clock expiry or abandonment: the server's recorded winner names the verdict (the totals do not), and the detail line reads `Kári resigned` / `Kári left` / `Kári ran out of time` in place of the counted line. The label line counts the match only, so the reason is stated once. (Amended 2026-09-20 after a live match: guessing the reason from the state that was left read `· resigned` for a player who had disconnected, and `draw 0 – 0` stood beside a −16 rating.)
 - The match-over slip is up and the player reloads: it lands again immediately (no 600ms delay, the bands are already settled).
 - Two slips are due at once (opponent leaves during a resign confirmation): the resign slip is dropped and the claim-win slip shows; a match-over slip replaces any other slip.
 - A round resolves while the resign slip is up: the reveal runs beneath it; the slip stays; the settle hold runs; the slip's round line updates.

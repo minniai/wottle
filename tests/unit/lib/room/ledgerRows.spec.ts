@@ -143,3 +143,31 @@ describe("settle hold rows (spec 048 FR-022)", () => {
     expect(model).toMatchObject({ round: 3, completed: false });
   });
 });
+
+describe("a forced winner (spec 048): the scores do not decide the verdict", () => {
+  const base = { viewerName: "Birna", opponentName: "Kári", viewerScore: 0, opponentScore: 0, viewerWords: 0, opponentWords: 0, territory: { you: 0, opp: 0, free: 100 } };
+
+  it("names the recorded winner even when the totals are level", () => {
+    const v = buildVerdict({ ...base, winnerSeat: "you", endedReason: "forfeit" });
+    expect(v.winnerSeat).toBe("you");
+    expect(v.scoreLine).toBe("Birna wins 0–0");
+    // "by 0 points" beside a rating change is a lie; say what ended it.
+    expect(v.detailLine).toBe("Kári resigned");
+  });
+
+  it("says who left, and who ran out of time", () => {
+    expect(buildVerdict({ ...base, winnerSeat: "you", endedReason: "disconnect" }).detailLine).toBe("Kári left");
+    expect(buildVerdict({ ...base, winnerSeat: "opp", endedReason: "timeout" }).detailLine).toBe("Birna ran out of time");
+  });
+
+  it("a match played to the round limit keeps the counted detail line", () => {
+    const v = buildVerdict({ ...base, viewerScore: 170, opponentScore: 127, viewerWords: 10, opponentWords: 8, territory: { you: 32, opp: 25, free: 43 }, endedReason: "round_limit" });
+    expect(v.scoreLine).toBe("Birna wins 170–127");
+    expect(v.detailLine).toBe("by 43 points · 10 words to 8 · territory 32–25");
+  });
+
+  it("without a recorded winner the scores still decide, as before", () => {
+    expect(buildVerdict({ ...base, viewerScore: 12, opponentScore: 30 }).winnerSeat).toBe("opp");
+    expect(buildVerdict(base).scoreLine).toBe("draw 0–0");
+  });
+});

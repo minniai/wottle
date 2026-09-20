@@ -11,7 +11,6 @@ const CLAIM: SlipState = { kind: "claimWin", opponentName: "Kári", round: 4 };
 const OVER: SlipState = {
   kind: "matchOver",
   verdict: { winnerSeat: "opp", scoreLine: "Kári wins 170–127", detailLine: "by 43 points · 10 words to 8 · territory 32–25" },
-  reason: "rounds",
   rounds: 10,
   durationMmSs: "18:50",
   scores: { you: 127, opp: 170 },

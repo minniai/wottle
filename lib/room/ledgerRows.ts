@@ -1,4 +1,4 @@
-import { drawLine, finalContext, RATING_PENDING, ratingSubline, roundContext, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, forcedDetail, RATING_PENDING, ratingSubline, roundContext, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { liveText, type LiveState } from "./liveLines";
 import { liveLinesFor, type RoundState } from "./roundState";
 
@@ -8,7 +8,7 @@ import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { bandIdForWord } from "./bandGeometry";
 import type { Coordinate } from "@/lib/types/board";
-import type { FrozenTileMap, PlayerSlot, ReadingDirection } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, PlayerSlot, ReadingDirection } from "@/lib/types/match";
 import { emptyRows, type LedgerModel, type LedgerRow, type LiveLines, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
 
 export const TOTAL_ROUNDS = 10;
@@ -126,20 +126,29 @@ export interface VerdictInput {
   viewerWords: number;
   opponentWords: number;
   territory: Territory;
+  /** The seat the server recorded as the winner, when the totals do not name them (spec 048). */
+  winnerSeat?: Seat | null;
+  endedReason?: MatchEndedReason | null;
 }
+
+/** A win the totals do not explain: the detail line says what ended the match instead. */
+const FORCED: Record<string, "forfeit" | "disconnect" | "timeout"> = { forfeit: "forfeit", disconnect: "disconnect", abandoned: "disconnect", timeout: "timeout" };
 
 /** `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` — stated once, same voice for win and loss. */
 export function buildVerdict(v: VerdictInput): Verdict {
-  const youWin = v.viewerScore > v.opponentScore;
-  const draw = v.viewerScore === v.opponentScore;
-  const winnerSeat = draw ? null : youWin ? "you" : "opp";
+  const winnerSeat = v.winnerSeat ?? (v.viewerScore === v.opponentScore ? null : v.viewerScore > v.opponentScore ? "you" : "opp");
+  const youWin = winnerSeat === "you";
   const [hi, lo] = youWin ? [v.viewerScore, v.opponentScore] : [v.opponentScore, v.viewerScore];
   const [wordsHi, wordsLo] = youWin ? [v.viewerWords, v.opponentWords] : [v.opponentWords, v.viewerWords];
   const [terrHi, terrLo] = youWin ? [v.territory.you, v.territory.opp] : [v.territory.opp, v.territory.you];
+  const forced = v.endedReason ? FORCED[v.endedReason] : undefined;
   return {
     winnerSeat,
-    scoreLine: draw ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
-    detailLine: verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo),
+    scoreLine: winnerSeat === null ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
+    detailLine:
+      forced && winnerSeat !== null
+        ? forcedDetail(youWin ? v.opponentName : v.viewerName, forced)
+        : verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo),
   };
 }
 

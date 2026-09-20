@@ -40,7 +40,7 @@ describe("useMatchOverSlip (spec 048 FR-003)", () => {
 
   it("builds the slip winner-first with rating pending until rows arrive", () => {
     const slip = buildMatchOverSlip(input);
-    expect(slip).toMatchObject({ kind: "matchOver", scores: { you: 127, opp: 170 }, rounds: 10, reason: "rounds" });
+    expect(slip).toMatchObject({ kind: "matchOver", scores: { you: 127, opp: 170 }, rounds: 10 });
     expect(slip && slip.kind === "matchOver" ? slip.ratings.map((r) => [r.seat, r.line]) : null).toEqual([["opp", "rating pending"], ["you", "rating pending"]]);
   });
 
@@ -84,5 +84,20 @@ describe("useMatchOverSlip (spec 048 FR-003)", () => {
     expect(useRoomStore.getState().slip).toBeNull();
     act(() => vi.advanceTimersByTime(MATCH_OVER_DELAY_MS));
     expect(useRoomStore.getState().slip?.kind).toBe("matchOver");
+  });
+});
+
+describe("the end reason comes off the match, not a guess (spec 048)", () => {
+  it("reads the server's recorded reason", () => {
+    expect(endReasonFor({ ...match, endedReason: "disconnect" })).toBe("abandoned");
+    expect(endReasonFor({ ...match, endedReason: "forfeit" })).toBe("resigned");
+    expect(endReasonFor({ ...match, endedReason: "timeout" })).toBe("timeout");
+    expect(endReasonFor({ ...match, endedReason: "round_limit" })).toBe("rounds");
+  });
+
+  it("a completed match whose disconnect flag has cleared is still abandoned, not resigned", () => {
+    // The live bug: the server finalises on the reconnect timeout, clears the
+    // flag, and the slip read `· resigned` for a player who never resigned.
+    expect(endReasonFor({ ...match, currentRound: 1, endedReason: "disconnect", disconnectedPlayerId: null })).toBe("abandoned");
   });
 });

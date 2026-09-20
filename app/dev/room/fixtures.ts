@@ -251,7 +251,6 @@ export const CLAIM_WIN_SLIP: SlipState = { kind: "claimWin", opponentName: KARI.
 export const OVER_SLIP: SlipState = {
   kind: "matchOver",
   verdict: FINAL_VERDICT,
-  reason: "rounds",
   rounds: 10,
   durationMmSs: "18:50",
   scores: { you: 127, opp: 170 },

@@ -5,6 +5,7 @@ import type { Coordinate } from "@/lib/types/board";
 import { aggregateRoundSummary } from "@/lib/scoring/roundSummary";
 import type {
   FrozenTileMap,
+  MatchEndedReason,
   MatchPhase,
   MatchPlayerProfile,
   MatchPlayerProfiles,
@@ -360,7 +361,7 @@ export async function loadMatchState(
   const { data: match, error: matchError } = await client
     .from("matches")
     .select(
-      "id,state,current_round,board_seed,player_a_id,player_b_id,player_a_timer_ms,player_b_timer_ms,frozen_tiles,winner_id,created_at",
+      "id,state,current_round,board_seed,player_a_id,player_b_id,player_a_timer_ms,player_b_timer_ms,frozen_tiles,winner_id,ended_reason,created_at",
     )
     .eq("id", matchId)
     .maybeSingle();
@@ -641,6 +642,8 @@ export async function loadMatchState(
     reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,
     pendingMoves,
     partialSummary,
+    winnerId: (match as { winner_id?: string | null }).winner_id ?? null,
+    endedReason: ((match as { ended_reason?: string | null }).ended_reason as MatchEndedReason | null) ?? null,
   };
 }
 

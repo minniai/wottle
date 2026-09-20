@@ -12,7 +12,6 @@ import {
   KEEP_WAITING,
   LOBBY,
   matchOverLabel,
-  matchOverReason,
   NEW_OPPONENT,
   NEW_HERE_HOW_TO_PLAY,
   NO_ACCOUNT_NEEDED,
@@ -156,7 +155,7 @@ function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
-        <span className="slip__label">{matchOverLabel(slip.rounds, slip.durationMmSs, matchOverReason(slip.reason, slip.opponentName))}</span>
+        <span className="slip__label">{matchOverLabel(slip.rounds, slip.durationMmSs)}</span>
         <h2 id={headlineId} className="slip__headline" data-seat={winner ?? undefined}>{headline}</h2>
         <span className="slip__score" data-testid="slip-score">
           <span data-seat={first}>{slip.scores[first]}</span> – <span data-seat={second}>{slip.scores[second]}</span>

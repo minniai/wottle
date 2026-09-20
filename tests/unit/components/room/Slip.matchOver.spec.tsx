@@ -9,7 +9,6 @@ vi.mock("@/app/actions/auth/login", () => ({ loginAction: vi.fn(async () => ({ s
 const OVER: Extract<SlipState, { kind: "matchOver" }> = {
   kind: "matchOver",
   verdict: { winnerSeat: "opp", scoreLine: "Kári wins 170–127", detailLine: "by 43 points · 10 words to 8 · territory 32–25" },
-  reason: "rounds",
   rounds: 10,
   durationMmSs: "18:50",
   scores: { you: 127, opp: 170 },
@@ -48,11 +47,13 @@ describe("Slip · match over (spec 048 US1)", () => {
     expect(onAction.mock.calls.map((c) => c[0])).toEqual(["newOpponent", "reviewField", "lobby"]);
   });
 
-  it("a draw is stated in ink; a reason joins the label", () => {
-    render(<Slip slip={{ ...OVER, verdict: { winnerSeat: null, scoreLine: "draw 140–140", detailLine: "" }, scores: { you: 140, opp: 140 }, reason: "resigned" }} onAction={() => {}} />);
+  it("a draw is stated in ink; the label counts the match and says nothing of why it ended", () => {
+    render(<Slip slip={{ ...OVER, verdict: { winnerSeat: null, scoreLine: "draw 140–140", detailLine: "" }, scores: { you: 140, opp: 140 } }} onAction={() => {}} />);
     expect(screen.getByRole("heading")).toHaveTextContent("draw");
     expect(screen.getByRole("heading")).not.toHaveAttribute("data-seat");
-    expect(screen.getByTestId("slip")).toHaveTextContent("match over · 10 rounds · 18:50 · resigned");
+    // Why it ended is the verdict's detail line, never repeated in the label (§1.9).
+    expect(screen.getByTestId("slip")).toHaveTextContent("match over · 10 rounds · 18:50");
+    expect(screen.getByTestId("slip")).not.toHaveTextContent("· resigned");
   });
 
   it("an incoming rematch rewrites the action line; waiting says so; read-only offers lobby only", () => {

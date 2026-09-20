@@ -49,3 +49,10 @@ describe("copy (design system §8)", () => {
     expect(copy.NO_SUCH_MATCH).not.toContain("!");
   });
 });
+
+describe("the match-over label counts rounds (spec 048)", () => {
+  test("pluralises the round count", () => {
+    expect(copy.matchOverLabel(1, "0:41")).toBe("match over · 1 round · 0:41");
+    expect(copy.matchOverLabel(10, "18:50")).toBe("match over · 10 rounds · 18:50");
+  });
+});

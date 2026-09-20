@@ -28,8 +28,23 @@ export interface MatchOverSlipInput {
   revealed: boolean;
 }
 
-/** `MatchState` carries no end reason; read it off the state that is there. */
+/**
+ * The server records why the match ended; guessing from the state that is left
+ * read `· resigned` for a player who had merely disconnected (seen live,
+ * 2026-09-20). Only fall back to a guess for a row written before the reason was.
+ */
+const REASONS: Record<string, EndReason> = {
+  round_limit: "rounds",
+  timeout: "timeout",
+  disconnect: "abandoned",
+  abandoned: "abandoned",
+  forfeit: "resigned",
+  error: "rounds",
+};
+
 export function endReasonFor(match: MatchState): EndReason {
+  const recorded = match.endedReason ? REASONS[match.endedReason] : undefined;
+  if (recorded) return recorded;
   if (match.state === "abandoned" || match.disconnectedPlayerId) return "abandoned";
   const spent = match.timers.playerA.remainingMs <= 0 || match.timers.playerB.remainingMs <= 0;
   if (spent) return "timeout";
@@ -57,7 +72,6 @@ export function buildMatchOverSlip(input: MatchOverSlipInput): SlipState | null 
   return {
     kind: "matchOver",
     verdict,
-    reason: endReasonFor(match),
     rounds: Math.min(match.currentRound, 10),
     durationMmSs,
     scores: { you, opp },
