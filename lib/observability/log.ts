@@ -106,6 +106,32 @@ export function logPlaytestError(event: string, payload: PlaytestLogPayload = {}
   console.error(JSON.stringify(buildPayload("error", event, payload)));
 }
 
+/** Spec 049: after a resolution, a record no longer spells or a frozen letter changed. */
+export function trackMatchIntegrityFailed(payload: { matchId: string; roundNumber: number; failures: unknown[] }): void {
+  logPlaytestError("match.integrity.failed", {
+    matchId: payload.matchId,
+    roundNumber: payload.roundNumber,
+    metadata: { failures: payload.failures },
+  });
+}
+
+/** Spec 049: a round-end write found the match row already advanced or completed and changed nothing. */
+export function trackStaleMatchWrite(payload: { matchId: string; expectedRound: number; carried: Record<string, unknown> }): void {
+  logPlaytestInfo("match.write.stale", {
+    matchId: payload.matchId,
+    roundNumber: payload.expectedRound,
+    metadata: { level: "warn", expectedRound: payload.expectedRound, carried: payload.carried },
+  });
+}
+
+/** Spec 049: the client refused to draw a band whose letters do not spell its record. */
+export function trackBandRecordMismatch(payload: { matchId: string; record: string }): void {
+  logPlaytestInfo("bands.record-mismatch", {
+    matchId: payload.matchId,
+    metadata: { level: "warn", record: payload.record },
+  });
+}
+
 export function trackInviteAccepted(payload: {
   matchId: string;
   playerId: string;
