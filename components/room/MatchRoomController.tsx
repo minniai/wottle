@@ -174,7 +174,20 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // first-mover partial reveal (spec 042) draws while the viewer may still pick.
   const summaryReveal = reveal.key?.startsWith("summary:") ?? false;
   const resolvingNow = revealing && summaryReveal;
-  useSettleHold({ matchId, round: reveal.round, settled: progress.settled, drew: summaryReveal && progress.planIds.length > 0 });
+  // A round resolved while we were watching: a summary arrived for a round this
+  // client had not already seen, so a reload holds nothing. A round that scored
+  // nothing still holds — the pause is about the round closing, not the bands.
+  // `settled` is paired with `planKey` because it reads stale-true until the
+  // reveal has planned, and a hold taken there would expire before the bands do.
+  const seenSummaryRound = useRef<number | null>(match.lastSummary?.roundNumber ?? null);
+  const [resolvedRound, setResolvedRound] = useState<number | null>(null);
+  useEffect(() => {
+    const round = match.lastSummary?.roundNumber ?? null;
+    if (round === null || round === seenSummaryRound.current) return;
+    seenSummaryRound.current = round;
+    setResolvedRound(round);
+  }, [match.lastSummary?.roundNumber]);
+  useSettleHold({ matchId, resolvedRound, settled: progress.settled && progress.planKey === reveal.key });
   const hiddenWordIds = useMemo(() => new Set(newIds.slice(progress.wordsWritten)), [newIds, progress.wordsWritten]);
 
   const holdRound = useRoomStore((s) => s.holdRound);

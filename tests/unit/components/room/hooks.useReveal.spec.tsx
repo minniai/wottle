@@ -15,7 +15,7 @@ describe("useReveal", () => {
   it("advances band → write → countUp → settle on the plan's timeline and ticks per band", () => {
     const onBand = vi.fn();
     const { result } = renderHook(() => useReveal({ key: "r3", wordIds: ["a", "b"], alreadyDrawn: new Set(), reducedMotion: false, onBand }));
-    expect(result.current).toEqual({ bandsDrawn: 0, wordsWritten: 0, totalsShown: false, settled: false, planIds: ["a", "b"] });
+    expect(result.current).toEqual({ bandsDrawn: 0, wordsWritten: 0, totalsShown: false, settled: false, planIds: ["a", "b"], planKey: "r3" });
     act(() => vi.advanceTimersByTime(0));
     expect(result.current.bandsDrawn).toBe(1);
     expect(onBand).toHaveBeenCalledWith(0);

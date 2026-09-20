@@ -17,9 +17,15 @@ export interface RevealInput {
 export interface RevealState extends RevealProgress {
   /** Ids the running (or last completed) plan actually drew; empty for settle-only plans. */
   planIds: string[];
+  /**
+   * The key this progress belongs to. A new key does not reach the state until
+   * the planning effect runs, so `settled` reads stale-true for a render or two
+   * after one arrives; a caller that acts on settling must check this first.
+   */
+  planKey: string | null;
 }
 
-const DONE: RevealState = { ...REVEAL_DONE, planIds: [] };
+const DONE: RevealState = { ...REVEAL_DONE, planIds: [], planKey: null };
 
 /**
  * Schedules a reveal plan and exposes its progress. Re-keying cancels the
@@ -50,14 +56,14 @@ export function useReveal(input: RevealInput): RevealState {
     const steps: RevealStep[] = planReveal(ids, { reducedMotion, alreadyDrawn: drawn });
     const planIds = ids.filter((id) => !drawn.has(id));
     if (steps.length === 1 && steps[0].kind === "settle" && steps[0].at === 0) {
-      setState({ ...REVEAL_DONE, planIds: reducedMotion ? planIds : [] });
+      setState({ ...REVEAL_DONE, planIds: reducedMotion ? planIds : [], planKey: key });
       return;
     }
-    setState({ ...REVEAL_START, planIds });
+    setState({ ...REVEAL_START, planIds, planKey: key });
     timers.current = steps.map((step) =>
       setTimeout(() => {
         if (step.kind === "band") onBandRef.current?.(step.wordIndex ?? 0);
-        setState((prev) => ({ ...applyStep(prev, step), planIds: prev.planIds }));
+        setState((prev) => ({ ...applyStep(prev, step), planIds: prev.planIds, planKey: prev.planKey }));
       }, step.at),
     );
     return () => timers.current.forEach(clearTimeout);

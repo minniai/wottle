@@ -38,13 +38,14 @@ describe("deriveRoundState (spec 048 contracts/round-state.md)", () => {
     expect(derive(match({ state: "resolving" }))).toMatchObject({ kind: "resolving", round: 4 });
     expect(derive(match(), { revealing: true })).toMatchObject({ kind: "resolving" });
   });
-  it("scored (the hold) outranks everything and carries the deltas from the summary", () => {
+  it("the bands come first: resolving while they draw, scored for the pause after", () => {
     const m = match({
       currentRound: 5,
       state: "resolving",
       lastSummary: { matchId: "m1", roundNumber: 4, words: [], deltas: { playerA: 12, playerB: 0 }, totals: { playerA: 58, playerB: 15 }, highlights: [], moves: [], resolvedAt: "" },
     });
-    expect(derive(m, { holdRound: 4, revealing: true })).toEqual({ kind: "scored", round: 4, next: 5, you: 12, opp: 0, opponentName: K });
+    expect(derive(m, { holdRound: 4, revealing: true })).toMatchObject({ kind: "resolving" });
+    expect(derive(m, { holdRound: 4, revealing: false })).toEqual({ kind: "scored", round: 4, next: 5, you: 12, opp: 0, opponentName: K });
   });
   it("a stale hold (not the previous round) is ignored", () => {
     expect(derive(match({ currentRound: 6 }), { holdRound: 3 })).toMatchObject({ kind: "yourMove" });

@@ -23,7 +23,11 @@ The `illegal` field state (`frozen · Kári R2 · pick another`) still replaces 
 
 ## Settle hold
 
-- `useSettleHold({ round, settled })` → `beginHold(round)` when `settled` flips true for a reveal that drew ≥1 band or changed a total; `endHold()` after `SETTLE_HOLD_MS = 1200`.
+- `useSettleHold({ matchId, resolvedRound, settled })` → `beginHold(round)` the moment a summary arrives for a round this client had not already seen; `endHold()` `SETTLE_HOLD_MS = 1200` after that round's bands have settled. Amended 2026-09-20, after a live ten-round match:
+  - **A round that scored nothing is held too.** Keying the hold on "bands were drawn" let a scoreless round pass in silence, which is the very thing this feature exists to end.
+  - **A reload holds nothing.** The signal is a summary for a round not yet seen, so a client that mounts on an already-resolved round does not pause.
+  - **The hold spans the resolution.** It opens when the round resolves and closes after the pause, so `revealing` takes precedence in `deriveRoundState`: the round reads `resolving round 4` while the bands draw and `round 4 scored` for the pause after.
+  - **`settled` is paired with `useReveal`'s new `planKey`.** The reveal reports `settled` before it has planned, and again while its words are still arriving; a pause armed in either window is cancelled when the bands start drawing.
 - While held: the previous round's row has `status: "settled"` (tint + 3px ink rule, like live), the current round's row is `future`, `Field` is `disabled`, the caption already reads `round 5 of 10`, the rail already marks 5 as current (the rail and caption are facts about the match; the row is the beat).
 - On the final round the hold runs, then `MATCH_OVER_DELAY_MS` runs from the hold's end (total 1.8s after settle).
 - `performance.mark("room:settle-hold:start" | ":end")`.

@@ -56,10 +56,12 @@ export function deriveRoundState(input: DeriveRoundStateInput): RoundState {
   const { match, viewerSlot, opponentName, holdRound, revealing, revealRound = null } = input;
   const round = match.currentRound;
   const base = { round, opponentName };
+  // The hold spans the whole resolution, so the bands drawing come first: the
+  // round is resolving until they settle, and scored for the pause after.
+  if (revealing) return { kind: "resolving", ...base, round: revealRound ?? round };
   if (holdRound !== null && (holdRound === round - 1 || (match.state === "completed" && holdRound === round))) {
     return { kind: "scored", ...base, round: holdRound, next: holdRound + 1, ...scoredDeltasFor(match, viewerSlot, holdRound) };
   }
-  if (revealing) return { kind: "resolving", ...base, round: revealRound ?? round };
   if (match.state === "resolving") return { kind: "resolving", ...base };
   const you = match.timers[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const opp = match.timers[viewerSlot === "player_a" ? "playerB" : "playerA"];

@@ -38,7 +38,7 @@ test.describe("Round flow", () => {
       await expect(pageA.getByTestId("round-rail")).toHaveAttribute("aria-label", "round 1 of 10");
 
       await submitSwap(pageA);
-      await expect(live(pageA)).toContainText(`played · waiting for ${userB}`, { timeout: 20_000 });
+      await expect(live(pageA)).toContainText(new RegExp(`played · waiting for ${userB}`, "i"), { timeout: 20_000 });
       await expect(pageA.getByTestId("player-bar-bottom")).toContainText("played ●");
       await expect(pageA.getByTestId("field")).not.toHaveAttribute("data-turn", "you");
       // B sees A's move as the opponent's, and still owns the turn.

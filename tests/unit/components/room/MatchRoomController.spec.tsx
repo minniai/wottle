@@ -366,14 +366,10 @@ describe("MatchRoomController", () => {
     // The clock runs past the 2s safety poll here, so the poll must answer with a real state.
     vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/state") ? initial : { status: "accepted", grid: initial.board }) })));
     renderController(initial);
-    // The round-3 reveal resolves and holds first (spec 048 FR-022); the field is closed until then.
+    // Round 3's bands are drawn on arrival, but this client never watched it
+    // resolve (it mounted with the summary), so nothing is held back.
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("resolving round 3");
-    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     act(() => vi.advanceTimersByTime(2_000)); // the reveal settles
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("round 3 scored");
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("you +15 · Bob +13 · round 4 opens in 1");
-    expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "future");
-    act(() => vi.advanceTimersByTime(1_300)); // the settle hold ends
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("round 4 · your move");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     fireEvent.click(cell(1, 2));
