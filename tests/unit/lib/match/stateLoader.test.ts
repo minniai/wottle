@@ -51,6 +51,9 @@ function makeMockClient(
     };
     const roundChain = {
         eq: vi.fn().mockReturnThis(),
+        not: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({ data: roundData, error: null }),
     };
     const scoreboardChain = {
