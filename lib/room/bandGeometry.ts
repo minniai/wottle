@@ -24,7 +24,10 @@ export interface BandRect {
 export interface WordBand {
   id: string;
   seat: Seat;
+  /** The letters this word froze first: the band's tint (spec 049 US2). */
   cells: Coordinate[];
+  /** The whole word: the chevron's place and the hover's extent. */
+  wordCells: Coordinate[];
   direction: ReadingDirection;
   strength: "settled" | "live";
   round: number;
@@ -97,6 +100,8 @@ export function bandIdForWord(word: AccumulatedWord): string | null {
 
 export interface BandsInput {
   words: AccumulatedWord[];
+  /** The field the bands are drawn over: a settled band must spell its word on it (spec 049). */
+  board: string[][];
   frozenTiles: FrozenTileMap;
   viewerSlot: PlayerSlot | null;
   playerAId: string;
@@ -112,23 +117,49 @@ export interface BandsInput {
 
 const isDev = process.env.NODE_ENV !== "production";
 
+interface BandSource {
+  board: string[][];
+  frozenTiles: FrozenTileMap;
+  /** The slot whose word this is: the band covers the cells this slot froze. */
+  slot: PlayerSlot;
+  trusted: boolean;
+}
+
 /**
  * The cells a word's band covers, or `null` when it must not be drawn
- * (spec 047 FR-001, review S4). A settled word is drawn only over letters
- * that are still frozen: if any is not, the record and the board disagree
- * and a band would paint a chevron over letters that do not spell the word.
- * The live round and the most recently scored round keep their full run —
- * their freezes land with the reveal or the next snapshot. A band under two
- * cells is never drawn.
+ * (spec 047 FR-001, review S4; spec 049). A settled word is drawn only over
+ * letters that are still frozen and only when the board spells the word
+ * there: on 2026-09-20 the served board was round 1's, and bands were drawn
+ * over ÞKHL and GÁAAT. Of those letters it covers the ones its own seat
+ * froze — a crossing keeps the earlier owner (spec 049 US2). The live round
+ * and the most recently scored round keep their full run — their freezes
+ * land with the reveal or the next snapshot. A word under two letters is
+ * never drawn.
  */
-function bandCells(w: AccumulatedWord, frozenTiles: FrozenTileMap, trusted: boolean): Coordinate[] | null {
-  const frozen = w.coordinates.filter((c) => isFrozen(frozenTiles, c));
-  if (!trusted && frozen.length !== w.coordinates.length) {
-    warnOnce(`[bands] R${w.roundNumber} ${w.word}: ${w.coordinates.length - frozen.length} letter(s) not frozen`);
-    return null;
+function bandCells(w: AccumulatedWord, source: BandSource): Coordinate[] | null {
+  if (w.coordinates.length < 2) return null;
+  const frozen = w.coordinates.filter((c) => isFrozen(source.frozenTiles, c));
+  if (!source.trusted) {
+    const problem = settledProblem(w, source.board, frozen.length);
+    if (problem) {
+      warnOnce(`[bands] R${w.roundNumber} ${w.word}: ${problem}`);
+      return null;
+    }
   }
-  const cells = trusted && frozen.length === 0 ? w.coordinates : frozen;
-  return cells.length < 2 ? null : cells;
+  if (source.trusted && frozen.length === 0) return w.coordinates;
+  const owned = frozen.filter((c) => source.frozenTiles[`${c.x},${c.y}`]?.owner === source.slot);
+  return owned.length === 0 ? null : owned;
+}
+
+const upper = (s: string): string => s.toLocaleUpperCase("is");
+
+/** Why a settled record must not be drawn, or `null` when it may. */
+function settledProblem(w: AccumulatedWord, board: string[][], frozenCount: number): string | null {
+  if (frozenCount !== w.coordinates.length) return `${w.coordinates.length - frozenCount} letter(s) not frozen`;
+  const expected = upper(w.word);
+  if ([...expected].length !== w.coordinates.length) return `expected ${[...expected].length} coordinates, got ${w.coordinates.length}`;
+  const spelled = w.coordinates.map((c) => upper(board[c.y]?.[c.x] ?? "?")).join("");
+  return spelled === expected ? null : `board spells ${spelled}`;
 }
 
 /** `bandsFromWords` runs on every snapshot; a disagreeing record is reported once, not every poll. */
@@ -154,13 +185,14 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
     seen.add(id);
     const live = input.liveRound != null && w.roundNumber === input.liveRound;
     const trusted = live || (input.trustRound != null && w.roundNumber === input.trustRound);
-    const cells = bandCells(w, input.frozenTiles, trusted);
-    if (!cells) continue;
     const slot: PlayerSlot = w.playerId === input.playerAId ? "player_a" : "player_b";
+    const cells = bandCells(w, { board: input.board, frozenTiles: input.frozenTiles, slot, trusted });
+    if (!cells) continue;
     bands.push({
       id,
       seat: seatForSlot(input.viewerSlot, slot),
       cells,
+      wordCells: w.coordinates,
       direction,
       strength: live ? "live" : "settled",
       round: w.roundNumber,
@@ -170,15 +202,12 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
   return bands;
 }
 
-/** Cells covered by bands of both seats render in ink (design system §5.1 "shared"). */
-export function sharedCells(bands: WordBand[]): Set<string> {
-  const bySeat: Record<Seat, Set<string>> = { you: new Set(), opp: new Set() };
-  for (const band of bands) for (const c of band.cells) bySeat[band.seat].add(`${c.x},${c.y}`);
-  return new Set([...bySeat.you].filter((k) => bySeat.opp.has(k)));
-}
-
-/** Seat that colours a scored letter: the (single) seat whose band covers it. */
-export function seatOfCell(bands: WordBand[], coord: Coordinate): Seat | null {
-  const hit = bands.find((b) => b.cells.some((c) => c.x === coord.x && c.y === coord.y));
-  return hit?.seat ?? null;
+/**
+ * The seat that colours a scored letter: the player who froze it first
+ * (spec 049 US2, contracts/ownership-rendering.md). Band membership never
+ * decides a cell's colour.
+ */
+export function ownerSeatOf(frozenTiles: FrozenTileMap, coord: Coordinate, viewerSlot: PlayerSlot | null): Seat | null {
+  const owner = frozenTiles[`${coord.x},${coord.y}`]?.owner;
+  return owner ? seatForSlot(viewerSlot, owner) : null;
 }

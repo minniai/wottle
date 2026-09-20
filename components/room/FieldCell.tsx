@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import type { Seat } from "@/lib/constants/seatColors";
 import { getSeatColors } from "@/lib/constants/seatColors";
 
-export type CellState = "free" | "picked" | "previewed" | "pinned" | "frozen" | "scored" | "shared";
+export type CellState = "free" | "picked" | "previewed" | "pinned" | "frozen" | "scored";
 
 export interface FieldCellProps {
   x: number;

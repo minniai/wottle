@@ -330,6 +330,25 @@ test.describe("@visual the room fits a phone", () => {
   });
 });
 
+/** Spec 049 US2: a scored letter has one owner and one colour; nothing is "shared". */
+test.describe("@visual one owner, one colour", () => {
+  test("reveal: the L where LEK crosses GILT is the opponent's; no phase has a shared cell", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "visual-1440x900", "one viewport is enough for an attribute");
+    for (const phase of ROOM_PHASES) {
+      if (phase === "rules" || phase === "profile") continue;
+      await page.goto(`/dev/room?phase=${phase}`);
+      await expect(page.getByTestId("field")).toBeVisible();
+      await expect(page.locator('[data-testid="field-cell"][data-state="shared"]')).toHaveCount(0);
+    }
+    await page.goto("/dev/room?phase=reveal");
+    const crossing = page.locator('[data-testid="field-cell"][data-x="7"][data-y="6"]');
+    await expect(crossing).toHaveAttribute("data-seat", "opp");
+    await expect(crossing).toHaveAttribute("data-state", "scored");
+    await page.goto("/dev/room?phase=settle");
+    await expect(page.locator('[data-testid="field-band"][data-word="LEK"]')).toHaveAttribute("data-cells", "8,6;9,6");
+  });
+});
+
 test.describe("@visual room clarity", () => {
   test("the round rail stays above the collapsed live row", async ({ page }, testInfo) => {
     await page.goto("/dev/room?phase=idle");

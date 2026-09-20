@@ -17,6 +17,7 @@ import type {
   WordScore,
 } from "@/lib/types/match";
 import { generateBoard } from "@/lib/game-engine/boardGenerator";
+import { logPlaytestError } from "@/lib/observability/log";
 import { computeElapsedMs, computeRemainingMs, isClockExpired } from "./clockEnforcer";
 import { getDisconnectRecord } from "./disconnectStore";
 import { findStaleParticipantDetail } from "./heartbeatRepository";
@@ -123,25 +124,67 @@ function mapState(roundState: string | null | undefined, matchState: string): Ma
   return "collecting";
 }
 
+/**
+ * The highest round with a persisted post-board — the round a finished match
+ * is served from (spec 049 R1). A completed match's `current_round` is one
+ * past its last round and names no row; serving from the pointer regenerated
+ * the starting board from the seed under ten rounds of freezes (2026-09-20).
+ */
+export async function lastPlayedRound(
+  client: AnyClient,
+  matchId: string,
+): Promise<{ roundNumber: number; boardAfter: unknown } | null> {
+  const { data } = await client
+    .from("rounds")
+    .select("round_number, board_snapshot_after")
+    .eq("match_id", matchId)
+    .not("board_snapshot_after", "is", null)
+    .order("round_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return { roundNumber: data.round_number as number, boardAfter: data.board_snapshot_after };
+}
+
+function parseBoard(snapshot: unknown): string[][] | null {
+  if (!snapshot) return null;
+  try {
+    return boardGridSchema.parse(snapshot);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The board to serve. The round's own snapshot first; failing that, the last
+ * played round's post-board; the seed only when the match has no board at all.
+ * A match that has rounds never gets a fresh board: that is a fault, logged
+ * and handed to recovery by the caller (spec 049 contracts/state-loader.md).
+ */
 function ensureBoardSnapshot(
   matchId: string,
   boardSeed: string | null,
-  round: { board_snapshot_before: unknown; board_snapshot_after: unknown; state: string | null } | null,
-): string[][] {
-  const preferred =
-    round && round.state === "completed" && round.board_snapshot_after
-      ? round.board_snapshot_after
-      : round?.board_snapshot_before;
+  own: string[][] | null,
+  fallback: unknown,
+): { board: string[][]; source: "round" | "last-played" | "seed" } {
+  if (own) return { board: own, source: "round" };
+  const last = parseBoard(fallback);
+  if (last) return { board: last, source: "last-played" };
+  return { board: generateBoard({ seed: boardSeed ?? matchId }), source: "seed" };
+}
 
-  if (preferred) {
-    try {
-      return boardGridSchema.parse(preferred);
-    } catch (error) {
-      console.warn("[MatchState] Failed to parse board snapshot, regenerating board", error);
-    }
-  }
+type RoundSnapshotRow = {
+  state: string | null;
+  board_snapshot_before: unknown;
+  board_snapshot_after: unknown;
+};
 
-  return generateBoard({ seed: boardSeed ?? matchId });
+/** A completed round's post-board; any other round's pre-board. */
+function roundBoardOf(round: RoundSnapshotRow | null | undefined): unknown {
+  if (!round) return null;
+  return round.state === "completed" && round.board_snapshot_after
+    ? round.board_snapshot_after
+    : round.board_snapshot_before;
 }
 
 async function fetchCompletedRound(
@@ -405,22 +448,32 @@ export async function loadMatchState(
     match.current_round = 1;
   }
 
+  // A finished match is served from its last played round, not from the round
+  // pointer: the pointer is one past the last round (or, on 2026-09-20,
+  // written backwards by a thawed hook) and names no row. Spec 049 R1.
+  const finished = match.state === "completed" || match.state === "abandoned";
+  const lastPlayed = finished ? await lastPlayedRound(client, matchId) : null;
+  const servingRound = lastPlayed?.roundNumber ?? match.current_round;
+  // The summary and the scores snapshot are those of the round just played:
+  // for a live match that is the round before the pointer, for a finished one
+  // the serving round itself.
+  const playedRound = finished ? servingRound : Math.max(match.current_round - 1, 0);
+
   // Parallelize independent queries (all depend on match but not each other)
-  const scoresSnapshotRound = Math.max(match.current_round - 1, 0);
   const [{ data: round }, { data: scoreboard }, lastSummary] = await Promise.all([
     client
       .from("rounds")
       .select("id, state, board_snapshot_before, board_snapshot_after, started_at, resolution_started_at")
       .eq("match_id", matchId)
-      .eq("round_number", match.current_round)
+      .eq("round_number", servingRound)
       .maybeSingle(),
     client
       .from("scoreboard_snapshots")
       .select("player_a_score, player_b_score")
       .eq("match_id", matchId)
-      .eq("round_number", scoresSnapshotRound)
+      .eq("round_number", playedRound)
       .maybeSingle(),
-    loadLatestRoundSummary(client, matchId, match.current_round, match.player_a_id, match.player_b_id),
+    loadLatestRoundSummary(client, matchId, playedRound + 1, match.player_a_id, match.player_b_id),
   ]);
 
   const scores: ScoreTotals = scoreboard
@@ -430,7 +483,22 @@ export async function loadMatchState(
       }
     : { playerA: 0, playerB: 0 };
 
-  const board = ensureBoardSnapshot(match.id, match.board_seed, round ?? null);
+  // A live match whose pointer names no row, or whose snapshot cannot be read,
+  // is served from the last played board and handed to recovery — never a
+  // fresh board (spec 049 contracts/state-loader.md).
+  const ownBoard = parseBoard(roundBoardOf(round));
+  const fallback =
+    lastPlayed?.boardAfter
+    ?? (ownBoard ? null : (await lastPlayedRound(client, matchId))?.boardAfter)
+    ?? null;
+  const { board, source } = ensureBoardSnapshot(match.id, match.board_seed, ownBoard, fallback);
+  if (source !== "round") {
+    logPlaytestError(round ? "match.board.unreadable" : "match.round.missing", {
+      matchId,
+      roundNumber: servingRound,
+      metadata: { served: source, matchState: match.state },
+    });
+  }
   const effectiveState = mapState(round?.state ?? null, match.state);
 
   // Extended self-heal dispatch: PR #151's self-heal only covers stuck
@@ -452,7 +520,8 @@ export async function loadMatchState(
     round?.state === "completed" && match.state === "in_progress";
   const isMatchMissingWinner =
     match.state === "completed" && !(match as { winner_id?: string | null }).winner_id;
-  if (isResolvingStale || isPostRoundStall || isMatchMissingWinner) {
+  const isLiveRoundMissing = match.state === "in_progress" && (!round || !ownBoard);
+  if (isResolvingStale || isPostRoundStall || isMatchMissingWinner || isLiveRoundMissing) {
     triggerRecoveryInBackground(matchId);
   }
 

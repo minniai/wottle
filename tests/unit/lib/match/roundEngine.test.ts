@@ -68,12 +68,18 @@ function createSelectChain<T>(data: T) {
     return chain;
 }
 
+// Answers the current-round read (`single`) and, thenable, the integrity
+// check's list read of the match's rounds (spec 049).
 function createRoundSelectChain<T>(data: T) {
-    return {
+    const chain = {
         eq: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data, error: null }),
         maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+        then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+            Promise.resolve({ data: [], error: null }).then(onFulfilled),
     };
+    return chain;
 }
 
 function createSubmissionsChain(data: SubmissionRow[]) {
@@ -158,10 +164,17 @@ describe("roundEngine.advanceRound", () => {
 
         roundsInsert = vi.fn().mockResolvedValue({ error: null });
 
-        const matchesUpdateEq = vi.fn().mockResolvedValue({ error: null });
+        // Step 14 is a compare-and-set (spec 049): `.eq('id').eq('current_round')
+        // .neq('state', 'completed').select('id')` reads the affected rows.
         const matchesUpdate = vi.fn((payload) => {
             updateCalls.push({ table: "matches", payload });
-            return { eq: matchesUpdateEq };
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.neq = vi.fn(() => chain);
+            chain.select = vi.fn().mockResolvedValue({ data: [{ id: "match-1" }], error: null });
+            (chain as { then: unknown }).then = (onFulfilled: (v: { error: null }) => unknown) =>
+                Promise.resolve({ error: null }).then(onFulfilled);
+            return chain;
         });
 
         const scoreboardChain = createSelectChain({
@@ -203,6 +216,10 @@ describe("roundEngine.advanceRound", () => {
                         update: moveSubmissionUpdate,
                         insert: moveSubmissionsInsert,
                     };
+                }
+
+                if (table === "word_score_entries") {
+                    return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
                 }
 
                 return {};

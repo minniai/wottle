@@ -40,7 +40,7 @@ Rules:
 - Seat colours are **relative to the viewer** and resolved through one function (`getSeatColors(viewerSlot, slot)`). Never bind a colour to `player_a` / `player_b`.
 - Seat colours at full strength for letters, lanes, totals and squares; at **14%** as the band tint of a settled word; at **30%** during a live reveal. No other alpha values.
 - Coral as text below 17px uses `--opp-text`; teal needs no variant (4.9:1 on paper). `getSeatColors` returns both, so no caller decides. Decided 15 September 2026; it replaced two contrast exclusions in the axe suite.
-- A letter shared by both seats' words is `--ink` at weight 700.
+- A scored letter is the colour of the player who froze it first, and stays so when a later word crosses it. No letter is ink for being in two words (spec 049, 20 September 2026; it replaced the shared-letter ink rule of 16 September).
 - No gradients, no shadows, no radii, no blur, no third accent. `border-radius` is `0` everywhere and stays there.
 - A future round's numeral uses `#B9B4A6`: the ledger's row labels and, since spec 048, the rail's cells. This is the only exception to the eight values and appears in those two places only. Both are `aria-hidden` — the caption and the rail's own label carry the round — and both are the permitted exclusions from the automated contrast check.
 
@@ -78,7 +78,7 @@ Casing: the product name is always lowercase `wottle` in the wordmark; sentence 
 ## 5. Components
 
 ### 5.1 Field
-A ruled grid of one hundred capitals. 1.5px `--ink` frame; 1px `--rule` between cells; flat `--paper` cells. **Turn frame** (spec 048): while the move is the viewer's to make, a 3px outline in `--you` is drawn inside the frame (`outline-offset: -3px`, so the geometry never moves); it returns to the ink rule once they have played. Signed out, the field is the frame and the rules with no letters (§5.9 sign-in). Letter centred in `--font-board` 600. Value numeral in the top-right gutter (`top:4%; right:6%`) in `--font-mono` 400, `--muted`; on a scored letter it takes the scorer's seat colour (`--opp-text` for the opponent, as it is text under 17px); on a picked letter it is `--ink` 500; on a shared letter it is `--ink` 400 (amended 16 September 2026, P4).
+A ruled grid of one hundred capitals. 1.5px `--ink` frame; 1px `--rule` between cells; flat `--paper` cells. **Turn frame** (spec 048): while the move is the viewer's to make, a 3px outline in `--you` is drawn inside the frame (`outline-offset: -3px`, so the geometry never moves); it returns to the ink rule once they have played. Signed out, the field is the frame and the rules with no letters (§5.9 sign-in). Letter centred in `--font-board` 600. Value numeral in the top-right gutter (`top:4%; right:6%`) in `--font-mono` 400, `--muted`; on a scored letter it takes the scorer's seat colour (`--opp-text` for the opponent, as it is text under 17px); on a picked letter it is `--ink` 500. The scorer of a letter is the player who froze it first (spec 049).
 
 Letter states (each has exactly one mark):
 | State | Mark |
@@ -87,13 +87,12 @@ Letter states (each has exactly one mark):
 | picked (yours) | your seat colour, `scale(1.08)`, inset 2px `--ink` ring, numeral `--ink` |
 | previewed (both letters) | exchanged in place, 2px dotted `--ink` ring |
 | pinned (committed, either seat) | seat colour, 2px dashed ring in that colour, no fill |
-| scored / frozen | seat colour letter inside that seat's band |
-| shared | `--ink` 700 inside two bands; numeral `--ink` too — never the seat of whichever record was resolved last |
+| scored / frozen | the owner's seat colour, letter and numeral, inside the owner's band; a letter keeps the colour of the player who froze it first, whatever crosses it later |
 | illegal pick | 300ms shake in its own colour; live row states the fact |
 | keyboard focus | 2px `--ink` outline at −4px offset |
 
 ### 5.2 Word band
-One band per scored word record. 14% tint of the scorer's seat colour; square ends aligned to the cell grid; inset 20% of a cell across its short axis (leaves the numeral gutter clean) and 5% along its long axis (never enters the neighbouring cell). A 1.5px chevron in the seat colour, opened to about 150° (arm depth 9% of a cell across the band's height), sits at the end where reading **begins**: left edge pointing right (ltr), right edge pointing left (rtl), top pointing down (ttb), bottom pointing up (btt). A run valid in both directions scores **once**, read forward, so every band carries exactly one chevron (rules §3.1, decided 14 September 2026). Bands of the same seat never touch end to end (the whole-run rule guarantees it). Crossings show both bands.
+One band per scored word record. 14% tint of the scorer's seat colour; square ends aligned to the cell grid; inset 20% of a cell across its short axis (leaves the numeral gutter clean) and 5% along its long axis (never enters the neighbouring cell). A 1.5px chevron in the seat colour, opened to about 150° (arm depth 9% of a cell across the band's height), sits at the end where reading **begins**: left edge pointing right (ltr), right edge pointing left (rtl), top pointing down (ttb), bottom pointing up (btt). A run valid in both directions scores **once**, read forward, so every band carries exactly one chevron (rules §3.1, decided 14 September 2026). Bands of the same seat never touch end to end (the whole-run rule guarantees it). A band covers the letters its word froze first; a crossing keeps the earlier owner, so the later word's band covers its other letters, and the chevron still sits at the whole word's reading start — over the other seat's letter when that is where reading begins (spec 049, 20 September 2026). Hovering the word's ledger row draws its band over the whole word.
 
 ### 5.3 Player bar
 60px, `1fr auto 1fr`. Left: 12px square in the seat colour (1.5px dashed outline when the seat is empty) + name + one-line mono sub-line (`1204 · you`, `1191 · opponent`, `1191 → 1203 · +12 · wins`, `reconnecting · 0:42 left`, `ranked · 0:07 · cancel ▸`). During a live round the sub-line carries the turn as a suffix (spec 048): yours `· your move` (in `--you`, weight 600) or `· played ●`; theirs `· thinking` or `· played ●`; `· 0:00` when your clock is spent. Centre: clock mm:ss, `--ink` 500 while running, `--muted` 400 when stopped. Right: total in the seat colour, or the primary action when the seat is empty. The bar's edge nearest the field is the **clock lane**: 4px; full width = 5:00 (`aria-valuemax=300`); filled part in the seat colour, rest `--rule`. Under 1:00: 8px and blinking at 1Hz (colour only). Disconnected: 6px/4px dashed pattern in the seat colour, held. The opponent's bar is always on top, yours always at the bottom.

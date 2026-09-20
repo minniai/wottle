@@ -1,3 +1,4 @@
+import { trackBandRecordMismatch } from "@/lib/observability/log";
 import type { Coordinate } from "@/lib/types/board";
 import type { AccumulatedWord } from "@/lib/room/ledgerRows";
 
@@ -5,8 +6,8 @@ const upper = (s: string) => s.toLocaleUpperCase("is");
 
 /**
  * One message per word record that the board does not spell (spec 047 FR-002,
- * review S5). Run in development by `MatchRoomController`; the fixture test
- * pins it to `[]`. Letters compare in Icelandic upper case (ð → Ð, æ → Æ).
+ * review S5). The fixture test pins it to `[]`; `reportWordIntegrity` runs it
+ * in the room. Letters compare in Icelandic upper case (ð → Ð, æ → Æ).
  */
 export function assertWordsSpellBoard(board: string[][], words: AccumulatedWord[]): string[] {
   const problems: string[] = [];
@@ -35,4 +36,29 @@ function describeRun(coordinates: Coordinate[]): string {
   const first = coordinates[0];
   const last = coordinates[coordinates.length - 1];
   return `(${first?.x},${first?.y})…(${last?.x},${last?.y})`;
+}
+
+/** Matches already reported: the room re-renders on every snapshot; one warn per match is the contract. */
+const reported = new Set<string>();
+
+/**
+ * Report the first record the board does not spell as `bands.record-mismatch`,
+ * once per match, in every environment (spec 049 contracts/integrity-check.md).
+ * Never throws: a report must not be what breaks the room.
+ */
+export function reportWordIntegrity(matchId: string, board: string[][], words: AccumulatedWord[]): void {
+  if (reported.has(matchId)) return;
+  try {
+    const [first] = assertWordsSpellBoard(board, words);
+    if (!first) return;
+    reported.add(matchId);
+    trackBandRecordMismatch({ matchId, record: first });
+  } catch (error) {
+    console.error("[wordIntegrity] could not check the records:", error);
+  }
+}
+
+/** @internal — test hook. */
+export function __resetWordIntegrityForTests(): void {
+  reported.clear();
 }

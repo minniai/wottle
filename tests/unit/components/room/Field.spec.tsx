@@ -74,16 +74,46 @@ describe("Field (design system §5.1, §9)", () => {
     expect(cells[1]).toHaveAttribute("data-seat", "opp");
   });
 
-  // Spec 047 amendment P4 (review S7): letter and numeral both ink — no seat
-  // colour reaches a shared cell, so the stylesheet's shared rule decides.
-  it("shared cells render in ink without a seat, numeral included", () => {
-    render(<Field board={board()} viewerSlot="player_a" frozenTiles={{ "0,0": { owner: "player_a" } }} sharedCells={new Set(["0,0"])} />);
-    const cell = screen.getAllByRole("gridcell")[0];
-    expect(cell).toHaveAttribute("data-state", "shared");
-    expect(cell).not.toHaveAttribute("data-seat");
-    expect(cell.style.getPropertyValue("--seat-ink")).toBe("");
-    expect(cell.querySelector(".field__value")).not.toBeNull();
-    expect(cell.querySelector(".field__value")).not.toHaveAttribute("style");
+  // Spec 049 US2 (contracts/ownership-rendering.md): a scored letter takes the
+  // seat of the player who froze it first, whatever bands cover it. No cell is
+  // ever "shared"; the aria-label names one owner.
+  describe("one owner, one colour", () => {
+    const crossing = { "1,2": { owner: "player_b" as const }, "2,2": { owner: "player_b" as const }, "3,2": { owner: "player_b" as const }, "2,3": { owner: "player_a" as const }, "2,4": { owner: "player_a" as const } };
+    const bands = [
+      { id: "opp", seat: "opp" as const, cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], wordCells: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], direction: "ltr" as const, strength: "settled" as const, round: 1, word: "aaa" },
+      { id: "you", seat: "you" as const, cells: [{ x: 2, y: 3 }, { x: 2, y: 4 }], wordCells: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 2, y: 4 }], direction: "ttb" as const, strength: "settled" as const, round: 2, word: "aaa" },
+    ];
+    const at = (x: number, y: number) => screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === String(x) && c.getAttribute("data-y") === String(y))!;
+
+    it("the crossing letter keeps the seat of the player who froze it first, under both bands", () => {
+      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} ownerNames={{ player_b: "Kári", player_a: "Birna" }} bands={bands} />);
+      const shared = at(2, 2);
+      expect(shared).toHaveAttribute("data-state", "scored");
+      expect(shared).toHaveAttribute("data-seat", "opp");
+      expect(shared.style.getPropertyValue("--seat-ink")).toBe("var(--opp)");
+      expect(shared).toHaveAttribute("aria-label", `row 3, column C, A, value ${V.A}, scored`);
+      expect(at(2, 3)).toHaveAttribute("data-seat", "you");
+      expect(screen.getAllByRole("gridcell").some((c) => c.getAttribute("data-state") === "shared")).toBe(false);
+    });
+
+    it("a letter frozen by the viewer under the opponent's band is still the viewer's", () => {
+      const swapped = { ...crossing, "2,2": { owner: "player_a" as const } };
+      render(<Field board={board()} viewerSlot="player_a" frozenTiles={swapped} bands={bands} />);
+      expect(at(2, 2)).toHaveAttribute("data-seat", "you");
+    });
+
+    it("hovering a round draws its bands over the whole word; the lit letter keeps its owner", () => {
+      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} highlightRound={2} />);
+      const lit = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-round") === "2")!;
+      expect(lit).toHaveAttribute("data-cells", "2,2;2,3;2,4");
+      expect(at(2, 2)).toHaveAttribute("data-seat", "opp");
+    });
+
+    it("draws a settled band only over the cells its word froze first", () => {
+      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} />);
+      const own = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-round") === "2")!;
+      expect(own).toHaveAttribute("data-cells", "2,3;2,4");
+    });
   });
 
   it("cells inside a band take the scorer's seat and render as scored; the bands SVG sits under the cells", () => {
@@ -92,7 +122,7 @@ describe("Field (design system §5.1, §9)", () => {
         board={board()}
         viewerSlot="player_a"
         frozenTiles={{ "1,2": { owner: "player_b" }, "2,2": { owner: "player_b" } }}
-        bands={[{ id: "b", seat: "opp", cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], direction: "ltr", strength: "settled", round: 1, word: "ab" }]}
+        bands={[{ id: "b", seat: "opp", cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], wordCells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], direction: "ltr", strength: "settled", round: 1, word: "ab" }]}
       />,
     );
     const field = screen.getByTestId("field");

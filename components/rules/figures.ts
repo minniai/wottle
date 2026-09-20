@@ -24,16 +24,23 @@ const cells = (list: [number, number][]): Coordinate[] => list.map(([x, y]) => (
 /** Figure 1: the two letters of a swap, pinned. */
 export const SWAP_PINS: [Coordinate, Coordinate] = [{ x: 4, y: 2 }, { x: 3, y: 5 }];
 
+const BORD = cells([[2, 2], [3, 2], [4, 2], [5, 2]]);
+const GILT = cells([[7, 4], [7, 5], [7, 6], [7, 7]]);
+const LEK = cells([[7, 6], [8, 6], [9, 6]]);
+
 /** Figure 2: one word each way, with the chevron at the reading's start. */
 export const WORD_BANDS: WordBand[] = [
-  { id: "borð", seat: "you", cells: cells([[2, 2], [3, 2], [4, 2], [5, 2]]), direction: "ltr", strength: "settled", round: 1, word: "BORÐ" },
-  { id: "gilt", seat: "opp", cells: cells([[7, 4], [7, 5], [7, 6], [7, 7]]), direction: "ttb", strength: "settled", round: 2, word: "GILT" },
+  { id: "borð", seat: "you", cells: BORD, wordCells: BORD, direction: "ltr", strength: "settled", round: 1, word: "BORÐ" },
+  { id: "gilt", seat: "opp", cells: GILT, wordCells: GILT, direction: "ttb", strength: "settled", round: 2, word: "GILT" },
 ];
 
-/** Figure 3: a crossing — LEK shares its L with GILT, drawn in ink. */
+/**
+ * Figure 3: a crossing — LEK crosses GILT at the L, which the opponent froze
+ * first, so it keeps his colour and LEK's band covers E and K (spec 049 US2).
+ */
 export const CROSSING_BANDS: WordBand[] = [
   ...WORD_BANDS,
-  { id: "lek", seat: "you", cells: cells([[7, 6], [8, 6], [9, 6]]), direction: "ltr", strength: "settled", round: 3, word: "LEK" },
+  { id: "lek", seat: "you", cells: LEK.slice(1), wordCells: LEK, direction: "ltr", strength: "settled", round: 3, word: "LEK" },
 ];
 
 export type RulesFigureKind = "swap" | "words" | "crossing";

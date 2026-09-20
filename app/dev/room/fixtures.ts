@@ -63,7 +63,7 @@ export function isRoomPhase(value: string | undefined): value is RoomPhase {
  * ÁLNIRÖSKUM
  * EYÐIHVAGTL   GILT  opp  R2  ttb  x 7, y 4–7
  * RÚNTÆKSIÐÓ
- * ÖFLUGRÁLEK   LEK   you  R3  ltr  x 7–9, y 6  — shares (7,6) with GILT
+ * ÖFLUGRÁLEK   LEK   you  R3  ltr  x 7–9, y 6  — crosses GILT at (7,6); the L is Kári's
  * MÝSJAÐETRI
  * ISKÓPUNÆHÖ
  * TRAUÐLEGIS   T at x 0, y 9 is picked in the picking phase
@@ -137,7 +137,8 @@ export const FIXTURE_WORDS: AccumulatedWord[] = [
     direction: "ttb",
   },
   {
-    // Crosses GILT at (7, 6): that cell belongs to both seats and renders in ink.
+    // Crosses GILT at (7, 6): Kári froze the L first, so it keeps his colour and
+    // LEK's band covers (8,6) and (9,6) only (spec 049 US2).
     roundNumber: 3,
     playerId: YOU_ID,
     word: "LEK",

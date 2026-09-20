@@ -48,8 +48,12 @@ function createBoard() {
 function createSelectChain<T>(data: T) {
     return {
         eq: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data, error: null }),
         maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+        // The integrity check's list read of the match's rounds (spec 049)
+        then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+            Promise.resolve({ data: [], error: null }).then(onFulfilled),
     };
 }
 
@@ -131,6 +135,17 @@ describe("roundEngine.advanceRound — frozen-tile scoring baseline (spec 042)",
         });
         const submissionsChain = createSubmissionsChain(BOTH_SUBMISSIONS);
 
+        // Step 14 is a compare-and-set (spec 049) that reads the affected rows.
+        const makeMatchesUpdateChain = () => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.neq = vi.fn(() => chain);
+            chain.select = vi.fn().mockResolvedValue({ data: [{ id: "match-1" }], error: null });
+            (chain as { then: unknown }).then = (onFulfilled: (v: { error: null }) => unknown) =>
+                Promise.resolve({ error: null }).then(onFulfilled);
+            return chain;
+        };
+
         const makeRoundsUpdateChain = () => {
             const chain: Record<string, unknown> = {};
             chain.eq = vi.fn().mockImplementation(() => chain);
@@ -150,9 +165,7 @@ describe("roundEngine.advanceRound — frozen-tile scoring baseline (spec 042)",
                 if (table === "matches") {
                     return {
                         select: vi.fn(() => matchChain),
-                        update: vi.fn(() => ({
-                            eq: vi.fn().mockResolvedValue({ error: null }),
-                        })),
+                        update: vi.fn(() => makeMatchesUpdateChain()),
                     };
                 }
                 if (table === "rounds") {
@@ -177,6 +190,9 @@ describe("roundEngine.advanceRound — frozen-tile scoring baseline (spec 042)",
                             createSelectChain({ player_a_score: 0, player_b_score: 0 }),
                         ),
                     };
+                }
+                if (table === "word_score_entries") {
+                    return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
                 }
                 return {};
             }),

@@ -5,8 +5,8 @@ import { FieldBands } from "@/components/room/FieldBands";
 import type { WordBand } from "@/lib/room/bandGeometry";
 
 const bands: WordBand[] = [
-  { id: "a", seat: "you", cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], direction: "ltr", strength: "settled", round: 1, word: "ab" },
-  { id: "b", seat: "opp", cells: [{ x: 5, y: 4 }, { x: 5, y: 3 }], direction: "btt", strength: "live", round: 2, word: "cd" },
+  { id: "a", seat: "you", cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], wordCells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], direction: "ltr", strength: "settled", round: 1, word: "ab" },
+  { id: "b", seat: "opp", cells: [{ x: 5, y: 4 }, { x: 5, y: 3 }], wordCells: [{ x: 5, y: 4 }, { x: 5, y: 3 }], direction: "btt", strength: "live", round: 2, word: "cd" },
 ];
 
 describe("FieldBands (design system §5.2)", () => {

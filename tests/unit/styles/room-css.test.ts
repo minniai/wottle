@@ -152,9 +152,9 @@ describe("room.css composition (spec 045 US3)", () => {
  * is ink 700; its numeral is ink too, never the last record's seat colour. The
  * opponent's scored numerals keep the text variant (spec 045 decision 2).
  */
-describe("room.css shared and scored numerals (spec 047 US4)", () => {
-  it("shared numerals are ink", () => {
-    expect(block('.field__cell[data-state="shared"] .field__value')).toMatch(/color:\s*var\(--ink\)/);
+describe("room.css scored numerals (spec 047 US4, spec 049 US2)", () => {
+  it("has no shared rule: a scored letter has one owner and one colour", () => {
+    expect(rules).not.toMatch(/data-state="shared"/);
   });
 
   it("the opponent's scored numerals use the text variant of coral", () => {

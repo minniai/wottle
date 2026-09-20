@@ -6,8 +6,41 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { submitSwap } from "./helpers/swaps";
 
 test.describe.configure({ mode: "serial", retries: 1 });
+
+/** The field's letters as one string of 100 characters, row by row. */
+async function readField(page: Page): Promise<string> {
+  return page.getByTestId("field").evaluate((el) => {
+    const letters = new Array(100).fill("?");
+    el.querySelectorAll("[data-testid='field-cell']").forEach((cell) => {
+      const x = Number(cell.getAttribute("data-x"));
+      const y = Number(cell.getAttribute("data-y"));
+      letters[y * 10 + x] = cell.querySelector("span")?.textContent ?? "?";
+    });
+    return letters.join("");
+  });
+}
+
+/** Every band's word next to the letters the field shows on the cells it covers (spec 049). */
+async function readBands(page: Page): Promise<{ word: string; spelled: string }[]> {
+  const field = await readField(page);
+  const bands = await page.getByTestId("field-band").evaluateAll((els) =>
+    els.map((el) => ({ word: el.getAttribute("data-word") ?? "", cells: el.getAttribute("data-cells") ?? "" })),
+  );
+  return bands.map(({ word, cells }) => ({
+    word: word.toLocaleUpperCase("is"),
+    spelled: cells
+      .split(";")
+      .filter(Boolean)
+      .map((c) => c.split(",").map(Number))
+      .map(([x, y]) => field[y * 10 + x])
+      .join(""),
+  }));
+}
+
+const differences = (a: string, b: string): number => [...a].filter((letter, i) => letter !== b[i]).length;
 
 test.describe("@match-completion final room state", () => {
   test("resign → final: verdict in the ledger, field kept, rating lines, rematch line, back to lobby", async ({ browser }) => {
@@ -23,6 +56,18 @@ test.describe("@match-completion final room state", () => {
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
+      // Spec 049 US1: one round is played so the final field has a board that
+      // is not round 1's. On 2026-09-20 a finished match was served the
+      // starting board, regenerated from the seed, under ten rounds of freezes.
+      const startingBoard = await readField(pageA);
+      await submitSwap(pageA);
+      await submitSwap(pageB);
+      for (const p of [pageA, pageB]) {
+        await expect(p.getByTestId("ledger-live-row")).toContainText("round 2 · your move", { timeout: 45_000 });
+      }
+      const playedBoard = await readField(pageA);
+      const moved = differences(startingBoard, playedBoard);
+
       // A resigns through the live-row confirmation.
       await pageA.getByTestId("ledger-menu-trigger").click();
       await pageA.getByTestId("ledger-menu-item-resign").click();
@@ -37,6 +82,12 @@ test.describe("@match-completion final room state", () => {
         // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });
         await expect(p.getByTestId("slip")).toContainText(/wins|draw/);
+        // The final field is the played board, not the starting one, and every
+        // settled band spells its word on it (spec 049 FR-001/FR-003).
+        const finalBoard = await readField(p);
+        expect(finalBoard).toBe(playedBoard);
+        expect(differences(startingBoard, finalBoard)).toBe(moved);
+        for (const band of await readBands(p)) expect(band.spelled).toBe(band.word);
       }
       // Every match is rated (spec 048 US6): an invite-created match writes rating rows too.
       await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/\d+ → \d+ · [+−]\d+/, { timeout: 15_000 });
