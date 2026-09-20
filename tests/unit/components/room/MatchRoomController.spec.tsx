@@ -199,15 +199,23 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
   });
 
-  it("dual timeout writes a notice line; resign flows through the live-row confirmation", async () => {
+  it("dual timeout writes a notice line; resign is decided on a slip (spec 048 US7)", async () => {
     renderController(state({ timers: { playerA: { playerId: "player-1", remainingMs: 0, status: "expired" }, playerB: { playerId: "player-2", remainingMs: 0, status: "expired" } } }));
     expect(screen.getByText(/both players timed out/)).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     fireEvent.click(screen.getByTestId("ledger-menu-item-resign"));
-    expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("resign the match?"))).toBe(true);
-    expect(screen.queryByRole("alertdialog")).toBeNull();
-    fireEvent.click(screen.getByTestId("notice-confirm-resign"));
+    const slip = screen.getByTestId("slip");
+    expect(slip).toHaveAttribute("data-kind", "resign");
+    expect(slip).toHaveTextContent("Resign the match?");
+    expect(slip).toHaveTextContent("Bob wins · your rating moves as a loss");
+    expect(slip).toHaveTextContent("round 3 of 10 · 0:00 on your clock");
+    fireEvent.click(screen.getByTestId("slip-keep-playing"));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    fireEvent.click(screen.getByTestId("ledger-menu-item-resign"));
+    fireEvent.click(screen.getByTestId("slip-confirm-resign"));
     expect(resignMatch).toHaveBeenCalledWith("m1");
+    expect(screen.queryByTestId("slip")).toBeNull();
   });
 
   it("final: the field stays, the ledger states the verdict once, bars carry rating lines, actions rematch · new opponent · lobby", async () => {
@@ -306,7 +314,10 @@ describe("MatchRoomController", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
     renderController(state({ disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
-    expect(screen.getByTestId("notice-claim-win")).toBeInTheDocument();
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "claimWin");
+    expect(screen.getByTestId("slip")).toHaveTextContent("Bob is gone");
+    fireEvent.click(screen.getByTestId("slip-keep-waiting"));
+    expect(screen.queryByTestId("slip")).toBeNull();
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 0:00 left");
     vi.useRealTimers();
   });

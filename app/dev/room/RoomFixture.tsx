@@ -302,7 +302,7 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
         roundState={spec.roundState}
         holdRound={spec.holdRound ?? null}
         verdict={completed ? FINAL_VERDICT : undefined}
-        notices={disconnected ? [{ kind: "claimWin", opponentName: KARI.displayName }] : []}
+        notices={[]}
         hint={disconnected ? `${KARI.displayName} · ${OPPONENT}` : undefined}
         onAction={NO_OP}
       >

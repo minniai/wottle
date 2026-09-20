@@ -221,10 +221,10 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
       await snap(pageA, "match-desktop.png");
       await snap(pageB, "match-phone.png");
 
-      // Final via resign: menu → resign → live-row confirmation (no dialog).
+      // Final via resign: menu → resign → the resign slip (spec 048 US7).
       await pageA.getByTestId("ledger-menu-trigger").click();
       await pageA.getByTestId("ledger-menu-item-resign").click();
-      await pageA.getByTestId("notice-confirm-resign").click();
+      await pageA.getByTestId("slip-confirm-resign").click();
       for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
       await expect(pageA.getByTestId("verdict")).toBeVisible();
       await expectAxeClean(pageA, "final-desktop");

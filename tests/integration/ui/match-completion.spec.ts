@@ -26,7 +26,7 @@ test.describe("@match-completion final room state", () => {
       // A resigns through the live-row confirmation.
       await pageA.getByTestId("ledger-menu-trigger").click();
       await pageA.getByTestId("ledger-menu-item-resign").click();
-      await pageA.getByTestId("notice-confirm-resign").click();
+      await pageA.getByTestId("slip-confirm-resign").click();
 
       for (const p of [pageA, pageB]) {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });

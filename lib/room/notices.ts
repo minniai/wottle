@@ -1,7 +1,5 @@
-import { challengeNotice, claimWinLine, PICK_CLEARED_OPPONENT, rematchRequest, RESIGN_CONFIRM } from "@/lib/constants/copy";
+import { challengeNotice, PICK_CLEARED_OPPONENT, rematchRequest } from "@/lib/constants/copy";
 import type { Notice } from "./ledgerTypes";
-
-export const RESIGN_CONFIRM_MS = 5_000;
 
 /** Text for a notice line (design system §8). Notices with actions render their own controls. */
 export function noticeText(notice: Notice): string {
@@ -10,10 +8,6 @@ export function noticeText(notice: Notice): string {
       return PICK_CLEARED_OPPONENT;
     case "rematchRequest":
       return rematchRequest(notice.requesterName);
-    case "resignConfirm":
-      return RESIGN_CONFIRM;
-    case "claimWin":
-      return claimWinLine(notice.opponentName);
     case "challenge":
       return challengeNotice(notice.fromName);
     case "text":
@@ -30,10 +24,10 @@ export function removeKind(notices: Notice[], kind: Notice["kind"]): Notice[] {
   return notices.filter((n) => n.kind !== kind);
 }
 
+/** No notice kind carries an expiry since the resign confirmation became a slip (spec 048 US7); kept for a future timed line. */
 export function expireNotices(notices: Notice[], now: number): Notice[] {
-  return notices.filter((n) => !("expiresAt" in n) || n.expiresAt > now);
-}
-
-export function resignConfirm(now = Date.now()): Notice {
-  return { kind: "resignConfirm", expiresAt: now + RESIGN_CONFIRM_MS };
+  return notices.filter((n) => {
+    const expiresAt = (n as { expiresAt?: number }).expiresAt;
+    return expiresAt === undefined || expiresAt > now;
+  });
 }

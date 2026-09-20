@@ -1,15 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { addNotice, expireNotices, noticeText, removeKind, resignConfirm } from "@/lib/room/notices";
+import { addNotice, expireNotices, noticeText, removeKind } from "@/lib/room/notices";
 
 describe("notices (design system §5.4, §8)", () => {
-  it("resign confirmation expires after 5 s", () => {
-    const n = resignConfirm(0);
-    expect(noticeText(n)).toBe("resign the match? · yes, resign ▸ · no");
-    expect(expireNotices([n], 4_999)).toHaveLength(1);
-    expect(expireNotices([n], 5_000)).toHaveLength(0);
-  });
-
   it("same-kind notices replace each other", () => {
     let list = addNotice([], { kind: "pickCleared", reason: "opponentPinned" });
     list = addNotice(list, { kind: "pickCleared", reason: "frozen" });
@@ -21,7 +14,7 @@ describe("notices (design system §5.4, §8)", () => {
   });
 
   it("every fixed string is exclamation-free", () => {
-    for (const n of [{ kind: "pickCleared" as const, reason: "frozen" as const }, { kind: "rematchRequest" as const, requesterName: "K" }, { kind: "claimWin" as const, opponentName: "K" }]) {
+    for (const n of [{ kind: "pickCleared" as const, reason: "frozen" as const }, { kind: "rematchRequest" as const, requesterName: "K" }]) {
       expect(noticeText(n)).not.toContain("!");
     }
   });

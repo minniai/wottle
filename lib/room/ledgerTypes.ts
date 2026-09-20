@@ -64,7 +64,6 @@ export interface LedgerModel {
 export type LedgerAction =
   | "resign"
   | "confirmResign"
-  | "cancelResign"
   | "leave"
   | "rematch"
   | "acceptRematch"
@@ -90,8 +89,6 @@ export type LedgerAction =
 export type Notice =
   | { kind: "pickCleared"; reason: "opponentPinned" | "frozen" }
   | { kind: "rematchRequest"; requesterName: string }
-  | { kind: "resignConfirm"; expiresAt: number }
-  | { kind: "claimWin"; opponentName: string }
   | { kind: "challenge"; fromName: string; inviteId: string }
   | { kind: "text"; text: string };
 

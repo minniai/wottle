@@ -19,7 +19,6 @@ import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
 import { LOBBY } from "@/lib/constants/copy";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
-import { resignConfirm } from "@/lib/room/notices";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import type { Coordinate } from "@/lib/types/board";
@@ -266,19 +265,24 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     };
   }, [completed, matchId]);
 
-  // Disconnect (design system §5.3, §7 "Disconnect"): no overlay. The opponent's bar
-  // counts the server-anchored window down, both lanes hold, and once the window
-  // has elapsed the ledger offers the claim as a line.
+  // Disconnect (design system §5.3, §7 "Disconnect"): the opponent's bar counts the
+  // server-anchored window down, both lanes hold, and once the window has elapsed
+  // the claim is put to the player on a slip (spec 048 US7).
   const opponentGone = match.disconnectedPlayerId === oppTimer.playerId && isActive;
   const disconnectedAt = opponentGone ? match.disconnectedAt ?? null : null;
   const now = useNowTick(Boolean(disconnectedAt));
   const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
   const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + windowMs - now) : null;
   const claimable = reconnectMsLeft === 0;
+  const setSlip = useRoomStore((s) => s.setSlip);
+  const clearSlip = useRoomStore((s) => s.clearSlip);
+  // `keep waiting ▸` puts the claim away; the next window tick re-arms it (spec 048 US7).
+  const [claimDeferred, setClaimDeferred] = useState(false);
   useEffect(() => {
-    if (claimable) push({ kind: "claimWin", opponentName: opp.displayName });
-    else dismiss("claimWin");
-  }, [claimable, opp.displayName, push, dismiss]);
+    if (claimable && !claimDeferred && !completed) setSlip({ kind: "claimWin", opponentName: opp.displayName, round: match.currentRound });
+    else clearSlip("claimWin");
+    if (!claimable) setClaimDeferred(false);
+  }, [claimable, claimDeferred, completed, opp.displayName, match.currentRound, setSlip, clearSlip]);
   const clocksHeld = match.disconnectedPlayerId != null && isActive;
   const youScore = match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const oppScore = match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"];
@@ -331,16 +335,20 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "result") restoreSlip();
       else if (action === "newOpponent") router.replace("/matchmaking");
       else if (action === "lobby") router.replace("/lobby");
-      else if (action === "resign" || action === "leave") push(resignConfirm());
-      else if (action === "cancelResign") dismiss("resignConfirm");
+      else if (action === "resign" || action === "leave") setSlip({ kind: "resign", round: match.currentRound, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], opponentName: opp.displayName });
+      else if (action === "keepPlaying") clearSlip("resign");
       else if (action === "confirmResign") {
-        dismiss("resignConfirm");
+        clearSlip("resign");
         resignMatch(matchId).catch((e: Error) => push({ kind: "text", text: e.message.toLowerCase() }));
+      } else if (action === "keepWaiting") {
+        setClaimDeferred(true);
+        clearSlip("claimWin");
       } else if (action === "claimWin") {
+        clearSlip("claimWin");
         claimWinAction(matchId).then((r) => r.status !== "ok" && r.status !== "already_completed" && push({ kind: "text", text: r.status.replace("_", " ") }));
       }
     },
-    [matchId, push, dismiss, rematch, router, dismissSlip, restoreSlip],
+    [matchId, push, rematch, router, dismissSlip, restoreSlip, setSlip, clearSlip, match.currentRound, clocks, viewerSlot, opp.displayName],
   );
 
   // `?` opens the rules, `M` mutes (design system §9, FR-026).

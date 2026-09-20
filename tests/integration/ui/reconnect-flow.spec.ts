@@ -41,6 +41,7 @@ test.describe("@reconnect-flow disconnect is a bar state", () => {
       await expect(topBar.getByTestId("player-bar-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 20_000 });
       await expect(topBar.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "disconnected");
       await expect(a.page.getByTestId("player-bar-bottom").getByTestId("player-bar-clock")).toHaveAttribute("data-running", "false");
+      // Spec 048 US7: nothing over the field while the window runs; the claim comes as a slip when it is spent.
       expect(await a.page.locator("[role=dialog], [role=alertdialog]").count()).toBe(0);
 
       // The countdown moves.

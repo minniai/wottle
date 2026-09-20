@@ -79,9 +79,7 @@ export const SPENT_SUFFIX = "0:00";
 // Notices (live-row styled lines)
 export const rematchRequest = (name: string): string =>
   `${name} asks for a rematch · accept ▸ · decline`;
-export const RESIGN_CONFIRM = "resign the match? · yes, resign ▸ · no";
 export const waitingForRematch = (name: string): string => `waiting for ${name}`;
-export const claimWinLine = (name: string): string => `${name} is gone · claim the win ▸`;
 export const challengeNotice = (name: string): string =>
   `${name} challenges you · accept ▸ · decline`;
 

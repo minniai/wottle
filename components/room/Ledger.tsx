@@ -119,34 +119,6 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
 }
 
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
-  if (notice.kind === "resignConfirm") {
-    return (
-      <>
-        resign the match? ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-confirm-resign" onClick={() => onAction("confirmResign")}>
-          yes, resign ▸
-        </button>{" "}
-        ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-cancel-resign" onClick={() => onAction("cancelResign")}>
-          no
-        </button>
-      </>
-    );
-  }
-  if (notice.kind === "rematchRequest") {
-    return (
-      <>
-        {notice.requesterName} asks for a rematch ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-accept-rematch" onClick={() => onAction("acceptRematch")}>
-          accept ▸
-        </button>{" "}
-        ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-decline-rematch" onClick={() => onAction("declineRematch")}>
-          decline
-        </button>
-      </>
-    );
-  }
   if (notice.kind === "challenge") {
     return (
       <>
@@ -157,16 +129,6 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
         ·{" "}
         <button type="button" className="action-secondary" data-testid="notice-decline-challenge" onClick={() => onAction({ declineChallenge: notice.inviteId })}>
           decline
-        </button>
-      </>
-    );
-  }
-  if (notice.kind === "claimWin") {
-    return (
-      <>
-        {notice.opponentName} is gone ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-claim-win" onClick={() => onAction("claimWin")}>
-          claim the win ▸
         </button>
       </>
     );
