@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 
+import { outranks, type SlipKind, type SlipState } from "./slip";
 import type { MatchState, PlayerIdentity, PlayerSlot, RoundSummary } from "@/lib/types/match";
 
 /**
@@ -28,6 +29,12 @@ export interface RoomState {
   queue: QueueState | null;
   found: { countdown: 3 | 2 | 1 } | null;
   connection: ConnectionMode;
+  /** The one overlay (spec 048 §5.9); precedence enforced by `setSlip`. */
+  slip: SlipState | null;
+  /** Final phase: `review the field ▸` hides the match-over slip; `result ▸` restores it. */
+  slipDismissed: boolean;
+  /** The round whose scored row is held before the next live row opens (spec 048 FR-022). */
+  holdRound: number | null;
 
   setViewer: (viewer: PlayerIdentity | null) => void;
   setOpponent: (opponent: PlayerIdentity | null) => void;
@@ -47,6 +54,14 @@ export interface RoomState {
   applySnapshot: (snapshot: MatchState) => void;
   applySummary: (summary: RoundSummary) => void;
   leaveToLobby: () => void;
+  /** Show a slip unless a higher-ranked one is already up. */
+  setSlip: (next: SlipState) => void;
+  /** Take down a slip of that kind only. */
+  clearSlip: (kind: SlipKind) => void;
+  dismissSlip: () => void;
+  restoreSlip: () => void;
+  beginHold: (round: number) => void;
+  endHold: () => void;
 }
 
 const EMPTY_BOARD: string[][] = [];
@@ -88,8 +103,13 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   queue: null,
   found: null,
   connection: "realtime",
+  slip: null,
+  slipDismissed: false,
+  holdRound: null,
 
-  setViewer: (viewer) => set({ viewer }),
+  // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
+  setViewer: (viewer) =>
+    set((s) => ({ viewer, slip: viewer && s.slip?.kind === "signIn" ? null : s.slip })),
   setOpponent: (opponent) => set({ opponent }),
   setBoard: (board) => set({ board }),
   setConnection: (connection) => set({ connection }),
@@ -105,14 +125,16 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   setFound: (opponent, countdown) => set({ phase: "found", opponent, found: { countdown }, queue: null }),
 
   hydrateMatch: (state, viewerId) =>
-    set({
+    set((s) => ({
       match: state,
       board: state.board,
       viewerSlot: deriveViewerSlot(state, viewerId),
       phase: phaseForMatch(state),
       queue: null,
       found: null,
-    }),
+      // Another match in the same room (a rematch) starts with no slip and no hold.
+      ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdRound: null }),
+    })),
 
   applySnapshot: (snapshot) => {
     const merged = mergeSnapshot(get().match, snapshot);
@@ -126,7 +148,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   },
 
   leaveToLobby: () =>
-    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null }),
+    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdRound: null }),
+
+  setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: false })),
+  clearSlip: (kind) => set((s) => (s.slip?.kind === kind ? { slip: null, slipDismissed: false } : {})),
+  dismissSlip: () => set({ slipDismissed: true }),
+  restoreSlip: () => set({ slipDismissed: false }),
+  beginHold: (round) => set({ holdRound: round }),
+  endHold: () => set({ holdRound: null }),
 }));
 
 /** One `room:phase-change` mark per transition (spec 044 T100); the room never remounts, so this is the only phase signal. */
