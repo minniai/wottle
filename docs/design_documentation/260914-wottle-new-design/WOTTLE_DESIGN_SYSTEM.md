@@ -42,7 +42,7 @@ Rules:
 - Coral as text below 17px uses `--opp-text`; teal needs no variant (4.9:1 on paper). `getSeatColors` returns both, so no caller decides. Decided 15 September 2026; it replaced two contrast exclusions in the axe suite.
 - A letter shared by both seats' words is `--ink` at weight 700.
 - No gradients, no shadows, no radii, no blur, no third accent. `border-radius` is `0` everywhere and stays there.
-- Future-round labels in the ledger use `#B9B4A6`; this is the only exception to the eight values and appears only there. They are `aria-hidden` — the caption carries the round — and are the single permitted exclusion from the automated contrast check.
+- A future round's numeral uses `#B9B4A6`: the ledger's row labels and, since spec 048, the rail's cells. This is the only exception to the eight values and appears in those two places only. Both are `aria-hidden` — the caption and the rail's own label carry the round — and both are the permitted exclusions from the automated contrast check.
 
 Contrast: `--ink` on `--paper` 16:1; `--muted` on `--paper` 5.7:1; `--you` on `--paper` 4.9:1; `--opp` on `--paper` 3.4:1 (used only at ≥17px or for non-text marks; the coral total is 40px).
 

@@ -147,7 +147,12 @@ const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
  * the design system's single grey exception: future-round numerals, which are
  * aria-hidden because the caption carries the round.
  */
-const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__round"];
+/**
+ * The two future-round marks: the ledger's row labels and the rail's cells. Both
+ * are `aria-hidden` progression marks in the one permitted grey (design system
+ * §2); the round itself is named by the caption and the rail's own label.
+ */
+const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__round", '.rail__cell[data-state="future"]'];
 
 async function expectAxeClean(page: Page, label: string) {
   let builder = new AxeBuilder({ page }).withTags(AXE_TAGS);
