@@ -131,6 +131,17 @@ describe("roundEngine.advanceRound — frozen-tile scoring baseline (spec 042)",
         });
         const submissionsChain = createSubmissionsChain(BOTH_SUBMISSIONS);
 
+        // Step 14 is a compare-and-set (spec 049) that reads the affected rows.
+        const makeMatchesUpdateChain = () => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.neq = vi.fn(() => chain);
+            chain.select = vi.fn().mockResolvedValue({ data: [{ id: "match-1" }], error: null });
+            (chain as { then: unknown }).then = (onFulfilled: (v: { error: null }) => unknown) =>
+                Promise.resolve({ error: null }).then(onFulfilled);
+            return chain;
+        };
+
         const makeRoundsUpdateChain = () => {
             const chain: Record<string, unknown> = {};
             chain.eq = vi.fn().mockImplementation(() => chain);
@@ -150,9 +161,7 @@ describe("roundEngine.advanceRound — frozen-tile scoring baseline (spec 042)",
                 if (table === "matches") {
                     return {
                         select: vi.fn(() => matchChain),
-                        update: vi.fn(() => ({
-                            eq: vi.fn().mockResolvedValue({ error: null }),
-                        })),
+                        update: vi.fn(() => makeMatchesUpdateChain()),
                     };
                 }
                 if (table === "rounds") {

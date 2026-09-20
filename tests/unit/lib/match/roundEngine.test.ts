@@ -158,10 +158,17 @@ describe("roundEngine.advanceRound", () => {
 
         roundsInsert = vi.fn().mockResolvedValue({ error: null });
 
-        const matchesUpdateEq = vi.fn().mockResolvedValue({ error: null });
+        // Step 14 is a compare-and-set (spec 049): `.eq('id').eq('current_round')
+        // .neq('state', 'completed').select('id')` reads the affected rows.
         const matchesUpdate = vi.fn((payload) => {
             updateCalls.push({ table: "matches", payload });
-            return { eq: matchesUpdateEq };
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.neq = vi.fn(() => chain);
+            chain.select = vi.fn().mockResolvedValue({ data: [{ id: "match-1" }], error: null });
+            (chain as { then: unknown }).then = (onFulfilled: (v: { error: null }) => unknown) =>
+                Promise.resolve({ error: null }).then(onFulfilled);
+            return chain;
         });
 
         const scoreboardChain = createSelectChain({

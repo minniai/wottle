@@ -73,6 +73,8 @@ interface BuildClientOpts {
     /** Scoreboard snapshots already persisted for the round. `null` (default) =
      *  missing → recovery should call publishRoundSummary. */
     existingSnapshot?: { round_number: number } | null;
+    /** Rows the compare-and-set match write reports as affected (spec 049). */
+    matchRowsAffected?: number;
 }
 
 function buildMockClient({
@@ -81,11 +83,13 @@ function buildMockClient({
     submissions = [],
     freshMatch,
     existingSnapshot = null,
+    matchRowsAffected = 1,
 }: BuildClientOpts) {
     let matchReads = 0;
     const readMatch = () => (matchReads++ === 0 ? match : (freshMatch ?? match));
     // Track writes for assertions
     const matchUpdates: Array<Record<string, unknown>> = [];
+    const matchWriteFilters: Array<[string, string, unknown]> = [];
     const roundUpdates: Array<Record<string, unknown>> = [];
     const roundInserts: Array<Record<string, unknown>> = [];
     const submissionUpdates: Array<{ id: string; patch: Record<string, unknown> }> = [];
@@ -100,7 +104,18 @@ function buildMockClient({
                 })),
                 update: vi.fn((patch: Record<string, unknown>) => {
                     matchUpdates.push(patch);
-                    return { eq: vi.fn().mockResolvedValue({ error: null }) };
+                    // The advancing write is a compare-and-set that reads the
+                    // affected rows (spec 049 contracts/round-end-write.md).
+                    const chain: Record<string, unknown> = {};
+                    chain.eq = vi.fn((col: string, val: unknown) => (matchWriteFilters.push(["eq", col, val]), chain));
+                    chain.neq = vi.fn((col: string, val: unknown) => (matchWriteFilters.push(["neq", col, val]), chain));
+                    chain.select = vi.fn().mockResolvedValue({
+                        data: Array.from({ length: matchRowsAffected }, () => ({ id: match.id })),
+                        error: null,
+                    });
+                    (chain as { then: unknown }).then = (onFulfilled: (v: { error: null }) => unknown) =>
+                        Promise.resolve({ error: null }).then(onFulfilled);
+                    return chain;
                 }),
             };
         }
@@ -154,6 +169,7 @@ function buildMockClient({
     return {
         client: { from } as unknown as ReturnType<typeof getServiceRoleClient>,
         matchUpdates,
+        matchWriteFilters,
         roundUpdates,
         roundInserts,
         submissionUpdates,
@@ -403,6 +419,47 @@ describe("recoverStuckRound", () => {
 
             // Match advanced to round 7, still in progress
             expect(matchUpdates.some((u) => u.current_round === 7 && u.state !== "completed")).toBe(true);
+        });
+
+        // Spec 049 T012: recovery's advancing write carries the same conditions
+        // as advanceRound step 14 and changes nothing when the row moved on.
+        it("advances with a compare-and-set on the round it read and on the match not being completed", async () => {
+            const { client, matchWriteFilters } = buildMockClient({
+                match: baseMatch({ current_round: 5 }),
+                round: baseRound({ state: "completed" }),
+                submissions: baseSubmissions("accepted"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(matchWriteFilters).toEqual(
+                expect.arrayContaining([
+                    ["eq", "id", MATCH_ID],
+                    ["eq", "current_round", 5],
+                    ["neq", "state", "completed"],
+                ]),
+            );
+        });
+
+        it("a zero-row advancing write logs match.write.stale and does not complete the match", async () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+            const { client, roundInserts } = buildMockClient({
+                match: baseMatch({ current_round: 10 }),
+                round: baseRound({ state: "completed" }),
+                submissions: baseSubmissions("accepted"),
+                matchRowsAffected: 0,
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(completeMatchInternal).not.toHaveBeenCalled();
+            expect(roundInserts).toHaveLength(0);
+            const line = log.mock.calls.map((c) => String(c[0])).find((l) => l.includes("match.write.stale"));
+            expect(line).toBeDefined();
+            expect(JSON.parse(line as string)).toMatchObject({ matchId: MATCH_ID, roundNumber: 10 });
+            log.mockRestore();
         });
 
         it("does not create a next round when the recovered round is terminal (round 10)", async () => {

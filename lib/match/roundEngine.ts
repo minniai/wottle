@@ -1,4 +1,5 @@
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import { writeRoundEnd } from "./roundEndWrite";
 import { resolveConflicts } from "./conflictResolver";
 import { MoveSubmission } from "@/lib/types/match";
 import { applySwap, type BoardGrid } from "@/lib/game-engine/board";
@@ -438,12 +439,17 @@ export async function advanceRound(matchId: string): Promise<AdvanceRoundResult>
         updatePayload.completed_at = new Date().toISOString();
     }
 
-    const { error: updateError } = await supabase
-        .from("matches")
-        .update(updatePayload)
-        .eq("id", matchId);
-
-    if (updateError) throw new Error("Failed to update match");
+    // Compare-and-set on the round read at step 1: a writer that thawed after
+    // the match completed, or after another writer advanced it, changes
+    // nothing and stops here (spec 049).
+    const written = await writeRoundEnd(supabase, {
+        matchId,
+        expectedRound: currentRound,
+        payload: updatePayload,
+    });
+    if (written === "stale") {
+        return { status: "not_advancing", reason: "stale" };
+    }
 
     // 15. Publish round summary and match state.
     // For non-terminal rounds: fire-and-forget. Broadcast delivery is

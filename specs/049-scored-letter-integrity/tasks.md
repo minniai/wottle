@@ -52,10 +52,10 @@ Single Next.js application at the repository root. Server code in `lib/match/` a
 
 ### I.2 The guarded round-end write (contracts/round-end-write.md)
 
-- [ ] T010 [P] [US1] [test] `tests/unit/lib/match/roundEngine.staleWrite.spec.ts` (mock client as in `tests/unit/lib/match/roundEngine.test.ts`): the step-14 update carries `.eq("current_round", <round read at step 1>)` and `.neq("state", "completed")`; a zero-row result logs `match.write.stale` with the carried values and returns `{ status: "not_advancing" }` without throwing; a matching row advances as before; a replay of a round-5 write against the 20 September row (`state: completed`, `current_round: 6`) changes nothing
-- [ ] T011 [US1] [impl] `lib/match/roundEngine.ts` step 14 per T010; `.select("id")` on the update to read the affected rows
-- [ ] T012 [P] [US1] [test] `tests/unit/lib/match/recoverStuckRound.test.ts` (extend): recovery's advancing write carries the same two conditions and logs on zero rows
-- [ ] T013 [US1] [impl] `lib/match/recoverStuckRound.ts` per T012
+- [x] T010 [P] [US1] [test] `tests/unit/lib/match/roundEngine.staleWrite.spec.ts` (mock client as in `tests/unit/lib/match/roundEngine.test.ts`): the step-14 update carries `.eq("current_round", <round read at step 1>)` and `.neq("state", "completed")`; a zero-row result logs `match.write.stale` with the carried values and returns `{ status: "not_advancing" }` without throwing; a matching row advances as before; a replay of a round-5 write against the 20 September row (`state: completed`, `current_round: 6`) changes nothing
+- [x] T011 [US1] [impl] `lib/match/roundEngine.ts` step 14 per T010; `.select("id")` on the update to read the affected rows
+- [x] T012 [P] [US1] [test] `tests/unit/lib/match/recoverStuckRound.test.ts` (extend): recovery's advancing write carries the same two conditions and logs on zero rows
+- [x] T013 [US1] [impl] `lib/match/recoverStuckRound.ts` per T012
 
 ### I.3 The integrity check after resolution (contracts/integrity-check.md)
 

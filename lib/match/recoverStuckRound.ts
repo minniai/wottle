@@ -11,6 +11,7 @@ import { publishMatchState } from "./statePublisher";
 import { resolveConflicts } from "./conflictResolver";
 import { computeElapsedMs } from "./clockEnforcer";
 import { loadFrozenTiles } from "./frozenTilePersistence";
+import { writeRoundEnd } from "./roundEndWrite";
 import type { BoardGrid } from "@/lib/types/board";
 import type { MoveSubmission } from "@/lib/types/match";
 
@@ -286,7 +287,14 @@ async function finalizeCompletedRound(
         await createNextRound(supabase, match, round, nextRound);
     }
 
-    await supabase.from("matches").update(updatePayload).eq("id", match.id);
+    // Compare-and-set on the round this recovery read (spec 049): a row that
+    // moved on, or a match already completed, is left as it is.
+    const written = await writeRoundEnd(supabase, {
+        matchId: match.id,
+        expectedRound: match.current_round,
+        payload: updatePayload,
+    });
+    if (written === "stale") return;
 
     if (isGameOver) {
         await runCompleteMatch(match.id, nextRound > 10 ? "round_limit" : "timeout");
