@@ -539,6 +539,8 @@ Key files:
 - Supabase PostgreSQL. One additive migration: `matches.rated boolean not null default true`. No other schema change; the fixture route touches no database at all. (045-field-ledger-completion)
 - TypeScript 5.x, Node.js 22, React 19, Next.js 16 (App Router) + Tailwind CSS 4.x, zustand (`roomStore`), Supabase JS v2, Zod. No new dependency. (048-room-clarity)
 - Supabase PostgreSQL. No schema change; `matches.rated` stops being read and written (stays at its default `true`). (048-room-clarity)
+- TypeScript 5.x, Node.js 22, React 19, Next.js 16 (App Router) + Supabase JS v2, Zod, zustand. No new dependency. (049-scored-letter-integrity)
+- Supabase PostgreSQL. **No schema change.** No data repair: the loader change renders the affected matches correctly from the rows they have. (049-scored-letter-integrity)
 
 - **Runtime (current)**: Node.js 22 (`.nvmrc`, `engines.node >=22`), pnpm 11.7 (`packageManager`; settings live in `pnpm-workspace.yaml`). Per-spec lines below that say "Node.js 20" are historical.
 - TypeScript 5.x, Node.js 20 + Next.js 16 (App Router), Supabase JS v2, Zod (007-server-authoritative-timer)
