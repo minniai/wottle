@@ -77,6 +77,10 @@ export function buildMatchOverSlip(input: MatchOverSlipInput): SlipState | null 
 export function useMatchOverSlip(input: MatchOverSlipInput): void {
   const setSlip = useRoomStore((s) => s.setSlip);
   const landed = useRef(false);
+  const matchId = input.match.matchId;
+  useEffect(() => {
+    landed.current = false;
+  }, [matchId]);
   const { completed, busy, revealed } = input;
   const slip = buildMatchOverSlip(input);
   const key = slip ? JSON.stringify(slip) : null;
@@ -93,5 +97,5 @@ export function useMatchOverSlip(input: MatchOverSlipInput): void {
       setSlip(next);
     }, revealed ? MATCH_OVER_DELAY_MS : 0);
     return () => clearTimeout(timer);
-  }, [completed, busy, key, revealed, setSlip]);
+  }, [matchId, completed, busy, key, revealed, setSlip]);
 }

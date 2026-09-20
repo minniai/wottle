@@ -31,6 +31,7 @@ describe("/rules parity", () => {
     expect(screen.getByTestId("rules-page")).toHaveTextContent(`one clock of ${MATCH_CLOCK_BUDGET_MS / 60_000}:00 for all ${TOTAL_ROUNDS} rounds`);
     expect(screen.getByTestId("rules-figure-words").querySelector(".field")).toHaveAttribute("aria-label", "the field");
     expect(screen.getByTestId("rules-figure-words").querySelector('[aria-hidden="true"]')).toBeTruthy();
+    expect(screen.getByTestId("rules-figure-words").querySelector(".rules__field")).toHaveAttribute("inert");
     expect(screen.getByTestId("rules-play")).toHaveAttribute("href", "/lobby");
     expect(screen.getByTestId("rules-back-top")).toHaveAttribute("href", "/lobby");
   });

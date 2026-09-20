@@ -6,6 +6,7 @@ import { SETTLE_HOLD_MS } from "@/lib/room/revealSequence";
 import { useRoomStore } from "@/lib/room/roomStore";
 
 export interface SettleHoldInput {
+  matchId?: string;
   /** The round the running (or last) reveal belongs to. */
   round: number | null;
   settled: boolean;
@@ -18,17 +19,24 @@ export interface SettleHoldInput {
  * the scored row stays the tinted row for `SETTLE_HOLD_MS` before the next live
  * row opens. Keyed on the `settled` edge because `useReveal` has no callback.
  */
-export function useSettleHold({ round, settled, drew }: SettleHoldInput): void {
+export function useSettleHold({ matchId, round, settled, drew }: SettleHoldInput): void {
   const beginHold = useRoomStore((s) => s.beginHold);
   const endHold = useRoomStore((s) => s.endHold);
-  const wasSettled = useRef(settled);
+  const previousMatch = useRef(matchId);
   const heldFor = useRef<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const rose = settled && !wasSettled.current;
-    wasSettled.current = settled;
-    if (!rose || !drew || round === null || heldFor.current === round) return;
+    if (previousMatch.current !== matchId) {
+      previousMatch.current = matchId;
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = null;
+      heldFor.current = null;
+      endHold();
+    }
+    // Reduced motion can settle without an intermediate false state. A newly
+    // completed round still needs its reading pause, exactly once per match.
+    if (!settled || !drew || round === null || heldFor.current === round) return;
     heldFor.current = round;
     beginHold(round);
     performance.mark?.("room:settle-hold:start", { detail: { round } });
@@ -40,7 +48,7 @@ export function useSettleHold({ round, settled, drew }: SettleHoldInput): void {
       endHold();
       performance.mark?.("room:settle-hold:end", { detail: { round } });
     }, SETTLE_HOLD_MS);
-  }, [settled, drew, round, beginHold, endHold]);
+  }, [matchId, settled, drew, round, beginHold, endHold]);
 
   // On unmount only the timer is cleared; the store's hold is reset by the next
   // `hydrateMatch` / `leaveToLobby`, never by a component leaving.

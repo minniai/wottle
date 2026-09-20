@@ -74,4 +74,15 @@ describe("useMatchOverSlip (spec 048 FR-003)", () => {
     expect(useRoomStore.getState().slip).toMatchObject({ kind: "matchOver", rematch: "incoming" });
     expect(useRoomStore.getState().slipDismissed).toBe(true);
   });
+
+  it("waits for the result delay again in a rematch", () => {
+    const { rerender } = renderHook((p: MatchOverSlipInput) => useMatchOverSlip(p), { initialProps: input });
+    act(() => vi.advanceTimersByTime(MATCH_OVER_DELAY_MS));
+    act(() => useRoomStore.getState().hydrateMatch({ ...match, matchId: "m2", state: "collecting" }, "you"));
+    rerender({ ...input, match: { ...match, matchId: "m2" }, completed: false });
+    rerender({ ...input, match: { ...match, matchId: "m2" }, completed: true });
+    expect(useRoomStore.getState().slip).toBeNull();
+    act(() => vi.advanceTimersByTime(MATCH_OVER_DELAY_MS));
+    expect(useRoomStore.getState().slip?.kind).toBe("matchOver");
+  });
 });

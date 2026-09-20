@@ -95,7 +95,15 @@ describe("MatchRoomController", () => {
     useRoomStore.getState().leaveToLobby();
     mockPush.mockClear();
     mockReplace.mockClear();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ status: "accepted", grid: state().board }) }));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        if (String(url).endsWith("/state")) return useRoomStore.getState().match ?? state();
+        if (String(url).endsWith("/words")) return { words: [] };
+        return { status: "accepted", grid: state().board };
+      },
+    })));
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -310,7 +318,7 @@ describe("MatchRoomController", () => {
     vi.useRealTimers();
   });
 
-  it("once the window has elapsed the ledger offers the claim as a line", () => {
+  it("the claim slip returns after ten seconds of waiting and lifts on reconnect", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
     renderController(state({ disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
@@ -319,7 +327,12 @@ describe("MatchRoomController", () => {
     fireEvent.click(screen.getByTestId("slip-keep-waiting"));
     expect(screen.queryByTestId("slip")).toBeNull();
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 0:00 left");
-    vi.useRealTimers();
+    await act(async () => vi.advanceTimersByTimeAsync(9_999));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "claimWin");
+    act(() => mockCallbacks.onState!(state()));
+    expect(screen.queryByTestId("slip")).toBeNull();
   });
 
   // Spec 047 amendment P1: an illegal pick is a live-row state for two seconds,

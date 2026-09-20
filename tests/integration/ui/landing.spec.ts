@@ -43,7 +43,7 @@ test.describe("@landing the lobby room, signed out", () => {
 
   test("warm-up field swaps locally once signed in, without any move request", async ({ page }) => {
     const moves: string[] = [];
-    page.on("request", (r) => r.url().includes("/api/match/") && moves.push(r.url()));
+    page.on("request", (r) => /\/api\/match\/[^/]+\/move(?:\?|$)/.test(r.url()) && moves.push(r.url()));
     await page.goto("/");
     await page.getByTestId("player-bar-name-input").fill(generateTestUsername("warmup"));
     await page.getByTestId("player-bar-action-play").click();

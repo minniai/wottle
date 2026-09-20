@@ -47,6 +47,7 @@ export const ROOM_PHASES = [
   "claim-win",
   "over-slip",
   "settle",
+  "rules",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];

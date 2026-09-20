@@ -9,6 +9,9 @@ vi.mock("next/navigation", () => ({
 import { RoomFixture } from "@/app/dev/room/RoomFixture";
 import { ROOM_PHASES } from "@/app/dev/room/fixtures";
 
+// The rules fixture is a server-rendered page outside the room/store.
+const IN_ROOM_PHASES = ROOM_PHASES.filter((phase) => phase !== "rules");
+
 /**
  * Spec 047 amendment P2: every phase renders from literals alone. The visual
  * suite screenshots each one; this keeps a broken phase from reaching it.
@@ -22,14 +25,14 @@ describe("RoomFixture", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(ROOM_PHASES)("renders the %s phase", (phase) => {
+  it.each(IN_ROOM_PHASES)("renders the %s phase", (phase) => {
     render(<RoomFixture phase={phase} />);
     if (phase === "profile") expect(screen.getByTestId("profile-page")).toBeInTheDocument();
     else expect(screen.getByTestId("field")).toBeInTheDocument();
   });
 
   it("idle reads pick a letter; picking, previewed, played and illegal each carry their live line", () => {
-    const lineOf = (phase: (typeof ROOM_PHASES)[number]) => {
+    const lineOf = (phase: (typeof IN_ROOM_PHASES)[number]) => {
       const { unmount } = render(<RoomFixture phase={phase} />);
       const text = screen.getByTestId("ledger-live-row").textContent;
       unmount();

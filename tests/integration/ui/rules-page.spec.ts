@@ -49,7 +49,10 @@ test.describe("@rules the how-to-play page", () => {
     try {
       const pageA = await contextA.newPage();
       const pageB = await contextB.newPage();
-      await startMatchWithDirectInvite(pageA, pageB, { playerBUsername: generateTestUsername("rulesB") });
+      const playerBUsername = generateTestUsername("rulesB");
+      await loginViaSlip(pageA, generateTestUsername("rulesA"));
+      await loginViaSlip(pageB, playerBUsername);
+      await startMatchWithDirectInvite(pageA, pageB, { playerBUsername });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       const clockBefore = await pageA.getByTestId("player-bar-bottom").getByTestId("player-bar-clock").textContent();
       await pageA.getByTestId("ledger-menu-trigger").click();

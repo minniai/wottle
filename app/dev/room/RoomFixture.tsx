@@ -161,7 +161,7 @@ interface MatchPhaseSpec {
 const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, roundState: YOUR_MOVE };
 const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, roundState: YOUR_MOVE };
 
-type MatchPhase = Exclude<RoomPhase, "landing-slip" | "lobby" | "queue" | "found" | "profile">;
+type MatchPhase = Exclude<RoomPhase, "landing-slip" | "lobby" | "queue" | "found" | "profile" | "rules">;
 
 /** Every match-state phase as literals (spec 047 amendment P2). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -194,7 +194,7 @@ const SLIPS: Partial<Record<RoomPhase, SlipState>> = {
 const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", profile: "lobby", queue: "queue", found: "found", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
-export function RoomFixture({ phase }: { phase: RoomPhase }) {
+export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   const [revealed, setRevealed] = useState(phase === "reveal" ? 0 : null);
 
   useEffect(() => {

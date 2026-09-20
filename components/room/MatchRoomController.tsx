@@ -174,7 +174,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // first-mover partial reveal (spec 042) draws while the viewer may still pick.
   const summaryReveal = reveal.key?.startsWith("summary:") ?? false;
   const resolvingNow = revealing && summaryReveal;
-  useSettleHold({ round: reveal.round, settled: progress.settled, drew: summaryReveal && progress.planIds.length > 0 });
+  useSettleHold({ matchId, round: reveal.round, settled: progress.settled, drew: summaryReveal && progress.planIds.length > 0 });
   const hiddenWordIds = useMemo(() => new Set(newIds.slice(progress.wordsWritten)), [newIds, progress.wordsWritten]);
 
   const holdRound = useRoomStore((s) => s.holdRound);
@@ -279,6 +279,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // `keep waiting ▸` puts the claim away; the next window tick re-arms it (spec 048 US7).
   const [claimDeferred, setClaimDeferred] = useState(false);
   useEffect(() => {
+    if (!claimDeferred) return;
+    const timer = setTimeout(() => setClaimDeferred(false), 10_000);
+    return () => clearTimeout(timer);
+  }, [claimDeferred, matchId]);
+  useEffect(() => {
     if (claimable && !claimDeferred && !completed) setSlip({ kind: "claimWin", opponentName: opp.displayName, round: match.currentRound });
     else clearSlip("claimWin");
     if (!claimable) setClaimDeferred(false);
@@ -351,7 +356,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     [matchId, push, rematch, router, dismissSlip, restoreSlip, setSlip, clearSlip, match.currentRound, clocks, viewerSlot, opp.displayName],
   );
 
-  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  // `M` mutes; rules are reached through the menu (design system §9).
   useRoomHotkeys(handleAction);
 
   const rematchLine = rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;

@@ -52,4 +52,25 @@ describe("useSettleHold (spec 048 FR-022)", () => {
     expect(mark).toHaveBeenCalledWith("room:settle-hold:end", expect.anything());
     mark.mockRestore();
   });
+
+  it("holds an instantaneous reduced-motion reveal for the full reading pause", () => {
+    const { rerender } = renderHook((p: { drew: boolean }) => useSettleHold({ round: 3, settled: true, drew: p.drew }), { initialProps: { drew: false } });
+    rerender({ drew: true });
+    expect(useRoomStore.getState().holdRound).toBe(3);
+    act(() => vi.advanceTimersByTime(SETTLE_HOLD_MS));
+    expect(useRoomStore.getState().holdRound).toBeNull();
+  });
+
+  it("resets the round and pending timer when the match changes", () => {
+    const { rerender } = renderHook((p: { matchId: string; settled: boolean }) => useSettleHold({ ...p, round: 3, drew: true }), { initialProps: { matchId: "first", settled: false } });
+    rerender({ matchId: "first", settled: true });
+    act(() => vi.advanceTimersByTime(600));
+    rerender({ matchId: "rematch", settled: false });
+    expect(useRoomStore.getState().holdRound).toBeNull();
+    rerender({ matchId: "rematch", settled: true });
+    act(() => vi.advanceTimersByTime(600));
+    expect(useRoomStore.getState().holdRound).toBe(3);
+    act(() => vi.advanceTimersByTime(600));
+    expect(useRoomStore.getState().holdRound).toBeNull();
+  });
 });

@@ -26,7 +26,7 @@ export function RulesFigure({ kind, caption }: { kind: RulesFigureKind; caption:
   const bands = kind === "words" ? WORD_BANDS : kind === "crossing" ? CROSSING_BANDS : [];
   return (
     <figure className="rules__figure" data-testid={`rules-figure-${kind}`}>
-      <div className="rules__field" style={{ "--field-size": `${SIZE}px` } as CSSProperties} aria-hidden="true">
+      <div className="rules__field" style={{ "--field-size": `${SIZE}px` } as CSSProperties} aria-hidden="true" inert>
         <Field
           board={RULES_BOARD}
           viewerSlot="player_a"
