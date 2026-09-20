@@ -37,8 +37,10 @@ function harness(match: Record<string, unknown>, affectedRows: number): Harness 
   const matchWrites: Harness["matchWrites"] = [];
   const selectChain = (data: unknown) => ({
     eq: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data, error: null }),
     maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+    then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve),
   });
   const submissions = [
     { id: "s-a", player_id: "a", from_x: 0, from_y: 0, to_x: 0, to_y: 1, submitted_at: "2026-09-20T21:19:00Z", status: "pending" },
@@ -81,6 +83,7 @@ function harness(match: Record<string, unknown>, affectedRows: number): Harness 
         return { select: vi.fn(() => submissionsChain), update: vi.fn(() => thenable({ error: null })), insert: vi.fn().mockResolvedValue({ error: null }) };
       }
       if (table === "scoreboard_snapshots") return { select: vi.fn(() => selectChain({ player_a_score: 0, player_b_score: 0 })) };
+      if (table === "word_score_entries") return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
       return {};
     }),
     channel: vi.fn(() => ({ send: vi.fn().mockResolvedValue("ok"), unsubscribe: vi.fn() })),

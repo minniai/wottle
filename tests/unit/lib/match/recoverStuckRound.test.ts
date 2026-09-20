@@ -14,7 +14,12 @@ vi.mock("@/app/actions/match/publishRoundSummary", () => ({
 vi.mock("@/lib/match/statePublisher", () => ({
     publishMatchState: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("@/lib/match/matchIntegrity", async (importActual) => {
+    const actual = await importActual<typeof import("@/lib/match/matchIntegrity")>();
+    return { ...actual, verifyMatchIntegrity: vi.fn().mockReturnValue([]) };
+});
 
+import { verifyMatchIntegrity } from "@/lib/match/matchIntegrity";
 import { recoverStuckRound } from "@/lib/match/recoverStuckRound";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
@@ -123,8 +128,12 @@ function buildMockClient({
             return {
                 select: vi.fn(() => ({
                     eq: vi.fn().mockReturnThis(),
+                    lte: vi.fn().mockReturnThis(),
                     single: vi.fn().mockResolvedValue({ data: round ?? null, error: round ? null : { message: "not found" } }),
                     maybeSingle: vi.fn().mockResolvedValue({ data: round ?? null, error: null }),
+                    // The integrity check's list read (spec 049)
+                    then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+                        Promise.resolve({ data: round ? [{ id: round.id, round_number: match.current_round, board_snapshot_after: round.board_snapshot_after }] : [], error: null }).then(onFulfilled),
                 })),
                 update: vi.fn((patch: Record<string, unknown>) => {
                     roundUpdates.push(patch);
@@ -155,6 +164,9 @@ function buildMockClient({
                     maybeSingle: vi.fn().mockResolvedValue({ data: existingSnapshot, error: null }),
                 })),
             };
+        }
+        if (table === "word_score_entries") {
+            return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
         }
         return {
             select: vi.fn(() => ({
@@ -241,9 +253,51 @@ describe("recoverStuckRound", () => {
         vi.mocked(computeWordScoresForRound).mockClear();
         vi.mocked(publishRoundSummary).mockClear();
         vi.mocked(publishMatchState).mockClear();
+        vi.mocked(verifyMatchIntegrity).mockReset().mockReturnValue([]);
     });
 
     describe("shape A: round stuck in 'resolving'", () => {
+        // Spec 049 T016: recovery checks the board it re-scored; a failure is
+        // logged and this invocation opens no next round.
+        it("checks the re-scored board's integrity; a failure logs and advances nothing", async () => {
+            const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+            vi.mocked(verifyMatchIntegrity).mockReturnValue([
+                { kind: "immutability", cell: "0,0", expected: "B", found: "A" },
+            ]);
+            const { client, matchUpdates, roundInserts, roundUpdates } = buildMockClient({
+                match: baseMatch({ current_round: 5 }),
+                round: baseRound({ state: "resolving", board_snapshot_after: null }),
+                submissions: baseSubmissions("pending"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(computeWordScoresForRound).toHaveBeenCalledTimes(1);
+            expect(verifyMatchIntegrity).toHaveBeenCalledTimes(1);
+            expect(vi.mocked(verifyMatchIntegrity).mock.calls[0][0].board).toEqual(BOARD);
+            expect(roundUpdates.some((u) => u.state === "completed")).toBe(true);
+            expect(roundInserts).toHaveLength(0);
+            expect(matchUpdates).toHaveLength(0);
+            expect(completeMatchInternal).not.toHaveBeenCalled();
+            const line = error.mock.calls.map((c) => String(c[0])).find((l) => l.includes("match.integrity.failed"));
+            expect(JSON.parse(line as string)).toMatchObject({ matchId: MATCH_ID, roundNumber: 5 });
+            error.mockRestore();
+        });
+
+        it("does not run the check when it did not re-score", async () => {
+            const { client } = buildMockClient({
+                match: baseMatch({ current_round: 5 }),
+                round: baseRound({ state: "resolving" }),
+                submissions: baseSubmissions("accepted"),
+            });
+            vi.mocked(getServiceRoleClient).mockReturnValue(client);
+
+            await recoverStuckRound(MATCH_ID);
+
+            expect(verifyMatchIntegrity).not.toHaveBeenCalled();
+        });
+
         it("runs scoring when board_snapshot_after is missing, marks round completed, advances match, calls completeMatchInternal", async () => {
             const { client, matchUpdates, roundUpdates, submissionUpdates } = buildMockClient({
                 match: baseMatch(),

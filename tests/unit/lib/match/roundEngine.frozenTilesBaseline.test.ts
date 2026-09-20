@@ -48,8 +48,12 @@ function createBoard() {
 function createSelectChain<T>(data: T) {
     return {
         eq: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data, error: null }),
         maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+        // The integrity check's list read of the match's rounds (spec 049)
+        then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+            Promise.resolve({ data: [], error: null }).then(onFulfilled),
     };
 }
 
@@ -186,6 +190,9 @@ describe("roundEngine.advanceRound — frozen-tile scoring baseline (spec 042)",
                             createSelectChain({ player_a_score: 0, player_b_score: 0 }),
                         ),
                     };
+                }
+                if (table === "word_score_entries") {
+                    return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
                 }
                 return {};
             }),

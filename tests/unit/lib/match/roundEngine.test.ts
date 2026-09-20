@@ -68,12 +68,18 @@ function createSelectChain<T>(data: T) {
     return chain;
 }
 
+// Answers the current-round read (`single`) and, thenable, the integrity
+// check's list read of the match's rounds (spec 049).
 function createRoundSelectChain<T>(data: T) {
-    return {
+    const chain = {
         eq: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data, error: null }),
         maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+        then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+            Promise.resolve({ data: [], error: null }).then(onFulfilled),
     };
+    return chain;
 }
 
 function createSubmissionsChain(data: SubmissionRow[]) {
@@ -210,6 +216,10 @@ describe("roundEngine.advanceRound", () => {
                         update: moveSubmissionUpdate,
                         insert: moveSubmissionsInsert,
                     };
+                }
+
+                if (table === "word_score_entries") {
+                    return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
                 }
 
                 return {};

@@ -12,6 +12,7 @@ import { resolveConflicts } from "./conflictResolver";
 import { computeElapsedMs } from "./clockEnforcer";
 import { loadFrozenTiles } from "./frozenTilePersistence";
 import { writeRoundEnd } from "./roundEndWrite";
+import { checkRoundIntegrity } from "./integrityCheck";
 import type { BoardGrid } from "@/lib/types/board";
 import type { MoveSubmission } from "@/lib/types/match";
 
@@ -106,8 +107,13 @@ export async function recoverStuckRound(matchId: string): Promise<void> {
     let roundCompleted = round.state === "completed";
 
     if (round.state === "resolving") {
-        round = await finalizeResolvingRound(supabase, match, round);
+        const finalized = await finalizeResolvingRound(supabase, match, round);
+        round = finalized.round;
         roundCompleted = true;
+        // Spec 049: the board recovery just scored must hold the match's
+        // invariants before the next round opens from it. A failure is
+        // logged by the check; this invocation advances nothing.
+        if (finalized.rescored && !(await integrityHolds(supabase, match, round))) return;
     }
 
     if (roundCompleted && match.state === "in_progress") {
@@ -160,12 +166,24 @@ async function loadCurrentRound(
     return data as RoundRow;
 }
 
+async function integrityHolds(supabase: Supabase, match: MatchRow, round: RoundRow): Promise<boolean> {
+    const board = boardGridSchema.safeParse(round.board_snapshot_after);
+    if (!board.success) return true;
+    const failures = await checkRoundIntegrity(supabase, {
+        matchId: match.id,
+        roundNumber: match.current_round,
+        board: board.data,
+        frozenTiles: await loadFrozenTiles(supabase, match.id),
+    });
+    return failures.length === 0;
+}
+
 /** Marks the round completed and returns it with the scored board on it. */
 async function finalizeResolvingRound(
     supabase: Supabase,
     match: MatchRow,
     round: RoundRow,
-): Promise<RoundRow> {
+): Promise<{ round: RoundRow; rescored: boolean }> {
     const submissions = await fetchSubmissions(supabase, round.id);
     const nonTimeout = submissions.filter((s) => s.status !== "timeout");
 
@@ -199,10 +217,10 @@ async function finalizeResolvingRound(
         ),
     ]);
 
-    const scored: RoundRow =
-        round.board_snapshot_after != null
-            ? round
-            : { ...round, board_snapshot_after: await runCombinedScoring(match, round, acceptedMoves) };
+    const rescored = round.board_snapshot_after == null;
+    const scored: RoundRow = rescored
+        ? { ...round, board_snapshot_after: await runCombinedScoring(match, round, acceptedMoves) }
+        : round;
 
     await supabase
         .from("rounds")
@@ -212,7 +230,7 @@ async function finalizeResolvingRound(
             board_snapshot_after: scored.board_snapshot_after,
         })
         .eq("id", round.id);
-    return scored;
+    return { round: scored, rescored };
 }
 
 /**

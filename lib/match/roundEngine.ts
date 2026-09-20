@@ -1,7 +1,8 @@
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { writeRoundEnd } from "./roundEndWrite";
+import { checkRoundIntegrity } from "./integrityCheck";
 import { resolveConflicts } from "./conflictResolver";
-import { MoveSubmission } from "@/lib/types/match";
+import type { FrozenTileMap, MoveSubmission } from "@/lib/types/match";
 import { applySwap, type BoardGrid } from "@/lib/game-engine/board";
 import { boardGridSchema } from "@/lib/types/board";
 import type { MoveRequest } from "@/lib/types/board";
@@ -348,6 +349,21 @@ export async function advanceRound(matchId: string): Promise<AdvanceRoundResult>
 
     if (boardSnapshotError) {
         console.error("[RoundEngine] Failed to persist board snapshot:", boardSnapshotError);
+    }
+
+    // 9d. Every record must spell on the board just persisted and no frozen
+    // letter may have moved (spec 049). A failure is an error event and a
+    // hand-off to recovery; this call opens no next round.
+    const integrityFailures = await checkRoundIntegrity(supabase, {
+        matchId,
+        roundNumber: currentRound,
+        board: scoringFinalBoard,
+        frozenTiles: scoringNewFrozenTiles as FrozenTileMap,
+    });
+    if (integrityFailures.length > 0) {
+        const { recoverStuckRound } = await import("./recoverStuckRound");
+        await recoverStuckRound(matchId);
+        return { status: "not_advancing", reason: "integrity" };
     }
 
     // 10. Update submission statuses (batched in parallel)

@@ -59,10 +59,10 @@ Single Next.js application at the repository root. Server code in `lib/match/` a
 
 ### I.3 The integrity check after resolution (contracts/integrity-check.md)
 
-- [ ] T014 [US1] [test] `tests/unit/lib/match/roundEngine.integrity.spec.ts`: after step 9c `verifyMatchIntegrity` is called with the persisted board, the match's records and `letterAtFreeze`; with `[]` the round proceeds to step 13; with a failure it logs `match.integrity.failed` with the failures, calls `recoverStuckRound(matchId)` and returns `{ status: "not_advancing", reason: "integrity" }` without inserting the next round or advancing the match
-- [ ] T015 [US1] [impl] `lib/match/roundEngine.ts` between steps 9c and 10; one records read (`word_score_entries` for the match) and the rounds' `board_snapshot_after` for `letterAtFreeze`
-- [ ] T016 [P] [US1] [test] `tests/unit/lib/match/recoverStuckRound.test.ts` (extend): after recovery re-scores, the check runs on its result; a failure logs and does not create the next round
-- [ ] T017 [US1] [impl] `lib/match/recoverStuckRound.ts` per T016
+- [x] T014 [US1] [test] `tests/unit/lib/match/roundEngine.integrity.spec.ts`: after step 9c `verifyMatchIntegrity` is called with the persisted board, the match's records and `letterAtFreeze`; with `[]` the round proceeds to step 13; with a failure it logs `match.integrity.failed` with the failures, calls `recoverStuckRound(matchId)` and returns `{ status: "not_advancing", reason: "integrity" }` without inserting the next round or advancing the match
+- [x] T015 [US1] [impl] `lib/match/roundEngine.ts` between steps 9c and 10; one records read (`word_score_entries` for the match) and the rounds' `board_snapshot_after` for `letterAtFreeze`
+- [x] T016 [P] [US1] [test] `tests/unit/lib/match/recoverStuckRound.test.ts` (extend): after recovery re-scores, the check runs on its result; a failure logs and does not create the next round
+- [x] T017 [US1] [impl] `lib/match/recoverStuckRound.ts` per T016
 
 ### I.4 The client never draws a lie (contracts/integrity-check.md, client mirror)
 
