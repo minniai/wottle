@@ -295,6 +295,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 ### Remaining Gaps
 
 1. **Legacy `boards` table** — singleton board from the original prototype (`supabase/migrations/20251105001_init.sql`) still exists in the schema and is seeded by `scripts/supabase/seed.ts`; no runtime code reads it anymore. A follow-up migration can drop the table + its seed/reset/verify wiring.
+2. **Unread `matches.rated` column** — added by spec 045, retired by spec 048 (every match is rated). Nothing reads or writes it; a follow-up migration can drop it.
 
 ## Code Standards
 

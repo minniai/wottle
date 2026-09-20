@@ -49,7 +49,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "queue");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
     expect(screen.getByTestId("player-bar-top").querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("data-mode", "searching");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("ranked · 10 rounds · 5:00 clocks");
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent("10 rounds · 5:00 clocks");
     const letterAt = (i: number) => screen.getAllByRole("gridcell")[i].querySelector("span")?.textContent;
     expect(letterAt(5)).toBe("");
     await act(async () => {

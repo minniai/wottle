@@ -69,7 +69,7 @@ describe("buildTerritory", () => {
 describe("buildMatchLedger", () => {
   it("caption reads the round context; the hint is empty unless a match-level line is given", () => {
     const model = buildMatchLedger({ currentRound: 4, completed: false, words: [], playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} });
-    expect(model.caption).toBe("ranked · round 4 of 10");
+    expect(model.caption).toBe("round 4 of 10");
     expect(model.hint).toBe("");
     expect(model.territory.free).toBe(100);
   });
@@ -119,8 +119,8 @@ describe("final bars (design system §5.3, §8)", () => {
     expect(ratingLine(rows, "zzz", false)).toBe("rating pending");
   });
   it("final caption reports the clock time both players used", () => {
-    expect(finalCaption(300_000 - 500_000 / 2, 300_000 - 630_000 / 2)).toBe("final · 10 rounds · 9:25");
-    expect(finalCaption(300_000, 300_000)).toBe("final · 10 rounds · 0:00");
+    expect(finalCaption(300_000 - 500_000 / 2, 300_000 - 630_000 / 2)).toBe("final · 10 of 10 · 9:25");
+    expect(finalCaption(300_000, 300_000)).toBe("final · 10 of 10 · 0:00");
   });
 });
 

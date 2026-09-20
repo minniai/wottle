@@ -34,8 +34,6 @@ export interface MatchRoomViewProps {
   opp: SeatFacts;
   currentRound: number;
   completed: boolean;
-  /** False for a directory challenge: the caption reads unranked. */
-  rated?: boolean;
   words: AccumulatedWord[];
   playerAId: string;
   frozenTiles: FrozenTileMap;
@@ -65,7 +63,7 @@ function subline(facts: SeatFacts, seatWord: string | null): string {
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
-  const { matchId, viewerSlot, you, opp, currentRound, completed, rated = true, words, playerAId, frozenTiles, live } = props;
+  const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
   const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children, roundState, holdRound = null } = props;
   const reducedMotion = useReducedMotion();
@@ -73,9 +71,9 @@ export function MatchRoomView(props: MatchRoomViewProps) {
   const oppScore = useCountUp(opp.score, reducedMotion);
 
   const model = useMemo(() => {
-    const base = buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, rated, roundState, holdRound });
+    const base = buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, roundState, holdRound });
     return { ...base, caption: caption ?? base.caption, verdict };
-  }, [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, rated, roundState, holdRound]);
+  }, [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, roundState, holdRound]);
   const turn = roundState && !completed && !readOnly ? roundState : null;
   const youSuffix = turn ? barSuffixFor(turn, "you") : null;
   const oppSuffix = turn ? barSuffixFor(turn, "opp") : null;

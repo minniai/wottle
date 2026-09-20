@@ -32,18 +32,14 @@ test.describe("@match-completion final room state", () => {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
         await expect(p.getByTestId("field")).toBeVisible();
         await expect(p.getByTestId("verdict")).toContainText(/wins \d+–\d+|draw \d+–\d+/);
-        // Every match in this suite is started by direct invite, and a
-        // directory challenge is unranked since 15 September 2026 (spec 045
-        // decision 1) — so the caption names it and no rating line is written.
-        await expect(p.getByTestId("round-indicator")).toContainText(/final · unranked · 10 rounds/);
+        await expect(p.getByTestId("round-indicator")).toContainText(/final · 10 of 10 · \d+:\d\d/);
         await expect(p).toHaveURL(/\/match\/[0-9a-f-]+$/);
         // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });
         await expect(p.getByTestId("slip")).toContainText(/wins|draw/);
       }
-      // These matches are invite-created and therefore unranked, so no rating is
-      // written and the bar says so rather than waiting on one that never comes.
-      await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/unranked · no rating change/, { timeout: 15_000 });
+      // Every match is rated (spec 048 US6): an invite-created match writes rating rows too.
+      await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/\d+ → \d+ · [+−]\d+/, { timeout: 15_000 });
 
       // review the field ▸ lifts the slip; result ▸ in the foot brings it back.
       await pageA.getByTestId("slip-review-field").click();

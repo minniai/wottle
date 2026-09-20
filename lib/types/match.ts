@@ -127,11 +127,6 @@ export interface MatchState {
   reconnectWindowMs?: number;
   /** Frozen tile map for visual rendering and swap validation */
   frozenTiles?: FrozenTileMap;
-  /**
-   * Whether this match moves ratings. False for a directory challenge
-   * (spec 045 decision 1); absent means rated, as every match was before.
-   */
-  rated?: boolean;
   /** In-flight swaps for the current round. Populated only during `collecting`. */
   pendingMoves?: PendingMove[];
   /**

@@ -5,7 +5,7 @@ import { Ledger } from "@/components/room/Ledger";
 import { EMPTY_TERRITORY, emptyRows, type LedgerModel } from "@/lib/room/ledgerTypes";
 
 const model: LedgerModel = {
-  caption: "ranked · round 4 of 10",
+  caption: "round 4 of 10",
   rows: emptyRows().map((r) => (r.round === 4 ? { ...r, status: "live", live: { line1: "picking · T (2)", line2: "tap a second letter" } } : r)),
   territory: { you: 32, opp: 25, free: 43 },
   hint: "",
@@ -46,7 +46,7 @@ describe("Ledger (design system §5.4)", () => {
   it("caption shows the lowercase wordmark and the match context", () => {
     render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("wottle");
-    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("ranked · round 4 of 10");
+    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("round 4 of 10");
   });
 
   it("match variant renders the seat header, ten rows, a live row and territory", () => {

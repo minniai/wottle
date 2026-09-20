@@ -28,7 +28,6 @@ vi.mock("@/lib/match/rematchService", () => ({
 vi.mock("@/lib/matchmaking/service", () => ({
   bootstrapMatchRecord: vi.fn(),
   // A rematch inherits the source match's rank (spec 045 decision 1).
-  isMatchRated: vi.fn(async () => true),
 }));
 
 import { requestRematchAction } from "@/app/actions/match/requestRematch";

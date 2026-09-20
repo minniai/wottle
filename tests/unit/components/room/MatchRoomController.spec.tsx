@@ -122,7 +122,7 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("ranked · round 3 of 10");
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent("round 3 of 10");
     const ids = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
     expect(ids.indexOf("player-bar-top")).toBeLessThan(ids.indexOf("field"));
     expect(ids.indexOf("field")).toBeLessThan(ids.indexOf("player-bar-bottom"));
@@ -221,7 +221,7 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("field")).toBeInTheDocument();
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
     expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent(/final · 10 rounds · \d+:\d\d/);
+    expect(screen.getByTestId("round-indicator")).toHaveTextContent(/final · 10 of 10 · \d+:\d\d/);
     expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
     await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1191 → 1203 · +12 · wins"));
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1204 → 1192 · −12");
