@@ -43,6 +43,7 @@ export function FieldBands({ bands, highlightRound, drawnCount = null, drawingIn
             data-direction={band.direction}
             data-round={band.round}
             data-word={band.word}
+            data-cells={band.cells.map((c) => `${c.x},${c.y}`).join(";")}
           >
             <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill={band.strength === "live" ? colors.live : colors.band} />
             <path d={chevronPath(rect)} fill="none" stroke={colors.ink} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
