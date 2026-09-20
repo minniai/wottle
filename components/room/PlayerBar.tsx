@@ -15,6 +15,9 @@ export interface PlayerBarProps {
   state: PlayerBarState;
   name?: string;
   subline: string;
+  /** Spec 048 FR-021: the turn suffix, in the seat colour when the move is the viewer's. */
+  sublineSuffix?: string | null;
+  sublineTone?: "seat" | "muted";
   clockMs?: number;
   clockRunning?: boolean;
   /** The opponent has just been found: their name is written in (FR-028). */
@@ -64,6 +67,12 @@ export function PlayerBar(props: PlayerBarProps) {
           )}
           <span className="player-bar__subline" data-testid="player-bar-subline">
             {subline}
+            {props.sublineSuffix ? (
+              <span className="player-bar__subline-suffix" data-tone={props.sublineTone ?? "muted"} data-testid="player-bar-turn">
+                {" · "}
+                {props.sublineSuffix}
+              </span>
+            ) : null}
           </span>
         </div>
       </div>

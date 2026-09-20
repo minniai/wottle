@@ -130,21 +130,31 @@ describe("MatchRoomController", () => {
 
   // Spec 047 amendment P1 (review S2): the live row carries the state and,
   // beneath it, the instruction; the hint line has nothing to say in a match.
-  it("idle reads pick a letter; a pick adds the instruction; a commit reads played once", () => {
+  // Spec 048 US2: line 1 is the round's beat, line 2 the field's instruction.
+  it("your move reads the round; a pick adds the instruction; a commit reads played · waiting", () => {
     renderController();
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick a letter");
+    const live = () => screen.getByTestId("ledger-live-row");
+    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("round 3 · your move");
+    expect(live().querySelector(".ledger__live-line2")).toHaveTextContent("pick a letter");
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("your move");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("thinking");
     fireEvent.click(cell(0, 0));
     // The board's A is worth 1 (spec 045 B3: the value was hard-coded to 0).
-    const live = screen.getByTestId("ledger-live-row");
-    expect(live.querySelector(".ledger__live-line1")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
-    expect(live.querySelector(".ledger__live-line2")).toHaveTextContent("tap a second letter");
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
+    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("round 3 · your move");
+    expect(live().querySelector(".ledger__live-line2")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A}) · tap a second letter`);
     fireEvent.click(cell(1, 0));
     expect(cell(0, 0)).toHaveAttribute("data-state", "pinned");
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("played ●");
-    expect(screen.getByTestId("ledger-live-row").querySelector(".ledger__live-line2")).toBeNull();
+    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("played · waiting for Bob");
+    expect(live().querySelector(".ledger__live-line2")).toHaveTextContent("Bob is thinking · their clock runs");
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
+  });
+
+  it("the opponent's paused clock reads played on their bar; a paused clock of yours drops the turn frame", () => {
+    renderController(state({ timers: { playerA: { playerId: "player-1", remainingMs: 100_000, status: "running" }, playerB: { playerId: "player-2", remainingMs: 100_000, status: "paused" } } }));
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("played ●");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
   });
 
   it("the opponent's pending move pins their letters in coral and shows the swapped letters", () => {
@@ -308,9 +318,24 @@ describe("MatchRoomController", () => {
 
   it("the frozen state names the round the letter froze in, not the current one", () => {
     // Round 4 is live; the letter at 1,2 froze in round 3 with `þar` (spec 045 B4).
-    renderController(state({ currentRound: 4, lastSummary: summary, frozenTiles: { "1,2": { owner: "player_a" } } }));
+    vi.useFakeTimers();
+    const initial = state({ currentRound: 4, lastSummary: summary, frozenTiles: { "1,2": { owner: "player_a" } } });
+    // The clock runs past the 2s safety poll here, so the poll must answer with a real state.
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/state") ? initial : { status: "accepted", grid: initial.board }) })));
+    renderController(initial);
+    // The round-3 reveal resolves and holds first (spec 048 FR-022); the field is closed until then.
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("resolving round 3");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    act(() => vi.advanceTimersByTime(2_000)); // the reveal settles
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("round 3 scored");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("you +15 · Bob +13 · round 4 opens in 1");
+    expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "future");
+    act(() => vi.advanceTimersByTime(1_300)); // the settle hold ends
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("round 4 · your move");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     fireEvent.click(cell(1, 2));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Alice R3 · pick another");
+    act(() => vi.advanceTimersByTime(2_000)); // the illegal state clears; no timer outlives the test
   });
 
   it("shows the rules line on a player's first match (gamesPlayed 0) and on ? rules", () => {

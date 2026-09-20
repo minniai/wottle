@@ -70,6 +70,23 @@ export const settingField = (landed: number): string =>
 export const FIRST_MATCH_RULES =
   "Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds five minutes for all of them.";
 
+// Round state (spec 048 US2): line 1 of the live row, and the bar sub-line suffixes
+export const roundYourMove = (round: number): string => `round ${round} · your move`;
+export const playedWaiting = (opponentName: string): string => `played · waiting for ${opponentName}`;
+export const resolvingRound = (round: number): string => `resolving round ${round}`;
+export const roundScored = (round: number): string => `round ${round} scored`;
+export const outOfTimeWaiting = (opponentName: string): string => `out of time · waiting for ${opponentName}`;
+export const opponentThinking = (opponentName: string): string => `${opponentName} is thinking · their clock runs`;
+const signed = (n: number): string => `${n < 0 ? "−" : "+"}${Math.abs(n)}`;
+export const scoredDeltas = (you: number, opp: number, opponentName: string, next: number): string =>
+  `you ${signed(you)} · ${opponentName} ${signed(opp)} · round ${next} opens in 1`;
+export const BOTH_PLAYED_SCORING = "both played · scoring";
+export const CLOCK_SPENT = "your clock is spent · rounds pass";
+export const YOUR_MOVE_SUFFIX = "your move";
+export const PLAYED_SUFFIX = "played ●";
+export const THINKING_SUFFIX = "thinking";
+export const SPENT_SUFFIX = "0:00";
+
 // Notices (live-row styled lines)
 export const rematchRequest = (name: string): string =>
   `${name} asks for a rematch · accept ▸ · decline`;

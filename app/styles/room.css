@@ -161,6 +161,10 @@
 .player-bar__name--writing {
   animation: name-write 200ms cubic-bezier(0.2, 0, 0.2, 1) both;
 }
+.player-bar__subline-suffix[data-tone="seat"] {
+  color: var(--seat-ink);
+  font-weight: 600;
+}
 .player-bar__subline {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -475,6 +479,42 @@
 }
 .ledger__row--live {
   padding-right: 10px;
+}
+/* The settle hold (spec 048 FR-022): the scored row keeps the live row's tint and rule. */
+.ledger__row--settled {
+  background: var(--tint);
+  box-shadow: inset 3px 0 0 var(--ink);
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding-right: 10px;
+}
+/* Spec 048 FR-019: the round's state is the row's headline, in the board face. */
+.ledger__row--live .ledger__live-line1,
+.ledger__row--settled .ledger__live-line1 {
+  display: block;
+  font-family: var(--font-board);
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.ledger__settled-words {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8px;
+  margin-top: 6px;
+}
+/* Spec 048 FR-020: the turn frame is an outline, so the field's geometry never moves. */
+.field[data-turn="you"] {
+  outline: 3px solid var(--you);
+  outline-offset: -3px;
+}
+.field[data-turn="opp"] {
+  outline: 3px solid var(--opp);
+  outline-offset: -3px;
 }
 /* 6px clears the live row's rule; every label keeps the same left edge (review S3). */
 .ledger__round {

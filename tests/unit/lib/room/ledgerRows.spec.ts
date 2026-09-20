@@ -124,3 +124,22 @@ describe("final bars (design system §5.3, §8)", () => {
   });
 });
 
+
+describe("settle hold rows (spec 048 FR-022)", () => {
+  const scored = { kind: "scored", round: 2, next: 3, you: 20, opp: 0, opponentName: "b" } as const;
+  it("the held round is settled with its words and lines; the current round stays future", () => {
+    const rows = buildLedgerRows({ currentRound: 3, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, roundState: scored, holdRound: 2 });
+    expect(rows[1]).toMatchObject({ status: "settled", live: { line1: "round 2 scored", line2: "you +20 · b +0 · round 3 opens in 1" } });
+    expect(rows[1].you?.words.map((w) => w.word)).toEqual(["vinur", "una"]);
+    expect(rows[2].status).toBe("future");
+    expect(rows.some((r) => r.status === "live")).toBe(false);
+  });
+  it("without a hold the round state writes line 1 and the field writes line 2", () => {
+    const rows = buildLedgerRows({ currentRound: 3, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "picking", letter: "T", value: 2 }, roundState: { kind: "yourMove", round: 3, opponentName: "b" }, holdRound: null });
+    expect(rows[2]).toMatchObject({ status: "live", live: { line1: "round 3 · your move", line2: "picking · T (2) · tap a second letter" } });
+  });
+  it("buildMatchLedger exposes the round and completion for the rail", () => {
+    const model = buildMatchLedger({ currentRound: 3, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} });
+    expect(model).toMatchObject({ round: 3, completed: false });
+  });
+});

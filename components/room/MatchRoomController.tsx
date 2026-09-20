@@ -36,6 +36,8 @@ import { useNowTick } from "./hooks/useNowTick";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
+import { useSettleHold } from "./hooks/useSettleHold";
+import { deriveRoundState, turnFrameFor } from "@/lib/room/roundState";
 import { buildPartialRevealKey } from "@/lib/match/partialReveal";
 
 export interface MatchRoomControllerProps {
@@ -144,20 +146,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     haptics.vibrateValidSwap();
   }, [sound, haptics]);
 
-  const field = useFieldInteraction({
-    matchId,
-    previewEnabled,
-    frozenKeys,
-    opponentPins,
-    canPick: !readOnly && isActive && youTimer.status === "running",
-    currentRound: match.currentRound,
-    onPick: sound.playTileSelect,
-    onCommitted,
-    onRejected,
-    onNotice,
-  });
 
-  const displayBoard = useMemo(() => applyLetterSwaps(match.board, [opponentPins, field.ownPins]), [match.board, opponentPins, field.ownPins]);
   // Reveal (design system §7, Clarifications Q3): a new summary or first-mover
   // partial starts a plan over the words not yet drawn; drawn ids are remembered
   // so nothing is ever drawn twice.
@@ -180,7 +169,29 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     setDrawnIds((prev) => (progress.planIds.every((id) => prev.has(id)) ? prev : new Set([...prev, ...progress.planIds])));
   }, [progress.settled, progress.planIds]);
   const revealing = reveal.key !== null && !progress.settled;
+  // Only a resolved round's reveal is "resolving" and holds afterwards; the
+  // first-mover partial reveal (spec 042) draws while the viewer may still pick.
+  const summaryReveal = reveal.key?.startsWith("summary:") ?? false;
+  const resolvingNow = revealing && summaryReveal;
+  useSettleHold({ round: reveal.round, settled: progress.settled, drew: summaryReveal && progress.planIds.length > 0 });
   const hiddenWordIds = useMemo(() => new Set(newIds.slice(progress.wordsWritten)), [newIds, progress.wordsWritten]);
+
+  const holdRound = useRoomStore((s) => s.holdRound);
+  const slipUp = useRoomStore((s) => s.slip !== null && !s.slipDismissed);
+  const field = useFieldInteraction({
+    matchId,
+    previewEnabled,
+    frozenKeys,
+    opponentPins,
+    canPick: !readOnly && isActive && youTimer.status === "running" && holdRound === null && !slipUp && !resolvingNow,
+    currentRound: match.currentRound,
+    onPick: sound.playTileSelect,
+    onCommitted,
+    onRejected,
+    onNotice,
+  });
+
+  const displayBoard = useMemo(() => applyLetterSwaps(match.board, [opponentPins, field.ownPins]), [match.board, opponentPins, field.ownPins]);
 
   const bands = useMemo(() => {
     const all = bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId, liveRound: revealing ? reveal.round : null, trustRound: reveal.round });
@@ -193,13 +204,17 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const [highlightRound, setHighlightRound] = useState<number | null>(null);
 
   const letterAt = useMemo(() => letterFactsOn(match.board), [match.board]);
+  // The field's own state (pick / preview / illegal); the round's beat is layered on by
+  // `roundState` (spec 048 US2), which owns line 1 of the live row.
   const live: LiveState = useMemo(() => {
-    if (match.state === "resolving") return { kind: "resolving" };
-    if (youTimer.status === "paused") return { kind: "played" };
     const fromField = liveStateFor(field.interaction, letterAt);
     if (fromField.kind === "idle" && illegal) return { kind: "illegal", ...illegal };
     return fromField;
-  }, [match.state, youTimer.status, field.interaction, letterAt, illegal]);
+  }, [field.interaction, letterAt, illegal]);
+  const roundState = useMemo(
+    () => deriveRoundState({ match, viewerSlot, opponentName: opp.displayName, holdRound, revealing: resolvingNow, revealRound: reveal.round }),
+    [match, viewerSlot, opp.displayName, holdRound, resolvingNow, reveal.round],
+  );
 
   const dualTimeout = match.timers.playerA.remainingMs <= 0 && match.timers.playerB.remainingMs <= 0;
   const timeoutFired = useRef(false);
@@ -362,6 +377,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         playerAId={match.timers.playerA.playerId}
         frozenTiles={frozenTiles}
         live={live}
+        roundState={roundState}
+        holdRound={holdRound}
         notices={allNotices}
         onRowHover={setHighlightRound}
         onAction={handleAction}
@@ -371,7 +388,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           frozenTiles={frozenTiles}
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
-          disabled={completed || readOnly}
+          disabled={completed || readOnly || holdRound !== null || resolvingNow}
+          turnFrame={completed || readOnly ? null : turnFrameFor(roundState)}
           bands={bands}
           highlightRound={highlightRound}
           drawnCount={drawnCount}

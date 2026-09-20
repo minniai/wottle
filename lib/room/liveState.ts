@@ -1,6 +1,6 @@
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import type { FieldInteraction } from "@/lib/room/fieldInteraction";
-import { liveText, type LiveState } from "@/lib/room/ledgerRows";
+import { liveText, type LiveState } from "@/lib/room/liveLines";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 
 export interface LetterFacts {

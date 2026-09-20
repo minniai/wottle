@@ -84,7 +84,20 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
       onMouseEnter={() => onRowHover?.(row.round)}
       onMouseLeave={() => onRowHover?.(null)}
     >
-      {row.status === "live" ? (
+      {row.status === "settled" ? (
+        /* The settle hold (spec 048 FR-022): the scored row keeps the tint and the
+           rule, says the round scored, and shows its words beneath. */
+        <>
+          <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
+          <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
+            <LiveText live={row.live} />
+            <div className="ledger__settled-words">
+              <SeatWords cell={row.you} seat="you" showPoints folded={false} />
+              <SeatWords cell={row.opp} seat="opp" showPoints folded={false} />
+            </div>
+          </div>
+        </>
+      ) : row.status === "live" ? (
         /* The row itself is the tinted grid item with the 3px rule at its left
            edge (Fig. 2); the label sits in the same column as every other row's
            (spec 047 FR-008, review S3 and S6). */
