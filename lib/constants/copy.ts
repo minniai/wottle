@@ -67,8 +67,6 @@ export const frozenNotice = (ownerName: string, round: number): string =>
 export const PICK_CLEARED_OPPONENT = "pick cleared · the opponent pinned that letter";
 export const settingField = (landed: number): string =>
   `setting the field · ${landed} of 100 letters`;
-export const FIRST_MATCH_RULES =
-  "Swap two letters. Words of three or more score and freeze in your ink. Ten rounds; your clock holds five minutes for all of them.";
 
 // Round state (spec 048 US2): line 1 of the live row, and the bar sub-line suffixes
 export const roundYourMove = (round: number): string => `round ${round} · your move`;
@@ -132,7 +130,6 @@ export const verdictDetail = (margin: number, wordsA: number, wordsB: number, te
   `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
 
 // Foot actions
-export const RULES = "? rules";
 export const REMATCH = "rematch ▸";
 export const NEW_OPPONENT = "new opponent ▸";
 export const LOBBY = "lobby";

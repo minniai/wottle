@@ -300,8 +300,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     [completed, you.displayName, opp.displayName, youScore, oppScore, words, youTimer.playerId, oppTimer.playerId, frozenTiles, viewerSlot],
   );
   // The match-over slip (spec 048 US1) replaces the ledger's rematch notices.
-  const revealedRef = useRef(false);
-  if (revealing) revealedRef.current = true;
+  const [revealedOnce, setRevealedOnce] = useState(false);
+  useEffect(() => {
+    if (revealing) setRevealedOnce(true);
+  }, [revealing]);
   const slipDismissed = useRoomStore((s) => s.slipDismissed);
   const dismissSlip = useRoomStore((s) => s.dismissSlip);
   const restoreSlip = useRoomStore((s) => s.restoreSlip);
@@ -317,19 +319,12 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     ratings,
     rematch: rematch.phase,
     busy: revealing || holdRound !== null,
-    revealed: revealedRef.current,
+    revealed: revealedOnce,
   });
-
-  // First match (server-side gamesPlayed === 0, Clarifications Q2): the three-sentence rules live in the ledger.
-  const firstMatch = you.gamesPlayed === 0;
-  useEffect(() => {
-    if (firstMatch) push({ kind: "firstMatchRules" });
-  }, [firstMatch, push]);
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
-      if (action === "rules") push({ kind: "firstMatchRules" });
-      else if (action === "rematch") void rematch.request();
+      if (action === "rematch") void rematch.request();
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
       else if (action === "reviewField") dismissSlip();

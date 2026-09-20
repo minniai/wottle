@@ -23,10 +23,10 @@ describe("useRoomHotkeys", () => {
     return onAction;
   };
 
-  it("? opens the rules", () => {
+  it("? does nothing: the rules left the room (spec 048 US5)", () => {
     const onAction = setup();
     fireEvent.keyDown(document, { key: "?" });
-    expect(onAction).toHaveBeenCalledWith("rules");
+    expect(onAction).not.toHaveBeenCalled();
   });
 
   it("m and M both toggle sound", () => {

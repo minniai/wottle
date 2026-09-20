@@ -15,7 +15,9 @@ interface RoomMenuProps {
 interface Item {
   key: string;
   label: string;
-  action: LedgerAction;
+  action?: LedgerAction;
+  /** A link, not an action: the rules page opens in a new tab so the match keeps running (spec 048 US5). */
+  href?: string;
 }
 
 function itemsFor(variant: RoomMenuVariant, sound: boolean, preview: boolean): Item[] {
@@ -23,7 +25,7 @@ function itemsFor(variant: RoomMenuVariant, sound: boolean, preview: boolean): I
     { key: "sound", label: `sound · ${sound ? "on" : "off"}`, action: "toggleSound" },
     { key: "preview", label: `preview · ${preview ? "on" : "off"}`, action: "togglePreview" },
   ];
-  if (variant === "match") return [...shared, { key: "resign", label: "resign", action: "resign" }, { key: "leave", label: "leave", action: "leave" }];
+  if (variant === "match") return [...shared, { key: "howToPlay", label: "how to play", href: "/rules" }, { key: "resign", label: "resign", action: "resign" }, { key: "leave", label: "leave", action: "leave" }];
   return [...shared, { key: "profile", label: "profile", action: "profile" }, { key: "signout", label: "sign out", action: "signOut" }];
 }
 
@@ -51,6 +53,7 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
   }, [open, close]);
 
   const select = (item: Item) => {
+    if (!item.action) return;
     if (item.action === "toggleSound") setSound(!sound);
     else if (item.action === "togglePreview") setPreview(!preview);
     onAction(item.action);
@@ -74,9 +77,15 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
         <ul className="room-menu__list" role="menu" data-testid="ledger-menu-list">
           {itemsFor(variant, sound, preview).map((item) => (
             <li key={item.key} role="none">
-              <button type="button" role="menuitem" className="action-secondary" data-testid={`ledger-menu-item-${item.key}`} onClick={() => select(item)}>
-                {item.label}
-              </button>
+              {item.href ? (
+                <a role="menuitem" className="action-secondary" data-testid={`ledger-menu-item-${item.key}`} href={item.href} target="_blank" rel="noopener" onClick={() => setOpen(false)}>
+                  {item.label}
+                </a>
+              ) : (
+                <button type="button" role="menuitem" className="action-secondary" data-testid={`ledger-menu-item-${item.key}`} onClick={() => select(item)}>
+                  {item.label}
+                </button>
+              )}
             </li>
           ))}
         </ul>

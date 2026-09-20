@@ -62,7 +62,6 @@ export interface LedgerModel {
 }
 
 export type LedgerAction =
-  | "rules"
   | "resign"
   | "confirmResign"
   | "cancelResign"
@@ -92,7 +91,6 @@ export type Notice =
   | { kind: "pickCleared"; reason: "opponentPinned" | "frozen" }
   | { kind: "rematchRequest"; requesterName: string }
   | { kind: "resignConfirm"; expiresAt: number }
-  | { kind: "firstMatchRules" }
   | { kind: "claimWin"; opponentName: string }
   | { kind: "challenge"; fromName: string; inviteId: string }
   | { kind: "text"; text: string };

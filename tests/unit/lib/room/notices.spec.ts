@@ -21,7 +21,7 @@ describe("notices (design system §5.4, §8)", () => {
   });
 
   it("every fixed string is exclamation-free", () => {
-    for (const n of [{ kind: "pickCleared" as const, reason: "frozen" as const }, { kind: "rematchRequest" as const, requesterName: "K" }, { kind: "firstMatchRules" as const }, { kind: "claimWin" as const, opponentName: "K" }]) {
+    for (const n of [{ kind: "pickCleared" as const, reason: "frozen" as const }, { kind: "rematchRequest" as const, requesterName: "K" }, { kind: "claimWin" as const, opponentName: "K" }]) {
       expect(noticeText(n)).not.toContain("!");
     }
   });

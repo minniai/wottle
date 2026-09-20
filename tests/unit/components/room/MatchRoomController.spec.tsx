@@ -357,17 +357,11 @@ describe("MatchRoomController", () => {
     act(() => vi.advanceTimersByTime(2_000)); // the illegal state clears; no timer outlives the test
   });
 
-  it("shows the rules line on a player's first match (gamesPlayed 0) and on ? rules", () => {
+  it("no rules line on a first match; the rules live on their own page (spec 048 US5)", () => {
     const first = { ...profiles, playerA: { ...profiles.playerA, gamesPlayed: 0 } };
     render(<MatchRoomController initialState={state()} currentPlayerId="player-1" matchId="m1" playerProfiles={first} />);
-    expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.startsWith("Swap two letters."))).toBe(true);
-  });
-
-  it("no rules line for a returning player until ? rules is pressed", () => {
-    render(<MatchRoomController initialState={state()} currentPlayerId="player-1" matchId="m1" playerProfiles={{ ...profiles, playerA: { ...profiles.playerA, gamesPlayed: 12 } }} />);
     expect(screen.queryByText(/Swap two letters/)).toBeNull();
-    fireEvent.click(screen.getByTestId("ledger-rules"));
-    expect(screen.getByText(/Swap two letters/)).toBeInTheDocument();
+    expect(screen.queryByTestId("ledger-rules")).toBeNull();
   });
 
   it("reveal: bands draw one at a time, words land in the row as each lands, then everything settles", () => {

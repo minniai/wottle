@@ -1,4 +1,4 @@
-import { challengeNotice, claimWinLine, FIRST_MATCH_RULES, PICK_CLEARED_OPPONENT, rematchRequest, RESIGN_CONFIRM } from "@/lib/constants/copy";
+import { challengeNotice, claimWinLine, PICK_CLEARED_OPPONENT, rematchRequest, RESIGN_CONFIRM } from "@/lib/constants/copy";
 import type { Notice } from "./ledgerTypes";
 
 export const RESIGN_CONFIRM_MS = 5_000;
@@ -12,8 +12,6 @@ export function noticeText(notice: Notice): string {
       return rematchRequest(notice.requesterName);
     case "resignConfirm":
       return RESIGN_CONFIRM;
-    case "firstMatchRules":
-      return FIRST_MATCH_RULES;
     case "claimWin":
       return claimWinLine(notice.opponentName);
     case "challenge":

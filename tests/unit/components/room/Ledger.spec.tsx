@@ -81,12 +81,15 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.getByTestId("ledger-live-row").querySelector(".ledger__live-line2")).toBeNull();
   });
 
-  it("foot has ? rules and the ⋯ menu; menu items dispatch actions", () => {
+  it("foot has no rules link in a match; the ⋯ menu offers how to play in a new tab and dispatches actions", () => {
     const onAction = vi.fn();
     render(<Ledger variant="match" model={model} viewerName="B" opponentName="K" onAction={onAction} />);
-    fireEvent.click(screen.getByTestId("ledger-rules"));
-    expect(onAction).toHaveBeenCalledWith("rules");
+    expect(screen.queryByTestId("ledger-rules")).toBeNull();
+    expect(screen.queryByTestId("ledger-how-to-play")).toBeNull();
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    const howTo = screen.getByTestId("ledger-menu-item-howToPlay");
+    expect(howTo).toHaveAttribute("href", "/rules");
+    expect(howTo).toHaveAttribute("target", "_blank");
     expect(screen.getByTestId("ledger-menu-item-resign")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-menu-item-leave")).toBeInTheDocument();
     expect(screen.queryByTestId("ledger-menu-item-signout")).toBeNull();

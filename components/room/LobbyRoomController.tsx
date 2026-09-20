@@ -149,7 +149,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
           router.replace("/");
           router.refresh();
         });
-      } else if (action === "rules") push({ kind: "firstMatchRules" });
+      }
       else if (typeof action === "object" && "challenge" in action) {
         sendInviteAction(action.challenge).then((r) => r.status !== "sent" && push({ kind: "text", text: (r.message ?? "challenge failed").toLowerCase() }));
       } else if (typeof action === "object" && "acceptChallenge" in action) {
