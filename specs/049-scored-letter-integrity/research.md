@@ -28,6 +28,10 @@ Before spec 048 this was rarely seen: the final field sat under a small ledger v
 
 `sharedCells` marks a cell ink only when bands of **both** seats cover it; tints stack, hence the darker cells. The dark G at `(9,0)` is `gáta` (Kari, round 5) under `gátan` (Dari, round 10): a legal extension of a frozen run, scored as one longer word. Working as designed; the design is what changes.
 
+### 1.6 Verified after the fix (2026-09-20, before deploy)
+
+The §4 diagnostic re-run against production after the implementation: `ed22c625` has 17 records and 0 mismatches at their round and at the end; its row still reads `state completed · current_round 6 · winner_id null` (§1.4), untouched as R6 decided. Locally, `match-completion` (chromium), `room-flow` (chromium) and `rounds-flow` (Firefox) pass against the branch with Realtime on, and the whole unit, visual, lint, typecheck and docs suites are green. The preview check of the quickstart — open `ed22c625` as either player and see round 10's board with spelling bands — waits on the branch being deployed; with the loader change the match is served from round 10 and its missing winner is handed to recovery on first load.
+
 ## 2. Decisions
 
 ### R1 — Serve the last played round's board; never regenerate a board a match already has
@@ -68,6 +72,12 @@ The loader fix (R1) makes the three affected matches render correctly without to
 
 - The instant-scoring race window (second swap validated against a freeze map the fast path has not yet written) is real in code but produced no bad data in three matches; it is filed as a follow-up, not fixed here.
 - `match_logs` holds no rows for `ed22c625` after 21:13, so the thaw is inferred from `updated_at` and the values, not observed.
+
+### Follow-up to file in Linear (T040; the Linear MCP needs a sign-in, so the text is here)
+
+**Title**: Instant-scoring race: the second swap is validated against a freeze map the fast path has not written yet
+
+**Body**: `instantScoreFirstSubmission` (`lib/match/instantScoring.ts`, run in `submitMove`'s `after()` hook) writes the first mover's freezes into `matches.frozen_tiles` after `submitMove` has already returned. A second swap that lands in that window is validated against the pre-fast-path map, so it can touch a cell the first mover's word is about to freeze. `advanceRound` then scores against `rounds.frozen_tiles_before` (spec 042 baseline), and the conflict resolver's first-come-first-served order decides the outcome, so no bad data was produced in the three matches examined (spec 049 research §3), but the window is real. Options: validate the second swap against the fast path's result when it has landed, or re-validate in `advanceRound` step 9 and reject the later swap with `rejection_reason`. Code pointers: `lib/match/instantScoring.ts`, `app/actions/match/submitMove.ts`, `lib/match/roundEngine.ts` steps 7–9.
 
 ## 4. Diagnostic, for reuse
 

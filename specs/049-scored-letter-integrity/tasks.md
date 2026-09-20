@@ -105,7 +105,7 @@ Single Next.js application at the repository root. Server code in `lib/match/` a
 - [x] T036 [P] `docs/prd_and_requirements/wottle_game_rules.md` §12: the crossing row per `contracts/ownership-rendering.md`; a new row "Which board the room shows: the last played round's; never the seed once a round exists"
 - [x] T037 [P] `CLAUDE.md`: Design section line for the crossing rule; Project Overview sentence for spec 049; Disconnect/Reconnection unchanged; test counts
 - [x] T038 [P] `tests/integration/ui/README.md`: `field-band` gains `data-cells`; `shared` removed from the `data-state` list
-- [ ] T039 Run `pnpm lint && pnpm typecheck && pnpm test:unit && pnpm docs:check && pnpm test:visual`, then `match-completion`, `room-flow` and `rounds-flow` (Firefox project) against local Supabase with `RATE_LIMIT_DISABLED_SCOPES=auth:login` and realtime on; fix residue; regenerate linux baselines in CI and commit them
+- [x] T039 Run `pnpm lint && pnpm typecheck && pnpm test:unit && pnpm docs:check && pnpm test:visual`, then `match-completion`, `room-flow` and `rounds-flow` (Firefox project) against local Supabase with `RATE_LIMIT_DISABLED_SCOPES=auth:login` and realtime on; fix residue; regenerate linux baselines in CI and commit them
 - [ ] T040 File the follow-up for the instant-scoring race window (research.md §3) as a Linear issue with the code pointers, outside this spec
 
 ---
