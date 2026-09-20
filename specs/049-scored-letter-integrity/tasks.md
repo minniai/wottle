@@ -92,8 +92,8 @@ Single Next.js application at the repository root. Server code in `lib/match/` a
 - [x] T030 [US2] [impl] `app/styles/room.css`: remove the two `shared` rules
 - [x] T031 [US2] [test] `tests/unit/app/dev/RoomFixture.spec.tsx` (extend): in `reveal`, `(7,6)` renders `data-seat="opp"`; the LEK band's `data-cells` (add the attribute to `FieldBands`) lists `(8,6)` and `(9,6)` only; the GILT band lists all four
 - [x] T032 [US2] [impl] `app/dev/room/fixtures.ts` comment and `RoomFixture.tsx` per T031; `components/room/FieldBands.tsx` gains `data-cells`
-- [ ] T033 [US2] [test] `tests/integration/ui/room-fixtures.spec.ts` (extend): at 1440×900 `reveal`'s cell `(7,6)` has `data-seat="opp"` and no cell on any phase has `data-state="shared"`
-- [ ] T034 [US2] Update baselines (`pnpm test:visual --update-snapshots`) for `reveal`, `settle`, `final`, `over-slip`, `idle`, `played`, `opp-played`, `picking`, `previewed`, `low-clock`, `illegal`, `disconnect`, `resign`, `claim-win`, `phone-sheet` — every phase that shows the crossing — at three viewports; commit both platforms
+- [x] T033 [US2] [test] `tests/integration/ui/room-fixtures.spec.ts` (extend): at 1440×900 `reveal`'s cell `(7,6)` has `data-seat="opp"` and no cell on any phase has `data-state="shared"`
+- [x] T034 [US2] Update baselines (`pnpm test:visual --update-snapshots`) for `reveal`, `settle`, `final`, `over-slip`, `idle`, `played`, `opp-played`, `picking`, `previewed`, `low-clock`, `illegal`, `disconnect`, `resign`, `claim-win`, `phone-sheet` — every phase that shows the crossing — at three viewports; commit both platforms
 
 **Checkpoint**: no `shared` state anywhere; the crossing letter is coral on every fixture that shows it.
 
