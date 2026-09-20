@@ -6,10 +6,13 @@ import { expect, type Page } from "@playwright/test";
  * `history.replaceState` after the Server Action) and the here-now table.
  * Use this in every spec; navigating away before the URL settled is a race.
  */
-export async function loginViaBar(page: Page, username: string): Promise<void> {
+export async function loginViaSlip(page: Page, username: string): Promise<void> {
   await page.goto("/");
+  // Spec 048 US4: the name input is on the sign-in slip over the empty field.
+  await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn");
   await page.getByTestId("player-bar-name-input").fill(username);
   await page.getByTestId("player-bar-action-play").click();
+  await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 20_000 });
   await expect(page).toHaveURL(/\/lobby$/, { timeout: 20_000 });
   await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("player-bar-action-ranked")).toBeEnabled({ timeout: 10_000 });

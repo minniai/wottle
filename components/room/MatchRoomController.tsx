@@ -12,14 +12,13 @@ import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
 import { assertWordsSpellBoard } from "@/lib/room/wordIntegrity";
 import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
-import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
+import { formatClock, MATCH_CLOCK_BUDGET_MS, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { buildVerdict, finalCaption, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
-import { LOBBY, NEW_OPPONENT, REMATCH, waitingForRematch } from "@/lib/constants/copy";
+import { LOBBY } from "@/lib/constants/copy";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
-import { resignConfirm } from "@/lib/room/notices";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import type { Coordinate } from "@/lib/types/board";
@@ -36,6 +35,10 @@ import { useNowTick } from "./hooks/useNowTick";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
+import { useSettleHold } from "./hooks/useSettleHold";
+import { useMatchOverSlip } from "./hooks/useMatchOverSlip";
+import { RESULT } from "@/lib/constants/copy";
+import { deriveRoundState, turnFrameFor } from "@/lib/room/roundState";
 import { buildPartialRevealKey } from "@/lib/match/partialReveal";
 
 export interface MatchRoomControllerProps {
@@ -144,20 +147,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     haptics.vibrateValidSwap();
   }, [sound, haptics]);
 
-  const field = useFieldInteraction({
-    matchId,
-    previewEnabled,
-    frozenKeys,
-    opponentPins,
-    canPick: !readOnly && isActive && youTimer.status === "running",
-    currentRound: match.currentRound,
-    onPick: sound.playTileSelect,
-    onCommitted,
-    onRejected,
-    onNotice,
-  });
 
-  const displayBoard = useMemo(() => applyLetterSwaps(match.board, [opponentPins, field.ownPins]), [match.board, opponentPins, field.ownPins]);
   // Reveal (design system §7, Clarifications Q3): a new summary or first-mover
   // partial starts a plan over the words not yet drawn; drawn ids are remembered
   // so nothing is ever drawn twice.
@@ -180,7 +170,42 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     setDrawnIds((prev) => (progress.planIds.every((id) => prev.has(id)) ? prev : new Set([...prev, ...progress.planIds])));
   }, [progress.settled, progress.planIds]);
   const revealing = reveal.key !== null && !progress.settled;
+  // Only a resolved round's reveal is "resolving" and holds afterwards; the
+  // first-mover partial reveal (spec 042) draws while the viewer may still pick.
+  const summaryReveal = reveal.key?.startsWith("summary:") ?? false;
+  const resolvingNow = revealing && summaryReveal;
+  // A round resolved while we were watching: a summary arrived for a round this
+  // client had not already seen, so a reload holds nothing. A round that scored
+  // nothing still holds — the pause is about the round closing, not the bands.
+  // `settled` is paired with `planKey` because it reads stale-true until the
+  // reveal has planned, and a hold taken there would expire before the bands do.
+  const seenSummaryRound = useRef<number | null>(match.lastSummary?.roundNumber ?? null);
+  const [resolvedRound, setResolvedRound] = useState<number | null>(null);
+  useEffect(() => {
+    const round = match.lastSummary?.roundNumber ?? null;
+    if (round === null || round === seenSummaryRound.current) return;
+    seenSummaryRound.current = round;
+    setResolvedRound(round);
+  }, [match.lastSummary?.roundNumber]);
+  useSettleHold({ matchId, resolvedRound, settled: progress.settled && progress.planKey === reveal.key });
   const hiddenWordIds = useMemo(() => new Set(newIds.slice(progress.wordsWritten)), [newIds, progress.wordsWritten]);
+
+  const holdRound = useRoomStore((s) => s.holdRound);
+  const slipUp = useRoomStore((s) => s.slip !== null && !s.slipDismissed);
+  const field = useFieldInteraction({
+    matchId,
+    previewEnabled,
+    frozenKeys,
+    opponentPins,
+    canPick: !readOnly && isActive && youTimer.status === "running" && holdRound === null && !slipUp && !resolvingNow,
+    currentRound: match.currentRound,
+    onPick: sound.playTileSelect,
+    onCommitted,
+    onRejected,
+    onNotice,
+  });
+
+  const displayBoard = useMemo(() => applyLetterSwaps(match.board, [opponentPins, field.ownPins]), [match.board, opponentPins, field.ownPins]);
 
   const bands = useMemo(() => {
     const all = bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId, liveRound: revealing ? reveal.round : null, trustRound: reveal.round });
@@ -193,13 +218,17 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const [highlightRound, setHighlightRound] = useState<number | null>(null);
 
   const letterAt = useMemo(() => letterFactsOn(match.board), [match.board]);
+  // The field's own state (pick / preview / illegal); the round's beat is layered on by
+  // `roundState` (spec 048 US2), which owns line 1 of the live row.
   const live: LiveState = useMemo(() => {
-    if (match.state === "resolving") return { kind: "resolving" };
-    if (youTimer.status === "paused") return { kind: "played" };
     const fromField = liveStateFor(field.interaction, letterAt);
     if (fromField.kind === "idle" && illegal) return { kind: "illegal", ...illegal };
     return fromField;
-  }, [match.state, youTimer.status, field.interaction, letterAt, illegal]);
+  }, [field.interaction, letterAt, illegal]);
+  const roundState = useMemo(
+    () => deriveRoundState({ match, viewerSlot, opponentName: opp.displayName, holdRound, revealing: resolvingNow, revealRound: reveal.round }),
+    [match, viewerSlot, opp.displayName, holdRound, resolvingNow, reveal.round],
+  );
 
   const dualTimeout = match.timers.playerA.remainingMs <= 0 && match.timers.playerB.remainingMs <= 0;
   const timeoutFired = useRef(false);
@@ -249,61 +278,106 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     };
   }, [completed, matchId]);
 
-  // Disconnect (design system §5.3, §7 "Disconnect"): no overlay. The opponent's bar
-  // counts the server-anchored window down, both lanes hold, and once the window
-  // has elapsed the ledger offers the claim as a line.
+  // Disconnect (design system §5.3, §7 "Disconnect"): the opponent's bar counts the
+  // server-anchored window down, both lanes hold, and once the window has elapsed
+  // the claim is put to the player on a slip (spec 048 US7).
   const opponentGone = match.disconnectedPlayerId === oppTimer.playerId && isActive;
   const disconnectedAt = opponentGone ? match.disconnectedAt ?? null : null;
   const now = useNowTick(Boolean(disconnectedAt));
   const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
   const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + windowMs - now) : null;
   const claimable = reconnectMsLeft === 0;
+  const setSlip = useRoomStore((s) => s.setSlip);
+  const clearSlip = useRoomStore((s) => s.clearSlip);
+  // `keep waiting ▸` puts the claim away; the next window tick re-arms it (spec 048 US7).
+  const [claimDeferred, setClaimDeferred] = useState(false);
   useEffect(() => {
-    if (claimable) push({ kind: "claimWin", opponentName: opp.displayName });
-    else dismiss("claimWin");
-  }, [claimable, opp.displayName, push, dismiss]);
+    if (!claimDeferred) return;
+    const timer = setTimeout(() => setClaimDeferred(false), 10_000);
+    return () => clearTimeout(timer);
+  }, [claimDeferred, matchId]);
+  useEffect(() => {
+    if (claimable && !claimDeferred && !completed) setSlip({ kind: "claimWin", opponentName: opp.displayName, round: match.currentRound });
+    else clearSlip("claimWin");
+    if (!claimable) setClaimDeferred(false);
+  }, [claimable, claimDeferred, completed, opp.displayName, match.currentRound, setSlip, clearSlip]);
   const clocksHeld = match.disconnectedPlayerId != null && isActive;
   const youScore = match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const oppScore = match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"];
-  const youScoreWins = youScore > oppScore;
-  const draw = youScore === oppScore;
-
-  // First match (server-side gamesPlayed === 0, Clarifications Q2): the three-sentence rules live in the ledger.
-  const firstMatch = you.gamesPlayed === 0;
+  // A win can be forced (resignation, a disconnect past the window): the server's
+  // winner decides the verdict and the bars, not the totals (spec 048 US1).
+  const recordedWinnerSeat = match.winnerId ? (match.winnerId === youTimer.playerId ? "you" : "opp") : null;
+  const youScoreWins = recordedWinnerSeat ? recordedWinnerSeat === "you" : youScore > oppScore;
+  const draw = recordedWinnerSeat ? false : youScore === oppScore;
+  const verdict = useMemo(
+    () =>
+      completed
+        ? buildVerdict({
+            viewerName: you.displayName,
+            opponentName: opp.displayName,
+            viewerScore: youScore,
+            opponentScore: oppScore,
+            viewerWords: words.filter((w) => w.playerId === youTimer.playerId).length,
+            opponentWords: words.filter((w) => w.playerId === oppTimer.playerId).length,
+            territory: buildTerritory(frozenTiles, viewerSlot),
+            winnerSeat: recordedWinnerSeat,
+            endedReason: match.endedReason,
+          })
+        : null,
+    [completed, you.displayName, opp.displayName, youScore, oppScore, words, youTimer.playerId, oppTimer.playerId, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason],
+  );
+  // The match-over slip (spec 048 US1) replaces the ledger's rematch notices.
+  const [revealedOnce, setRevealedOnce] = useState(false);
   useEffect(() => {
-    if (firstMatch) push({ kind: "firstMatchRules" });
-  }, [firstMatch, push]);
-
-  useEffect(() => {
-    if (rematch.phase === "incoming") push({ kind: "rematchRequest", requesterName: opp.displayName });
-    else dismiss("rematchRequest");
-  }, [rematch.phase, opp.displayName, push, dismiss]);
+    if (revealing) setRevealedOnce(true);
+  }, [revealing]);
+  const slipDismissed = useRoomStore((s) => s.slipDismissed);
+  const dismissSlip = useRoomStore((s) => s.dismissSlip);
+  const restoreSlip = useRoomStore((s) => s.restoreSlip);
+  useMatchOverSlip({
+    match,
+    viewerSlot,
+    completed,
+    readOnly,
+    verdict,
+    durationMmSs: formatClock(Math.max(0, 2 * MATCH_CLOCK_BUDGET_MS - match.timers.playerA.remainingMs - match.timers.playerB.remainingMs)),
+    viewerName: you.displayName,
+    opponentName: opp.displayName,
+    ratings,
+    rematch: rematch.phase,
+    busy: revealing || holdRound !== null,
+    revealed: revealedOnce,
+  });
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
-      if (action === "rules") push({ kind: "firstMatchRules" });
-      else if (action === "rematch") void rematch.request();
+      if (action === "rematch") void rematch.request();
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
+      else if (action === "reviewField") dismissSlip();
+      else if (action === "result") restoreSlip();
       else if (action === "newOpponent") router.replace("/matchmaking");
       else if (action === "lobby") router.replace("/lobby");
-      else if (action === "resign" || action === "leave") push(resignConfirm());
-      else if (action === "cancelResign") dismiss("resignConfirm");
+      else if (action === "resign" || action === "leave") setSlip({ kind: "resign", round: match.currentRound, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], opponentName: opp.displayName });
+      else if (action === "keepPlaying") clearSlip("resign");
       else if (action === "confirmResign") {
-        dismiss("resignConfirm");
+        clearSlip("resign");
         resignMatch(matchId).catch((e: Error) => push({ kind: "text", text: e.message.toLowerCase() }));
+      } else if (action === "keepWaiting") {
+        setClaimDeferred(true);
+        clearSlip("claimWin");
       } else if (action === "claimWin") {
+        clearSlip("claimWin");
         claimWinAction(matchId).then((r) => r.status !== "ok" && r.status !== "already_completed" && push({ kind: "text", text: r.status.replace("_", " ") }));
       }
     },
-    [matchId, push, dismiss, rematch, router],
+    [matchId, push, rematch, router, dismissSlip, restoreSlip, setSlip, clearSlip, match.currentRound, clocks, viewerSlot, opp.displayName],
   );
 
-  // `?` opens the rules, `M` mutes (design system §9, FR-026).
+  // `M` mutes; rules are reached through the menu (design system §9).
   useRoomHotkeys(handleAction);
 
-  const rematchLine =
-    rematch.phase === "waiting" ? waitingForRematch(opp.displayName) : rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;
+  const rematchLine = rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;
   const allNotices: Notice[] = [
     ...notices,
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
@@ -318,35 +392,21 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youTimer.playerId, youScoreWins, match.rated !== false) : undefined, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running" && !clocksHeld, score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
-        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppTimer.playerId, !youScoreWins && !draw, match.rated !== false) : undefined, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
+        you={{ name: you.displayName, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youTimer.playerId, youScoreWins) : undefined, clockMs: clocks[viewerSlot === "player_a" ? "playerA" : "playerB"], running: youTimer.status === "running" && !clocksHeld, score: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"] }}
+        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppTimer.playerId, !youScoreWins && !draw) : undefined, clockMs: clocks[opponentSlot === "player_a" ? "playerA" : "playerB"], running: oppTimer.status === "running" && !clocksHeld, score: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"], reconnectMsLeft }}
         currentRound={match.currentRound}
         completed={completed}
-        rated={match.rated !== false}
-        caption={completed ? finalCaption(match.timers.playerA.remainingMs, match.timers.playerB.remainingMs, match.rated !== false) : undefined}
-        verdict={
-          completed
-            ? buildVerdict({
-                viewerName: you.displayName,
-                opponentName: opp.displayName,
-                viewerScore: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"],
-                opponentScore: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"],
-                viewerWords: words.filter((w) => w.playerId === youTimer.playerId).length,
-                opponentWords: words.filter((w) => w.playerId === oppTimer.playerId).length,
-                territory: buildTerritory(frozenTiles, viewerSlot),
-              })
-            : undefined
-        }
+        caption={completed ? finalCaption(match.timers.playerA.remainingMs, match.timers.playerB.remainingMs) : undefined}
+        verdict={verdict ?? undefined}
         readOnly={readOnly}
         footActions={
           completed && !readOnly ? (
             <>
-              <button type="button" className="action-secondary" data-testid="ledger-rematch" onClick={() => handleAction("rematch")} disabled={rematch.phase === "waiting" || rematch.phase === "requesting"}>
-                {REMATCH}
-              </button>
-              <button type="button" className="action-secondary" data-testid="ledger-new-opponent" onClick={() => handleAction("newOpponent")}>
-                {NEW_OPPONENT}
-              </button>
+              {slipDismissed ? (
+                <button type="button" className="action-secondary" data-testid="ledger-result" onClick={() => handleAction("result")}>
+                  {RESULT}
+                </button>
+              ) : null}
               <button type="button" className="action-secondary" data-testid="ledger-lobby" onClick={() => handleAction("lobby")}>
                 {LOBBY}
               </button>
@@ -362,6 +422,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         playerAId={match.timers.playerA.playerId}
         frozenTiles={frozenTiles}
         live={live}
+        roundState={roundState}
+        holdRound={holdRound}
         notices={allNotices}
         onRowHover={setHighlightRound}
         onAction={handleAction}
@@ -371,7 +433,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           frozenTiles={frozenTiles}
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
-          disabled={completed || readOnly}
+          disabled={completed || readOnly || holdRound !== null || resolvingNow}
+          turnFrame={completed || readOnly ? null : turnFrameFor(roundState)}
           bands={bands}
           highlightRound={highlightRound}
           drawnCount={drawnCount}

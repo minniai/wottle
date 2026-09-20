@@ -1,5 +1,7 @@
 # Contract: the `rated` flag
 
+> **SUPERSEDED 2026-09-20** by `specs/048-room-clarity/contracts/rated-only.md`: every match is rated; nothing reads or writes this column any more.
+
 Decision 1 of 15 September 2026. **Supersedes spec 044's clarification** that all matches stay rated.
 
 ## Storage

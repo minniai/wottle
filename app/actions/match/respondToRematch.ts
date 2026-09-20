@@ -15,7 +15,7 @@ import {
   updateRematchRequestStatus,
 } from "@/lib/match/rematchRepository";
 import type { RematchRequest } from "@/lib/types/match";
-import { bootstrapMatchRecord, isMatchRated } from "@/lib/matchmaking/service";
+import { bootstrapMatchRecord } from "@/lib/matchmaking/service";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -121,8 +121,6 @@ export async function acceptRematchAction(
     playerAId: request.requesterId,
     playerBId: request.responderId,
     rematchOf: matchId,
-    // A rematch of an unranked challenge is still a chosen opponent.
-    rated: await isMatchRated(supabase, matchId),
   });
 
   await updateRematchRequestStatus(

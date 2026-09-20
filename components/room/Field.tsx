@@ -23,6 +23,8 @@ export interface FieldProps {
   /** Extra cells to render in ink (both seats); normally derived from `bands`. */
   sharedCells?: Set<string>;
   disabled?: boolean;
+  /** Framed 3px in this seat's colour while the move is theirs (spec 048 FR-020). */
+  turnFrame?: Seat | null;
   /** Scored words drawn as bands under the cells (design system §5.2). */
   bands?: WordBand[];
   highlightRound?: number | null;
@@ -54,6 +56,7 @@ export function Field(props: FieldProps) {
     viewerSlot,
     ownerNames = {},
     disabled,
+    turnFrame = null,
     bands = [],
     highlightRound = null,
     drawnCount = null,
@@ -152,6 +155,7 @@ export function Field(props: FieldProps) {
       aria-label="the field"
       data-testid="field"
       data-disabled={disabled || undefined}
+      data-turn={turnFrame ?? undefined}
     >
       <FieldBands
         bands={bands}

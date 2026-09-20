@@ -5,6 +5,7 @@ import type { Coordinate } from "@/lib/types/board";
 import { aggregateRoundSummary } from "@/lib/scoring/roundSummary";
 import type {
   FrozenTileMap,
+  MatchEndedReason,
   MatchPhase,
   MatchPlayerProfile,
   MatchPlayerProfiles,
@@ -357,33 +358,13 @@ export async function loadMatchState(
   client: AnyClient,
   matchId: string,
 ): Promise<MatchState | null> {
-  /**
-   * `rated` (spec 045) may not exist yet: a deploy can reach an environment
-   * whose migration has not run, and a match must still load — the column only
-   * decides one word in a caption. Postgres 42703 is "undefined column"; on
-   * that one error we retry without it and treat the match as rated, which is
-   * the column's own default. Both selects are literal so the row stays typed.
-   */
-  const UNDEFINED_COLUMN = "42703";
-
-  let { data: match, error: matchError } = await client
+  const { data: match, error: matchError } = await client
     .from("matches")
     .select(
-      "id,state,current_round,board_seed,player_a_id,player_b_id,player_a_timer_ms,player_b_timer_ms,frozen_tiles,rated,winner_id,created_at",
+      "id,state,current_round,board_seed,player_a_id,player_b_id,player_a_timer_ms,player_b_timer_ms,frozen_tiles,winner_id,ended_reason,created_at",
     )
     .eq("id", matchId)
     .maybeSingle();
-
-  if (matchError?.code === UNDEFINED_COLUMN) {
-    console.warn("[MatchState] matches.rated is missing; run the spec 045 migration. Treating the match as rated.");
-    ({ data: match, error: matchError } = await client
-      .from("matches")
-      .select(
-        "id,state,current_round,board_seed,player_a_id,player_b_id,player_a_timer_ms,player_b_timer_ms,frozen_tiles,winner_id,created_at",
-      )
-      .eq("id", matchId)
-      .maybeSingle());
-  }
 
   if (matchError) {
     console.error("[MatchState] Failed to load match:", matchError);
@@ -656,13 +637,13 @@ export async function loadMatchState(
     scores,
     lastSummary,
     frozenTiles: coerceFrozenTileMap((match as { frozen_tiles?: unknown }).frozen_tiles),
-    // Absent on a row written before the column existed; those are rated.
-    rated: (match as { rated?: boolean | null }).rated !== false,
     disconnectedPlayerId,
     disconnectedAt,
     reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,
     pendingMoves,
     partialSummary,
+    winnerId: (match as { winner_id?: string | null }).winner_id ?? null,
+    endedReason: ((match as { ended_reason?: string | null }).ended_reason as MatchEndedReason | null) ?? null,
   };
 }
 

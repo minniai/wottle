@@ -60,10 +60,10 @@ describe("PlayerBar (design system §5.3)", () => {
     expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("aria-valuetext", "searching");
   });
 
-  it("nameInput replaces the name slot (landing)", () => {
-    render(<PlayerBar seat="you" position="bottom" state="empty" subline="no account needed" nameInput={<input data-testid="player-bar-name-input" />} />);
-    expect(screen.getByTestId("player-bar-name-input")).toBeInTheDocument();
-    expect(screen.queryByTestId("player-bar-name")).toBeNull();
+  it("the turn suffix follows the sub-line, in the seat colour when it is the viewer's move (spec 048 FR-021)", () => {
+    render(<PlayerBar seat="you" position="bottom" state="playing" name="Birna" subline="1204 · you" sublineSuffix="your move" sublineTone="seat" />);
+    expect(screen.getByTestId("player-bar-subline")).toHaveTextContent("1204 · you · your move");
+    expect(screen.getByTestId("player-bar-turn")).toHaveAttribute("data-tone", "seat");
   });
 
   /**

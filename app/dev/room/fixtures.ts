@@ -18,13 +18,15 @@
  */
 
 import type { AccumulatedWord, LiveState } from "@/lib/room/ledgerRows";
+import type { SlipState } from "@/lib/room/slip";
+import type { RoundState } from "@/lib/room/roundState";
 import type { Coordinate } from "@/lib/types/board";
 import type { Territory, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, MatchState, PlayerIdentity } from "@/lib/types/match";
 import type { RecentGameRow } from "@/lib/types/lobby";
 
 export const ROOM_PHASES = [
-  "landing",
+  "landing-slip",
   "lobby",
   "queue",
   "found",
@@ -40,6 +42,12 @@ export const ROOM_PHASES = [
   "disconnect",
   "profile",
   "phone-sheet",
+  // Spec 048: the four slips and the settle hold, one phase each.
+  "resign",
+  "claim-win",
+  "over-slip",
+  "settle",
+  "rules",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -227,6 +235,34 @@ export const FINAL_VERDICT: Verdict = {
 
 export const YOU_FINAL_LINE = "1204 → 1192 · −12 · loses";
 export const OPP_FINAL_LINE = "1187 → 1199 · +12 · wins";
+
+/** Spec 048 US2: the round's beat per phase, as literals. */
+export const YOUR_MOVE: RoundState = { kind: "yourMove", round: 4, opponentName: KARI.displayName };
+export const OPP_PLAYED: RoundState = { kind: "oppPlayed", round: 4, opponentName: KARI.displayName };
+export const YOU_PLAYED: RoundState = { kind: "played", round: 4, opponentName: KARI.displayName };
+export const RESOLVING_R3: RoundState = { kind: "resolving", round: 3, opponentName: KARI.displayName };
+export const SCORED_R3: RoundState = { kind: "scored", round: 3, next: 4, you: 9, opp: 0, opponentName: KARI.displayName };
+/** The settle hold: round 3 scored and held; round 4 not yet open (spec 048 FR-022). */
+export const SETTLE_HOLD_ROUND = 3;
+
+/** The three match slips (spec 048 §5.9), as literals. */
+export const RESIGN_SLIP: SlipState = { kind: "resign", round: 4, clockMs: YOU_CLOCK_MS, opponentName: KARI.displayName };
+export const CLAIM_WIN_SLIP: SlipState = { kind: "claimWin", opponentName: KARI.displayName, round: 4 };
+export const OVER_SLIP: SlipState = {
+  kind: "matchOver",
+  verdict: FINAL_VERDICT,
+  rounds: 10,
+  durationMmSs: "18:50",
+  scores: { you: 127, opp: 170 },
+  viewerName: BIRNA.displayName,
+  opponentName: KARI.displayName,
+  ratings: [
+    { seat: "opp", name: KARI.displayName, line: "1187 → 1199 · +12" },
+    { seat: "you", name: `${BIRNA.displayName} · you`, line: "1204 → 1192 · −12" },
+  ],
+  rematch: "idle",
+  readOnly: false,
+};
 
 /** Queue: 58 of 100 placeholder letters have landed. */
 export const QUEUE_LETTERS_LANDED = 58;

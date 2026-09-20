@@ -2,12 +2,11 @@
 
 import "server-only";
 
+import { completeMatchInternal } from "./completeMatch";
+
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
-import { writeMatchLog } from "@/lib/match/logWriter";
-import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import { trackMatchResult } from "@/lib/observability/log";
 
 export interface ResignResult {
   matchId: string;
@@ -61,44 +60,8 @@ export async function resignMatch(
       ? match.player_b_id
       : match.player_a_id;
 
-  // Mark match as completed with forfeit — winner is the opponent
-  await supabase
-    .from("matches")
-    .update({
-      state: "completed",
-      winner_id: winnerId,
-      ended_reason: "forfeit",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", matchId);
-
-  // Reset both players to available
-  await supabase
-    .from("players")
-    .update({
-      status: "available",
-      last_seen_at: new Date().toISOString(),
-    })
-    .in("id", [match.player_a_id, match.player_b_id]);
-
-  await writeMatchLog(supabase, {
-    matchId,
-    eventType: "match.forfeit",
-    actorId: playerId,
-    metadata: { winnerId, resignedBy: playerId },
-  });
-
-  await publishMatchState(matchId);
-
-  trackMatchResult({
-    matchId,
-    winnerId,
-    loserId: playerId,
-    endedReason: "forfeit",
-    isDraw: false,
-    scores: { playerA: 0, playerB: 0 },
-    totalRounds: 0,
-  });
+  // Persist ratings and publish the final state through the shared completion path.
+  await completeMatchInternal(matchId, "forfeit", winnerId);
 
   return {
     matchId,

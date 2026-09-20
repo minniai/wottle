@@ -1,10 +1,14 @@
-import { drawLine, finalContext, frozenNotice, NO_RATING, PICK_A_LETTER, PLAYED, PREVIEW_INSTRUCTION, PREVIEWING, picking, previewLine, RATING_PENDING, ratingSubline, RESOLVING, roundContext, TAP_SECOND_LETTER, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, forcedDetail, RATING_PENDING, ratingSubline, roundContext, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { liveText, type LiveState } from "./liveLines";
+import { liveLinesFor, type RoundState } from "./roundState";
+
+export { liveText, type LiveState } from "./liveLines";
 import { formatClock, MATCH_CLOCK_BUDGET_MS } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { bandIdForWord } from "./bandGeometry";
 import type { Coordinate } from "@/lib/types/board";
-import type { FrozenTileMap, PlayerSlot, ReadingDirection } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, PlayerSlot, ReadingDirection } from "@/lib/types/match";
 import { emptyRows, type LedgerModel, type LedgerRow, type LiveLines, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
 
 export const TOTAL_ROUNDS = 10;
@@ -21,15 +25,6 @@ export interface AccumulatedWord {
   direction?: ReadingDirection;
 }
 
-export type LiveState =
-  | { kind: "idle" }
-  | { kind: "picking"; letter: string; value: number }
-  /** Opt-in preview: `total` is null until the server has priced the swap. */
-  | { kind: "previewing"; total: number | null; words: string[] }
-  | { kind: "played" }
-  /** A frozen letter was tapped; held for two seconds, then back to idle. */
-  | { kind: "illegal"; ownerName: string; round: number }
-  | { kind: "resolving" };
 
 export interface BuildRowsInput {
   /** Words not yet written by the running reveal (band ids); hidden from their row until landed. */
@@ -40,8 +35,10 @@ export interface BuildRowsInput {
   playerAId: string;
   viewerSlot: PlayerSlot | null;
   live: LiveState;
-  /** False for a directory challenge: the caption reads unranked. */
-  rated?: boolean;
+  /** The round's beat (spec 048 US2); when given, line 1 of the live row is the beat, line 2 the field. */
+  roundState?: RoundState;
+  /** The scored round held before the next live row opens (spec 048 FR-022). */
+  holdRound?: number | null;
 }
 
 function toCell(words: AccumulatedWord[]): SeatCell | null {
@@ -56,27 +53,6 @@ function toCell(words: AccumulatedWord[]): SeatCell | null {
   return { words: cells, total: cells.reduce((sum, c) => sum + c.points, 0) };
 }
 
-/**
- * The live row's two lines (spec 047 amendment P1, design system §7): line 1
- * is the state, line 2 the instruction — present only while there is a next
- * step to take. Every beat has a signal, and nothing is said twice.
- */
-export function liveText(live: LiveState): LiveLines {
-  switch (live.kind) {
-    case "picking":
-      return { line1: picking(live.letter, live.value), line2: TAP_SECOND_LETTER };
-    case "previewing":
-      return { line1: live.total === null ? PREVIEWING : previewLine(live.total, live.words), line2: PREVIEW_INSTRUCTION };
-    case "played":
-      return { line1: PLAYED, line2: "" };
-    case "illegal":
-      return { line1: frozenNotice(live.ownerName, live.round), line2: "" };
-    case "resolving":
-      return { line1: RESOLVING, line2: "" };
-    default:
-      return { line1: PICK_A_LETTER, line2: "" };
-  }
-}
 
 /** One row per round; the current round is the live row (design system §5.4). */
 export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
@@ -88,15 +64,18 @@ export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
     // reveal, or a resolved round the server has not advanced yet) show as words.
     const landed = row.round === input.currentRound && inRound.length > 0;
     const isPast = row.round < input.currentRound || landed || (input.completed && row.round <= input.currentRound);
-    const isLive = !input.completed && row.round === input.currentRound && !landed;
-    if (isLive) return { ...row, status: "live", live: liveText(input.live) };
+    const holding = input.holdRound != null && input.holdRound === input.currentRound - 1;
+    const isLive = !input.completed && row.round === input.currentRound && !landed && !holding;
+    const lines = input.roundState ? liveLinesFor(input.roundState, input.live) : liveText(input.live);
+    if (isLive) return { ...row, status: "live", live: lines };
     if (!isPast) return row;
-    return {
-      ...row,
-      status: "past",
+    const cells = {
       you: toCell(inRound.filter((w) => seatOf(w.playerId) === "you")),
       opp: toCell(inRound.filter((w) => seatOf(w.playerId) === "opp")),
     };
+    // The settle hold: the scored round stays the tinted row, its lines saying so (spec 048 FR-022).
+    if (holding && row.round === input.holdRound) return { ...row, ...cells, status: "settled", live: lines };
+    return { ...row, status: "past", ...cells };
   });
 }
 
@@ -118,7 +97,9 @@ export interface BuildLedgerInput extends BuildRowsInput {
 
 export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
   return {
-    caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS), input.rated ?? true),
+    caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS)),
+    round: Math.min(input.currentRound, TOTAL_ROUNDS),
+    completed: input.completed,
     rows: buildLedgerRows(input),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),
     hint: input.hint ?? "",
@@ -145,20 +126,29 @@ export interface VerdictInput {
   viewerWords: number;
   opponentWords: number;
   territory: Territory;
+  /** The seat the server recorded as the winner, when the totals do not name them (spec 048). */
+  winnerSeat?: Seat | null;
+  endedReason?: MatchEndedReason | null;
 }
+
+/** A win the totals do not explain: the detail line says what ended the match instead. */
+const FORCED: Record<string, "forfeit" | "disconnect" | "timeout"> = { forfeit: "forfeit", disconnect: "disconnect", abandoned: "disconnect", timeout: "timeout" };
 
 /** `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` — stated once, same voice for win and loss. */
 export function buildVerdict(v: VerdictInput): Verdict {
-  const youWin = v.viewerScore > v.opponentScore;
-  const draw = v.viewerScore === v.opponentScore;
-  const winnerSeat = draw ? null : youWin ? "you" : "opp";
+  const winnerSeat = v.winnerSeat ?? (v.viewerScore === v.opponentScore ? null : v.viewerScore > v.opponentScore ? "you" : "opp");
+  const youWin = winnerSeat === "you";
   const [hi, lo] = youWin ? [v.viewerScore, v.opponentScore] : [v.opponentScore, v.viewerScore];
   const [wordsHi, wordsLo] = youWin ? [v.viewerWords, v.opponentWords] : [v.opponentWords, v.viewerWords];
   const [terrHi, terrLo] = youWin ? [v.territory.you, v.territory.opp] : [v.territory.opp, v.territory.you];
+  const forced = v.endedReason ? FORCED[v.endedReason] : undefined;
   return {
     winnerSeat,
-    scoreLine: draw ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
-    detailLine: verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo),
+    scoreLine: winnerSeat === null ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
+    detailLine:
+      forced && winnerSeat !== null
+        ? forcedDetail(youWin ? v.opponentName : v.viewerName, forced)
+        : verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo),
   };
 }
 
@@ -169,26 +159,15 @@ export interface RatingRow {
   ratingDelta: number;
 }
 
-/**
- * `1191 → 1203 · +12 · wins` for the final bars (design system §5.3).
- *
- * An unranked match writes no rating row at all, so `rating pending` would
- * never resolve — it says what actually happened instead (spec 045 decision 1).
- */
-export function ratingLine(
-  rows: RatingRow[] | null,
-  playerId: string,
-  winnerSeatIsThis: boolean,
-  rated = true,
-): string {
-  if (!rated) return NO_RATING;
+/** `1191 → 1203 · +12 · wins` for the final bars (design system §5.3); `rating pending` until the row is written. */
+export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSeatIsThis: boolean): string {
   const row = rows?.find((r) => r.playerId === playerId);
   if (!row) return RATING_PENDING;
   return ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);
 }
 
 /** `ranked · 10 rounds · 18:50` — clock time both players spent. */
-export function finalCaption(remainingA: number, remainingB: number, rated = true): string {
+export function finalCaption(remainingA: number, remainingB: number): string {
   const used = Math.max(0, 2 * MATCH_CLOCK_BUDGET_MS - remainingA - remainingB);
-  return finalContext(formatClock(used), rated);
+  return finalContext(formatClock(used));
 }

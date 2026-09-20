@@ -5,7 +5,7 @@
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 test.skip(({ browserName }) => browserName !== "chromium", "two-context realtime flow runs on chromium only");
@@ -13,7 +13,7 @@ test.skip(({ browserName }) => browserName !== "chromium", "two-context realtime
 async function loginAs(context: BrowserContext, prefix: string) {
   const page = await context.newPage();
   const username = generateTestUsername(prefix);
-  await loginViaBar(page, username);
+  await loginViaSlip(page, username);
   return { page, username };
 }
 
@@ -41,6 +41,7 @@ test.describe("@reconnect-flow disconnect is a bar state", () => {
       await expect(topBar.getByTestId("player-bar-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 20_000 });
       await expect(topBar.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "disconnected");
       await expect(a.page.getByTestId("player-bar-bottom").getByTestId("player-bar-clock")).toHaveAttribute("data-running", "false");
+      // Spec 048 US7: nothing over the field while the window runs; the claim comes as a slip when it is spent.
       expect(await a.page.locator("[role=dialog], [role=alertdialog]").count()).toBe(0);
 
       // The countdown moves.

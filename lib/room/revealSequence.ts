@@ -9,6 +9,10 @@ export const BAND_DRAW_MS = 400;
 export const BAND_STAGGER_MS = 120;
 export const COUNT_UP_MS = 400;
 export const SETTLE_MS = 200;
+/** The scored row holds before the next live row opens (spec 048 FR-022): a reading pause, not motion. */
+export const SETTLE_HOLD_MS = 1200;
+/** The match-over slip lands this long after the final settle (spec 048 FR-003). */
+export const MATCH_OVER_DELAY_MS = 600;
 
 export type RevealStepKind = "band" | "write" | "countUp" | "settle";
 

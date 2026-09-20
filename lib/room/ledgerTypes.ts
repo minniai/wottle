@@ -24,7 +24,8 @@ export interface LiveLines {
 
 export interface LedgerRow {
   round: number;
-  status: "past" | "live" | "future";
+  /** `settled`: the scored round held as the tinted row before the next opens (spec 048 FR-022). */
+  status: "past" | "live" | "future" | "settled";
   you: SeatCell | null;
   opp: SeatCell | null;
   live?: LiveLines;
@@ -45,6 +46,9 @@ export interface Verdict {
 
 export interface LedgerModel {
   caption: string;
+  /** The current round and whether the match is over: the rail's inputs (spec 048 US3). */
+  round?: number;
+  completed?: boolean;
   rows: LedgerRow[];
   territory: Territory;
   hint: string;
@@ -58,10 +62,8 @@ export interface LedgerModel {
 }
 
 export type LedgerAction =
-  | "rules"
   | "resign"
   | "confirmResign"
-  | "cancelResign"
   | "leave"
   | "rematch"
   | "acceptRematch"
@@ -74,6 +76,11 @@ export type LedgerAction =
   | "signOut"
   | "profile"
   | "claimWin"
+  | "keepWaiting"
+  | "keepPlaying"
+  | "reviewField"
+  | "result"
+  | "howToPlay"
   | "playRanked"
   | { challenge: string }
   | { acceptChallenge: string }
@@ -82,9 +89,6 @@ export type LedgerAction =
 export type Notice =
   | { kind: "pickCleared"; reason: "opponentPinned" | "frozen" }
   | { kind: "rematchRequest"; requesterName: string }
-  | { kind: "resignConfirm"; expiresAt: number }
-  | { kind: "firstMatchRules" }
-  | { kind: "claimWin"; opponentName: string }
   | { kind: "challenge"; fromName: string; inviteId: string }
   | { kind: "text"; text: string };
 

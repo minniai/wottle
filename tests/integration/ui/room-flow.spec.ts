@@ -7,7 +7,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 const cell = (page: Page, x: number, y: number) => page.locator(`[data-testid="field-cell"][data-x="${x}"][data-y="${y}"]`);
 
@@ -38,8 +38,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("flow-a");
       const userB = generateTestUsername("flow-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(pageB.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
@@ -52,7 +52,9 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await cell(pageA, ax2, 0).click();
       // `scored` if the instant first-mover reveal (spec 042) already landed on these letters.
       await expect(cell(pageA, ax1, 0)).toHaveAttribute("data-state", /pinned|scored/);
-      await expect(pageA.getByTestId("ledger-live-row")).toContainText("played ●");
+      // Spec 048: the live row names the beat and who it waits for; `played ●` is the bar's suffix.
+      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/played · waiting for/);
+      await expect(pageA.getByTestId("player-bar-bottom")).toContainText("played ●");
 
       // B sees A's letters pinned in coral on their own field.
       await expect(cell(pageB, ax1, 0)).toHaveAttribute("data-state", /pinned|scored/, { timeout: 15_000 });
@@ -104,8 +106,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("frz-a");
       const userB = generateTestUsername("frz-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -132,8 +134,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("ldg-a");
       const userB = generateTestUsername("ldg-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -142,13 +144,14 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", "live");
       await expect(pageA.getByTestId("ledger-row-5")).toHaveAttribute("data-status", "future");
 
-      // Resign confirmation is a line, not a dialog; `no` reverts.
+      // Spec 048 US7: the resign confirmation is a slip over the field; `keep playing ▸` reverts.
       await pageA.getByTestId("ledger-menu-trigger").click();
       await pageA.getByTestId("ledger-menu-item-resign").click();
-      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: "resign the match?" })).toBeVisible();
-      expect(await pageA.locator("[role=alertdialog], [role=dialog]").count()).toBe(0);
-      await pageA.getByTestId("notice-cancel-resign").click();
-      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: "resign the match?" })).toHaveCount(0);
+      const resignSlip = pageA.getByTestId("slip");
+      await expect(resignSlip).toHaveAttribute("data-kind", "resign");
+      await expect(resignSlip).toContainText("Resign the match?");
+      await pageA.getByTestId("slip-keep-playing").click();
+      await expect(resignSlip).toHaveCount(0);
 
       // Both play; row 1 becomes past with words or stays empty, row 2 goes live.
       const [ax1, ax2] = await twoFreeCells(pageA, 0);
@@ -157,6 +160,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       const [bx1, bx2] = await twoFreeCells(pageB, 9);
       await cell(pageB, bx1, 9).click();
       await cell(pageB, bx2, 9).click();
+      // Row 1 is held as `settled` for the reading pause, then becomes past (spec 048 FR-022).
+      await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", /settled|past/, { timeout: 45_000 });
       await expect(pageA.getByTestId("ledger-row-2")).toHaveAttribute("data-status", "live", { timeout: 45_000 });
       await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", "past");
       await expect(pageA.getByTestId("ledger-territory")).toBeVisible();
@@ -174,8 +179,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("rvl-a");
       const userB = generateTestUsername("rvl-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -205,7 +210,7 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
  * suite: the fixture route is static by design and dispatches nothing.
  */
 test.describe("@room-flow US5 the hand and the keyboard", () => {
-  test("drag commits a swap; tapping the ledger cancels a pick; ? and M reach the room", async ({ browser }) => {
+  test("drag commits a swap; tapping the ledger cancels a pick; M reaches the room", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
@@ -213,15 +218,15 @@ test.describe("@room-flow US5 the hand and the keyboard", () => {
     try {
       const userA = generateTestUsername("drag-a");
       const userB = generateTestUsername("drag-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
-      // ? opens the rules, wherever focus is. Target the kind: a first match
-      // already shows its own rules line, so `ledger-notice` is ambiguous.
+      // Spec 048 US5: the rules left the room, and `?` with them. Nothing opens.
       await pageA.keyboard.press("?");
-      await expect(pageA.locator('[data-kind="firstMatchRules"]').first()).toBeVisible();
+      await expect(pageA.getByTestId("slip")).toHaveCount(0);
+      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match");
 
       // A pick cancels when the pointer goes down outside the field.
       await pageA.locator('[data-x="3"][data-y="3"]').click();
@@ -241,7 +246,7 @@ test.describe("@room-flow US5 the hand and the keyboard", () => {
 
       await expect(a).toHaveAttribute("data-state", "pinned", { timeout: 10_000 });
       await expect(b).toHaveAttribute("data-state", "pinned");
-      await expect(pageA.getByTestId("ledger-live-row")).toContainText("played");
+      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/played · waiting for/);
     } finally {
       await contextA.close();
       await contextB.close();

@@ -5,6 +5,7 @@ import { useMemo, type ReactNode } from "react";
 import { OPPONENT, YOU, reconnecting } from "@/lib/constants/copy";
 import { formatClock } from "@/lib/room/clock";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
+import { barSuffixFor, type RoundState } from "@/lib/room/roundState";
 import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
@@ -33,12 +34,13 @@ export interface MatchRoomViewProps {
   opp: SeatFacts;
   currentRound: number;
   completed: boolean;
-  /** False for a directory challenge: the caption reads unranked. */
-  rated?: boolean;
   words: AccumulatedWord[];
   playerAId: string;
   frozenTiles: FrozenTileMap;
   live: LiveState;
+  /** The round's beat (spec 048 US2): line 1 of the live row, the bar suffixes, the field frame. */
+  roundState?: RoundState;
+  holdRound?: number | null;
   hiddenWordIds?: Set<string>;
   hint?: string;
   caption?: string;
@@ -61,21 +63,25 @@ function subline(facts: SeatFacts, seatWord: string | null): string {
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
-  const { matchId, viewerSlot, you, opp, currentRound, completed, rated = true, words, playerAId, frozenTiles, live } = props;
+  const { matchId, viewerSlot, you, opp, currentRound, completed, words, playerAId, frozenTiles, live } = props;
   const isPhone = useIsPhone();
-  const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children } = props;
+  const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children, roundState, holdRound = null } = props;
   const reducedMotion = useReducedMotion();
   const youScore = useCountUp(you.score, reducedMotion);
   const oppScore = useCountUp(opp.score, reducedMotion);
 
   const model = useMemo(() => {
-    const base = buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, rated });
+    const base = buildMatchLedger({ currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, roundState, holdRound });
     return { ...base, caption: caption ?? base.caption, verdict };
-  }, [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, rated]);
+  }, [currentRound, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, roundState, holdRound]);
+  const turn = roundState && !completed && !readOnly ? roundState : null;
+  const youSuffix = turn ? barSuffixFor(turn, "you") : null;
+  const oppSuffix = turn ? barSuffixFor(turn, "opp") : null;
 
   return (
     <Room
       matchId={matchId}
+      onSlipAction={onAction}
       topBar={
         <PlayerBar
           seat="opp"
@@ -83,6 +89,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           state={completed ? "final" : "playing"}
           name={opp.name}
           subline={subline(opp, readOnly ? null : OPPONENT)}
+          sublineSuffix={opp.reconnectMsLeft != null ? null : oppSuffix}
           clockMs={opp.clockMs}
           clockRunning={opp.running}
           score={oppScore}
@@ -97,6 +104,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           state={completed ? "final" : "playing"}
           name={you.name}
           subline={subline(you, readOnly ? null : YOU)}
+          sublineSuffix={youSuffix}
+          sublineTone={turn?.kind === "yourMove" || turn?.kind === "oppPlayed" ? "seat" : "muted"}
           clockMs={you.clockMs}
           clockRunning={you.running}
           score={youScore}

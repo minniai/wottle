@@ -30,6 +30,7 @@ test.describe("@visual the room, from fixtures", () => {
       // Application state, not font state: Playwright already awaits
       // document.fonts.ready before every screenshot.
       if (phase === "profile") await expect(page.getByTestId("profile-page")).toBeVisible();
+      else if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
       else await expect(page.getByTestId("field")).toBeVisible();
 
       if (phase === "phone-sheet") {
@@ -37,7 +38,7 @@ test.describe("@visual the room, from fixtures", () => {
         await expect(page.getByTestId("ledger-sheet")).toBeVisible();
       }
 
-      await expect(page).toHaveScreenshot(`${phase}.png`);
+      await expect(page).toHaveScreenshot(`${phase}.png`, { fullPage: phase === "rules" });
     });
   }
 
@@ -321,8 +322,40 @@ test.describe("@visual the room fits a phone", () => {
       // The design system's one grey exception: future-round numerals, aria-hidden,
       // with the round carried by the caption (spec 045 FR-033).
       .exclude(".ledger__row--future .ledger__round")
+        .exclude('.rail__cell[data-state="future"]')
+      .exclude('.rail__cell[data-state="future"]')
       .analyze();
 
     expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
   });
+});
+
+test.describe("@visual room clarity", () => {
+  test("the round rail stays above the collapsed live row", async ({ page }, testInfo) => {
+    await page.goto("/dev/room?phase=idle");
+    const rail = page.getByTestId("round-rail");
+    await expect(rail).toHaveAttribute("aria-label", "round 4 of 10");
+    await expect(rail.locator('[data-state="past"]')).toHaveCount(3);
+    await expect(rail.locator('[data-state="current"]')).toHaveCount(1);
+    if (testInfo.project.name === "visual-390x844") {
+      const railBox = await rail.boundingBox();
+      const liveBox = await page.getByTestId("ledger-live-trigger").boundingBox();
+      expect(railBox!.y + railBox!.height).toBeLessThanOrEqual(liveBox!.y);
+    }
+  });
+
+  for (const phase of ["landing-slip", "resign", "claim-win", "over-slip"]) {
+    test(`${phase} is accessible with the slip open`, async ({ page }) => {
+      await page.goto(`/dev/room?phase=${phase}`);
+      await expect(page.getByRole("dialog")).toBeVisible();
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        // DS §2: decorative future numerals are the sole contrast exception.
+        .exclude(".ledger__row--future .ledger__round")
+        .exclude('.rail__cell[data-state="future"]')
+        .exclude('.rail__cell[data-state="future"]')
+        .analyze();
+      expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
+    });
+  }
 });

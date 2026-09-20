@@ -6,15 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScript, and Supabase. Players swap letters on a 10×10 field to form Icelandic words, each on one match-long clock, with spatial tile-freezing strategy.
 
-**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-two Speckit specs have shipped. **Field & Ledger shipped (2026-09-14, spec `specs/044-field-ledger-redesign/spec.md`)**: every player-facing screen is one room — two player bars, the field, one ledger — with lobby, queue, found, match, final and profile as states of it; the design system and plan are reached via `docs/design_documentation/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The previous look (April–June 2026) and every component it used are gone from the tree; its documents live under `docs/archive/`. **Completion shipped (2026-09-15, spec `specs/045-field-ledger-completion/spec.md`)**: the twenty-five findings of the implementation review are closed — the field paints as designed, the room is one composition, the phone ledger collapses, drag and the hotkeys work, the palette is eight tokens and directory challenges are unranked. It also added the thing whose absence caused those defects: `/dev/room?phase=…` renders every room state from static fixtures with no database, and `pnpm test:visual` compares them against committed baselines in a blocking CI job. **As rendered (spec `specs/047-room-as-rendered/spec.md`, 2026-09-16)**: the first look at a live match after 045 found nine deviations; the ledger is now the height of the stack, the live row carries state and instruction on two lines and the hint collapses, every row owns one continuous rule, shared letters are ink throughout, and a settled band is drawn only over frozen letters. Its P0 was a data bug: the frozen-tiles compare-and-set function had no migration, so every freeze write was a blind overwrite; stuck-round recovery seeded the next round pre-scoring; and the client's word accumulator never reset on rematch or hydrated on reload. All three are fixed (`supabase/migrations/20260916001_…`, `lib/match/frozenTilePersistence.ts`, `lib/match/recoverStuckRound.ts`, `GET /api/match/[matchId]/words` + `lib/room/accumulatedWords.ts`). Fixture phases: landing, lobby, queue, found, idle, picking, previewed, played, opp-played, low-clock, illegal, reveal, final, disconnect, profile, phone-sheet.
+**Current State**: The core gameplay loop (swap → find words → score → freeze) is fully functional and well-covered by tests. Twenty-two Speckit specs have shipped. **Field & Ledger shipped (2026-09-14, spec `specs/044-field-ledger-redesign/spec.md`)**: every player-facing screen is one room — two player bars, the field, one ledger — with lobby, queue, found, match, final and profile as states of it; the design system and plan are reached via `docs/design_documentation/README.md` (→ `docs/design_documentation/260914-wottle-new-design/`). The previous look (April–June 2026) and every component it used are gone from the tree; its documents live under `docs/archive/`. **Completion shipped (2026-09-15, spec `specs/045-field-ledger-completion/spec.md`)**: the twenty-five findings of the implementation review are closed — the field paints as designed, the room is one composition, the phone ledger collapses, drag and the hotkeys work, the palette is eight tokens and directory challenges are unranked. It also added the thing whose absence caused those defects: `/dev/room?phase=…` renders every room state from static fixtures with no database, and `pnpm test:visual` compares them against committed baselines in a blocking CI job. **As rendered (spec `specs/047-room-as-rendered/spec.md`, 2026-09-16)**: the first look at a live match after 045 found nine deviations; the ledger is now the height of the stack, the live row carries state and instruction on two lines and the hint collapses, every row owns one continuous rule, shared letters are ink throughout, and a settled band is drawn only over frozen letters. Its P0 was a data bug: the frozen-tiles compare-and-set function had no migration, so every freeze write was a blind overwrite; stuck-round recovery seeded the next round pre-scoring; and the client's word accumulator never reset on rematch or hydrated on reload. All three are fixed (`supabase/migrations/20260916001_…`, `lib/match/frozenTilePersistence.ts`, `lib/match/recoverStuckRound.ts`, `GET /api/match/[matchId]/words` + `lib/room/accumulatedWords.ts`). **Room clarity (spec `specs/048-room-clarity/spec.md`, 2026-09-20)**: the biggest moments were the quietest. It adds the **slip**, the one element ever laid over the field, for the four moments a player must notice or decide — sign in, resign, claim the win, match over — with the field faded to 32% beneath it; the **round state**, one of six beats (`round 4 · your move`, `played · waiting for Kári`, `resolving round 4`, `round 4 scored`, `out of time · …`) that writes the live row's first line in the board face, outlines the field in the viewer's seat colour while the move is theirs, and suffixes both bar sub-lines (`· your move` / `· thinking` / `· played ●`), closed by a 1.2s **settle hold**; the **round rail**, ten cells under the ledger caption; **no field before a name** (signed out the room is an empty ruled frame under the sign-in slip); the rules on their own page at `/rules`, reached by `how to play ▸`, never in the room; and **every match rated** (the unranked branch and `matches.rated` reader are gone).
+
+Fixture phases: landing-slip, lobby, queue, found, idle, picking, previewed, played, opp-played, low-clock, illegal, reveal, settle, final, over-slip, resign, claim-win, disconnect, rules, profile, phone-sheet.
 
 ## Design (MANDATORY for any UI change)
 
 - The UI follows `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (entry point `docs/design_documentation/README.md`). Do not add colours, radii, shadows, gradients, blur or fonts outside it. Eight colour tokens (`--paper`, `--ink`, `--rule`, `--tint`, `--muted`, `--you`, `--opp`, and `--opp-text` for coral **text below 17px** only); two type families (`--font-board` slab serif, `--font-mono`).
 - Every visible element is a letter (or a state of a letter) on the **field**, a fact about one player in that player's **bar**, or a fact about the match in the **ledger**. If a new element is none of these, do not add it.
 - Colours are **seat-relative**: `--you` teal, `--opp` coral, always via `getSeatColors(viewerSlot, slot)`. Never map colour to `player_a` / `player_b`.
-- **Nothing is ever positioned over the field.** No modals, banners, toasts, overlays or confetti during a match; state changes are written into the bars or the ledger's live row.
-- **The live row says the state and the next step** (`lib/room/ledgerRows.ts` `liveText` → `{ line1, line2 }`): `pick a letter`; `picking · T (2)` over `tap a second letter`; `24 · hestur` over `tap again to play · esc cancels`; `played ●`; an illegal pick holds `frozen · Kári R2 · pick another` for two seconds. The hint line is for match-level lines only and hides when empty. The ledger is the height of the stack, never stretched to the viewport; every row is one grid item that owns its `--rule`; a shared letter's numeral is ink.
+- **Only the slip is ever positioned over the field** (design system §5.9, spec 048): a paper panel with a 1.5px ink frame, for sign in, resign, claim the win and match over, with the field faded to 32% beneath it. No other modal, banner, toast, overlay or confetti; every other state change is written into the bars or the ledger's live row.
+- **The live row says the beat and the next step** (`lib/room/roundState.ts` `deriveRoundState` → `liveLinesFor` → `{ line1, line2 }`, spec 048): line 1 is the round's beat in the board face (`round 4 · your move`, `played · waiting for Kári`, `resolving round 4`, `round 4 scored`, `out of time · waiting for Kári`); line 2 is the field's instruction while the move is yours (`pick a letter`, `picking · T (2) · tap a second letter`, `24 · hestur · tap again to play · esc cancels`, `frozen · Kári R2 · pick another` for two seconds) or the beat's fact otherwise. After a reveal the scored row holds 1.2s (the settle hold) before the next opens, and the field takes no pick meanwhile.
+- **The turn is drawn three times, once each:** the field is outlined 3px in `--you` while the move is yours; each bar's sub-line ends `· your move` / `· thinking` / `· played ●`; the live row names the beat. The **round rail** (ten cells under the ledger caption) is the only place the round is counted besides the caption.
+- The hint line is for match-level lines only and hides when empty. The ledger is the height of the stack, never stretched to the viewport; every row is one grid item that owns its `--rule`; a shared letter's numeral is ink.
+- **The rules are not in the room.** `/rules` is the one page outside it, reached by `how to play ▸` from the lobby and final feet, the sign-in slip, and the match `⋯` menu (a new tab, so a match is never interrupted).
 - Copy: sentence case, no exclamation marks, one idea per line, mono uppercase for labels, lowercase wordmark `wottle`. Fixed strings in design system §8.
 - Motion is a state change, not a performance: durations and easing in design system §6; everything 0ms under `prefers-reduced-motion`.
 - The rules → rendering contract is `docs/prd_and_requirements/wottle_game_rules.md` §12 ("What the player sees").
@@ -236,9 +241,11 @@ Room flow (spec 044):
 4. Match page → MatchRoomController: useMatchTransport (Realtime + 2s safety poll + polling fallback)
    → roomStore.applySnapshot / applySummary; useFieldInteraction posts moves; useReveal draws bands
 5. Disconnect → opponent bar counts `reconnecting · m:ss left` from MatchState.disconnectedAt; both
-   lanes hold; after the window the ledger offers `claim the win ▸` (claimWinAction)
+   lanes hold; after the window the claim is put to the player on a slip (`claim the win ▸` → claimWinAction)
 6. state = completed → final phase in the same room: verdict block, rating lines from
-   getMatchRatings, rematch negotiation as ledger lines, actions rematch ▸ · new opponent ▸ · lobby
+   getMatchRatings; the match-over slip lands 600ms after the final settle with the verdict,
+   both rating lines and rematch ▸ · new opponent ▸ · review the field ▸ · lobby (rematch
+   negotiation rewrites its action line). `review the field ▸` lifts it; `result ▸` in the foot restores it
 ```
 
 ### Core Types & Validation
@@ -267,8 +274,8 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 
 ### Current Test Health
 
-- **134 unit/contract test files, 972 tests passing** (2 intentionally skipped), zero failures (measured 2026-09-14 on `044-field-ledger-redesign` after the retired-component sweep).
-- CI splits Playwright by tag: the one spec tagged `@two-player-playtest` (`rounds-flow`, a whole ten-round match) runs on the `playtest-firefox` project with `--workers=1`; every other room spec runs on `chromium`. On failure the job uploads `playwright-results-<suite>` (traces + `error-context.md` page snapshots). Locally, run two-player spec files one at a time to avoid Realtime contention; sign in through `loginViaBar` (`tests/integration/ui/helpers/matchmaking.ts`).
+- **165 unit/contract test files, 1373 tests passing** (2 intentionally skipped), zero failures (measured 2026-09-20 on `048-room-clarity`). `pnpm test:visual` passes at three viewports over 21 fixture phases.
+- CI splits Playwright by tag: the one spec tagged `@two-player-playtest` (`rounds-flow`, a whole ten-round match) runs on the `playtest-firefox` project with `--workers=1`; every other room spec runs on `chromium`. On failure the job uploads `playwright-results-<suite>` (traces + `error-context.md` page snapshots). Locally, run two-player spec files one at a time to avoid Realtime contention; sign in through `loginViaSlip` (`tests/integration/ui/helpers/matchmaking.ts`).
 - Lint (zero-warnings policy), typecheck and `pnpm docs:check` pass cleanly.
 
 ### Implementation Status by Area
@@ -279,7 +286,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 | Matchmaking      | Complete   | Direct invites, auto-queue, match bootstrap                                      |
 | Round Engine     | Complete   | State machine, conflict resolution, 10-round cycle                               |
 | Realtime         | Complete   | WebSocket channels + HTTP polling fallback                                       |
-| Reconnection     | Complete   | 90s window counted down in the opponent's bar; `claim the win ▸` ledger line     |
+| Reconnection     | Complete   | 90s window counted down in the opponent's bar; the claim is a slip (spec 048)    |
 | Rate Limiting    | Complete   | 5/min auth, 30/min moves, 1/min claim-win, 429 responses                         |
 | Accessibility    | Complete   | Focus traps, aria-live, keyboard nav, 44×44 touch targets, WCAG 2.1 AA axe clean |
 | Observability    | Complete   | Structured logs, perf marks, analytics hooks                                     |
@@ -290,11 +297,14 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 | Server Timer     | Complete   | `rounds.started_at`-based enforcement, timeout-pass synthesis (spec 007)         |
 | Elo + Ratings    | Complete   | `match_ratings` written on match end, ±N rating deltas in post-game (spec 017)   |
 | Rematch          | Complete   | `rematch_requests` table, 30s invite TTL, series tracking (spec 016)             |
-| Theme (visual)   | Complete   | Field & Ledger (spec 044): seven tokens, two type families, one room; see Design |
+| Theme (visual)   | Complete   | Field & Ledger (spec 044): eight tokens, two type families, one room; see Design |
+| Round legibility | Complete   | Round state, turn frame, bar suffixes, settle hold, round rail (spec 048)        |
+| Slip             | Complete   | Sign in · resign · claim the win · match over; the one overlay (spec 048)        |
 
 ### Remaining Gaps
 
 1. **Legacy `boards` table** — singleton board from the original prototype (`supabase/migrations/20251105001_init.sql`) still exists in the schema and is seeded by `scripts/supabase/seed.ts`; no runtime code reads it anymore. A follow-up migration can drop the table + its seed/reset/verify wiring.
+2. **Unread `matches.rated` column** — added by spec 045, retired by spec 048 (every match is rated). Nothing reads or writes it; a follow-up migration can drop it.
 
 ## Code Standards
 
@@ -383,7 +393,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, rounds, m
 **Disconnect Handling:**
 
 - Player marked disconnected in match state (realtime broadcast)
-- The other player's bar shows the sub-line `reconnecting · m:ss left` (from `MatchState.disconnectedAt`), a dashed lane, and both clocks hold; after the window the ledger offers `<name> is gone · claim the win ▸` (`notice-claim-win`). Nothing is drawn over the field.
+- The other player's bar shows the sub-line `reconnecting · m:ss left` (from `MatchState.disconnectedAt`), a dashed lane, and both clocks hold; after the window the claim is put on a slip over the faded field (`<name> is gone` · `claim the win ▸` · `keep waiting ▸`, spec 048).
 - Reconnection within 90s clears the flag; past 90s `claimWinAction` or the auto-finalise awards the non-disconnected player (forced-winner path on `completeMatchInternal`)
 - Detection has two layers: (1) fast path via `disconnectStore` (in-memory, populated by `pagehide`/`sendBeacon`, Realtime `system: CLOSED`, or `onOpponentLeave` presence leave); (2) shared-store safety net via `match_heartbeats` upserted on every `/api/match/[matchId]/state` poll — `loadMatchState` surfaces the stale player after `HEARTBEAT_STALE_MS` (10s) with a grace window for match launch (issue #164).
 
@@ -527,6 +537,8 @@ Key files:
 - No schema change — reads existing `word_score_entries.tiles` (order encodes reading direction), `matches`, `match_ratings`; `localStorage` `PlayerPreferences` gains `previewEnabled`. (044-field-ledger-redesign)
 - TypeScript 5.x, Node.js 22, React 19, Next.js 16 (App Router) + Tailwind CSS 4.x (seven-token theme in `tailwind.config.ts`), `next/font/google` (Zilla Slab, Red Hat Mono), zustand (`roomStore`, `preferencesStore`), Supabase JS v2, Zod. No Framer Motion; no new runtime dependency is introduced by this feature. (045-field-ledger-completion)
 - Supabase PostgreSQL. One additive migration: `matches.rated boolean not null default true`. No other schema change; the fixture route touches no database at all. (045-field-ledger-completion)
+- TypeScript 5.x, Node.js 22, React 19, Next.js 16 (App Router) + Tailwind CSS 4.x, zustand (`roomStore`), Supabase JS v2, Zod. No new dependency. (048-room-clarity)
+- Supabase PostgreSQL. No schema change; `matches.rated` stops being read and written (stays at its default `true`). (048-room-clarity)
 
 - **Runtime (current)**: Node.js 22 (`.nvmrc`, `engines.node >=22`), pnpm 11.7 (`packageManager`; settings live in `pnpm-workspace.yaml`). Per-spec lines below that say "Node.js 20" are historical.
 - TypeScript 5.x, Node.js 20 + Next.js 16 (App Router), Supabase JS v2, Zod (007-server-authoritative-timer)

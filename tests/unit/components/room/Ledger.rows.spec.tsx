@@ -9,7 +9,7 @@ import type { LedgerModel } from "@/lib/room/ledgerTypes";
 const A = "a";
 const words = Array.from({ length: 5 }, (_, r) => ({ roundNumber: r + 1, playerId: A, word: `orð${r + 1}`, totalPoints: 10 + r, coordinates: [{ x: r, y: 0 }, { x: r + 1, y: 0 }] }));
 const rows = buildLedgerRows({ currentRound: 6, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "played" } });
-const model: LedgerModel = { caption: "ranked · round 6 of 10", rows, territory: { you: 10, opp: 5, free: 85 }, hint: "tap a second letter" };
+const model: LedgerModel = { caption: "round 6 of 10", rows, territory: { you: 10, opp: 5, free: 85 }, hint: "tap a second letter" };
 
 describe("Ledger rows (design system §5.4)", () => {
   it("hovering a row reveals per-word points and reports the round", () => {

@@ -17,7 +17,7 @@ function isTyping(target: EventTarget | null): boolean {
 
 /**
  * The room's two hotkeys (design system §9, spec 045 FR-026): `?` opens the
- * rules, `M` mutes. Ignored while a text field has focus — the landing state's
+ * `M` mutes (the `?` rules hotkey went with the in-room rules, spec 048 US5). Ignored while a text field has focus — the landing state's
  * name input must receive both characters — and while a modifier is held, so
  * browser and system shortcuts keep working.
  */
@@ -26,8 +26,7 @@ export function useRoomHotkeys(onAction: (action: LedgerAction) => void): void {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (isTyping(event.target)) return;
-      if (event.key === "?") onAction("rules");
-      else if (event.key === "m" || event.key === "M") onAction("toggleSound");
+      if (event.key === "m" || event.key === "M") onAction("toggleSound");
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);

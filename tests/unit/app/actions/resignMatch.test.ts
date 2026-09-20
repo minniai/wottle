@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/app/actions/match/completeMatch", () => ({
+  completeMatchInternal: vi.fn().mockResolvedValue({}),
+}));
 vi.mock("@/lib/supabase/server", () => ({
   getServiceRoleClient: vi.fn(),
 }));
@@ -23,8 +26,7 @@ vi.mock("@/lib/observability/log", () => ({
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import { writeMatchLog } from "@/lib/match/logWriter";
-import { publishMatchState } from "@/lib/match/statePublisher";
+import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 
 const PLAYER_A = "player-a";
 const PLAYER_B = "player-b";
@@ -123,15 +125,9 @@ describe("resignMatch", () => {
       winnerId: PLAYER_B,
       resigned: true,
     });
-    expect(writeMatchLog).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        matchId: MATCH_ID,
-        eventType: "match.forfeit",
-        actorId: PLAYER_A,
-      }),
-    );
-    expect(publishMatchState).toHaveBeenCalledWith(MATCH_ID);
+    // Spec 048: resignations must use the same rating persistence as every
+    // other completed match, before publishing its final state.
+    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "forfeit", PLAYER_B);
   });
 
   it("declares player A as winner when player B resigns", async () => {
@@ -152,6 +148,7 @@ describe("resignMatch", () => {
       winnerId: PLAYER_A,
       resigned: true,
     });
+    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "forfeit", PLAYER_A);
   });
 
   it("throws when match is not found", async () => {

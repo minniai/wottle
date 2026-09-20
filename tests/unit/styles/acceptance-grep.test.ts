@@ -16,6 +16,14 @@ const SCOPE = ["app", "components", "lib/room", "lib/constants/seatColors.ts", "
  */
 const BANNED = /rounded-|shadow-|gradient|emerald|red-\d|amber|fraunces|\binter\b|jetbrains|--ochre|--p1-|--p2-|--good|--warn|--bad|--hair/i;
 const ALLOWLIST: RegExp[] = [];
+/**
+ * Spec 048: the strings and names retired with the unranked branch, the in-room
+ * rules and the ledger's decision lines. `unranked` is matched as a word so that
+ * `unranked` in a comment about its removal still trips — say "the retired rank
+ * label" instead. The slip is the one component allowed over the field.
+ */
+const RETIRED = /\bunranked\b|no rating change|\? rules|FIRST_MATCH_RULES|firstMatchRules|resignConfirm|RESIGN_CONFIRM|claimWinLine|notice-claim-win|notice-confirm-resign|rankLabel|isMatchRated/;
+const RETIRED_SCOPE = ["app", "components", "lib/room", "lib/constants/copy.ts", "lib/matchmaking", "app/actions/match"];
 
 function files(path: string): string[] {
   const abs = join(ROOT, path);
@@ -39,5 +47,22 @@ describe("acceptance grep (design plan §10)", () => {
       .map((line, i) => ({ line, n: i + 1 }))
       .filter(({ line }) => BANNED.test(line) && !ALLOWLIST.some((ok) => ok.test(line)));
     expect(hits, hits.map((h) => `${rel}:${h.n}: ${h.line.trim()}`).join("\n")).toEqual([]);
+  });
+});
+
+describe("retired room strings (spec 048)", () => {
+  const all = [...new Set(RETIRED_SCOPE.flatMap(files))];
+
+  test.each(all.map((f) => [f.replace(`${ROOT}/`, "")]))("%s names nothing retired", (rel) => {
+    const lines = readFileSync(join(ROOT, rel), "utf8").split("\n");
+    const hits = lines.map((line, i) => ({ line, n: i + 1 })).filter(({ line }) => RETIRED.test(line));
+    expect(hits, hits.map((h) => `${rel}:${h.n}: ${h.line.trim()}`).join("\n")).toEqual([]);
+  });
+
+  test("only the slip is positioned over the field", () => {
+    const css = readFileSync(join(ROOT, "app/styles/room.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const absolute = [...css.matchAll(/([^{}]+)\{[^}]*position:\s*absolute[^}]*\}/g)].map((m) => m[1].trim());
+    const overField = absolute.filter((sel) => !/^\.(field__|player-bar__lane|room-menu__list|ledger__|lobby-|profile|name-input|rail)/.test(sel));
+    expect(overField).toEqual([".slip"]);
   });
 });

@@ -15,6 +15,9 @@ export interface PlayerBarProps {
   state: PlayerBarState;
   name?: string;
   subline: string;
+  /** Spec 048 FR-021: the turn suffix, in the seat colour when the move is the viewer's. */
+  sublineSuffix?: string | null;
+  sublineTone?: "seat" | "muted";
   clockMs?: number;
   clockRunning?: boolean;
   /** The opponent has just been found: their name is written in (FR-028). */
@@ -24,8 +27,6 @@ export interface PlayerBarProps {
   disconnected?: boolean;
   /** Primary action when the seat is empty or searching. */
   action?: ReactNode;
-  /** Landing: the inline name input replaces the name. */
-  nameInput?: ReactNode;
 }
 
 function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
@@ -41,7 +42,7 @@ function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
  */
 export function PlayerBar(props: PlayerBarProps) {
   const { seat, position, state, name, subline, clockMs = MATCH_CLOCK_BUDGET_MS, clockRunning = false, writing = false } = props;
-  const { budgetMs = MATCH_CLOCK_BUDGET_MS, score, disconnected = false, action, nameInput } = props;
+  const { budgetMs = MATCH_CLOCK_BUDGET_MS, score, disconnected = false, action } = props;
   const showsClock = state === "playing" || state === "final";
   const showsScore = showsClock && typeof score === "number";
   const style = { "--seat-ink": getSeatColors(seat).ink } as CSSProperties;
@@ -57,13 +58,17 @@ export function PlayerBar(props: PlayerBarProps) {
       <div className="player-bar__identity">
         <span className="player-bar__seat" aria-hidden />
         <div className="player-bar__text">
-          {nameInput ?? (
-            <span className={`player-bar__name${writing ? " player-bar__name--writing" : ""}`} data-testid="player-bar-name">
-              {name ?? ""}
-            </span>
-          )}
+          <span className={`player-bar__name${writing ? " player-bar__name--writing" : ""}`} data-testid="player-bar-name">
+            {name ?? ""}
+          </span>
           <span className="player-bar__subline" data-testid="player-bar-subline">
             {subline}
+            {props.sublineSuffix ? (
+              <span className="player-bar__subline-suffix" data-tone={props.sublineTone ?? "muted"} data-testid="player-bar-turn">
+                {" · "}
+                {props.sublineSuffix}
+              </span>
+            ) : null}
           </span>
         </div>
       </div>

@@ -10,6 +10,7 @@ import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
+import { RoundRail } from "./RoundRail";
 import type { RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
@@ -84,7 +85,18 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
       onMouseEnter={() => onRowHover?.(row.round)}
       onMouseLeave={() => onRowHover?.(null)}
     >
-      {row.status === "live" ? (
+      {row.status === "settled" ? (
+        /* The settle hold (spec 048 FR-022): the scored row keeps the tint and the
+           rule and says the round scored; its words land when the hold ends, because a
+           third line would push the foot under the bottom bar (the ledger is the
+           height of the stack, §4). */
+        <>
+          <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
+          <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
+            <LiveText live={row.live} />
+          </div>
+        </>
+      ) : row.status === "live" ? (
         /* The row itself is the tinted grid item with the 3px rule at its left
            edge (Fig. 2); the label sits in the same column as every other row's
            (spec 047 FR-008, review S3 and S6). */
@@ -107,34 +119,6 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
 }
 
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
-  if (notice.kind === "resignConfirm") {
-    return (
-      <>
-        resign the match? ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-confirm-resign" onClick={() => onAction("confirmResign")}>
-          yes, resign ▸
-        </button>{" "}
-        ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-cancel-resign" onClick={() => onAction("cancelResign")}>
-          no
-        </button>
-      </>
-    );
-  }
-  if (notice.kind === "rematchRequest") {
-    return (
-      <>
-        {notice.requesterName} asks for a rematch ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-accept-rematch" onClick={() => onAction("acceptRematch")}>
-          accept ▸
-        </button>{" "}
-        ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-decline-rematch" onClick={() => onAction("declineRematch")}>
-          decline
-        </button>
-      </>
-    );
-  }
   if (notice.kind === "challenge") {
     return (
       <>
@@ -145,16 +129,6 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
         ·{" "}
         <button type="button" className="action-secondary" data-testid="notice-decline-challenge" onClick={() => onAction({ declineChallenge: notice.inviteId })}>
           decline
-        </button>
-      </>
-    );
-  }
-  if (notice.kind === "claimWin") {
-    return (
-      <>
-        {notice.opponentName} is gone ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-claim-win" onClick={() => onAction("claimWin")}>
-          claim the win ▸
         </button>
       </>
     );
@@ -234,7 +208,9 @@ export function Ledger(props: LedgerProps) {
     </div>
   ));
 
-  const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live")?.live;
+  const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
+  // The rail (spec 048 US3): every ledger with rounds to count — match, final and the queue (all future).
+  const rail = variant === "lobby" ? null : <RoundRail currentRound={model.round ?? 0} completed={model.completed ?? false} />;
 
   return (
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
@@ -244,6 +220,7 @@ export function Ledger(props: LedgerProps) {
           {model.caption}
         </span>
       </div>
+      {rail}
 
       {model.verdict ? (
         <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">

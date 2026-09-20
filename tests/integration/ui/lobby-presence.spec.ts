@@ -3,7 +3,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 
@@ -16,8 +16,8 @@ test.describe("@lobby-presence here now", () => {
     try {
       const userA = generateTestUsername("pres-a");
       const userB = generateTestUsername("pres-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await expect(pageA.getByTestId("ledger-here-now").getByText(`@${userB}`)).toBeVisible({ timeout: 10_000 });
       await expect(pageB.getByTestId("ledger-here-now").getByText(`@${userA}`)).toBeVisible({ timeout: 10_000 });
       await expect(pageA.getByTestId("round-indicator")).toContainText(/lobby · \d+ here/);

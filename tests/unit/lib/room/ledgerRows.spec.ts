@@ -69,7 +69,7 @@ describe("buildTerritory", () => {
 describe("buildMatchLedger", () => {
   it("caption reads the round context; the hint is empty unless a match-level line is given", () => {
     const model = buildMatchLedger({ currentRound: 4, completed: false, words: [], playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} });
-    expect(model.caption).toBe("ranked · round 4 of 10");
+    expect(model.caption).toBe("round 4 of 10");
     expect(model.hint).toBe("");
     expect(model.territory.free).toBe(100);
   });
@@ -119,8 +119,55 @@ describe("final bars (design system §5.3, §8)", () => {
     expect(ratingLine(rows, "zzz", false)).toBe("rating pending");
   });
   it("final caption reports the clock time both players used", () => {
-    expect(finalCaption(300_000 - 500_000 / 2, 300_000 - 630_000 / 2)).toBe("final · 10 rounds · 9:25");
-    expect(finalCaption(300_000, 300_000)).toBe("final · 10 rounds · 0:00");
+    expect(finalCaption(300_000 - 500_000 / 2, 300_000 - 630_000 / 2)).toBe("final · 10 of 10 · 9:25");
+    expect(finalCaption(300_000, 300_000)).toBe("final · 10 of 10 · 0:00");
   });
 });
 
+
+describe("settle hold rows (spec 048 FR-022)", () => {
+  const scored = { kind: "scored", round: 2, next: 3, you: 20, opp: 0, opponentName: "b" } as const;
+  it("the held round is settled with its words and lines; the current round stays future", () => {
+    const rows = buildLedgerRows({ currentRound: 3, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, roundState: scored, holdRound: 2 });
+    expect(rows[1]).toMatchObject({ status: "settled", live: { line1: "round 2 scored", line2: "you +20 · b +0 · round 3 opens in 1" } });
+    expect(rows[1].you?.words.map((w) => w.word)).toEqual(["vinur", "una"]); // carried for the phone sheet and hover
+    expect(rows[2].status).toBe("future");
+    expect(rows.some((r) => r.status === "live")).toBe(false);
+  });
+  it("without a hold the round state writes line 1 and the field writes line 2", () => {
+    const rows = buildLedgerRows({ currentRound: 3, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "picking", letter: "T", value: 2 }, roundState: { kind: "yourMove", round: 3, opponentName: "b" }, holdRound: null });
+    expect(rows[2]).toMatchObject({ status: "live", live: { line1: "round 3 · your move", line2: "picking · T (2) · tap a second letter" } });
+  });
+  it("buildMatchLedger exposes the round and completion for the rail", () => {
+    const model = buildMatchLedger({ currentRound: 3, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} });
+    expect(model).toMatchObject({ round: 3, completed: false });
+  });
+});
+
+describe("a forced winner (spec 048): the scores do not decide the verdict", () => {
+  const base = { viewerName: "Birna", opponentName: "Kári", viewerScore: 0, opponentScore: 0, viewerWords: 0, opponentWords: 0, territory: { you: 0, opp: 0, free: 100 } };
+
+  it("names the recorded winner even when the totals are level", () => {
+    const v = buildVerdict({ ...base, winnerSeat: "you", endedReason: "forfeit" });
+    expect(v.winnerSeat).toBe("you");
+    expect(v.scoreLine).toBe("Birna wins 0–0");
+    // "by 0 points" beside a rating change is a lie; say what ended it.
+    expect(v.detailLine).toBe("Kári resigned");
+  });
+
+  it("says who left, and who ran out of time", () => {
+    expect(buildVerdict({ ...base, winnerSeat: "you", endedReason: "disconnect" }).detailLine).toBe("Kári left");
+    expect(buildVerdict({ ...base, winnerSeat: "opp", endedReason: "timeout" }).detailLine).toBe("Birna ran out of time");
+  });
+
+  it("a match played to the round limit keeps the counted detail line", () => {
+    const v = buildVerdict({ ...base, viewerScore: 170, opponentScore: 127, viewerWords: 10, opponentWords: 8, territory: { you: 32, opp: 25, free: 43 }, endedReason: "round_limit" });
+    expect(v.scoreLine).toBe("Birna wins 170–127");
+    expect(v.detailLine).toBe("by 43 points · 10 words to 8 · territory 32–25");
+  });
+
+  it("without a recorded winner the scores still decide, as before", () => {
+    expect(buildVerdict({ ...base, viewerScore: 12, opponentScore: 30 }).winnerSeat).toBe("opp");
+    expect(buildVerdict(base).scoreLine).toBe("draw 0–0");
+  });
+});

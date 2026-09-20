@@ -16,9 +16,20 @@ import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { same } from "@/lib/room/fieldInteraction";
 import { useRoomStore, type RoomPhase as StorePhase } from "@/lib/room/roomStore";
 import type { LiveState } from "@/lib/room/ledgerRows";
+import type { SlipState } from "@/lib/room/slip";
+import { turnFrameFor, type RoundState } from "@/lib/room/roundState";
 import type { Coordinate } from "@/lib/types/board";
 import type { MatchResult } from "@/lib/types/match";
 import {
+  CLAIM_WIN_SLIP,
+  OPP_PLAYED,
+  OVER_SLIP,
+  RESIGN_SLIP,
+  RESOLVING_R3,
+  SCORED_R3,
+  SETTLE_HOLD_ROUND,
+  YOU_PLAYED,
+  YOUR_MOVE,
   BIRNA,
   DISCONNECT_STATE,
   FINAL_STATE,
@@ -86,11 +97,13 @@ function markedSeat(marks: FieldMarks, at: Coordinate): Seat | null {
 }
 
 /** The match field with rounds 1–3 drawn as bands and one phase's marks on it. */
-function MatchField({ drawnCount, marks }: { drawnCount: number | null; marks: FieldMarks }) {
+function MatchField({ drawnCount, marks, turnFrame, disabled }: { drawnCount: number | null; marks: FieldMarks; turnFrame: Seat | null; disabled: boolean }) {
   const board = marks.previewed ? applyLetterSwaps(FIXTURE_BOARD, [marks.previewed]) : FIXTURE_BOARD;
   return (
     <Field
       board={board}
+      turnFrame={turnFrame}
+      disabled={disabled}
       frozenTiles={FIXTURE_FROZEN}
       viewerSlot="player_a"
       ownerNames={{ player_a: BIRNA.displayName, player_b: KARI.displayName }}
@@ -140,42 +153,60 @@ interface MatchPhaseSpec {
   marks: FieldMarks;
   youClockMs?: number;
   youRunning?: boolean;
+  /** The round's beat (spec 048 US2); omitted for the final state. */
+  roundState?: RoundState;
+  holdRound?: number;
 }
 
-const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {} };
-const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL } };
+const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, roundState: YOUR_MOVE };
+const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, roundState: YOUR_MOVE };
 
-type MatchPhase = Exclude<RoomPhase, "landing" | "lobby" | "queue" | "found" | "profile">;
+type MatchPhase = Exclude<RoomPhase, "landing-slip" | "lobby" | "queue" | "found" | "profile" | "rules">;
 
 /** Every match-state phase as literals (spec 047 amendment P2). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   idle: IDLE,
   picking: PICKING,
   "phone-sheet": PICKING,
-  reveal: PICKING,
-  previewed: { live: PREVIEW_LIVE, marks: { previewed: PREVIEW_CELLS } },
-  played: { live: { kind: "played" }, marks: { pins: { cells: PLAYED_PINS, seat: "you" } }, youRunning: false },
-  "opp-played": { live: { kind: "idle" }, marks: { pins: { cells: OPP_PINS, seat: "opp" } } },
+  reveal: { live: { kind: "idle" }, marks: {}, roundState: RESOLVING_R3 },
+  previewed: { live: PREVIEW_LIVE, marks: { previewed: PREVIEW_CELLS }, roundState: YOUR_MOVE },
+  played: { live: { kind: "played" }, marks: { pins: { cells: PLAYED_PINS, seat: "you" } }, youRunning: false, roundState: YOU_PLAYED },
+  "opp-played": { live: { kind: "idle" }, marks: { pins: { cells: OPP_PINS, seat: "opp" } }, roundState: OPP_PLAYED },
   "low-clock": { ...PICKING, youClockMs: LOW_CLOCK_MS },
-  illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL } },
-  final: IDLE,
-  disconnect: IDLE,
+  illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL }, roundState: YOUR_MOVE },
+  settle: { live: { kind: "idle" }, marks: {}, roundState: SCORED_R3, holdRound: SETTLE_HOLD_ROUND },
+  final: { live: { kind: "idle" }, marks: {} },
+  disconnect: { live: { kind: "idle" }, marks: {}, roundState: YOU_PLAYED },
+  resign: IDLE,
+  "claim-win": { live: { kind: "idle" }, marks: {}, roundState: YOU_PLAYED },
+  "over-slip": { live: { kind: "idle" }, marks: {} },
+};
+
+/** The slip each phase seeds (spec 048 contracts/fixture-phases.md). */
+const SLIPS: Partial<Record<RoomPhase, SlipState>> = {
+  "landing-slip": { kind: "signIn" },
+  resign: RESIGN_SLIP,
+  "claim-win": CLAIM_WIN_SLIP,
+  "over-slip": OVER_SLIP,
 };
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { landing: "lobby", profile: "lobby", queue: "queue", found: "found", final: "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", profile: "lobby", queue: "queue", found: "found", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
-export function RoomFixture({ phase }: { phase: RoomPhase }) {
+export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   const [revealed, setRevealed] = useState(phase === "reveal" ? 0 : null);
 
   useEffect(() => {
     // Seed the store so components reading it (Room's data-phase, seat colours)
     // agree with the props. No transport, no timers.
     const store = useRoomStore.getState();
-    store.setViewer(phase === "landing" ? null : BIRNA);
+    store.setViewer(phase === "landing-slip" ? null : BIRNA);
     store.setBoard(FIXTURE_BOARD);
     store.setPhase(STORE_PHASE[phase] ?? "match");
+    const slip = SLIPS[phase];
+    if (slip) store.setSlip(slip);
+    else if (store.slip) store.clearSlip(store.slip.kind);
   }, [phase]);
 
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
@@ -205,8 +236,8 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
     );
   }
 
-  if (phase === "landing" || phase === "lobby") {
-    const viewer = phase === "landing" ? null : BIRNA;
+  if (phase === "landing-slip" || phase === "lobby") {
+    const viewer = phase === "landing-slip" ? null : BIRNA;
     return (
       <RoomShell viewer={viewer}>
         <LobbyRoomView
@@ -219,7 +250,7 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
           onAction={NO_OP}
           onSignedIn={NO_OP}
         >
-          <Field board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} />
+          <Field board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={viewer ? null : 0} />
         </LobbyRoomView>
       </RoomShell>
     );
@@ -249,8 +280,8 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
     );
   }
 
-  const completed = phase === "final";
-  const disconnected = phase === "disconnect";
+  const completed = phase === "final" || phase === "over-slip";
+  const disconnected = phase === "disconnect" || phase === "claim-win";
   const state = completed ? FINAL_STATE : disconnected ? DISCONNECT_STATE : MATCH_STATE;
   const spec = MATCH_PHASES[phase];
   const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? RECONNECT_MS_LEFT : null, youClockMs: spec.youClockMs, youRunning: spec.youRunning });
@@ -268,12 +299,14 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
         playerAId={YOU_ID}
         frozenTiles={FIXTURE_FROZEN}
         live={spec.live}
+        roundState={spec.roundState}
+        holdRound={spec.holdRound ?? null}
         verdict={completed ? FINAL_VERDICT : undefined}
-        notices={disconnected ? [{ kind: "claimWin", opponentName: KARI.displayName }] : []}
+        notices={[]}
         hint={disconnected ? `${KARI.displayName} · ${OPPONENT}` : undefined}
         onAction={NO_OP}
       >
-        <MatchField drawnCount={revealed} marks={spec.marks} />
+        <MatchField drawnCount={revealed} marks={spec.marks} turnFrame={spec.roundState ? turnFrameFor(spec.roundState) : null} disabled={spec.holdRound !== undefined || phase === "reveal"} />
       </MatchRoomView>
     </RoomShell>
   );

@@ -55,11 +55,14 @@ describe("LobbyRoomView (spec 045 US1, FR-003)", () => {
     expect(screen.getByTestId("ledger-caption").textContent).toContain("1");
   });
 
-  it("renders the name input in the bottom bar instead of a name when signed out", () => {
+  // Spec 048 US4: signed out, the bars are empty and carry no action; the slip holds the input.
+  it("signed out: the bottom bar says sign in to set the field; no ranked action; no input in a bar", () => {
     render(view({ viewer: null }));
     const bottom = screen.getByTestId("room-slot-bottom");
     expect(bottom.textContent).not.toContain("Birna");
-    expect(bottom.querySelector('[data-testid="name-input-form"]')).toBeTruthy();
+    expect(bottom.textContent).toContain("sign in to set the field");
+    expect(bottom.querySelector('[data-testid="name-input-form"]')).toBeNull();
+    expect(screen.queryByTestId("player-bar-action-ranked")).toBeNull();
   });
 
   it("reports the ranked action to its parent rather than routing itself", () => {

@@ -368,8 +368,14 @@ The Field & Ledger design (`docs/design_documentation/README.md`) renders each r
 | Territory (§6) | A 4px bar in the ledger — you / free / opponent — with the three counts beneath it. Territory is stored per tile but shown as words. |
 | One swap per round, broadcast on submit (§2) | Your two letters **pin** (dashed ring in your colour) when you commit; the opponent's two letters pin in coral the moment their swap is broadcast. Pins fade at settle. |
 | Clock (§2a) | The **lane** at the inner edge of each player bar: full width = the match budget, filled in the seat colour for the time left. Under 1:00 it thickens and blinks (colour only). A stopped clock has a muted numeral; an expired one reads `0:00` with an empty lane. |
-| Round number and progression (§2) | Once, in the ledger: caption `ranked · round 4 of 10` and one row per round with the current round as the tinted **live row**. |
+| Round number and progression (§2) | In the ledger: the caption `round 4 of 10`, the **round rail** (ten cells under the caption: played filled ink, current tinted and framed, the rest outlined), and one row per round with the current round as the tinted **live row** whose first line names the beat (`round 4 · your move`, `played · waiting for Kári`, `resolving round 4`, `round 4 scored`). |
+| Whose move it is (§2) | The field's frame is a 3px outline in the viewer's seat colour while the move is theirs; each bar's sub-line ends `· your move` / `· thinking` / `· played ●`. |
+| A round closes (§2, §5) | After the reveal the scored row holds for 1.2s (`round 4 scored` over `you +12 · Kári +0 · round 5 opens in 1`) before the next live row opens; the field takes no pick meanwhile. |
 | Scoring (§5) | Written into the live row as each band lands (`word · points`), round total pinned top right of the row, match totals counting up in the bars. |
 | Duplicate word (§5.4) | Listed in the row with `0` points; its band is still drawn (the tiles freeze). |
-| Reconnection window | The disconnected player's lane becomes a dashed pattern and holds; their sub-line counts `reconnecting · 0:42 left`. Nothing is drawn over the field. |
+| Reconnection window | The disconnected player's lane becomes a dashed pattern and holds; their sub-line counts `reconnecting · 0:42 left`. When the window is spent, the claim is put to the player on a **slip** over the field (`Kári is gone` · `claim the win ▸` · `keep waiting ▸`). |
+| Match over (§2, §5.5) | A slip over the field, 600ms after the final settle: `Kári wins` in the winner's ink (`draw` in ink), both totals, the detail line, both rating lines, then `rematch ▸` · `new opponent ▸` · `review the field ▸` · `lobby`. The ledger keeps the verdict beneath it. |
+| A forced win (resign, disconnect, spent clock) | The winner is the one the server recorded, not the higher total; the detail line reads `<loser> resigned` / `<loser> left` / `<loser> ran out of time` in place of the counted line. |
+| Resigning | A slip: `Resign the match?` with the round and the player's clock, `yes, resign ▸` · `keep playing ▸`; the clocks keep running. |
+| Every match is rated | No caption or state says otherwise; a rating line reads `rating pending` until the row is written. |
 

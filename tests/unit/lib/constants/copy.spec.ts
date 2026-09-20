@@ -31,13 +31,13 @@ describe("copy (design system §8)", () => {
   });
 
   test("clock budget copy reads 5:00", () => {
-    expect(copy.QUEUE_CONTEXT).toBe("ranked · 10 rounds · 5:00 clocks");
+    expect(copy.QUEUE_CONTEXT).toBe("10 rounds · 5:00 clocks");
   });
 
   test("formatters interpolate", () => {
     expect(copy.frozenNotice("Kári", 2)).toBe("frozen · Kári R2 · pick another");
     expect(copy.picking("T", 2)).toBe("picking · T (2)");
-    expect(copy.roundContext(4)).toBe("ranked · round 4 of 10");
+    expect(copy.roundContext(4)).toBe("round 4 of 10");
     expect(copy.rematchRequest("Kári")).toBe("Kári asks for a rematch · accept ▸ · decline");
     expect(copy.verdictLine("Kári", 170, 127)).toBe("Kári wins 170–127");
     expect(copy.reconnecting("0:42")).toBe("reconnecting · 0:42 left");
@@ -47,5 +47,12 @@ describe("copy (design system §8)", () => {
     expect(copy.NO_SUCH_MATCH).toBe("that match does not exist");
     expect(copy.NO_SUCH_MATCH).toBe(copy.NO_SUCH_MATCH.toLowerCase());
     expect(copy.NO_SUCH_MATCH).not.toContain("!");
+  });
+});
+
+describe("the match-over label counts rounds (spec 048)", () => {
+  test("pluralises the round count", () => {
+    expect(copy.matchOverLabel(1, "0:41")).toBe("match over · 1 round · 0:41");
+    expect(copy.matchOverLabel(10, "18:50")).toBe("match over · 10 rounds · 18:50");
   });
 });

@@ -9,6 +9,9 @@ vi.mock("next/navigation", () => ({
 import { RoomFixture } from "@/app/dev/room/RoomFixture";
 import { ROOM_PHASES } from "@/app/dev/room/fixtures";
 
+// The rules fixture is a server-rendered page outside the room/store.
+const IN_ROOM_PHASES = ROOM_PHASES.filter((phase) => phase !== "rules");
+
 /**
  * Spec 047 amendment P2: every phase renders from literals alone. The visual
  * suite screenshots each one; this keeps a broken phase from reaching it.
@@ -22,24 +25,39 @@ describe("RoomFixture", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(ROOM_PHASES)("renders the %s phase", (phase) => {
+  it.each(IN_ROOM_PHASES)("renders the %s phase", (phase) => {
     render(<RoomFixture phase={phase} />);
     if (phase === "profile") expect(screen.getByTestId("profile-page")).toBeInTheDocument();
     else expect(screen.getByTestId("field")).toBeInTheDocument();
   });
 
   it("idle reads pick a letter; picking, previewed, played and illegal each carry their live line", () => {
-    const lineOf = (phase: (typeof ROOM_PHASES)[number]) => {
+    const lineOf = (phase: (typeof IN_ROOM_PHASES)[number]) => {
       const { unmount } = render(<RoomFixture phase={phase} />);
       const text = screen.getByTestId("ledger-live-row").textContent;
       unmount();
       return text;
     };
-    expect(lineOf("idle")).toBe("pick a letter");
-    expect(lineOf("picking")).toBe("picking · T (1)tap a second letter");
-    expect(lineOf("previewed")).toBe("10 · taktap again to play · esc cancels");
-    expect(lineOf("played")).toBe("played ●");
-    expect(lineOf("illegal")).toBe("frozen · Kári R2 · pick another");
+    // Spec 048 US2: line 1 is the round's beat, line 2 the field's instruction.
+    expect(lineOf("idle")).toBe("round 4 · your movepick a letter");
+    expect(lineOf("picking")).toBe("round 4 · your movepicking · T (1) · tap a second letter");
+    expect(lineOf("previewed")).toBe("round 4 · your move10 · tak · tap again to play · esc cancels");
+    expect(lineOf("played")).toBe("played · waiting for KáriKári is thinking · their clock runs");
+    expect(lineOf("illegal")).toBe("round 4 · your movefrozen · Kári R2 · pick another");
+    expect(lineOf("reveal")).toBe("resolving round 3both played · scoring");
+    expect(lineOf("settle")).toContain("round 3 scoredyou +9 · Kári +0 · round 4 opens in 1");
+  });
+
+  it("settle holds round 3 as the tinted row and keeps round 4 future; your move frames the field", () => {
+    const { unmount } = render(<RoomFixture phase="settle" />);
+    expect(screen.getByTestId("ledger-row-3")).toHaveAttribute("data-status", "settled");
+    expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "future");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    unmount();
+    render(<RoomFixture phase="idle" />);
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("your move");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("thinking");
   });
 
   it("previewed exchanges the two letters; played and opp-played pin in their seat; low-clock runs low", () => {

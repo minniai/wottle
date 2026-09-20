@@ -5,7 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 async function box(page: Page, testId: string) {
   const b = await page.getByTestId(testId).boundingBox();
@@ -28,8 +28,8 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
     try {
       const userA = generateTestUsername("room-a");
       const userB = generateTestUsername("room-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match");
@@ -86,8 +86,8 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       try {
         const userA = generateTestUsername("room-l");
         const userB = generateTestUsername("room-m");
-        await loginViaBar(pageA, userA);
-        await loginViaBar(pageB, userB);
+        await loginViaSlip(pageA, userA);
+        await loginViaSlip(pageB, userB);
         await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
         await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
         const ledger = await box(pageA, "ledger");
@@ -109,8 +109,8 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
     try {
       const userA = generateTestUsername("room-p");
       const userB = generateTestUsername("room-q");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
       const top = await box(pageA, "player-bar-top");
@@ -147,7 +147,12 @@ const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
  * the design system's single grey exception: future-round numerals, which are
  * aria-hidden because the caption carries the round.
  */
-const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__round"];
+/**
+ * The two future-round marks: the ledger's row labels and the rail's cells. Both
+ * are `aria-hidden` progression marks in the one permitted grey (design system
+ * §2); the round itself is named by the caption and the rail's own label.
+ */
+const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__round", '.rail__cell[data-state="future"]'];
 
 async function expectAxeClean(page: Page, label: string) {
   let builder = new AxeBuilder({ page }).withTags(AXE_TAGS);
@@ -178,7 +183,7 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
         await expectAxeClean(page, `lobby-empty-${viewport.tag}`);
         await snap(page, `lobby-empty-${viewport.tag}.png`);
 
-        await loginViaBar(page, generateTestUsername(`axe-${viewport.tag[0]}`));
+        await loginViaSlip(page, generateTestUsername(`axe-${viewport.tag[0]}`));
         await expectAxeClean(page, `lobby-${viewport.tag}`);
         await snap(page, `lobby-${viewport.tag}.png`);
 
@@ -212,8 +217,8 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
     try {
       const userA = generateTestUsername("axe-ma");
       const userB = generateTestUsername("axe-mb");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expectAxeClean(pageA, "match-desktop");
@@ -221,10 +226,10 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
       await snap(pageA, "match-desktop.png");
       await snap(pageB, "match-phone.png");
 
-      // Final via resign: menu → resign → live-row confirmation (no dialog).
+      // Final via resign: menu → resign → the resign slip (spec 048 US7).
       await pageA.getByTestId("ledger-menu-trigger").click();
       await pageA.getByTestId("ledger-menu-item-resign").click();
-      await pageA.getByTestId("notice-confirm-resign").click();
+      await pageA.getByTestId("slip-confirm-resign").click();
       for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
       await expect(pageA.getByTestId("verdict")).toBeVisible();
       await expectAxeClean(pageA, "final-desktop");
