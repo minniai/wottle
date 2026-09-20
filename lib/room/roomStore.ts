@@ -150,7 +150,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   leaveToLobby: () =>
     set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdRound: null }),
 
-  setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: false })),
+  setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: s.slip?.kind === next.kind ? s.slipDismissed : false })),
   clearSlip: (kind) => set((s) => (s.slip?.kind === kind ? { slip: null, slipDismissed: false } : {})),
   dismissSlip: () => set({ slipDismissed: true }),
   restoreSlip: () => set({ slipDismissed: false }),

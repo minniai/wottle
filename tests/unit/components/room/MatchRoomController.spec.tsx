@@ -168,12 +168,16 @@ describe("MatchRoomController", () => {
 
   it("a scored round lands in its ledger row by seat and the round advance resets the field", () => {
     vi.useFakeTimers();
+    const next = state({ currentRound: 4, lastSummary: summary, scores: summary.totals });
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/state") ? next : { status: "accepted", grid: next.board }) })));
     renderController();
     fireEvent.click(cell(0, 0));
     fireEvent.click(cell(1, 0));
     act(() => mockCallbacks.onSummary!(summary));
-    act(() => mockCallbacks.onState!(state({ currentRound: 4, lastSummary: summary, scores: summary.totals })));
+    act(() => mockCallbacks.onState!(next));
     act(() => vi.advanceTimersByTime(2_100)); // reveal settles
+    expect(screen.getByTestId("ledger-row-3")).toHaveAttribute("data-status", "settled");
+    act(() => vi.advanceTimersByTime(1_300)); // the settle hold ends (spec 048 FR-022)
     const row = screen.getByTestId("ledger-row-3");
     const cells = row.querySelectorAll(".ledger__words");
     expect(cells[0].textContent).toContain("þar");
@@ -221,10 +225,22 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
     await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1191 → 1203 · +12 · wins"));
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1204 → 1192 · −12");
-    expect(screen.getByTestId("ledger-rematch")).toBeInTheDocument();
-    expect(screen.getByTestId("ledger-new-opponent")).toBeInTheDocument();
+    // Spec 048 US1: the result is a slip over the field; rematch and new opponent live on it.
+    const slip = screen.getByTestId("slip");
+    expect(slip).toHaveAttribute("data-kind", "matchOver");
+    expect(slip).toHaveTextContent("Alice wins");
+    expect(slip).toHaveTextContent("170 – 127");
+    expect(slip).toHaveTextContent("1191 → 1203 · +12");
+    expect(slip).toHaveTextContent("1204 → 1192 · −12");
+    expect(screen.getByTestId("slip-rematch")).toBeInTheDocument();
+    expect(screen.getByTestId("slip-new-opponent")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByTestId("ledger-result")).toBeNull();
+    // review the field ▸ lifts it; result ▸ in the foot brings it back.
+    fireEvent.click(screen.getByTestId("slip-review-field"));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    fireEvent.click(screen.getByTestId("ledger-result"));
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver");
   });
 
   it("final: rating pending until the server has written ratings", () => {
@@ -234,15 +250,16 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("verdict")).toHaveTextContent("draw 90–90");
   });
 
-  it("final: an incoming rematch request is a ledger line; accept ▸ moves to the new match; rematch ▸ asks", async () => {
+  it("final: an incoming rematch request rewrites the slip's action line; accept ▸ moves to the new match; rematch ▸ asks", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed" }));
     const event: RematchEvent = { type: "rematch-request", matchId: "m1", requesterId: "player-2", status: "pending" };
     act(() => mockCallbacks.onRematch!(event));
-    expect(screen.getByTestId("notice-accept-rematch")).toBeInTheDocument();
-    expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("Bob asks for a rematch"))).toBe(true);
+    expect(await screen.findByTestId("slip-accept-rematch")).toBeInTheDocument();
+    expect(screen.getByTestId("slip")).toHaveTextContent("Bob asks for a rematch");
+    expect(screen.queryByTestId("ledger-notice")).toBeNull();
     await act(async () => {
-      fireEvent.click(screen.getByTestId("notice-accept-rematch"));
+      fireEvent.click(screen.getByTestId("slip-accept-rematch"));
     });
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m2"));
   });
@@ -250,20 +267,22 @@ describe("MatchRoomController", () => {
   it("final: rematch ▸ sends the request and shows waiting for the opponent", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed" }));
+    const rematchButton = await screen.findByTestId("slip-rematch");
     await act(async () => {
-      fireEvent.click(screen.getByTestId("ledger-rematch"));
+      fireEvent.click(rematchButton);
     });
     expect(requestRematchAction).toHaveBeenCalledWith("m1");
-    await waitFor(() => expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("waiting for Bob"))).toBe(true));
+    await waitFor(() => expect(screen.getByTestId("slip-rematch-waiting")).toHaveTextContent("waiting for Bob"));
   });
 
-  it("read-only non-participant: player A is the bottom seat without · you, field disabled, only ◂ lobby", () => {
+  it("read-only non-participant: player A is the bottom seat without · you, field disabled, only ◂ lobby", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     render(<MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="stranger" matchId="m1" playerProfiles={profiles} />);
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
     expect(screen.getByTestId("ledger-header")).not.toHaveTextContent("· you");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
-    expect(screen.queryByTestId("ledger-rematch")).toBeNull();
+    expect(await screen.findByTestId("slip-lobby")).toBeInTheDocument();
+    expect(screen.queryByTestId("slip-rematch")).toBeNull();
     expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
   });
 

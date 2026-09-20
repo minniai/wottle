@@ -91,6 +91,11 @@ describe("roomStore slip", () => {
     expect(s().slip?.kind).toBe("matchOver");
     s().restoreSlip();
     expect(s().slipDismissed).toBe(false);
+    // Ratings arriving update the same slip without re-showing a reviewed result.
+    s().dismissSlip();
+    s().setSlip({ ...OVER, rematch: "waiting" });
+    expect(s().slipDismissed).toBe(true);
+    expect(s().slip).toMatchObject({ kind: "matchOver", rematch: "waiting" });
   });
 
   it("hydrating another match resets the slip, the dismissal and the hold", () => {

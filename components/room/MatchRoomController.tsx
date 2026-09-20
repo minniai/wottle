@@ -12,12 +12,12 @@ import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
 import { assertWordsSpellBoard } from "@/lib/room/wordIntegrity";
 import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
-import { RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
+import { formatClock, MATCH_CLOCK_BUDGET_MS, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { buildVerdict, finalCaption, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
-import { LOBBY, NEW_OPPONENT, REMATCH, waitingForRematch } from "@/lib/constants/copy";
+import { LOBBY } from "@/lib/constants/copy";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { resignConfirm } from "@/lib/room/notices";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -37,6 +37,8 @@ import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
 import { useSettleHold } from "./hooks/useSettleHold";
+import { useMatchOverSlip } from "./hooks/useMatchOverSlip";
+import { RESULT } from "@/lib/constants/copy";
 import { deriveRoundState, turnFrameFor } from "@/lib/room/roundState";
 import { buildPartialRevealKey } from "@/lib/match/partialReveal";
 
@@ -282,6 +284,41 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const oppScore = match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"];
   const youScoreWins = youScore > oppScore;
   const draw = youScore === oppScore;
+  const verdict = useMemo(
+    () =>
+      completed
+        ? buildVerdict({
+            viewerName: you.displayName,
+            opponentName: opp.displayName,
+            viewerScore: youScore,
+            opponentScore: oppScore,
+            viewerWords: words.filter((w) => w.playerId === youTimer.playerId).length,
+            opponentWords: words.filter((w) => w.playerId === oppTimer.playerId).length,
+            territory: buildTerritory(frozenTiles, viewerSlot),
+          })
+        : null,
+    [completed, you.displayName, opp.displayName, youScore, oppScore, words, youTimer.playerId, oppTimer.playerId, frozenTiles, viewerSlot],
+  );
+  // The match-over slip (spec 048 US1) replaces the ledger's rematch notices.
+  const revealedRef = useRef(false);
+  if (revealing) revealedRef.current = true;
+  const slipDismissed = useRoomStore((s) => s.slipDismissed);
+  const dismissSlip = useRoomStore((s) => s.dismissSlip);
+  const restoreSlip = useRoomStore((s) => s.restoreSlip);
+  useMatchOverSlip({
+    match,
+    viewerSlot,
+    completed,
+    readOnly,
+    verdict,
+    durationMmSs: formatClock(Math.max(0, 2 * MATCH_CLOCK_BUDGET_MS - match.timers.playerA.remainingMs - match.timers.playerB.remainingMs)),
+    viewerName: you.displayName,
+    opponentName: opp.displayName,
+    ratings,
+    rematch: rematch.phase,
+    busy: revealing || holdRound !== null,
+    revealed: revealedRef.current,
+  });
 
   // First match (server-side gamesPlayed === 0, Clarifications Q2): the three-sentence rules live in the ledger.
   const firstMatch = you.gamesPlayed === 0;
@@ -289,17 +326,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     if (firstMatch) push({ kind: "firstMatchRules" });
   }, [firstMatch, push]);
 
-  useEffect(() => {
-    if (rematch.phase === "incoming") push({ kind: "rematchRequest", requesterName: opp.displayName });
-    else dismiss("rematchRequest");
-  }, [rematch.phase, opp.displayName, push, dismiss]);
-
   const handleAction = useCallback(
     (action: LedgerAction) => {
       if (action === "rules") push({ kind: "firstMatchRules" });
       else if (action === "rematch") void rematch.request();
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
+      else if (action === "reviewField") dismissSlip();
+      else if (action === "result") restoreSlip();
       else if (action === "newOpponent") router.replace("/matchmaking");
       else if (action === "lobby") router.replace("/lobby");
       else if (action === "resign" || action === "leave") push(resignConfirm());
@@ -311,14 +345,13 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         claimWinAction(matchId).then((r) => r.status !== "ok" && r.status !== "already_completed" && push({ kind: "text", text: r.status.replace("_", " ") }));
       }
     },
-    [matchId, push, dismiss, rematch, router],
+    [matchId, push, dismiss, rematch, router, dismissSlip, restoreSlip],
   );
 
   // `?` opens the rules, `M` mutes (design system §9, FR-026).
   useRoomHotkeys(handleAction);
 
-  const rematchLine =
-    rematch.phase === "waiting" ? waitingForRematch(opp.displayName) : rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;
+  const rematchLine = rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;
   const allNotices: Notice[] = [
     ...notices,
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
@@ -339,29 +372,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         completed={completed}
         rated={match.rated !== false}
         caption={completed ? finalCaption(match.timers.playerA.remainingMs, match.timers.playerB.remainingMs, match.rated !== false) : undefined}
-        verdict={
-          completed
-            ? buildVerdict({
-                viewerName: you.displayName,
-                opponentName: opp.displayName,
-                viewerScore: match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"],
-                opponentScore: match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"],
-                viewerWords: words.filter((w) => w.playerId === youTimer.playerId).length,
-                opponentWords: words.filter((w) => w.playerId === oppTimer.playerId).length,
-                territory: buildTerritory(frozenTiles, viewerSlot),
-              })
-            : undefined
-        }
+        verdict={verdict ?? undefined}
         readOnly={readOnly}
         footActions={
           completed && !readOnly ? (
             <>
-              <button type="button" className="action-secondary" data-testid="ledger-rematch" onClick={() => handleAction("rematch")} disabled={rematch.phase === "waiting" || rematch.phase === "requesting"}>
-                {REMATCH}
-              </button>
-              <button type="button" className="action-secondary" data-testid="ledger-new-opponent" onClick={() => handleAction("newOpponent")}>
-                {NEW_OPPONENT}
-              </button>
+              {slipDismissed ? (
+                <button type="button" className="action-secondary" data-testid="ledger-result" onClick={() => handleAction("result")}>
+                  {RESULT}
+                </button>
+              ) : null}
               <button type="button" className="action-secondary" data-testid="ledger-lobby" onClick={() => handleAction("lobby")}>
                 {LOBBY}
               </button>

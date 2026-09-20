@@ -37,20 +37,28 @@ test.describe("@match-completion final room state", () => {
         // decision 1) — so the caption names it and no rating line is written.
         await expect(p.getByTestId("round-indicator")).toContainText(/final · unranked · 10 rounds/);
         await expect(p).toHaveURL(/\/match\/[0-9a-f-]+$/);
-        expect(await p.locator("[role=dialog], [role=alertdialog]").count()).toBe(0);
+        // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
+        await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });
+        await expect(p.getByTestId("slip")).toContainText(/wins|draw/);
       }
       // These matches are invite-created and therefore unranked, so no rating is
       // written and the bar says so rather than waiting on one that never comes.
       await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/unranked · no rating change/, { timeout: 15_000 });
 
-      // Rematch: B asks, A sees the line and declines; then A returns to the lobby.
-      await pageB.getByTestId("ledger-rematch").click();
-      await expect(pageA.getByTestId("notice-accept-rematch")).toBeVisible({ timeout: 15_000 });
-      await expect(pageA.getByTestId("ledger-notice").filter({ hasText: "asks for a rematch" })).toBeVisible();
-      await pageA.getByTestId("notice-decline-rematch").click();
+      // review the field ▸ lifts the slip; result ▸ in the foot brings it back.
+      await pageA.getByTestId("slip-review-field").click();
+      await expect(pageA.getByTestId("slip")).toHaveCount(0);
+      await pageA.getByTestId("ledger-result").click();
+      await expect(pageA.getByTestId("slip")).toBeVisible();
+
+      // Rematch: B asks on the slip, A's slip rewrites its action line and A declines; then A returns to the lobby.
+      await pageB.getByTestId("slip-rematch").click();
+      await expect(pageA.getByTestId("slip-accept-rematch")).toBeVisible({ timeout: 15_000 });
+      await expect(pageA.getByTestId("slip")).toContainText("asks for a rematch");
+      await pageA.getByTestId("slip-decline-rematch").click();
       await expect(pageB.getByTestId("ledger-notice").filter({ hasText: /declined/ })).toBeVisible({ timeout: 15_000 });
 
-      await pageA.getByTestId("ledger-lobby").click();
+      await pageA.getByTestId("slip-lobby").click();
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
     } finally {
       await contextA.close();
