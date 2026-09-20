@@ -16,9 +16,13 @@ import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { same } from "@/lib/room/fieldInteraction";
 import { useRoomStore, type RoomPhase as StorePhase } from "@/lib/room/roomStore";
 import type { LiveState } from "@/lib/room/ledgerRows";
+import type { SlipState } from "@/lib/room/slip";
 import type { Coordinate } from "@/lib/types/board";
 import type { MatchResult } from "@/lib/types/match";
 import {
+  CLAIM_WIN_SLIP,
+  OVER_SLIP,
+  RESIGN_SLIP,
   BIRNA,
   DISCONNECT_STATE,
   FINAL_STATE,
@@ -145,7 +149,7 @@ interface MatchPhaseSpec {
 const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {} };
 const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL } };
 
-type MatchPhase = Exclude<RoomPhase, "landing" | "lobby" | "queue" | "found" | "profile">;
+type MatchPhase = Exclude<RoomPhase, "landing-slip" | "lobby" | "queue" | "found" | "profile">;
 
 /** Every match-state phase as literals (spec 047 amendment P2). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -160,10 +164,21 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL } },
   final: IDLE,
   disconnect: IDLE,
+  resign: IDLE,
+  "claim-win": IDLE,
+  "over-slip": IDLE,
+};
+
+/** The slip each phase seeds (spec 048 contracts/fixture-phases.md). */
+const SLIPS: Partial<Record<RoomPhase, SlipState>> = {
+  "landing-slip": { kind: "signIn" },
+  resign: RESIGN_SLIP,
+  "claim-win": CLAIM_WIN_SLIP,
+  "over-slip": OVER_SLIP,
 };
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { landing: "lobby", profile: "lobby", queue: "queue", found: "found", final: "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", profile: "lobby", queue: "queue", found: "found", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: RoomPhase }) {
@@ -173,9 +188,12 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
     // Seed the store so components reading it (Room's data-phase, seat colours)
     // agree with the props. No transport, no timers.
     const store = useRoomStore.getState();
-    store.setViewer(phase === "landing" ? null : BIRNA);
+    store.setViewer(phase === "landing-slip" ? null : BIRNA);
     store.setBoard(FIXTURE_BOARD);
     store.setPhase(STORE_PHASE[phase] ?? "match");
+    const slip = SLIPS[phase];
+    if (slip) store.setSlip(slip);
+    else if (store.slip) store.clearSlip(store.slip.kind);
   }, [phase]);
 
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
@@ -205,8 +223,8 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
     );
   }
 
-  if (phase === "landing" || phase === "lobby") {
-    const viewer = phase === "landing" ? null : BIRNA;
+  if (phase === "landing-slip" || phase === "lobby") {
+    const viewer = phase === "landing-slip" ? null : BIRNA;
     return (
       <RoomShell viewer={viewer}>
         <LobbyRoomView
@@ -219,7 +237,7 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
           onAction={NO_OP}
           onSignedIn={NO_OP}
         >
-          <Field board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} />
+          <Field board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={viewer ? null : 0} />
         </LobbyRoomView>
       </RoomShell>
     );
@@ -249,8 +267,8 @@ export function RoomFixture({ phase }: { phase: RoomPhase }) {
     );
   }
 
-  const completed = phase === "final";
-  const disconnected = phase === "disconnect";
+  const completed = phase === "final" || phase === "over-slip";
+  const disconnected = phase === "disconnect" || phase === "claim-win";
   const state = completed ? FINAL_STATE : disconnected ? DISCONNECT_STATE : MATCH_STATE;
   const spec = MATCH_PHASES[phase];
   const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? RECONNECT_MS_LEFT : null, youClockMs: spec.youClockMs, youRunning: spec.youRunning });

@@ -302,3 +302,26 @@ describe("room.css motion, spec 045 US5", () => {
     expect(reduced).toMatch(/\.room \*[\s\S]*animation-duration: 0ms !important/);
   });
 });
+
+/** Spec 048 §5.9 — the slip is the one overlay; the field's fade is the one opacity change. */
+describe("room.css slip (spec 048)", () => {
+  const slip = rules.match(/\.slip \{[^}]*\}/)?.[0] ?? "";
+
+  it("is a paper panel with a 1.5px ink frame, no radius, no shadow", () => {
+    expect(slip).toMatch(/border: 1\.5px solid var\(--ink\)/);
+    expect(slip).toMatch(/border-radius: 0/);
+    expect(slip).not.toMatch(/box-shadow/);
+    expect(slip).toMatch(/position: absolute/);
+  });
+
+  it("fades the field beneath to 32% and nothing else", () => {
+    expect(rules).toMatch(/\.room__field-slot\[data-slipped\] > \.field \{[^}]*opacity: 0\.32/);
+    expect(rules).toMatch(/\.room__field-slot \{[^}]*position: relative/);
+    // One fade rule: nothing else in the sheet reacts to the slip.
+    expect(rules.match(/data-slipped/g)?.length).toBe(1);
+  });
+
+  it("sits inside the reduced-motion scope by inheritance", () => {
+    expect(rules).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.room \*,/);
+  });
+});

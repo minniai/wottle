@@ -13,9 +13,11 @@ const OVER: SlipState = {
   reason: "rounds",
   rounds: 10,
   durationMmSs: "18:50",
+  scores: { you: 127, opp: 170 },
+  viewerName: "Birna",
+  opponentName: "Kári",
   ratings: [],
   rematch: "idle",
-  opponentName: "Kári",
   readOnly: false,
 };
 

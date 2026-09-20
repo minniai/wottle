@@ -79,6 +79,34 @@ export const claimWinLine = (name: string): string => `${name} is gone · claim 
 export const challengeNotice = (name: string): string =>
   `${name} challenges you · accept ▸ · decline`;
 
+// The slip (spec 048, design system §5.9)
+export const TAGLINE = "two players · one field · Icelandic words";
+export const NEW_HERE_HOW_TO_PLAY = "new here · how to play ▸";
+export const SIGN_IN_TO_SET_THE_FIELD = "sign in to set the field";
+export const RESIGN_QUESTION = "Resign the match?";
+export const resignConsequence = (opponentName: string): string =>
+  `${opponentName} wins · your rating moves as a loss`;
+export const resignLabel = (round: number, clockMmSs: string): string =>
+  `round ${round} of 10 · ${clockMmSs} on your clock`;
+export const YES_RESIGN = "yes, resign ▸";
+export const KEEP_PLAYING = "keep playing ▸";
+export const KEEP_WAITING = "keep waiting ▸";
+export const isGone = (name: string): string => `${name} is gone`;
+export const RECONNECT_SPENT = "0:00 left to reconnect";
+export const CLAIM_THE_WIN = "claim the win ▸";
+export const MATCH_OVER = "match over";
+export const matchOverReason = (reason: "rounds" | "resigned" | "timeout" | "abandoned", opponentName: string): string =>
+  reason === "resigned" ? " · resigned" : reason === "timeout" ? " · out of time" : reason === "abandoned" ? ` · ${opponentName} left` : "";
+export const matchOverLabel = (rounds: number, durationMmSs: string, reasonSuffix = ""): string =>
+  `${MATCH_OVER} · ${rounds} rounds · ${durationMmSs}${reasonSuffix}`;
+export const winsHeadline = (winnerName: string): string => `${winnerName} wins`;
+export const DRAW = "draw";
+export const REVIEW_FIELD = "review the field ▸";
+export const RESULT = "result ▸";
+export const HOW_TO_PLAY = "how to play ▸";
+export const ACCEPT = "accept ▸";
+export const DECLINE = "decline";
+
 // Verdict
 export const verdictLine = (winnerName: string, a: number, b: number): string =>
   `${winnerName} wins ${a}–${b}`;

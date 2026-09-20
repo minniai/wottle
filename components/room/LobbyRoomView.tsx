@@ -53,6 +53,8 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
 
   return (
     <Room
+      onSlipAction={onAction}
+      onSignedIn={onSignedIn}
       topBar={
         <PlayerBar
           seat="opp"

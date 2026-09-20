@@ -76,6 +76,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
   return (
     <Room
       matchId={matchId}
+      onSlipAction={onAction}
       topBar={
         <PlayerBar
           seat="opp"

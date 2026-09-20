@@ -74,6 +74,11 @@ export type LedgerAction =
   | "signOut"
   | "profile"
   | "claimWin"
+  | "keepWaiting"
+  | "keepPlaying"
+  | "reviewField"
+  | "result"
+  | "howToPlay"
   | "playRanked"
   | { challenge: string }
   | { acceptChallenge: string }

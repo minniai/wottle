@@ -19,9 +19,12 @@ export type SlipState =
       reason: EndReason;
       rounds: number;
       durationMmSs: string;
+      /** Totals by seat; the winner is printed first. */
+      scores: { you: number; opp: number };
+      viewerName: string;
+      opponentName: string;
       ratings: SlipRatingRow[];
       rematch: RematchPhase;
-      opponentName: string;
       readOnly: boolean;
     };
 
