@@ -130,7 +130,7 @@ describe("settle hold rows (spec 048 FR-022)", () => {
   it("the held round is settled with its words and lines; the current round stays future", () => {
     const rows = buildLedgerRows({ currentRound: 3, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, roundState: scored, holdRound: 2 });
     expect(rows[1]).toMatchObject({ status: "settled", live: { line1: "round 2 scored", line2: "you +20 · b +0 · round 3 opens in 1" } });
-    expect(rows[1].you?.words.map((w) => w.word)).toEqual(["vinur", "una"]);
+    expect(rows[1].you?.words.map((w) => w.word)).toEqual(["vinur", "una"]); // carried for the phone sheet and hover
     expect(rows[2].status).toBe("future");
     expect(rows.some((r) => r.status === "live")).toBe(false);
   });

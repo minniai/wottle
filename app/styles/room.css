@@ -416,6 +416,41 @@
   align-items: baseline;
   padding: 10px 0;
 }
+/* The round rail (spec 048 US3, §5.4): ten cells, three states, no motion. */
+.rail {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 0;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.rail__cell {
+  height: 26px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.rail__cell[data-state="past"] {
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+}
+.rail__cell[data-state="current"] {
+  background: var(--tint);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  font-weight: 600;
+}
+.rail__cell[data-state="future"] {
+  background: var(--paper);
+  color: #B9B4A6;
+  border: 1px solid var(--rule);
+}
 .ledger__wordmark {
   font-weight: 700;
   font-size: 16px;
@@ -500,12 +535,6 @@
   letter-spacing: 0;
   line-height: 1.2;
   color: var(--ink);
-}
-.ledger__settled-words {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 8px;
-  margin-top: 6px;
 }
 /* Spec 048 FR-020: the turn frame is an outline, so the field's geometry never moves. */
 .field[data-turn="you"] {
@@ -760,6 +789,10 @@
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
+}
+.slip > .action-secondary {
+  align-self: flex-start;
+  text-align: left;
 }
 .slip .name-input {
   flex-wrap: wrap;

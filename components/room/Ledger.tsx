@@ -10,6 +10,7 @@ import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
+import { RoundRail } from "./RoundRail";
 import type { RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
@@ -86,15 +87,13 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
     >
       {row.status === "settled" ? (
         /* The settle hold (spec 048 FR-022): the scored row keeps the tint and the
-           rule, says the round scored, and shows its words beneath. */
+           rule and says the round scored; its words land when the hold ends, because a
+           third line would push the foot under the bottom bar (the ledger is the
+           height of the stack, §4). */
         <>
           <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
             <LiveText live={row.live} />
-            <div className="ledger__settled-words">
-              <SeatWords cell={row.you} seat="you" showPoints folded={false} />
-              <SeatWords cell={row.opp} seat="opp" showPoints folded={false} />
-            </div>
           </div>
         </>
       ) : row.status === "live" ? (
@@ -247,7 +246,9 @@ export function Ledger(props: LedgerProps) {
     </div>
   ));
 
-  const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live")?.live;
+  const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
+  // The rail (spec 048 US3): every ledger with rounds to count — match, final and the queue (all future).
+  const rail = variant === "lobby" ? null : <RoundRail currentRound={model.round ?? 0} completed={model.completed ?? false} />;
 
   return (
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
@@ -257,6 +258,7 @@ export function Ledger(props: LedgerProps) {
           {model.caption}
         </span>
       </div>
+      {rail}
 
       {model.verdict ? (
         <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
