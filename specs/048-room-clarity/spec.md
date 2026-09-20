@@ -221,6 +221,7 @@ The two decisions that end a match early are put to the player on a slip, in the
 - The `⋯` menu opens the rules in a new tab because a same-tab navigation would tear down the match transport; the match survives backgrounding as it does today.
 - Rows flagged unranked before this change are few (directory challenges since 2026-09-15) and are shown as ranked without a data migration; no historical rating is recomputed.
 - The fixture route and the visual suite are the acceptance instruments, as in spec 045; no new tooling.
+- **Deviation from artboard 5 (settle), 2026-09-20**: the canvas draws the held row with the round's words beneath its two lines. The implementation holds only the two lines. A third line pushes the ledger foot below the bottom bar at 1440×900, because the ledger is the height of the stack (design system §4) and cannot grow; the words land in the row the moment the hold ends. The deltas line already carries the round's score, so nothing is lost for the 1.2s.
 
 ## Success Criteria *(mandatory)*
 
