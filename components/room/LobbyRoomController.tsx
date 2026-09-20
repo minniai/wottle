@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth/logout";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
@@ -22,6 +22,8 @@ import { LobbyRoomView } from "./LobbyRoomView";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useLobbyInvites, type PendingInvite } from "./hooks/useLobbyInvites";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
+import { useReducedMotion } from "./hooks/useReducedMotion";
+import { LETTER_LAND_MS } from "./QueueRoomController";
 import { useNotices } from "./hooks/useNotices";
 
 export interface LobbyRoomControllerProps {
@@ -47,11 +49,29 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const setPhase = useRoomStore((s) => s.setPhase);
   const hydrateBoard = useCallback(() => setBoard(generateBoard({ seed: `warmup:${Date.now()}` })), [setBoard]);
   const me = storeViewer ?? viewer;
+  const setSlip = useRoomStore((s) => s.setSlip);
 
   useEffect(() => {
     setPhase("lobby");
     if (board.length === 0) hydrateBoard();
   }, [setPhase, board.length, hydrateBoard]);
+
+  // Spec 048 US4: no field before a name. Signed out, the slot is an empty frame under
+  // the sign-in slip; signing in lands the letters with the queue's own motion.
+  const reducedMotion = useReducedMotion();
+  const [landed, setLanded] = useState<number | null>(() => (me ? null : 0));
+  useEffect(() => {
+    if (!me) setSlip({ kind: "signIn" });
+  }, [me, setSlip]);
+  useEffect(() => {
+    if (!me || landed === null) return;
+    if (reducedMotion || landed >= 100) {
+      setLanded(null);
+      return;
+    }
+    const id = setTimeout(() => setLanded(landed + 1), LETTER_LAND_MS);
+    return () => clearTimeout(id);
+  }, [me, landed, reducedMotion]);
 
   // `/` and `/lobby` are one page (app/(room)/LobbyRoomPage). A signed-in viewer's URL is /lobby, rewritten
   // in place: routing would swap the page segment and remount the field (spec 044 SC-008).
@@ -94,7 +114,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     previewEnabled,
     frozenKeys: EMPTY_FROZEN,
     opponentPins: null,
-    canPick: board.length > 0,
+    canPick: board.length > 0 && Boolean(me) && landed === null,
     currentRound: 0,
     onPick: sound.playTileSelect,
     onCommitted: sound.playValidSwap,
@@ -163,6 +183,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       onSignedIn={onSignedIn}
     >
       <Field
+        landedCount={landed}
         board={board}
         viewerSlot="player_a"
         cellStateFor={field.cellStateFor}

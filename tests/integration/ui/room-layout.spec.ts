@@ -5,7 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 async function box(page: Page, testId: string) {
   const b = await page.getByTestId(testId).boundingBox();
@@ -28,8 +28,8 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
     try {
       const userA = generateTestUsername("room-a");
       const userB = generateTestUsername("room-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match");
@@ -86,8 +86,8 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       try {
         const userA = generateTestUsername("room-l");
         const userB = generateTestUsername("room-m");
-        await loginViaBar(pageA, userA);
-        await loginViaBar(pageB, userB);
+        await loginViaSlip(pageA, userA);
+        await loginViaSlip(pageB, userB);
         await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
         await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
         const ledger = await box(pageA, "ledger");
@@ -109,8 +109,8 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
     try {
       const userA = generateTestUsername("room-p");
       const userB = generateTestUsername("room-q");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
       const top = await box(pageA, "player-bar-top");
@@ -178,7 +178,7 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
         await expectAxeClean(page, `lobby-empty-${viewport.tag}`);
         await snap(page, `lobby-empty-${viewport.tag}.png`);
 
-        await loginViaBar(page, generateTestUsername(`axe-${viewport.tag[0]}`));
+        await loginViaSlip(page, generateTestUsername(`axe-${viewport.tag[0]}`));
         await expectAxeClean(page, `lobby-${viewport.tag}`);
         await snap(page, `lobby-${viewport.tag}.png`);
 
@@ -212,8 +212,8 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
     try {
       const userA = generateTestUsername("axe-ma");
       const userB = generateTestUsername("axe-mb");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expectAxeClean(pageA, "match-desktop");

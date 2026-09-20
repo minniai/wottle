@@ -54,7 +54,7 @@ Retired with their components (do not reintroduce): `hud-card`, `round-pip-bar`,
 
 Conventions that follow from the design: nothing is positioned over the field, so a spec that needs a
 dialog is wrong; frozen letters are `aria-disabled` cells — use `dispatchEvent("click")` if Playwright's
-actionability check refuses them; sign in with `loginViaBar(page, username)` from `helpers/matchmaking.ts` (it
+actionability check refuses them; sign in with `loginViaSlip(page, username)` from `helpers/matchmaking.ts` (it
 waits for the in-place URL rewrite to `/lobby` — navigating earlier is a race); the same file has the
 challenge/accept flow and `helpers/swaps.ts` the field ids. `rounds-flow.spec.ts` is the one
 `@two-player-playtest` spec (ten rounds, Firefox project, `--workers=1`); run two-player files one at a

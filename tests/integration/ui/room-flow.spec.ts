@@ -7,7 +7,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 const cell = (page: Page, x: number, y: number) => page.locator(`[data-testid="field-cell"][data-x="${x}"][data-y="${y}"]`);
 
@@ -38,8 +38,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("flow-a");
       const userB = generateTestUsername("flow-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(pageB.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
@@ -104,8 +104,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("frz-a");
       const userB = generateTestUsername("frz-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -132,8 +132,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("ldg-a");
       const userB = generateTestUsername("ldg-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -174,8 +174,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     try {
       const userA = generateTestUsername("rvl-a");
       const userB = generateTestUsername("rvl-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
@@ -213,8 +213,8 @@ test.describe("@room-flow US5 the hand and the keyboard", () => {
     try {
       const userA = generateTestUsername("drag-a");
       const userB = generateTestUsername("drag-b");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 

@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { EMPTY_LOBBY_HINT, lobbyContext, NO_ACCOUNT_NEEDED, NO_OPPONENT, NO_OPPONENT_SUBLINE, PLAY_RANKED, YOU } from "@/lib/constants/copy";
+import { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, PLAY_RANKED, SIGN_IN_TO_SET_THE_FIELD, YOU } from "@/lib/constants/copy";
 import type { LedgerAction, LedgerModel, Notice } from "@/lib/room/ledgerTypes";
 import { EMPTY_TERRITORY } from "@/lib/room/ledgerTypes";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -10,7 +10,6 @@ import type { PlayerIdentity } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
 import { useIsPhone } from "./hooks/useIsPhone";
 import { LobbyLedger } from "./LobbyLedger";
-import { NameInput } from "./NameInput";
 import { PlayerBar } from "./PlayerBar";
 import { Room } from "./Room";
 
@@ -63,15 +62,11 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
           name={NO_OPPONENT}
           subline={NO_OPPONENT_SUBLINE}
           action={
-            <button
-              type="button"
-              className="action-primary"
-              data-testid="player-bar-action-ranked"
-              disabled={!viewer}
-              onClick={() => onAction("playRanked")}
-            >
-              {PLAY_RANKED}
-            </button>
+            viewer ? (
+              <button type="button" className="action-primary" data-testid="player-bar-action-ranked" onClick={() => onAction("playRanked")}>
+                {PLAY_RANKED}
+              </button>
+            ) : undefined
           }
         />
       }
@@ -80,7 +75,7 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
         viewer ? (
           <PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} subline={`${viewer.eloRating ?? "unrated"} · ${YOU}`} />
         ) : (
-          <PlayerBar seat="you" position="bottom" state="empty" subline={NO_ACCOUNT_NEEDED} nameInput={<NameInput onSignedIn={onSignedIn} />} />
+          <PlayerBar seat="you" position="bottom" state="empty" name="—" subline={SIGN_IN_TO_SET_THE_FIELD} />
         )
       }
       ledger={

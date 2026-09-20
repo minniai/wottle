@@ -4,7 +4,7 @@
  */
 import { expect, test, type BrowserContext } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 test.skip(({ browserName }) => browserName !== "chromium", "two-context queue flow runs on chromium only");
@@ -12,7 +12,7 @@ test.skip(({ browserName }) => browserName !== "chromium", "two-context queue fl
 async function loginAs(context: BrowserContext, prefix: string) {
   const page = await context.newPage();
   const username = generateTestUsername(prefix);
-  await loginViaBar(page, username);
+  await loginViaSlip(page, username);
   return { page, username };
 }
 

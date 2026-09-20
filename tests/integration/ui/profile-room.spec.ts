@@ -4,14 +4,14 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 test.skip(({ browserName }) => browserName !== "chromium", "profile smoke runs on chromium only");
 
 async function login(page: Page, prefix: string) {
   const username = generateTestUsername(prefix);
-  await loginViaBar(page, username);
+  await loginViaSlip(page, username);
   return username;
 }
 

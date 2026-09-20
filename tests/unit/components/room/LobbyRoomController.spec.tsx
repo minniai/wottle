@@ -53,27 +53,37 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("signed out: empty top bar with play ranked ▸ disabled, name input in the bottom bar, warm-up field, no polling", () => {
+  // Spec 048 US4: no field before a name — an empty frame under the sign-in slip.
+  it("signed out: empty top bar without an action, the sign-in slip over an empty frame, no letters, no polling", () => {
     render(<LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />);
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("No opponent yet");
-    expect(screen.getByTestId("player-bar-action-ranked")).toBeDisabled();
-    expect(screen.getByTestId("player-bar-name-input")).toBeInTheDocument();
+    expect(screen.queryByTestId("player-bar-action-ranked")).toBeNull();
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("sign in to set the field");
+    const slip = screen.getByTestId("slip");
+    expect(slip).toHaveAttribute("data-kind", "signIn");
+    expect(slip).toContainElement(screen.getByTestId("player-bar-name-input"));
+    expect(screen.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/rules");
     expect(screen.getAllByRole("gridcell")).toHaveLength(100);
+    expect(screen.getAllByRole("gridcell").every((c) => c.textContent === "")).toBe(true);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("warm-up swap is local: letters exchange, nothing is posted, no pricing while signed out", () => {
+  it("signed out, the field takes no pick", () => {
     render(<LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />);
+    fireEvent.click(cell(0, 0));
+    expect(cell(0, 0)).not.toHaveAttribute("data-state", "picked");
+  });
+
+  it("warm-up swap is local: letters exchange, nothing is posted, no pricing", () => {
+    render(<LobbyRoomController viewer={{ id: "p1", username: "birna", displayName: "Birna", status: "available", lastSeenAt: "", eloRating: 1204 }} initialPlayers={[]} recentGames={null} />);
     const a = cell(0, 0).textContent;
     const b = cell(1, 0).textContent;
     fireEvent.click(cell(0, 0));
     fireEvent.click(cell(1, 0));
     expect(cell(0, 0).textContent).toBe(b);
     expect(cell(1, 0).textContent).toBe(a);
-    expect(fetchMock).not.toHaveBeenCalled();
     expect(previewSwap).not.toHaveBeenCalled();
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("No runs yet. Start one from the lobby.");
   });
 
   it("signing in converts the bottom bar in place and replaces the URL with /lobby", async () => {
@@ -86,6 +96,9 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Birna"));
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1204 · you");
     expect(screen.queryByTestId("player-bar-name-input")).toBeNull();
+    expect(screen.queryByTestId("slip")).toBeNull();
+    // The letters land after the name (spec 048 FR-014); the first is already on its way.
+    await waitFor(() => expect(cell(0, 0).textContent).not.toBe(""));
     // Same page element: the URL is rewritten in place, never routed (a route swap would remount the field).
     expect(replaceState).toHaveBeenCalledWith(null, "", "/lobby");
     expect(mockReplace).not.toHaveBeenCalled();

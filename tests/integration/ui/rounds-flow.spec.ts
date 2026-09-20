@@ -5,7 +5,7 @@
  */
 import { expect, test } from "@playwright/test";
 
-import { generateTestUsername, loginViaBar, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 import { submitSwap } from "./helpers/swaps";
 
 test.describe("Round flow", () => {
@@ -18,8 +18,8 @@ test.describe("Round flow", () => {
     try {
       const userA = generateTestUsername("flow-alpha");
       const userB = generateTestUsername("flow-beta");
-      await loginViaBar(pageA, userA);
-      await loginViaBar(pageB, userB);
+      await loginViaSlip(pageA, userA);
+      await loginViaSlip(pageB, userB);
 
       const [matchIdA, matchIdB] = await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 120_000, playerBUsername: userB });
       expect(matchIdA).toBeTruthy();
