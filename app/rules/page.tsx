@@ -71,11 +71,12 @@ export default function RulesPage() {
           <h2>Scored letters freeze in your ink.</h2>
           <p>
             Every letter of a scored word freezes. Frozen letters cannot be swapped again by anyone, so each word you score
-            also takes ground from your opponent. A letter shared by both players&apos; words is drawn in ink.
+            also takes ground from your opponent. Where a word crosses one already scored, the crossing letter keeps
+            the colour of the player who froze it first.
           </p>
           <p>The field always keeps at least 24 free letters.</p>
         </div>
-        <RulesFigure kind="crossing" caption="LEK crosses GILT; the shared L belongs to both" />
+        <RulesFigure kind="crossing" caption="LEK crosses GILT; the L stays the opponent's" />
       </section>
 
       <section className="rules__section" id="scoring">

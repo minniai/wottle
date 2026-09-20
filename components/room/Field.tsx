@@ -3,14 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { letterValue } from "@/lib/room/liveState";
-import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
+import type { Seat } from "@/lib/constants/seatColors";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
-import {
-  seatOfCell,
-  sharedCells as sharedFromBands,
-  type WordBand,
-} from "@/lib/room/bandGeometry";
+import { ownerSeatOf, type WordBand } from "@/lib/room/bandGeometry";
 import { FieldBands } from "./FieldBands";
 import { FieldCell, type CellState } from "./FieldCell";
 
@@ -20,8 +16,6 @@ export interface FieldProps {
   viewerSlot: PlayerSlot | null;
   /** Names by slot for the frozen-cell label (`frozen by Kári`). */
   ownerNames?: Partial<Record<PlayerSlot, string>>;
-  /** Extra cells to render in ink (both seats); normally derived from `bands`. */
-  sharedCells?: Set<string>;
   disabled?: boolean;
   /** Framed 3px in this seat's colour while the move is theirs (spec 048 FR-020). */
   turnFrame?: Seat | null;
@@ -63,10 +57,14 @@ export function Field(props: FieldProps) {
     drawingIndex = null,
     landedCount = null,
   } = props;
-  const shared = useMemo(
-    () => new Set([...(props.sharedCells ?? []), ...sharedFromBands(bands)]),
-    [props.sharedCells, bands],
-  );
+  // A letter under any band is scored; its colour is its frozen owner's
+  // (spec 049 US2). A live band's letters are not frozen yet: they take the
+  // band's seat until the freeze lands.
+  const covering = useMemo(() => {
+    const map = new Map<string, Seat>();
+    for (const band of bands) for (const c of band.wordCells) map.set(`${c.x},${c.y}`, band.seat);
+    return map;
+  }, [bands]);
   const { cellStateFor, seatFor, shakeAt, focusAt, onActivate, onDrag, onKeyDown, exchange = null } = props;
   const ref = useRef<HTMLDivElement | null>(null);
   const dragFrom = useRef<Coordinate | null>(null);
@@ -171,19 +169,10 @@ export function Field(props: FieldProps) {
             const index = y * 10 + x;
             const landed = landedCount === null || index < landedCount;
             const frozen = frozenTiles[key];
-            const bandSeat = seatOfCell(bands, { x, y });
-            const base: CellState = shared.has(key)
-              ? "shared"
-              : bandSeat
-                ? "scored"
-                : frozen
-                  ? "frozen"
-                  : "free";
+            const bandSeat = covering.get(key) ?? null;
+            const base: CellState = bandSeat ? "scored" : frozen ? "frozen" : "free";
             const state = cellStateFor ? cellStateFor({ x, y }, base) : base;
-            const seat =
-              seatFor?.({ x, y }) ??
-              bandSeat ??
-              (frozen ? seatForSlot(viewerSlot, frozen.owner) : null);
+            const seat = seatFor?.({ x, y }) ?? ownerSeatOf(frozenTiles, { x, y }, viewerSlot) ?? bandSeat;
             return (
               <FieldCell
                 key={key}
@@ -193,7 +182,7 @@ export function Field(props: FieldProps) {
                 value={landed ? letterValue(letter) : 0}
                 landing={landedCount !== null && index === landedCount - 1}
                 state={state}
-                seat={state === "shared" ? null : seat}
+                seat={seat}
                 ownerName={frozen ? ownerNames[frozen.owner] : undefined}
                 shake={shakeAt?.x === x && shakeAt?.y === y}
                 disabled={disabled || Boolean(frozen)}

@@ -25,6 +25,20 @@ describe("RoomFixture", () => {
     vi.unstubAllGlobals();
   });
 
+  // Spec 049 US2: LEK (you, R3) crosses GILT (opp, R2) at (7,6). The L is
+  // Kári's — he froze it first — so LEK's band covers only (8,6) and (9,6).
+  it("the crossing letter is the opponent's in reveal; settled, LEK's band covers the two letters it froze", () => {
+    const reveal = render(<RoomFixture phase="reveal" />);
+    const l = screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === "7" && c.getAttribute("data-y") === "6")!;
+    expect(l).toHaveAttribute("data-seat", "opp");
+    expect(l).not.toHaveAttribute("data-state", "shared");
+    reveal.unmount();
+    render(<RoomFixture phase="settle" />);
+    const bands = screen.getAllByTestId("field-band");
+    expect(bands.find((b) => b.getAttribute("data-word") === "LEK")).toHaveAttribute("data-cells", "8,6;9,6");
+    expect(bands.find((b) => b.getAttribute("data-word") === "GILT")).toHaveAttribute("data-cells", "7,4;7,5;7,6;7,7");
+  });
+
   it.each(IN_ROOM_PHASES)("renders the %s phase", (phase) => {
     render(<RoomFixture phase={phase} />);
     if (phase === "profile") expect(screen.getByTestId("profile-page")).toBeInTheDocument();

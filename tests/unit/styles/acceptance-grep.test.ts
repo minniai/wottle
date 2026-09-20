@@ -21,8 +21,10 @@ const ALLOWLIST: RegExp[] = [];
  * rules and the ledger's decision lines. `unranked` is matched as a word so that
  * `unranked` in a comment about its removal still trips — say "the retired rank
  * label" instead. The slip is the one component allowed over the field.
+ * Spec 049: the `shared` cell state and `sharedCells` went with the ink rule —
+ * a scored letter has one owner and one colour.
  */
-const RETIRED = /\bunranked\b|no rating change|\? rules|FIRST_MATCH_RULES|firstMatchRules|resignConfirm|RESIGN_CONFIRM|claimWinLine|notice-claim-win|notice-confirm-resign|rankLabel|isMatchRated/;
+const RETIRED = /\bunranked\b|no rating change|\? rules|FIRST_MATCH_RULES|firstMatchRules|resignConfirm|RESIGN_CONFIRM|claimWinLine|notice-claim-win|notice-confirm-resign|rankLabel|isMatchRated|sharedCells|seatOfCell|"shared"/;
 const RETIRED_SCOPE = ["app", "components", "lib/room", "lib/constants/copy.ts", "lib/matchmaking", "app/actions/match"];
 
 function files(path: string): string[] {
