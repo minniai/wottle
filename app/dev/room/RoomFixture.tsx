@@ -67,6 +67,7 @@ const NO_OP = () => undefined;
 
 const BANDS = bandsFromWords({
   words: FIXTURE_WORDS,
+  board: FIXTURE_BOARD,
   frozenTiles: FIXTURE_FROZEN,
   viewerSlot: "player_a",
   playerAId: YOU_ID,

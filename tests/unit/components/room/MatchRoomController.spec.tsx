@@ -34,6 +34,7 @@ vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.
 vi.mock("@/app/actions/match/respondToRematch", () => ({ acceptRematchAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m2" }), declineRematchAction: vi.fn().mockResolvedValue({ status: "declined" }) }));
 vi.mock("@/app/actions/match/cancelRematch", () => ({ cancelRematchAction: vi.fn().mockResolvedValue(undefined) }));
 
+import { __resetWordIntegrityForTests } from "@/lib/room/wordIntegrity";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
@@ -110,16 +111,19 @@ describe("MatchRoomController", () => {
     vi.unstubAllGlobals();
   });
 
-  it("reports a word record the board does not spell once per match, in development", () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  // Spec 049: the report is a warn event in every environment, once per match.
+  it("reports a word record the board does not spell once per match as bands.record-mismatch", () => {
+    __resetWordIntegrityForTests();
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const wrong: RoundSummary = { ...summary, words: [{ ...summary.words[0], word: "urg" }] };
     const { rerender } = renderController(state({ lastSummary: wrong }));
-    expect(error).toHaveBeenCalledTimes(1);
-    expect(error.mock.calls[0]?.[0]).toBe("[wordIntegrity] m1");
-    expect(error.mock.calls[0]?.[1]).toEqual(["R3 urg: board spells ÞAR at (1,2)…(3,2)"]);
+    const lines = () => log.mock.calls.map((c) => String(c[0])).filter((l) => l.includes("bands.record-mismatch"));
+    expect(lines()).toHaveLength(1);
+    expect(JSON.parse(lines()[0])).toMatchObject({ matchId: "m1" });
+    expect(lines()[0]).toContain("R3 urg: board spells ÞAR at (1,2)…(3,2)");
     rerender(<MatchRoomController initialState={state({ lastSummary: wrong, currentRound: 4 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
-    expect(error).toHaveBeenCalledTimes(1);
-    error.mockRestore();
+    expect(lines()).toHaveLength(1);
+    log.mockRestore();
   });
 
   it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer", () => {

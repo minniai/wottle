@@ -10,7 +10,7 @@ import { triggerTimeoutCheck } from "@/app/actions/match/triggerTimeoutCheck";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
-import { assertWordsSpellBoard } from "@/lib/room/wordIntegrity";
+import { reportWordIntegrity } from "@/lib/room/wordIntegrity";
 import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, MATCH_CLOCK_BUDGET_MS, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
@@ -90,16 +90,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const history = useWordHistory(matchId, match.currentRound);
   const words = useAccumulatedRounds(match, history);
 
-  // Spec 047 FR-002: outside production, a band that would not spell its word
-  // is reported once per match — the review saw NHMÖ drawn under "úðu".
-  const integrityReported = useRef<string | null>(null);
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production" || integrityReported.current === matchId) return;
-    const problems = assertWordsSpellBoard(match.board, words);
-    if (problems.length === 0) return;
-    integrityReported.current = matchId;
-    console.error(`[wordIntegrity] ${matchId}`, problems);
-  }, [matchId, match.board, words]);
+  // Spec 047 FR-002 / spec 049: a record the board does not spell is reported
+  // once per match, in every environment — the review saw NHMÖ drawn under
+  // "úðu"; production drew ÞKHL under "þaks" and nobody was told.
+  useEffect(() => reportWordIntegrity(matchId, match.board, words), [matchId, match.board, words]);
   const { notices, push, dismiss } = useNotices();
   const clocks = useClockTick(match.timers);
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
@@ -208,11 +202,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const displayBoard = useMemo(() => applyLetterSwaps(match.board, [opponentPins, field.ownPins]), [match.board, opponentPins, field.ownPins]);
 
   const bands = useMemo(() => {
-    const all = bandsFromWords({ words, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId, liveRound: revealing ? reveal.round : null, trustRound: reveal.round });
+    const all = bandsFromWords({ words, board: match.board, frozenTiles, viewerSlot, playerAId: match.timers.playerA.playerId, liveRound: revealing ? reveal.round : null, trustRound: reveal.round });
     // New bands of the running reveal go last so `drawnCount` can gate them.
     const fresh = new Set(newIds);
     return [...all.filter((b) => !fresh.has(b.id)), ...all.filter((b) => fresh.has(b.id))];
-  }, [words, frozenTiles, viewerSlot, match.timers.playerA.playerId, revealing, reveal.round, newIds]);
+  }, [words, match.board, frozenTiles, viewerSlot, match.timers.playerA.playerId, revealing, reveal.round, newIds]);
   const drawnCount = revealing ? bands.length - newIds.length + Math.min(progress.bandsDrawn, newIds.length) : null;
   const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightRound, setHighlightRound] = useState<number | null>(null);

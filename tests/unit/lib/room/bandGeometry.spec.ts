@@ -33,6 +33,13 @@ describe("bandsFromWords", () => {
   ];
   const allFrozen = (list: typeof words) =>
     Object.fromEntries(list.flatMap((w) => w.coordinates.map((c) => [`${c.x},${c.y}`, { owner: "player_a" as const }])));
+  /** A field on which every record spells its word at its cells (spec 049: a band must spell before it draws). */
+  const spelled = (list: { word: string; coordinates: { x: number; y: number }[] }[]) => {
+    const board = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "."));
+    for (const w of list) [...w.word].forEach((letter, i) => (board[w.coordinates[i].y][w.coordinates[i].x] = letter.toLocaleUpperCase("is")));
+    return board;
+  };
+  const board = spelled(words);
 
   let warn: MockInstance;
   beforeEach(() => {
@@ -43,7 +50,7 @@ describe("bandsFromWords", () => {
   });
 
   it("one band per record, viewer-relative seat, direction from the record or the tiles", () => {
-    const bands = bandsFromWords({ words, frozenTiles: allFrozen(words), viewerSlot: "player_b", playerAId: A });
+    const bands = bandsFromWords({ words, board, frozenTiles: allFrozen(words), viewerSlot: "player_b", playerAId: A });
     expect(bands).toHaveLength(2);
     expect(bands[0]).toMatchObject({ seat: "opp", direction: "ltr", round: 1, strength: "settled" });
     expect(bands[0].cells).toHaveLength(3);
@@ -56,20 +63,20 @@ describe("bandsFromWords", () => {
   // are still frozen. A partial freeze used to clip the band to one cell, which
   // painted a chevron with no band under it.
   it("a settled word with an unfrozen letter is skipped with one development warning", () => {
-    const bands = bandsFromWords({ words, frozenTiles: frozen, viewerSlot: "player_b", playerAId: A });
+    const bands = bandsFromWords({ words, board, frozenTiles: frozen, viewerSlot: "player_b", playerAId: A });
     expect(bands.map((b) => b.word)).toEqual(["þar"]);
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls[0]?.[0]).toMatch(/R2 orð: 2 letter\(s\) not frozen/);
   });
 
   it("a settled word none of whose letters froze is skipped", () => {
-    const bands = bandsFromWords({ words: [words[0]], frozenTiles: {}, viewerSlot: "player_a", playerAId: A });
+    const bands = bandsFromWords({ words: [words[0]], board, frozenTiles: {}, viewerSlot: "player_a", playerAId: A });
     expect(bands).toEqual([]);
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("the live round keeps its full run before its freezes land; duplicate ids collapse", () => {
-    const bands = bandsFromWords({ words: [words[1], words[1]], frozenTiles: {}, viewerSlot: "player_a", playerAId: A, liveRound: 2 });
+    const bands = bandsFromWords({ words: [words[1], words[1]], board, frozenTiles: {}, viewerSlot: "player_a", playerAId: A, liveRound: 2 });
     expect(bands).toHaveLength(1);
     expect(bands[0].cells).toHaveLength(3);
     expect(bands[0].strength).toBe("live");
@@ -77,7 +84,7 @@ describe("bandsFromWords", () => {
   });
 
   it("the most recently scored round is drawn from its coordinates, settled, until its freezes land", () => {
-    const bands = bandsFromWords({ words: [words[1]], frozenTiles: {}, viewerSlot: "player_a", playerAId: A, trustRound: 2 });
+    const bands = bandsFromWords({ words: [words[1]], board, frozenTiles: {}, viewerSlot: "player_a", playerAId: A, trustRound: 2 });
     expect(bands).toHaveLength(1);
     expect(bands[0]).toMatchObject({ strength: "settled", round: 2 });
     expect(bands[0].cells).toHaveLength(3);
@@ -86,8 +93,33 @@ describe("bandsFromWords", () => {
 
   it("never returns a band with fewer than two cells", () => {
     const one = { roundNumber: 2, playerId: B, word: "o", totalPoints: 1, coordinates: [{ x: 3, y: 5 }], direction: "ltr" as const };
-    expect(bandsFromWords({ words: [one], frozenTiles: frozen, viewerSlot: "player_a", playerAId: A, liveRound: 2 })).toEqual([]);
-    expect(bandsFromWords({ words: [one], frozenTiles: frozen, viewerSlot: "player_a", playerAId: A })).toEqual([]);
+    expect(bandsFromWords({ words: [one], board, frozenTiles: frozen, viewerSlot: "player_a", playerAId: A, liveRound: 2 })).toEqual([]);
+    expect(bandsFromWords({ words: [one], board, frozenTiles: frozen, viewerSlot: "player_a", playerAId: A })).toEqual([]);
+  });
+
+  // Spec 049 (contracts/integrity-check.md, client mirror): on 2026-09-20 the
+  // served board was round 1's under ten rounds of records, and settled bands
+  // were drawn over ÞKHL, GÁAAT and DUT. A settled band must spell its word.
+  it("a settled record whose cells are all frozen but whose letters do not spell the word draws no band", () => {
+    const wrong = spelled([{ word: "þkh", coordinates: words[0].coordinates }, words[1]]);
+    const bands = bandsFromWords({ words, board: wrong, frozenTiles: allFrozen(words), viewerSlot: "player_b", playerAId: A });
+    expect(bands.map((b) => b.word)).toEqual(["orð"]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toMatch(/R1 þar: board spells ÞKH/);
+  });
+
+  it("a settled record with the wrong number of tiles draws no band", () => {
+    const short = { ...words[0], coordinates: words[0].coordinates.slice(0, 2) };
+    const bands = bandsFromWords({ words: [short], board, frozenTiles: allFrozen(words), viewerSlot: "player_a", playerAId: A });
+    expect(bands).toEqual([]);
+  });
+
+  it("the live and the most recently scored rounds are still drawn from their coordinates", () => {
+    const wrong = spelled([{ word: "þkh", coordinates: words[0].coordinates }]);
+    const live = bandsFromWords({ words: [words[0]], board: wrong, frozenTiles: {}, viewerSlot: "player_a", playerAId: A, liveRound: 1 });
+    const trusted = bandsFromWords({ words: [words[0]], board: wrong, frozenTiles: {}, viewerSlot: "player_a", playerAId: A, trustRound: 1 });
+    expect(live).toHaveLength(1);
+    expect(trusted).toHaveLength(1);
   });
 
   it("sharedCells finds letters covered by both seats; seatOfCell resolves a letter's seat", () => {
@@ -95,7 +127,7 @@ describe("bandsFromWords", () => {
       { roundNumber: 1, playerId: A, word: "abc", totalPoints: 1, coordinates: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }] },
       { roundNumber: 2, playerId: B, word: "bxy", totalPoints: 1, coordinates: [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 1, y: 2 }] },
     ];
-    const bands = bandsFromWords({ words: crossing, frozenTiles: allFrozen(crossing), viewerSlot: "player_a", playerAId: A });
+    const bands = bandsFromWords({ words: crossing, board: spelled(crossing), frozenTiles: allFrozen(crossing), viewerSlot: "player_a", playerAId: A });
     expect([...sharedCells(bands)]).toEqual(["1,0"]);
     expect(seatOfCell(bands, { x: 0, y: 0 })).toBe("you");
     expect(seatOfCell(bands, { x: 1, y: 2 })).toBe("opp");

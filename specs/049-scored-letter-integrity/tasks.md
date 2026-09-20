@@ -66,10 +66,10 @@ Single Next.js application at the repository root. Server code in `lib/match/` a
 
 ### I.4 The client never draws a lie (contracts/integrity-check.md, client mirror)
 
-- [ ] T018 [P] [US1] [test] `tests/unit/lib/room/bandGeometry.spec.ts` (extend): `bandCells` takes the board; a settled record whose cells are all frozen but whose letters do not spell the word returns `null`; the live and trusted rounds are still drawn from coordinates; a record with the wrong tile count returns `null`
-- [ ] T019 [US1] [impl] `lib/room/bandGeometry.ts`: `bandCells(word, board, frozenTiles, trusted)` spells before it draws; `bandsFromWords` gains `board` in `BandsInput`; the one caller in `components/room/MatchRoomController.tsx` passes `match.board`
-- [ ] T020 [P] [US1] [test] `tests/unit/lib/room/wordIntegrity.spec.ts` (extend): `reportWordIntegrity(matchId, board, words)` calls `trackBandRecordMismatch` once per match for the first mismatch, never again for that match, in production and development alike, and never throws
-- [ ] T021 [US1] [impl] `lib/room/wordIntegrity.ts` and its call in `components/room/MatchRoomController.tsx` (drop the `NODE_ENV` gate; keep the per-match dedupe ref)
+- [x] T018 [P] [US1] [test] `tests/unit/lib/room/bandGeometry.spec.ts` (extend): `bandCells` takes the board; a settled record whose cells are all frozen but whose letters do not spell the word returns `null`; the live and trusted rounds are still drawn from coordinates; a record with the wrong tile count returns `null`
+- [x] T019 [US1] [impl] `lib/room/bandGeometry.ts`: `bandCells(word, board, frozenTiles, trusted)` spells before it draws; `bandsFromWords` gains `board` in `BandsInput`; the one caller in `components/room/MatchRoomController.tsx` passes `match.board`
+- [x] T020 [P] [US1] [test] `tests/unit/lib/room/wordIntegrity.spec.ts` (extend): `reportWordIntegrity(matchId, board, words)` calls `trackBandRecordMismatch` once per match for the first mismatch, never again for that match, in production and development alike, and never throws
+- [x] T021 [US1] [impl] `lib/room/wordIntegrity.ts` and its call in `components/room/MatchRoomController.tsx` (drop the `NODE_ENV` gate; keep the per-match dedupe ref)
 - [ ] T022 [US1] [test] `tests/integration/ui/match-completion.spec.ts` (extend): after the resign-to-final flow, on both clients every `[data-testid="field-band"]`'s `data-word` equals the letters read from the cells it covers, and the field's letters differ from round 1's where round 1's swaps moved them (read the starting board before the first swap and compare)
 - [ ] T023 [US1] [impl] Fix anything T022 surfaces
 - [ ] T024 [US1] Verify against production per `quickstart.md`: run the research §4 diagnostic for `ed22c625`, deploy to a preview, open the match as either player, confirm the round-10 board and spelling bands; record the result in `research.md` §1 as "verified after fix"
