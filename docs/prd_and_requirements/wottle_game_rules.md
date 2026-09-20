@@ -364,7 +364,7 @@ The Field & Ledger design (`docs/design_documentation/README.md`) renders each r
 | A scored word (§3, §6) | A **band** along its tiles on the field: a 14% tint of the scorer's seat colour (teal = you, coral = the opponent), square ends aligned to the cell grid, with the letters inside drawn in the scorer's colour. |
 | Reading direction (§3.1) | A small **chevron** in the scorer's colour at the end of the band where reading **begins**: left edge pointing right (left-to-right), right edge pointing left (right-to-left), top edge pointing down (top-to-bottom), bottom edge pointing up (bottom-to-top). |
 | Run valid both ways (§3.1) | One record, one band, **one chevron** at the kept reading's start (forward reading wins); one word in the ledger row. |
-| A tile in two words / crossing (§3.5, §4) | Both bands are drawn; a letter shared by **both seats'** words is drawn in ink at heavy weight instead of a seat colour. |
+| A tile in two words / crossing (§3.5, §4) | Both words are recorded; the crossing letter keeps the colour and band of the player who froze it first; the later word's band covers its other letters (spec 049). |
 | Standalone / whole-run rule (§3.5a) | Two bands of the same seat on the same axis **never touch end to end**; a legal extension of a frozen run is a single longer word and a single band. |
 | Frozen tile (§6) | The letter sits inside a settled band and cannot be picked; tapping it shakes the letter 300ms in its own colour and the ledger's live row reads `frozen · <name> R<n> · pick another`. |
 | Territory (§6) | A 4px bar in the ledger — you / free / opponent — with the three counts beneath it. Territory is stored per tile but shown as words. |
@@ -380,4 +380,5 @@ The Field & Ledger design (`docs/design_documentation/README.md`) renders each r
 | A forced win (resign, disconnect, spent clock) | The winner is the one the server recorded, not the higher total; the detail line reads `<loser> resigned` / `<loser> left` / `<loser> ran out of time` in place of the counted line. |
 | Resigning | A slip: `Resign the match?` with the round and the player's clock, `yes, resign ▸` · `keep playing ▸`; the clocks keep running. |
 | Every match is rated | No caption or state says otherwise; a rating line reads `rating pending` until the row is written. |
+| Which board the room shows | A live match: the board of the round named by the match's round pointer. A finished match: the board after its **last played round**. Never the starting board regenerated from the seed once a round exists; a missing round is a fault, logged and handed to recovery (spec 049). |
 
