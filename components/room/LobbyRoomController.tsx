@@ -138,7 +138,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
-      if (action === "playRanked") router.replace("/matchmaking");
+      if (action === "findOpponent") router.replace("/matchmaking");
       else if (action === "profile") router.push("/profile");
       else if (action === "signOut") {
         void logoutAction({}).finally(() => {

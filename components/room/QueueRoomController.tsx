@@ -50,6 +50,15 @@ function profilesFor(state: MatchState, viewer: PlayerIdentity, opponent: Player
 }
 
 /**
+ * The queue as the /matchmaking page renders it: one controller per
+ * search, remounted when `new opponent ▸` asks for a fresh one.
+ */
+export function QueueRoom({ viewer }: QueueRoomControllerProps) {
+  const searchId = useRoomStore((s) => s.searchId);
+  return <QueueRoomController key={searchId} viewer={viewer} />;
+}
+
+/**
  * Queue → found → match in one room (spec 044 US8, decision Q3): a placeholder
  * field sets itself letter by letter; when an opponent is found their name
  * writes into the top bar, differing letters swap to the real board, round 1
@@ -135,7 +144,9 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
   // `?` opens the rules, `M` mutes (design system §9, FR-026).
   useRoomHotkeys(handleAction);
 
-  if (phase === "match" && ready) {
+  // The match keeps the room through its final state: the verdict, the
+  // match-over slip and rematch live there, not in the queue (reported 2026-09-21).
+  if ((phase === "match" || phase === "final") && ready) {
     return <MatchRoomController initialState={ready.state} currentPlayerId={viewer.id} matchId={ready.matchId} playerProfiles={ready.profiles} />;
   }
 

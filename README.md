@@ -32,7 +32,7 @@ The implementing feature is `specs/044-field-ledger-redesign/`.
 | Room state | What changes |
 | --- | --- |
 | lobby (empty seat) | your bar holds the name input; a warm-up field you can pick and preview on |
-| lobby | `here now` and `your last matches` tables in the ledger; `play ranked ▸` in the opponent bar |
+| lobby | `here now` and `your last matches` tables in the ledger; `find an opponent ▸` in the opponent bar |
 | queue | `Finding an opponent`; the field sets itself letter by letter |
 | found | the opponent's name writes into the top bar; `round 1 in 3 · 2 · 1` |
 | match | bands, pins, lanes, live row |

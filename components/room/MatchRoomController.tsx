@@ -383,7 +383,12 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "declineRematch") void rematch.decline();
       else if (action === "reviewField") dismissSlip();
       else if (action === "result") restoreSlip();
-      else if (action === "newOpponent") router.replace("/matchmaking");
+      else if (action === "newOpponent") {
+        // A queue-found match runs under /matchmaking, so the route alone would
+        // not remount the queue; the store's search counter does.
+        useRoomStore.getState().requestNewSearch();
+        router.replace("/matchmaking");
+      }
       else if (action === "lobby") router.replace("/lobby");
       else if (action === "resign" || action === "leave") setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName });
       else if (action === "keepPlaying") clearSlip("resign");

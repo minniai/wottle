@@ -32,6 +32,8 @@ const RETIRED_SCOPE = ["app", "components", "lib/room", "lib/constants/copy.ts",
  * replaced them (lib/match, lib/game-engine, lib/types).
  */
 const RETIRED_050 = /roundState|advanceRound|roundEngine|instantScor|RoundSummary|partialSummary|pendingMoves|processRoundScoring|RoundScoreResult|is_duplicate|isDuplicate|SETTLE_HOLD_MS|currentRound|current_round|round_limit|timer_ms|TimerState|ClockLane|RoundRail|useClockTick|useSettleHold|useAccumulatedRounds|round-rail|round-indicator|player-bar-clock|opponentPinned|CLAIM_THE_WIN|scoreboard_snapshots|move_submissions/;
+/** 2026-09-21: every match is rated, so nothing the player reads says "ranked". */
+const RETIRED_RANKED = /play ranked|PLAY_RANKED|playRanked|action-ranked|ranked ·/;
 const RETIRED_050_SCOPE = [...RETIRED_SCOPE, "lib/match", "lib/game-engine", "lib/types", "lib/realtime", "lib/scoring"];
 
 function files(path: string): string[] {
@@ -81,7 +83,7 @@ describe("retired with rounds (spec 050)", () => {
 
   test.each(all.map((f) => [f.replace(`${ROOT}/`, "")]))("%s names nothing retired with rounds", (rel) => {
     const lines = readFileSync(join(ROOT, rel), "utf8").split("\n");
-    const hits = lines.map((line, i) => ({ line, n: i + 1 })).filter(({ line }) => RETIRED_050.test(line));
+    const hits = lines.map((line, i) => ({ line, n: i + 1 })).filter(({ line }) => RETIRED_050.test(line) || RETIRED_RANKED.test(line));
     expect(hits, hits.map((h) => `${rel}:${h.n}: ${h.line.trim()}`).join("\n")).toEqual([]);
   });
 });

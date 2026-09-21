@@ -345,11 +345,6 @@ export interface LobbyMatchesStats {
   matchesInProgress: number;
 }
 
-/** Mode selection state for the lobby Play Now CTA.
- *  Iteration 1: only "ranked" is an effective selection;
- *  "casual" and "challenge" render as disabled placeholders. */
-export type ModeSelection = "ranked" | "casual" | "challenge";
-
 // ─── Match Player Profiles (018-match-hud-layout) ─────────────────────
 
 /** Snapshot of player identity for display during an active match. */

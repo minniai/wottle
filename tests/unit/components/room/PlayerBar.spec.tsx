@@ -36,14 +36,14 @@ describe("PlayerBar", () => {
   });
 
   it("empty seat: the lane is empty and the action slot renders", () => {
-    render(<PlayerBar seat="opp" position="top" state="empty" subline="ranked · about 0:10 to find one" action={<button>play ranked ▸</button>} />);
+    render(<PlayerBar seat="opp" position="top" state="empty" subline="about 0:10 to find one" action={<button>find an opponent ▸</button>} />);
     expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "empty");
-    expect(screen.getByTestId("player-bar-action")).toHaveTextContent("play ranked ▸");
+    expect(screen.getByTestId("player-bar-action")).toHaveTextContent("find an opponent ▸");
     expect(screen.queryByTestId("player-bar-score")).toBeNull();
   });
 
   it("searching: the lane travels", () => {
-    render(<PlayerBar seat="opp" position="top" state="searching" name="Finding an opponent" subline="ranked · 0:07 · cancel ▸" />);
+    render(<PlayerBar seat="opp" position="top" state="searching" name="Finding an opponent" subline="searching · 0:07 · cancel ▸" />);
     expect(screen.getByTestId("player-bar-lane")).toHaveClass("player-bar__lane--searching");
     expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("aria-valuetext", "searching");
   });

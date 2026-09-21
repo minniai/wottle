@@ -20,7 +20,7 @@ function view(overrides: Partial<Parameters<typeof QueueRoomView>[0]> = {}) {
       found={null}
       elapsed="0:07"
       live="setting the field · 58 of 100 letters"
-      hint="ranked · 0:07 · cancel ▸"
+      hint="searching · 0:07 · cancel ▸"
       onAction={vi.fn()}
       {...overrides}
     >
@@ -46,7 +46,7 @@ describe("QueueRoomView (spec 045 US1, FR-003)", () => {
   it("prints the queue's progress in a live row, above the hint", () => {
     render(view());
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("setting the field · 58 of 100 letters");
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("ranked · 0:07 · cancel ▸");
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("searching · 0:07 · cancel ▸");
   });
 
   it("found: the live row counts round 1 in", () => {

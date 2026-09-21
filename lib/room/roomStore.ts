@@ -27,6 +27,8 @@ export interface RoomState {
   match: MatchState | null;
   board: string[][];
   queue: QueueState | null;
+  /** Bumped to start a fresh search for an opponent; the queue controller remounts on it. */
+  searchId: number;
   found: { countdown: 3 | 2 | 1 } | null;
   connection: ConnectionMode;
   /** The one overlay (spec 048 §5.9); precedence enforced by `setSlip`. */
@@ -43,6 +45,8 @@ export interface RoomState {
   /** Enter a phase. Never touches `board`. */
   setPhase: (phase: RoomPhase) => void;
   startQueue: (now?: number) => void;
+  /** `new opponent ▸`: a fresh search even when the route is already /matchmaking. */
+  requestNewSearch: () => void;
   cancelQueue: () => void;
   /** Placeholder letters landed so far (queue state). */
   setLettersLanded: (count: number) => void;
@@ -128,6 +132,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   match: null,
   board: EMPTY_BOARD,
   queue: null,
+  searchId: 0,
   found: null,
   connection: "realtime",
   slip: null,
@@ -144,6 +149,8 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   startQueue: (now = Date.now()) =>
     set({ phase: "queue", queue: { startedAt: now, lettersLanded: 0 }, opponent: null, match: null }),
+
+  requestNewSearch: () => set((s) => ({ searchId: s.searchId + 1 })),
 
   cancelQueue: () => set({ phase: "lobby", queue: null, found: null }),
 

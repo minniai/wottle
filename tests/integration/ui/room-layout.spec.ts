@@ -187,7 +187,7 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
         await expectAxeClean(page, `lobby-${viewport.tag}`);
         await snap(page, `lobby-${viewport.tag}.png`);
 
-        await page.getByTestId("player-bar-action-ranked").click();
+        await page.getByTestId("player-bar-action-find").click();
         await expect(page.getByTestId("room")).toHaveAttribute("data-phase", /queue|found|match/, { timeout: 15_000 });
         if ((await page.getByTestId("room").getAttribute("data-phase")) === "queue") {
           await expectAxeClean(page, `queue-${viewport.tag}`);

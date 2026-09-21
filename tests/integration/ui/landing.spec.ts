@@ -8,11 +8,11 @@ import { expect, test } from "@playwright/test";
 import { generateTestUsername } from "./helpers/matchmaking";
 
 test.describe("@landing the lobby room, signed out", () => {
-  test("signed-out visitor sees the empty frame under the sign-in slip; no letters, no ranked action", async ({ page }) => {
+  test("signed-out visitor sees the empty frame under the sign-in slip; no letters, no find-an-opponent action", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
     await expect(page.getByTestId("player-bar-top")).toContainText("No opponent yet");
-    await expect(page.getByTestId("player-bar-action-ranked")).toHaveCount(0);
+    await expect(page.getByTestId("player-bar-action-find")).toHaveCount(0);
     await expect(page.getByTestId("player-bar-bottom")).toContainText("sign in to set the field");
     await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn");
     await expect(page.getByTestId("slip").getByTestId("player-bar-name-input")).toBeVisible();
@@ -35,7 +35,7 @@ test.describe("@landing the lobby room, signed out", () => {
     await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 15_000 });
     await expect(page.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/· you/i, { timeout: 15_000 });
     await expect(page).toHaveURL(/\/lobby$/, { timeout: 15_000 });
-    await expect(page.getByTestId("player-bar-action-ranked")).toBeEnabled();
+    await expect(page.getByTestId("player-bar-action-find")).toBeEnabled();
     await expect(page.getByTestId("field-cell").filter({ hasText: /\S/ })).toHaveCount(100, { timeout: 20_000 });
     // The same field element is still mounted (no route flash).
     expect(await fieldHandle?.evaluate((el) => el.isConnected)).toBe(true);
