@@ -40,6 +40,8 @@ export interface CompleteMatchResult {
   scores: ScoreTotals;
   endedReason: MatchEndedReason;
   ratingChanges?: RatingChange;
+  /** True when this call flipped the match; false when it found the result already written. */
+  applied: boolean;
 }
 
 type Client = ReturnType<typeof getServiceRoleClient>;
@@ -72,6 +74,7 @@ function existingResult(match: MatchRow, fallbackReason: MatchEndedReason): Comp
     isDraw: false,
     scores: scoresOf(match),
     endedReason: (match.ended_reason as MatchEndedReason) ?? fallbackReason,
+    applied: false,
   };
 }
 
@@ -221,6 +224,7 @@ export async function completeMatchInternal(
     scores,
     endedReason: decision.reason,
     ratingChanges,
+    applied: true,
   };
 }
 

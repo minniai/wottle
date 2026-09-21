@@ -15,30 +15,30 @@ Each task lands red → green → refactor; the test commit precedes the impleme
 
 ## P1 — Server and client core
 
-- [ ] T010 Migration `20260921001_async_moves.sql` + `scripts/supabase/{verify,verify-realtime,seed}.ts` (the seed also resets the two dev players' ratings and counts, decided 2026-09-21), `policies/check.ts`
-- [ ] T011 `lib/types/match.ts`, `lib/types/board.ts`, `lib/match/schemas.ts` (`moveRequestSchema`, `moveResolutionSchema`) — tests first
-- [ ] T012 `lib/match/moveResolver.ts` (`resolveOne` pure; the claim/finish loop) — `tests/unit/lib/match/moveResolver.spec.ts`
-- [ ] T013 `lib/match/resultCalculator.ts` moves-first — `resultCalculator.test.ts`
-- [ ] T014 `lib/match/matchSettlement.ts` + `app/actions/match/settleMatch.ts` + cron sweep — `matchSettlement.spec.ts`
-- [ ] T015 `app/actions/match/completeMatch.ts` CAS + scores from `matches`
-- [ ] T016 `lib/match/movePublisher.ts`, `lib/realtime/matchChannel.ts` (`move-resolved`)
-- [ ] T017 `app/actions/match/submitMove.ts` rewrite + `/api/match/[matchId]/move` — `submitMove.test.ts`, `post-move.contract.test.ts`
-- [ ] T018 `lib/match/stateLoader.ts` new shape, start, self-heal dispatch — `stateLoader.test.ts`
-- [ ] T019 `lib/match/wordHistory.ts` + `/api/match/[matchId]/words`; `integrityCheck.ts` per move; `previewSwap.ts` reads `matches.board`; `claimWin.ts` narrowed
-- [ ] T020 Delete the round world (`roundEngine`, `instantScoring`, `conflictResolver`, `recoverStuckRound`, `stateMachine`, `roundEndWrite`, `clockEnforcer`, `frozenTilePersistence`, `frozenTileMerge`, `partialReveal`, `timerStore`, `publishRoundSummary`, `triggerTimeoutCheck`, `observability/instantScoring`, the round summary route) and their tests
-- [ ] T021 `lib/room/moveState.ts` — `moveState.spec.ts`
-- [ ] T022 `lib/room/fieldInteraction.ts` new events — `fieldInteraction.spec.ts`
-- [ ] T023 `lib/room/roomStore.ts` (`holdMove`, `applyResolution`), `safetySnapshot.ts`, `revealSequence.ts` (`MOVE_HOLD_MS`) — tests
-- [ ] T024 Hooks: `useMatchTransport` (`move-resolved`), `useFieldInteraction` (letters), `useMoveHold`, `useDeadlineTick`, `useMatchOverSlip`
-- [ ] T025 `MatchRoomController.tsx` two reveals, `canPick`, no pins; `MatchRoomView.tsx`
-- [ ] T026 Integration: `receiveMove.race.test.ts`, `moveResolver.race.test.ts`, `stuckMove.test.ts`, `settlement.test.ts`
+- [x] T010 Migration `20260921001_async_moves.sql` + `scripts/supabase/{verify,verify-realtime,seed}.ts` (the seed also resets the two dev players' ratings and counts, decided 2026-09-21), `policies/check.ts`
+- [x] T011 `lib/types/match.ts`, `lib/types/board.ts`, `lib/match/schemas.ts` (`moveRequestSchema`, `moveResolutionSchema`) — tests first
+- [x] T012 `lib/match/moveResolver.ts` (`resolveOne` pure; the claim/finish loop) — `tests/unit/lib/match/moveResolver.spec.ts`
+- [x] T013 `lib/match/resultCalculator.ts` moves-first — `resultCalculator.test.ts`
+- [x] T014 `lib/match/matchSettlement.ts` + `app/actions/match/settleMatch.ts` + cron sweep — `matchSettlement.spec.ts`
+- [x] T015 `app/actions/match/completeMatch.ts` CAS + scores from `matches`
+- [x] T016 `lib/match/movePublisher.ts`, `lib/realtime/matchChannel.ts` (`move-resolved`)
+- [x] T017 `app/actions/match/submitMove.ts` rewrite + `/api/match/[matchId]/move` — `submitMove.test.ts`, `post-move.contract.test.ts`
+- [x] T018 `lib/match/stateLoader.ts` new shape, start, self-heal dispatch — `stateLoader.test.ts`
+- [x] T019 `lib/match/wordHistory.ts` + `/api/match/[matchId]/words`; `integrityCheck.ts` per move; `previewSwap.ts` reads `matches.board`; `claimWin.ts` narrowed
+- [x] T020 Delete the round world (`roundEngine`, `instantScoring`, `conflictResolver`, `recoverStuckRound`, `stateMachine`, `roundEndWrite`, `clockEnforcer`, `frozenTilePersistence`, `frozenTileMerge`, `partialReveal`, `timerStore`, `publishRoundSummary`, `triggerTimeoutCheck`, `observability/instantScoring`, the round summary route) and their tests
+- [x] T021 `lib/room/moveState.ts` — `moveState.spec.ts`
+- [x] T022 `lib/room/fieldInteraction.ts` new events — `fieldInteraction.spec.ts`
+- [x] T023 `lib/room/roomStore.ts` (`holdMove`, `applyResolution`), `safetySnapshot.ts`, `revealSequence.ts` (`MOVE_HOLD_MS`) — tests
+- [x] T024 Hooks: `useMatchTransport` (`move-resolved`), `useFieldInteraction` (letters), `useMoveHold`, `useDeadlineTick`, `useMatchOverSlip`
+- [x] T025 `MatchRoomController.tsx` two reveals, `canPick`, no pins; `MatchRoomView.tsx`
+- [x] T026 Integration: `receiveMove.race.test.ts`, `moveResolver.race.test.ts`, `stuckMove.test.ts`, `settlement.test.ts`
 
 ## P2 — Room polish, fixtures, end-to-end
 
-- [ ] T030 `PlayerBar.tsx` without clock; `BarLane.tsx` (`moves` · `searching` · `disconnected`)
-- [ ] T031 `Ledger.tsx` caption clock (`.ledger__caption-clock`, low-clock blink, reduced motion), rows by move, `moveRail.ts`; `ledgerRows.ts`, `accumulatedWords.ts` keyed by player+seq
-- [ ] T032 `Slip.tsx` end-early kind; verdict copy for the three natural reasons
-- [ ] T033 `lib/constants/copy.ts` retire/add strings; acceptance greps
+- [x] T030 `PlayerBar.tsx` without clock; `BarLane.tsx` (`moves` · `searching` · `disconnected`)
+- [x] T031 `Ledger.tsx` caption clock (`.ledger__caption-clock`, low-clock blink, reduced motion), rows by move, `moveRail.ts`; `ledgerRows.ts`, `accumulatedWords.ts` keyed by player+seq
+- [x] T032 `Slip.tsx` end-early kind; verdict copy for the three natural reasons
+- [x] T033 `lib/constants/copy.ts` retire/add strings; acceptance greps
 - [ ] T034 `app/dev/room/fixtures.ts` + `RoomFixture.tsx` new phases; `pnpm test:visual --update-snapshots`
 - [ ] T035 Playwright `moves-flow.spec.ts`, `deadline-flow.spec.ts` (`PLAYTEST_MATCH_CLOCK_MS`), `disconnect-claim.spec.ts` → end-early gate
 - [ ] T036 Perf: `perf:move-receipt`, `tests/perf/move-resolve.yml`; delete `perf:instant-scoring`

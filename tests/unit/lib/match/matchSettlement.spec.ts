@@ -27,7 +27,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(resolvePendingMoves).mockResolvedValue({ resolved: 0, bothDone: false });
   vi.mocked(findDueMatches).mockResolvedValue([]);
-  vi.mocked(completeMatchInternal).mockResolvedValue({ endedReason: "moves_complete" } as never);
+  vi.mocked(completeMatchInternal).mockResolvedValue({ applied: true, endedReason: "moves_complete" } as never);
 });
 
 describe("settleMatchIfDue", () => {
@@ -81,7 +81,15 @@ describe("settleMatchIfDue", () => {
 
   it("reports `already` when the completion CAS found the match abandoned first (FR-011a)", async () => {
     withRow(live(10, 10));
-    vi.mocked(completeMatchInternal).mockResolvedValue({ endedReason: "abandoned" } as never);
+    vi.mocked(completeMatchInternal).mockResolvedValue({ applied: false, endedReason: "abandoned" } as never);
+    expect(await settleMatchIfDue(MATCH)).toBe("already");
+  });
+});
+
+describe("settleMatchIfDue when another settlement flipped the row first", () => {
+  it("reports `already`: only the caller that applied the completion says `completed`", async () => {
+    withRow(live(10, 10));
+    vi.mocked(completeMatchInternal).mockResolvedValue({ applied: false, endedReason: "moves_complete" } as never);
     expect(await settleMatchIfDue(MATCH)).toBe("already");
   });
 });

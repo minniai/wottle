@@ -19,7 +19,7 @@ interface SettlementRow {
  * natural rules when both players have the move limit or the database says
  * the deadline has passed. Completion is a compare-and-set, so the resolver,
  * a state poll and the cron sweep may all call this and the ratings are
- * applied once.
+ * applied once; every caller but the one that flipped the row gets `already`.
  */
 export async function settleMatchIfDue(matchId: string): Promise<SettlementOutcome> {
   const drained = await resolvePendingMoves(matchId);
@@ -31,7 +31,7 @@ export async function settleMatchIfDue(matchId: string): Promise<SettlementOutco
     drained.bothDone || (row.player_a_moves >= row.move_limit && row.player_b_moves >= row.move_limit);
   if (!bothDone && !(await isPastDeadline(matchId))) return "not_due";
   const result = await completeMatchInternal(matchId, "natural");
-  return result.endedReason === "abandoned" ? "already" : "completed";
+  return result.applied ? "completed" : "already";
 }
 
 async function readSettlementRow(matchId: string): Promise<SettlementRow | null> {
