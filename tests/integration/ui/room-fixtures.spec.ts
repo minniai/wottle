@@ -12,10 +12,11 @@ import { ROOM_PHASES } from "../../../app/dev/room/fixtures";
  * `visual-1280x800`, `visual-390x844`), so Playwright resolves a separate
  * baseline per viewport and a failure names the one that broke.
  *
- * Baselines are committed (spec 045 US7, spec 047 R5); darwin ones come from a
- * local run, linux ones from the CI job's artifact. `pnpm test:visual
- * --update-snapshots` is the only way to change one, and a human compares the
- * result with the figures before it is committed.
+ * Baselines are committed (spec 045 US7, spec 047 R5). Refresh darwin with
+ * `pnpm test:visual --update-snapshots`; refresh linux from the production CI
+ * job's reviewed `*-actual.png` artifacts, as documented in the snapshots
+ * README. A local refresh does not update Linux baselines. Compare both sets
+ * with the design before committing an intentional visual change.
  *
  * Spec 047 amendment P2: one phase per asymmetric signal. `phone-sheet` is the
  * picking phase with the sheet open, so it exists only at 390×844; `last-seconds`
