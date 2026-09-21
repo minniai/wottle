@@ -112,3 +112,23 @@ describe("bar suffixes and the turn frame", () => {
     expect(turnFrameFor({ kind: "done", opponentName: K, opponentMoves: 8, clockMmSs: "1:12" })).toBeNull();
   });
 });
+
+describe("the start countdown (spec 050 FR-008, contracts/match-state.md)", () => {
+  it("before started_at the beat is `starts in N`, counted up from the server anchor", () => {
+    const state = derive(match({ movesPlayed: 0 }, { movesPlayed: 0 }), { msToStart: 2_100 });
+    expect(state).toEqual({ kind: "starting", seconds: 3, opponentName: K });
+    expect(liveLinesFor(state, { kind: "idle" })).toEqual({ line1: "starts in 3", line2: "" });
+  });
+
+  it("nothing is the viewer's to make while it counts: no frame, a muted suffix", () => {
+    const state: MoveState = { kind: "starting", seconds: 1, opponentName: K };
+    expect(turnFrameFor(state)).toBeNull();
+    expect(barToneFor(state)).toBe("muted");
+    expect(barSuffixFor(state, "you", { you: 0, opp: 0, oppScoring: false, limit: 10 })).toBe("move 1 of 10");
+  });
+
+  it("at the start the first move opens", () => {
+    expect(derive(match({ movesPlayed: 0 }), { msToStart: 0 })).toEqual({ kind: "yourMove", move: 1, opponentName: K });
+  });
+});
+

@@ -3,6 +3,7 @@
 import { after } from "next/server";
 
 import { moveRequestSchema } from "@/lib/match/schemas";
+import { settleMatchIfDue } from "@/lib/match/matchSettlement";
 import { resolvePendingMoves } from "@/lib/match/moveResolver";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
@@ -83,7 +84,9 @@ export async function submitMove(matchId: string, input: unknown): Promise<MoveR
   if ("status" in result && result.status === "accepted") {
     after(async () => {
       try {
-        await resolvePendingMoves(matchId);
+        const { bothDone } = await resolvePendingMoves(matchId);
+        // Both players have ten: the match ends now, not at the deadline (FR-009).
+        if (bothDone) await settleMatchIfDue(matchId);
       } catch (e) {
         console.error("[submitMove] resolution failed:", e);
       }

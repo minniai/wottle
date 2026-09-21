@@ -81,6 +81,12 @@ function latestResolution(match: MatchState): MoveResolution | null {
  * hydrates the room store, runs transport, and wires the field interaction into
  * bars, field and ledger.
  */
+/** The clock's length for this match (5:00 unless the playtest env shortens it); null before it is set. */
+function clockLengthOf(clock: MatchState["clock"]): number | null {
+  if (!clock?.startedAt || !clock.deadlineAt) return null;
+  return new Date(clock.deadlineAt).getTime() - new Date(clock.startedAt).getTime();
+}
+
 export function MatchRoomController({ initialState, currentPlayerId, matchId, playerProfiles, pollIntervalMs }: MatchRoomControllerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -107,7 +113,13 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // once per match, in every environment.
   useEffect(() => reportWordIntegrity(matchId, match.board, words), [matchId, match.board, words]);
   const { notices, push, dismiss } = useNotices();
-  const clockMs = useDeadlineTick(match.clock);
+  // The tick runs from the deadline, so before started_at it reads more than
+  // the clock's length: the excess is the server-anchored 3·2·1 (spec 050
+  // FR-008), and the caption holds at the full clock meanwhile.
+  const tickMs = useDeadlineTick(match.clock);
+  const clockLengthMs = clockLengthOf(match.clock);
+  const msToStart = clockLengthMs === null ? 0 : tickMs - clockLengthMs;
+  const clockMs = clockLengthMs === null ? tickMs : Math.min(tickMs, clockLengthMs);
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
   const haptics = useHapticFeedback(usePreferencesStore((s) => s.hapticsEnabled));
   const previewEnabled = usePreferencesStore((s) => s.previewEnabled);
@@ -209,8 +221,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const holdMove = useRoomStore((s) => s.holdMove);
   const slipUp = useRoomStore((s) => s.slip !== null && !s.slipDismissed);
   const moveState = useMemo(
-    () => deriveMoveState({ match, viewerSlot, opponentName: opp.displayName, holdMove, revealingOwn, rejected, clockMs }),
-    [match, viewerSlot, opp.displayName, holdMove, revealingOwn, rejected, clockMs],
+    () => deriveMoveState({ match, viewerSlot, opponentName: opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart }),
+    [match, viewerSlot, opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart],
   );
   const canPick = !readOnly && inProgress && (moveState.kind === "yourMove" || moveState.kind === "rejected") && !slipUp;
   const field = useFieldInteraction({

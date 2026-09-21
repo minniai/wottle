@@ -12,6 +12,7 @@ import {
   oppProgress,
   PICK_A_LETTER,
   scoredDelta,
+  startsIn,
   TIME_SCORING,
 } from "@/lib/constants/copy";
 import type { Seat } from "@/lib/constants/seatColors";
@@ -27,6 +28,7 @@ import type { LiveLines } from "./ledgerTypes";
  * turn frame and both bar sub-lines. The opponent's moves never change it.
  */
 export type MoveState =
+  | { kind: "starting"; seconds: number; opponentName: string }
   | { kind: "yourMove"; move: number; opponentName: string }
   | { kind: "rejected"; move: number; opponentName: string; reason: MoveRejectionReason }
   | { kind: "scoring"; move: number; opponentName: string }
@@ -46,6 +48,8 @@ export interface DeriveMoveStateInput {
   rejected: MoveRejectionReason | null;
   /** The shared clock as the client reads it now. */
   clockMs: number;
+  /** Until `started_at` (the server-anchored `3·2·1`); 0 or less once the match has started. */
+  msToStart?: number;
 }
 
 export function viewerFacts(match: MatchState, viewerSlot: PlayerSlot): { you: PlayerMatchFacts; opp: PlayerMatchFacts } {
@@ -58,6 +62,8 @@ export function deriveMoveState(input: DeriveMoveStateInput): MoveState {
   const { match, viewerSlot, opponentName, holdMove, revealingOwn, rejected, clockMs } = input;
   const { you, opp } = viewerFacts(match, viewerSlot);
   const limit = match.moveLimit;
+  const msToStart = input.msToStart ?? 0;
+  if (msToStart > 0 && match.state === "in_progress") return { kind: "starting", seconds: Math.ceil(msToStart / 1000), opponentName };
   if (clockMs <= 0 && match.state === "in_progress") return { kind: "timeUp", opponentName };
   if (holdMove !== null) {
     return { kind: "scored", move: holdMove, opponentName, delta: you.lastResolution?.delta ?? 0, next: holdMove + 1 };
@@ -81,6 +87,8 @@ function instructionFor(field: LiveState): string {
 /** Line 1 is the move's beat in the board face, line 2 the instruction or the fact for that beat. */
 export function liveLinesFor(state: MoveState, field: LiveState): LiveLines {
   switch (state.kind) {
+    case "starting":
+      return { line1: startsIn(state.seconds), line2: "" };
     case "yourMove":
       return { line1: moveYourMove(state.move), line2: instructionFor(field) };
     case "rejected":
@@ -110,6 +118,7 @@ export function barSuffixFor(state: MoveState, seat: Seat, counts: BarCounts): s
   if (seat === "you") {
     if (state.kind === "done") return DONE_SUFFIX;
     if (state.kind === "scoring") return moveScoringSuffix(state.move);
+    if (state.kind === "starting") return moveOfSuffix(counts.you + 1);
     return moveOfSuffix(state.move);
   }
   if (counts.opp >= counts.limit) return DONE_SUFFIX;

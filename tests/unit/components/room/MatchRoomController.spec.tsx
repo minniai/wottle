@@ -139,12 +139,21 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent · 5 of 10 · playing");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you · move 3 of 10");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("move 3 of 10");
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 3 of 10");
     expect(screen.getByTestId("match-clock")).toBeInTheDocument();
     expect(screen.queryByTestId("player-bar-clock")).toBeNull();
     const ids = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
     expect(ids.indexOf("player-bar-top")).toBeLessThan(ids.indexOf("field"));
     expect(ids.indexOf("field")).toBeLessThan(ids.indexOf("player-bar-bottom"));
+  });
+
+  it("before started_at the room counts 3·2·1 from the server anchor and takes no pick; the caption holds at 5:00", () => {
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("starts in 2");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("5:00");
+    fireEvent.click(cell(0, 0));
+    expect(cell(0, 0)).not.toHaveAttribute("data-state", "picked");
   });
 
   it("your move reads the beat; a pick adds the instruction; a commit reads scoring and locks the field", async () => {
@@ -207,7 +216,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
     expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "live");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 4 of 10");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
     expect(cell(1, 2)).toHaveAttribute("data-state", "scored");
@@ -280,7 +289,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("field")).toBeInTheDocument();
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
     expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("final · 4:52");
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("final · 4:52");
     expect(screen.queryByTestId("match-clock")).toBeNull();
     expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
     await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1191 → 1203 · +12 · wins"));

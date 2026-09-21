@@ -6,9 +6,11 @@ vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/rate-limiting/middleware", () => ({ assertWithinRateLimit: vi.fn() }));
 vi.mock("@/lib/match/moveResolver", () => ({ resolvePendingMoves: vi.fn().mockResolvedValue({ resolved: 1, bothDone: false }) }));
+vi.mock("@/lib/match/matchSettlement", () => ({ settleMatchIfDue: vi.fn().mockResolvedValue("completed") }));
 
 import { submitMove } from "@/app/actions/match/submitMove";
 import { resolvePendingMoves } from "@/lib/match/moveResolver";
+import { settleMatchIfDue } from "@/lib/match/matchSettlement";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -89,5 +91,19 @@ describe("submitMove", () => {
     withRpc(null, { message: "connection reset" });
     expect(await submitMove(MATCH_ID, MOVE)).toEqual({ error: "Failed to submit move" });
     expect(resolvePendingMoves).not.toHaveBeenCalled();
+  });
+
+  it("settles the match once the resolved move brought both players to ten (contracts/move-resolver.md)", async () => {
+    withRpc({ status: "accepted", moveId: "m-10", globalSeq: 20, receivedAt: "2026-09-21T12:00:00.000Z" });
+    vi.mocked(resolvePendingMoves).mockResolvedValueOnce({ resolved: 1, bothDone: true });
+    await submitMove(MATCH_ID, MOVE);
+    await vi.waitFor(() => expect(settleMatchIfDue).toHaveBeenCalledWith(MATCH_ID));
+  });
+
+  it("does not settle while either player is short of ten", async () => {
+    withRpc({ status: "accepted", moveId: "m-4", globalSeq: 7, receivedAt: "2026-09-21T12:00:00.000Z" });
+    await submitMove(MATCH_ID, MOVE);
+    await vi.waitFor(() => expect(resolvePendingMoves).toHaveBeenCalled());
+    expect(settleMatchIfDue).not.toHaveBeenCalled();
   });
 });

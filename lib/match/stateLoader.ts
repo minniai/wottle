@@ -57,6 +57,16 @@ function triggerResolveInBackground(matchId: string): void {
   }, "self-heal resolvePendingMoves");
 }
 
+type SettlementFacts = Pick<MatchRow, "state" | "deadline_at" | "player_a_moves" | "player_b_moves" | "move_limit">;
+
+/** Worth dispatching settlement: both have the move limit, or the deadline has passed (contracts/settlement.md). */
+export function isSettlementDue(match: SettlementFacts, nowMs: number): boolean {
+  if (match.state !== "in_progress") return false;
+  const bothDone = match.player_a_moves >= match.move_limit && match.player_b_moves >= match.move_limit;
+  const pastDeadline = match.deadline_at !== null && nowMs > new Date(match.deadline_at).getTime();
+  return bothDone || pastDeadline;
+}
+
 function triggerSettleInBackground(matchId: string): void {
   dispatchOnce(`settle:${matchId}`, async () => {
     const { settleMatchIfDue } = await import("./matchSettlement");
@@ -295,7 +305,7 @@ export async function loadMatchState(
 
   const facts = await loadMoveFacts(client, matchId);
   if (match.state === "in_progress" && facts.stale) triggerResolveInBackground(matchId);
-  if (match.state === "in_progress" && match.deadline_at && Date.now() > new Date(match.deadline_at).getTime()) {
+  if (isSettlementDue(match, Date.now())) {
     triggerSettleInBackground(matchId);
   }
 
