@@ -528,10 +528,12 @@
   text-transform: uppercase;
   color: var(--muted);
 }
+/* The spine (2026-09-21): your cell, the move number, theirs. The header, the
+   rows and the total row share the grid, so the players face off across it. */
 .ledger__header {
   display: grid;
-  grid-template-columns: 34px 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  align-items: center;
   padding: 6px 0;
   /* The seat header's rule is ink (Fig. 2); rules between rows are --rule (review S9). */
   border-bottom: 1px solid var(--ink);
@@ -542,8 +544,30 @@
   display: inline-block;
   width: 10px;
   height: 10px;
-  margin-right: 6px;
   vertical-align: middle;
+}
+.ledger__header-you {
+  justify-self: end;
+  padding-right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ledger__header-opp {
+  justify-self: start;
+  padding-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ledger__header-spine {
+  justify-self: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 /* Rows share the stack's height, but a row never gets less than its content:
    a live row with a long fact takes its three lines and the others share the
@@ -558,14 +582,15 @@
    line instead of three dashes across the column gaps (review S6). */
 .ledger__row {
   display: grid;
-  grid-template-columns: 34px 1fr 1fr;
-  column-gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  column-gap: 0;
+  align-items: center;
   grid-column: 1 / -1;
   border-bottom: 1px solid var(--rule);
   min-width: 0;
 }
 .ledger__row > * {
-  padding: 4px 0;
+  padding: 4px 10px;
   min-width: 0;
 }
 /* Fig. 2: the live row — the table's and the queue's — is tinted with the 3px
@@ -614,32 +639,98 @@
   outline: 3px solid var(--opp);
   outline-offset: -3px;
 }
-/* 6px clears the live row's rule; every label keeps the same left edge (review S3). */
+/* The spine: the move number, centred between two 1px rules that run the
+   height of the row, so the columns never read as one. */
 .ledger__move {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
   font-family: var(--font-mono);
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
-  padding-left: 6px;
 }
 /* Future numerals are a progression mark, not a fact; the caption carries the count. */
 .ledger__row--future .ledger__move {
   color: var(--future-label);
 }
 .ledger__words {
-  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.04em;
   color: var(--seat-ink);
   overflow-wrap: anywhere;
 }
+/* Words read inward: yours end at the spine, theirs start from it. */
+.ledger__words[data-seat="you"] {
+  justify-content: flex-end;
+  text-align: right;
+}
+.ledger__words[data-seat="opp"] {
+  justify-content: flex-start;
+  text-align: left;
+}
+.ledger__word-list {
+  min-width: 0;
+}
+/* The move's points, beside the spine: a score is bold ink. */
 .ledger__total {
-  position: absolute;
-  top: 4px;
-  right: 0;
+  flex: none;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
+}
+/* A miss (rules §5.6) says so in words, and its −5 is muted and lighter, so it
+   never reads as a score. No colour: coral and teal already mean the players. */
+.ledger__miss {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ledger__words--empty .ledger__total {
+  color: var(--muted);
+  font-weight: 500;
+}
+/* The final ledger closes with the totals, facing off across the spine. */
+.ledger__totals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  align-items: baseline;
+  padding: 10px 0 8px;
+  border-bottom: 1.5px solid var(--ink);
+}
+/* 24px is large text, where --opp meets 3:1 (it fails 4.5:1 below). */
+.ledger__totals-you {
+  justify-self: end;
+  padding-right: 10px;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--you);
+}
+.ledger__totals-opp {
+  justify-self: start;
+  padding-left: 10px;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--opp);
 }
 .ledger__points {
   font-family: var(--font-mono);
@@ -664,9 +755,18 @@
 .ledger__live-text {
   grid-row: 1;
 }
+/* The live row is one band: the beat spans it (it names the move, so the spine
+   breaks here); the opponent's total for that move sits at the right of line 1. */
+.ledger__row--live .ledger__live-text,
+.ledger__row--settled .ledger__live-text {
+  grid-column: 1 / -1;
+  padding-left: 10px;
+  padding-right: 40px;
+}
 .ledger__live-text + .ledger__words {
   grid-column: 3;
   grid-row: 1;
+  justify-self: end;
   /* Not baseline: the total is positioned, so a baseline would drop it onto line 2. */
   align-self: start;
 }

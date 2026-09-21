@@ -100,8 +100,9 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       clockLengthMs,
       penalizeUnplayed,
     });
-    return { ...base, caption: caption ?? base.caption, verdict };
-  }, [movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed]);
+    const totals = completed ? { you: you.score, opp: opp.score } : undefined;
+    return { ...base, caption: caption ?? base.caption, verdict, totals };
+  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed]);
   const turn = moveState && !completed && !readOnly ? moveState : null;
   const counts = { you: you.movesPlayed, opp: opp.movesPlayed, oppScoring: Boolean(opp.scoring), limit: moveLimit };
   const youSuffix = turn ? barSuffixFor(turn, "you", counts) : null;

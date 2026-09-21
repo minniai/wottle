@@ -124,4 +124,15 @@ describe("RoomFixture", () => {
     expect(screen.getByTestId("slip")).toHaveTextContent("Kári is gone");
     expect(screen.getByTestId("slip-end-early")).toBeInTheDocument();
   });
+
+  it("final: the ledger closes on a totals row across the spine; a live match has none", () => {
+    const final = render(<RoomFixture phase="final" />);
+    const totals = screen.getByTestId("ledger-totals");
+    expect(totals.children).toHaveLength(3);
+    expect(totals.children[1]).toHaveTextContent("total");
+    final.unmount();
+
+    render(<RoomFixture phase="idle" />);
+    expect(screen.queryByTestId("ledger-totals")).toBeNull();
+  });
 });

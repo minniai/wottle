@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-import { HISTORY, lastSeconds, MATCH_CLOCK, points, TIME_SPENT, WORDMARK } from "@/lib/constants/copy";
+import { HISTORY, lastSeconds, MATCH_CLOCK, NO_WORD, NOT_PLAYED, points, SPINE_HEADER, TIME_SPENT, TOTAL_LABEL, WORDMARK } from "@/lib/constants/copy";
 import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeText } from "@/lib/room/notices";
@@ -39,14 +39,19 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
   return "lobby";
 }
 
+/**
+ * One player's cell (the spine, 2026-09-21): words and the move's points, the
+ * points always beside the spine — after your words, before theirs. A miss
+ * says so in words, and its −5 is muted, so it never reads as a score.
+ */
 function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
   if (!cell) return <div className="ledger__words" data-seat={seat} />;
-  // A played move with no word writes its penalty (rules §5.6); at a timed-out
-  // end, unplayed moves are penalised too and marked.
+  const total = <span className="ledger__total">{points(cell.total)}</span>;
+  const inward = (content: ReactNode) => (seat === "you" ? <>{content}{total}</> : <>{total}{content}</>);
   if (cell.words.length === 0) {
     return (
       <div className="ledger__words ledger__words--empty" data-seat={seat} data-miss={cell.miss || undefined} data-unplayed={cell.unplayed || undefined}>
-        <span className="ledger__total">{points(cell.total)}</span>
+        {inward(<span className="ledger__miss">{cell.unplayed ? NOT_PLAYED : NO_WORD}</span>)}
       </div>
     );
   }
@@ -55,20 +60,23 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   if (folded) {
     return (
       <div className="ledger__words ledger__words--folded" style={style} data-seat={seat} title={cell.words.map((w) => w.word).join(" · ")}>
-        <span className="ledger__total">{points(cell.total)}</span>
+        {total}
       </div>
     );
   }
   return (
     <div className="ledger__words" style={style} data-seat={seat}>
-      {cell.words.map((w, i) => (
-        <span key={`${w.word}-${i}`}>
-          {i > 0 ? " · " : ""}
-          {w.word}
-          {showPoints ? <span className="ledger__points"> {w.points}</span> : null}
-        </span>
-      ))}
-      {cell.words.length > 0 ? <span className="ledger__total">{points(cell.total)}</span> : null}
+      {inward(
+        <span className="ledger__word-list">
+          {cell.words.map((w, i) => (
+            <span key={`${w.word}-${i}`}>
+              {i > 0 ? " · " : ""}
+              {w.word}
+              {showPoints ? <span className="ledger__points"> {w.points}</span> : null}
+            </span>
+          ))}
+        </span>,
+      )}
     </div>
   );
 }
@@ -144,7 +152,7 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
            design system §5.4). During the hold the row keeps the tint and says
            the move scored; its words land when the hold ends. */
         <>
-          <div className="ledger__move" data-testid="ledger-live-move">M{row.move}</div>
+          {/* One band across the ledger: the beat names the move, so the spine breaks here. */}
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
             <LiveText live={row.live} />
           </div>
@@ -154,9 +162,10 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
         </>
       ) : (
         <>
-          {/* Future numerals are a progression mark, not a fact for AT: the caption carries the count (design system §7). */}
-          <div className="ledger__move" aria-hidden={row.status === "future" || undefined}>M{row.move}</div>
+          {/* Your cell, the spine, theirs: the move number separates the players. Future
+              numerals are a progression mark, not a fact for AT (design system §7). */}
           <SeatWords cell={row.you} seat="you" showPoints={hovered} folded={row.folded} />
+          <div className="ledger__move" aria-hidden={row.status === "future" || undefined}>{row.move}</div>
           <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded={row.folded} />
         </>
       )}
@@ -219,12 +228,15 @@ export function Ledger(props: LedgerProps) {
   const table = (
     <>
       <div className="ledger__header" data-testid="ledger-header">
-        <span />
-        <span>
-          <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden /> {viewerName}{readOnly ? "" : " · you"}
+        <span className="ledger__header-you">
+          {viewerName}
+          {readOnly ? "" : " · you"}
+          <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden />
         </span>
-        <span>
-          <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden /> {opponentName ?? "—"}
+        <span className="ledger__header-spine">{SPINE_HEADER}</span>
+        <span className="ledger__header-opp">
+          <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden />
+          {opponentName ?? "—"}
         </span>
       </div>
       <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
@@ -232,6 +244,13 @@ export function Ledger(props: LedgerProps) {
           <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
         ))}
       </div>
+      {model.completed && model.totals ? (
+        <div className="ledger__totals" data-testid="ledger-totals">
+          <span className="ledger__totals-you">{points(model.totals.you)}</span>
+          <span className="ledger__header-spine">{TOTAL_LABEL}</span>
+          <span className="ledger__totals-opp">{points(model.totals.opp)}</span>
+        </div>
+      ) : null}
     </>
   );
 
