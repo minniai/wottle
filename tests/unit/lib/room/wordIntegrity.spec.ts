@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 
 import { __resetWordIntegrityForTests, assertWordsSpellBoard, reportWordIntegrity } from "@/lib/room/wordIntegrity";
 import type { AccumulatedWord } from "@/lib/room/ledgerRows";
@@ -58,7 +58,7 @@ describe("assertWordsSpellBoard", () => {
  * development, so production drew ÞKHL under "þaks" and nobody was told.
  */
 describe("reportWordIntegrity", () => {
-  let log: ReturnType<typeof vi.spyOn>;
+  let log: MockInstance<Parameters<typeof console.log>, void>;
   beforeEach(() => {
     __resetWordIntegrityForTests();
     log = vi.spyOn(console, "log").mockImplementation(() => undefined);
