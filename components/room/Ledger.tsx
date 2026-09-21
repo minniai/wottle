@@ -11,7 +11,6 @@ import type { ClockPhase } from "@/lib/room/clock";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
-import { MoveRail } from "./MoveRail";
 import type { RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
@@ -255,8 +254,6 @@ export function Ledger(props: LedgerProps) {
   ));
 
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
-  // The rail (spec 048 US3): every ledger with moves to count — match, final and the queue (all future).
-  const rail = variant === "lobby" ? null : <MoveRail movesPlayed={model.movesPlayed ?? null} completed={model.completed ?? false} />;
 
   return (
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
@@ -269,7 +266,6 @@ export function Ledger(props: LedgerProps) {
         </span>
       </div>
       {model.clock !== undefined ? <LedgerClock time={model.clock} phase={model.clockPhase ?? "calm"} fraction={model.clockFraction ?? 1} /> : null}
-      {rail}
 
       {model.verdict ? (
         <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">

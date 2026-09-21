@@ -103,8 +103,8 @@ export default function RulesPage() {
             the server before 0:00 counts, even if its score lands after.
           </p>
           <p>
-            Your {TOTAL_MOVES} moves are counted on the rail under the clock, ten squares with the next one framed, and
-            in your bar. Your opponent&apos;s count is in theirs.
+            Your bar counts down your {TOTAL_MOVES} moves: ten marks along its edge, one emptied for each move
+            played. Your opponent&apos;s bar counts theirs.
           </p>
         </div>
       </section>

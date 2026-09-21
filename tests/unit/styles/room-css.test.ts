@@ -362,3 +362,28 @@ describe("room.css the ledger caption", () => {
     expect(block(".ledger__caption-right")).toMatch(/justify-content:\s*flex-end/);
   });
 });
+
+// 2026-09-21: the lane is ten segments, the moves left; the ledger's rail is gone.
+describe("room.css the segmented move lane", () => {
+  it("is a 6px grid of ten segments, 3px apart, on the bar's edge", () => {
+    const lane = block(".player-bar__lane--segments");
+    expect(lane).toMatch(/display:\s*grid/);
+    expect(lane).toMatch(/repeat\(10, minmax\(0, 1fr\)\)/);
+    expect(lane).toMatch(/column-gap:\s*3px/);
+    expect(lane).toMatch(/height:\s*6px/);
+    expect(lane).toMatch(/background:\s*transparent/);
+  });
+  it("a move left is the seat colour, a spent one the rule, one in flight the 30% live tint", () => {
+    expect(block('.player-bar__segment[data-state="left"]')).toMatch(/background:\s*var\(--seat-ink\)/);
+    expect(block('.player-bar__segment[data-state="spent"]')).toMatch(/background:\s*var\(--rule\)/);
+    expect(block('.player-bar__segment[data-state="scoring"]')).toMatch(/color-mix\(in srgb, var\(--seat-ink\) 30%, transparent\)/);
+  });
+  it("a disconnected player's moves left are outlined, not filled", () => {
+    const outlined = block('.player-bar__lane--disconnected .player-bar__segment[data-state="left"]');
+    expect(outlined).toMatch(/background:\s*transparent/);
+    expect(outlined).toMatch(/inset 0 0 0 1\.5px var\(--seat-ink\)/);
+  });
+  it("the move rail's styles are gone", () => {
+    expect(css).not.toMatch(/\.rail__cell|\.rail\s*\{/);
+  });
+});

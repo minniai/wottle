@@ -29,7 +29,7 @@ describe("/rules parity", () => {
     ]);
     for (const kind of ["swap", "words", "crossing"]) expect(screen.getByTestId(`rules-figure-${kind}`)).toBeInTheDocument();
     expect(screen.getByTestId("rules-page")).toHaveTextContent(`One clock of ${MATCH_CLOCK_BUDGET_MS / 60_000}:00 for both players`);
-    expect(screen.getByTestId("rules-page")).toHaveTextContent(`Your ${TOTAL_MOVES} moves are counted on the rail`);
+    expect(screen.getByTestId("rules-page")).toHaveTextContent(`Your bar counts down your ${TOTAL_MOVES} moves`);
     expect(screen.getByTestId("rules-figure-words").querySelector(".field")).toHaveAttribute("aria-label", "the field");
     expect(screen.getByTestId("rules-figure-words").querySelector('[aria-hidden="true"]')).toBeTruthy();
     expect(screen.getByTestId("rules-figure-words").querySelector(".rules__field")).toHaveAttribute("inert");

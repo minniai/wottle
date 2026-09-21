@@ -63,7 +63,7 @@ test.describe("@match-completion final room state", () => {
       await submitSwap(pageA);
       await submitSwap(pageB);
       for (const p of [pageA, pageB]) {
-        await expect(p.getByTestId("move-rail")).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 45_000 });
+        await expect(p.getByTestId("player-bar-bottom").getByTestId("player-bar-lane")).toHaveAttribute("aria-valuenow", "9", { timeout: 45_000 });
         await expect(p.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 20_000 });
       }
       const playedBoard = await readField(pageA);

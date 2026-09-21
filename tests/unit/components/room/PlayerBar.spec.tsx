@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import { PlayerBar } from "@/components/room/PlayerBar";
 
-/** Design system §5.3, spec 050: no clock in a bar; the lane counts moves. */
+/** Design system §5.3, spec 050: no clock in a bar; the lane is ten segments, the moves left (2026-09-21). */
 describe("PlayerBar", () => {
-  it("playing: seat square, name, sub-line, total; the lane is the moves played", () => {
+  it("playing: seat square, name, sub-line, total; the lane is ten segments, the moves left in the seat colour", () => {
     render(<PlayerBar seat="opp" position="top" state="playing" name="Kári" subline="1191 · opponent" sublineSuffix="6 of 10 · playing" movesPlayed={6} score={170} />);
     expect(screen.getByTestId("player-bar-name")).toHaveTextContent("Kári");
     expect(screen.getByTestId("player-bar-subline")).toHaveTextContent("1191 · opponent · 6 of 10 · playing");
@@ -15,9 +15,11 @@ describe("PlayerBar", () => {
     expect(lane).toHaveAttribute("role", "progressbar");
     expect(lane).toHaveAttribute("aria-label", "opponent's moves");
     expect(lane).toHaveAttribute("aria-valuemax", "10");
-    expect(lane).toHaveAttribute("aria-valuenow", "6");
-    expect(lane).toHaveAttribute("aria-valuetext", "6 of 10 moves played");
-    expect(lane.style.getPropertyValue("--lane-fraction")).toBe("0.6");
+    expect(lane).toHaveAttribute("aria-valuenow", "4");
+    expect(lane).toHaveAttribute("aria-valuetext", "4 of 10 moves left");
+    const segments = lane.querySelectorAll(".player-bar__segment");
+    expect(segments).toHaveLength(10);
+    expect([...segments].map((s) => s.getAttribute("data-state"))).toEqual([...Array(4).fill("left"), ...Array(6).fill("spent")]);
   });
 
   it("your bar names its lane; the suffix takes the seat tone while the move is yours", () => {
@@ -27,17 +29,26 @@ describe("PlayerBar", () => {
     expect(screen.getByTestId("player-bar-turn")).toHaveTextContent("move 4 of 10");
   });
 
-  it("disconnected: the lane is dashed and holds its length", () => {
+  it("a move in flight keeps its segment, drawn as scoring until it resolves", () => {
+    render(<PlayerBar seat="you" position="bottom" state="playing" name="Birna" subline="1204 · you" movesPlayed={3} moveInFlight score={53} />);
+    const lane = screen.getByTestId("player-bar-lane");
+    expect(lane).toHaveAttribute("aria-valuenow", "7");
+    const states = [...lane.querySelectorAll(".player-bar__segment")].map((s) => s.getAttribute("data-state"));
+    expect(states).toEqual([...Array(6).fill("left"), "scoring", ...Array(3).fill("spent")]);
+  });
+
+  it("disconnected: the moves left stay, outlined rather than filled", () => {
     render(<PlayerBar seat="opp" position="top" state="playing" name="Kári" subline="reconnecting · 0:42 left" movesPlayed={6} score={5} disconnected />);
     const lane = screen.getByTestId("player-bar-lane");
     expect(lane).toHaveClass("player-bar__lane--disconnected");
     expect(lane).toHaveAttribute("data-mode", "disconnected");
-    expect(lane.querySelector("line")).toHaveAttribute("stroke-dasharray", "6 4");
+    expect(lane.querySelectorAll('.player-bar__segment[data-state="left"]')).toHaveLength(4);
   });
 
   it("empty seat: the lane is empty and the action slot renders", () => {
     render(<PlayerBar seat="opp" position="top" state="empty" subline="about 0:10 to find one" action={<button>find an opponent ▸</button>} />);
     expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "empty");
+    expect(screen.getByTestId("player-bar-lane").querySelectorAll(".player-bar__segment")).toHaveLength(0);
     expect(screen.getByTestId("player-bar-action")).toHaveTextContent("find an opponent ▸");
     expect(screen.queryByTestId("player-bar-score")).toBeNull();
   });
@@ -51,6 +62,7 @@ describe("PlayerBar", () => {
   it("final: the total stays; the sub-line carries the rating line", () => {
     render(<PlayerBar seat="you" position="bottom" state="final" name="Birna" subline="1204 → 1216 · +12 · wins" movesPlayed={10} score={134} />);
     expect(screen.getByTestId("player-bar-score")).toHaveTextContent("134");
-    expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("aria-valuenow", "10");
+    expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.getByTestId("player-bar-lane").querySelectorAll('.player-bar__segment[data-state="spent"]')).toHaveLength(10);
   });
 });

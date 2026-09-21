@@ -38,9 +38,9 @@ whatever `components/room/**` and `components/profile/**` render).
 | Surface | Ids |
 | --- | --- |
 | Room | `room` (`data-phase` = lobby · queue · found · match · final, `data-match-id`), `room-shell`, `room-slot-top` / `room-slot-field` / `room-slot-bottom` / `room-slot-ledger` |
-| Player bars | `player-bar-top`, `player-bar-bottom`, `player-bar-name`, `player-bar-lane` (`role=progressbar`, max = the move limit, `data-mode` = moves · searching · disconnected), `player-bar-score`, `player-bar-subline`, `player-bar-name-input` (+ `name-input-form`, `name-input-error`), `player-bar-action`, `player-bar-action-play`, `player-bar-action-find`, `player-bar-action-cancel` |
+| Player bars | `player-bar-top`, `player-bar-bottom`, `player-bar-name`, `player-bar-lane` (`role=progressbar`, max = the move limit, `aria-valuenow` = moves left, `data-mode` = moves · searching · disconnected · empty; in a match ten `.player-bar__segment` with `data-state` = left · scoring · spent), `player-bar-score`, `player-bar-subline`, `player-bar-name-input` (+ `name-input-form`, `name-input-error`), `player-bar-action`, `player-bar-action-play`, `player-bar-action-find`, `player-bar-action-cancel` |
 | Field | `field`, `field-cell` (`data-x`, `data-y`, `data-state` = free · picked · previewed · frozen · scored, `data-seat` = the owner's seat), `field-bands`, `field-band` (`data-seat`, `data-direction`, `data-move`, `data-word`, `data-cells` = the cells the band covers, `x,y;x,y`) |
-| Ledger (match) | `ledger`, `ledger-caption`, `ledger-header`, `ledger-rows`, `ledger-row-<n>` (`data-status` = past · live · settled · future), `ledger-context`, `match-clock` (`data-low` under 1:00; the one clock), `ledger-live-row`, `ledger-live-move`, `ledger-territory`, `ledger-hint`, `ledger-notice`, `ledger-foot`, `ledger-how-to-play` (lobby, final), `ledger-result` (final, once the slip is lifted), `move-rail` (`role=img`, `aria-label` = `move N of 10` · `10 of 10 played`), `verdict` |
+| Ledger (match) | `ledger`, `ledger-caption`, `ledger-header`, `ledger-rows`, `ledger-row-<n>` (`data-status` = past · live · settled · future), `ledger-context`, `match-clock` (`data-low` under 1:00; the one clock), `ledger-live-row`, `ledger-live-move`, `ledger-territory`, `ledger-hint`, `ledger-notice`, `ledger-foot`, `ledger-how-to-play` (lobby, final), `ledger-result` (final, once the slip is lifted), `verdict` |
 | Slip (over the field) | `slip` (`role=dialog`, `data-kind` = signIn · resign · endEarly · matchOver), `slip-how-to-play`, `slip-confirm-resign` / `slip-keep-playing`, `slip-end-early` / `slip-keep-waiting`, `slip-rematch` / `slip-new-opponent` / `slip-review-field` / `slip-lobby`, `slip-accept-rematch` / `slip-decline-rematch`, `slip-rematch-waiting`, `slip-score`, `slip-ratings` |
 | Ledger notices | `notice-accept-challenge` / `notice-decline-challenge` (the resign confirmation, the claim and the rematch request moved to the slip with spec 048) |
 | Ledger menu | `ledger-menu`, `ledger-menu-trigger`, `ledger-menu-list`, `ledger-menu-item-{sound,preview,profile,signout,howToPlay,resign,leave}` (`howToPlay` is an `<a target=_blank>` to `/rules`, match only) |
@@ -52,7 +52,7 @@ whatever `components/room/**` and `components/profile/**` render).
 Retired with their components (do not reintroduce): `hud-card`, `round-pip-bar`, `your-move-card`,
 `scored-words-card`, `tiles-claimed-card`, `move-lock-banner`, `round-announce`, `match-ring`,
 `post-game-scoreboard-card`, `rematch-banner`, `rematch-interstitial`, `series-badge`, `final-summary`,
-`disconnection-modal`, `board-grid`, `tile-*`, and with spec 050 `player-bar-clock`, `round-rail`, `slip-claim-win` (`pinned` survives only in the `/rules` swap figure).
+`disconnection-modal`, `board-grid`, `tile-*`, and with spec 050 `player-bar-clock`, `round-rail`, `slip-claim-win`, and since 2026-09-21 `move-rail` (`pinned` survives only in the `/rules` swap figure).
 
 Conventions that follow from the design: the slip is the only thing positioned over the field, so a spec that needs
 another dialog is wrong; frozen letters are `aria-disabled` cells — use `dispatchEvent("click")` if Playwright's

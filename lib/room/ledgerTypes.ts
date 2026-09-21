@@ -55,8 +55,7 @@ export interface LedgerModel {
   clockPhase?: ClockPhase;
   /** Time left over the match's clock length, 0..1: the bar's fill. */
   clockFraction?: number;
-  /** The viewer's moves played and whether the match is over: the rail's inputs (spec 048 US3). */
-  movesPlayed?: number;
+  /** Whether the match is over. */
   completed?: boolean;
   rows: LedgerRow[];
   territory: Territory;

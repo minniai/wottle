@@ -1,4 +1,4 @@
-import { drawLine, finalContext, forcedDetail, incompleteDetail, moveContext, NEITHER_FINISHED, RATING_PENDING, ratingSubline, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, forcedDetail, incompleteDetail, NEITHER_FINISHED, RATING_PENDING, ratingSubline, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { liveText, type LiveState } from "./liveLines";
 import { liveLinesFor, type MoveState } from "./moveState";
 
@@ -110,15 +110,17 @@ export interface BuildLedgerInput extends BuildRowsInput {
   hint?: string;
 }
 
+/**
+ * The ledger is the match's (2026-09-21): during a match its caption names no
+ * move of the viewer's (the bottom bar counts those); the final caption is set
+ * by the caller.
+ */
 export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
-  const limit = input.moveLimit ?? TOTAL_MOVES;
-  const move = Math.min(input.movesPlayed.you + 1, limit);
   return {
-    caption: moveContext(move),
+    caption: "",
     clock: input.clockMs === undefined ? undefined : formatClock(input.clockMs),
     clockPhase: input.clockMs === undefined ? undefined : clockPhase(input.clockMs),
     clockFraction: input.clockMs === undefined ? undefined : laneFraction(input.clockMs, input.clockLengthMs),
-    movesPlayed: input.movesPlayed.you,
     completed: input.completed,
     rows: buildLedgerRows(input),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),

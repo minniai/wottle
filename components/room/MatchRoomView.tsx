@@ -114,6 +114,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           subline={subline(opp, readOnly ? null : OPPONENT)}
           sublineSuffix={opp.reconnectMsLeft != null ? null : oppSuffix}
           movesPlayed={opp.movesPlayed}
+          moveInFlight={opp.scoring}
           moveLimit={moveLimit}
           score={oppScore}
           disconnected={opp.reconnectMsLeft != null}
@@ -130,6 +131,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           sublineSuffix={youSuffix}
           sublineTone={turn ? barToneFor(turn) : "muted"}
           movesPlayed={you.movesPlayed}
+          moveInFlight={you.scoring}
           moveLimit={moveLimit}
           score={youScore}
           disconnected={you.reconnectMsLeft != null}

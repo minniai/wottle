@@ -14,8 +14,6 @@ export const QUEUE_CONTEXT = "10 moves each · one 5:00 clock";
 export const MATCH_CLOCK = "match clock";
 export const lastSeconds = (seconds: number): string => `last ${seconds}s`;
 export const TIME_SPENT = "time";
-/** The viewer's next move; the clock sits beside it in the caption. */
-export const moveContext = (move: number): string => `move ${move} of 10`;
 export const lobbyContext = (hereCount: number): string => `lobby · ${hereCount} here`;
 /** `final` is the phase word here, as `lobby` is in lobbyContext; the clock's place holds the match's duration. */
 export const finalContext = (durationMmSs: string): string => `final · ${durationMmSs}`;

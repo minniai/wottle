@@ -331,7 +331,6 @@ test.describe("@visual the room fits a phone", () => {
       // The design system's one grey exception: future-move numerals, aria-hidden,
       // with the count carried by the caption (spec 045 FR-033).
       .exclude(".ledger__row--future .ledger__move")
-      .exclude('.rail__cell[data-state="future"]')
       .analyze();
 
     expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
@@ -358,16 +357,19 @@ test.describe("@visual one owner, one colour", () => {
 });
 
 test.describe("@visual room clarity", () => {
-  test("the move rail stays above the collapsed live row", async ({ page }, testInfo) => {
+  test("each bar's lane is ten segments, the moves left, legible at every size", async ({ page }) => {
     await page.goto("/dev/room?phase=idle");
-    const rail = page.getByTestId("move-rail");
-    await expect(rail).toHaveAttribute("aria-label", "move 4 of 10");
-    await expect(rail.locator('[data-state="past"]')).toHaveCount(3);
-    await expect(rail.locator('[data-state="current"]')).toHaveCount(1);
-    if (testInfo.project.name === "visual-390x844") {
-      const railBox = await rail.boundingBox();
-      const liveBox = await page.getByTestId("ledger-live-trigger").boundingBox();
-      expect(railBox!.y + railBox!.height).toBeLessThanOrEqual(liveBox!.y);
+    await expect(page.getByTestId("move-rail")).toHaveCount(0);
+    const lane = (bar: string) => page.getByTestId(bar).getByTestId("player-bar-lane");
+    await expect(lane("player-bar-bottom")).toHaveAttribute("aria-valuenow", "7");
+    await expect(lane("player-bar-top")).toHaveAttribute("aria-valuenow", "4");
+    const segments = lane("player-bar-bottom").locator(".player-bar__segment");
+    await expect(segments).toHaveCount(10);
+    await expect(lane("player-bar-bottom").locator('.player-bar__segment[data-state="left"]')).toHaveCount(7);
+    // Every segment stays a readable mark on a phone: at least 24px by 6px.
+    for (const box of await segments.evaluateAll((els) => els.map((el) => el.getBoundingClientRect()).map((r) => ({ w: r.width, h: r.height })))) {
+      expect(box.w).toBeGreaterThanOrEqual(24);
+      expect(box.h).toBe(6);
     }
   });
 
@@ -379,7 +381,6 @@ test.describe("@visual room clarity", () => {
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         // DS §2: decorative future numerals are the sole contrast exception.
         .exclude(".ledger__row--future .ledger__move")
-        .exclude('.rail__cell[data-state="future"]')
         .analyze();
       expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
     });
