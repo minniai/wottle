@@ -21,3 +21,11 @@ baselines added for the shipped move-based game and ledger clock. The 65 capture
 were checked against independent run
 [35633909918](https://github.com/minniai/wottle/actions/runs/35633909918):
 64 PNGs were byte-identical, and the phone preview differed by only four pixels.
+
+After PR #274 changed the lobby and queue copy to `find an opponent` and
+`searching`, four more Linux images needed refreshing: lobby at 1280×800 and
+390×844, queue at 390×844, and rules at 390×844. The longer rules action wraps
+the phone footer onto two lines, making the full-page capture 38px taller.
+These original PNGs come from [main run 35639664570](https://github.com/minniai/wottle/actions/runs/35639664570)
+and are byte-identical to the corresponding captures from
+[PR run 35639502309](https://github.com/minniai/wottle/actions/runs/35639502309).
