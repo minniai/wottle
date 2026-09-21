@@ -39,6 +39,8 @@ const matchRows = [
     player_b_id: OPPONENT_ID,
     winner_id: PLAYER_ID,
     completed_at: "2026-04-20T10:00:00.000Z",
+    player_a_score: 120,
+    player_b_score: 90,
     player_a: { id: PLAYER_ID, username: "rg-alpha", display_name: "Rg Alpha" },
     player_b: {
       id: OPPONENT_ID,
@@ -52,6 +54,8 @@ const matchRows = [
     player_b_id: OPPONENT_ID,
     winner_id: OPPONENT_ID,
     completed_at: "2026-04-20T09:00:00.000Z",
+    player_a_score: 70,
+    player_b_score: 110,
     player_a: { id: PLAYER_ID, username: "rg-alpha", display_name: "Rg Alpha" },
     player_b: {
       id: OPPONENT_ID,
@@ -61,19 +65,11 @@ const matchRows = [
   },
 ];
 
-const snapshotRows = [
-  { match_id: "match-1", round_number: 10, player_a_score: 120, player_b_score: 90 },
-  { match_id: "match-2", round_number: 10, player_a_score: 70, player_b_score: 110 },
-];
-
 beforeEach(() => {
   vi.mocked(getServiceRoleClient).mockReturnValue({
     from: vi.fn((table: string) => {
       if (table === "matches") {
         return buildChain({ data: matchRows, error: null });
-      }
-      if (table === "scoreboard_snapshots") {
-        return buildChain({ data: snapshotRows, error: null });
       }
       return buildChain({ data: null, error: null });
     }),

@@ -81,6 +81,7 @@ interface MatchRow {
   frozen_tiles: unknown;
   winner_id: string | null;
   ended_reason: string | null;
+  completed_at: string | null;
   created_at: string;
   started_at: string | null;
   deadline_at: string | null;
@@ -114,7 +115,7 @@ interface MoveRow {
 }
 
 const MATCH_COLUMNS =
-  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit";
+  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,completed_at,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit";
 
 const MOVE_COLUMNS =
   "id,player_id,global_seq,seq,status,rejection_reason,from_x,from_y,to_x,to_y,received_at,claimed_at,resolved_at,board_after,frozen_after,delta,score_a_after,score_b_after";
@@ -321,6 +322,7 @@ export async function loadMatchState(
     ...(await disconnectFacts(client, match)),
     winnerId: match.winner_id ?? null,
     endedReason: (match.ended_reason as MatchEndedReason | null) ?? null,
+    completedAt: match.completed_at ?? null,
   };
 }
 

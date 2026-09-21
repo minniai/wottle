@@ -46,28 +46,21 @@ describe("previewSwap integration — read-only", () => {
         }
         chain.single = vi.fn(async () => {
           record("single");
-          if (table === "matches") return { data: { current_round: 1, state: "in_progress", player_a_id: PLAYER_A, player_b_id: "player-b", frozen_tiles: {} }, error: null };
-          if (table === "rounds") return { data: { id: "round-1", board_snapshot_before: board }, error: null };
+          if (table === "matches") return { data: { board, state: "in_progress", player_a_id: PLAYER_A, player_b_id: "player-b", frozen_tiles: {} }, error: null };
           return { data: null, error: null };
         });
-        if (table === "move_submissions") {
-          chain.eq = vi.fn(async () => {
-            record("eq");
-            return { data: [], error: null };
-          });
-        }
         return chain;
       },
     } as never);
   });
 
-  it("prices a match swap using only reads on matches, rounds and move_submissions", async () => {
+  it("prices a match swap using only reads on the match row (spec 050: the live board)", async () => {
     const result = await previewSwap({ kind: "match", matchId: "m", from: { x: 0, y: 0 }, to: { x: 5, y: 0 } });
     expect(result.status).toBe("ok");
     expect(result.total).toBeGreaterThan(0);
     const writes = accessed.filter((a) => ["insert", "update", "upsert", "delete"].includes(a.op));
     expect(writes).toEqual([]);
     expect(accessed.some((a) => a.table === "word_score_entries")).toBe(false);
-    expect(new Set(accessed.map((a) => a.table))).toEqual(new Set(["matches", "rounds", "move_submissions"]));
+    expect(new Set(accessed.map((a) => a.table))).toEqual(new Set(["matches"]));
   });
 });

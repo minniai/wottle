@@ -29,7 +29,7 @@ export interface TransportState {
 /**
  * Realtime channel + polling fallback + 2 s safety poller + pagehide beacon,
  * ported from MatchClient into the room (spec 044, research R5). Snapshots and
- * summaries land in the room store; the caller reads `match` from there.
+ * resolutions land in the room store; the caller reads `match` from there.
  */
 export function useMatchTransport(matchId: string, currentPlayerId: string, pollIntervalMs = 3_000, onRematchEvent?: (event: RematchEvent) => void): TransportState {
   const rematchRef = useRef(onRematchEvent);
@@ -37,7 +37,7 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
     rematchRef.current = onRematchEvent;
   }, [onRematchEvent]);
   const applySnapshot = useRoomStore((s) => s.applySnapshot);
-  const applySummary = useRoomStore((s) => s.applySummary);
+  const applyResolution = useRoomStore((s) => s.applyResolution);
   const setConnection = useRoomStore((s) => s.setConnection);
   const [usePolling, setUsePolling] = useState(process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true");
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -58,7 +58,7 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
         applySnapshot(snapshot);
         if (snapshot.disconnectedPlayerId !== currentPlayerId) setIsReconnecting(false);
       },
-      onSummary: applySummary,
+      onMoveResolved: applyResolution,
       onRematchEvent: (event) => rematchRef.current?.(event),
       onOpponentLeave: ({ playerId }) => {
         void handlePlayerDisconnect(matchId, playerId).catch((error) =>
@@ -76,7 +76,7 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
     return () => {
       void client.removeChannel(channel);
     };
-  }, [matchId, currentPlayerId, usePolling, applySnapshot, applySummary, fallBack]);
+  }, [matchId, currentPlayerId, usePolling, applySnapshot, applyResolution, fallBack]);
 
   useEffect(() => {
     const notify = () => navigator.sendBeacon?.(`/api/match/${matchId}/disconnect`);

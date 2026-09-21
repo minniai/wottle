@@ -3,7 +3,7 @@
 import { create } from "zustand";
 
 import { outranks, type SlipKind, type SlipState } from "./slip";
-import type { MatchState, PlayerIdentity, PlayerSlot, RoundSummary } from "@/lib/types/match";
+import type { MatchState, MoveResolution, PlayerIdentity, PlayerSlot } from "@/lib/types/match";
 
 /**
  * Client model of the one room (spec 044 data-model §3.1). Lobby, queue, found,
@@ -33,8 +33,8 @@ export interface RoomState {
   slip: SlipState | null;
   /** Final phase: `review the field ▸` hides the match-over slip; `result ▸` restores it. */
   slipDismissed: boolean;
-  /** The round whose scored row is held before the next live row opens (spec 048 FR-022). */
-  holdRound: number | null;
+  /** The viewer's move (its per-player sequence) held after its reveal before the next opens (spec 050 FR-013). */
+  holdMove: number | null;
 
   setViewer: (viewer: PlayerIdentity | null) => void;
   setOpponent: (opponent: PlayerIdentity | null) => void;
@@ -46,13 +46,14 @@ export interface RoomState {
   cancelQueue: () => void;
   /** Placeholder letters landed so far (queue state). */
   setLettersLanded: (count: number) => void;
-  /** Opponent found: the top bar writes them in and counts round 1 down. */
+  /** Opponent found: the top bar writes them in and counts the start down. */
   setFound: (opponent: PlayerIdentity | null, countdown: 3 | 2 | 1) => void;
   /** Load a server snapshot; derives viewerSlot and picks match|final from `state`. */
   hydrateMatch: (state: MatchState, viewerId: string | null) => void;
-  /** Merge a broadcast/polled snapshot, keeping scores and the last summary sticky. */
+  /** Merge a broadcast/polled snapshot; never regresses the resolution cursor or the scores. */
   applySnapshot: (snapshot: MatchState) => void;
-  applySummary: (summary: RoundSummary) => void;
+  /** One finished move (`move-resolved`); idempotent under the safety poll. */
+  applyResolution: (resolution: MoveResolution) => void;
   leaveToLobby: () => void;
   /** Show a slip unless a higher-ranked one is already up. */
   setSlip: (next: SlipState) => void;
@@ -60,7 +61,7 @@ export interface RoomState {
   clearSlip: (kind: SlipKind) => void;
   dismissSlip: () => void;
   restoreSlip: () => void;
-  beginHold: (round: number) => void;
+  beginHold: (move: number) => void;
   endHold: () => void;
 }
 
@@ -72,25 +73,51 @@ function phaseForMatch(state: MatchState): RoomPhase {
 
 function deriveViewerSlot(state: MatchState, viewerId: string | null): PlayerSlot | null {
   if (!viewerId) return null;
-  if (state.timers.playerA.playerId === viewerId) return "player_a";
-  if (state.timers.playerB.playerId === viewerId) return "player_b";
+  if (state.players.playerA.playerId === viewerId) return "player_a";
+  if (state.players.playerB.playerId === viewerId) return "player_b";
   return null;
 }
 
 /**
- * Ported from MatchClient.applySnapshot: a fresh poll may lag a broadcast; never
- * regress. A snapshot for another match (a rematch replaced the match in place)
- * carries nothing over — spec 047 FR-004.
+ * A fresh poll may lag a broadcast; never regress. A snapshot behind the
+ * resolution cursor keeps what the resolutions wrote and takes only the facts
+ * a lagging read can still carry truthfully. A snapshot for another match (a
+ * rematch replaced the match in place) carries nothing over — spec 047 FR-004.
  */
 function mergeSnapshot(previous: MatchState | null, snapshot: MatchState): MatchState {
   if (!previous || previous.matchId !== snapshot.matchId) return snapshot;
+  if (snapshot.resolvedSeq < previous.resolvedSeq) {
+    return {
+      ...previous,
+      state: snapshot.state === "completed" || snapshot.state === "abandoned" ? snapshot.state : previous.state,
+      clock: snapshot.clock,
+      disconnectedPlayerId: snapshot.disconnectedPlayerId,
+      disconnectedAt: snapshot.disconnectedAt,
+      reconnectWindowMs: snapshot.reconnectWindowMs,
+    };
+  }
   const scores =
     snapshot.scores.playerA === 0 && snapshot.scores.playerB === 0 &&
     (previous.scores.playerA > 0 || previous.scores.playerB > 0)
       ? previous.scores
       : snapshot.scores;
-  const lastSummary = snapshot.lastSummary ?? previous.lastSummary ?? null;
-  return { ...snapshot, scores, lastSummary };
+  return { ...snapshot, scores };
+}
+
+function withResolution(current: MatchState, r: MoveResolution): MatchState {
+  const slot = r.playerId === current.players.playerA.playerId ? "playerA" : "playerB";
+  const other = slot === "playerA" ? "playerB" : "playerA";
+  const players = {
+    [slot]: {
+      ...current.players[slot],
+      movesPlayed: r.movesPlayed[slot],
+      score: r.totals[slot],
+      inFlight: null,
+      lastResolution: r,
+    },
+    [other]: { ...current.players[other], movesPlayed: r.movesPlayed[other], score: r.totals[other] },
+  } as MatchState["players"];
+  return { ...current, board: r.board, frozenTiles: r.frozenTiles, scores: r.totals, resolvedSeq: r.globalSeq, players };
 }
 
 export const useRoomStore = create<RoomState>((set, get) => ({
@@ -105,7 +132,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   connection: "realtime",
   slip: null,
   slipDismissed: false,
-  holdRound: null,
+  holdMove: null,
 
   // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
   setViewer: (viewer) =>
@@ -133,7 +160,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       queue: null,
       found: null,
       // Another match in the same room (a rematch) starts with no slip and no hold.
-      ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdRound: null }),
+      ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdMove: null }),
     })),
 
   applySnapshot: (snapshot) => {
@@ -141,21 +168,23 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     set({ match: merged, board: merged.board, phase: phaseForMatch(merged) });
   },
 
-  applySummary: (summary) => {
+  applyResolution: (resolution) => {
     const current = get().match;
-    if (!current || summary.matchId !== current.matchId) return;
-    set({ match: { ...current, scores: summary.totals, lastSummary: summary } });
+    if (!current || resolution.matchId !== current.matchId) return;
+    if (resolution.globalSeq <= current.resolvedSeq) return;
+    const next = withResolution(current, resolution);
+    set({ match: next, board: next.board });
   },
 
   leaveToLobby: () =>
-    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdRound: null }),
+    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdMove: null }),
 
   setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: s.slip?.kind === next.kind ? s.slipDismissed : false })),
   clearSlip: (kind) => set((s) => (s.slip?.kind === kind ? { slip: null, slipDismissed: false } : {})),
   dismissSlip: () => set({ slipDismissed: true }),
   restoreSlip: () => set({ slipDismissed: false }),
-  beginHold: (round) => set({ holdRound: round }),
-  endHold: () => set({ holdRound: null }),
+  beginHold: (move) => set({ holdMove: move }),
+  endHold: () => set({ holdMove: null }),
 }));
 
 /** One `room:phase-change` mark per transition (spec 044 T100); the room never remounts, so this is the only phase signal. */

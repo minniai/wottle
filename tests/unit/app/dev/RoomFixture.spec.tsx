@@ -13,8 +13,9 @@ import { ROOM_PHASES } from "@/app/dev/room/fixtures";
 const IN_ROOM_PHASES = ROOM_PHASES.filter((phase) => phase !== "rules");
 
 /**
- * Spec 047 amendment P2: every phase renders from literals alone. The visual
- * suite screenshots each one; this keeps a broken phase from reaching it.
+ * Spec 047 amendment P2, spec 050: every phase renders from literals alone.
+ * The visual suite screenshots each one; this keeps a broken phase from
+ * reaching it.
  */
 describe("RoomFixture", () => {
   beforeEach(() => {
@@ -25,15 +26,13 @@ describe("RoomFixture", () => {
     vi.unstubAllGlobals();
   });
 
-  // Spec 049 US2: LEK (you, R3) crosses GILT (opp, R2) at (7,6). The L is
+  // Spec 049 US2: LEK (you, M3) crosses GILT (opp, M1) at (7,6). The L is
   // Kári's — he froze it first — so LEK's band covers only (8,6) and (9,6).
-  it("the crossing letter is the opponent's in reveal; settled, LEK's band covers the two letters it froze", () => {
-    const reveal = render(<RoomFixture phase="reveal" />);
+  it("the crossing letter is the opponent's; settled, LEK's band covers the two letters it froze", () => {
+    render(<RoomFixture phase="idle" />);
     const l = screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === "7" && c.getAttribute("data-y") === "6")!;
     expect(l).toHaveAttribute("data-seat", "opp");
     expect(l).not.toHaveAttribute("data-state", "shared");
-    reveal.unmount();
-    render(<RoomFixture phase="settle" />);
     const bands = screen.getAllByTestId("field-band");
     expect(bands.find((b) => b.getAttribute("data-word") === "LEK")).toHaveAttribute("data-cells", "8,6;9,6");
     expect(bands.find((b) => b.getAttribute("data-word") === "GILT")).toHaveAttribute("data-cells", "7,4;7,5;7,6;7,7");
@@ -45,36 +44,39 @@ describe("RoomFixture", () => {
     else expect(screen.getByTestId("field")).toBeInTheDocument();
   });
 
-  it("idle reads pick a letter; picking, previewed, played and illegal each carry their live line", () => {
+  it("each move beat carries its live line (spec 050 contracts/move-state.md)", () => {
     const lineOf = (phase: (typeof IN_ROOM_PHASES)[number]) => {
       const { unmount } = render(<RoomFixture phase={phase} />);
       const text = screen.getByTestId("ledger-live-row").textContent;
       unmount();
       return text;
     };
-    // Spec 048 US2: line 1 is the round's beat, line 2 the field's instruction.
-    expect(lineOf("idle")).toBe("round 4 · your movepick a letter");
-    expect(lineOf("picking")).toBe("round 4 · your movepicking · T (1) · tap a second letter");
-    expect(lineOf("previewed")).toBe("round 4 · your move10 · tak · tap again to play · esc cancels");
-    expect(lineOf("played")).toBe("played · waiting for KáriKári is thinking · their clock runs");
-    expect(lineOf("illegal")).toBe("round 4 · your movefrozen · Kári R2 · pick another");
-    expect(lineOf("reveal")).toBe("resolving round 3both played · scoring");
-    expect(lineOf("settle")).toContain("round 3 scoredyou +9 · Kári +0 · round 4 opens in 1");
+    expect(lineOf("idle")).toBe("move 4 · your movepick a letter");
+    expect(lineOf("picking")).toBe("move 4 · your movepicking · T (1) · tap a second letter");
+    expect(lineOf("previewed")).toBe("move 4 · your move10 · tak · tap again to play · esc cancels");
+    expect(lineOf("illegal")).toBe("move 4 · your movefrozen · Kári M1 · pick another");
+    expect(lineOf("scoring")).toBe("move 4 · scoring");
+    expect(lineOf("scored")).toBe("move 4 scoredyou +13 · move 5 opens");
+    expect(lineOf("rejected")).toBe("move 5 · your movefrozen · Kári just froze it · pick another");
+    expect(lineOf("done-waiting")).toBe("10 of 10 playedwaiting for Kári · 8 of 10 · 0:48 left");
+    expect(lineOf("time-up")).toBe("time · scoring");
   });
 
-  it("settle holds round 3 as the tinted row and keeps round 4 future; your move frames the field", () => {
-    const { unmount } = render(<RoomFixture phase="settle" />);
-    expect(screen.getByTestId("ledger-row-3")).toHaveAttribute("data-status", "settled");
-    expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "future");
+  it("scored holds move 4 as the tinted row and keeps move 5 future; your move frames the field and names the counts", () => {
+    const { unmount } = render(<RoomFixture phase="scored" />);
+    expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "settled");
+    // Kári has six moves, so row 5 already holds his fifth; it is not your live row.
+    expect(screen.getByTestId("ledger-row-5")).not.toHaveAttribute("data-status", "live");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     unmount();
     render(<RoomFixture phase="idle" />);
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("your move");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("thinking");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("6 of 10 · playing");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("3:12");
   });
 
-  it("previewed exchanges the two letters; played and opp-played pin in their seat; low-clock runs low", () => {
+  it("previewed exchanges the two letters; scoring locks the field; opp-reveal keeps your pick; low-clock is heavy", () => {
     const cell = (x: number, y: number) => screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === String(x) && c.getAttribute("data-y") === String(y))!;
 
     const previewed = render(<RoomFixture phase="previewed" />);
@@ -83,19 +85,28 @@ describe("RoomFixture", () => {
     expect(cell(0, 9)).toHaveTextContent(/^Þ/);
     previewed.unmount();
 
-    const played = render(<RoomFixture phase="played" />);
-    expect(cell(3, 5)).toHaveAttribute("data-state", "pinned");
-    expect(cell(3, 5)).toHaveAttribute("data-seat", "you");
-    expect(screen.getByTestId("player-bar-bottom").querySelector("[data-testid=player-bar-clock]")).toHaveAttribute("data-running", "false");
-    played.unmount();
+    const scoring = render(<RoomFixture phase="scoring" />);
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10 · scoring");
+    scoring.unmount();
 
-    const opp = render(<RoomFixture phase="opp-played" />);
-    expect(cell(1, 1)).toHaveAttribute("data-state", "pinned");
-    expect(cell(1, 1)).toHaveAttribute("data-seat", "opp");
-    expect(screen.getByTestId("player-bar-bottom").querySelector("[data-testid=player-bar-clock]")).toHaveAttribute("data-running", "true");
+    const opp = render(<RoomFixture phase="opp-reveal" />);
+    expect(cell(0, 9)).toHaveAttribute("data-state", "picked");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("6 of 10 · scoring");
+    expect(screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-word") === "LEG")).toHaveClass("field__band--live");
     opp.unmount();
 
     render(<RoomFixture phase="low-clock" />);
-    expect(screen.getByTestId("player-bar-bottom").querySelector(".player-bar__lane--low")).not.toBeNull();
+    expect(screen.getByTestId("match-clock")).toHaveAttribute("data-low", "true");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("0:48");
+  });
+
+  it("end-early: the slip offers to end the match once you have ten and the opponent is gone", () => {
+    render(<RoomFixture phase="end-early" />);
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
+    expect(screen.getByTestId("slip")).toHaveTextContent("Kári is gone");
+    expect(screen.getByTestId("slip-end-early")).toBeInTheDocument();
   });
 });

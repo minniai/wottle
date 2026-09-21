@@ -4,8 +4,8 @@ import { addNotice, expireNotices, noticeText, removeKind } from "@/lib/room/not
 
 describe("notices (design system §5.4, §8)", () => {
   it("same-kind notices replace each other", () => {
-    let list = addNotice([], { kind: "pickCleared", reason: "opponentPinned" });
-    list = addNotice(list, { kind: "pickCleared", reason: "frozen" });
+    let list = addNotice([], { kind: "pickCleared", byName: "Kári" });
+    list = addNotice(list, { kind: "pickCleared", byName: "Elín" });
     expect(list.map((n) => n.kind)).toEqual(["pickCleared"]);
     list = addNotice(list, { kind: "rematchRequest", requesterName: "Kári" });
     list = addNotice(list, { kind: "rematchRequest", requesterName: "Elín" });
@@ -14,7 +14,7 @@ describe("notices (design system §5.4, §8)", () => {
   });
 
   it("every fixed string is exclamation-free", () => {
-    for (const n of [{ kind: "pickCleared" as const, reason: "frozen" as const }, { kind: "rematchRequest" as const, requesterName: "K" }]) {
+    for (const n of [{ kind: "pickCleared" as const, byName: "K" }, { kind: "rematchRequest" as const, requesterName: "K" }]) {
       expect(noticeText(n)).not.toContain("!");
     }
   });

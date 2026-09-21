@@ -117,7 +117,8 @@
 .player-bar {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* Identity | total. There is no clock in a bar (spec 050); the ledger caption carries it. */
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 16px;
   height: var(--bar-height);
@@ -174,19 +175,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.player-bar__clock {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 26px;
-  font-weight: 500;
-  color: var(--ink);
-  text-align: center;
-}
-.player-bar__clock--stopped {
-  font-weight: 400;
-  color: var(--muted);
 }
 
 .player-bar__score {
@@ -406,6 +394,23 @@
   justify-content: space-between;
   align-items: baseline;
   padding: 10px 0;
+}
+.ledger__caption-right {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+/* The one match clock (spec 050 FR-015): mono, tabular; heavier and blinking colour-only under 1:00. */
+.ledger__caption-clock {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.ledger__caption-clock[data-low] {
+  font-weight: 600;
+  animation: lane-blink 1s steps(2, jump-none) infinite;
 }
 /* The round rail (spec 048 US3, §5.4): ten cells, three states, no motion. */
 .rail {
@@ -731,7 +736,7 @@
   color: var(--ink);
 }
 .slip[data-kind="resign"] .slip__headline,
-.slip[data-kind="claimWin"] .slip__headline {
+.slip[data-kind="endEarly"] .slip__headline {
   font-weight: 600;
   font-size: 24px;
   line-height: 1.2;

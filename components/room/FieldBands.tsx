@@ -8,7 +8,7 @@ import { chevronPath, computeBandRect, type ChevronEdge, type WordBand } from "@
 interface FieldBandsProps {
   bands: WordBand[];
   /** Ledger row under the pointer: other rounds dim to 6%. */
-  highlightRound: number | null;
+  highlightMove: number | null;
   /** Reveal: how many bands (in order) are drawn; null = all. */
   drawnCount?: number | null;
   /** Reveal: the band currently drawing (animates from its reading start). */
@@ -28,16 +28,16 @@ function drawStyle(edge: ChevronEdge): CSSProperties {
  * at the whole word's reading start; a hovered round shows its whole words
  * (spec 049 US2).
  */
-export function FieldBands({ bands, highlightRound, drawnCount = null, drawingIndex = null }: FieldBandsProps) {
+export function FieldBands({ bands, highlightMove, drawnCount = null, drawingIndex = null }: FieldBandsProps) {
   return (
     <svg className="field__bands" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden data-testid="field-bands">
       {bands.map((band, i) => {
-        const lit = highlightRound !== null && band.round === highlightRound;
+        const lit = highlightMove !== null && band.move === highlightMove;
         const cells = lit ? band.wordCells : band.cells;
         const rect = computeBandRect(cells, band.direction);
         const chevron = chevronPath(computeBandRect(band.wordCells, band.direction));
         const colors = getSeatColors(band.seat);
-        const dimmed = highlightRound !== null && !lit;
+        const dimmed = highlightMove !== null && !lit;
         const drawn = drawnCount === null || i < drawnCount;
         if (!drawn) return null;
         const drawing = drawingIndex === i;
@@ -49,7 +49,7 @@ export function FieldBands({ bands, highlightRound, drawnCount = null, drawingIn
             data-testid="field-band"
             data-seat={band.seat}
             data-direction={band.direction}
-            data-round={band.round}
+            data-move={band.move}
             data-word={band.word}
             data-cells={cells.map((c) => `${c.x},${c.y}`).join(";")}
           >

@@ -30,8 +30,8 @@ const LEK = cells([[7, 6], [8, 6], [9, 6]]);
 
 /** Figure 2: one word each way, with the chevron at the reading's start. */
 export const WORD_BANDS: WordBand[] = [
-  { id: "borð", seat: "you", cells: BORD, wordCells: BORD, direction: "ltr", strength: "settled", round: 1, word: "BORÐ" },
-  { id: "gilt", seat: "opp", cells: GILT, wordCells: GILT, direction: "ttb", strength: "settled", round: 2, word: "GILT" },
+  { id: "borð", seat: "you", cells: BORD, wordCells: BORD, direction: "ltr", strength: "settled", move: 1, word: "BORÐ" },
+  { id: "gilt", seat: "opp", cells: GILT, wordCells: GILT, direction: "ttb", strength: "settled", move: 1, word: "GILT" },
 ];
 
 /**
@@ -40,7 +40,7 @@ export const WORD_BANDS: WordBand[] = [
  */
 export const CROSSING_BANDS: WordBand[] = [
   ...WORD_BANDS,
-  { id: "lek", seat: "you", cells: LEK.slice(1), wordCells: LEK, direction: "ltr", strength: "settled", round: 3, word: "LEK" },
+  { id: "lek", seat: "you", cells: LEK.slice(1), wordCells: LEK, direction: "ltr", strength: "settled", move: 3, word: "LEK" },
 ];
 
 export type RulesFigureKind = "swap" | "words" | "crossing";

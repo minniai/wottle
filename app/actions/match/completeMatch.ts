@@ -102,11 +102,12 @@ function decideNaturally(match: MatchRow): MatchWinnerResult {
  */
 function decide(match: MatchRow, reason: CompletionReason, forcedWinnerId?: string): Decision {
   if (reason === "abandoned") return { winnerId: null, loserId: null, isDraw: false, reason };
+  const natural = decideNaturally(match);
+  if (reason === "natural") return natural;
   if (forcedWinnerId !== undefined) {
     return { winnerId: forcedWinnerId, loserId: otherPlayer(match, forcedWinnerId), isDraw: false, reason };
   }
-  const natural = decideNaturally(match);
-  return { ...natural, reason: reason === "natural" ? natural.reason : reason };
+  return { ...natural, reason };
 }
 
 /** The completion compare-and-set (spec 050 FR-011): true when this call flipped the match. */

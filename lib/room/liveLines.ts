@@ -1,4 +1,4 @@
-import { frozenNotice, PICK_A_LETTER, PLAYED, PREVIEW_INSTRUCTION, PREVIEWING, picking, previewLine, RESOLVING, TAP_SECOND_LETTER } from "@/lib/constants/copy";
+import { frozenNotice, PICK_A_LETTER, PREVIEW_INSTRUCTION, PREVIEWING, picking, previewLine, SCORING, TAP_SECOND_LETTER } from "@/lib/constants/copy";
 import type { LiveLines } from "./ledgerTypes";
 
 /** The live-row state the field interaction implies (spec 047 amendment P1). */
@@ -8,7 +8,7 @@ export type LiveState =
   /** Opt-in preview: `total` is null until the server has priced the swap. */
   | { kind: "previewing"; total: number | null; words: string[] }
   | { kind: "played" }
-  /** A frozen letter was tapped; held for two seconds, then back to idle. */
+  /** A frozen letter was tapped; held for two seconds, then back to idle. `move` is the mover's Nth move that froze it. */
   | { kind: "illegal"; ownerName: string; round: number }
   | { kind: "resolving" };
 
@@ -24,11 +24,11 @@ export function liveText(live: LiveState): LiveLines {
     case "previewing":
       return { line1: live.total === null ? PREVIEWING : previewLine(live.total, live.words), line2: PREVIEW_INSTRUCTION };
     case "played":
-      return { line1: PLAYED, line2: "" };
+      return { line1: SCORING, line2: "" };
     case "illegal":
       return { line1: frozenNotice(live.ownerName, live.round), line2: "" };
     case "resolving":
-      return { line1: RESOLVING, line2: "" };
+      return { line1: SCORING, line2: "" };
     default:
       return { line1: PICK_A_LETTER, line2: "" };
   }

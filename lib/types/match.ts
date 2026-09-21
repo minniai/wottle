@@ -18,15 +18,6 @@ export interface PlayerIdentity {
   createdAt?: string;
 }
 
-export type TimerStatus = "running" | "paused" | "expired";
-
-export interface TimerState {
-  playerId: string;
-  remainingMs: number;
-  status: TimerStatus;
-}
-
-/** Spec 050: a match is pending until its clock starts, then in progress until it ends. */
 export type MatchPhase = "pending" | "in_progress" | "completed" | "abandoned";
 
 export interface ScoreTotals {
@@ -44,10 +35,7 @@ export type MatchEndedReason =
   | "disconnect"
   | "forfeit"
   | "abandoned"
-  | "error"
-  /** Retired by spec 050; kept until the round world is deleted. */
-  | "round_limit"
-  | "timeout";
+  | "error";
 
 // ─── Moves (spec 050) ────────────────────────────────────────────────
 
@@ -135,41 +123,6 @@ export interface WordScore {
   direction?: ReadingDirection;
 }
 
-/** A player's accepted swap coordinates, included in round summaries for opponent move reveal. */
-export interface RoundMove {
-  playerId: string;
-  from: Coordinate;
-  to: Coordinate;
-  /** ISO timestamp from move_submissions.created_at. Used to determine sequential reveal order. */
-  submittedAt: string;
-}
-
-/**
- * A player's in-flight swap, broadcast on `MatchState` while the round is
- * still collecting. Lets the opponent's board animate the move immediately
- * (issue #210) instead of waiting for round resolution. Cleared when the
- * round transitions out of `collecting`.
- */
-export interface PendingMove {
-  playerId: string;
-  from: Coordinate;
-  to: Coordinate;
-  /** ISO timestamp from move_submissions.submitted_at. */
-  submittedAt: string;
-}
-
-export interface RoundSummary {
-  matchId: string;
-  roundNumber: number;
-  words: WordScore[];
-  deltas: ScoreTotals;
-  totals: ScoreTotals;
-  highlights: Coordinate[][];
-  resolvedAt: string;
-  /** Accepted moves per player for opponent move reveal animation. */
-  moves: RoundMove[];
-}
-
 /** The room's snapshot (spec 050, contracts/match-state.md); `state` broadcast and `GET /api/match/[id]/state`. */
 export interface MatchState {
   matchId: string;
@@ -199,59 +152,11 @@ export interface MatchState {
    */
   winnerId?: string | null;
   endedReason?: MatchEndedReason | null;
-}
-
-/**
- * Server-published partial state for a round that is still `collecting` but
- * for which the first player's instant-scoring pass has fired. Carries the
- * first mover's scored words and the resulting frozen tiles so the second
- * player's client can render the reveal before they submit (spec 042 / O-57).
- *
- * Distinct from `RoundSummary` (which represents a *completed* round and
- * carries both players' scores). When `lastSummary` for the same round
- * arrives, the partial reveal is deduplicated by `firstSubmissionAt`.
- */
-export interface PartialRoundSummary {
-  matchId: string;
-  roundNumber: number;
-  /** ID of the player whose submission triggered the fast path. */
-  firstMoverId: string;
-  /** ISO timestamp of that submission. Stable dedupe key with `firstMoverId`. */
-  firstSubmissionAt: string;
-  /** Only the first mover's words; empty when the swap scored nothing. */
-  words: WordScore[];
-  /** Score delta this submission produced (zero for the other player). */
-  delta: ScoreTotals;
-  /**
-   * Frozen-tile map AFTER applying the fast path's freezes. Includes all
-   * pre-existing freezes plus the new ones. Mirrors `MatchState.frozenTiles`
-   * post-fast-path; consumers should prefer this when present.
-   */
-  frozenTiles: FrozenTileMap;
-}
-
-export type SubmissionStatus =
-  | "pending"
-  | "accepted"
-  | "rejected_invalid"
-  | "ignored_same_move"
-  | "timeout";
-
-export interface SubmissionRecord {
-  playerId: string;
-  status: SubmissionStatus;
-  submittedAt?: string;
-  signature?: string;
+  /** Set once completed; with `clock.startedAt` it gives the match's duration. */
+  completedAt?: string | null;
 }
 
 export type PlayerSlot = "player_a" | "player_b";
-
-export interface RoundTracker {
-  matchId: string;
-  roundNumber: number;
-  phase: "collecting" | "resolving" | "completed";
-  submissions: Record<PlayerSlot, SubmissionRecord>;
-}
 
 export interface LobbyPresence {
   playerId: string;
@@ -288,18 +193,6 @@ export function buildMoveSignature(vector: MoveVector): string {
   const from = `${vector.from.x},${vector.from.y}`;
   const to = `${vector.to.x},${vector.to.y}`;
   return `${from}->${to}`;
-}
-
-export interface MoveSubmission {
-  id?: string;
-  match_id: string;
-  player_id: string;
-  round_number: number;
-  from_x: number;
-  from_y: number;
-  to_x: number;
-  to_y: number;
-  created_at: string;
 }
 
 // ─── Move Types ───────────────────────────────────────────────────────

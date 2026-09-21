@@ -2,10 +2,10 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRef } from "react";
 
-import { useClockTick } from "@/components/room/hooks/useClockTick";
+import { useDeadlineTick } from "@/components/room/hooks/useDeadlineTick";
 import { computeFieldSize, useFieldSize } from "@/components/room/hooks/useFieldSize";
 import { useReducedMotion } from "@/components/room/hooks/useReducedMotion";
-import type { MatchState } from "@/lib/types/match";
+import type { MatchClock } from "@/lib/types/match";
 
 describe("computeFieldSize (design system §4)", () => {
   it("is the largest square under two 60px bars + gaps + padding, capped at 720", () => {
@@ -99,31 +99,37 @@ describe("useReducedMotion", () => {
   });
 });
 
-describe("useClockTick", () => {
+describe("useDeadlineTick (spec 050)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:01:00.000Z"));
   });
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  const timers: MatchState["timers"] = {
-    playerA: { playerId: "a", remainingMs: 300_000, status: "running" },
-    playerB: { playerId: "b", remainingMs: 240_000, status: "paused" },
-  };
+  const clock: MatchClock = { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: "2026-01-01T00:01:00.000Z" };
 
-  it("drains only running clocks, one second at a time, never below zero", () => {
-    const { result } = renderHook(() => useClockTick(timers));
-    expect(result.current).toEqual({ playerA: 300_000, playerB: 240_000 });
+  it("counts the one shared clock down from the deadline, one second at a time, never below zero", () => {
+    const { result } = renderHook(() => useDeadlineTick(clock));
+    expect(result.current).toBe(240_000);
     act(() => vi.advanceTimersByTime(3_000));
-    expect(result.current.playerA).toBe(297_000);
-    expect(result.current.playerB).toBe(240_000);
+    expect(result.current).toBe(237_000);
+    act(() => vi.advanceTimersByTime(600_000));
+    expect(result.current).toBe(0);
   });
 
-  it("re-anchors when a new snapshot arrives", () => {
-    const { result, rerender } = renderHook(({ t }) => useClockTick(t), { initialProps: { t: timers } });
-    act(() => vi.advanceTimersByTime(5_000));
-    rerender({ t: { ...timers, playerA: { ...timers.playerA, remainingMs: 100_000 } } });
-    expect(result.current.playerA).toBe(100_000);
+  it("corrects for the server's clock and re-anchors on a new snapshot", () => {
+    // The server says it is 00:01:10 while the browser says 00:01:00: ten seconds behind.
+    const skewed = { ...clock, serverNow: "2026-01-01T00:01:10.000Z" };
+    const { result, rerender } = renderHook(({ c }) => useDeadlineTick(c), { initialProps: { c: skewed } });
+    expect(result.current).toBe(230_000);
+    rerender({ c: { ...clock, deadlineAt: "2026-01-01T00:02:00.000Z" } });
+    expect(result.current).toBe(60_000);
+  });
+
+  it("reads the full budget before the match has started", () => {
+    const { result } = renderHook(() => useDeadlineTick({ startedAt: null, deadlineAt: null, serverNow: "2026-01-01T00:01:00.000Z" }));
+    expect(result.current).toBe(300_000);
   });
 });

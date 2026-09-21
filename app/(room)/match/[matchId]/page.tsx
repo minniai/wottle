@@ -32,7 +32,7 @@ export default async function MatchPage({
     console.warn("[MatchPage] Reconnection handling failed:", error);
   }
 
-  const matchState = await loadMatchState(supabase, matchId);
+  const matchState = await loadMatchState(supabase, matchId, { callerId: session.player.id });
 
   // Nothing renders outside the room: a missing match is a lobby notice, not a
   // page of its own (spec 045 FR-017). The id travels with the notice: the lobby
@@ -44,15 +44,15 @@ export default async function MatchPage({
 
   // FR-043a: a signed-in non-participant may view a completed match read-only;
   // a live match sends them back to the lobby.
-  const participants = [matchState.timers.playerA.playerId, matchState.timers.playerB.playerId];
+  const participants = [matchState.players.playerA.playerId, matchState.players.playerB.playerId];
   if (!participants.includes(session.player.id) && matchState.state !== "completed" && matchState.state !== "abandoned") {
     redirect("/lobby");
   }
 
   const playerProfiles = await loadMatchPlayerProfiles(
     supabase,
-    matchState.timers.playerA.playerId,
-    matchState.timers.playerB.playerId,
+    matchState.players.playerA.playerId,
+    matchState.players.playerB.playerId,
   );
 
   return (

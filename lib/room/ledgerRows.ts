@@ -1,9 +1,9 @@
-import { drawLine, finalContext, forcedDetail, RATING_PENDING, ratingSubline, roundContext, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, forcedDetail, incompleteDetail, moveContext, NEITHER_FINISHED, RATING_PENDING, ratingSubline, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { liveText, type LiveState } from "./liveLines";
-import { liveLinesFor, type RoundState } from "./roundState";
+import { liveLinesFor, type MoveState } from "./moveState";
 
 export { liveText, type LiveState } from "./liveLines";
-import { formatClock, MATCH_CLOCK_BUDGET_MS } from "./clock";
+import { formatClock, isLowClock } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { bandIdForWord } from "./bandGeometry";
@@ -11,73 +11,82 @@ import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, MatchEndedReason, PlayerSlot, ReadingDirection } from "@/lib/types/match";
 import { emptyRows, type LedgerModel, type LedgerRow, type LiveLines, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
 
-export const TOTAL_ROUNDS = 10;
-/** Spec 050: ten moves per player. `TOTAL_ROUNDS` is retired by its P1 step; until then both name the same count. */
-export const TOTAL_MOVES = TOTAL_ROUNDS;
+/** Spec 050: ten moves per player. */
+export const TOTAL_MOVES = 10;
 
-/** A scored word as accumulated on the client across rounds. */
+/** A scored word as accumulated on the client (spec 050): the mover's Nth move, in receipt order. */
 export interface AccumulatedWord {
-  roundNumber: number;
   playerId: string;
+  /** The mover's per-player move number: the ledger row. */
+  moveSeq: number;
+  /** Receipt order across both players. */
+  globalSeq: number;
   word: string;
   totalPoints: number;
   coordinates: Coordinate[];
-  isDuplicate?: boolean;
   /** From the server record when present; derived from tile order otherwise. */
   direction?: ReadingDirection;
 }
 
+export const moveKeyOf = (w: Pick<AccumulatedWord, "playerId" | "moveSeq">): string => `${w.playerId}:${w.moveSeq}`;
+
+export interface MovesPlayed {
+  you: number;
+  opp: number;
+}
 
 export interface BuildRowsInput {
   /** Words not yet written by the running reveal (band ids); hidden from their row until landed. */
   hiddenWordIds?: Set<string>;
-  currentRound: number;
+  movesPlayed: MovesPlayed;
+  moveLimit?: number;
   completed: boolean;
   words: AccumulatedWord[];
   playerAId: string;
   viewerSlot: PlayerSlot | null;
   live: LiveState;
-  /** The round's beat (spec 048 US2); when given, line 1 of the live row is the beat, line 2 the field. */
-  roundState?: RoundState;
-  /** The scored round held before the next live row opens (spec 048 FR-022). */
-  holdRound?: number | null;
+  /** The viewer's beat (spec 050); when given, line 1 of the live row is the beat, line 2 the field. */
+  moveState?: MoveState;
+  /** The viewer's move held after its reveal before the next opens (spec 050 FR-013). */
+  holdMove?: number | null;
 }
 
-function toCell(words: AccumulatedWord[]): SeatCell | null {
-  if (words.length === 0) return null;
+function toCell(words: AccumulatedWord[]): SeatCell {
   const cells: WordCell[] = words.map((w) => ({
     word: w.word,
-    points: w.isDuplicate ? 0 : w.totalPoints,
-    isDuplicate: Boolean(w.isDuplicate),
+    points: w.totalPoints,
     coordinates: w.coordinates,
     direction: w.direction ?? tryDeriveReadingDirection(w.coordinates) ?? "ltr",
   }));
   return { words: cells, total: cells.reduce((sum, c) => sum + c.points, 0) };
 }
 
-
-/** One row per round; the current round is the live row (design system §5.4). */
+/**
+ * Ten rows indexed by move number (design system §5.4, spec 050): row N holds
+ * the viewer's Nth move in their column and the opponent's Nth in theirs, so
+ * the columns fill at their own pace. A resolved move with no word is a `0`
+ * cell; an unplayed move is empty. The live row is the viewer's next open
+ * move; during the hold it is the move just scored.
+ */
 export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
+  const limit = input.moveLimit ?? TOTAL_MOVES;
   const seatOf = (playerId: string): Seat =>
     seatForSlot(input.viewerSlot, playerId === input.playerAId ? "player_a" : "player_b");
-  return emptyRows(TOTAL_ROUNDS).map((row) => {
-    const inRound = input.words.filter((w) => w.roundNumber === row.round && !input.hiddenWordIds?.has(bandIdForWord(w) ?? ""));
-    // Words that have already landed in the current round (instant first-mover
-    // reveal, or a resolved round the server has not advanced yet) show as words.
-    const landed = row.round === input.currentRound && inRound.length > 0;
-    const isPast = row.round < input.currentRound || landed || (input.completed && row.round <= input.currentRound);
-    const holding = input.holdRound != null && input.holdRound === input.currentRound - 1;
-    const isLive = !input.completed && row.round === input.currentRound && !landed && !holding;
-    const lines = input.roundState ? liveLinesFor(input.roundState, input.live) : liveText(input.live);
-    if (isLive) return { ...row, status: "live", live: lines };
-    if (!isPast) return row;
-    const cells = {
-      you: toCell(inRound.filter((w) => seatOf(w.playerId) === "you")),
-      opp: toCell(inRound.filter((w) => seatOf(w.playerId) === "opp")),
-    };
-    // The settle hold: the scored round stays the tinted row, its lines saying so (spec 048 FR-022).
-    if (holding && row.round === input.holdRound) return { ...row, ...cells, status: "settled", live: lines };
-    return { ...row, status: "past", ...cells };
+  const visible = input.words.filter((w) => !input.hiddenWordIds?.has(bandIdForWord(w) ?? ""));
+  const cellFor = (seat: Seat, move: number): SeatCell | null => {
+    const played = seat === "you" ? input.movesPlayed.you : input.movesPlayed.opp;
+    if (move > played) return null;
+    return toCell(visible.filter((w) => seatOf(w.playerId) === seat && w.moveSeq === move));
+  };
+  const holding = input.holdMove != null;
+  const liveMove = holding ? null : Math.min(input.movesPlayed.you + 1, limit);
+  const lines = input.moveState ? liveLinesFor(input.moveState, input.live) : liveText(input.live);
+  return emptyRows(limit).map((row) => {
+    const cells = { you: cellFor("you", row.move), opp: cellFor("opp", row.move) };
+    if (!input.completed && holding && row.move === input.holdMove) return { ...row, ...cells, status: "settled", live: lines };
+    if (!input.completed && row.move === liveMove) return { ...row, ...cells, status: "live", live: lines };
+    if (cells.you || cells.opp) return { ...row, ...cells, status: "past" };
+    return row;
   });
 }
 
@@ -93,14 +102,20 @@ export function buildTerritory(frozenTiles: FrozenTileMap, viewerSlot: PlayerSlo
 
 export interface BuildLedgerInput extends BuildRowsInput {
   frozenTiles: FrozenTileMap;
+  /** The shared clock as the client reads it; the caption draws it once (spec 050 FR-015). */
+  clockMs?: number;
   /** Match-level lines only; the field's instruction lives on the live row. Empty hides the line. */
   hint?: string;
 }
 
 export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
+  const limit = input.moveLimit ?? TOTAL_MOVES;
+  const move = Math.min(input.movesPlayed.you + 1, limit);
   return {
-    caption: roundContext(Math.min(input.currentRound, TOTAL_ROUNDS)),
-    round: Math.min(input.currentRound, TOTAL_ROUNDS),
+    caption: moveContext(move),
+    clock: input.clockMs === undefined ? undefined : formatClock(input.clockMs),
+    clockLow: input.clockMs === undefined ? undefined : isLowClock(input.clockMs),
+    movesPlayed: input.movesPlayed.you,
     completed: input.completed,
     rows: buildLedgerRows(input),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),
@@ -115,9 +130,9 @@ export const KEEP_UNFOLDED = 3;
 export function foldRows(rows: LedgerRow[], lineCounts: number[]): LedgerRow[] {
   const overflow = lineCounts.some((n) => n > MAX_ROW_LINES);
   if (!overflow) return rows;
-  const pastRounds = rows.filter((r) => r.status === "past").map((r) => r.round);
-  const keep = new Set(pastRounds.slice(-KEEP_UNFOLDED));
-  return rows.map((r) => (r.status === "past" && !keep.has(r.round) ? { ...r, folded: true } : r));
+  const pastMoves = rows.filter((r) => r.status === "past").map((r) => r.move);
+  const keep = new Set(pastMoves.slice(-KEEP_UNFOLDED));
+  return rows.map((r) => (r.status === "past" && !keep.has(r.move) ? { ...r, folded: true } : r));
 }
 
 export interface VerdictInput {
@@ -127,6 +142,8 @@ export interface VerdictInput {
   opponentScore: number;
   viewerWords: number;
   opponentWords: number;
+  viewerMoves: number;
+  opponentMoves: number;
   territory: Territory;
   /** The seat the server recorded as the winner, when the totals do not name them (spec 048). */
   winnerSeat?: Seat | null;
@@ -134,23 +151,35 @@ export interface VerdictInput {
 }
 
 /** A win the totals do not explain: the detail line says what ended the match instead. */
-const FORCED: Record<string, "forfeit" | "disconnect" | "timeout"> = { forfeit: "forfeit", disconnect: "disconnect", abandoned: "disconnect", timeout: "timeout" };
+const FORCED: Record<string, "forfeit" | "disconnect"> = { forfeit: "forfeit", disconnect: "disconnect", abandoned: "disconnect" };
 
-/** `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` — stated once, same voice for win and loss. */
+/**
+ * `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` —
+ * stated once, same voice for win and loss. A default result (spec 050) says
+ * the count that decided it: `Kári played 8 of 10`, `neither finished`.
+ */
 export function buildVerdict(v: VerdictInput): Verdict {
-  const winnerSeat = v.winnerSeat ?? (v.viewerScore === v.opponentScore ? null : v.viewerScore > v.opponentScore ? "you" : "opp");
+  const winnerSeat =
+    v.endedReason === "both_incomplete" ? null : (v.winnerSeat ?? (v.viewerScore === v.opponentScore ? null : v.viewerScore > v.opponentScore ? "you" : "opp"));
   const youWin = winnerSeat === "you";
   const [hi, lo] = youWin ? [v.viewerScore, v.opponentScore] : [v.opponentScore, v.viewerScore];
   const [wordsHi, wordsLo] = youWin ? [v.viewerWords, v.opponentWords] : [v.opponentWords, v.viewerWords];
   const [terrHi, terrLo] = youWin ? [v.territory.you, v.territory.opp] : [v.territory.opp, v.territory.you];
+  const loserName = youWin ? v.opponentName : v.viewerName;
+  const loserMoves = youWin ? v.opponentMoves : v.viewerMoves;
   const forced = v.endedReason ? FORCED[v.endedReason] : undefined;
+  const detailLine =
+    v.endedReason === "both_incomplete"
+      ? NEITHER_FINISHED
+      : v.endedReason === "incomplete" && winnerSeat !== null
+        ? incompleteDetail(loserName, loserMoves)
+        : forced && winnerSeat !== null
+          ? forcedDetail(loserName, forced)
+          : verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo);
   return {
     winnerSeat,
     scoreLine: winnerSeat === null ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
-    detailLine:
-      forced && winnerSeat !== null
-        ? forcedDetail(youWin ? v.opponentName : v.viewerName, forced)
-        : verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo),
+    detailLine,
   };
 }
 
@@ -168,8 +197,7 @@ export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSea
   return ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);
 }
 
-/** `ranked · 10 rounds · 18:50` — clock time both players spent. */
-export function finalCaption(remainingA: number, remainingB: number): string {
-  const used = Math.max(0, 2 * MATCH_CLOCK_BUDGET_MS - remainingA - remainingB);
-  return finalContext(formatClock(used));
+/** `final · 4:52` — how long the match ran. */
+export function finalCaption(durationMs: number): string {
+  return finalContext(formatClock(Math.max(0, durationMs)));
 }

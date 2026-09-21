@@ -40,25 +40,6 @@ const frozenTileSchema = z.object({
 
 export const frozenTileMapSchema = z.record(z.string(), frozenTileSchema);
 
-/**
- * Schema for `MatchState.partialSummary` (spec 042 § 2.3, realtime-events § 4).
- *
- * The `.max(20)` on words is a defensive cap — a single swap producing 20
- * scored words is astronomically unlikely; a payload claiming more is
- * malformed.
- */
-export const partialRoundSummarySchema = z.object({
-  matchId: z.string().uuid(),
-  roundNumber: z.number().int().min(1).max(10),
-  firstMoverId: z.string().uuid(),
-  firstSubmissionAt: z.string().datetime(),
-  words: z.array(wordScoreSchema).max(20),
-  delta: scoreTotalsSchema,
-  frozenTiles: frozenTileMapSchema,
-});
-
-export type PartialRoundSummaryPayload = z.infer<typeof partialRoundSummarySchema>;
-
 // ─── Spec 050 ─────────────────────────────────────────────────────────
 
 const boardGridSchema = z.array(z.array(z.string().length(1)).length(10)).length(10);

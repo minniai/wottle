@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useRoomStore } from "@/lib/room/roomStore";
-import type { MatchState, RoundSummary } from "@/lib/types/match";
+import type { MatchState, MoveResolution, PlayerMatchFacts } from "@/lib/types/match";
 
 const A = "player-a";
 const B = "player-b";
@@ -10,22 +10,31 @@ function board(letter = "A"): string[][] {
   return Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => letter));
 }
 
+const facts = (playerId: string, over: Partial<PlayerMatchFacts> = {}): PlayerMatchFacts => ({ playerId, movesPlayed: 0, score: 0, inFlight: null, lastResolution: null, ...over });
+
 function matchState(overrides: Partial<MatchState> = {}): MatchState {
   return {
     matchId: "m1",
     board: board("H"),
-    currentRound: 1,
-    state: "collecting",
-    timers: {
-      playerA: { playerId: A, remainingMs: 300_000, status: "running" },
-      playerB: { playerId: B, remainingMs: 300_000, status: "running" },
-    },
+    state: "in_progress",
+    players: { playerA: facts(A), playerB: facts(B) },
+    clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:01Z" },
+    moveLimit: 10,
+    resolvedSeq: 0,
     scores: { playerA: 0, playerB: 0 },
+    frozenTiles: {},
     ...overrides,
   };
 }
 
-describe("roomStore (spec 044 data-model §3.1)", () => {
+const resolution = (over: Partial<MoveResolution> = {}): MoveResolution => ({
+  matchId: "m1", moveId: "mv-1", playerId: A, globalSeq: 1, seq: 1, status: "resolved",
+  swap: { from: { x: 0, y: 0 }, to: { x: 1, y: 1 } }, board: board("X"), words: [], delta: 5,
+  totals: { playerA: 5, playerB: 0 }, frozenTiles: { "0,0": { owner: "player_a" } }, movesPlayed: { playerA: 1, playerB: 0 }, resolvedAt: "2026-01-01T00:00:02Z",
+  ...over,
+});
+
+describe("roomStore (spec 044 data-model §3.1, spec 050)", () => {
   beforeEach(() => {
     useRoomStore.getState().leaveToLobby();
     useRoomStore.setState({ viewer: null, board: board(), connection: "realtime" });
@@ -75,56 +84,74 @@ describe("roomStore (spec 044 data-model §3.1)", () => {
     expect(s().viewerSlot).toBeNull();
   });
 
-  it("applySnapshot never regresses scores to 0/0 and keeps the last summary", () => {
+  it("applySnapshot never regresses scores to 0/0", () => {
     const s = useRoomStore.getState;
-    const summary: RoundSummary = {
-      matchId: "m1", roundNumber: 1, words: [], deltas: { playerA: 5, playerB: 0 },
-      totals: { playerA: 5, playerB: 0 }, highlights: [], resolvedAt: "2026-01-01T00:00:00Z", moves: [],
-    };
-    s().hydrateMatch(matchState({ scores: { playerA: 5, playerB: 0 }, lastSummary: summary }), A);
-    s().applySnapshot(matchState({ scores: { playerA: 0, playerB: 0 }, lastSummary: null, currentRound: 2 }));
+    s().hydrateMatch(matchState({ scores: { playerA: 5, playerB: 0 } }), A);
+    s().applySnapshot(matchState({ scores: { playerA: 0, playerB: 0 }, resolvedSeq: 0 }));
     expect(s().match!.scores).toEqual({ playerA: 5, playerB: 0 });
-    expect(s().match!.lastSummary).toEqual(summary);
-    expect(s().match!.currentRound).toBe(2);
+  });
+
+  // Spec 050: a poll that lags a resolution keeps what the resolution wrote.
+  it("applySnapshot behind the resolution cursor keeps the resolved board and counts, taking only the clock and disconnect", () => {
+    const s = useRoomStore.getState;
+    s().hydrateMatch(matchState(), A);
+    s().applyResolution(resolution());
+    expect(s().match!.resolvedSeq).toBe(1);
+    s().applySnapshot(matchState({ resolvedSeq: 0, disconnectedPlayerId: B, clock: { startedAt: "x", deadlineAt: "y", serverNow: "z" } }));
+    expect(s().match!.resolvedSeq).toBe(1);
+    expect(s().board).toEqual(board("X"));
+    expect(s().match!.players.playerA.movesPlayed).toBe(1);
+    expect(s().match!.disconnectedPlayerId).toBe(B);
+    expect(s().match!.clock.serverNow).toBe("z");
   });
 
   // Spec 047 FR-004 (review S5): a rematch replaces the match in place, and the
-  // store must not carry the previous match's summary or scores into the new one.
-  it("applySnapshot for another matchId drops the previous lastSummary and scores", () => {
+  // store must not carry the previous match's facts into the new one.
+  it("applySnapshot for another matchId drops the previous match entirely", () => {
     const s = useRoomStore.getState;
-    const summary: RoundSummary = {
-      matchId: "m1", roundNumber: 1, words: [], deltas: { playerA: 5, playerB: 0 },
-      totals: { playerA: 5, playerB: 0 }, highlights: [], resolvedAt: "2026-01-01T00:00:00Z", moves: [],
-    };
-    s().hydrateMatch(matchState({ scores: { playerA: 5, playerB: 0 }, lastSummary: summary }), A);
-    s().applySnapshot(matchState({ matchId: "m2", scores: { playerA: 0, playerB: 0 }, lastSummary: null, currentRound: 1 }));
+    s().hydrateMatch(matchState({ scores: { playerA: 5, playerB: 0 }, resolvedSeq: 3 }), A);
+    s().applySnapshot(matchState({ matchId: "m2", scores: { playerA: 0, playerB: 0 }, resolvedSeq: 0 }));
     expect(s().match!.matchId).toBe("m2");
     expect(s().match!.scores).toEqual({ playerA: 0, playerB: 0 });
-    expect(s().match!.lastSummary).toBeNull();
+    expect(s().match!.resolvedSeq).toBe(0);
   });
 
-  it("applySummary ignores a summary addressed to another match", () => {
+  it("applyResolution writes the board, freezes, totals, counts and the mover's last resolution", () => {
     const s = useRoomStore.getState;
-    s().hydrateMatch(matchState(), A);
-    const foreign: RoundSummary = {
-      matchId: "m2", roundNumber: 1, words: [], deltas: { playerA: 0, playerB: 9 },
-      totals: { playerA: 0, playerB: 9 }, highlights: [], resolvedAt: "2026-01-01T00:00:00Z", moves: [],
-    };
-    s().applySummary(foreign);
-    expect(s().match!.scores).toEqual({ playerA: 0, playerB: 0 });
-    expect(s().match!.lastSummary ?? null).toBeNull();
+    s().hydrateMatch(matchState({ players: { playerA: facts(A, { inFlight: { moveId: "mv-1", globalSeq: 1, receivedAt: "" } }), playerB: facts(B) } }), A);
+    const r = resolution();
+    s().applyResolution(r);
+    expect(s().match!.board).toEqual(board("X"));
+    expect(s().board).toEqual(board("X"));
+    expect(s().match!.frozenTiles).toEqual({ "0,0": { owner: "player_a" } });
+    expect(s().match!.scores).toEqual({ playerA: 5, playerB: 0 });
+    expect(s().match!.resolvedSeq).toBe(1);
+    expect(s().match!.players.playerA).toMatchObject({ movesPlayed: 1, score: 5, inFlight: null, lastResolution: r });
+    expect(s().match!.players.playerB.lastResolution).toBeNull();
   });
 
-  it("applySummary updates totals and lastSummary", () => {
+  it("applyResolution is idempotent and ignores another match or an older sequence", () => {
+    const s = useRoomStore.getState;
+    s().hydrateMatch(matchState({ resolvedSeq: 2 }), A);
+    s().applyResolution(resolution({ globalSeq: 2 }));
+    expect(s().match!.players.playerA.lastResolution).toBeNull();
+    s().applyResolution(resolution({ matchId: "m2", globalSeq: 3 }));
+    expect(s().match!.resolvedSeq).toBe(2);
+    s().applyResolution(resolution({ globalSeq: 3 }));
+    s().applyResolution(resolution({ globalSeq: 3, totals: { playerA: 99, playerB: 0 } }));
+    expect(s().match!.scores).toEqual({ playerA: 5, playerB: 0 });
+  });
+
+  it("the hold is one move at a time and resets with a new match", () => {
     const s = useRoomStore.getState;
     s().hydrateMatch(matchState(), A);
-    const summary: RoundSummary = {
-      matchId: "m1", roundNumber: 1, words: [], deltas: { playerA: 0, playerB: 9 },
-      totals: { playerA: 0, playerB: 9 }, highlights: [], resolvedAt: "2026-01-01T00:00:00Z", moves: [],
-    };
-    s().applySummary(summary);
-    expect(s().match!.scores).toEqual({ playerA: 0, playerB: 9 });
-    expect(s().match!.lastSummary).toBe(summary);
+    s().beginHold(4);
+    expect(s().holdMove).toBe(4);
+    s().hydrateMatch(matchState({ matchId: "m2" }), A);
+    expect(s().holdMove).toBeNull();
+    s().beginHold(1);
+    s().endHold();
+    expect(s().holdMove).toBeNull();
   });
 
   it("tracks the connection mode", () => {
@@ -145,7 +172,6 @@ describe("roomStore (spec 044 data-model §3.1)", () => {
     expect(s().queue).toBeNull();
   });
 });
-
 
 describe("roomStore performance marks (spec 044 T100)", () => {
   it("marks room:phase-change once per phase transition, not on same-phase updates", () => {

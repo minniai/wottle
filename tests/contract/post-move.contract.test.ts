@@ -19,7 +19,9 @@ function post(body: unknown) {
 }
 
 describe("POST /api/match/[matchId]/move", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("returns 200 with the receipt when the move is accepted", async () => {
     vi.mocked(submitMove).mockResolvedValue({

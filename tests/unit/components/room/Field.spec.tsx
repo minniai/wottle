@@ -80,8 +80,8 @@ describe("Field (design system §5.1, §9)", () => {
   describe("one owner, one colour", () => {
     const crossing = { "1,2": { owner: "player_b" as const }, "2,2": { owner: "player_b" as const }, "3,2": { owner: "player_b" as const }, "2,3": { owner: "player_a" as const }, "2,4": { owner: "player_a" as const } };
     const bands = [
-      { id: "opp", seat: "opp" as const, cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], wordCells: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], direction: "ltr" as const, strength: "settled" as const, round: 1, word: "aaa" },
-      { id: "you", seat: "you" as const, cells: [{ x: 2, y: 3 }, { x: 2, y: 4 }], wordCells: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 2, y: 4 }], direction: "ttb" as const, strength: "settled" as const, round: 2, word: "aaa" },
+      { id: "opp", seat: "opp" as const, cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], wordCells: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], direction: "ltr" as const, strength: "settled" as const, move: 1, word: "aaa" },
+      { id: "you", seat: "you" as const, cells: [{ x: 2, y: 3 }, { x: 2, y: 4 }], wordCells: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 2, y: 4 }], direction: "ttb" as const, strength: "settled" as const, move: 2, word: "aaa" },
     ];
     const at = (x: number, y: number) => screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === String(x) && c.getAttribute("data-y") === String(y))!;
 
@@ -102,16 +102,16 @@ describe("Field (design system §5.1, §9)", () => {
       expect(at(2, 2)).toHaveAttribute("data-seat", "you");
     });
 
-    it("hovering a round draws its bands over the whole word; the lit letter keeps its owner", () => {
-      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} highlightRound={2} />);
-      const lit = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-round") === "2")!;
+    it("hovering a move draws its bands over the whole word; the lit letter keeps its owner", () => {
+      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} highlightMove={2} />);
+      const lit = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-move") === "2")!;
       expect(lit).toHaveAttribute("data-cells", "2,2;2,3;2,4");
       expect(at(2, 2)).toHaveAttribute("data-seat", "opp");
     });
 
     it("draws a settled band only over the cells its word froze first", () => {
       render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} />);
-      const own = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-round") === "2")!;
+      const own = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-move") === "2")!;
       expect(own).toHaveAttribute("data-cells", "2,3;2,4");
     });
   });
@@ -122,7 +122,7 @@ describe("Field (design system §5.1, §9)", () => {
         board={board()}
         viewerSlot="player_a"
         frozenTiles={{ "1,2": { owner: "player_b" }, "2,2": { owner: "player_b" } }}
-        bands={[{ id: "b", seat: "opp", cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], wordCells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], direction: "ltr", strength: "settled", round: 1, word: "ab" }]}
+        bands={[{ id: "b", seat: "opp", cells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], wordCells: [{ x: 1, y: 2 }, { x: 2, y: 2 }], direction: "ltr", strength: "settled", move: 1, word: "ab" }]}
       />,
     );
     const field = screen.getByTestId("field");

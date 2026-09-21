@@ -5,8 +5,9 @@ import { Ledger } from "@/components/room/Ledger";
 import { EMPTY_TERRITORY, emptyRows, type LedgerModel } from "@/lib/room/ledgerTypes";
 
 const model: LedgerModel = {
-  caption: "round 4 of 10",
-  rows: emptyRows().map((r) => (r.round === 4 ? { ...r, status: "live", live: { line1: "picking · T (2)", line2: "tap a second letter" } } : r)),
+  caption: "move 4 of 10",
+  clock: "3:12",
+  rows: emptyRows().map((r) => (r.move === 4 ? { ...r, status: "live", live: { line1: "picking · T (2)", line2: "tap a second letter" } } : r)),
   territory: { you: 32, opp: 25, free: 43 },
   hint: "",
 };
@@ -16,12 +17,12 @@ describe("Ledger (design system §5.4)", () => {
     const withWords: LedgerModel = {
       ...model,
       rows: model.rows.map((r) =>
-        r.round === 1
+        r.move === 1
           ? {
               ...r,
               status: "past",
-              you: { words: [{ word: "BORÐ", points: 12, isDuplicate: false, coordinates: [], direction: "ltr" }], total: 12 },
-              opp: { words: [{ word: "GILT", points: 9, isDuplicate: false, coordinates: [], direction: "ltr" }], total: 9 },
+              you: { words: [{ word: "BORÐ", points: 12, coordinates: [], direction: "ltr" }], total: 12 },
+              opp: { words: [{ word: "GILT", points: 9, coordinates: [], direction: "ltr" }], total: 9 },
             }
           : r,
       ),
@@ -46,7 +47,8 @@ describe("Ledger (design system §5.4)", () => {
   it("caption shows the lowercase wordmark and the match context", () => {
     render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("wottle");
-    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("round 4 of 10");
+    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("3:12");
   });
 
   it("match variant renders the seat header, ten rows, a live row and territory", () => {
@@ -63,8 +65,7 @@ describe("Ledger (design system §5.4)", () => {
     expect(row).toHaveAttribute("data-status", "live");
     expect(row.style.gridColumn).toBe("");
     expect(row.querySelector(".ledger__live-row")).toBeNull();
-    expect(row.querySelector('[data-testid="ledger-live-round"]')).toHaveTextContent("R4");
-    expect(screen.queryAllByText("R4")).toHaveLength(1);
+    expect(row.querySelector('[data-testid="ledger-live-round"]')).toHaveTextContent("4");
     // Amendment P1: the state on line 1, the instruction beneath it.
     const live = screen.getByTestId("ledger-live-row");
     expect(live.querySelector(".ledger__live-line1")).toHaveTextContent("picking · T (2)");
@@ -75,7 +76,7 @@ describe("Ledger (design system §5.4)", () => {
   });
 
   it("a one-line live state renders no second line", () => {
-    const idle = { ...model, rows: model.rows.map((r) => (r.round === 4 ? { ...r, live: { line1: "pick a letter", line2: "" } } : r)) };
+    const idle = { ...model, rows: model.rows.map((r) => (r.move === 4 ? { ...r, live: { line1: "pick a letter", line2: "" } } : r)) };
     render(<Ledger variant="match" model={idle} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick a letter");
     expect(screen.getByTestId("ledger-live-row").querySelector(".ledger__live-line2")).toBeNull();

@@ -45,7 +45,7 @@ interface MockState {
 function buildSupabase(state: MockState) {
   const matchesUpdate = vi.fn((payload: Record<string, unknown>) => {
     state.matchUpdatePayloads.push(payload);
-    const chain = {
+    const chain: { eq: () => typeof chain; in: () => typeof chain; select: () => Promise<{ data: { id: string }[]; error: null }> } = {
       eq: vi.fn(() => chain),
       in: vi.fn(() => chain),
       select: vi.fn().mockResolvedValue({

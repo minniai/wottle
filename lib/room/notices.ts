@@ -1,11 +1,11 @@
-import { challengeNotice, PICK_CLEARED_OPPONENT, rematchRequest } from "@/lib/constants/copy";
+import { challengeNotice, pickClearedMoved, rematchRequest } from "@/lib/constants/copy";
 import type { Notice } from "./ledgerTypes";
 
 /** Text for a notice line (design system §8). Notices with actions render their own controls. */
 export function noticeText(notice: Notice): string {
   switch (notice.kind) {
     case "pickCleared":
-      return PICK_CLEARED_OPPONENT;
+      return pickClearedMoved(notice.byName);
     case "rematchRequest":
       return rematchRequest(notice.requesterName);
     case "challenge":
