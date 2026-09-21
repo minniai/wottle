@@ -55,6 +55,10 @@ describe("autoPass synthesis (T010)", () => {
 
     const roundChain = {
       eq: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        // The integrity check's list read of the match's rounds (spec 049)
+        then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+          Promise.resolve({ data: [], error: null }).then(onFulfilled),
       single: vi.fn().mockResolvedValue({
         data: {
           id: "round-1",
@@ -110,7 +114,16 @@ describe("autoPass synthesis (T010)", () => {
     });
     const matchesUpdate = vi.fn().mockImplementation((payload: unknown) => {
       updateCalls.push({ table: "matches", payload });
-      return { eq: vi.fn().mockResolvedValue({ error: null }) };
+      return (() => {
+      // Spec 049: the round-end write is a compare-and-set that reads the affected rows.
+      const chain: Record<string, unknown> = {};
+      chain.eq = vi.fn(() => chain);
+      chain.neq = vi.fn(() => chain);
+      chain.select = vi.fn().mockResolvedValue({ data: [{ id: "match" }], error: null });
+      (chain as { then: unknown }).then = (onFulfilled: (v: { error: null }) => unknown) =>
+        Promise.resolve({ error: null }).then(onFulfilled);
+      return chain;
+    })();
     });
     // Rounds update has two call shapes in roundEngine (see PR #177):
     //  - `.update(x).eq("id", X)` awaited directly (steps 9c, 11)
@@ -134,6 +147,7 @@ describe("autoPass synthesis (T010)", () => {
         if (table === "rounds") return { select: vi.fn(() => roundChain), update: roundsUpdate, insert: vi.fn().mockResolvedValue({ error: null }) };
         if (table === "move_submissions") return { select: vi.fn(() => submissionsChain), insert: mockInsert, update: mockUpdate };
         if (table === "scoreboard_snapshots") return { select: vi.fn(() => scoreboardChain) };
+        if (table === "word_score_entries") return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
         return {};
       }),
     } as never);
