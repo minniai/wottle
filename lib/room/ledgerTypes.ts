@@ -61,6 +61,8 @@ export interface LedgerModel {
   clockFraction?: number;
   /** Whether the match is over. */
   completed?: boolean;
+  /** The final totals, closing the table in the final state (2026-09-21). */
+  totals?: { you: number; opp: number };
   rows: LedgerRow[];
   territory: Territory;
   hint: string;

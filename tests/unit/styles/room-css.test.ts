@@ -32,7 +32,8 @@ describe("room.css motion (design system §6)", () => {
     expect(css).not.toMatch(/player-bar__lane--low/);
   });
 
-  it("the opponent's total in the live row shares line 1, in their column, so the row stays two lines", () => {
+  it("the live row is one band: the beat spans it, the opponent's total on line 1 at the right", () => {
+    expect(css).toMatch(/\.ledger__row--live \.ledger__live-text,\s*\.ledger__row--settled \.ledger__live-text\s*\{[^}]*grid-column:\s*1 \/ -1/);
     expect(css).toMatch(/\.ledger__live-text \+ \.ledger__words\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1/);
   });
 
@@ -221,8 +222,9 @@ describe("room.css ledger rows (spec 047 US3)", () => {
   it("the row is the grid item and owns the rule", () => {
     const row = block(".ledger__row");
     expect(row).toMatch(/display:\s*grid/);
-    expect(row).toMatch(/grid-template-columns:\s*34px 1fr 1fr/);
-    expect(row).toMatch(/column-gap:\s*8px/);
+    // The spine (2026-09-21): your cell, the move number, theirs.
+    expect(row).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\) 40px minmax\(0, 1fr\)/);
+    expect(row).toMatch(/column-gap:\s*0/);
     expect(row).toMatch(/grid-column:\s*1 \/ -1/);
     expect(row).toMatch(/border-bottom:\s*1px solid var\(--rule\)/);
     expect(block(".ledger__row > *")).not.toMatch(/border/);
@@ -234,8 +236,28 @@ describe("room.css ledger rows (spec 047 US3)", () => {
     expect(live).toMatch(/box-shadow:\s*inset 3px 0 0 var\(--ink\)/);
   });
 
-  it("round labels clear the live rule", () => {
-    expect(block(".ledger__move")).toMatch(/padding-left:\s*6px/);
+  it("the spine: the move number centred between two 1px rules", () => {
+    const spine = block(".ledger__move");
+    expect(spine).toMatch(/text-align:\s*center/);
+    expect(spine).toMatch(/border-left:\s*1px solid var\(--rule\)/);
+    expect(spine).toMatch(/border-right:\s*1px solid var\(--rule\)/);
+    expect(block('.ledger__words[data-seat="you"]')).toMatch(/justify-content:\s*flex-end/);
+    expect(block('.ledger__words[data-seat="you"]')).toMatch(/text-align:\s*right/);
+    expect(block('.ledger__words[data-seat="opp"]')).toMatch(/justify-content:\s*flex-start/);
+  });
+
+  it("a miss is words in muted mono and a muted, lighter −5; a score is bold ink", () => {
+    expect(block(".ledger__miss")).toMatch(/color:\s*var\(--muted\)/);
+    expect(block(".ledger__miss")).toMatch(/text-transform:\s*uppercase/);
+    expect(block(".ledger__total")).toMatch(/font-weight:\s*600/);
+    expect(block(".ledger__words--empty .ledger__total")).toMatch(/color:\s*var\(--muted\)/);
+    expect(block(".ledger__words--empty .ledger__total")).toMatch(/font-weight:\s*500/);
+  });
+
+  it("the total row closes the table in the seat colours", () => {
+    expect(block(".ledger__totals")).toMatch(/border-bottom:\s*1\.5px solid var\(--ink\)/);
+    expect(block(".ledger__totals-you")).toMatch(/color:\s*var\(--you\)/);
+    expect(block(".ledger__totals-opp")).toMatch(/color:\s*var\(--opp\)/);
   });
 
   it("the seat header rule is ink (Fig. 2); the hint collapses when empty", () => {

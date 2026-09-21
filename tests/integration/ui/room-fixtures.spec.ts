@@ -230,11 +230,9 @@ test.describe("@visual the ledger rows", () => {
       expect(Math.abs(row.width - row.rowsWidth)).toBeLessThanOrEqual(1);
     }
 
-    const label = page.getByTestId("ledger-live-move");
-    await expect(label).toHaveText("M4");
-    // The label's box starts at the row's edge; the text is inset past the 3px rule.
-    const inset = await label.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));
-    expect(inset).toBeGreaterThanOrEqual(6);
+    // The spine: a past row names its move between the two columns; the live row is one band.
+    await expect(page.getByTestId("ledger-row-1").locator(".ledger__move")).toHaveText("1");
+    await expect(page.getByTestId("ledger-row-4").locator(".ledger__move")).toHaveCount(0);
 
     await expect(page.getByTestId("ledger-hint")).toBeHidden();
     await expect(page.getByTestId("ledger-live-row")).toContainText("tap a second letter");

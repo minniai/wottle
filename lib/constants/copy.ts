@@ -129,6 +129,10 @@ export const forcedDetail = (loserName: string, reason: "forfeit" | "disconnect"
 export const incompleteDetail = (name: string, moves: number): string => `${name} played ${moves} of 10`;
 export const NEITHER_FINISHED = "neither finished";
 export const marginDetail = (margin: number): string => `by ${margin} points`;
+/** The ledger's spine (2026-09-21): header, total row and the miss cells. */
+export const SPINE_HEADER = "move";
+export const TOTAL_LABEL = "total";
+export const NOT_PLAYED = "not played";
 export const verdictDetail = (margin: number, wordsA: number, wordsB: number, terrA: number, terrB: number) =>
   `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
 
