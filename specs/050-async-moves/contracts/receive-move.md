@@ -10,6 +10,7 @@
 3. Zod `moveRequestSchema`: coordinates 0..9, not the same cell, `fromLetter`/`toLetter` one uppercase letter each.
 4. `receive_move` RPC under `select … for update` on the match row:
    - `state <> 'in_progress'` → `rejected / ended`
+   - `clock_timestamp() < started_at` → `rejected / not_started`
    - `clock_timestamp() > deadline_at` → `rejected / deadline`
    - `player_x_moves >= move_limit` → `rejected / cap`
    - a `pending|resolving` row for the player → `rejected / in_flight`
@@ -23,7 +24,7 @@ No frozen-tile check in the action: the resolver decides authoritatively (FR-005
 ```ts
 type MoveResult =
   | { status: "accepted"; moveId: string; globalSeq: number; receivedAt: string }
-  | { status: "rejected"; reason: "ended" | "deadline" | "cap" | "in_flight"; error: string };
+  | { status: "rejected"; reason: "ended" | "not_started" | "deadline" | "cap" | "in_flight"; error: string };
 ```
 
 `grid` is gone: the board arrives with the resolution.

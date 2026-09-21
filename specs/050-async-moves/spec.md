@@ -31,6 +31,13 @@ Decisions recorded 2026-09-21 (each was a question to the product owner; the ans
 | Where the clock is drawn | The ledger caption only; the bar lane counts moves 0–10 |
 | Duplicate words | Score every time (rule withdrawn) |
 
+## Clarifications
+
+### Session 2026-09-21
+
+- Q: When does the shared 5:00 clock start? → A: When both players have loaded the room, or 10s after the match was created, whichever comes first; `started_at` is set 3s ahead so the `3·2·1` countdown is server-anchored and the clock begins at `starts in 0`.
+- Q: What happens to a match both players have left? → A: The orphan sweep stays: both gone for the reconnection window → `abandoned`, no winner, no rating change, as today. Only a match with at least one player present runs to its deadline and is settled under the normal rules.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Move whenever you like (Priority: P1)
@@ -139,6 +146,8 @@ The ledger's ten rows are indexed by move number; each column fills at its own p
 - The deadline passes while a resolver is mid-move: the move was received before the deadline, so it resolves and counts; settlement runs after the queue is drained.
 - A player disconnects with a move in flight: it resolves; on reconnect the room hydrates the resolution from state.
 - A resolver crashes three times on the same move: the match completes with reason `error`, as the scoring-retry path does today.
+- Both players leave with moves in flight: the resolver still drains them (they were received), and the sweep then abandons the match; nothing is rated.
+- The deadline and the orphan window expire in the same sweep: the completion compare-and-set decides; a match already `abandoned` is never re-settled and a settled match is never abandoned.
 - Both players finish with equal totals and equal exclusive frozen tiles: draw, reason `moves_complete`.
 - The rate limit: ten moves plus refused picks stay under the 30 per minute limit; a refusal does not consume the limit differently from an acceptance.
 
@@ -158,10 +167,11 @@ The ledger's ten rows are indexed by move number; each column fills at its own p
 
 **Clock and end (US3, US5)**
 
-- **FR-008**: One match clock of 5:00 MUST start when the match starts and MUST NOT pause for any reason.
+- **FR-008**: One match clock of 5:00 MUST start when the match starts and MUST NOT pause for any reason. The match starts when both players have loaded the room, or 10s after the match row was created, whichever comes first; the server then sets `started_at` 3s ahead (the `3·2·1` countdown is anchored to it on both screens) and `deadline_at = started_at + 5:00`. A move received before `started_at` is refused with reason `not_started`.
 - **FR-009**: A move received at or before the deadline MUST be resolved and counted even if resolution completes after the deadline; a move received after the deadline MUST be refused with reason `deadline`.
 - **FR-010**: The match MUST complete when both players have ten moves or the deadline has passed and the queue is drained; the winner MUST be decided by move count first (`incomplete`, `both_incomplete`), then score, then exclusive frozen tiles, then draw (`moves_complete`).
 - **FR-011**: Completion MUST be a compare-and-set so that racing triggers apply ratings once.
+- **FR-011a**: A match both players have left for the reconnection window MUST be marked `abandoned` by the orphan sweep (no winner, no rating), as today; settlement under FR-010 applies only while at least one player is present. Abandonment and settlement share the completion compare-and-set, so whichever runs first wins and the other is a no-op.
 - **FR-012**: A player with ten moves whose opponent has been unreachable for 90s MUST be offered `end the match ▸`, which completes the match under FR-010.
 
 **Room (US1, US4, US5, US6)**
@@ -175,7 +185,7 @@ The ledger's ten rows are indexed by move number; each column fills at its own p
 
 ### Key Entities
 
-- **Match**: the live board, the clock (`started_at`, `deadline_at`), the receipt counter and the resolution cursor, each player's move count and score, the frozen map, the result.
+- **Match**: the live board, the clock (`started_at`, `deadline_at`, set together when the match starts), the receipt counter and the resolution cursor, each player's move count and score, the frozen map, the result.
 - **Move**: one player's swap with its receipt sequence and timestamp, its status (`pending`, `resolving`, `resolved`, `rejected`), its per-player sequence when resolved, the board and freeze map before and after, its delta and the totals after it.
 - **Word score entry**: a scored word belonging to one move.
 - **Move resolution (event)**: what the server broadcasts when a move finishes: the move, its status, the board after, the words, the delta, the totals, the freeze map and both counts.
@@ -186,7 +196,8 @@ The ledger's ten rows are indexed by move number; each column fills at its own p
 - A refused move returns the player to `your move` with a two-second notice and no hold.
 - "Moved" is detected from the two letters the client sends with the swap; a mismatch with the live board is a refusal. Identical letters pass.
 - The receipt sequence is the ordering authority; the receipt timestamp is informational (a database clock is not guaranteed monotone across a restart).
-- Resolution runs after the response (`after()`), not inline, so a cold dictionary never sits on the move request; the dictionary is warmed at match start.
+- Resolution runs after the response (`after()`), not inline, so a cold dictionary never sits on the move request; the dictionary is warmed when the match starts.
+- "Both players have loaded the room" means both have called the state endpoint at least once (the same signal the heartbeat table records); the 10s cap is measured from `matches.created_at` by the database clock.
 - The reconnection window stays 90s and the opponent's bar still shows `reconnecting · 0:42 left` with a dashed lane; nothing else holds.
 - No live users: the migration deletes all match data and resets ratings.
 

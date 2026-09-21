@@ -11,7 +11,7 @@ No live users; a beta relaunch is ahead. Keeping `rounds` as "one row per move" 
 | Column | Type | Note |
 | --- | --- | --- |
 | `board` | jsonb | the live board; set at start, written by every resolved move |
-| `started_at` | timestamptz | set on pending → in_progress |
+| `started_at` | timestamptz | set when both players have loaded the room or 10s after `created_at`; `now + 3s` so the countdown is server-anchored |
 | `deadline_at` | timestamptz | `started_at + 5:00` |
 | `move_seq` | int not null default 0 | receipt counter, gap-free |
 | `resolved_seq` | int not null default 0 | resolution cursor; every move at `resolved_seq + 1` is next |

@@ -31,7 +31,7 @@ interface MatchState {
 
 ## Loader behaviour (`lib/match/stateLoader.ts`)
 
-- `pending` on first load → set `board` (from the seed), `started_at`, `deadline_at`, `state = in_progress`; warm the dictionary in `after()`.
+- `pending` on first load → set `board` (from the seed) and record the caller as present. Once both players have loaded state, or 10s after `created_at` (database clock), set `started_at = now + 3s`, `deadline_at = started_at + 5:00`, `state = in_progress`; warm the dictionary in `after()`. Both clients count the `3·2·1` from `startedAt`; `receive_move` refuses `not_started` before it.
 - In progress with a pending or stale move → dispatch `resolvePendingMoves` (deduplicated).
 - In progress past `deadline_at` → dispatch `settleMatchIfDue` (deduplicated).
 - `serverNow` is the database clock at read time; the client anchors its tick to `deadlineAt − (serverNow − localNow)`.

@@ -27,7 +27,7 @@ determineMatchWinner({ scores, moves: { playerA, playerB }, moveLimit, frozenCou
 
 - Resign → `forfeit`, forced winner.
 - End early (narrowed claim, FR-012): caller has `move_limit` resolved moves and the opponent has been unreachable ≥ 90s → `completeMatchInternal(matchId, "natural")` (the opponent is incomplete, so the caller wins with reason `incomplete`; no forced winner).
-- Abandoned → no winner, no rating.
+- Abandoned → no winner, no rating. The orphan sweep (both players gone for the reconnection window) still runs and marks the match `abandoned` through the same completion compare-and-set, so settlement and abandonment never both apply (FR-011a).
 
 ## Verdict copy
 
