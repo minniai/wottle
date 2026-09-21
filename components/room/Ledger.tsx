@@ -101,16 +101,18 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
            design system §5.4). During the hold the row keeps the tint and says
            the move scored; its words land when the hold ends. */
         <>
-          <div className="ledger__round" data-testid="ledger-live-round">{row.move}</div>
+          <div className="ledger__move" data-testid="ledger-live-move">M{row.move}</div>
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
             <LiveText live={row.live} />
           </div>
-          <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded={false} />
+          {/* Their total only, top-right on line 1: the rows share one height, so
+              the live row must stay two lines. Their words land once it is past. */}
+          <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded />
         </>
       ) : (
         <>
           {/* Future numerals are a progression mark, not a fact for AT: the caption carries the count (design system §7). */}
-          <div className="ledger__round" aria-hidden={row.status === "future" || undefined}>{row.move}</div>
+          <div className="ledger__move" aria-hidden={row.status === "future" || undefined}>M{row.move}</div>
           <SeatWords cell={row.you} seat="you" showPoints={hovered} folded={row.folded} />
           <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded={row.folded} />
         </>
@@ -218,7 +220,7 @@ export function Ledger(props: LedgerProps) {
       <div className="ledger__caption" data-testid="ledger-caption">
         <span className="ledger__wordmark">{WORDMARK}</span>
         <span className="ledger__caption-right">
-          <span className="ledger__mono" data-testid="round-indicator">
+          <span className="ledger__mono" data-testid="ledger-context">
             {model.caption}
           </span>
           {model.clock !== undefined ? (

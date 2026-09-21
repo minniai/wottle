@@ -245,7 +245,7 @@ export const HOLD_MOVE = 4;
 
 /** The three match slips (spec 048 §5.9, spec 050), as literals. */
 export const RESIGN_SLIP: SlipState = { kind: "resign", move: 4, clockMs: CLOCK_MS, opponentName: KARI.displayName };
-export const END_EARLY_SLIP: SlipState = { kind: "endEarly", opponentName: KARI.displayName, opponentMoves: 8, clockMs: 72_000 };
+export const END_EARLY_SLIP: SlipState = { kind: "endEarly", opponentName: KARI.displayName, opponentMoves: 8, clockMs: LOW_CLOCK_MS };
 export const OVER_SLIP: SlipState = {
   kind: "matchOver",
   verdict: FINAL_VERDICT,

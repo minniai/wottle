@@ -1,33 +1,40 @@
 import type { Locator, Page } from "@playwright/test";
 
 const MAX_SUBMIT_ATTEMPTS = 5;
-const CONFIRM_TIMEOUT_MS = 5_000;
-const CONFIRM_POLL_INTERVAL_MS = 200;
+const CONFIRM_TIMEOUT_MS = 20_000;
+const POLL_INTERVAL_MS = 200;
 const TILE_CLICK_TIMEOUT_MS = 2_000;
-const UNLOCK_TIMEOUT_MS = 10_000;
-/** The live row is replaced by a notice line while one shows; reads must not wait for it. */
+const TURN_TIMEOUT_MS = 20_000;
 const READ_TIMEOUT_MS = 1_000;
 
 /**
- * Submits a swap on the field by tapping two adjacent free letters, then
- * verifies the server accepted it (live row reads `played ●`, or the round
- * caption advanced). Retries with a fresh pair when the instant first-mover
- * reveal froze or pinned a chosen letter in between (spec 042 / 044).
+ * Plays one move on the field (spec 050): waits until the move is the
+ * viewer's to make, taps two adjacent free letters, then waits until the move
+ * rail counts it. A move refused at resolution (`frozen` / `moved` because the
+ * opponent's move landed first) is not counted, so the helper picks a fresh
+ * pair and tries again.
  */
 export async function submitSwap(page: Page): Promise<void> {
-  await waitForBoardUnlocked(page);
-  const roundLabelBefore = await readRoundLabel(page);
-
   for (let attempt = 1; attempt <= MAX_SUBMIT_ATTEMPTS; attempt += 1) {
+    await waitForYourMove(page);
+    const before = await readRail(page);
     await page.keyboard.press("Escape");
-    const startIndex = ((attempt - 1) * 30) % 100;
-    const pair = await findFreeAdjacentPair(page, startIndex);
+    const pair = await findFreeAdjacentPair(page, ((attempt - 1) * 30) % 100);
     if (!pair) throw new Error("No free adjacent letter pair found");
     await clickPair(pair);
-    if (await waitForSubmissionConfirmed(page, roundLabelBefore)) return;
+    if (await waitForMoveCounted(page, before)) return;
   }
+  throw new Error(`Move not counted after ${MAX_SUBMIT_ATTEMPTS} attempts`);
+}
 
-  throw new Error(`Swap submission not confirmed after ${MAX_SUBMIT_ATTEMPTS} attempts`);
+/** The field is outlined in the viewer's seat colour exactly while a move is theirs to make. */
+export async function waitForYourMove(page: Page): Promise<void> {
+  await page.getByTestId("field").and(page.locator('[data-turn="you"]')).waitFor({ timeout: TURN_TIMEOUT_MS });
+}
+
+/** The move rail's label: `move 4 of 10`, then `10 of 10 played`. */
+export async function readRail(page: Page): Promise<string | null> {
+  return page.getByTestId("move-rail").getAttribute("aria-label", { timeout: READ_TIMEOUT_MS }).catch(() => null);
 }
 
 /** First horizontal pair (n, n+1) from `startIndex` (wrapping) whose cells are both `free`. */
@@ -63,30 +70,18 @@ async function clickPair([a, b]: [Locator, Locator]): Promise<void> {
   }
 }
 
-/** Waits until the live row no longer reads `played ●` (the previous round's commit has cleared). */
-export async function waitForBoardUnlocked(page: Page): Promise<void> {
-  const deadline = Date.now() + UNLOCK_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    const live = await page.getByTestId("ledger-live-row").textContent({ timeout: READ_TIMEOUT_MS }).catch(() => null);
-    if (!live || !/played/.test(live)) return;
-    await page.waitForTimeout(CONFIRM_POLL_INTERVAL_MS);
-  }
-}
-
-async function waitForSubmissionConfirmed(page: Page, roundLabelBefore: string | null): Promise<boolean> {
+/** True once the rail moves past `before`; false when the move came back refused or never landed. */
+async function waitForMoveCounted(page: Page, before: string | null): Promise<boolean> {
   const deadline = Date.now() + CONFIRM_TIMEOUT_MS;
+  let sawScoring = false;
   while (Date.now() < deadline) {
+    const rail = await readRail(page);
+    if (rail && rail !== before) return true;
     const live = await page.getByTestId("ledger-live-row").textContent({ timeout: READ_TIMEOUT_MS }).catch(() => null);
-    if (live && /played/.test(live)) return true;
-    if (roundLabelBefore) {
-      const now = await readRoundLabel(page);
-      if (now && now !== roundLabelBefore) return true;
-    }
-    await page.waitForTimeout(CONFIRM_POLL_INTERVAL_MS);
+    if (live && /scoring|scored/.test(live)) sawScoring = true;
+    // Back to the viewer's move with the rail unchanged after scoring: refused, try again.
+    else if (sawScoring && live && /your move/.test(live)) return false;
+    await page.waitForTimeout(POLL_INTERVAL_MS);
   }
   return false;
-}
-
-async function readRoundLabel(page: Page): Promise<string | null> {
-  return page.getByTestId("round-indicator").textContent({ timeout: READ_TIMEOUT_MS }).catch(() => null);
 }

@@ -39,9 +39,9 @@ Each task lands red → green → refactor; the test commit precedes the impleme
 - [x] T031 `Ledger.tsx` caption clock (`.ledger__caption-clock`, low-clock blink, reduced motion), rows by move, `moveRail.ts`; `ledgerRows.ts`, `accumulatedWords.ts` keyed by player+seq
 - [x] T032 `Slip.tsx` end-early kind; verdict copy for the three natural reasons
 - [x] T033 `lib/constants/copy.ts` retire/add strings; acceptance greps
-- [ ] T034 `app/dev/room/fixtures.ts` + `RoomFixture.tsx` new phases; `pnpm test:visual --update-snapshots`
-- [ ] T035 Playwright `moves-flow.spec.ts`, `deadline-flow.spec.ts` (`PLAYTEST_MATCH_CLOCK_MS`), `disconnect-claim.spec.ts` → end-early gate
-- [ ] T036 Perf: `perf:move-receipt`, `tests/perf/move-resolve.yml`; delete `perf:instant-scoring`
+- [x] T034 `app/dev/room/fixtures.ts` + `RoomFixture.tsx` new phases; `pnpm test:visual --update-snapshots` (darwin baselines committed; the linux ones come from the CI visual job's artifact, as before)
+- [x] T035 Playwright `moves-flow.spec.ts`, `deadline-flow.spec.ts` (`PLAYTEST_MATCH_CLOCK_MS`), `disconnect-claim.spec.ts` → end-early gate
+- [x] T036 Perf: `perf:move-receipt`, `tests/perf/move-resolve.yml`; delete `perf:instant-scoring`
 
 ## P3 — Sweep
 

@@ -1,7 +1,8 @@
 /**
  * Spec 044 US5 — an opponent's disconnect is written into their bar, not an
  * overlay: the sub-line counts the reconnection window down from the server
- * anchor, the lane goes dashed, and both clocks hold (FR-027).
+ * anchor, the lane goes dashed, and the one match clock keeps running
+ * (spec 050: the clock never pauses).
  */
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
@@ -25,7 +26,7 @@ async function notifyServerOfDisconnect(page: Page) {
 }
 
 test.describe("@reconnect-flow disconnect is a bar state", () => {
-  test("opponent bar counts the window down with a dashed lane; both clocks hold; no overlay", async ({ browser }) => {
+  test("opponent bar counts the window down with a dashed lane; the match clock runs on; no overlay", async ({ browser }) => {
     const ctxA = await browser.newContext();
     const ctxB = await browser.newContext();
     try {
@@ -40,8 +41,9 @@ test.describe("@reconnect-flow disconnect is a bar state", () => {
       const topBar = a.page.getByTestId("player-bar-top");
       await expect(topBar.getByTestId("player-bar-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 20_000 });
       await expect(topBar.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "disconnected");
-      await expect(a.page.getByTestId("player-bar-bottom").getByTestId("player-bar-clock")).toHaveAttribute("data-running", "false");
-      // Spec 048 US7: nothing over the field while the window runs; the claim comes as a slip when it is spent.
+      const clockBefore = await a.page.getByTestId("match-clock").textContent();
+      await expect.poll(() => a.page.getByTestId("match-clock").textContent(), { timeout: 5_000 }).not.toBe(clockBefore);
+      // Nothing over the field while the window runs; end early is a slip, and only for a player with ten moves.
       expect(await a.page.locator("[role=dialog], [role=alertdialog]").count()).toBe(0);
 
       // The countdown moves.

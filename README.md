@@ -186,8 +186,8 @@ to invoke directly for ad-hoc cleanup.
 | Command                      | Assertion                                  |
 | ---------------------------- | ------------------------------------------ |
 | `pnpm perf:lobby-presence`   | Lobby broadcast < 2s p95.                  |
-| `pnpm perf:round-resolution` | Round resolution RTT < 200ms p95.          |
-| `pnpm perf:instant-scoring`  | Instant scoring reveal RTT < 200ms p95.    |
+| `pnpm perf:move-receipt`     | Move receipt RTT < 200ms p95 (spec 050).   |
+| `pnpm perf:move-resolve`     | One move resolved < 50ms p95, warm.        |
 | `pnpm perf:swap`             | Legacy swap latency (regression baseline). |
 
 ### Supabase & guards
@@ -229,8 +229,8 @@ pnpm exec playwright test
 # Performance tests (requires Supabase + Next.js server)
 pnpm perf:swap
 pnpm perf:lobby-presence
-pnpm perf:round-resolution
-pnpm perf:instant-scoring
+pnpm perf:move-receipt
+pnpm perf:move-resolve
 ```
 
 Single-test execution:

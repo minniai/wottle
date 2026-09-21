@@ -20,7 +20,7 @@ test.describe("@lobby-presence here now", () => {
       await loginViaSlip(pageB, userB);
       await expect(pageA.getByTestId("ledger-here-now").getByText(`@${userB}`)).toBeVisible({ timeout: 10_000 });
       await expect(pageB.getByTestId("ledger-here-now").getByText(`@${userA}`)).toBeVisible({ timeout: 10_000 });
-      await expect(pageA.getByTestId("round-indicator")).toContainText(/lobby · \d+ here/);
+      await expect(pageA.getByTestId("ledger-context")).toContainText(/lobby · \d+ here/);
       await ctxB.close();
       await expect(pageA.getByTestId("ledger-here-now").getByText(`@${userB}`)).toHaveCount(0, { timeout: 90_000 });
     } finally {

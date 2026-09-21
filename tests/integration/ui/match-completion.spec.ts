@@ -56,14 +56,15 @@ test.describe("@match-completion final room state", () => {
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
-      // Spec 049 US1: one round is played so the final field has a board that
-      // is not round 1's. On 2026-09-20 a finished match was served the
-      // starting board, regenerated from the seed, under ten rounds of freezes.
+      // Spec 049 US1: one move each is played so the final field has a board
+      // that is not the starting one. On 2026-09-20 a finished match was served
+      // the starting board, regenerated from the seed, under ten rounds of freezes.
       const startingBoard = await readField(pageA);
       await submitSwap(pageA);
       await submitSwap(pageB);
       for (const p of [pageA, pageB]) {
-        await expect(p.getByTestId("ledger-live-row")).toContainText("round 2 · your move", { timeout: 45_000 });
+        await expect(p.getByTestId("move-rail")).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 45_000 });
+        await expect(p.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 20_000 });
       }
       const playedBoard = await readField(pageA);
       const moved = differences(startingBoard, playedBoard);
@@ -77,7 +78,7 @@ test.describe("@match-completion final room state", () => {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
         await expect(p.getByTestId("field")).toBeVisible();
         await expect(p.getByTestId("verdict")).toContainText(/wins \d+–\d+|draw \d+–\d+/);
-        await expect(p.getByTestId("round-indicator")).toContainText(/final · 10 of 10 · \d+:\d\d/);
+        await expect(p.getByTestId("ledger-context")).toContainText(/final · \d+:\d\d/);
         await expect(p).toHaveURL(/\/match\/[0-9a-f-]+$/);
         // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });

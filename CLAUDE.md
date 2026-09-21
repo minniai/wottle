@@ -51,9 +51,9 @@ pnpm typecheck               # TypeScript type check
 
 ```bash
 pnpm perf:lobby-presence      # Assert lobby broadcast <2s p95
-pnpm perf:round-resolution    # Assert round resolution RTT <200ms p95 (spec 050 P2: perf:move-receipt + move-resolve)
+pnpm perf:move-receipt        # Assert move receipt RTT <200ms p95 (spec 050)
+pnpm perf:move-resolve        # Assert one move resolves <50ms p95, warm dictionary (spec 050)
 pnpm perf:swap                # Legacy swap latency (regression baseline)
-pnpm perf:instant-scoring     # Assert spec-042 fast-path RTT <200ms p95
 ```
 
 ### Supabase Operations
@@ -176,7 +176,7 @@ The previous redesign (phases 1a–6, April–June 2026) shipped in full and is 
 - `/components` - React Client Components. There are two folders:
   - `/components/room` — the whole player-facing UI (spec 044): `Room` / `RoomShell` (the one grid: bar / field / bar + ledger), `PlayerBar` + `BarLane` (moves · searching · disconnected; `ClockLane` until P1) + `NameInput`, `Field` + `FieldCell` + `FieldBands`, `Ledger` + `LedgerFoot` + `LedgerSheet` + `LobbyLedger` + `RoomMenu`, the controllers `LobbyRoomController`, `QueueRoomController`, `MatchRoomController` (+ `MatchRoomView`), and `hooks/` (`useMatchTransport`, `useFieldInteraction`, `useReveal`, `useMoveHold`, `useDeadlineTick`, `useCountUp`, `useNotices`, `useLobbyInvites`, `useAccumulatedRounds`, `useFieldSize`, `useMeasuredLines`, `useNowTick`, `useReducedMotion`)
   - `/components/profile` — `ProfilePage`, `ProfileRatingChart` (same grid and grammar as the room)
-- `/app/styles/room.css` — the one stylesheet: room grid, bars and lanes, field cells, bands, ledger, lobby tables, name input, profile classes; keyframes `field-shake`, `band-draw`, `count-up`, `lane-blink`, `lane-search`, `letter-land`, `pin-fade`; one `prefers-reduced-motion` block. Tokens and fonts live in `app/globals.css` / `tailwind.config.ts`.
+- `/app/styles/room.css` — the one stylesheet: room grid, bars and lanes, field cells, bands, ledger, lobby tables, name input, profile classes; keyframes `field-shake`, `band-draw`, `count-up`, `lane-blink`, `lane-search`, `letter-land`; one `prefers-reduced-motion` block. Tokens and fonts live in `app/globals.css` / `tailwind.config.ts`.
 
 ### Key Architectural Patterns
 

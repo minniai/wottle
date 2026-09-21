@@ -31,12 +31,13 @@ Open two browsers, sign in as two names, `play ranked ▸` in both. Each player 
 pnpm test:unit -- tests/unit/lib/match/moveResolver.spec.ts
 pnpm test:unit -- tests/unit/lib/match/resultCalculator.test.ts
 pnpm test:unit -- tests/unit/lib/match/matchSettlement.spec.ts
-pnpm test:integration -- tests/integration/match/receiveMove.race.test.ts
-pnpm test:integration -- tests/integration/match/moveResolver.race.test.ts
-pnpm test:integration -- tests/integration/match/settlement.test.ts
+pnpm test:integration -- tests/integration/db/receiveMove.race.test.ts
+pnpm test:integration -- tests/integration/db/moveResolver.race.test.ts
+pnpm test:integration -- tests/integration/db/settlement.test.ts
 pnpm exec playwright test tests/integration/ui/moves-flow.spec.ts
 PLAYTEST_MATCH_CLOCK_MS=20000 pnpm exec playwright test tests/integration/ui/deadline-flow.spec.ts
 pnpm perf:move-receipt
+pnpm perf:move-resolve
 ```
 
 ## What to look for in a live match

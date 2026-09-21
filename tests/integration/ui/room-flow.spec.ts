@@ -1,8 +1,9 @@
 /**
  * Spec 044 — the two-player room flow. Grows with each user story:
- *   US2: pick → commit (default), preview opt-in, Esc, opponent pin, frozen tap.
+ *   US2: pick → commit (default), preview opt-in, Esc; the opponent's move clears a touched pick.
  *   US3: bands — one per ledger word, chevron edge matches data-direction.
- *   US4: ledger — rows fill per round, live row text, resign via the live-row confirmation.
+ *   US4: ledger — rows fill per move, live row text, resign on the slip.
+ * Spec 050: there are no rounds and no pins; a committed move resolves at once.
  *   US6: reveal — bands settle after resolution; reduced motion shows the end state at once.
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -10,8 +11,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 const cell = (page: Page, x: number, y: number) => page.locator(`[data-testid="field-cell"][data-x="${x}"][data-y="${y}"]`);
+const rail = (page: Page) => page.getByTestId("move-rail");
 
-/** Two free, unpinned cells in the given row. */
+/** Two free cells in the given row. */
 async function twoFreeCells(page: Page, y: number): Promise<[number, number]> {
   const free: number[] = [];
   for (let x = 0; x < 10 && free.length < 2; x += 1) {
@@ -30,7 +32,7 @@ async function togglePreview(page: Page) {
 test.describe.configure({ mode: "serial", retries: 1 });
 
 test.describe("@room-flow US2 pick, preview, commit", () => {
-  test("default second tap commits; opponent sees the pins in coral; preview is an opt-in with Esc cancel", async ({ browser }) => {
+  test("default second tap commits and scores at once; preview is an opt-in with Esc cancel", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
@@ -50,15 +52,14 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(cell(pageA, ax1, 0)).toHaveAttribute("data-state", "picked");
       await expect(pageA.getByTestId("ledger-live-row")).toContainText(/picking ·/);
       await cell(pageA, ax2, 0).click();
-      // `scored` if the instant first-mover reveal (spec 042) already landed on these letters.
-      await expect(cell(pageA, ax1, 0)).toHaveAttribute("data-state", /pinned|scored/);
-      // Spec 048: the live row names the beat and who it waits for; `played ●` is the bar's suffix.
-      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/played · waiting for/);
-      await expect(pageA.getByTestId("player-bar-bottom")).toContainText("played ●");
+      // Spec 050: nothing waits for B. A's move scores and move 2 opens.
+      await expect(rail(pageA)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 20_000 });
+      await expect(pageA.getByTestId("ledger-live-row")).toContainText("move 2 · your move", { timeout: 20_000 });
+      await expect(cell(pageA, ax1, 0)).not.toHaveAttribute("data-state", "picked");
 
-      // B sees A's letters pinned in coral on their own field.
-      await expect(cell(pageB, ax1, 0)).toHaveAttribute("data-state", /pinned|scored/, { timeout: 15_000 });
-      await expect(cell(pageB, ax1, 0)).toHaveAttribute("data-seat", "opp");
+      // B sees A's move counted in A's bar; B still has move 1.
+      await expect(pageB.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
+      await expect(pageB.getByTestId("ledger-live-row")).toContainText("move 1 · your move");
 
       // B: opt into preview — second tap previews, Esc reverses, third tap commits.
       await togglePreview(pageB);
@@ -74,15 +75,12 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await cell(pageB, bx2, 9).click();
       await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "previewed");
       await cell(pageB, bx2, 9).click();
-      await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "pinned");
-
-      // Round resolves: caption advances, pins clear.
-      await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, { timeout: 45_000 });
-      await expect(cell(pageA, ax1, 0)).not.toHaveAttribute("data-state", "pinned");
+      await expect(rail(pageB)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 20_000 });
+      await expect(pageA.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
 
       // US3 — bands: one per word in the ledger's row 1, chevron edge per direction.
-      // One <span> per word directly under .ledger__words; the pinned total is `.ledger__total`.
-      // The row fills from the round summary a beat after the caption advances; wait for both to agree.
+      // One <span> per word directly under .ledger__words; the total is `.ledger__total`.
+      // Row 1 holds both players' first moves; it fills as each reveal lands, so wait for both to agree.
       const words = pageA.getByTestId("ledger-row-1").locator(".ledger__words > span:not(.ledger__total)");
       const bands = pageA.getByTestId("field-band");
       await expect.poll(async () => (await bands.count()) - (await words.count()), { timeout: 15_000 }).toBe(0);
@@ -98,35 +96,38 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
     }
   });
 
-  test("a frozen letter shakes and the live row names the owner; a pinned opponent letter cannot be picked", async ({ browser }) => {
+  test("the opponent's move clears a pick on a letter it exchanged, with a notice", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
     try {
-      const userA = generateTestUsername("frz-a");
-      const userB = generateTestUsername("frz-b");
+      const userA = generateTestUsername("clr-a");
+      const userB = generateTestUsername("clr-b");
       await loginViaSlip(pageA, userA);
       await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
-      // B commits; A tries to pick one of B's pinned letters → shake, no pick.
+      // A holds a pick on a letter B is about to exchange.
       const [bx1, bx2] = await twoFreeCells(pageB, 5);
+      await cell(pageA, bx1, 5).click();
+      await expect(cell(pageA, bx1, 5)).toHaveAttribute("data-state", "picked");
+
       await cell(pageB, bx1, 5).click();
       await cell(pageB, bx2, 5).click();
-      await expect(cell(pageA, bx1, 5)).toHaveAttribute("data-state", /pinned|scored/, { timeout: 15_000 });
-      await cell(pageA, bx1, 5).dispatchEvent("click");
-      await expect(cell(pageA, bx1, 5)).not.toHaveAttribute("data-state", "picked");
-      // Spec 047 amendment P1: the illegal pick is a live-row state, not a notice line.
-      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/frozen ·/, { timeout: 5_000 });
+
+      // Spec 050 FR-014: A's field is never locked by B's reveal, but the touched pick clears.
+      await expect(cell(pageA, bx1, 5)).not.toHaveAttribute("data-state", "picked", { timeout: 15_000 });
+      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/pick cleared|move 1 · your move/, { timeout: 5_000 });
+      await expect(pageA.getByTestId("field")).toHaveAttribute("data-turn", "you");
     } finally {
       await contextA.close();
       await contextB.close();
     }
   });
 
-  test("US4 ledger: live row transitions, rows fill per round, resign is a live-row confirmation that reverts on no", async ({ browser }) => {
+  test("US4 ledger: rows fill per move, the live row is your next move, resign is a slip that reverts on keep playing", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
@@ -153,14 +154,10 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await pageA.getByTestId("slip-keep-playing").click();
       await expect(resignSlip).toHaveCount(0);
 
-      // Both play; row 1 becomes past with words or stays empty, row 2 goes live.
+      // A plays: row 1 is held `settled` for the 600ms move hold, then past; row 2 goes live.
       const [ax1, ax2] = await twoFreeCells(pageA, 0);
       await cell(pageA, ax1, 0).click();
       await cell(pageA, ax2, 0).click();
-      const [bx1, bx2] = await twoFreeCells(pageB, 9);
-      await cell(pageB, bx1, 9).click();
-      await cell(pageB, bx2, 9).click();
-      // Row 1 is held as `settled` for the reading pause, then becomes past (spec 048 FR-022).
       await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", /settled|past/, { timeout: 45_000 });
       await expect(pageA.getByTestId("ledger-row-2")).toHaveAttribute("data-status", "live", { timeout: 45_000 });
       await expect(pageA.getByTestId("ledger-row-1")).toHaveAttribute("data-status", "past");
@@ -190,7 +187,8 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       const [bx1, bx2] = await twoFreeCells(pageB, 9);
       await cell(pageB, bx1, 9).click();
       await cell(pageB, bx2, 9).click();
-      await expect(pageA.getByTestId("round-indicator")).toContainText(/round 2/i, { timeout: 45_000 });
+      for (const p of [pageA, pageB]) await expect(rail(p)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 45_000 });
+      for (const p of [pageA, pageB]) await expect(p.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
 
       // Settle: no band is still drawing or live once the reveal completes (≤ 2.5 s for three words).
       await pageA.waitForTimeout(2_600);
@@ -244,9 +242,8 @@ test.describe("@room-flow US5 the hand and the keyboard", () => {
       await pageA.mouse.move(boxB.x + boxB.width / 2, boxB.y + boxB.height / 2, { steps: 8 });
       await pageA.mouse.up();
 
-      await expect(a).toHaveAttribute("data-state", "pinned", { timeout: 10_000 });
-      await expect(b).toHaveAttribute("data-state", "pinned");
-      await expect(pageA.getByTestId("ledger-live-row")).toContainText(/played · waiting for/);
+      await expect(rail(pageA)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 20_000 });
+      await expect(pageA.locator('[data-state="picked"]')).toHaveCount(0);
     } finally {
       await contextA.close();
       await contextB.close();

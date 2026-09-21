@@ -19,7 +19,7 @@ import { ROOM_PHASES } from "../../../app/dev/room/fixtures";
  *
  * Spec 047 amendment P2: one phase per asymmetric signal. `phone-sheet` is the
  * picking phase with the sheet open, so it exists only at 390×844; `low-clock`
- * is also captured under reduced motion, where the lane holds solid.
+ * is also captured under reduced motion, where the caption clock holds solid.
  */
 test.describe("@visual the room, from fixtures", () => {
   for (const phase of ROOM_PHASES) {
@@ -42,16 +42,16 @@ test.describe("@visual the room, from fixtures", () => {
     });
   }
 
-  test("low-clock under reduced motion: the lane holds solid", async ({ browser }, testInfo) => {
+  test("low-clock under reduced motion: the caption clock holds solid", async ({ browser }, testInfo) => {
     const context = await browser.newContext({ viewport: testInfo.project.use.viewport!, reducedMotion: "reduce" });
     const page = await context.newPage();
     try {
       await page.goto("/dev/room?phase=low-clock");
       await expect(page.getByTestId("field")).toBeVisible();
-      const lane = page.getByTestId("player-bar-bottom").locator(".player-bar__lane--low");
-      await expect(lane).toHaveCount(1);
-      const animation = await lane.locator(".player-bar__lane-fill").evaluate((el) => getComputedStyle(el).animationDuration);
-      expect(animation, "0ms under prefers-reduced-motion (design system §6)").toBe("0s");
+      const clock = page.getByTestId("match-clock");
+      await expect(clock).toHaveAttribute("data-low", "true");
+      const animation = await clock.evaluate((el) => getComputedStyle(el).animationName);
+      expect(animation, "no blink under prefers-reduced-motion (design system §6)").toBe("none");
       await expect(page).toHaveScreenshot("low-clock-reduced-motion.png");
     } finally {
       await context.close();
@@ -178,6 +178,9 @@ test.describe("@visual the ledger is the height of the stack", () => {
       await page.setViewportSize(viewport);
       await page.goto("/dev/room?phase=picking");
       await expect(page.getByTestId("field")).toBeVisible();
+      // Rows keep at least their content height (spec 050), and a fallback face
+      // wraps the live row; measure with the room's own faces, as screenshots do.
+      await page.evaluate(() => document.fonts.ready);
 
       const boxes = await page.evaluate(() => {
         const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
@@ -221,8 +224,8 @@ test.describe("@visual the ledger rows", () => {
       expect(Math.abs(row.width - row.rowsWidth)).toBeLessThanOrEqual(1);
     }
 
-    const label = page.getByTestId("ledger-live-round");
-    await expect(label).toHaveText("R4");
+    const label = page.getByTestId("ledger-live-move");
+    await expect(label).toHaveText("M4");
     // The label's box starts at the row's edge; the text is inset past the 3px rule.
     const inset = await label.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));
     expect(inset).toBeGreaterThanOrEqual(6);
@@ -319,10 +322,9 @@ test.describe("@visual the room fits a phone", () => {
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      // The design system's one grey exception: future-round numerals, aria-hidden,
-      // with the round carried by the caption (spec 045 FR-033).
-      .exclude(".ledger__row--future .ledger__round")
-        .exclude('.rail__cell[data-state="future"]')
+      // The design system's one grey exception: future-move numerals, aria-hidden,
+      // with the count carried by the caption (spec 045 FR-033).
+      .exclude(".ledger__row--future .ledger__move")
       .exclude('.rail__cell[data-state="future"]')
       .analyze();
 
@@ -344,16 +346,16 @@ test.describe("@visual one owner, one colour", () => {
     const crossing = page.locator('[data-testid="field-cell"][data-x="7"][data-y="6"]');
     await expect(crossing).toHaveAttribute("data-seat", "opp");
     await expect(crossing).toHaveAttribute("data-state", "scored");
-    await page.goto("/dev/room?phase=settle");
+    await page.goto("/dev/room?phase=idle");
     await expect(page.locator('[data-testid="field-band"][data-word="LEK"]')).toHaveAttribute("data-cells", "8,6;9,6");
   });
 });
 
 test.describe("@visual room clarity", () => {
-  test("the round rail stays above the collapsed live row", async ({ page }, testInfo) => {
+  test("the move rail stays above the collapsed live row", async ({ page }, testInfo) => {
     await page.goto("/dev/room?phase=idle");
-    const rail = page.getByTestId("round-rail");
-    await expect(rail).toHaveAttribute("aria-label", "round 4 of 10");
+    const rail = page.getByTestId("move-rail");
+    await expect(rail).toHaveAttribute("aria-label", "move 4 of 10");
     await expect(rail.locator('[data-state="past"]')).toHaveCount(3);
     await expect(rail.locator('[data-state="current"]')).toHaveCount(1);
     if (testInfo.project.name === "visual-390x844") {
@@ -363,15 +365,14 @@ test.describe("@visual room clarity", () => {
     }
   });
 
-  for (const phase of ["landing-slip", "resign", "claim-win", "over-slip"]) {
+  for (const phase of ["landing-slip", "resign", "end-early", "over-slip"]) {
     test(`${phase} is accessible with the slip open`, async ({ page }) => {
       await page.goto(`/dev/room?phase=${phase}`);
       await expect(page.getByRole("dialog")).toBeVisible();
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         // DS §2: decorative future numerals are the sole contrast exception.
-        .exclude(".ledger__row--future .ledger__round")
-        .exclude('.rail__cell[data-state="future"]')
+        .exclude(".ledger__row--future .ledger__move")
         .exclude('.rail__cell[data-state="future"]')
         .analyze();
       expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);

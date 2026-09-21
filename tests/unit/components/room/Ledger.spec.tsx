@@ -28,8 +28,8 @@ describe("Ledger (design system §5.4)", () => {
       ),
     };
     render(<Ledger variant="match" model={withWords} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
-    expect(screen.getByTestId("ledger-row-7").querySelector(".ledger__round")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByTestId("ledger-row-1").querySelector(".ledger__round")).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByTestId("ledger-row-7").querySelector(".ledger__move")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("ledger-row-1").querySelector(".ledger__move")).not.toHaveAttribute("aria-hidden");
     expect(screen.getByTestId("ledger-row-1").querySelector('.ledger__words[data-seat="opp"]')).toHaveTextContent("GILT");
     expect(screen.getByTestId("ledger-row-1").querySelector('.ledger__words[data-seat="you"]')).toHaveTextContent("BORÐ");
   });
@@ -65,7 +65,7 @@ describe("Ledger (design system §5.4)", () => {
     expect(row).toHaveAttribute("data-status", "live");
     expect(row.style.gridColumn).toBe("");
     expect(row.querySelector(".ledger__live-row")).toBeNull();
-    expect(row.querySelector('[data-testid="ledger-live-round"]')).toHaveTextContent("4");
+    expect(row.querySelector('[data-testid="ledger-live-move"]')).toHaveTextContent("4");
     // Amendment P1: the state on line 1, the instruction beneath it.
     const live = screen.getByTestId("ledger-live-row");
     expect(live.querySelector(".ledger__live-line1")).toHaveTextContent("picking · T (2)");
@@ -73,6 +73,19 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("aria-label", "territory 32–25");
     expect(screen.getByTestId("ledger-territory")).toHaveAttribute("role", "img"); // aria-label needs a role (axe aria-prohibited-attr)
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
+  });
+
+  it("a live row that holds the opponent's move shows their total only, after the live text (spec 050)", () => {
+    const gilt = { word: "GILT", points: 15, coordinates: [], direction: "ttb" as const };
+    const withOpp: LedgerModel = {
+      ...model,
+      rows: model.rows.map((r) => (r.move === 4 ? { ...r, opp: { words: [gilt], total: 15 } } : r)),
+    };
+    render(<Ledger variant="match" model={withOpp} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    const next = screen.getByTestId("ledger-live-row").nextElementSibling;
+    expect(next).toHaveClass("ledger__words");
+    expect(next).toHaveAttribute("data-seat", "opp");
+    expect(next).toHaveTextContent(/^15$/);
   });
 
   it("a one-line live state renders no second line", () => {
