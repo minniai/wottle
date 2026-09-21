@@ -1,350 +1,330 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { generateBoard } from "@/lib/game-engine/boardGenerator";
+import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
+import { logPlaytestError } from "@/lib/observability/log";
 import { boardGridSchema } from "@/lib/types/board";
 import type { Coordinate } from "@/lib/types/board";
-import { aggregateRoundSummary } from "@/lib/scoring/roundSummary";
 import type {
   FrozenTileMap,
+  MatchClock,
   MatchEndedReason,
   MatchPhase,
   MatchPlayerProfile,
   MatchPlayerProfiles,
   MatchState,
-  PartialRoundSummary,
-  PendingMove,
-  RoundSummary,
-  ScoreTotals,
+  MoveResolution,
+  PlayerMatchFacts,
   WordScore,
 } from "@/lib/types/match";
-import { generateBoard } from "@/lib/game-engine/boardGenerator";
-import { logPlaytestError } from "@/lib/observability/log";
-import { computeElapsedMs, computeRemainingMs, isClockExpired } from "./clockEnforcer";
-import { getDisconnectRecord } from "./disconnectStore";
+
+import { getDisconnectRecord, RECONNECT_WINDOW_MS } from "./disconnectStore";
 import { findStaleParticipantDetail } from "./heartbeatRepository";
-import { RECONNECT_WINDOW_MS } from "./disconnectStore";
 import { mapWordScoreRows, type WordScoreEntryRow } from "./wordScoreRow";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
 /**
- * Matches currently being self-healed via background `advanceRound` trigger.
- * Gate against concurrent polls all firing advanceRound for the same stuck
- * round — the first one wins; the rest skip until it finishes (or fails).
+ * The room's snapshot (spec 050, contracts/match-state.md). One read of the
+ * match row, the in-flight and last finished moves, and the heartbeats.
+ *
+ * Start: while the match is `pending`, a participant's load calls
+ * `start_match_if_ready`, which records the caller, sets the board once and
+ * starts the clock 3s ahead once both have loaded (or 10s after creation).
+ * Self-heal: a pending or stale move dispatches the resolver; a passed
+ * deadline dispatches settlement. Both are deduplicated per process.
  */
+export const MATCH_CLOCK_MS = Number(process.env.PLAYTEST_MATCH_CLOCK_MS ?? 300_000);
+export const START_COUNTDOWN_MS = 3_000;
+export const START_GRACE_MS = 10_000;
+/** A move claimed longer ago than this is reclaimable; the loader nudges the resolver when it sees one. */
+export const STALE_CLAIM_MS = 10_000;
+
 const pendingSelfHeals = new Set<string>();
 
-/**
- * Stuck-round self-heal: when a client polls /state and we detect the round
- * is still in `collecting` despite both players having submitted, fire
- * `advanceRound(matchId)` in the background. `advanceRound` itself re-checks
- * round state at its top and exits early if resolution is already in flight,
- * so this is safe to call liberally.
- *
- * This is the primary backstop against the "stuck round 10" bug: if the
- * post-submit `after()` hook drops the advancement for any reason, the
- * client's next 2s safety poll will re-trigger it via this path.
- */
-function triggerAdvanceInBackground(matchId: string): void {
-  if (pendingSelfHeals.has(matchId)) return;
-  pendingSelfHeals.add(matchId);
-  void (async () => {
-    try {
-      const { advanceRound } = await import("./roundEngine");
-      await advanceRound(matchId);
-    } catch (error) {
-      console.error("[stateLoader] self-heal advanceRound failed:", error);
-    } finally {
-      pendingSelfHeals.delete(matchId);
-    }
-  })();
+function dispatchOnce(key: string, work: () => Promise<unknown>, label: string): void {
+  if (pendingSelfHeals.has(key)) return;
+  pendingSelfHeals.add(key);
+  void work()
+    .catch((error) => console.error(`[stateLoader] ${label} failed:`, error))
+    .finally(() => pendingSelfHeals.delete(key));
 }
 
-/**
- * Extended self-heal: roll forward a round-advance that stalled *after*
- * entering the resolving/completed phase. `advanceRound`'s early-exit guard
- * (`round.state !== "collecting"`) means it can't recover these shapes, so we
- * delegate to `recoverStuckRound` which knows how to finish the pipeline
- * idempotently. Shares the same dedup set as advance self-heal — only one
- * background repair is ever in flight per match.
- */
-function triggerRecoveryInBackground(matchId: string): void {
-  if (pendingSelfHeals.has(matchId)) return;
-  pendingSelfHeals.add(matchId);
-  void (async () => {
-    try {
-      const { recoverStuckRound } = await import("./recoverStuckRound");
-      await recoverStuckRound(matchId);
-    } catch (error) {
-      console.error("[stateLoader] self-heal recoverStuckRound failed:", error);
-    } finally {
-      pendingSelfHeals.delete(matchId);
-    }
-  })();
+function triggerResolveInBackground(matchId: string): void {
+  dispatchOnce(`resolve:${matchId}`, async () => {
+    const { resolvePendingMoves } = await import("./moveResolver");
+    await resolvePendingMoves(matchId);
+  }, "self-heal resolvePendingMoves");
 }
 
-/**
- * How long a round may sit in `resolving` before we assume `advanceRound`
- * crashed mid-pipeline. The happy path takes <1s; 10s is well past any
- * legitimate run and matches the Realtime-subscribe timeout replaced in PR
- * #151.
- */
-const RESOLVING_STALENESS_THRESHOLD_MS = 10_000;
+function triggerSettleInBackground(matchId: string): void {
+  dispatchOnce(`settle:${matchId}`, async () => {
+    const { settleMatchIfDue } = await import("./matchSettlement");
+    await settleMatchIfDue(matchId);
+  }, "self-heal settleMatchIfDue");
+}
 
 /** @internal — test hook to reset the dedup set between runs. */
 export function __resetSelfHealTrackerForTests(): void {
   pendingSelfHeals.clear();
 }
 
-function mapState(roundState: string | null | undefined, matchState: string): MatchPhase {
-  // Match-level terminal states take precedence — a timeout or abandon can end the
-  // match while the current round is still in "collecting" state (never advanced).
-  if (matchState === "completed") {
-    return "completed";
-  }
-  if (matchState === "abandoned") {
-    return "abandoned";
-  }
-  if (matchState === "pending") {
-    return "pending";
-  }
+// ─── Rows ────────────────────────────────────────────────────────────
 
-  if (roundState === "collecting" || roundState === "resolving") {
-    return roundState;
-  }
-
-  // A round with state "completed" while the match is still in_progress means
-  // we're between rounds (round finished, next round not yet loaded). Map to
-  // "resolving" rather than "completed" to avoid the client mistaking a
-  // completed *round* for a completed *match* (which triggers "Rounds Complete").
-  if (roundState === "completed") {
-    return "resolving";
-  }
-
-  // in_progress or any other transient state defaults to collecting
-  return "collecting";
+interface MatchRow {
+  id: string;
+  state: MatchPhase;
+  board_seed: string | null;
+  board: unknown;
+  player_a_id: string;
+  player_b_id: string;
+  frozen_tiles: unknown;
+  winner_id: string | null;
+  ended_reason: string | null;
+  created_at: string;
+  started_at: string | null;
+  deadline_at: string | null;
+  resolved_seq: number;
+  player_a_moves: number;
+  player_b_moves: number;
+  player_a_score: number;
+  player_b_score: number;
+  move_limit: number;
 }
 
-/**
- * The highest round with a persisted post-board — the round a finished match
- * is served from (spec 049 R1). A completed match's `current_round` is one
- * past its last round and names no row; serving from the pointer regenerated
- * the starting board from the seed under ten rounds of freezes (2026-09-20).
- */
-export async function lastPlayedRound(
-  client: AnyClient,
-  matchId: string,
-): Promise<{ roundNumber: number; boardAfter: unknown } | null> {
-  const { data } = await client
-    .from("rounds")
-    .select("round_number, board_snapshot_after")
-    .eq("match_id", matchId)
-    .not("board_snapshot_after", "is", null)
-    .order("round_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  return { roundNumber: data.round_number as number, boardAfter: data.board_snapshot_after };
+interface MoveRow {
+  id: string;
+  player_id: string;
+  global_seq: number;
+  seq: number | null;
+  status: "pending" | "resolving" | "resolved" | "rejected";
+  rejection_reason: "frozen" | "moved" | null;
+  from_x: number;
+  from_y: number;
+  to_x: number;
+  to_y: number;
+  received_at: string;
+  claimed_at: string | null;
+  resolved_at: string | null;
+  board_after: unknown;
+  frozen_after: unknown;
+  delta: number | null;
+  score_a_after: number | null;
+  score_b_after: number | null;
 }
 
-function parseBoard(snapshot: unknown): string[][] | null {
-  if (!snapshot) return null;
-  try {
-    return boardGridSchema.parse(snapshot);
-  } catch {
-    return null;
-  }
+const MATCH_COLUMNS =
+  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit";
+
+const MOVE_COLUMNS =
+  "id,player_id,global_seq,seq,status,rejection_reason,from_x,from_y,to_x,to_y,received_at,claimed_at,resolved_at,board_after,frozen_after,delta,score_a_after,score_b_after";
+
+function parseBoard(value: unknown): string[][] | null {
+  const parsed = boardGridSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
-/**
- * The board to serve. The round's own snapshot first; failing that, the last
- * played round's post-board; the seed only when the match has no board at all.
- * A match that has rounds never gets a fresh board: that is a fault, logged
- * and handed to recovery by the caller (spec 049 contracts/state-loader.md).
- */
-function ensureBoardSnapshot(
-  matchId: string,
-  boardSeed: string | null,
-  own: string[][] | null,
-  fallback: unknown,
-): { board: string[][]; source: "round" | "last-played" | "seed" } {
-  if (own) return { board: own, source: "round" };
-  const last = parseBoard(fallback);
-  if (last) return { board: last, source: "last-played" };
-  return { board: generateBoard({ seed: boardSeed ?? matchId }), source: "seed" };
-}
-
-type RoundSnapshotRow = {
-  state: string | null;
-  board_snapshot_before: unknown;
-  board_snapshot_after: unknown;
-};
-
-/** A completed round's post-board; any other round's pre-board. */
-function roundBoardOf(round: RoundSnapshotRow | null | undefined): unknown {
-  if (!round) return null;
-  return round.state === "completed" && round.board_snapshot_after
-    ? round.board_snapshot_after
-    : round.board_snapshot_before;
-}
-
-async function fetchCompletedRound(
-  client: AnyClient,
-  matchId: string,
-  roundNumber: number,
-) {
-  const { data } = await client
-    .from("rounds")
-    .select("id,state")
-    .eq("match_id", matchId)
-    .eq("round_number", roundNumber)
-    .maybeSingle();
-
-  if (!data || data.state !== "completed") {
-    return null;
-  }
-
-  return data;
-}
-
-async function fetchWordEntries(client: AnyClient, matchId: string, roundId: string) {
-  const { data, error } = await client
-    .from("word_score_entries")
-    .select("*")
-    .eq("match_id", matchId)
-    .eq("round_id", roundId);
-
-  if (error) {
-    console.warn("[MatchState] Failed to load word scores:", error.message);
-    return null;
-  }
-
-  return data ?? [];
-}
-
-async function fetchPreviousTotals(
-  client: AnyClient,
-  matchId: string,
-  roundNumber: number,
-): Promise<ScoreTotals> {
-  const { data } = await client
-    .from("scoreboard_snapshots")
-    .select("player_a_score,player_b_score")
-    .eq("match_id", matchId)
-    .eq("round_number", roundNumber - 1)
-    .maybeSingle();
-
-  return data
-    ? {
-        playerA: data.player_a_score ?? 0,
-        playerB: data.player_b_score ?? 0,
-      }
-    : { playerA: 0, playerB: 0 };
-}
-
-/**
- * Defensively coerce a raw `matches.frozen_tiles` JSON value into a
- * `FrozenTileMap`. Returns an empty map for null/non-object values rather than
- * throwing — the polling hot path must never crash on a legacy or partially
- * written frozen-tiles column. Replaces an `(match as any).frozen_tiles as
- * FrozenTileMap` double-cast (2026-06-18 code-quality review §7).
- */
 function coerceFrozenTileMap(value: unknown): FrozenTileMap {
   return value && typeof value === "object" ? (value as FrozenTileMap) : {};
 }
 
-function mapWordScores(entries: WordScoreEntryRow[]): WordScore[] {
-  return mapWordScoreRows(entries);
+// ─── Start ───────────────────────────────────────────────────────────
+
+interface StartAnswer {
+  found: boolean;
+  started?: boolean;
+  state?: MatchPhase;
+  startedAt?: string | null;
+  deadlineAt?: string | null;
 }
 
-interface BuildPartialArgs {
-  matchId: string;
-  roundNumber: number;
-  roundId: string;
-  playerAId: string;
-  wordEntries: WordScoreEntryRow[];
-  submissions: Array<{ player_id: string; submitted_at: string; status: string }>;
-  frozenTiles: FrozenTileMap;
+async function startIfReady(client: AnyClient, match: MatchRow, callerId: string): Promise<void> {
+  const board = parseBoard(match.board) ?? generateBoard({ seed: match.board_seed ?? match.id });
+  const { data, error } = await client.rpc("start_match_if_ready", {
+    p_match_id: match.id,
+    p_caller_id: callerId,
+    p_board: board,
+    p_clock_ms: MATCH_CLOCK_MS,
+    p_countdown_ms: START_COUNTDOWN_MS,
+    p_grace_ms: START_GRACE_MS,
+  });
+  if (error) {
+    console.error("[MatchState] start_match_if_ready failed:", error.message);
+    return;
+  }
+  const answer = (data ?? {}) as StartAnswer;
+  match.board = board;
+  if (answer.state) match.state = answer.state;
+  match.started_at = answer.startedAt ?? match.started_at;
+  match.deadline_at = answer.deadlineAt ?? match.deadline_at;
+  if (answer.started) {
+    void import("@/lib/game-engine/dictionary").then(({ loadDictionary }) => loadDictionary("is")).catch(() => undefined);
+  }
 }
 
-/**
- * Derive `partialSummary` for a still-`collecting` round (spec 042 § 5).
- *
- * Returns null when:
- *   - no `word_score_entries` rows exist for the round yet, OR
- *   - both players already have word entries (combined path has run; the
- *     parallel `lastSummary` query carries the canonical state instead).
- *
- * Otherwise builds a `PartialRoundSummary` from the first mover's entries
- * + their submission timestamp. Polling clients converge to the same shape
- * realtime broadcasts carry.
- */
-function buildPartialSummary({
-  matchId,
-  roundNumber,
-  playerAId,
-  wordEntries,
-  submissions,
-  frozenTiles,
-}: BuildPartialArgs): PartialRoundSummary | null {
-  if (!wordEntries.length) return null;
+// ─── Moves ───────────────────────────────────────────────────────────
 
-  const playerIds = new Set(wordEntries.map((e) => e.player_id));
-  if (playerIds.size !== 1) return null;
+interface MoveFacts {
+  inFlight: Map<string, MoveRow>;
+  lastFinished: Map<string, MoveRow>;
+  words: Map<string, WordScore[]>;
+  stale: boolean;
+}
 
-  const firstMoverId = wordEntries[0].player_id;
-  const firstMoverSub = submissions
-    .filter((s) => s.player_id === firstMoverId && s.status !== "timeout")
-    .sort((a, b) => a.submitted_at.localeCompare(b.submitted_at))[0];
+async function loadMoveFacts(client: AnyClient, matchId: string): Promise<MoveFacts> {
+  const [{ data: open }, { data: finished }] = await Promise.all([
+    client.from("match_moves").select(MOVE_COLUMNS).eq("match_id", matchId).in("status", ["pending", "resolving"]),
+    client
+      .from("match_moves")
+      .select(MOVE_COLUMNS)
+      .eq("match_id", matchId)
+      .in("status", ["resolved", "rejected"])
+      .order("global_seq", { ascending: false })
+      .limit(6),
+  ]);
+  const inFlight = new Map<string, MoveRow>();
+  let stale = false;
+  for (const row of (open ?? []) as MoveRow[]) {
+    inFlight.set(row.player_id, row);
+    if (row.status === "pending") stale = true;
+    if (row.status === "resolving" && row.claimed_at && Date.now() - new Date(row.claimed_at).getTime() > STALE_CLAIM_MS) stale = true;
+  }
+  const lastFinished = new Map<string, MoveRow>();
+  for (const row of (finished ?? []) as MoveRow[]) {
+    if (!lastFinished.has(row.player_id)) lastFinished.set(row.player_id, row);
+  }
+  const words = await loadWordsFor(client, matchId, [...lastFinished.values()].map((m) => m.id));
+  return { inFlight, lastFinished, words, stale };
+}
 
-  if (!firstMoverSub) return null;
+async function loadWordsFor(client: AnyClient, matchId: string, moveIds: string[]): Promise<Map<string, WordScore[]>> {
+  const out = new Map<string, WordScore[]>();
+  if (moveIds.length === 0) return out;
+  const { data } = await client
+    .from("word_score_entries")
+    .select("move_id, player_id, word, length, letters_points, bonus_points, total_points, tiles")
+    .eq("match_id", matchId)
+    .in("move_id", moveIds);
+  for (const row of (data ?? []) as (WordScoreEntryRow & { move_id: string })[]) {
+    const list = out.get(row.move_id) ?? [];
+    list.push(...mapWordScoreRows([row]));
+    out.set(row.move_id, list);
+  }
+  return out;
+}
 
-  const words = mapWordScores(wordEntries);
-  const total = words.reduce((sum, w) => sum + w.totalPoints, 0);
-  const delta: ScoreTotals =
-    firstMoverId === playerAId
-      ? { playerA: total, playerB: 0 }
-      : { playerA: 0, playerB: total };
-
+function toResolution(match: MatchRow, row: MoveRow, words: WordScore[]): MoveResolution {
   return {
-    matchId,
-    roundNumber,
-    firstMoverId,
-    firstSubmissionAt: firstMoverSub.submitted_at,
-    words,
-    delta,
-    frozenTiles,
+    matchId: match.id,
+    moveId: row.id,
+    playerId: row.player_id,
+    globalSeq: row.global_seq,
+    seq: row.seq,
+    status: row.status === "resolved" ? "resolved" : "rejected",
+    ...(row.rejection_reason ? { rejectionReason: row.rejection_reason } : {}),
+    swap: { from: { x: row.from_x, y: row.from_y }, to: { x: row.to_x, y: row.to_y } },
+    board: parseBoard(row.board_after) ?? parseBoard(match.board) ?? [],
+    words: words.map((w) => ({ ...w, direction: w.direction ?? tryDeriveReadingDirection(w.coordinates as Coordinate[]) })),
+    delta: row.delta ?? 0,
+    totals: { playerA: row.score_a_after ?? match.player_a_score, playerB: row.score_b_after ?? match.player_b_score },
+    frozenTiles: coerceFrozenTileMap(row.frozen_after ?? match.frozen_tiles),
+    movesPlayed: { playerA: match.player_a_moves, playerB: match.player_b_moves },
+    resolvedAt: row.resolved_at ?? row.received_at,
   };
 }
 
-async function loadLatestRoundSummary(
+function playerFacts(match: MatchRow, playerId: string, facts: MoveFacts): PlayerMatchFacts {
+  const isA = playerId === match.player_a_id;
+  const open = facts.inFlight.get(playerId);
+  const last = facts.lastFinished.get(playerId);
+  return {
+    playerId,
+    movesPlayed: isA ? match.player_a_moves : match.player_b_moves,
+    score: isA ? match.player_a_score : match.player_b_score,
+    inFlight: open ? { moveId: open.id, globalSeq: open.global_seq, receivedAt: open.received_at } : null,
+    lastResolution: last ? toResolution(match, last, facts.words.get(last.id) ?? []) : null,
+  };
+}
+
+// ─── Disconnect ──────────────────────────────────────────────────────
+
+async function disconnectFacts(client: AnyClient, match: MatchRow) {
+  const inMemory =
+    getDisconnectRecord(match.id, match.player_a_id) ?? getDisconnectRecord(match.id, match.player_b_id) ?? null;
+  const stale =
+    !inMemory && match.state === "in_progress"
+      ? await findStaleParticipantDetail(client, {
+          matchId: match.id,
+          playerAId: match.player_a_id,
+          playerBId: match.player_b_id,
+          matchCreatedAt: new Date(match.created_at),
+        })
+      : null;
+  const disconnectedPlayerId = inMemory?.playerId ?? stale?.playerId ?? null;
+  return {
+    disconnectedPlayerId,
+    disconnectedAt: inMemory?.disconnectedAt ?? stale?.disconnectedAt ?? null,
+    reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,
+  };
+}
+
+// ─── The loader ──────────────────────────────────────────────────────
+
+export interface LoadMatchStateOptions {
+  /** The participant loading the room; lets a pending match record them and start. */
+  callerId?: string;
+}
+
+export async function loadMatchState(
   client: AnyClient,
   matchId: string,
-  currentRound: number,
-  playerAId: string,
-  playerBId: string,
-): Promise<RoundSummary | null> {
-  const summaryRound = currentRound - 1;
-  if (summaryRound < 1) {
+  options: LoadMatchStateOptions = {},
+): Promise<MatchState | null> {
+  const { data, error: matchError } = await client.from("matches").select(MATCH_COLUMNS).eq("id", matchId).maybeSingle();
+  if (matchError) {
+    console.error("[MatchState] Failed to load match:", matchError);
     return null;
   }
+  const match = (data ?? null) as MatchRow | null;
+  if (!match) return null;
 
-  const round = await fetchCompletedRound(client, matchId, summaryRound);
-  if (!round) {
-    return null;
+  if (match.state === "pending" && options.callerId) {
+    await startIfReady(client, match, options.callerId);
   }
 
-  // Parallelize independent queries (both depend on round.id but not each other)
-  const [wordEntries, previousTotals] = await Promise.all([
-    fetchWordEntries(client, matchId, round.id),
-    fetchPreviousTotals(client, matchId, summaryRound),
-  ]);
-  if (!wordEntries) {
-    return null;
+  const facts = await loadMoveFacts(client, matchId);
+  if (match.state === "in_progress" && facts.stale) triggerResolveInBackground(matchId);
+  if (match.state === "in_progress" && match.deadline_at && Date.now() > new Date(match.deadline_at).getTime()) {
+    triggerSettleInBackground(matchId);
   }
 
-  const wordScores = mapWordScores(wordEntries);
-  return aggregateRoundSummary(matchId, summaryRound, wordScores, previousTotals, playerAId, playerBId);
+  const board = parseBoard(match.board);
+  if (!board) {
+    logPlaytestError("match.board.unreadable", { matchId, metadata: { matchState: match.state } });
+  }
+
+  const clock: MatchClock = { startedAt: match.started_at, deadlineAt: match.deadline_at, serverNow: new Date().toISOString() };
+
+  return {
+    matchId: match.id,
+    board: board ?? generateBoard({ seed: match.board_seed ?? match.id }),
+    state: match.state,
+    players: {
+      playerA: playerFacts(match, match.player_a_id, facts),
+      playerB: playerFacts(match, match.player_b_id, facts),
+    },
+    clock,
+    moveLimit: match.move_limit ?? 10,
+    resolvedSeq: match.resolved_seq ?? 0,
+    scores: { playerA: match.player_a_score ?? 0, playerB: match.player_b_score ?? 0 },
+    frozenTiles: coerceFrozenTileMap(match.frozen_tiles),
+    ...(await disconnectFacts(client, match)),
+    winnerId: match.winner_id ?? null,
+    endedReason: (match.ended_reason as MatchEndedReason | null) ?? null,
+  };
 }
+
+// ─── Profiles ────────────────────────────────────────────────────────
 
 function mapPlayerRow(
   row: { id: string; username: string; display_name: string; avatar_url: string | null; elo_rating: number | null; games_played?: number | null },
@@ -396,323 +376,3 @@ export async function loadMatchPlayerProfiles(
     playerB: rowB ? mapPlayerRow(rowB) : fallbackProfile(playerBId, "Player B"),
   };
 }
-
-export async function loadMatchState(
-  client: AnyClient,
-  matchId: string,
-): Promise<MatchState | null> {
-  const { data: match, error: matchError } = await client
-    .from("matches")
-    .select(
-      "id,state,current_round,board_seed,player_a_id,player_b_id,player_a_timer_ms,player_b_timer_ms,frozen_tiles,winner_id,ended_reason,created_at",
-    )
-    .eq("id", matchId)
-    .maybeSingle();
-
-  if (matchError) {
-    console.error("[MatchState] Failed to load match:", matchError);
-    return null;
-  }
-
-  if (!match) {
-    return null;
-  }
-
-  if (match.state === "pending") {
-    const boardSeed = match.board_seed ?? match.id;
-    const initialBoard = generateBoard({ seed: boardSeed });
-
-    await client
-      .from("rounds")
-      .upsert(
-        {
-          match_id: matchId,
-          round_number: 1,
-          state: "collecting",
-          board_snapshot_before: initialBoard,
-          started_at: new Date().toISOString(),
-        },
-        { onConflict: "match_id,round_number" },
-      );
-
-    await client
-      .from("matches")
-      .update({
-        state: "in_progress",
-        current_round: 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", matchId);
-
-    match.state = "in_progress";
-    match.current_round = 1;
-  }
-
-  // A finished match is served from its last played round, not from the round
-  // pointer: the pointer is one past the last round (or, on 2026-09-20,
-  // written backwards by a thawed hook) and names no row. Spec 049 R1.
-  const finished = match.state === "completed" || match.state === "abandoned";
-  const lastPlayed = finished ? await lastPlayedRound(client, matchId) : null;
-  const servingRound = lastPlayed?.roundNumber ?? match.current_round;
-  // The summary and the scores snapshot are those of the round just played:
-  // for a live match that is the round before the pointer, for a finished one
-  // the serving round itself.
-  const playedRound = finished ? servingRound : Math.max(match.current_round - 1, 0);
-
-  // Parallelize independent queries (all depend on match but not each other)
-  const [{ data: round }, { data: scoreboard }, lastSummary] = await Promise.all([
-    client
-      .from("rounds")
-      .select("id, state, board_snapshot_before, board_snapshot_after, started_at, resolution_started_at")
-      .eq("match_id", matchId)
-      .eq("round_number", servingRound)
-      .maybeSingle(),
-    client
-      .from("scoreboard_snapshots")
-      .select("player_a_score, player_b_score")
-      .eq("match_id", matchId)
-      .eq("round_number", playedRound)
-      .maybeSingle(),
-    loadLatestRoundSummary(client, matchId, playedRound + 1, match.player_a_id, match.player_b_id),
-  ]);
-
-  const scores: ScoreTotals = scoreboard
-    ? {
-        playerA: scoreboard.player_a_score ?? 0,
-        playerB: scoreboard.player_b_score ?? 0,
-      }
-    : { playerA: 0, playerB: 0 };
-
-  // A live match whose pointer names no row, or whose snapshot cannot be read,
-  // is served from the last played board and handed to recovery — never a
-  // fresh board (spec 049 contracts/state-loader.md).
-  const ownBoard = parseBoard(roundBoardOf(round));
-  const fallback =
-    lastPlayed?.boardAfter
-    ?? (ownBoard ? null : (await lastPlayedRound(client, matchId))?.boardAfter)
-    ?? null;
-  const { board, source } = ensureBoardSnapshot(match.id, match.board_seed, ownBoard, fallback);
-  if (source !== "round") {
-    logPlaytestError(round ? "match.board.unreadable" : "match.round.missing", {
-      matchId,
-      roundNumber: servingRound,
-      metadata: { served: source, matchState: match.state },
-    });
-  }
-  const effectiveState = mapState(round?.state ?? null, match.state);
-
-  // Extended self-heal dispatch: PR #151's self-heal only covers stuck
-  // "collecting" rounds. `advanceRound` can still stall *after* flipping the
-  // round to "resolving" — step 10 Promise.all throw, Vercel `after()` hook
-  // termination, word engine OOM on the 3.74M-entry dictionary, etc. Round
-  // 10 is terminal (no follow-up submit to retry), so these partial-advance
-  // shapes are what currently leave the match stuck after PR #151. Each
-  // branch hands off to `recoverStuckRound` which rolls forward idempotently.
-  const resolutionStartedAt =
-    round?.resolution_started_at
-      ? new Date(round.resolution_started_at as string)
-      : null;
-  const isResolvingStale =
-    round?.state === "resolving"
-    && resolutionStartedAt !== null
-    && Date.now() - resolutionStartedAt.getTime() > RESOLVING_STALENESS_THRESHOLD_MS;
-  const isPostRoundStall =
-    round?.state === "completed" && match.state === "in_progress";
-  const isMatchMissingWinner =
-    match.state === "completed" && !(match as { winner_id?: string | null }).winner_id;
-  const isLiveRoundMissing = match.state === "in_progress" && (!round || !ownBoard);
-  if (isResolvingStale || isPostRoundStall || isMatchMissingWinner || isLiveRoundMissing) {
-    triggerRecoveryInBackground(matchId);
-  }
-
-  // Compute mid-round remaining time from round.started_at when in collecting state
-  const roundStartedAt =
-    round?.started_at && round.state === "collecting"
-      ? new Date(round.started_at as string)
-      : null;
-
-  const storedA = match.player_a_timer_ms ?? 300_000;
-  const storedB = match.player_b_timer_ms ?? 300_000;
-
-  let playerARemainingMs: number;
-  let playerBRemainingMs: number;
-  let playerAStatus: "running" | "paused" | "expired";
-  let playerBStatus: "running" | "paused" | "expired";
-  let pendingMoves: PendingMove[] = [];
-  let partialSummary: PartialRoundSummary | null = null;
-
-  if (match.state === "completed") {
-    playerARemainingMs = storedA;
-    playerBRemainingMs = storedB;
-    playerAStatus = "expired";
-    playerBStatus = "expired";
-  } else if (effectiveState === "collecting" && roundStartedAt && round?.id) {
-    // Parallel fetches: submissions (for timers + pending moves) AND
-    // word_score_entries (for partialSummary hydration, spec 042). Both are
-    // sub-millisecond reads keyed by round_id; doing them in parallel keeps
-    // the polling-fallback latency budget intact.
-    const [{ data: submissions }, { data: wordEntries }] = await Promise.all([
-      client
-        .from("move_submissions")
-        .select("player_id, submitted_at, status, from_x, from_y, to_x, to_y")
-        .eq("round_id", round.id),
-      client
-        .from("word_score_entries")
-        .select("player_id, word, length, letters_points, bonus_points, total_points, tiles")
-        .eq("match_id", matchId)
-        .eq("round_id", round.id),
-    ]);
-
-    const typedSubs = (submissions ?? []) as Array<{
-      player_id: string;
-      submitted_at: string;
-      status: string;
-      from_x: number;
-      from_y: number;
-      to_x: number;
-      to_y: number;
-    }>;
-
-    partialSummary = buildPartialSummary({
-      matchId,
-      roundNumber: match.current_round,
-      roundId: round.id,
-      playerAId: match.player_a_id,
-      wordEntries: wordEntries ?? [],
-      submissions: typedSubs,
-      frozenTiles: coerceFrozenTileMap((match as { frozen_tiles?: unknown }).frozen_tiles),
-    });
-
-    // Self-heal: if both players have real (non-timeout) submissions but the
-    // round hasn't advanced, fire advanceRound in the background. This closes
-    // the race where submitMove's `after()` hook drops the advancement.
-    const nonTimeoutSubs = typedSubs.filter((s) => s.status !== "timeout");
-    if (nonTimeoutSubs.length >= 2) {
-      triggerAdvanceInBackground(matchId);
-    }
-
-    // Self-heal for issue #175: when both clocks have expired and fewer than
-    // two real submissions exist, no client input will ever call advanceRound
-    // (the submitMove path rejects flagged players; the current-round
-    // triggerTimeoutCheck only fires on the client's own countdown, which
-    // stops ticking once both reach zero). The 2s safety poll on every
-    // active client lands here, so we trigger advanceRound ourselves — its
-    // both-flagged branch will then complete the match.
-    const bothClocksExpired =
-      isClockExpired(roundStartedAt, storedA) &&
-      isClockExpired(roundStartedAt, storedB);
-    if (bothClocksExpired && nonTimeoutSubs.length < 2) {
-      triggerAdvanceInBackground(matchId);
-    }
-
-    const subByPlayer = new Map<string, Date>(
-      typedSubs.map((s) => [s.player_id, new Date(s.submitted_at)]),
-    );
-    const submittedAtA = subByPlayer.get(match.player_a_id);
-    const submittedAtB = subByPlayer.get(match.player_b_id);
-
-    if (submittedAtA) {
-      const elapsed = computeElapsedMs(roundStartedAt, submittedAtA);
-      playerARemainingMs = Math.max(0, storedA - elapsed);
-      playerAStatus = "paused";
-    } else {
-      playerARemainingMs = computeRemainingMs(roundStartedAt, storedA);
-      playerAStatus = "running";
-    }
-    if (submittedAtB) {
-      const elapsed = computeElapsedMs(roundStartedAt, submittedAtB);
-      playerBRemainingMs = Math.max(0, storedB - elapsed);
-      playerBStatus = "paused";
-    } else {
-      playerBRemainingMs = computeRemainingMs(roundStartedAt, storedB);
-      playerBStatus = "running";
-    }
-
-    // Issue #210: surface live submissions so the opponent's board can animate
-    // the swap immediately rather than waiting for round resolution. Only
-    // populated during `collecting`; cleared automatically once the round
-    // transitions because this branch no longer runs.
-    pendingMoves = typedSubs
-      .filter((s) => s.status !== "timeout")
-      .map((s) => ({
-        playerId: s.player_id,
-        from: { x: s.from_x, y: s.from_y },
-        to: { x: s.to_x, y: s.to_y },
-        submittedAt: s.submitted_at,
-      }));
-  } else {
-    playerARemainingMs = roundStartedAt ? computeRemainingMs(roundStartedAt, storedA) : storedA;
-    playerBRemainingMs = roundStartedAt ? computeRemainingMs(roundStartedAt, storedB) : storedB;
-    playerAStatus = "running";
-    playerBStatus = "running";
-  }
-
-  // Surface disconnect state in the polled snapshot. Two sources are
-  // consulted in order:
-  //   1. `disconnectStore` — in-memory, populated by `handlePlayerDisconnect`
-  //      when the disconnecting client notifies us via `sendBeacon`, the
-  //      Realtime `system: CLOSED` handler, or the surviving client's
-  //      `onOpponentLeave` presence callback. Fast path for the common
-  //      tab-close / resign-connection cases.
-  //   2. `match_heartbeats` — shared-store fallback (issue #164). Every
-  //      /state poll upserts the caller's row; a participant with a
-  //      heartbeat older than HEARTBEAT_STALE_MS is marked disconnected.
-  //      Catches the case where the network dropped without firing any of
-  //      the signals above and is instance-independent on Vercel.
-  //
-  // The previous in-memory heartbeat was per-process and false-positived
-  // on Vercel multi-instance (issue #161 / #163 hotfix). The shared
-  // Postgres row resolves that.
-  const inMemoryDisconnect =
-    getDisconnectRecord(match.id, match.player_a_id) ??
-    getDisconnectRecord(match.id, match.player_b_id) ??
-    null;
-
-  const staleFromHeartbeat =
-    !inMemoryDisconnect &&
-    match.state === "in_progress" &&
-    (match as { created_at?: string }).created_at
-      ? await findStaleParticipantDetail(client, {
-          matchId: match.id,
-          playerAId: match.player_a_id,
-          playerBId: match.player_b_id,
-          matchCreatedAt: new Date((match as { created_at: string }).created_at),
-        })
-      : null;
-
-  const disconnectedPlayerId =
-    inMemoryDisconnect?.playerId ?? staleFromHeartbeat?.playerId ?? null;
-  // Anchor for the client's `reconnecting · m:ss left` countdown (spec 044, R13).
-  const disconnectedAt =
-    inMemoryDisconnect?.disconnectedAt ?? staleFromHeartbeat?.disconnectedAt ?? null;
-
-  return {
-    matchId: match.id,
-    board,
-    currentRound: match.current_round,
-    state: effectiveState,
-    timers: {
-      playerA: {
-        playerId: match.player_a_id,
-        remainingMs: playerARemainingMs,
-        status: playerAStatus,
-      },
-      playerB: {
-        playerId: match.player_b_id,
-        remainingMs: playerBRemainingMs,
-        status: playerBStatus,
-      },
-    },
-    scores,
-    lastSummary,
-    frozenTiles: coerceFrozenTileMap((match as { frozen_tiles?: unknown }).frozen_tiles),
-    disconnectedPlayerId,
-    disconnectedAt,
-    reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,
-    pendingMoves,
-    partialSummary,
-    winnerId: (match as { winner_id?: string | null }).winner_id ?? null,
-    endedReason: ((match as { ended_reason?: string | null }).ended_reason as MatchEndedReason | null) ?? null,
-  };
-}
-

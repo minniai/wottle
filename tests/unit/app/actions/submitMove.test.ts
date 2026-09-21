@@ -1,228 +1,93 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock server-only before importing submitMove
 vi.mock("server-only", () => ({}));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/server", () => ({ after: (fn: () => void) => fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/rate-limiting/middleware", () => ({ assertWithinRateLimit: vi.fn() }));
-vi.mock("@/lib/match/roundEngine", () => ({ advanceRound: vi.fn().mockResolvedValue({ status: "waiting" }) }));
-vi.mock("@/lib/match/statePublisher", () => ({ publishMatchState: vi.fn().mockResolvedValue(undefined) }));
-vi.mock("@/app/actions/match/completeMatch", () => ({
-    completeMatchInternal: vi.fn().mockResolvedValue({}),
-}));
+vi.mock("@/lib/match/moveResolver", () => ({ resolvePendingMoves: vi.fn().mockResolvedValue({ resolved: 1, bothDone: false }) }));
 
 import { submitMove } from "@/app/actions/match/submitMove";
-import { publishMatchState } from "@/lib/match/statePublisher";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { resolvePendingMoves } from "@/lib/match/moveResolver";
 import { readLobbySession } from "@/lib/matchmaking/profile";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
-const PLAYER_ID = "player-a";
-const MATCH_ID = "match-1";
+/**
+ * Spec 050 contracts/receive-move.md: the action validates, hands the move to
+ * `receive_move`, maps its answer, and only an accepted move starts resolution.
+ */
+const PLAYER_ID = "11111111-1111-4111-8111-111111111111";
+const MATCH_ID = "33333333-3333-4333-8333-333333333333";
+const MOVE = { fromX: 0, fromY: 0, toX: 1, toY: 1, fromLetter: "A", toLetter: "B" };
 
-function createBoard() {
-    return Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "A"));
+function withRpc(row: unknown, error: { message: string } | null = null) {
+  const rpc = vi.fn().mockResolvedValue({ data: row, error });
+  vi.mocked(getServiceRoleClient).mockReturnValue({ rpc } as never);
+  return rpc;
 }
 
-function makeSupabaseMock(matchData: Record<string, unknown>, roundData?: Record<string, unknown>) {
-    const matchChain = {
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: matchData, error: null }),
-    };
-
-    const roundChain = {
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-            data: roundData ?? {
-                id: "round-1",
-                state: "collecting",
-                board_snapshot_before: createBoard(),
-                // Use current time so player has full timer remaining by default
-                started_at: new Date().toISOString(),
-            },
-            error: null,
-        }),
-    };
-
-    const existingSubChain = {
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-    };
-
-    const insertResult = { error: null };
-
-    return {
-        from: vi.fn((table: string) => {
-            if (table === "matches") return { select: vi.fn(() => matchChain) };
-            if (table === "rounds") return { select: vi.fn(() => roundChain) };
-            if (table === "move_submissions") {
-                return {
-                    select: vi.fn(() => existingSubChain),
-                    insert: vi.fn().mockResolvedValue(insertResult),
-                };
-            }
-            return {};
-        }),
-    };
-}
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(readLobbySession).mockResolvedValue({
+    player: { id: PLAYER_ID, username: "birna", displayName: "Birna" },
+  } as never);
+});
 
 describe("submitMove", () => {
-    beforeEach(() => {
-        vi.mocked(readLobbySession).mockResolvedValue({
-            player: { id: PLAYER_ID, username: "playerA", displayName: "Player A" },
-        } as any);
+  it("returns Unauthorized without a session and calls nothing", async () => {
+    vi.mocked(readLobbySession).mockResolvedValue(null);
+    const rpc = withRpc(null);
+    expect(await submitMove(MATCH_ID, MOVE)).toEqual({ error: "Unauthorized" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses an invalid body before touching the database", async () => {
+    const rpc = withRpc(null);
+    const result = await submitMove(MATCH_ID, { ...MOVE, toX: 0, toY: 0 });
+    expect(result).toEqual({ error: "Cannot swap a tile with itself" });
+    expect(await submitMove(MATCH_ID, { fromX: 0, fromY: 0, toX: 1, toY: 1 })).toHaveProperty("error");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("hands the swap and the two letters to receive_move and returns the receipt", async () => {
+    const rpc = withRpc({ status: "accepted", moveId: "m-1", globalSeq: 7, receivedAt: "2026-09-21T12:00:00.000Z" });
+    const result = await submitMove(MATCH_ID, MOVE);
+    expect(rpc).toHaveBeenCalledWith("receive_move", {
+      p_match_id: MATCH_ID,
+      p_player_id: PLAYER_ID,
+      p_from_x: 0,
+      p_from_y: 0,
+      p_to_x: 1,
+      p_to_y: 1,
+      p_from_letter: "A",
+      p_to_letter: "B",
     });
+    expect(result).toEqual({ status: "accepted", moveId: "m-1", globalSeq: 7, receivedAt: "2026-09-21T12:00:00.000Z" });
+    expect(resolvePendingMoves).toHaveBeenCalledWith(MATCH_ID);
+  });
 
-    // T007: submitMove returns { status: "rejected", error: "Match has ended" } when match.state === "completed"
-    it("T007: returns rejected with 'Match has ended' when match state is completed", async () => {
-        vi.mocked(getServiceRoleClient).mockReturnValue(
-            makeSupabaseMock({
-                current_round: 10,
-                state: "completed",
-                player_a_id: PLAYER_ID,
-                player_b_id: "player-b",
-                frozen_tiles: {},
-            }) as never,
-        );
+  it.each([
+    ["ended", "Match has ended"],
+    ["not_started", "The match has not started yet"],
+    ["deadline", "The clock has run out"],
+    ["cap", "You have made all your moves"],
+    ["in_flight", "Your previous move is still being scored"],
+  ])("maps the refusal `%s` to a rejected result and starts no resolution", async (reason, message) => {
+    withRpc({ status: "rejected", reason });
+    expect(await submitMove(MATCH_ID, MOVE)).toEqual({ status: "rejected", reason, error: message });
+    expect(resolvePendingMoves).not.toHaveBeenCalled();
+  });
 
-        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
+  it("answers not_found and not_participant as plain errors", async () => {
+    withRpc({ status: "rejected", reason: "not_found" });
+    expect(await submitMove(MATCH_ID, MOVE)).toEqual({ error: "Match not found" });
+    withRpc({ status: "rejected", reason: "not_participant" });
+    expect(await submitMove(MATCH_ID, MOVE)).toEqual({ error: "You are not a player in this match" });
+  });
 
-        expect(result).toMatchObject({
-            status: "rejected",
-            error: "Match has ended",
-        });
-    });
-
-    it("T007: returns rejected with 'Match has ended' when match state is abandoned", async () => {
-        vi.mocked(getServiceRoleClient).mockReturnValue(
-            makeSupabaseMock({
-                current_round: 10,
-                state: "abandoned",
-                player_a_id: PLAYER_ID,
-                player_b_id: "player-b",
-                frozen_tiles: {},
-            }) as never,
-        );
-
-        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
-
-        expect(result).toMatchObject({
-            status: "rejected",
-            error: "Match has ended",
-        });
-    });
-
-    it("accepts a valid move when match is in_progress", async () => {
-        vi.mocked(getServiceRoleClient).mockReturnValue(
-            makeSupabaseMock({
-                current_round: 1,
-                state: "in_progress",
-                player_a_id: PLAYER_ID,
-                player_b_id: "player-b",
-                frozen_tiles: {},
-                player_a_timer_ms: 300_000,
-                player_b_timer_ms: 300_000,
-            }) as never,
-        );
-
-        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
-
-        expect(result).toMatchObject({ status: "accepted" });
-        expect(publishMatchState).toHaveBeenCalledWith(MATCH_ID);
-    });
-
-    // T015: submitMove returns rejected when clock is expired
-    it("T015: returns rejected with 'Your time has expired' when player clock is expired", async () => {
-        // Round started 10 minutes ago, but player only had 1 minute - clock is expired
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-        vi.mocked(getServiceRoleClient).mockReturnValue(
-            makeSupabaseMock(
-                {
-                    current_round: 1,
-                    state: "in_progress",
-                    player_a_id: PLAYER_ID,
-                    player_b_id: "player-b",
-                    frozen_tiles: {},
-                    player_a_timer_ms: 60_000, // 1 minute
-                    player_b_timer_ms: 300_000,
-                },
-                {
-                    id: "round-1",
-                    state: "collecting",
-                    board_snapshot_before: createBoard(),
-                    started_at: tenMinutesAgo, // started 10 mins ago
-                },
-            ) as never,
-        );
-
-        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
-
-        expect(result).toMatchObject({
-            status: "rejected",
-            error: "Your time has expired",
-        });
-    });
-
-    // T024: expired clock triggers advanceRound so the server can synthesize a
-    // timeout pass or complete the match if both players are flagged.
-    it("T024: triggers advanceRound when the current player's clock is expired", async () => {
-        const { advanceRound } = await import("@/lib/match/roundEngine");
-        vi.mocked(advanceRound).mockClear();
-
-        // Both players' timers expired (round started 10 mins ago, both had only 60s)
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-        vi.mocked(getServiceRoleClient).mockReturnValue(
-            makeSupabaseMock(
-                {
-                    current_round: 1,
-                    state: "in_progress",
-                    player_a_id: PLAYER_ID,
-                    player_b_id: "player-b",
-                    frozen_tiles: {},
-                    player_a_timer_ms: 60_000,
-                    player_b_timer_ms: 60_000, // both expired
-                },
-                {
-                    id: "round-1",
-                    state: "collecting",
-                    board_snapshot_before: createBoard(),
-                    started_at: tenMinutesAgo,
-                },
-            ) as never,
-        );
-
-        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
-
-        expect(result).toMatchObject({ status: "rejected" });
-        expect(advanceRound).toHaveBeenCalledWith(MATCH_ID);
-    });
-
-    it("T015: accepts a move when clock has not expired", async () => {
-        // Round started 30 seconds ago, player has 60 seconds - clock is still running
-        const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
-        vi.mocked(getServiceRoleClient).mockReturnValue(
-            makeSupabaseMock(
-                {
-                    current_round: 1,
-                    state: "in_progress",
-                    player_a_id: PLAYER_ID,
-                    player_b_id: "player-b",
-                    frozen_tiles: {},
-                    player_a_timer_ms: 60_000, // 1 minute
-                    player_b_timer_ms: 300_000,
-                },
-                {
-                    id: "round-1",
-                    state: "collecting",
-                    board_snapshot_before: createBoard(),
-                    started_at: thirtySecondsAgo, // started 30 seconds ago
-                },
-            ) as never,
-        );
-
-        const result = await submitMove(MATCH_ID, 0, 0, 0, 1);
-
-        expect(result).toMatchObject({ status: "accepted" });
-    });
+  it("reports a database failure without throwing", async () => {
+    withRpc(null, { message: "connection reset" });
+    expect(await submitMove(MATCH_ID, MOVE)).toEqual({ error: "Failed to submit move" });
+    expect(resolvePendingMoves).not.toHaveBeenCalled();
+  });
 });

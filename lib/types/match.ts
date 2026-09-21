@@ -26,7 +26,8 @@ export interface TimerState {
   status: TimerStatus;
 }
 
-export type MatchPhase = "pending" | "collecting" | "resolving" | "completed" | "abandoned";
+/** Spec 050: a match is pending until its clock starts, then in progress until it ends. */
+export type MatchPhase = "pending" | "in_progress" | "completed" | "abandoned";
 
 export interface ScoreTotals {
   playerA: number;
@@ -34,12 +35,72 @@ export interface ScoreTotals {
 }
 
 export type MatchEndedReason =
-  | "round_limit"
-  | "timeout"
+  /** Spec 050: both players made ten moves; score, then exclusive frozen tiles, then draw. */
+  | "moves_complete"
+  /** Spec 050: one player was short of ten moves at the deadline; the other wins. */
+  | "incomplete"
+  /** Spec 050: both were short of ten; a draw. */
+  | "both_incomplete"
   | "disconnect"
   | "forfeit"
   | "abandoned"
-  | "error";
+  | "error"
+  /** Retired by spec 050; kept until the round world is deleted. */
+  | "round_limit"
+  | "timeout";
+
+// ─── Moves (spec 050) ────────────────────────────────────────────────
+
+/** Why a move was refused at receipt (never recorded). */
+export type MoveRefusalReason =
+  | "not_found"
+  | "not_participant"
+  | "ended"
+  | "not_started"
+  | "deadline"
+  | "cap"
+  | "in_flight";
+
+/** Why a received move was rejected at resolution (recorded; not counted). */
+export type MoveRejectionReason = "frozen" | "moved";
+
+/** What the server broadcasts as `move-resolved` when a move finishes (contracts/move-resolved-event.md). */
+export interface MoveResolution {
+  matchId: string;
+  moveId: string;
+  playerId: string;
+  /** Receipt order; the ordering authority. */
+  globalSeq: number;
+  /** The player's Nth resolved move; null when rejected. */
+  seq: number | null;
+  status: "resolved" | "rejected";
+  rejectionReason?: MoveRejectionReason;
+  swap: { from: Coordinate; to: Coordinate };
+  /** The board after the move; unchanged when rejected. */
+  board: BoardGrid;
+  words: WordScore[];
+  delta: number;
+  totals: ScoreTotals;
+  frozenTiles: FrozenTileMap;
+  movesPlayed: { playerA: number; playerB: number };
+  resolvedAt: string;
+}
+
+/** One player's facts in `MatchState` (contracts/match-state.md). */
+export interface PlayerMatchFacts {
+  playerId: string;
+  movesPlayed: number;
+  score: number;
+  inFlight: { moveId: string; globalSeq: number; receivedAt: string } | null;
+  lastResolution: MoveResolution | null;
+}
+
+/** The one shared clock; `serverNow` anchors the client's countdown. */
+export interface MatchClock {
+  startedAt: string | null;
+  deadlineAt: string | null;
+  serverNow: string;
+}
 
 export type ClockCheckResult = { allowed: true } | { allowed: false; remainingMs: number };
 
@@ -109,26 +170,28 @@ export interface RoundSummary {
   moves: RoundMove[];
 }
 
+/** The room's snapshot (spec 050, contracts/match-state.md); `state` broadcast and `GET /api/match/[id]/state`. */
 export interface MatchState {
   matchId: string;
+  /** `matches.board`: the live board, rewritten by every resolved move. */
   board: string[][];
-  currentRound: number;
   state: MatchPhase;
-  timers: {
-    playerA: TimerState;
-    playerB: TimerState;
+  players: {
+    playerA: PlayerMatchFacts;
+    playerB: PlayerMatchFacts;
   };
+  clock: MatchClock;
+  moveLimit: number;
+  /** The last receipt sequence finished; the client's idempotency key for resolutions. */
+  resolvedSeq: number;
   scores: ScoreTotals;
-  lastSummary?: RoundSummary | null;
   disconnectedPlayerId?: string | null;
   /** ISO timestamp when `disconnectedPlayerId` was first observed server-side (spec 044). */
   disconnectedAt?: string | null;
   /** Length of the reconnection window in ms (RECONNECT_WINDOW_MS). */
   reconnectWindowMs?: number;
   /** Frozen tile map for visual rendering and swap validation */
-  frozenTiles?: FrozenTileMap;
-  /** In-flight swaps for the current round. Populated only during `collecting`. */
-  pendingMoves?: PendingMove[];
+  frozenTiles: FrozenTileMap;
   /**
    * Set once the match is completed. A win can be forced (a resignation, a
    * disconnect past the window), in which case the totals do not name the
@@ -136,13 +199,6 @@ export interface MatchState {
    */
   winnerId?: string | null;
   endedReason?: MatchEndedReason | null;
-  /**
-   * Set while the current round is still `collecting` and the first player's
-   * instant-scoring pass has fired (spec 042 / Linear O-57). Cleared when the
-   * round transitions out of `collecting` — at that point `lastSummary`
-   * carries the canonical state.
-   */
-  partialSummary?: PartialRoundSummary | null;
 }
 
 /**

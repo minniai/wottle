@@ -19,6 +19,8 @@ export type ClaimWinResult =
   | { status: "ok"; matchId: string }
   | { status: "too_early"; remainingMs: number }
   | { status: "not_disconnected" }
+  /** Spec 050 FR-012: the offer is for a player who has made all their moves. */
+  | { status: "not_done"; movesPlayed: number; moveLimit: number }
   | { status: "already_completed"; matchId: string }
   | { status: "forbidden" }
   | { status: "unauthenticated" }
@@ -62,7 +64,7 @@ export async function claimWinAction(
     const supabase = getServiceRoleClient();
     const { data: match } = await supabase
       .from("matches")
-      .select("state, player_a_id, player_b_id")
+      .select("state, player_a_id, player_b_id, player_a_moves, player_b_moves, move_limit")
       .eq("id", parsed.data.matchId)
       .maybeSingle();
 
@@ -82,6 +84,12 @@ export async function claimWinAction(
     const opponentId =
       match.player_a_id === selfId ? match.player_b_id : match.player_a_id;
 
+    const movesPlayed = match.player_a_id === selfId ? (match.player_a_moves ?? 0) : (match.player_b_moves ?? 0);
+    const moveLimit = match.move_limit ?? 10;
+    if (movesPlayed < moveLimit) {
+      return { status: "not_done", movesPlayed, moveLimit };
+    }
+
     const disconnectedAt = getDisconnectedAt(parsed.data.matchId, opponentId);
     if (disconnectedAt === null) {
       return { status: "not_disconnected" };
@@ -95,7 +103,9 @@ export async function claimWinAction(
       };
     }
 
-    await completeMatchInternal(parsed.data.matchId, "disconnect", selfId);
+    // The ordinary rules decide (spec 050 FR-012): the caller has all their
+    // moves and the absent opponent does not, so the caller wins `incomplete`.
+    await completeMatchInternal(parsed.data.matchId, "natural");
     return { status: "ok", matchId: parsed.data.matchId };
   } catch (error) {
     return {

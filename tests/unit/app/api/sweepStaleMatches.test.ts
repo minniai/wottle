@@ -7,10 +7,14 @@ vi.mock("@/lib/match/findOrphanedMatches", () => ({
 vi.mock("@/app/actions/match/completeMatch", () => ({
   completeMatchInternal: vi.fn(),
 }));
+vi.mock("@/lib/match/findDueMatches", () => ({ findDueMatches: vi.fn() }));
+vi.mock("@/lib/match/matchSettlement", () => ({ settleMatchIfDue: vi.fn() }));
 
 import { POST } from "@/app/api/cron/sweep-stale-matches/route";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
+import { findDueMatches } from "@/lib/match/findDueMatches";
 import { findOrphanedMatches } from "@/lib/match/findOrphanedMatches";
+import { settleMatchIfDue } from "@/lib/match/matchSettlement";
 
 const ORIGINAL_SECRET = process.env.CRON_SECRET;
 
@@ -29,6 +33,8 @@ function buildRequest(authHeader?: string): Request {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.CRON_SECRET = "test-secret";
+  vi.mocked(findDueMatches).mockResolvedValue([]);
+  vi.mocked(settleMatchIfDue).mockResolvedValue("completed");
 });
 
 afterEach(() => {
@@ -70,7 +76,26 @@ describe("POST /api/cron/sweep-stale-matches", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ swept: [], failed: [] });
+    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [] });
+    expect(completeMatchInternal).not.toHaveBeenCalled();
+  });
+
+  test("settles every match past its deadline under the normal rules (spec 050)", async () => {
+    vi.mocked(findOrphanedMatches).mockResolvedValue([]);
+    vi.mocked(findDueMatches).mockResolvedValue(["due-1", "due-2"]);
+    vi.mocked(settleMatchIfDue).mockImplementation(async (id: string) => {
+      if (id === "due-2") throw new Error("boom");
+      return "completed";
+    });
+
+    const res = await POST(buildRequest("Bearer test-secret"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(settleMatchIfDue).toHaveBeenCalledWith("due-1");
+    expect(settleMatchIfDue).toHaveBeenCalledWith("due-2");
+    expect(body.settled).toEqual(["due-1"]);
+    expect(body.settleFailed).toEqual([{ matchId: "due-2", error: "boom" }]);
     expect(completeMatchInternal).not.toHaveBeenCalled();
   });
 

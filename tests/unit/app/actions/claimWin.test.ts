@@ -64,6 +64,9 @@ beforeEach(() => {
       state: "in_progress",
       player_a_id: PLAYER_A,
       player_b_id: PLAYER_B,
+      player_a_moves: 10,
+      player_b_moves: 6,
+      move_limit: 10,
     }) as never,
   );
   vi.mocked(getDisconnectedAt).mockReturnValue(null);
@@ -150,20 +153,35 @@ describe("claimWinAction", () => {
     expect(remaining).toBeLessThan(61_000);
   });
 
-  test("returns ok and forces caller as winner when opponent disconnected 95s ago", async () => {
+  test("returns ok and ends the match under the normal rules when the opponent disconnected 95s ago", async () => {
     vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 95_000);
 
     const result = await claimWinAction(MATCH_ID);
 
     expect(result.status).toBe("ok");
     expect((result as { status: "ok"; matchId: string }).matchId).toBe(MATCH_ID);
-    // Caller (PLAYER_A) must be passed as forcedWinnerId so they win
-    // unconditionally, regardless of the live scoreboard.
-    expect(completeMatchInternal).toHaveBeenCalledWith(
-      MATCH_ID,
-      "disconnect",
-      PLAYER_A,
+    // Spec 050 FR-012: no forced winner. The caller has ten moves and the
+    // absent opponent does not, so the rules give the caller the win.
+    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "natural");
+  });
+
+  test("returns not_done while the caller is short of the move limit (spec 050 FR-012)", async () => {
+    vi.mocked(getServiceRoleClient).mockReturnValue(
+      buildSupabase({
+        state: "in_progress",
+        player_a_id: PLAYER_A,
+        player_b_id: PLAYER_B,
+        player_a_moves: 7,
+        player_b_moves: 6,
+        move_limit: 10,
+      }) as never,
     );
+    vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 95_000);
+
+    const result = await claimWinAction(MATCH_ID);
+
+    expect(result).toEqual({ status: "not_done", movesPlayed: 7, moveLimit: 10 });
+    expect(completeMatchInternal).not.toHaveBeenCalled();
   });
 
   test("returns rate_limited on the second call within the same minute", async () => {

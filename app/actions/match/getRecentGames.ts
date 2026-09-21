@@ -16,15 +16,10 @@ interface MatchRow {
   player_b_id: string;
   winner_id: string | null;
   completed_at: string | null;
+  player_a_score: number | null;
+  player_b_score: number | null;
   player_a: { id: string; username: string; display_name: string | null } | null;
   player_b: { id: string; username: string; display_name: string | null } | null;
-}
-
-interface ScoreRow {
-  match_id: string;
-  round_number: number;
-  player_a_score: number;
-  player_b_score: number;
 }
 
 function computeResult(
@@ -50,6 +45,8 @@ export async function getRecentGames(
         player_b_id,
         winner_id,
         completed_at,
+        player_a_score,
+        player_b_score,
         player_a:player_a_id (id, username, display_name),
         player_b:player_b_id (id, username, display_name)
       `,
@@ -66,39 +63,12 @@ export async function getRecentGames(
   const rows = (matches ?? []) as unknown as MatchRow[];
   if (rows.length === 0) return { games: [] };
 
-  const matchIds = rows.map((r) => r.id);
-
-  const { data: snaps, error: snapErr } = await supabase
-    .from("scoreboard_snapshots")
-    .select("match_id,round_number,player_a_score,player_b_score")
-    .in("match_id", matchIds)
-    .order("round_number", { ascending: false });
-
-  if (snapErr) {
-    throw new Error(`Failed to fetch scoreboards: ${snapErr.message}`);
-  }
-
-  const latestByMatch = new Map<string, ScoreRow>();
-  for (const s of (snaps ?? []) as ScoreRow[]) {
-    if (!latestByMatch.has(s.match_id)) {
-      latestByMatch.set(s.match_id, s);
-    }
-  }
-
   const games: RecentGameRow[] = rows.map((row) => {
     const isPlayerA = row.player_a_id === playerId;
     const opponent = isPlayerA ? row.player_b : row.player_a;
-    const snap = latestByMatch.get(row.id);
-    const yourScore = snap
-      ? isPlayerA
-        ? snap.player_a_score
-        : snap.player_b_score
-      : 0;
-    const oppScore = snap
-      ? isPlayerA
-        ? snap.player_b_score
-        : snap.player_a_score
-      : 0;
+    // Spec 050: the running totals live on the match row.
+    const yourScore = (isPlayerA ? row.player_a_score : row.player_b_score) ?? 0;
+    const oppScore = (isPlayerA ? row.player_b_score : row.player_a_score) ?? 0;
 
     return {
       matchId: row.id,

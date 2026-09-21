@@ -3,9 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   LobbyPresence,
   LobbyStatus,
-  MatchState,
   PlayerIdentity,
-  ScoreTotals,
 } from "@/lib/types/match";
 
 type AnyClient = SupabaseClient<any, any, any>;
@@ -30,7 +28,8 @@ export interface MatchBootstrapInput {
   boardSeed: string;
   playerAId: string;
   playerBId: string;
-  roundLimit?: number;
+  /** Spec 050: ten moves per player. */
+  moveLimit?: number;
   rematchOf?: string;
 }
 
@@ -151,7 +150,7 @@ export async function bootstrapMatchRecord(
     board_seed: input.boardSeed,
     player_a_id: input.playerAId,
     player_b_id: input.playerBId,
-    round_limit: input.roundLimit ?? 10,
+    move_limit: input.moveLimit ?? 10,
     state: "pending",
   };
 
@@ -200,78 +199,4 @@ export async function findActiveMatchForPlayer(
   };
 }
 
-export async function recordScoreSnapshot(
-  client: AnyClient,
-  matchId: string,
-  roundNumber: number,
-  scores: ScoreTotals,
-  deltas: ScoreTotals
-): Promise<void> {
-  const { error } = await client.from("scoreboard_snapshots").upsert(
-    {
-      match_id: matchId,
-      round_number: roundNumber,
-      player_a_score: scores.playerA,
-      player_b_score: scores.playerB,
-      player_a_delta: deltas.playerA,
-      player_b_delta: deltas.playerB,
-    },
-    { onConflict: "match_id,round_number" }
-  );
-
-  if (error) {
-    throw new Error(`Failed to persist scoreboard snapshot: ${error.message}`);
-  }
-}
-
-export async function fetchMatchState(
-  client: AnyClient,
-  matchId: string
-): Promise<MatchState | null> {
-  const { data, error } = await client
-    .from("matches")
-    .select(
-      `
-        id,
-        board_seed,
-        state,
-        current_round,
-        player_a_id,
-        player_b_id,
-        player_a_timer_ms,
-        player_b_timer_ms
-      `
-    )
-    .eq("id", matchId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to fetch match ${matchId}: ${error.message}`);
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  return {
-    matchId: data.id,
-    board: [],
-    currentRound: data.current_round,
-    state: data.state,
-    timers: {
-      playerA: {
-        playerId: data.player_a_id,
-        remainingMs: data.player_a_timer_ms,
-        status: "running",
-      },
-      playerB: {
-        playerId: data.player_b_id,
-        remainingMs: data.player_b_timer_ms,
-        status: "running",
-      },
-    },
-    scores: { playerA: 0, playerB: 0 },
-    lastSummary: null,
-  };
-}
 

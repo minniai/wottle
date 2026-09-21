@@ -3,7 +3,7 @@
 import "server-only";
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import { determineMatchWinner } from "@/lib/match/resultCalculator";
+import { determineMatchWinner, type MatchWinnerResult } from "@/lib/match/resultCalculator";
 import { writeMatchLog } from "@/lib/match/logWriter";
 import { publishMatchState } from "@/lib/match/statePublisher";
 import { getServiceRoleClient } from "@/lib/supabase/server";
@@ -21,9 +21,16 @@ interface MatchRow {
   player_b_id: string;
   winner_id: string | null;
   ended_reason: string | null;
-  round_limit: number;
+  move_limit: number;
   frozen_tiles: Record<string, unknown> | null;
+  player_a_score: number;
+  player_b_score: number;
+  player_a_moves: number;
+  player_b_moves: number;
 }
+
+/** `natural` means: decide by the rules (spec 050 FR-010); the reason comes out of the decision. */
+export type CompletionReason = MatchEndedReason | "natural";
 
 export interface CompleteMatchResult {
   matchId: string;
@@ -35,46 +42,92 @@ export interface CompleteMatchResult {
   ratingChanges?: RatingChange;
 }
 
-async function fetchMatch(client: ReturnType<typeof getServiceRoleClient>, matchId: string) {
-  const { data, error } = await client
-    .from("matches")
-    .select("id,state,player_a_id,player_b_id,winner_id,ended_reason,round_limit,frozen_tiles")
-    .eq("id", matchId)
-    .single();
+type Client = ReturnType<typeof getServiceRoleClient>;
 
+const MATCH_COLUMNS =
+  "id,state,player_a_id,player_b_id,winner_id,ended_reason,move_limit,frozen_tiles,player_a_score,player_b_score,player_a_moves,player_b_moves";
+
+async function fetchMatch(client: Client, matchId: string): Promise<MatchRow> {
+  const { data, error } = await client.from("matches").select(MATCH_COLUMNS).eq("id", matchId).single();
   if (error || !data) {
     throw new Error(error?.message ?? "Match not found.");
   }
-
   return data as MatchRow;
 }
 
-async function fetchLatestScores(
-  client: ReturnType<typeof getServiceRoleClient>,
-  matchId: string,
-): Promise<ScoreTotals> {
-  const { data } = await client
-    .from("scoreboard_snapshots")
-    .select("round_number,player_a_score,player_b_score")
-    .eq("match_id", matchId)
-    .order("round_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+function scoresOf(match: MatchRow): ScoreTotals {
+  return { playerA: match.player_a_score ?? 0, playerB: match.player_b_score ?? 0 };
+}
 
-  if (!data) {
-    return { playerA: 0, playerB: 0 };
-  }
+function otherPlayer(match: MatchRow, playerId: string): string {
+  return playerId === match.player_a_id ? match.player_b_id : match.player_a_id;
+}
 
+function existingResult(match: MatchRow, fallbackReason: MatchEndedReason): CompleteMatchResult {
+  const winnerId = match.winner_id;
   return {
-    playerA: data.player_a_score ?? 0,
-    playerB: data.player_b_score ?? 0,
+    matchId: match.id,
+    winnerId,
+    loserId: winnerId ? otherPlayer(match, winnerId) : null,
+    isDraw: false,
+    scores: scoresOf(match),
+    endedReason: (match.ended_reason as MatchEndedReason) ?? fallbackReason,
   };
 }
 
-async function resetPlayerStatuses(
-  client: ReturnType<typeof getServiceRoleClient>,
-  playerIds: string[],
-) {
+interface Decision {
+  winnerId: string | null;
+  loserId: string | null;
+  isDraw: boolean;
+  reason: MatchEndedReason;
+}
+
+function decideNaturally(match: MatchRow): MatchWinnerResult {
+  return determineMatchWinner(
+    {
+      scores: scoresOf(match),
+      moves: { playerA: match.player_a_moves ?? 0, playerB: match.player_b_moves ?? 0 },
+      moveLimit: match.move_limit ?? 10,
+      frozenCounts: computeFrozenTileCountByPlayer((match.frozen_tiles as FrozenTileMap) ?? {}),
+    },
+    match.player_a_id,
+    match.player_b_id,
+  );
+}
+
+/**
+ * Abandoned records no winner. A forced winner (a resignation, a claim) wins
+ * with the given reason. Everything else is decided by the rules; a natural
+ * end takes its reason from the decision, a forced reason keeps its own.
+ */
+function decide(match: MatchRow, reason: CompletionReason, forcedWinnerId?: string): Decision {
+  if (reason === "abandoned") return { winnerId: null, loserId: null, isDraw: false, reason };
+  if (forcedWinnerId !== undefined) {
+    return { winnerId: forcedWinnerId, loserId: otherPlayer(match, forcedWinnerId), isDraw: false, reason };
+  }
+  const natural = decideNaturally(match);
+  return { ...natural, reason: reason === "natural" ? natural.reason : reason };
+}
+
+/** The completion compare-and-set (spec 050 FR-011): true when this call flipped the match. */
+async function flipToCompleted(client: Client, matchId: string, decision: Decision): Promise<boolean> {
+  const { data, error } = await client
+    .from("matches")
+    .update({
+      state: "completed",
+      winner_id: decision.winnerId,
+      ended_reason: decision.reason,
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", matchId)
+    .in("state", ["pending", "in_progress"])
+    .select("id");
+  if (error) throw new Error(error.message);
+  return (data?.length ?? 0) > 0;
+}
+
+async function resetPlayerStatuses(client: Client, playerIds: string[]) {
   if (playerIds.length === 0) {
     return;
   }
@@ -97,99 +150,52 @@ async function resetPlayerStatuses(
     .in("player_id", playerIds);
 }
 
+async function rateIfRated(client: Client, match: MatchRow, decision: Decision): Promise<RatingChange | undefined> {
+  if (decision.reason === "abandoned") return undefined;
+  try {
+    return await applyRatingChanges(client, match.id, match.player_a_id, match.player_b_id, decision);
+  } catch (err) {
+    console.error(
+      JSON.stringify({ event: "rating.update.error", matchId: match.id, error: err instanceof Error ? err.message : String(err) }),
+    );
+    return undefined;
+  }
+}
+
 export async function completeMatchInternal(
   matchId: string,
-  reason: MatchEndedReason,
+  reason: CompletionReason,
   forcedWinnerId?: string,
 ): Promise<CompleteMatchResult> {
   const supabase = getServiceRoleClient();
   const match = await fetchMatch(supabase, matchId);
+  const fallback: MatchEndedReason = reason === "natural" ? "moves_complete" : reason;
 
   if (match.state === "completed") {
-    const existingWinner = match.winner_id;
-    return {
-      matchId,
-      winnerId: existingWinner,
-      loserId: existingWinner
-        ? existingWinner === match.player_a_id
-          ? match.player_b_id
-          : match.player_a_id
-        : null,
-      isDraw: false,
-      scores: await fetchLatestScores(supabase, matchId),
-      endedReason: (match.ended_reason as MatchEndedReason) ?? reason,
-    };
+    return existingResult(match, fallback);
   }
 
-  const scores = await fetchLatestScores(supabase, matchId);
-  const frozenCounts = computeFrozenTileCountByPlayer(
-    (match.frozen_tiles as FrozenTileMap) ?? {},
-  );
-  // Disconnect flows award the still-connected / claiming player regardless of
-  // score: loss of connection is treated as forfeit per Phase 6 spec §6.
-  // Abandoned matches (sweep-finalised with no live presence on either side)
-  // record no winner — there is no reliable signal for who "should" have won.
-  const result =
-    reason === "abandoned"
-      ? { winnerId: null, loserId: null, isDraw: false }
-      : forcedWinnerId !== undefined
-        ? {
-            winnerId: forcedWinnerId,
-            loserId:
-              forcedWinnerId === match.player_a_id
-                ? match.player_b_id
-                : match.player_a_id,
-            isDraw: false,
-          }
-        : determineMatchWinner(
-            scores,
-            match.player_a_id,
-            match.player_b_id,
-            frozenCounts,
-          );
+  const decision = decide(match, reason, forcedWinnerId);
+  const scores = scoresOf(match);
 
-  await supabase
-    .from("matches")
-    .update({
-      state: "completed",
-      winner_id: result.winnerId,
-      ended_reason: reason,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", matchId);
-
-  // Calculate and persist Elo rating changes — skip for abandoned matches
-  // since no winner means no meaningful rating delta. Every match is rated
-  // (spec 048 US6; supersedes spec 045 decision 1).
-  let ratingChanges: RatingChange | undefined;
-  if (reason !== "abandoned") {
-    try {
-      ratingChanges = await applyRatingChanges(
-        supabase,
-        matchId,
-        match.player_a_id,
-        match.player_b_id,
-        result,
-      );
-    } catch (err) {
-      console.error(
-        JSON.stringify({
-          event: "rating.update.error",
-          matchId,
-          error: err instanceof Error ? err.message : String(err),
-        }),
-      );
-    }
+  // Three triggers may race here (the resolver, a state poll, the cron sweep,
+  // the orphan sweep). Whoever flips the row first owns the ratings; the rest
+  // return what was written.
+  if (!(await flipToCompleted(supabase, matchId, decision))) {
+    return existingResult(await fetchMatch(supabase, matchId), fallback);
   }
+
+  const ratingChanges = await rateIfRated(supabase, match, decision);
 
   await resetPlayerStatuses(supabase, [match.player_a_id, match.player_b_id]);
 
   await writeMatchLog(supabase, {
     matchId,
-    eventType: reason === "round_limit" ? "match.completed" : `match.${reason}`,
+    eventType: decision.reason === "moves_complete" ? "match.completed" : `match.${decision.reason}`,
     metadata: {
-      winnerId: result.winnerId,
+      winnerId: decision.winnerId,
       scores,
+      moves: { playerA: match.player_a_moves, playerB: match.player_b_moves },
       ratingChanges,
     },
   });
@@ -198,28 +204,28 @@ export async function completeMatchInternal(
 
   trackMatchResult({
     matchId,
-    winnerId: result.winnerId,
-    loserId: result.loserId,
-    endedReason: reason,
-    isDraw: result.isDraw,
+    winnerId: decision.winnerId,
+    loserId: decision.loserId,
+    endedReason: decision.reason,
+    isDraw: decision.isDraw,
     scores,
-    totalRounds: match.round_limit,
+    totalRounds: match.move_limit,
   });
 
   return {
     matchId,
-    winnerId: result.winnerId,
-    loserId: result.loserId,
-    isDraw: result.isDraw,
+    winnerId: decision.winnerId,
+    loserId: decision.loserId,
+    isDraw: decision.isDraw,
     scores,
-    endedReason: reason,
+    endedReason: decision.reason,
     ratingChanges,
   };
 }
 
 export async function completeMatchAction(
   matchId: string,
-  reason: MatchEndedReason = "round_limit",
+  reason: CompletionReason = "natural",
 ): Promise<CompleteMatchResult> {
   const session = await readLobbySession();
   if (!session) {
@@ -239,7 +245,7 @@ export async function completeMatchAction(
 }
 
 async function applyRatingChanges(
-  supabase: ReturnType<typeof getServiceRoleClient>,
+  supabase: Client,
   matchId: string,
   playerAId: string,
   playerBId: string,
@@ -316,4 +322,3 @@ async function applyRatingChanges(
     playerBRatingAfter: eloB.newRating,
   };
 }
-

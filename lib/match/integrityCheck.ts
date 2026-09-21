@@ -13,40 +13,39 @@ import {
 
 type AnyClient = SupabaseClient<any, any, any>;
 
-export interface RoundIntegrityInput {
+export interface MoveIntegrityInput {
   matchId: string;
-  /** The round just resolved; its board is `board`, not yet a persisted row it can be read from. */
-  roundNumber: number;
+  /** The move just finished; its board is `board`, already persisted by `finish_move`. */
+  globalSeq: number;
   board: string[][];
   frozenTiles: FrozenTileMap;
 }
 
-type RoundRow = { id: string; round_number: number; board_snapshot_after: unknown };
-type RecordRow = { id: string; round_id: string; word: string; tiles: Coordinate[] | null };
+type MoveRow = { id: string; global_seq: number; board_after: unknown };
+type RecordRow = { id: string; move_id: string; word: string; tiles: Coordinate[] | null };
 
 /**
- * The post-resolution integrity check (spec 049 contracts/integrity-check.md):
- * one read of the match's rounds and records, then `verifyMatchIntegrity` on
- * the board the caller just persisted. Failures are logged as
- * `match.integrity.failed` and returned; the caller decides the routing.
- * Never throws: a failed read is logged and treated as "nothing to report",
- * since the check must not be what stops a round.
+ * The post-resolution integrity check (spec 049 contracts/integrity-check.md,
+ * per move since spec 050): one read of the match's resolved moves and
+ * records, then `verifyMatchIntegrity` on the board just written. Failures
+ * are logged as `match.integrity.failed` and returned. Never throws: a failed
+ * read is logged and treated as "nothing to report".
  */
-export async function checkRoundIntegrity(
+export async function checkMoveIntegrity(
   supabase: AnyClient,
-  input: RoundIntegrityInput,
+  input: MoveIntegrityInput,
 ): Promise<MatchIntegrityFailure[]> {
   try {
-    const rounds = await loadRoundBoards(supabase, input);
-    const records = await loadRecords(supabase, input.matchId, rounds);
+    const moves = await loadMoveBoards(supabase, input);
+    const records = await loadRecords(supabase, input.matchId, moves);
     const failures = verifyMatchIntegrity({
       board: input.board,
       records,
       frozenTiles: input.frozenTiles,
-      letterAtFreeze: letterAtFreeze(rounds, records),
+      letterAtFreeze: letterAtFreeze(moves, records),
     });
     if (failures.length > 0) {
-      trackMatchIntegrityFailed({ matchId: input.matchId, roundNumber: input.roundNumber, failures });
+      trackMatchIntegrityFailed({ matchId: input.matchId, roundNumber: input.globalSeq, failures });
     }
     return failures;
   } catch (error) {
@@ -55,43 +54,34 @@ export async function checkRoundIntegrity(
   }
 }
 
-async function loadRoundBoards(
-  supabase: AnyClient,
-  input: RoundIntegrityInput,
-): Promise<(RoundBoard & { id: string })[]> {
+async function loadMoveBoards(supabase: AnyClient, input: MoveIntegrityInput): Promise<(RoundBoard & { id: string })[]> {
   const { data, error } = await supabase
-    .from("rounds")
-    .select("id, round_number, board_snapshot_after")
+    .from("match_moves")
+    .select("id, global_seq, board_after")
     .eq("match_id", input.matchId)
-    .lte("round_number", input.roundNumber);
-  if (error) throw new Error(`Failed to load rounds: ${error.message}`);
-  return ((data ?? []) as RoundRow[]).map((row) => ({
+    .eq("status", "resolved")
+    .lte("global_seq", input.globalSeq);
+  if (error) throw new Error(`Failed to load moves: ${error.message}`);
+  return ((data ?? []) as MoveRow[]).map((row) => ({
     id: row.id,
-    roundNumber: row.round_number,
+    roundNumber: row.global_seq,
     boardAfter:
-      row.round_number === input.roundNumber
-        ? input.board
-        : ((row.board_snapshot_after as string[][] | null) ?? null),
+      row.global_seq === input.globalSeq ? input.board : ((row.board_after as string[][] | null) ?? null),
   }));
 }
 
 async function loadRecords(
   supabase: AnyClient,
   matchId: string,
-  rounds: (RoundBoard & { id: string })[],
+  moves: (RoundBoard & { id: string })[],
 ): Promise<IntegrityRecord[]> {
   const { data, error } = await supabase
     .from("word_score_entries")
-    .select("id, round_id, word, tiles")
+    .select("id, move_id, word, tiles")
     .eq("match_id", matchId);
   if (error) throw new Error(`Failed to load records: ${error.message}`);
-  const roundNumberOf = new Map(rounds.map((r) => [r.id, r.roundNumber]));
+  const seqOf = new Map(moves.map((m) => [m.id, m.roundNumber]));
   return ((data ?? []) as RecordRow[])
-    .filter((row) => roundNumberOf.has(row.round_id))
-    .map((row) => ({
-      id: row.id,
-      word: row.word,
-      roundNumber: roundNumberOf.get(row.round_id) as number,
-      tiles: row.tiles ?? [],
-    }));
+    .filter((row) => seqOf.has(row.move_id))
+    .map((row) => ({ id: row.id, word: row.word, roundNumber: seqOf.get(row.move_id) as number, tiles: row.tiles ?? [] }));
 }

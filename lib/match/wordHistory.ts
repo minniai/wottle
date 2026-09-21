@@ -4,10 +4,12 @@ import type { WordScore } from "@/lib/types/match";
 
 type Supabase = ReturnType<typeof getServiceRoleClient>;
 
-/** One scored word of a completed round, as the ledger and the field draw it. */
+/** One scored word of a resolved move, as the ledger and the field draw it (spec 050). */
 export interface HistoryWord extends WordScore {
-  roundNumber: number;
-  isDuplicate: boolean;
+  /** The mover's Nth resolved move: the ledger row it belongs to. */
+  moveSeq: number;
+  /** Receipt order across both players. */
+  globalSeq: number;
 }
 
 export interface MatchWordHistory {
@@ -15,53 +17,44 @@ export interface MatchWordHistory {
   words: HistoryWord[];
 }
 
-type RoundRef = { id: string; round_number: number };
-type HistoryRow = WordScoreEntryRow & { round_id: string; is_duplicate: boolean | null };
+type MoveRef = { id: string; seq: number | null; global_seq: number };
+type HistoryRow = WordScoreEntryRow & { move_id: string };
 
 /**
- * Every scored word of every completed round below `beforeRound`, in round
- * order (spec 047 FR-003). Served once per mount, rematch or missed broadcast
- * by `GET /api/match/[matchId]/words` — never on the move path, where
- * `loadMatchState` runs on every broadcast and poll.
- *
- * Only completed rounds: the live round's first-mover rows reach the client as
- * `partialSummary` and are replaced by the canonical summary when it lands.
+ * Every scored word of every resolved move, in receipt order (spec 050).
+ * Served once per mount, rematch or missed broadcast by
+ * `GET /api/match/[matchId]/words` — never on the move path.
  */
-export async function loadMatchWordHistory(
-  client: Supabase,
-  matchId: string,
-  beforeRound: number,
-): Promise<HistoryWord[]> {
-  const rounds = await loadCompletedRounds(client, matchId, beforeRound);
-  if (rounds.length === 0) return [];
-  const rows = await loadEntries(client, matchId, rounds.map((r) => r.id));
-  const roundNumberOf = new Map(rounds.map((r) => [r.id, r.round_number]));
+export async function loadMatchWordHistory(client: Supabase, matchId: string): Promise<HistoryWord[]> {
+  const moves = await loadResolvedMoves(client, matchId);
+  if (moves.length === 0) return [];
+  const rows = await loadEntries(client, matchId, moves.map((m) => m.id));
+  const moveOf = new Map(moves.map((m) => [m.id, m]));
   return rows
-    .map((row) => toHistoryWord(row, roundNumberOf.get(row.round_id) ?? 0))
-    .sort((a, b) => a.roundNumber - b.roundNumber || a.playerId.localeCompare(b.playerId));
+    .map((row) => toHistoryWord(row, moveOf.get(row.move_id)))
+    .sort((a, b) => a.globalSeq - b.globalSeq || a.word.localeCompare(b.word));
 }
 
-async function loadCompletedRounds(client: Supabase, matchId: string, beforeRound: number): Promise<RoundRef[]> {
+async function loadResolvedMoves(client: Supabase, matchId: string): Promise<MoveRef[]> {
   const { data, error } = await client
-    .from("rounds")
-    .select("id, round_number")
+    .from("match_moves")
+    .select("id, seq, global_seq")
     .eq("match_id", matchId)
-    .eq("state", "completed")
-    .lt("round_number", beforeRound);
-  if (error) throw new Error(`Failed to load rounds: ${error.message}`);
-  return (data ?? []) as RoundRef[];
+    .eq("status", "resolved");
+  if (error) throw new Error(`Failed to load moves: ${error.message}`);
+  return (data ?? []) as MoveRef[];
 }
 
-async function loadEntries(client: Supabase, matchId: string, roundIds: string[]): Promise<HistoryRow[]> {
+async function loadEntries(client: Supabase, matchId: string, moveIds: string[]): Promise<HistoryRow[]> {
   const { data, error } = await client
     .from("word_score_entries")
-    .select("round_id, player_id, word, length, letters_points, bonus_points, total_points, tiles, is_duplicate")
+    .select("move_id, player_id, word, length, letters_points, bonus_points, total_points, tiles")
     .eq("match_id", matchId)
-    .in("round_id", roundIds);
+    .in("move_id", moveIds);
   if (error) throw new Error(`Failed to load word history: ${error.message}`);
   return (data ?? []) as HistoryRow[];
 }
 
-function toHistoryWord(row: HistoryRow, roundNumber: number): HistoryWord {
-  return { ...mapWordScoreRow(row), roundNumber, isDuplicate: row.is_duplicate ?? false };
+function toHistoryWord(row: HistoryRow, move: MoveRef | undefined): HistoryWord {
+  return { ...mapWordScoreRow(row), moveSeq: move?.seq ?? 0, globalSeq: move?.global_seq ?? 0 };
 }

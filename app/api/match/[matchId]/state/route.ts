@@ -24,7 +24,10 @@ export async function GET(
   }
 
   const supabase = getServiceRoleClient();
-  const state = await loadMatchState(supabase, matchId);
+  const playerId = session.player.id;
+  // The caller is named so a pending match can record them and start once
+  // both players have loaded the room (spec 050, contracts/match-state.md).
+  const state = await loadMatchState(supabase, matchId, { callerId: playerId });
 
   if (!state) {
     return NextResponse.json(
@@ -33,10 +36,9 @@ export async function GET(
     );
   }
 
-  const playerId = session.player.id;
   const isParticipant =
-    playerId === state.timers.playerA.playerId ||
-    playerId === state.timers.playerB.playerId;
+    playerId === state.players.playerA.playerId ||
+    playerId === state.players.playerB.playerId;
 
   if (!isParticipant) {
     return NextResponse.json(
@@ -52,4 +54,3 @@ export async function GET(
 
   return NextResponse.json(state, { status: 200, headers: NO_CACHE_HEADERS });
 }
-
