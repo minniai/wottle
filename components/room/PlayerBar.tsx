@@ -20,8 +20,10 @@ export interface PlayerBarProps {
   sublineTone?: "seat" | "muted";
   /** The opponent has just been found: their name is written in (FR-028). */
   writing?: boolean;
-  /** Resolved moves: the lane's length (spec 050 FR-015). */
+  /** Resolved moves: the lane empties one segment per move (2026-09-21). */
   movesPlayed?: number;
+  /** A move of this player's is in flight: its segment shows as scoring. */
+  moveInFlight?: boolean;
   moveLimit?: number;
   score?: number;
   disconnected?: boolean;
@@ -38,11 +40,11 @@ function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
 /**
  * One player's facts (design system §5.3, spec 050): seat square + name +
  * one-line sub-line | total or primary action. There is no clock in a bar; the
- * match clock is the ledger caption's. The opponent is always the top bar, the
+ * match clock is the ledger's. The opponent is always the top bar, the
  * viewer the bottom; the lane sits on the edge nearest the field.
  */
 export function PlayerBar(props: PlayerBarProps) {
-  const { seat, position, state, name, subline, writing = false, movesPlayed = 0, moveLimit = TOTAL_MOVES } = props;
+  const { seat, position, state, name, subline, writing = false, movesPlayed = 0, moveLimit = TOTAL_MOVES, moveInFlight = false } = props;
   const { score, disconnected = false, action } = props;
   const inMatch = state === "playing" || state === "final";
   const showsScore = inMatch && typeof score === "number";
@@ -82,7 +84,7 @@ export function PlayerBar(props: PlayerBarProps) {
           {action}
         </div>
       )}
-      <BarLane label={seat === "you" ? "your moves" : "opponent's moves"} movesPlayed={movesPlayed} moveLimit={moveLimit} mode={laneMode(state, disconnected)} />
+      <BarLane label={seat === "you" ? "your moves" : "opponent's moves"} movesPlayed={movesPlayed} moveLimit={moveLimit} moveInFlight={moveInFlight} mode={laneMode(state, disconnected)} />
     </div>
   );
 }

@@ -37,7 +37,7 @@ describe("copy (design system §8)", () => {
   test("formatters interpolate", () => {
     expect(copy.frozenNotice("Kári", 2)).toBe("frozen · Kári M2 · pick another");
     expect(copy.picking("T", 2)).toBe("picking · T (2)");
-    expect(copy.moveContext(4)).toBe("move 4 of 10");
+    expect("moveContext" in copy).toBe(false);
     expect(copy.rematchRequest("Kári")).toBe("Kári asks for a rematch · accept ▸ · decline");
     expect(copy.verdictLine("Kári", 170, 127)).toBe("Kári wins 170–127");
     expect(copy.reconnecting("0:42")).toBe("reconnecting · 0:42 left");

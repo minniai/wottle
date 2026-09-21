@@ -145,14 +145,14 @@ const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
  * variant, so the opponent's 14px ledger words and the numerals on scored
  * letters now pass AA on their own (spec 045 FR-032, FR-033). What remains is
  * the design system's single grey exception: future-move numerals, which are
- * aria-hidden because the caption carries the count.
+ * aria-hidden because the bottom bar carries the count.
  */
 /**
- * The two future-move marks: the ledger's row labels and the rail's cells. Both
- * are `aria-hidden` progression marks in the one permitted grey (design system
- * §2); the move itself is named by the caption and the rail's own label.
+ * The one future-move mark: the ledger's row labels, `aria-hidden` progression
+ * marks in the one permitted grey (design system §2); the viewer's move is named
+ * by the bottom bar (the ledger's rail went on 2026-09-21).
  */
-const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__move", '.rail__cell[data-state="future"]'];
+const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__move"];
 
 async function expectAxeClean(page: Page, label: string) {
   let builder = new AxeBuilder({ page }).withTags(AXE_TAGS);

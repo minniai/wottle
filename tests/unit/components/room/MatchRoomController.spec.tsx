@@ -131,7 +131,7 @@ describe("MatchRoomController (spec 050)", () => {
     log.mockRestore();
   });
 
-  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer, the clock once in the caption", () => {
+  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer, the clock once in the ledger", () => {
     renderController();
     const room = screen.getByTestId("room");
     expect(room).toHaveAttribute("data-phase", "match");
@@ -139,7 +139,9 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent · 5 of 10 · playing");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you · move 3 of 10");
-    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 3 of 10");
+    // 2026-09-21: the ledger names no move of the viewer's; the bottom bar's lane counts them.
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("");
+    expect(screen.getByTestId("player-bar-bottom").querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("aria-valuenow", "8");
     expect(screen.getByTestId("match-clock")).toBeInTheDocument();
     expect(screen.queryByTestId("player-bar-clock")).toBeNull();
     const ids = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
@@ -216,7 +218,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
     expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "live");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
-    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
     expect(cell(1, 2)).toHaveAttribute("data-state", "scored");

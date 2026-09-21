@@ -11,7 +11,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 const cell = (page: Page, x: number, y: number) => page.locator(`[data-testid="field-cell"][data-x="${x}"][data-y="${y}"]`);
-const rail = (page: Page) => page.getByTestId("move-rail");
+// The viewer's moves left, on the bottom bar's lane (2026-09-21: the ledger's rail is gone).
+const rail = (page: Page) => page.getByTestId("player-bar-bottom").getByTestId("player-bar-lane");
 
 /** Two free cells in the given row. */
 async function twoFreeCells(page: Page, y: number): Promise<[number, number]> {
@@ -53,7 +54,7 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(pageA.getByTestId("ledger-live-row")).toContainText(/picking ·/);
       await cell(pageA, ax2, 0).click();
       // Spec 050: nothing waits for B. A's move scores and move 2 opens.
-      await expect(rail(pageA)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 20_000 });
+      await expect(rail(pageA)).toHaveAttribute("aria-valuenow", "9", { timeout: 20_000 });
       await expect(pageA.getByTestId("ledger-live-row")).toContainText("move 2 · your move", { timeout: 20_000 });
       await expect(cell(pageA, ax1, 0)).not.toHaveAttribute("data-state", "picked");
 
@@ -75,7 +76,7 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await cell(pageB, bx2, 9).click();
       await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "previewed");
       await cell(pageB, bx2, 9).click();
-      await expect(rail(pageB)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 20_000 });
+      await expect(rail(pageB)).toHaveAttribute("aria-valuenow", "9", { timeout: 20_000 });
       await expect(pageA.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
 
       // US3 — bands: one per word in the ledger's row 1, chevron edge per direction.
@@ -187,7 +188,7 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       const [bx1, bx2] = await twoFreeCells(pageB, 9);
       await cell(pageB, bx1, 9).click();
       await cell(pageB, bx2, 9).click();
-      for (const p of [pageA, pageB]) await expect(rail(p)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 45_000 });
+      for (const p of [pageA, pageB]) await expect(rail(p)).toHaveAttribute("aria-valuenow", "9", { timeout: 45_000 });
       for (const p of [pageA, pageB]) await expect(p.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
 
       // Settle: no band is still drawing or live once the reveal completes (≤ 2.5 s for three words).
@@ -242,7 +243,7 @@ test.describe("@room-flow US5 the hand and the keyboard", () => {
       await pageA.mouse.move(boxB.x + boxB.width / 2, boxB.y + boxB.height / 2, { steps: 8 });
       await pageA.mouse.up();
 
-      await expect(rail(pageA)).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 20_000 });
+      await expect(rail(pageA)).toHaveAttribute("aria-valuenow", "9", { timeout: 20_000 });
       await expect(pageA.locator('[data-state="picked"]')).toHaveCount(0);
     } finally {
       await contextA.close();
