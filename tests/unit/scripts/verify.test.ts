@@ -84,8 +84,8 @@ describe("verifySupabase instrumentation", () => {
       "boards",
       "players",
       "matches",
-      "rounds",
-      "move_submissions",
+      "match_moves",
+      "word_score_entries",
       "match_logs",
       "match_heartbeats",
     ]);
@@ -94,16 +94,14 @@ describe("verifySupabase instrumentation", () => {
       { column: "board_id", value: PRIMARY_BOARD_ID },
     ]);
     expect(stub.history.boardLimitValues).toEqual([1]);
-    // Spec 047 FR-005: the frozen-tiles compare-and-set function is probed with the nil uuid.
+    // Spec 050: the receipt/claim/finish functions are probed with the nil uuid.
     expect(stub.history.rpcCalls).toEqual([
+      { fn: "claim_next_move", args: { p_match_id: "00000000-0000-0000-0000-000000000000", p_stale_ms: 10_000 } },
       {
-        fn: "update_frozen_tiles_if_unchanged",
-        args: {
-          p_match_id: "00000000-0000-0000-0000-000000000000",
-          p_new_frozen_tiles: {},
-          p_previous_frozen_tiles: {},
-        },
+        fn: "finish_move",
+        args: { p_move_id: "00000000-0000-0000-0000-000000000000", p_expected_resolved_seq: 0, p_payload: {} },
       },
+      { fn: "find_due_matches", args: undefined },
     ]);
     expect(result.status).toBe("healthy");
   });

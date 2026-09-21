@@ -20,10 +20,8 @@ const TABLES = [
   "lobby_presence",
   "match_invitations",
   "matches",
-  "rounds",
-  "move_submissions",
+  "match_moves",
   "word_score_entries",
-  "scoreboard_snapshots",
   "match_logs",
   "match_heartbeats",
 ];
