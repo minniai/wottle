@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-import { HISTORY, WORDMARK } from "@/lib/constants/copy";
+import { HISTORY, lastSeconds, MATCH_CLOCK, TIME_SPENT, WORDMARK } from "@/lib/constants/copy";
 import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
+import type { ClockPhase } from "@/lib/room/clock";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
@@ -80,6 +81,48 @@ function LiveText({ live }: { live?: LiveLines }) {
       <span className="ledger__live-line1">{live.line1}</span>
       {live.line2 ? <span className="ledger__live-line2">{live.line2}</span> : null}
     </>
+  );
+}
+
+/** Whole seconds left in a `m:ss` string. */
+const secondsIn = (time: string): number => {
+  const [m, sec] = time.split(":").map(Number);
+  return (m || 0) * 60 + (sec || 0);
+};
+
+function ClockFace({ time, label, fraction }: { time: string; label: string; fraction: number }) {
+  return (
+    <>
+      <div className="ledger__clock-head">
+        <span className="ledger__clock-label">{label}</span>
+        <span className="ledger__clock-time">{time}</span>
+      </div>
+      <span className="ledger__clock-bar">
+        <span className="ledger__clock-fill" style={{ "--clock-fraction": fraction } as CSSProperties} />
+      </span>
+    </>
+  );
+}
+
+/**
+ * The one place the match clock is drawn (spec 050 FR-015; the ledger clock,
+ * 2026-09-21): a boxed block under the caption, a 32px numeral over a bar that
+ * drains. Under 1:00 it takes the tint; in the last 15 seconds an inverted
+ * face flashes over it once a second (held under reduced motion); at 0:00 it
+ * holds inverted. The live row announces the beats, so the timer is silent to AT.
+ */
+function LedgerClock({ time, phase, fraction }: { time: string; phase: ClockPhase; fraction: number }) {
+  const inverted = phase === "flash" || phase === "spent";
+  const invertedLabel = phase === "spent" ? TIME_SPENT : lastSeconds(secondsIn(time));
+  return (
+    <div className="ledger__clock" data-testid="match-clock" data-phase={phase} role="timer" aria-label={`${MATCH_CLOCK}, ${time} left`} aria-live="off">
+      <ClockFace time={time} label={MATCH_CLOCK} fraction={fraction} />
+      {inverted ? (
+        <div className="ledger__clock-invert" aria-hidden="true">
+          <ClockFace time={time} label={invertedLabel} fraction={fraction} />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -223,16 +266,9 @@ export function Ledger(props: LedgerProps) {
           <span className="ledger__mono" data-testid="ledger-context">
             {model.caption}
           </span>
-          {model.clock !== undefined ? (
-            /* The one place the match clock is drawn (spec 050 FR-015). Under 1:00 it
-               is heavier and blinks in colour only; the live row announces the beats,
-               so the timer itself is silent to AT. */
-            <span className="ledger__caption-clock" data-testid="match-clock" data-low={model.clockLow || undefined} role="timer" aria-label="match clock" aria-live="off">
-              {model.clock}
-            </span>
-          ) : null}
         </span>
       </div>
+      {model.clock !== undefined ? <LedgerClock time={model.clock} phase={model.clockPhase ?? "calm"} fraction={model.clockFraction ?? 1} /> : null}
       {rail}
 
       {model.verdict ? (

@@ -10,6 +10,10 @@ export const WORDMARK = "wottle";
 
 // Ledger context captions (spec 050: moves, one clock)
 export const QUEUE_CONTEXT = "10 moves each · one 5:00 clock";
+/** The ledger clock's label (2026-09-21): `match clock`, `last 12s` in the last 15 seconds, `time` at 0:00. */
+export const MATCH_CLOCK = "match clock";
+export const lastSeconds = (seconds: number): string => `last ${seconds}s`;
+export const TIME_SPENT = "time";
 /** The viewer's next move; the clock sits beside it in the caption. */
 export const moveContext = (move: number): string => `move ${move} of 10`;
 export const lobbyContext = (hereCount: number): string => `lobby · ${hereCount} here`;

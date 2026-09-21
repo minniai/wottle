@@ -392,16 +392,84 @@
   gap: 10px;
 }
 /* The one match clock (spec 050 FR-015): mono, tabular; heavier and blinking colour-only under 1:00. */
-.ledger__caption-clock {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 14px;
-  font-weight: 500;
+/* The ledger clock (2026-09-21): the one clock, a boxed block under the caption. */
+.ledger__clock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  margin-bottom: 8px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
   color: var(--ink);
 }
-.ledger__caption-clock[data-low] {
+.ledger__clock[data-phase="low"] {
+  background: var(--tint);
+}
+.ledger__clock-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.ledger__clock-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ledger__clock-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1;
+}
+.ledger__clock[data-phase="low"] .ledger__clock-time,
+.ledger__clock-invert .ledger__clock-time {
+  font-weight: 700;
+}
+.ledger__clock-bar {
+  position: relative;
+  display: block;
+  height: 10px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.ledger__clock[data-phase="low"] .ledger__clock-bar {
+  height: 12px;
+}
+.ledger__clock-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform: scaleX(var(--clock-fraction, 1));
+  transform-origin: left center;
+}
+/* The last 15 seconds and 0:00: an inverted face over the block. It flashes
+   (opacity, in steps) while seconds remain and holds at 0:00. */
+.ledger__clock-invert {
+  position: absolute;
+  inset: -1.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9.5px 11.5px 11.5px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.ledger__clock-invert .ledger__clock-label {
   font-weight: 600;
-  animation: lane-blink 1s steps(2, jump-none) infinite;
+}
+.ledger__clock-invert .ledger__clock-bar {
+  height: 12px;
+  background: var(--muted);
+}
+.ledger__clock-invert .ledger__clock-fill {
+  background: var(--paper);
+}
+.ledger__clock[data-phase="flash"] .ledger__clock-invert {
+  animation: clock-flash 1s infinite;
 }
 /* The round rail (spec 048 US3, §5.4): ten cells, three states, no motion. */
 .rail {
@@ -837,6 +905,10 @@
   from { opacity: 0.4; }
   to { opacity: 1; }
 }
+@keyframes clock-flash {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
 @keyframes lane-blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0.35; }
@@ -867,9 +939,9 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0ms !important;
   }
-  .ledger__caption-clock[data-low] {
+  /* Held inverted, not blinking: same specificity as the rule that starts it. */
+  .ledger__clock[data-phase="flash"] .ledger__clock-invert {
     animation: none;
-    opacity: 1;
   }
 }
 

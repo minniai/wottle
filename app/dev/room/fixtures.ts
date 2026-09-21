@@ -52,6 +52,8 @@ export const ROOM_PHASES = [
   "time-up",
   "end-early",
   "low-clock",
+  // The ledger clock (2026-09-21): the last 15 seconds, flashing.
+  "last-seconds",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -191,6 +193,7 @@ export const PREVIEW_LIVE: LiveState = { kind: "previewing", total: 10, words: [
 
 /** 0:48 on the shared clock: the caption numeral is heavier and blinks (design system §5.4). */
 export const LOW_CLOCK_MS = 48_000;
+export const LAST_SECONDS_MS = 12_000;
 
 /** An illegal pick: (7,4) is GILT's G, frozen by Kári with his first move. */
 export const ILLEGAL_CELL: Coordinate = { x: 7, y: 4 };

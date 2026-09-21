@@ -1,11 +1,22 @@
 /** The one match clock, shared by both players (rules §2a; spec 050). */
 export const MATCH_CLOCK_BUDGET_MS = 300_000;
 
-/** Under one minute the lane thickens and blinks (design system §5.3). */
+/** Under one minute the ledger clock takes the tint and a heavier numeral (design system §5.4). */
 export const LOW_CLOCK_MS = 60_000;
+/** In the last 15 seconds the ledger clock flashes (2026-09-21). */
+export const FLASH_CLOCK_MS = 15_000;
 
 export function isLowClock(remainingMs: number): boolean {
   return remainingMs < LOW_CLOCK_MS;
+}
+
+/** The ledger clock's four looks: calm, low (under 1:00), flash (last 15s), spent (0:00). */
+export type ClockPhase = "calm" | "low" | "flash" | "spent";
+
+export function clockPhase(remainingMs: number): ClockPhase {
+  if (remainingMs <= 0) return "spent";
+  if (remainingMs <= FLASH_CLOCK_MS) return "flash";
+  return isLowClock(remainingMs) ? "low" : "calm";
 }
 
 export function formatClock(remainingMs: number): string {
