@@ -27,6 +27,9 @@ export interface SeatFacts {
   reconnectMsLeft?: number | null;
   /** Final: `1191 → 1203 · +12 · wins` or `rating pending`. */
   finalLine?: string;
+  /** The player's profile; opened in a new tab while the match is live. */
+  profileHref?: string;
+  profileInNewTab?: boolean;
 }
 
 export interface MatchRoomViewProps {
@@ -114,6 +117,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           position="top"
           state={completed ? "final" : "playing"}
           name={opp.name}
+          profileHref={opp.profileHref}
+          profileInNewTab={opp.profileInNewTab}
           subline={subline(opp, readOnly ? null : OPPONENT)}
           sublineSuffix={opp.reconnectMsLeft != null ? null : oppSuffix}
           movesPlayed={opp.movesPlayed}
@@ -130,6 +135,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           position="bottom"
           state={completed ? "final" : "playing"}
           name={you.name}
+          profileHref={you.profileHref}
+          profileInNewTab={you.profileInNewTab}
           subline={subline(you, readOnly ? null : YOU)}
           sublineSuffix={youSuffix}
           sublineTone={turn ? barToneFor(turn) : "muted"}

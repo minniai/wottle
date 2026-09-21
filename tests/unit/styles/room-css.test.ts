@@ -387,3 +387,14 @@ describe("room.css the segmented move lane", () => {
     expect(css).not.toMatch(/\.rail__cell|\.rail\s*\{/);
   });
 });
+
+// 2026-09-21: player names open their profiles; a link keeps the name's look.
+describe("room.css profile links on names", () => {
+  it("inherit the name's ink, with no underline until hover or keyboard focus", () => {
+    for (const sel of [".player-bar__name--link", ".lobby-ledger__profile"]) {
+      expect(block(sel)).toMatch(/color:\s*inherit/);
+      expect(block(sel)).toMatch(/text-decoration:\s*none/);
+    }
+    expect(css).toMatch(/\.player-bar__name--link:hover,\s*\.player-bar__name--link:focus-visible,\s*\.lobby-ledger__profile:hover,\s*\.lobby-ledger__profile:focus-visible\s*\{[^}]*text-decoration:\s*underline/);
+  });
+});

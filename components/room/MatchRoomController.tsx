@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { logoutAction } from "@/app/actions/auth/logout";
 import { claimWinAction } from "@/app/actions/match/claimWin";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
 import { resignMatch } from "@/app/actions/match/resignMatch";
@@ -390,6 +391,15 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         router.replace("/matchmaking");
       }
       else if (action === "lobby") router.replace("/lobby");
+      // The final ⋯ menu offers profile and sign out (reported 2026-09-21: they did nothing here).
+      else if (action === "profile") router.push("/profile");
+      else if (action === "signOut") {
+        void logoutAction({}).finally(() => {
+          useRoomStore.getState().setViewer(null);
+          router.replace("/");
+          router.refresh();
+        });
+      }
       else if (action === "resign" || action === "leave") setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName });
       else if (action === "keepPlaying") clearSlip("resign");
       else if (action === "confirmResign") {
@@ -424,8 +434,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft }}
+        you={{ name: you.displayName, profileHref: `/profile/${you.username}`, profileInNewTab: !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
+        opp={{ name: opp.displayName, profileHref: `/profile/${opp.username}`, profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
         penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}

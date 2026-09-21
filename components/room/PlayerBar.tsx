@@ -30,6 +30,10 @@ export interface PlayerBarProps {
   disconnected?: boolean;
   /** Primary action when the seat is empty or searching. */
   action?: ReactNode;
+  /** The player's profile: the name becomes a link to it. */
+  profileHref?: string;
+  /** During a live match the profile opens in a new tab, so the match keeps running. */
+  profileInNewTab?: boolean;
 }
 
 function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
@@ -62,9 +66,22 @@ export function PlayerBar(props: PlayerBarProps) {
       <div className="player-bar__identity">
         <span className="player-bar__seat" aria-hidden />
         <div className="player-bar__text">
-          <span className={`player-bar__name${writing ? " player-bar__name--writing" : ""}`} data-testid="player-bar-name">
-            {name ?? ""}
-          </span>
+          {props.profileHref ? (
+            <a
+              className="player-bar__name player-bar__name--link"
+              data-testid="player-bar-name"
+              href={props.profileHref}
+              target={props.profileInNewTab ? "_blank" : undefined}
+              rel={props.profileInNewTab ? "noopener" : undefined}
+              aria-label={props.profileInNewTab ? `${name ?? ""}, profile opens in a new tab` : undefined}
+            >
+              {name ?? ""}
+            </a>
+          ) : (
+            <span className={`player-bar__name${writing ? " player-bar__name--writing" : ""}`} data-testid="player-bar-name">
+              {name ?? ""}
+            </span>
+          )}
           <span className="player-bar__subline" data-testid="player-bar-subline">
             {subline}
             {props.sublineSuffix ? (

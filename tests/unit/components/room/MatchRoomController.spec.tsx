@@ -12,7 +12,7 @@ const mockPush = vi.fn();
 const mockReplace = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn() }) }));
@@ -33,6 +33,7 @@ vi.mock("@/app/actions/match/getMatchRatings", () => ({ getMatchRatings: vi.fn()
 vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.fn().mockResolvedValue({ status: "pending" }) }));
 vi.mock("@/app/actions/match/respondToRematch", () => ({ acceptRematchAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m2" }), declineRematchAction: vi.fn().mockResolvedValue({ status: "declined" }) }));
 vi.mock("@/app/actions/match/cancelRematch", () => ({ cancelRematchAction: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "ok" }) }));
 
 import { __resetWordIntegrityForTests } from "@/lib/room/wordIntegrity";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
@@ -40,6 +41,7 @@ import { resignMatch } from "@/app/actions/match/resignMatch";
 import { claimWinAction } from "@/app/actions/match/claimWin";
 import { settleMatch } from "@/app/actions/match/settleMatch";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
+import { logoutAction } from "@/app/actions/auth/logout";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -512,4 +514,33 @@ describe("MatchRoomController (spec 050)", () => {
     expect(vi.mocked(getMatchRatings).mock.calls.length).toBe(callsAtUnmount);
     vi.useRealTimers();
   });
+
+  // Reported 2026-09-21: after a match, the ⋯ menu's profile and sign out did nothing.
+  it("final: the ⋯ menu's profile opens your profile and sign out signs you out, with the slip up", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10, score: 88 }, { movesPlayed: 10, score: 124 }));
+    expect(await screen.findByTestId("slip", {}, { timeout: 3_000 })).toHaveAttribute("data-kind", "matchOver");
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    fireEvent.click(screen.getByTestId("ledger-menu-item-profile"));
+    expect(mockPush).toHaveBeenCalledWith("/profile");
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    fireEvent.click(screen.getByTestId("ledger-menu-item-signout"));
+    await waitFor(() => expect(logoutAction).toHaveBeenCalled());
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
+  });
+
+  it("a player's name opens their profile: in a live match in a new tab, after it in the same tab", () => {
+    const live = renderController();
+    const oppLive = screen.getByTestId("player-bar-top").querySelector("a")!;
+    expect(oppLive).toHaveAttribute("href", "/profile/bob");
+    expect(oppLive).toHaveAttribute("target", "_blank");
+    expect(screen.getByTestId("player-bar-bottom").querySelector("a")).toHaveAttribute("href", "/profile/alice");
+    live.unmount();
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
+    const oppFinal = screen.getByTestId("player-bar-top").querySelector("a")!;
+    expect(oppFinal).toHaveAttribute("href", "/profile/bob");
+    expect(oppFinal).not.toHaveAttribute("target");
+  });
 });
+

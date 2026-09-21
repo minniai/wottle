@@ -70,5 +70,18 @@ describe("PlayerBar", () => {
     render(<PlayerBar seat="opp" position="top" state="playing" name="Kári" subline="1191 · opponent" movesPlayed={4} score={-12} />);
     expect(screen.getByTestId("player-bar-score")).toHaveTextContent("−12");
   });
+
+  it("a profile link on the name: same tab by default, a new tab when asked", () => {
+    const { unmount } = render(<PlayerBar seat="opp" position="top" state="final" name="Kári" subline="1191 · opponent" profileHref="/profile/kari" score={10} />);
+    const link = screen.getByRole("link", { name: "Kári" });
+    expect(link).toHaveAttribute("href", "/profile/kari");
+    expect(link).not.toHaveAttribute("target");
+    expect(link).toHaveAttribute("data-testid", "player-bar-name");
+    unmount();
+    render(<PlayerBar seat="opp" position="top" state="playing" name="Kári" subline="1191 · opponent" profileHref="/profile/kari" profileInNewTab score={10} />);
+    const tab = screen.getByRole("link", { name: "Kári, profile opens in a new tab" });
+    expect(tab).toHaveAttribute("target", "_blank");
+    expect(tab).toHaveAttribute("rel", "noopener");
+  });
 });
 
