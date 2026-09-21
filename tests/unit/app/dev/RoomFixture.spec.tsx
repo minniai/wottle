@@ -106,8 +106,16 @@ describe("RoomFixture", () => {
     opp.unmount();
 
     render(<RoomFixture phase="low-clock" />);
-    expect(screen.getByTestId("match-clock")).toHaveAttribute("data-low", "true");
+    expect(screen.getByTestId("match-clock")).toHaveAttribute("data-phase", "low");
     expect(screen.getByTestId("match-clock")).toHaveTextContent("0:48");
+  });
+
+  it("last-seconds: the ledger clock flashes its inverted face and names the seconds left", () => {
+    render(<RoomFixture phase="last-seconds" />);
+    const clock = screen.getByTestId("match-clock");
+    expect(clock).toHaveAttribute("data-phase", "flash");
+    expect(clock).toHaveTextContent("last 12s");
+    expect(clock).toHaveAttribute("aria-label", "match clock, 0:12 left");
   });
 
   it("end-early: the slip offers to end the match once you have ten and the opponent is gone", () => {

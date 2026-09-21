@@ -18,8 +18,8 @@ import { ROOM_PHASES } from "../../../app/dev/room/fixtures";
  * result with the figures before it is committed.
  *
  * Spec 047 amendment P2: one phase per asymmetric signal. `phone-sheet` is the
- * picking phase with the sheet open, so it exists only at 390×844; `low-clock`
- * is also captured under reduced motion, where the caption clock holds solid.
+ * picking phase with the sheet open, so it exists only at 390×844; `last-seconds`
+ * is also captured under reduced motion, where the ledger clock holds inverted.
  */
 test.describe("@visual the room, from fixtures", () => {
   for (const phase of ROOM_PHASES) {
@@ -42,17 +42,18 @@ test.describe("@visual the room, from fixtures", () => {
     });
   }
 
-  test("low-clock under reduced motion: the caption clock holds solid", async ({ browser }, testInfo) => {
+  test("last-seconds under reduced motion: the ledger clock holds inverted, no flash", async ({ browser }, testInfo) => {
     const context = await browser.newContext({ viewport: testInfo.project.use.viewport!, reducedMotion: "reduce" });
     const page = await context.newPage();
     try {
-      await page.goto("/dev/room?phase=low-clock");
+      await page.goto("/dev/room?phase=last-seconds");
       await expect(page.getByTestId("field")).toBeVisible();
       const clock = page.getByTestId("match-clock");
-      await expect(clock).toHaveAttribute("data-low", "true");
-      const animation = await clock.evaluate((el) => getComputedStyle(el).animationName);
-      expect(animation, "no blink under prefers-reduced-motion (design system §6)").toBe("none");
-      await expect(page).toHaveScreenshot("low-clock-reduced-motion.png");
+      await expect(clock).toHaveAttribute("data-phase", "flash");
+      const face = clock.locator(".ledger__clock-invert");
+      expect(await face.evaluate((el) => getComputedStyle(el).animationName), "no flash under prefers-reduced-motion (design system §6)").toBe("none");
+      expect(await face.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+      await expect(page).toHaveScreenshot("last-seconds-reduced-motion.png");
     } finally {
       await context.close();
     }
@@ -170,7 +171,7 @@ test.describe("@visual the room is one composition", () => {
  * dropped the foot ~330px below the bar.
  */
 test.describe("@visual the ledger is the height of the stack", () => {
-  test("ledger edges meet the bars' outer edges; ten rows share one height", async ({ page }, testInfo) => {
+  test("ledger edges meet the bars' outer edges; rows share one height, the live row at least that", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "visual-390x844", "one column below 900px");
     const viewports = [testInfo.project.use.viewport!, { width: 1024, height: 1100 }];
 
@@ -190,7 +191,11 @@ test.describe("@visual the ledger is the height of the stack", () => {
 
       expect(Math.abs(boxes.ledger.top - boxes.top.top), `top at ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(1);
       expect(Math.abs(boxes.ledger.bottom - boxes.bottom.bottom), `bottom at ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(1);
-      expect(Math.max(...boxes.rows) - Math.min(...boxes.rows)).toBeLessThanOrEqual(1);
+      // Rows share one height; the live row (move 4 in this fixture) may be taller when
+      // its instruction wraps, since a row never gets less than its content (spec 050).
+      const others = boxes.rows.filter((_, i) => i !== 3);
+      expect(Math.max(...others) - Math.min(...others)).toBeLessThanOrEqual(1);
+      expect(boxes.rows[3]).toBeGreaterThanOrEqual(Math.min(...others) - 1);
     }
   });
 });

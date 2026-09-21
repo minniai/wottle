@@ -87,13 +87,17 @@ describe("buildLedgerRows (design system §5.4, spec 050)", () => {
 });
 
 describe("buildMatchLedger", () => {
-  it("caption is the viewer's next move; the clock is drawn once beside it", () => {
+  it("caption is the viewer's next move; the ledger clock carries the time, its phase and how much is left", () => {
     const model = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 192_000 });
     expect(model.caption).toBe("move 4 of 10");
     expect(model.clock).toBe("3:12");
-    expect(model.clockLow).toBe(false);
+    expect(model.clockPhase).toBe("calm");
+    expect(model.clockFraction).toBeCloseTo(0.64);
     expect(model.movesPlayed).toBe(3);
-    expect(buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 48_000 }).clockLow).toBe(true);
+    expect(buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 48_000 }).clockPhase).toBe("low");
+    const short = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 12_000, clockLengthMs: 20_000 });
+    expect(short.clockPhase).toBe("flash");
+    expect(short.clockFraction).toBeCloseTo(0.6);
   });
   it("the caption never exceeds the limit", () => {
     expect(buildMatchLedger({ movesPlayed: { you: 10, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} }).caption).toBe("move 10 of 10");

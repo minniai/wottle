@@ -36,6 +36,8 @@ export interface MatchRoomViewProps {
   opp: SeatFacts;
   /** The shared clock as the client reads it (spec 050); drawn once, in the ledger caption. */
   clockMs?: number;
+  /** This match's clock length; the ledger clock's bar drains over it. */
+  clockLengthMs?: number;
   moveLimit?: number;
   completed: boolean;
   words: AccumulatedWord[];
@@ -67,7 +69,7 @@ function subline(facts: SeatFacts, seatWord: string | null): string {
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
-  const { matchId, viewerSlot, you, opp, clockMs, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
+  const { matchId, viewerSlot, you, opp, clockMs, clockLengthMs, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
   const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children, moveState, holdMove = null } = props;
   const reducedMotion = useReducedMotion();
@@ -90,9 +92,10 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       moveState,
       holdMove,
       clockMs: completed ? undefined : clockMs,
+      clockLengthMs,
     });
     return { ...base, caption: caption ?? base.caption, verdict };
-  }, [movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs]);
+  }, [movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs]);
   const turn = moveState && !completed && !readOnly ? moveState : null;
   const counts = { you: you.movesPlayed, opp: opp.movesPlayed, oppScoring: Boolean(opp.scoring), limit: moveLimit };
   const youSuffix = turn ? barSuffixFor(turn, "you", counts) : null;
