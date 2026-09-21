@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MatchPlayerProfiles, MatchState, RoundSummary } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, MoveResolution, PlayerMatchFacts, WordScore } from "@/lib/types/match";
 
 const mockCallbacks = vi.hoisted(() => ({
-  onSummary: null as ((summary: RoundSummary) => void) | null,
+  onMoveResolved: null as ((r: MoveResolution) => void) | null,
   onState: null as ((state: MatchState) => void) | null,
   onRematch: null as ((event: import("@/lib/types/match").RematchEvent) => void) | null,
 }));
@@ -17,8 +17,8 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn() }) }));
 vi.mock("@/lib/realtime/matchChannel", () => ({
-  subscribeToMatchChannel: (_c: unknown, _m: string, cb: { onSummary?: (s: RoundSummary) => void; onState?: (s: MatchState) => void; onRematchEvent?: (e: import("@/lib/types/match").RematchEvent) => void }) => {
-    mockCallbacks.onSummary = cb.onSummary ?? null;
+  subscribeToMatchChannel: (_c: unknown, _m: string, cb: { onMoveResolved?: (r: MoveResolution) => void; onState?: (s: MatchState) => void; onRematchEvent?: (e: import("@/lib/types/match").RematchEvent) => void }) => {
+    mockCallbacks.onMoveResolved = cb.onMoveResolved ?? null;
     mockCallbacks.onState = cb.onState ?? null;
     mockCallbacks.onRematch = cb.onRematchEvent ?? null;
     return { on: () => ({ on: vi.fn() }), unsubscribe: vi.fn() };
@@ -27,8 +27,8 @@ vi.mock("@/lib/realtime/matchChannel", () => ({
 vi.mock("@/app/actions/match/handleDisconnect", () => ({ handlePlayerDisconnect: vi.fn() }));
 vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
 vi.mock("@/app/actions/match/resignMatch", () => ({ resignMatch: vi.fn().mockResolvedValue({ status: "ok" }) }));
-vi.mock("@/app/actions/match/claimWin", () => ({ claimWinAction: vi.fn() }));
-vi.mock("@/app/actions/match/triggerTimeoutCheck", () => ({ triggerTimeoutCheck: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/app/actions/match/claimWin", () => ({ claimWinAction: vi.fn().mockResolvedValue({ status: "ok", matchId: "m1" }) }));
+vi.mock("@/app/actions/match/settleMatch", () => ({ settleMatch: vi.fn().mockResolvedValue({ status: "ok", outcome: "not_due" }) }));
 vi.mock("@/app/actions/match/getMatchRatings", () => ({ getMatchRatings: vi.fn() }));
 vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.fn().mockResolvedValue({ status: "pending" }) }));
 vi.mock("@/app/actions/match/respondToRematch", () => ({ acceptRematchAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m2" }), declineRematchAction: vi.fn().mockResolvedValue({ status: "declined" }) }));
@@ -37,6 +37,8 @@ vi.mock("@/app/actions/match/cancelRematch", () => ({ cancelRematchAction: vi.fn
 import { __resetWordIntegrityForTests } from "@/lib/room/wordIntegrity";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
 import { resignMatch } from "@/app/actions/match/resignMatch";
+import { claimWinAction } from "@/app/actions/match/claimWin";
+import { settleMatch } from "@/app/actions/match/settleMatch";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { RematchEvent } from "@/lib/types/match";
@@ -48,7 +50,7 @@ const profiles: MatchPlayerProfiles = {
   playerB: { playerId: "player-2", displayName: "Bob", username: "bob", avatarUrl: null, eloRating: 1191 },
 };
 
-/** The summary's words spell their runs on this board (spec 047 FR-002), so the integrity check stays silent. */
+/** The words spell their runs on this board (spec 047 FR-002), so the integrity check stays silent. */
 function board(): string[][] {
   const grid = Array.from({ length: 10 }, (_, y) => Array.from({ length: 10 }, (_, x) => "ABCDEFGHIJ"[(x + y) % 10]));
   [..."ÞAR"].forEach((letter, i) => (grid[2][1 + i] = letter));
@@ -56,34 +58,35 @@ function board(): string[][] {
   return grid;
 }
 
-function state(overrides: Partial<MatchState> = {}): MatchState {
+const NOW = "2026-01-01T00:01:00.000Z";
+const facts = (playerId: string, over: Partial<PlayerMatchFacts> = {}): PlayerMatchFacts => ({ playerId, movesPlayed: 2, score: 45, inFlight: null, lastResolution: null, ...over });
+
+function state(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchFacts> = {}, b: Partial<PlayerMatchFacts> = {}): MatchState {
   return {
     matchId: "m1",
     board: board(),
-    currentRound: 3,
-    state: "collecting",
-    timers: {
-      playerA: { playerId: "player-1", remainingMs: 180_000, status: "running" },
-      playerB: { playerId: "player-2", remainingMs: 150_000, status: "running" },
-    },
+    state: "in_progress",
+    players: { playerA: facts("player-1", a), playerB: facts("player-2", { score: 30, movesPlayed: 5, ...b }) },
+    clock: { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: NOW },
+    moveLimit: 10,
+    resolvedSeq: 7,
     scores: { playerA: 45, playerB: 30 },
+    frozenTiles: {},
     ...overrides,
   };
 }
 
-const summary: RoundSummary = {
-  matchId: "m1",
-  roundNumber: 3,
-  words: [
-    { playerId: "player-1", word: "þar", length: 3, lettersPoints: 10, bonusPoints: 5, totalPoints: 15, coordinates: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }] },
-    { playerId: "player-2", word: "orð", length: 3, lettersPoints: 8, bonusPoints: 5, totalPoints: 13, coordinates: [{ x: 5, y: 5 }, { x: 6, y: 5 }, { x: 7, y: 5 }] },
-  ],
-  highlights: [],
-  deltas: { playerA: 15, playerB: 13 },
-  totals: { playerA: 60, playerB: 43 },
-  resolvedAt: "2026-01-01T00:00:00Z",
-  moves: [],
-};
+const THAR: WordScore = { playerId: "player-1", word: "þar", length: 3, lettersPoints: 10, bonusPoints: 5, totalPoints: 15, coordinates: [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }] };
+const ORD: WordScore = { playerId: "player-2", word: "orð", length: 3, lettersPoints: 8, bonusPoints: 5, totalPoints: 13, coordinates: [{ x: 5, y: 5 }, { x: 6, y: 5 }, { x: 7, y: 5 }] };
+
+function resolution(over: Partial<MoveResolution> = {}): MoveResolution {
+  return {
+    matchId: "m1", moveId: "mv-8", playerId: "player-1", globalSeq: 8, seq: 3, status: "resolved",
+    swap: { from: { x: 0, y: 0 }, to: { x: 1, y: 0 } }, board: board(), words: [THAR], delta: 15,
+    totals: { playerA: 60, playerB: 30 }, frozenTiles: { "1,2": { owner: "player_a" }, "2,2": { owner: "player_a" }, "3,2": { owner: "player_a" } },
+    movesPlayed: { playerA: 3, playerB: 5 }, resolvedAt: NOW, ...over,
+  };
+}
 
 const cell = (x: number, y: number) => screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === String(x) && c.getAttribute("data-y") === String(y))!;
 
@@ -91,18 +94,20 @@ function renderController(initial = state()) {
   return render(<MatchRoomController initialState={initial} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
 }
 
-describe("MatchRoomController", () => {
+describe("MatchRoomController (spec 050)", () => {
   beforeEach(() => {
     useRoomStore.getState().leaveToLobby();
     mockPush.mockClear();
     mockReplace.mockClear();
+    vi.mocked(claimWinAction).mockClear();
+    vi.mocked(settleMatch).mockClear();
     vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
       ok: true,
       status: 200,
       json: async () => {
         if (String(url).endsWith("/state")) return useRoomStore.getState().match ?? state();
-        if (String(url).endsWith("/words")) return { words: [] };
-        return { status: "accepted", grid: state().board };
+        if (String(url).endsWith("/words")) return { matchId: "m1", words: [] };
+        return { status: "accepted", moveId: "mv-8", globalSeq: 8, receivedAt: NOW };
       },
     })));
   });
@@ -115,112 +120,136 @@ describe("MatchRoomController", () => {
   it("reports a word record the board does not spell once per match as bands.record-mismatch", () => {
     __resetWordIntegrityForTests();
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const wrong: RoundSummary = { ...summary, words: [{ ...summary.words[0], word: "urg" }] };
-    const { rerender } = renderController(state({ lastSummary: wrong }));
+    const wrong = resolution({ words: [{ ...THAR, word: "urg" }] });
+    const { rerender } = renderController(state({}, { lastResolution: wrong, movesPlayed: 3 }));
     const lines = () => log.mock.calls.map((c) => String(c[0])).filter((l) => l.includes("bands.record-mismatch"));
     expect(lines()).toHaveLength(1);
     expect(JSON.parse(lines()[0])).toMatchObject({ matchId: "m1" });
-    expect(lines()[0]).toContain("R3 urg: board spells ÞAR at (1,2)…(3,2)");
-    rerender(<MatchRoomController initialState={state({ lastSummary: wrong, currentRound: 4 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
+    expect(lines()[0]).toContain("M3 urg: board spells ÞAR at (1,2)…(3,2)");
+    rerender(<MatchRoomController initialState={state({ resolvedSeq: 9 }, { lastResolution: wrong, movesPlayed: 3 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
     expect(lines()).toHaveLength(1);
     log.mockRestore();
   });
 
-  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer", () => {
+  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer, the clock once in the caption", () => {
     renderController();
     const room = screen.getByTestId("room");
     expect(room).toHaveAttribute("data-phase", "match");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Bob");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent · 5 of 10 · playing");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("round 3 of 10");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you · move 3 of 10");
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 3 of 10");
+    expect(screen.getByTestId("match-clock")).toBeInTheDocument();
+    expect(screen.queryByTestId("player-bar-clock")).toBeNull();
     const ids = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
     expect(ids.indexOf("player-bar-top")).toBeLessThan(ids.indexOf("field"));
     expect(ids.indexOf("field")).toBeLessThan(ids.indexOf("player-bar-bottom"));
   });
 
-  // Spec 047 amendment P1 (review S2): the live row carries the state and,
-  // beneath it, the instruction; the hint line has nothing to say in a match.
-  // Spec 048 US2: line 1 is the round's beat, line 2 the field's instruction.
-  it("your move reads the round; a pick adds the instruction; a commit reads played · waiting", () => {
+  it("before started_at the room counts 3·2·1 from the server anchor and takes no pick; the caption holds at 5:00", () => {
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("starts in 2");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("5:00");
+    fireEvent.click(cell(0, 0));
+    expect(cell(0, 0)).not.toHaveAttribute("data-state", "picked");
+  });
+
+  it("your move reads the beat; a pick adds the instruction; a commit reads scoring and locks the field", async () => {
     renderController();
     const live = () => screen.getByTestId("ledger-live-row");
-    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("round 3 · your move");
+    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("move 3 · your move");
     expect(live().querySelector(".ledger__live-line2")).toHaveTextContent("pick a letter");
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("your move");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("thinking");
     fireEvent.click(cell(0, 0));
-    // The board's A is worth 1 (spec 045 B3: the value was hard-coded to 0).
-    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("round 3 · your move");
+    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("move 3 · your move");
     expect(live().querySelector(".ledger__live-line2")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A}) · tap a second letter`);
     fireEvent.click(cell(1, 0));
-    expect(cell(0, 0)).toHaveAttribute("data-state", "pinned");
-    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("played · waiting for Bob");
-    expect(live().querySelector(".ledger__live-line2")).toHaveTextContent("Bob is thinking · their clock runs");
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("");
+    // The move is in flight: the field takes no pick and the frame returns to ink.
+    await waitFor(() => expect(useRoomStore.getState().match?.players.playerA.inFlight ?? null).toBeNull());
+    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("move 3 · your move");
+    // Until the server acknowledges, the reducer holds the commit; the beat follows the store's inFlight.
+    act(() => mockCallbacks.onState!(state({}, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } })));
+    expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("move 3 · scoring");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 3 of 10 · scoring");
   });
 
-  it("the opponent's paused clock reads played on their bar; a paused clock of yours drops the turn frame", () => {
-    renderController(state({ timers: { playerA: { playerId: "player-1", remainingMs: 100_000, status: "running" }, playerB: { playerId: "player-2", remainingMs: 100_000, status: "paused" } } }));
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("played ●");
-    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
-  });
-
-  it("the opponent's pending move pins their letters in coral and shows the swapped letters", () => {
-    renderController();
-    const before = cell(0, 0).textContent;
-    act(() => mockCallbacks.onState!(state({ pendingMoves: [{ playerId: "player-2", from: { x: 0, y: 0 }, to: { x: 9, y: 9 }, submittedAt: "2026-01-01T00:00:00Z" }] })));
-    expect(cell(0, 0)).toHaveAttribute("data-state", "pinned");
-    expect(cell(0, 0)).toHaveAttribute("data-seat", "opp");
-    expect(cell(0, 0).textContent).not.toBe(before);
-  });
-
-  it("a scored round lands in its ledger row by seat and the round advance resets the field", () => {
+  it("the opponent's resolution lands live: their letters and band, their count, your pick cleared if touched", () => {
     vi.useFakeTimers();
-    const next = state({ currentRound: 4, lastSummary: summary, scores: summary.totals });
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/state") ? next : { status: "accepted", grid: next.board }) })));
     renderController();
-    fireEvent.click(cell(0, 0));
-    fireEvent.click(cell(1, 0));
-    act(() => mockCallbacks.onSummary!(summary));
-    act(() => mockCallbacks.onState!(next));
-    act(() => vi.advanceTimersByTime(2_100)); // reveal settles
+    fireEvent.click(cell(5, 5));
+    expect(cell(5, 5)).toHaveAttribute("data-state", "picked");
+    const theirs = resolution({ moveId: "mv-9", playerId: "player-2", globalSeq: 8, seq: 6, words: [ORD], delta: 13, totals: { playerA: 45, playerB: 43 }, frozenTiles: { "5,5": { owner: "player_b" }, "6,5": { owner: "player_b" }, "7,5": { owner: "player_b" } }, movesPlayed: { playerA: 2, playerB: 6 }, swap: { from: { x: 9, y: 9 }, to: { x: 8, y: 8 } } });
+    act(() => mockCallbacks.onMoveResolved!(theirs));
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("6 of 10 · playing");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
+    expect(cell(5, 5)).toHaveAttribute("data-state", "scored");
+    expect(screen.getByTestId("ledger-notice")).toHaveTextContent("pick cleared · Bob moved that letter");
+    act(() => vi.advanceTimersByTime(2_100));
+    const band = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-word") === "orð");
+    expect(band).toHaveAttribute("data-seat", "opp");
+    expect(screen.getByTestId("ledger-row-6").querySelector('.ledger__words[data-seat="opp"]')).toHaveTextContent("orð");
+    expect(screen.getByTestId("ledger-row-3")).toHaveAttribute("data-status", "live");
+  });
+
+  it("your resolution draws, holds 600ms as the scored row, then opens the next move", () => {
+    vi.useFakeTimers();
+    renderController(state({}, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 3 · scoring");
+    act(() => mockCallbacks.onMoveResolved!(resolution()));
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getAllByTestId("field-band")[0]).toHaveClass("field__band--drawing");
+    // The held row says the move scored; its words land when the hold ends (§5.4).
     expect(screen.getByTestId("ledger-row-3")).toHaveAttribute("data-status", "settled");
-    act(() => vi.advanceTimersByTime(1_300)); // the settle hold ends (spec 048 FR-022)
-    const row = screen.getByTestId("ledger-row-3");
-    const cells = row.querySelectorAll(".ledger__words");
-    expect(cells[0].textContent).toContain("þar");
-    expect(cells[1].textContent).toContain("orð");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("round 4 of 10");
-    expect(cell(0, 0)).toHaveAttribute("data-state", "free");
-    // Bands: one per word record, viewer-relative seats, chevron edge per direction.
-    const bands = screen.getAllByTestId("field-band");
-    expect(bands).toHaveLength(2);
-    expect(bands.find((b) => b.getAttribute("data-word") === "þar")).toHaveAttribute("data-seat", "you");
-    expect(bands.find((b) => b.getAttribute("data-word") === "orð")).toHaveAttribute("data-seat", "opp");
-    expect(bands[0]).toHaveAttribute("data-direction", "ltr");
+    act(() => vi.advanceTimersByTime(1_100)); // band, count-up and settle
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 3 scored");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("you +15 · move 4 opens");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    act(() => vi.advanceTimersByTime(600)); // the move hold (spec 050 FR-013)
+    expect(screen.getByTestId("ledger-row-3")).toHaveAttribute("data-status", "past");
+    expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
+    expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "live");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
     expect(cell(1, 2)).toHaveAttribute("data-state", "scored");
-    // Hovering a ledger row dims the other round's bands.
+    // Hovering a ledger row dims the other moves' bands.
+    const bands = screen.getAllByTestId("field-band");
     fireEvent.mouseEnter(screen.getByTestId("ledger-row-1"));
     expect(bands[0]).toHaveClass("field__band--dimmed");
     fireEvent.mouseLeave(screen.getByTestId("ledger-row-1"));
     expect(bands[0]).not.toHaveClass("field__band--dimmed");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
   });
 
-  it("dual timeout writes a notice line; resign is decided on a slip (spec 048 US7)", async () => {
-    renderController(state({ timers: { playerA: { playerId: "player-1", remainingMs: 0, status: "expired" }, playerB: { playerId: "player-2", remainingMs: 0, status: "expired" } } }));
-    expect(screen.getByText(/both players timed out/)).toBeInTheDocument();
+  it("a refused move says why for two seconds, keeps the count and the frame, and holds nothing", () => {
+    vi.useFakeTimers();
+    renderController(state({}, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } }));
+    act(() => mockCallbacks.onMoveResolved!(resolution({ status: "rejected", rejectionReason: "frozen", seq: null, words: [], delta: 0, totals: { playerA: 45, playerB: 30 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 5 } })));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 3 · your move");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Bob just froze it · pick another");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
+    expect(useRoomStore.getState().holdMove).toBeNull();
+    act(() => vi.advanceTimersByTime(2_000));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick a letter");
+  });
+
+  it("resign is decided on a slip that names your move and the clock (spec 048 US7)", async () => {
+    renderController();
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     fireEvent.click(screen.getByTestId("ledger-menu-item-resign"));
     const slip = screen.getByTestId("slip");
     expect(slip).toHaveAttribute("data-kind", "resign");
     expect(slip).toHaveTextContent("Resign the match?");
     expect(slip).toHaveTextContent("Bob wins · your rating moves as a loss");
-    expect(slip).toHaveTextContent("round 3 of 10 · 0:00 on your clock");
+    expect(slip).toHaveTextContent(/move 3 of 10 · \d:\d\d left/);
     fireEvent.click(screen.getByTestId("slip-keep-playing"));
     expect(screen.queryByTestId("slip")).toBeNull();
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
@@ -230,44 +259,69 @@ describe("MatchRoomController", () => {
     expect(screen.queryByTestId("slip")).toBeNull();
   });
 
+  it("at 0:00 the client nudges settlement once and the live row reads time · scoring", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:06:00.000Z"));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: "2026-01-01T00:06:00.000Z" } }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("time · scoring");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("0:00");
+    expect(settleMatch).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+  });
+
+  it("with ten moves you watch: the field is locked and the live row waits for the opponent", () => {
+    renderController(state({}, { movesPlayed: 10 }, { movesPlayed: 8 }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("10 of 10 played");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/waiting for Bob · 8 of 10 · \d:\d\d left/);
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("10 of 10 · done");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
+  });
+
   it("final: the field stays, the ledger states the verdict once, bars carry rating lines, actions rematch · new opponent · lobby", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "ok", ratings: [
       { playerId: "player-1", ratingBefore: 1191, ratingAfter: 1203, ratingDelta: 12, kFactor: 32, matchResult: "win" },
       { playerId: "player-2", ratingBefore: 1204, ratingAfter: 1192, ratingDelta: -12, kFactor: 32, matchResult: "loss" },
     ] });
-    renderController(state({ state: "completed", currentRound: 10, scores: { playerA: 170, playerB: 127 }, frozenTiles: { "0,0": { owner: "player_a" }, "1,0": { owner: "player_b" } }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z" }));
+    renderController(state({ state: "completed", scores: { playerA: 170, playerB: 127 }, winnerId: "player-1", endedReason: "moves_complete", completedAt: "2026-01-01T00:04:52.000Z", frozenTiles: { "0,0": { owner: "player_a" }, "1,0": { owner: "player_b" } }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z" }, { movesPlayed: 10, score: 170 }, { movesPlayed: 10, score: 127 }));
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "final");
     expect(mockPush).not.toHaveBeenCalled();
     expect(screen.getByTestId("field")).toBeInTheDocument();
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
     expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent(/final · 10 of 10 · \d+:\d\d/);
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("final · 4:52");
+    expect(screen.queryByTestId("match-clock")).toBeNull();
     expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
     await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1191 → 1203 · +12 · wins"));
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1204 → 1192 · −12");
-    // Spec 048 US1: the result is a slip over the field; rematch and new opponent live on it.
     const slip = screen.getByTestId("slip");
     expect(slip).toHaveAttribute("data-kind", "matchOver");
     expect(slip).toHaveTextContent("Alice wins");
     expect(slip).toHaveTextContent("170 – 127");
-    expect(slip).toHaveTextContent("1191 → 1203 · +12");
-    expect(slip).toHaveTextContent("1204 → 1192 · −12");
+    expect(slip).toHaveTextContent("match over · 4:52");
     expect(screen.getByTestId("slip-rematch")).toBeInTheDocument();
     expect(screen.getByTestId("slip-new-opponent")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
     expect(screen.queryByTestId("ledger-result")).toBeNull();
-    // review the field ▸ lifts it; result ▸ in the foot brings it back.
     fireEvent.click(screen.getByTestId("slip-review-field"));
     expect(screen.queryByTestId("slip")).toBeNull();
     fireEvent.click(screen.getByTestId("ledger-result"));
     expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver");
   });
 
-  it("final: rating pending until the server has written ratings", () => {
+  it("final: a default result says the count that decided it (spec 050 FR-010)", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
-    renderController(state({ state: "completed", scores: { playerA: 90, playerB: 90 } }));
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 134 }, winnerId: "player-1", endedReason: "incomplete" }, { movesPlayed: 10, score: 88 }, { movesPlayed: 8, score: 134 }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 88–134");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Bob played 8 of 10");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("rating pending");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("draw 90–90");
+  });
+
+  it("final: both short of ten is a draw that says neither finished", () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 90, playerB: 60 }, winnerId: null, endedReason: "both_incomplete" }, { movesPlayed: 6, score: 90 }, { movesPlayed: 3, score: 60 }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent("draw 90–60");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished");
   });
 
   it("final: an incoming rematch request rewrites the slip's action line; accept ▸ moves to the new match; rematch ▸ asks", async () => {
@@ -306,36 +360,46 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
   });
 
-  it("opponent disconnect: sub-line counts down from the server anchor, lane dashed, both clocks hold, no overlay", () => {
+  it("opponent disconnect: sub-line counts down from the server anchor, lane dashed, the clock runs on, no overlay while you still play", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:10Z"));
-    renderController(state({ disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:10Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
     const top = screen.getByTestId("player-bar-top");
     expect(top).toHaveTextContent("reconnecting · 1:20 left");
     expect(top.querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("data-mode", "disconnected");
-    expect(screen.getByTestId("player-bar-bottom").querySelector('[data-testid="player-bar-clock"]')).toHaveAttribute("data-running", "false");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("4:50");
     expect(screen.queryByRole("dialog")).toBeNull();
     act(() => {
       vi.advanceTimersByTime(2_000);
     });
     expect(top).toHaveTextContent("reconnecting · 1:18 left");
+    expect(screen.getByTestId("match-clock")).toHaveTextContent("4:48");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     vi.useRealTimers();
   });
 
-  it("the claim slip returns after ten seconds of waiting and lifts on reconnect", async () => {
+  it("the end-early slip is offered only once you have ten and the window is spent; it returns after ten seconds and lifts on reconnect", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
-    renderController(state({ disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
-    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "claimWin");
+    const gone = { disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    const { unmount } = renderController(state(gone));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    unmount();
+    useRoomStore.getState().leaveToLobby();
+    renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
     expect(screen.getByTestId("slip")).toHaveTextContent("Bob is gone");
+    expect(screen.getByTestId("slip")).toHaveTextContent("Bob 6 of 10 · 0:00 left to reconnect");
     fireEvent.click(screen.getByTestId("slip-keep-waiting"));
     expect(screen.queryByTestId("slip")).toBeNull();
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 0:00 left");
     await act(async () => vi.advanceTimersByTimeAsync(9_999));
     expect(screen.queryByTestId("slip")).toBeNull();
     await act(async () => vi.advanceTimersByTimeAsync(1));
-    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "claimWin");
-    act(() => mockCallbacks.onState!(state()));
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
+    fireEvent.click(screen.getByTestId("slip-end-early"));
+    expect(claimWinAction).toHaveBeenCalledWith("m1");
+    act(() => mockCallbacks.onState!(state({}, { movesPlayed: 10 }, { movesPlayed: 6 })));
     expect(screen.queryByTestId("slip")).toBeNull();
   });
 
@@ -347,7 +411,7 @@ describe("MatchRoomController", () => {
     expect(cell(2, 2)).toHaveAttribute("data-state", "frozen");
     expect(cell(2, 2)).toHaveAttribute("data-seat", "opp");
     fireEvent.click(cell(2, 2));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Bob R3 · pick another");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/frozen · Bob M\d · pick another/);
     expect(screen.queryByTestId("ledger-notice")).toBeNull();
     act(() => vi.advanceTimersByTime(2000));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick a letter");
@@ -363,22 +427,18 @@ describe("MatchRoomController", () => {
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
   });
 
-  it("the frozen state names the round the letter froze in, not the current one", () => {
-    // Round 4 is live; the letter at 1,2 froze in round 3 with `þar` (spec 045 B4).
+  it("the frozen state names the move the letter froze in, not the current one", () => {
     vi.useFakeTimers();
-    const initial = state({ currentRound: 4, lastSummary: summary, frozenTiles: { "1,2": { owner: "player_a" } } });
-    // The clock runs past the 2s safety poll here, so the poll must answer with a real state.
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/state") ? initial : { status: "accepted", grid: initial.board }) })));
+    // Your third move froze þar; the fourth is open. A reload holds nothing.
+    const initial = state({ frozenTiles: { "1,2": { owner: "player_a" } } }, { movesPlayed: 3, lastResolution: resolution() });
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/state") ? initial : String(url).endsWith("/words") ? { matchId: "m1", words: [] } : { status: "accepted" }) })));
     renderController(initial);
-    // Round 3's bands are drawn on arrival, but this client never watched it
-    // resolve (it mounted with the summary), so nothing is held back.
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("resolving round 3");
     act(() => vi.advanceTimersByTime(2_000)); // the reveal settles
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("round 4 · your move");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     fireEvent.click(cell(1, 2));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Alice R3 · pick another");
-    act(() => vi.advanceTimersByTime(2_000)); // the illegal state clears; no timer outlives the test
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Alice M3 · pick another");
+    act(() => vi.advanceTimersByTime(2_000));
   });
 
   it("no rules line on a first match; the rules live on their own page (spec 048 US5)", () => {
@@ -388,54 +448,31 @@ describe("MatchRoomController", () => {
     expect(screen.queryByTestId("ledger-rules")).toBeNull();
   });
 
-  it("reveal: bands draw one at a time, words land in the row as each lands, then everything settles", () => {
-    vi.useFakeTimers();
-    renderController(state({ currentRound: 3 }));
-    act(() => mockCallbacks.onSummary!(summary));
-    // Nothing drawn at t=0 before the first band step runs.
-    act(() => vi.advanceTimersByTime(0));
-    expect(screen.getAllByTestId("field-band")).toHaveLength(1);
-    expect(screen.getAllByTestId("field-band")[0]).toHaveClass("field__band--drawing");
-    expect(screen.getByTestId("ledger-row-3").textContent).not.toContain("þar");
-    act(() => vi.advanceTimersByTime(400));
-    expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
-    act(() => vi.advanceTimersByTime(120));
-    expect(screen.getAllByTestId("field-band")).toHaveLength(2);
-    expect(screen.getAllByTestId("field-band")[1]).toHaveClass("field__band--live");
-    act(() => vi.advanceTimersByTime(400));
-    expect(screen.getByTestId("ledger-row-3").textContent).toContain("orð");
-    act(() => vi.advanceTimersByTime(1_200)); // t ≥ 2040: settle
-    expect(screen.getAllByTestId("field-band").every((b) => b.classList.contains("field__band--settled"))).toBe(true);
-    vi.useRealTimers();
-  });
-
   it("reveal under reduced motion: end state immediately", () => {
-    // Answer per query: a blanket `matches: true` also claims a phone, which
-    // collapses the ledger and hides the rows this test reads.
     vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("reduced-motion"), addEventListener() {}, removeEventListener() {} }));
     vi.useFakeTimers();
-    renderController(state({ currentRound: 3 }));
-    act(() => mockCallbacks.onSummary!(summary));
+    renderController(state({}, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } }));
+    act(() => mockCallbacks.onMoveResolved!(resolution()));
     act(() => vi.advanceTimersByTime(0));
-    expect(screen.getAllByTestId("field-band")).toHaveLength(2);
-    expect(screen.getByTestId("ledger-row-3").textContent).toContain("orð");
+    expect(screen.getAllByTestId("field-band")).toHaveLength(1);
+    expect(screen.getAllByTestId("field-band")[0]).toHaveClass("field__band--settled");
+    act(() => vi.advanceTimersByTime(600));
+    expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
     vi.useRealTimers();
   });
 
-  it("words revealed by the first-mover partial are not drawn again at resolution (Q3)", () => {
+  it("a resolution already seen is not drawn again; the safety poll's snapshot behind it changes nothing", () => {
     vi.useFakeTimers();
-    renderController(state({ currentRound: 3 }));
-    const partial = { matchId: "m1", roundNumber: 3, firstMoverId: "player-1", firstSubmissionAt: "2026-01-01T00:00:00Z", words: [summary.words[0]], delta: { playerA: 15, playerB: 0 }, frozenTiles: {} };
-    act(() => mockCallbacks.onState!(state({ currentRound: 3, partialSummary: partial })));
-    act(() => vi.advanceTimersByTime(1100));
+    renderController(state({}, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } }));
+    act(() => mockCallbacks.onMoveResolved!(resolution()));
+    act(() => vi.advanceTimersByTime(2_000));
     expect(screen.getAllByTestId("field-band")).toHaveLength(1);
-    act(() => mockCallbacks.onSummary!(summary));
+    act(() => mockCallbacks.onMoveResolved!(resolution()));
+    act(() => mockCallbacks.onState!(state({ resolvedSeq: 7 }, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } })));
     act(() => vi.advanceTimersByTime(0));
-    // The first mover's band stays; only the second word draws.
-    const bands = screen.getAllByTestId("field-band");
-    expect(bands).toHaveLength(2);
-    expect(bands.filter((b) => b.classList.contains("field__band--drawing"))).toHaveLength(1);
-    expect(bands.find((b) => b.classList.contains("field__band--drawing"))).toHaveAttribute("data-word", "orð");
+    expect(screen.getAllByTestId("field-band")).toHaveLength(1);
+    expect(screen.getAllByTestId("field-band")[0]).not.toHaveClass("field__band--drawing");
+    expect(useRoomStore.getState().match?.resolvedSeq).toBe(8);
     vi.useRealTimers();
   });
 
@@ -448,7 +485,7 @@ describe("MatchRoomController", () => {
   it("survives a ratings call that does not return a promise", async () => {
     vi.mocked(getMatchRatings).mockReturnValueOnce(undefined as never);
     const { unmount } = render(
-      <MatchRoomController initialState={state({ state: "completed", currentRound: 10 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />,
+      <MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />,
     );
     await waitFor(() => expect(getMatchRatings).toHaveBeenCalled());
     expect(screen.getByTestId("verdict")).toBeInTheDocument();
@@ -460,7 +497,7 @@ describe("MatchRoomController", () => {
     vi.mocked(getMatchRatings).mockClear();
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "error" } as never);
     const { unmount } = render(
-      <MatchRoomController initialState={state({ state: "completed", currentRound: 10 })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />,
+      <MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />,
     );
     await vi.waitFor(() => expect(getMatchRatings).toHaveBeenCalledTimes(1));
 

@@ -30,19 +30,30 @@ interface MockState {
     player_b_id: string;
     winner_id: string | null;
     ended_reason: string | null;
-    round_limit: number;
+    move_limit: number;
     frozen_tiles: Record<string, unknown> | null;
+    player_a_score: number;
+    player_b_score: number;
+    player_a_moves: number;
+    player_b_moves: number;
   };
   matchUpdatePayloads: Record<string, unknown>[];
+  /** Rows the completion compare-and-set reports as flipped (spec 050 FR-011). */
+  flippedRows: number;
 }
 
 function buildSupabase(state: MockState) {
-  const matchesUpdateChain = {
-    eq: vi.fn().mockResolvedValue({ error: null }),
-  };
   const matchesUpdate = vi.fn((payload: Record<string, unknown>) => {
     state.matchUpdatePayloads.push(payload);
-    return matchesUpdateChain;
+    const chain: { eq: () => typeof chain; in: () => typeof chain; select: () => Promise<{ data: { id: string }[]; error: null }> } = {
+      eq: vi.fn(() => chain),
+      in: vi.fn(() => chain),
+      select: vi.fn().mockResolvedValue({
+        data: Array.from({ length: state.flippedRows }, () => ({ id: state.match.id })),
+        error: null,
+      }),
+    };
+    return chain;
   });
 
   const matchesSelectSingle = vi
@@ -51,18 +62,19 @@ function buildSupabase(state: MockState) {
   const matchesSelectEq = vi.fn(() => ({ single: matchesSelectSingle }));
   const matchesSelect = vi.fn(() => ({ eq: matchesSelectEq }));
 
-  const scoreboardMaybeSingle = vi
-    .fn()
-    .mockResolvedValue({ data: null, error: null });
-  const scoreboardLimit = vi.fn(() => ({ maybeSingle: scoreboardMaybeSingle }));
-  const scoreboardOrder = vi.fn(() => ({ limit: scoreboardLimit }));
-  const scoreboardEq = vi.fn(() => ({ order: scoreboardOrder }));
-  const scoreboardSelect = vi.fn(() => ({ eq: scoreboardEq }));
-
   const playersUpdateChain = {
     in: vi.fn().mockResolvedValue({ error: null }),
   };
   const playersUpdate = vi.fn(() => playersUpdateChain);
+  const playersSelect = vi.fn(() => ({
+    in: vi.fn().mockResolvedValue({
+      data: [
+        { id: PLAYER_A, elo_rating: 1200, games_played: 0 },
+        { id: PLAYER_B, elo_rating: 1200, games_played: 0 },
+      ],
+      error: null,
+    }),
+  }));
 
   const presenceUpdateChain = {
     in: vi.fn().mockResolvedValue({ error: null }),
@@ -74,11 +86,8 @@ function buildSupabase(state: MockState) {
       if (table === "matches") {
         return { select: matchesSelect, update: matchesUpdate };
       }
-      if (table === "scoreboard_snapshots") {
-        return { select: scoreboardSelect };
-      }
       if (table === "players") {
-        return { update: playersUpdate };
+        return { update: playersUpdate, select: playersSelect };
       }
       if (table === "lobby_presence") {
         return { update: presenceUpdate };
@@ -97,10 +106,15 @@ function freshState(): MockState {
       player_b_id: PLAYER_B,
       winner_id: null,
       ended_reason: null,
-      round_limit: 10,
+      move_limit: 10,
       frozen_tiles: {},
+      player_a_score: 0,
+      player_b_score: 0,
+      player_a_moves: 0,
+      player_b_moves: 0,
     },
     matchUpdatePayloads: [],
+    flippedRows: 1,
   };
 }
 
@@ -155,13 +169,45 @@ describe("completeMatchInternal — abandoned reason", () => {
     const state = freshState();
     state.match.state = "completed";
     state.match.winner_id = PLAYER_A;
-    state.match.ended_reason = "round_limit";
+    state.match.ended_reason = "moves_complete";
     vi.mocked(getServiceRoleClient).mockReturnValue(buildSupabase(state) as never);
 
     const result = await completeMatchInternal(MATCH_ID, "abandoned");
 
     expect(result.winnerId).toBe(PLAYER_A);
-    expect(result.endedReason).toBe("round_limit");
+    expect(result.endedReason).toBe("moves_complete");
     expect(state.matchUpdatePayloads).toHaveLength(0);
+  });
+});
+
+describe("completeMatchInternal — the completion compare-and-set (spec 050 FR-011)", () => {
+  test("a natural end decides by the rules: the finisher wins with `incomplete`", async () => {
+    const state = freshState();
+    state.match.player_a_moves = 10;
+    state.match.player_b_moves = 8;
+    state.match.player_a_score = 88;
+    state.match.player_b_score = 134;
+    vi.mocked(getServiceRoleClient).mockReturnValue(buildSupabase(state) as never);
+
+    const result = await completeMatchInternal(MATCH_ID, "natural");
+
+    expect(result.winnerId).toBe(PLAYER_A);
+    expect(result.endedReason).toBe("incomplete");
+    expect(result.scores).toEqual({ playerA: 88, playerB: 134 });
+    expect(state.matchUpdatePayloads[0]).toMatchObject({ state: "completed", winner_id: PLAYER_A, ended_reason: "incomplete" });
+    expect(persistRatingChanges).toHaveBeenCalledTimes(1);
+  });
+
+  test("when another trigger flipped the row first, nothing is rated and the written result is returned", async () => {
+    const state = freshState();
+    state.match.player_a_moves = 10;
+    state.match.player_b_moves = 10;
+    state.flippedRows = 0;
+    vi.mocked(getServiceRoleClient).mockReturnValue(buildSupabase(state) as never);
+
+    const result = await completeMatchInternal(MATCH_ID, "natural");
+
+    expect(persistRatingChanges).not.toHaveBeenCalled();
+    expect(result.matchId).toBe(MATCH_ID);
   });
 });

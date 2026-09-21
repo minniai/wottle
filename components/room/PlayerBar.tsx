@@ -3,10 +3,10 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
-import { formatClock, MATCH_CLOCK_BUDGET_MS } from "@/lib/room/clock";
-import { ClockLane, type LaneMode } from "./ClockLane";
+import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
+import { BarLane, type LaneMode } from "./BarLane";
 
-/** `idle` = a signed-in seat outside a match (lobby): name + sub-line, no clock, no total. */
+/** `idle` = a signed-in seat outside a match (lobby): name + sub-line, no total. */
 export type PlayerBarState = "empty" | "searching" | "found" | "playing" | "final" | "idle";
 
 export interface PlayerBarProps {
@@ -15,14 +15,14 @@ export interface PlayerBarProps {
   state: PlayerBarState;
   name?: string;
   subline: string;
-  /** Spec 048 FR-021: the turn suffix, in the seat colour when the move is the viewer's. */
+  /** Spec 050: this player's move count, in the seat colour while a move is the viewer's to make. */
   sublineSuffix?: string | null;
   sublineTone?: "seat" | "muted";
-  clockMs?: number;
-  clockRunning?: boolean;
   /** The opponent has just been found: their name is written in (FR-028). */
   writing?: boolean;
-  budgetMs?: number;
+  /** Resolved moves: the lane's length (spec 050 FR-015). */
+  movesPlayed?: number;
+  moveLimit?: number;
   score?: number;
   disconnected?: boolean;
   /** Primary action when the seat is empty or searching. */
@@ -32,19 +32,20 @@ export interface PlayerBarProps {
 function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
   if (state === "empty" || state === "idle") return "empty";
   if (state === "searching") return "searching";
-  return disconnected ? "disconnected" : "clock";
+  return disconnected ? "disconnected" : "moves";
 }
 
 /**
- * One player's facts (design system §5.3): seat square + name + one-line
- * sub-line | clock | total or primary action. The opponent is always the top
- * bar, the viewer the bottom; the lane sits on the edge nearest the field.
+ * One player's facts (design system §5.3, spec 050): seat square + name +
+ * one-line sub-line | total or primary action. There is no clock in a bar; the
+ * match clock is the ledger caption's. The opponent is always the top bar, the
+ * viewer the bottom; the lane sits on the edge nearest the field.
  */
 export function PlayerBar(props: PlayerBarProps) {
-  const { seat, position, state, name, subline, clockMs = MATCH_CLOCK_BUDGET_MS, clockRunning = false, writing = false } = props;
-  const { budgetMs = MATCH_CLOCK_BUDGET_MS, score, disconnected = false, action } = props;
-  const showsClock = state === "playing" || state === "final";
-  const showsScore = showsClock && typeof score === "number";
+  const { seat, position, state, name, subline, writing = false, movesPlayed = 0, moveLimit = TOTAL_MOVES } = props;
+  const { score, disconnected = false, action } = props;
+  const inMatch = state === "playing" || state === "final";
+  const showsScore = inMatch && typeof score === "number";
   const style = { "--seat-ink": getSeatColors(seat).ink } as CSSProperties;
 
   return (
@@ -72,13 +73,6 @@ export function PlayerBar(props: PlayerBarProps) {
           </span>
         </div>
       </div>
-      <div
-        className={`player-bar__clock${showsClock && !clockRunning ? " player-bar__clock--stopped" : ""}`}
-        data-testid="player-bar-clock"
-        data-running={showsClock ? clockRunning : undefined}
-      >
-        {showsClock ? formatClock(clockMs) : ""}
-      </div>
       {showsScore ? (
         <div className="player-bar__score" data-testid="player-bar-score">
           {score}
@@ -88,7 +82,7 @@ export function PlayerBar(props: PlayerBarProps) {
           {action}
         </div>
       )}
-      <ClockLane label={seat === "you" ? "your clock" : "opponent's clock"} clockMs={clockMs} running={clockRunning} budgetMs={budgetMs} mode={laneMode(state, disconnected)} />
+      <BarLane label={seat === "you" ? "your moves" : "opponent's moves"} movesPlayed={movesPlayed} moveLimit={moveLimit} mode={laneMode(state, disconnected)} />
     </div>
   );
 }

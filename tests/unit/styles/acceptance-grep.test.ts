@@ -26,6 +26,13 @@ const ALLOWLIST: RegExp[] = [];
  */
 const RETIRED = /\bunranked\b|no rating change|\? rules|FIRST_MATCH_RULES|firstMatchRules|resignConfirm|RESIGN_CONFIRM|claimWinLine|notice-claim-win|notice-confirm-resign|rankLabel|isMatchRated|sharedCells|seatOfCell|"shared"/;
 const RETIRED_SCOPE = ["app", "components", "lib/room", "lib/constants/copy.ts", "lib/matchmaking", "app/actions/match"];
+/**
+ * Spec 050: the names retired with rounds, per-player clocks, pins and
+ * duplicate suppression. Matched in the room and in the server code that
+ * replaced them (lib/match, lib/game-engine, lib/types).
+ */
+const RETIRED_050 = /roundState|advanceRound|roundEngine|instantScor|RoundSummary|partialSummary|pendingMoves|processRoundScoring|RoundScoreResult|is_duplicate|isDuplicate|SETTLE_HOLD_MS|currentRound|current_round|round_limit|timer_ms|TimerState|ClockLane|RoundRail|useClockTick|useSettleHold|useAccumulatedRounds|round-rail|round-indicator|player-bar-clock|opponentPinned|CLAIM_THE_WIN|scoreboard_snapshots|move_submissions/;
+const RETIRED_050_SCOPE = [...RETIRED_SCOPE, "lib/match", "lib/game-engine", "lib/types", "lib/realtime", "lib/scoring"];
 
 function files(path: string): string[] {
   const abs = join(ROOT, path);
@@ -66,5 +73,15 @@ describe("retired room strings (spec 048)", () => {
     const absolute = [...css.matchAll(/([^{}]+)\{[^}]*position:\s*absolute[^}]*\}/g)].map((m) => m[1].trim());
     const overField = absolute.filter((sel) => !/^\.(field__|player-bar__lane|room-menu__list|ledger__|lobby-|profile|name-input|rail)/.test(sel));
     expect(overField).toEqual([".slip"]);
+  });
+});
+
+describe("retired with rounds (spec 050)", () => {
+  const all = [...new Set(RETIRED_050_SCOPE.flatMap(files))];
+
+  test.each(all.map((f) => [f.replace(`${ROOT}/`, "")]))("%s names nothing retired with rounds", (rel) => {
+    const lines = readFileSync(join(ROOT, rel), "utf8").split("\n");
+    const hits = lines.map((line, i) => ({ line, n: i + 1 })).filter(({ line }) => RETIRED_050.test(line));
+    expect(hits, hits.map((h) => `${rel}:${h.n}: ${h.line.trim()}`).join("\n")).toEqual([]);
   });
 });

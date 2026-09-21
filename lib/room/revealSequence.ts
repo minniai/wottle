@@ -2,15 +2,14 @@
  * The reveal (design system §6, §7): bands draw along each word 400 ms apart
  * (120 ms stagger), the ledger writes each word as its band lands, totals count
  * up, then everything settles. Under reduced motion there is only the end state.
- * Words already drawn by the instant first-mover reveal are never drawn twice
- * (spec 044, Clarifications Q3).
+ * Words already drawn are never drawn twice (spec 044, Clarifications Q3).
  */
 export const BAND_DRAW_MS = 400;
 export const BAND_STAGGER_MS = 120;
 export const COUNT_UP_MS = 400;
 export const SETTLE_MS = 200;
-/** The scored row holds before the next live row opens (spec 048 FR-022): a reading pause, not motion. */
-export const SETTLE_HOLD_MS = 1200;
+/** Your scored row holds before the next move opens (spec 050 FR-013): a reading pause, not motion. */
+export const MOVE_HOLD_MS = 600;
 /** The match-over slip lands this long after the final settle (spec 048 FR-003). */
 export const MATCH_OVER_DELAY_MS = 600;
 

@@ -18,15 +18,7 @@ export interface PlayerIdentity {
   createdAt?: string;
 }
 
-export type TimerStatus = "running" | "paused" | "expired";
-
-export interface TimerState {
-  playerId: string;
-  remainingMs: number;
-  status: TimerStatus;
-}
-
-export type MatchPhase = "pending" | "collecting" | "resolving" | "completed" | "abandoned";
+export type MatchPhase = "pending" | "in_progress" | "completed" | "abandoned";
 
 export interface ScoreTotals {
   playerA: number;
@@ -34,12 +26,69 @@ export interface ScoreTotals {
 }
 
 export type MatchEndedReason =
-  | "round_limit"
-  | "timeout"
+  /** Spec 050: both players made ten moves; score, then exclusive frozen tiles, then draw. */
+  | "moves_complete"
+  /** Spec 050: one player was short of ten moves at the deadline; the other wins. */
+  | "incomplete"
+  /** Spec 050: both were short of ten; a draw. */
+  | "both_incomplete"
   | "disconnect"
   | "forfeit"
   | "abandoned"
   | "error";
+
+// ─── Moves (spec 050) ────────────────────────────────────────────────
+
+/** Why a move was refused at receipt (never recorded). */
+export type MoveRefusalReason =
+  | "not_found"
+  | "not_participant"
+  | "ended"
+  | "not_started"
+  | "deadline"
+  | "cap"
+  | "in_flight";
+
+/** Why a received move was rejected at resolution (recorded; not counted). */
+export type MoveRejectionReason = "frozen" | "moved";
+
+/** What the server broadcasts as `move-resolved` when a move finishes (contracts/move-resolved-event.md). */
+export interface MoveResolution {
+  matchId: string;
+  moveId: string;
+  playerId: string;
+  /** Receipt order; the ordering authority. */
+  globalSeq: number;
+  /** The player's Nth resolved move; null when rejected. */
+  seq: number | null;
+  status: "resolved" | "rejected";
+  rejectionReason?: MoveRejectionReason;
+  swap: { from: Coordinate; to: Coordinate };
+  /** The board after the move; unchanged when rejected. */
+  board: BoardGrid;
+  words: WordScore[];
+  delta: number;
+  totals: ScoreTotals;
+  frozenTiles: FrozenTileMap;
+  movesPlayed: { playerA: number; playerB: number };
+  resolvedAt: string;
+}
+
+/** One player's facts in `MatchState` (contracts/match-state.md). */
+export interface PlayerMatchFacts {
+  playerId: string;
+  movesPlayed: number;
+  score: number;
+  inFlight: { moveId: string; globalSeq: number; receivedAt: string } | null;
+  lastResolution: MoveResolution | null;
+}
+
+/** The one shared clock; `serverNow` anchors the client's countdown. */
+export interface MatchClock {
+  startedAt: string | null;
+  deadlineAt: string | null;
+  serverNow: string;
+}
 
 export type ClockCheckResult = { allowed: true } | { allowed: false; remainingMs: number };
 
@@ -74,61 +123,28 @@ export interface WordScore {
   direction?: ReadingDirection;
 }
 
-/** A player's accepted swap coordinates, included in round summaries for opponent move reveal. */
-export interface RoundMove {
-  playerId: string;
-  from: Coordinate;
-  to: Coordinate;
-  /** ISO timestamp from move_submissions.created_at. Used to determine sequential reveal order. */
-  submittedAt: string;
-}
-
-/**
- * A player's in-flight swap, broadcast on `MatchState` while the round is
- * still collecting. Lets the opponent's board animate the move immediately
- * (issue #210) instead of waiting for round resolution. Cleared when the
- * round transitions out of `collecting`.
- */
-export interface PendingMove {
-  playerId: string;
-  from: Coordinate;
-  to: Coordinate;
-  /** ISO timestamp from move_submissions.submitted_at. */
-  submittedAt: string;
-}
-
-export interface RoundSummary {
-  matchId: string;
-  roundNumber: number;
-  words: WordScore[];
-  deltas: ScoreTotals;
-  totals: ScoreTotals;
-  highlights: Coordinate[][];
-  resolvedAt: string;
-  /** Accepted moves per player for opponent move reveal animation. */
-  moves: RoundMove[];
-}
-
+/** The room's snapshot (spec 050, contracts/match-state.md); `state` broadcast and `GET /api/match/[id]/state`. */
 export interface MatchState {
   matchId: string;
+  /** `matches.board`: the live board, rewritten by every resolved move. */
   board: string[][];
-  currentRound: number;
   state: MatchPhase;
-  timers: {
-    playerA: TimerState;
-    playerB: TimerState;
+  players: {
+    playerA: PlayerMatchFacts;
+    playerB: PlayerMatchFacts;
   };
+  clock: MatchClock;
+  moveLimit: number;
+  /** The last receipt sequence finished; the client's idempotency key for resolutions. */
+  resolvedSeq: number;
   scores: ScoreTotals;
-  lastSummary?: RoundSummary | null;
   disconnectedPlayerId?: string | null;
   /** ISO timestamp when `disconnectedPlayerId` was first observed server-side (spec 044). */
   disconnectedAt?: string | null;
   /** Length of the reconnection window in ms (RECONNECT_WINDOW_MS). */
   reconnectWindowMs?: number;
   /** Frozen tile map for visual rendering and swap validation */
-  frozenTiles?: FrozenTileMap;
-  /** In-flight swaps for the current round. Populated only during `collecting`. */
-  pendingMoves?: PendingMove[];
+  frozenTiles: FrozenTileMap;
   /**
    * Set once the match is completed. A win can be forced (a resignation, a
    * disconnect past the window), in which case the totals do not name the
@@ -136,66 +152,11 @@ export interface MatchState {
    */
   winnerId?: string | null;
   endedReason?: MatchEndedReason | null;
-  /**
-   * Set while the current round is still `collecting` and the first player's
-   * instant-scoring pass has fired (spec 042 / Linear O-57). Cleared when the
-   * round transitions out of `collecting` — at that point `lastSummary`
-   * carries the canonical state.
-   */
-  partialSummary?: PartialRoundSummary | null;
-}
-
-/**
- * Server-published partial state for a round that is still `collecting` but
- * for which the first player's instant-scoring pass has fired. Carries the
- * first mover's scored words and the resulting frozen tiles so the second
- * player's client can render the reveal before they submit (spec 042 / O-57).
- *
- * Distinct from `RoundSummary` (which represents a *completed* round and
- * carries both players' scores). When `lastSummary` for the same round
- * arrives, the partial reveal is deduplicated by `firstSubmissionAt`.
- */
-export interface PartialRoundSummary {
-  matchId: string;
-  roundNumber: number;
-  /** ID of the player whose submission triggered the fast path. */
-  firstMoverId: string;
-  /** ISO timestamp of that submission. Stable dedupe key with `firstMoverId`. */
-  firstSubmissionAt: string;
-  /** Only the first mover's words; empty when the swap scored nothing. */
-  words: WordScore[];
-  /** Score delta this submission produced (zero for the other player). */
-  delta: ScoreTotals;
-  /**
-   * Frozen-tile map AFTER applying the fast path's freezes. Includes all
-   * pre-existing freezes plus the new ones. Mirrors `MatchState.frozenTiles`
-   * post-fast-path; consumers should prefer this when present.
-   */
-  frozenTiles: FrozenTileMap;
-}
-
-export type SubmissionStatus =
-  | "pending"
-  | "accepted"
-  | "rejected_invalid"
-  | "ignored_same_move"
-  | "timeout";
-
-export interface SubmissionRecord {
-  playerId: string;
-  status: SubmissionStatus;
-  submittedAt?: string;
-  signature?: string;
+  /** Set once completed; with `clock.startedAt` it gives the match's duration. */
+  completedAt?: string | null;
 }
 
 export type PlayerSlot = "player_a" | "player_b";
-
-export interface RoundTracker {
-  matchId: string;
-  roundNumber: number;
-  phase: "collecting" | "resolving" | "completed";
-  submissions: Record<PlayerSlot, SubmissionRecord>;
-}
 
 export interface LobbyPresence {
   playerId: string;
@@ -232,18 +193,6 @@ export function buildMoveSignature(vector: MoveVector): string {
   const from = `${vector.from.x},${vector.from.y}`;
   const to = `${vector.to.x},${vector.to.y}`;
   return `${from}->${to}`;
-}
-
-export interface MoveSubmission {
-  id?: string;
-  match_id: string;
-  player_id: string;
-  round_number: number;
-  from_x: number;
-  from_y: number;
-  to_x: number;
-  to_y: number;
-  created_at: string;
 }
 
 // ─── Move Types ───────────────────────────────────────────────────────
@@ -446,20 +395,3 @@ export interface WordScoreBreakdown {
   playerId: string;
 }
 
-/** Complete scoring result for a round. */
-export interface RoundScoreResult {
-  /** Per-word breakdowns for Player A */
-  playerAWords: WordScoreBreakdown[];
-  /** Per-word breakdowns for Player B */
-  playerBWords: WordScoreBreakdown[];
-  /** Score deltas for this round */
-  deltas: ScoreTotals;
-  /** Updated frozen tile map (merged with existing) */
-  newFrozenTiles: FrozenTileMap;
-  /** True if the 24-unfrozen minimum prevented full tile freezing (FR-016) */
-  wasPartialFreeze: boolean;
-  /** Total pipeline duration in milliseconds */
-  durationMs: number;
-  /** Final board state after all swaps processed by the word engine (accounts for frozen-tile rejections) */
-  finalBoard: BoardGrid;
-}

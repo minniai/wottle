@@ -7,12 +7,12 @@ import { buildLedgerRows } from "@/lib/room/ledgerRows";
 import type { LedgerModel } from "@/lib/room/ledgerTypes";
 
 const A = "a";
-const words = Array.from({ length: 5 }, (_, r) => ({ roundNumber: r + 1, playerId: A, word: `orð${r + 1}`, totalPoints: 10 + r, coordinates: [{ x: r, y: 0 }, { x: r + 1, y: 0 }] }));
-const rows = buildLedgerRows({ currentRound: 6, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "played" } });
-const model: LedgerModel = { caption: "round 6 of 10", rows, territory: { you: 10, opp: 5, free: 85 }, hint: "tap a second letter" };
+const words = Array.from({ length: 5 }, (_, r) => ({ moveSeq: r + 1, globalSeq: r + 1, playerId: A, word: `orð${r + 1}`, totalPoints: 10 + r, coordinates: [{ x: r, y: 0 }, { x: r + 1, y: 0 }] }));
+const rows = buildLedgerRows({ movesPlayed: { you: 5, opp: 0 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "played" } });
+const model: LedgerModel = { caption: "move 6 of 10", rows, territory: { you: 10, opp: 5, free: 85 }, hint: "tap a second letter" };
 
 describe("Ledger rows (design system §5.4)", () => {
-  it("hovering a row reveals per-word points and reports the round", () => {
+  it("hovering a row reveals per-word points and reports the move", () => {
     const onRowHover = vi.fn();
     render(<Ledger variant="match" model={model} viewerName="B" opponentName="K" onRowHover={onRowHover} onAction={() => {}} />);
     const row = screen.getByTestId("ledger-row-2");
@@ -27,12 +27,12 @@ describe("Ledger rows (design system §5.4)", () => {
 
   it("future rows show only their label; the live row carries the state text", () => {
     render(<Ledger variant="match" model={model} viewerName="B" opponentName="K" onAction={() => {}} />);
-    expect(screen.getByTestId("ledger-row-8")).toHaveTextContent("R8");
+    expect(screen.getByTestId("ledger-row-8")).toHaveTextContent("8");
     expect(screen.getByTestId("ledger-row-8").querySelectorAll(".ledger__words")[0]).toBeEmptyDOMElement();
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("played ●");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("scoring");
   });
 
-  it("folds rounds older than the last three to totals when a row overflows three lines", () => {
+  it("folds moves older than the last three to totals when a row overflows three lines", () => {
     const tall = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
       return this.textContent?.includes("orð5") ? 80 : 16;
     });

@@ -1,10 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
-import type {
-  MatchState,
-  RematchEvent,
-  RoundSummary,
-} from "@/lib/types/match";
+import type { MatchState, MoveResolution, RematchEvent } from "@/lib/types/match";
 
 export interface MatchPresencePayload {
   playerId: string;
@@ -12,7 +8,8 @@ export interface MatchPresencePayload {
 
 export interface MatchChannelCallbacks {
   onState?: (snapshot: MatchState) => void;
-  onSummary?: (summary: RoundSummary) => void;
+  /** One finished move (spec 050, contracts/move-resolved-event.md). */
+  onMoveResolved?: (resolution: MoveResolution) => void;
   onRematchEvent?: (event: RematchEvent) => void;
   onError?: (error: unknown) => void;
   /**
@@ -53,8 +50,8 @@ export function subscribeToMatchChannel(
     .on("broadcast", { event: "state" }, (payload) => {
       callbacks.onState?.(payload.payload as MatchState);
     })
-    .on("broadcast", { event: "round-summary" }, (payload) => {
-      callbacks.onSummary?.(payload.payload as RoundSummary);
+    .on("broadcast", { event: "move-resolved" }, (payload) => {
+      callbacks.onMoveResolved?.(payload.payload as MoveResolution);
     })
     .on("broadcast", { event: "rematch" }, (payload) => {
       callbacks.onRematchEvent?.(payload.payload as RematchEvent);

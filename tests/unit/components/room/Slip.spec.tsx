@@ -6,13 +6,12 @@ import type { SlipState } from "@/lib/room/slip";
 
 vi.mock("@/app/actions/auth/login", () => ({ loginAction: vi.fn(async () => ({ status: "idle" })) }));
 
-const RESIGN: SlipState = { kind: "resign", round: 4, clockMs: 252_000, opponentName: "Kári" };
-const CLAIM: SlipState = { kind: "claimWin", opponentName: "Kári", round: 4 };
+const RESIGN: SlipState = { kind: "resign", move: 4, clockMs: 192_000, opponentName: "Kári" };
+const CLAIM: SlipState = { kind: "endEarly", opponentName: "Kári", opponentMoves: 8, clockMs: 72_000 };
 const OVER: SlipState = {
   kind: "matchOver",
   verdict: { winnerSeat: "opp", scoreLine: "Kári wins 170–127", detailLine: "by 43 points · 10 words to 8 · territory 32–25" },
-  rounds: 10,
-  durationMmSs: "18:50",
+  durationMmSs: "4:52",
   scores: { you: 127, opp: 170 },
   viewerName: "Birna",
   opponentName: "Kári",

@@ -13,7 +13,7 @@ export function assertWordsSpellBoard(board: string[][], words: AccumulatedWord[
   const problems: string[] = [];
   for (const w of words) {
     const message = checkWord(board, w);
-    if (message) problems.push(`R${w.roundNumber} ${w.word}: ${message}`);
+    if (message) problems.push(`${w.playerId.slice(0, 8)} M${w.moveSeq} ${w.word}: ${message}`);
   }
   return problems;
 }

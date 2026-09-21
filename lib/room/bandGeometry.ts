@@ -30,7 +30,8 @@ export interface WordBand {
   wordCells: Coordinate[];
   direction: ReadingDirection;
   strength: "settled" | "live";
-  round: number;
+  /** The mover's move number: the ledger row that lights this band on hover. */
+  move: number;
   word: string;
 }
 
@@ -105,14 +106,14 @@ export interface BandsInput {
   frozenTiles: FrozenTileMap;
   viewerSlot: PlayerSlot | null;
   playerAId: string;
-  /** The round being revealed: drawn at 30% from its coordinates. */
-  liveRound?: number | null;
+  /** The move being revealed (`playerId:seq`): drawn at 30% from its coordinates. */
+  liveMoveKey?: string | null;
   /**
-   * The most recently scored round. Its summary can reach the client a poll
-   * before the snapshot that carries its freezes, so it is drawn from its
-   * coordinates (settled) rather than blinking out until the freezes land.
+   * The most recently scored move (`playerId:seq`). Its resolution can reach the
+   * client a poll before the snapshot that carries its freezes, so it is drawn
+   * from its coordinates (settled) rather than blinking out until the freezes land.
    */
-  trustRound?: number | null;
+  trustMoveKey?: string | null;
 }
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -142,7 +143,7 @@ function bandCells(w: AccumulatedWord, source: BandSource): Coordinate[] | null 
   if (!source.trusted) {
     const problem = settledProblem(w, source.board, frozen.length);
     if (problem) {
-      warnOnce(`[bands] R${w.roundNumber} ${w.word}: ${problem}`);
+      warnOnce(`[bands] ${w.playerId.slice(0, 8)} M${w.moveSeq} ${w.word}: ${problem}`);
       return null;
     }
   }
@@ -183,8 +184,9 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
     const id = bandId(w, direction);
     if (seen.has(id)) continue;
     seen.add(id);
-    const live = input.liveRound != null && w.roundNumber === input.liveRound;
-    const trusted = live || (input.trustRound != null && w.roundNumber === input.trustRound);
+    const k = `${w.playerId}:${w.moveSeq}`;
+    const live = input.liveMoveKey != null && k === input.liveMoveKey;
+    const trusted = live || (input.trustMoveKey != null && k === input.trustMoveKey);
     const slot: PlayerSlot = w.playerId === input.playerAId ? "player_a" : "player_b";
     const cells = bandCells(w, { board: input.board, frozenTiles: input.frozenTiles, slot, trusted });
     if (!cells) continue;
@@ -195,7 +197,7 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
       wordCells: w.coordinates,
       direction,
       strength: live ? "live" : "settled",
-      round: w.roundNumber,
+      move: w.moveSeq,
       word: w.word,
     });
   }

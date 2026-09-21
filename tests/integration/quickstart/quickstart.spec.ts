@@ -93,6 +93,9 @@ describe("supabase quickstart script", () => {
         SUPABASE_ACCESS_TOKEN: "token",
         QUICKSTART_MATCH_ID: "test-match",
         QUICKSTART_ENV_FILE: envFile,
+        // Without this the script writes the stub keys into the repo's .env.production.local,
+        // which then overrides .env.local in every local production build.
+        QUICKSTART_PROD_ENV_FILE: `${envFile}.production`,
         QUICKSTART_DISABLE_STOP: "1",
         QUICKSTART_SKIP_DOCKER_CHECK: "1",
         QUICKSTART_DRY_RUN: "1",

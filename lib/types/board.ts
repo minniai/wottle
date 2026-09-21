@@ -22,11 +22,20 @@ export const getMoveRequestSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) =
   to: getCoordinateSchema(config),
 });
 
-export const getMoveResultSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) => z.object({
-  status: z.enum(["accepted", "rejected"]),
-  grid: getBoardGridSchema(config),
-  error: z.string().optional(),
-});
+/** Spec 050: receipt is the only thing a move request answers; the board arrives with the resolution. */
+export const moveResultSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("accepted"),
+    moveId: z.string().uuid(),
+    globalSeq: z.number().int().min(1),
+    receivedAt: z.string(),
+  }),
+  z.object({
+    status: z.literal("rejected"),
+    reason: z.enum(["ended", "not_started", "deadline", "cap", "in_flight"]),
+    error: z.string(),
+  }),
+]);
 
 // Since schemas are now factories, we define the types statically
 export interface Coordinate {
@@ -41,18 +50,15 @@ export interface MoveRequest {
   to: Coordinate;
 }
 
-export interface MoveResult {
-  status: "accepted" | "rejected";
-  grid: BoardGrid;
-  error?: string;
-}
+export type MoveResult =
+  | { status: "accepted"; moveId: string; globalSeq: number; receivedAt: string }
+  | { status: "rejected"; reason: "ended" | "not_started" | "deadline" | "cap" | "in_flight"; error: string };
 
 // Keep the old exported schemas pointing to default config for backwards compat, 
 // so the rest of the app doesn't immediately break.
 export const coordinateSchema = getCoordinateSchema();
 export const boardGridSchema = getBoardGridSchema();
 export const moveRequestSchema = getMoveRequestSchema();
-export const moveResultSchema = getMoveResultSchema();
 
 // ─── Word Engine Types (003-word-engine-scoring) ──────────────────────
 

@@ -15,8 +15,6 @@ NC='\033[0m' # No Color
 REQUIRED_TABLES=(
   "lobby_presence"
   "matches"
-  "rounds"
-  "move_submissions"
   "match_invitations"
 )
 

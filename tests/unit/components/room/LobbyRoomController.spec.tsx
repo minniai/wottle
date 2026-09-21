@@ -120,7 +120,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     usePreferencesStore.setState({ previewEnabled: true });
     render(<LobbyRoomController viewer={me} initialPlayers={[me, kari]} recentGames={[]} />);
     expect(screen.getByTestId("player-bar-action-ranked")).not.toBeDisabled();
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("lobby · 1 here");
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("lobby · 1 here");
     fireEvent.click(screen.getByTestId("ledger-challenge-k"));
     expect(sendInviteAction).toHaveBeenCalledWith("k");
     fireEvent.click(cell(0, 0));

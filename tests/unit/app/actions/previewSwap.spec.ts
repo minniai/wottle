@@ -30,16 +30,16 @@ function hesturBoard(): string[][] {
   return grid;
 }
 
-function makeSupabaseMock(opts: { frozen?: Record<string, unknown>; submissions?: unknown[]; state?: string; board?: string[][] } = {}) {
+function makeSupabaseMock(opts: { frozen?: Record<string, unknown>; state?: string; board?: string[][] } = {}) {
   const writes = vi.fn();
+  // Spec 050: the live board is on the match row, as the last resolved move left it.
   const match = {
-    current_round: 2,
     state: opts.state ?? "in_progress",
     player_a_id: PLAYER_A,
     player_b_id: PLAYER_B,
     frozen_tiles: opts.frozen ?? {},
+    board: (opts.board ?? hesturBoard()).map((r) => r.map((c) => c.toLowerCase())),
   };
-  const round = { id: "round-2", board_snapshot_before: (opts.board ?? hesturBoard()).map((r) => r.map((c) => c.toLowerCase())) };
   return {
     writes,
     from: vi.fn((table: string) => {
@@ -54,11 +54,6 @@ function makeSupabaseMock(opts: { frozen?: Record<string, unknown>; submissions?
         then: undefined as unknown,
       };
       if (table === "matches") chain.single.mockResolvedValue({ data: match, error: null });
-      if (table === "rounds") chain.single.mockResolvedValue({ data: round, error: null });
-      if (table === "move_submissions") {
-        // second .eq resolves the query
-        chain.eq = vi.fn().mockResolvedValue({ data: opts.submissions ?? [], error: null });
-      }
       return chain;
     }),
   };
@@ -102,7 +97,7 @@ describe("previewSwap", () => {
     expect((await previewSwap({ kind: "warmup", board: hesturBoard().slice(0, 9), from: { x: 0, y: 0 }, to: { x: 1, y: 0 } })).status).toBe("rejected");
   });
 
-  it("match variant prices on the authoritative round board and never writes", async () => {
+  it("match variant prices on the live board and never writes", async () => {
     vi.mocked(readLobbySession).mockResolvedValue({ player: { id: PLAYER_A } } as never);
     const supabase = makeSupabaseMock();
     vi.mocked(getServiceRoleClient).mockReturnValue(supabase as never);
@@ -122,25 +117,23 @@ describe("previewSwap", () => {
     expect(result.status).toBe("rejected");
   });
 
-  it("match variant applies the opponent's pending swap before pricing", async () => {
+  it("match variant prices on the board as the last resolved move left it (spec 050): a swap that only works after the opponent's move works once it has resolved", async () => {
     vi.mocked(readLobbySession).mockResolvedValue({ player: { id: PLAYER_A } } as never);
-    // Row: r e s t z h _ u — opponent already swapped z(4,0) ↔ u(7,0) → r e s t u h;
-    // our swap (0,0)↔(5,0) then forms hestur. Without their swap it would not.
+    // Row: r e s t z h — hestur needs the u the opponent's move has not yet brought in.
     const grid = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "Z"));
     ["R", "E", "S", "T", "Z", "H"].forEach((ch, i) => {
       grid[0][i] = ch;
     });
-    grid[0][7] = "U";
-    vi.mocked(getServiceRoleClient).mockReturnValue(
-      makeSupabaseMock({ board: grid, submissions: [{ player_id: PLAYER_B, from_x: 4, from_y: 0, to_x: 7, to_y: 0, status: "pending" }] }) as never,
-    );
+    vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock({ board: grid }) as never);
+    const before = await previewSwap({ kind: "match", matchId: MATCH_ID, from: { x: 0, y: 0 }, to: { x: 5, y: 0 } });
+    expect(before.words).toEqual([]);
+
+    const after = grid.map((r) => [...r]);
+    after[0][4] = "U";
+    vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock({ board: after }) as never);
     const result = await previewSwap({ kind: "match", matchId: MATCH_ID, from: { x: 0, y: 0 }, to: { x: 5, y: 0 } });
     expect(result.status).toBe("ok");
     expect(result.words?.[0].word).toBe("hestur");
-
-    vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock({ board: grid }) as never);
-    const without = await previewSwap({ kind: "match", matchId: MATCH_ID, from: { x: 0, y: 0 }, to: { x: 5, y: 0 } });
-    expect(without.words).toEqual([]);
   });
 
   it("match variant returns forbidden for a non-participant and rejected for an ended match", async () => {

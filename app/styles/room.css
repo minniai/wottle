@@ -117,7 +117,8 @@
 .player-bar {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* Identity | total. There is no clock in a bar (spec 050); the ledger caption carries it. */
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 16px;
   height: var(--bar-height);
@@ -176,19 +177,6 @@
   text-overflow: ellipsis;
 }
 
-.player-bar__clock {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 26px;
-  font-weight: 500;
-  color: var(--ink);
-  text-align: center;
-}
-.player-bar__clock--stopped {
-  font-weight: 400;
-  color: var(--muted);
-}
-
 .player-bar__score {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -221,12 +209,6 @@
   inset: 0 auto 0 0;
   width: calc(var(--lane-fraction, 1) * 100%);
   background: var(--seat-ink);
-}
-.player-bar__lane--low {
-  height: 8px;
-}
-.player-bar__lane--low .player-bar__lane-fill {
-  animation: lane-blink 1s steps(2, jump-none) infinite;
 }
 .player-bar__lane-dash {
   /* The pattern is drawn in the SVG; the lane only places it. */
@@ -362,9 +344,6 @@
 .field__cell--exchange > span:first-child {
   animation: letter-exchange 150ms cubic-bezier(0.2, 0, 0.2, 1) both;
 }
-.field__cell--unpinned {
-  animation: pin-fade 200ms cubic-bezier(0.2, 0, 0.2, 1) both;
-}
 
 .field__bands {
   position: absolute;
@@ -406,6 +385,23 @@
   justify-content: space-between;
   align-items: baseline;
   padding: 10px 0;
+}
+.ledger__caption-right {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+/* The one match clock (spec 050 FR-015): mono, tabular; heavier and blinking colour-only under 1:00. */
+.ledger__caption-clock {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.ledger__caption-clock[data-low] {
+  font-weight: 600;
+  animation: lane-blink 1s steps(2, jump-none) infinite;
 }
 /* The round rail (spec 048 US3, §5.4): ten cells, three states, no motion. */
 .rail {
@@ -471,10 +467,14 @@
   margin-right: 6px;
   vertical-align: middle;
 }
+/* Rows share the stack's height, but a row never gets less than its content:
+   a live row with a long fact takes its three lines and the others share the
+   rest, so the territory below is never squeezed out (spec 050). */
 .ledger__rows {
   flex: 1;
+  min-height: 0;
   display: grid;
-  grid-auto-rows: minmax(0, 1fr);
+  grid-auto-rows: minmax(min-content, 1fr);
 }
 /* One grid item per round: the row owns its rule, so it is one continuous
    line instead of three dashes across the column gaps (review S6). */
@@ -537,14 +537,14 @@
   outline-offset: -3px;
 }
 /* 6px clears the live row's rule; every label keeps the same left edge (review S3). */
-.ledger__round {
+.ledger__move {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--muted);
   padding-left: 6px;
 }
-/* Future numerals are a progression mark, not a fact; the caption carries the round. */
-.ledger__row--future .ledger__round {
+/* Future numerals are a progression mark, not a fact; the caption carries the count. */
+.ledger__row--future .ledger__move {
   color: var(--future-label);
 }
 .ledger__words {
@@ -580,6 +580,17 @@
 }
 .ledger__live-text {
   grid-column: 2 / -1;
+}
+/* Spec 050: the beat keeps the row's width; the opponent's total for this row,
+   when they have played it, shares line 1 at the right of their column. */
+.ledger__live-text {
+  grid-row: 1;
+}
+.ledger__live-text + .ledger__words {
+  grid-column: 3;
+  grid-row: 1;
+  /* Not baseline: the total is positioned, so a baseline would drop it onto line 2. */
+  align-self: start;
 }
 /* Amendment P1: the instruction beneath the state, muted, only while there is one. */
 .ledger__live-line2 {
@@ -731,7 +742,7 @@
   color: var(--ink);
 }
 .slip[data-kind="resign"] .slip__headline,
-.slip[data-kind="claimWin"] .slip__headline {
+.slip[data-kind="endEarly"] .slip__headline {
   font-weight: 600;
   font-size: 24px;
   line-height: 1.2;
@@ -847,10 +858,6 @@
   from { transform: translate(var(--dx), var(--dy)); }
   to { transform: translate(0, 0); }
 }
-@keyframes pin-fade {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .room *,
@@ -860,7 +867,7 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0ms !important;
   }
-  .player-bar__lane--low .player-bar__lane-fill {
+  .ledger__caption-clock[data-low] {
     animation: none;
     opacity: 1;
   }

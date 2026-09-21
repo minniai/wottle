@@ -14,7 +14,7 @@
 - Affected `players` rows stay stuck at `status = 'in_match'`, blocking matchmaking for those accounts on return.
 - Existing recovery (`healStuckInMatchStatus`) only runs when the stuck player themselves reopens the lobby — it cannot resolve an unowned orphan.
 
-The Phase 6 disconnect flow (`DisconnectionModal` + `claimWinAction`) handles the case where one player is *still present* to claim the win, but it depends on an in-memory `setTimeout` that does not survive serverless invocation boundaries, and it does nothing when both players are gone.
+The Phase 6 disconnect flow (`DisconnectionModal` + `claimWinAction`) handles the case where one player is *still present* to claim the win, but it depends on an in-memory `setTimeout` that does not survive serverless invocation boundaries, and it does nothing when both players are gone. <!-- retired-name -->
 
 ## Goals
 

@@ -1,0 +1,38 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 3
+      name: move-receipt-load
+  defaults:
+    headers:
+      "content-type": application/json
+      "cache-control": "no-store"
+    timeout: 20000
+  plugins:
+    expect: {}
+  ensure:
+    # Spec 050 / constitution II: a move's receipt RTT < 200ms p95. The POST
+    # only stamps the move (receive_move under the match row lock); resolution
+    # runs in after(), so its cost is measured by `pnpm perf:move-resolve`.
+    - label: move receipt median under 200ms
+      expression: "median < 200"
+    - label: move receipt p95 under 200ms
+      expression: "p95 < 200"
+
+scenarios:
+  # An unauthenticated probe of the receipt endpoint: the full request path up
+  # to the session gate (JSON, Zod including the two letters seen, the action).
+  - name: move receipt request
+    flow:
+      - post:
+          url: "/api/match/test-match/move"
+          json:
+            fromX: 0
+            fromY: 0
+            toX: 1
+            toY: 0
+            fromLetter: "A"
+            toLetter: "B"
+          expect:
+            - statusCode: 400

@@ -1,31 +1,26 @@
 /**
- * Spec 048 US7 — a disconnected opponent ends the match on a slip.
- *
- * The claim slip itself is not asserted here. `handlePlayerDisconnect` schedules
- * `finalizeMatchOnDisconnectTimeout` at exactly `RECONNECT_WINDOW_MS`, the same
- * moment the client's countdown reaches zero, so the two race and the server
- * usually wins — which is the better outcome for the player. The claim slip is
- * the fallback for when that server timer never fires (a cold start, a restarted
- * process), and it is pinned by the `claim-win` fixture baseline and by
- * `MatchRoomController.spec.tsx` (offered at zero, deferred by `keep waiting ▸`,
- * cleared on reconnect). What this spec pins is the part that must hold either
- * way: nothing covers the field while the window runs, and the match ends on a
- * match-over slip that names the reason.
+ * Spec 050 US5, FR-012 — end early. B leaves; the clock keeps running and A
+ * plays all ten moves. Nothing covers the field while A is still playing or
+ * the reconnection window runs. Once A has ten and B has been gone 90s, the
+ * slip `<B> is gone` offers `end the match ▸`, and the match ends under the
+ * normal rules: B is short of ten and loses (`incomplete`).
  */
 import { expect, test } from "@playwright/test";
 
 import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
+import { submitSwap } from "./helpers/swaps";
 
-test("a disconnected opponent ends the match on a slip that names the reason @two-player-playtest", async ({ browser }) => {
+test("an absent opponent: after ten moves and the window, end the match early @two-player-playtest", async ({ browser }) => {
   const contextA = await browser.newContext();
   const contextB = await browser.newContext();
   try {
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
-    const userB = generateTestUsername("claim-b");
-    await loginViaSlip(pageA, generateTestUsername("claim-a"));
+    const userB = generateTestUsername("end-b");
+    await loginViaSlip(pageA, generateTestUsername("end-a"));
     await loginViaSlip(pageB, userB);
     const [matchId] = await startMatchWithDirectInvite(pageA, pageB, { playerBUsername: userB, timeoutMs: 60_000 });
+    await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
     const response = await pageB.request.post(`/api/match/${matchId}/disconnect`);
     expect(response.ok()).toBe(true);
     await contextB.close();
@@ -36,14 +31,20 @@ test("a disconnected opponent ends the match on a slip that names the reason @tw
     await expect(topBar.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "disconnected");
     await expect(pageA.getByTestId("slip")).toHaveCount(0);
 
-    // Past the window the match ends, and the result is a slip over the faded field.
+    for (let n = 1; n <= 10; n += 1) await submitSwap(pageA);
+    await expect(pageA.getByTestId("ledger-live-row")).toContainText("10 of 10 played", { timeout: 20_000 });
+
     const slip = pageA.getByTestId("slip");
-    await expect(slip).toHaveAttribute("data-kind", "matchOver", { timeout: 120_000 });
-    await expect(slip).toContainText(new RegExp(`${userB} left`, "i"));
+    await expect(slip).toHaveAttribute("data-kind", "endEarly", { timeout: 120_000 });
+    await expect(slip).toContainText(new RegExp(`${userB} is gone`, "i"));
     await expect(pageA.getByTestId("room-slot-field")).toHaveAttribute("data-slipped", "true");
-    await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "final");
+    await pageA.getByTestId("slip-end-early").click();
+
+    await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
+    await expect(slip).toHaveAttribute("data-kind", "matchOver", { timeout: 20_000 });
+    await expect(pageA.getByTestId("verdict")).toContainText(new RegExp(`${userB} played 0 of 10`, "i"));
   } finally {
     await contextA.close();
-    await contextB.close();
+    await contextB.close().catch(() => undefined);
   }
 });

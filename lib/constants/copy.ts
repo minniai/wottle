@@ -8,13 +8,13 @@
 
 export const WORDMARK = "wottle";
 
-// Ledger context captions
-export const QUEUE_CONTEXT = "10 rounds · 5:00 clocks";
-/** Every match is rated (spec 048 US6), so the caption is the round alone. */
-export const roundContext = (round: number): string => `round ${round} of 10`;
+// Ledger context captions (spec 050: moves, one clock)
+export const QUEUE_CONTEXT = "10 moves each · one 5:00 clock";
+/** The viewer's next move; the clock sits beside it in the caption. */
+export const moveContext = (move: number): string => `move ${move} of 10`;
 export const lobbyContext = (hereCount: number): string => `lobby · ${hereCount} here`;
-/** `final` is the phase word here, as `lobby` is in lobbyContext; `10 of 10` matches the rail (spec 048 US3). */
-export const finalContext = (durationMmSs: string): string => `final · 10 of 10 · ${durationMmSs}`;
+/** `final` is the phase word here, as `lobby` is in lobbyContext; the clock's place holds the match's duration. */
+export const finalContext = (durationMmSs: string): string => `final · ${durationMmSs}`;
 
 // Player bar — empty / searching seats
 export const NO_OPPONENT = "No opponent yet";
@@ -25,7 +25,7 @@ export const CANCEL = "cancel ▸";
 export const FINDING_OPPONENT = "Finding an opponent";
 export const searchingSubline = (elapsedMmSs: string): string =>
   `ranked · ${elapsedMmSs} · ${CANCEL}`;
-export const roundOneIn = (seconds: number): string => `round 1 in ${seconds}`;
+export const startsIn = (seconds: number): string => `starts in ${seconds}`;
 export const YOUR_NAME_PLACEHOLDER = "your name";
 export const NO_ACCOUNT_NEEDED = "no account needed";
 export const YOU = "you";
@@ -39,7 +39,8 @@ export const ratingSubline = (before: number, after: number, delta: number, wins
 // Live row states and hints
 export const picking = (letter: string, value: number): string =>
   `picking · ${letter} (${value})`;
-export const PLAYED = "played ●";
+/** The live row while your own move is in flight or revealing (spec 050). */
+export const SCORING = "scoring";
 export const TAP_SECOND_LETTER = "tap a second letter";
 export const TAP_AGAIN_TO_PLAY = "tap again to play";
 export const ESC_CANCELS = "esc cancels";
@@ -47,34 +48,34 @@ export const ESC_CANCELS = "esc cancels";
 export const PICK_A_LETTER = "pick a letter";
 export const PREVIEWING = "previewing";
 export const NO_WORD = "no word";
-export const RESOLVING = "resolving";
 export const PREVIEW_INSTRUCTION = `${TAP_AGAIN_TO_PLAY} · ${ESC_CANCELS}`;
 /** `24 · hestur` or `0 · no word` — the priced preview on the live row's first line. */
 export const previewLine = (total: number, words: string[]): string =>
   `${total} · ${words.length > 0 ? words.join(" · ") : NO_WORD}`;
 export const HOVER_ROW_HINT = "hover a row to see its words";
-export const frozenNotice = (ownerName: string, round: number): string =>
-  `frozen · ${ownerName} R${round} · pick another`;
-export const PICK_CLEARED_OPPONENT = "pick cleared · the opponent pinned that letter";
+export const frozenNotice = (ownerName: string, move: number): string =>
+  `frozen · ${ownerName} M${move} · pick another`;
+/** A move refused at resolution (spec 050 FR-005): the reason, then the next step. */
+export const frozenJustNow = (name: string): string => `frozen · ${name} just froze it · pick another`;
+export const movedJustNow = (name: string): string => `moved · ${name} just moved it · pick another`;
+export const pickClearedMoved = (name: string): string => `pick cleared · ${name} moved that letter`;
 export const settingField = (landed: number): string =>
   `setting the field · ${landed} of 100 letters`;
 
-// Round state (spec 048 US2): line 1 of the live row, and the bar sub-line suffixes
-export const roundYourMove = (round: number): string => `round ${round} · your move`;
-export const playedWaiting = (opponentName: string): string => `played · waiting for ${opponentName}`;
-export const resolvingRound = (round: number): string => `resolving round ${round}`;
-export const roundScored = (round: number): string => `round ${round} scored`;
-export const outOfTimeWaiting = (opponentName: string): string => `out of time · waiting for ${opponentName}`;
-export const opponentThinking = (opponentName: string): string => `${opponentName} is thinking · their clock runs`;
+// Move state (spec 050, contracts/move-state.md): line 1 of the live row, and the bar sub-line suffixes
+export const moveYourMove = (move: number): string => `move ${move} · your move`;
+export const moveScoring = (move: number): string => `move ${move} · scoring`;
+export const moveScored = (move: number): string => `move ${move} scored`;
 const signed = (n: number): string => `${n < 0 ? "−" : "+"}${Math.abs(n)}`;
-export const scoredDeltas = (you: number, opp: number, opponentName: string, next: number): string =>
-  `you ${signed(you)} · ${opponentName} ${signed(opp)} · round ${next} opens in 1`;
-export const BOTH_PLAYED_SCORING = "both played · scoring";
-export const CLOCK_SPENT = "your clock is spent · rounds pass";
-export const YOUR_MOVE_SUFFIX = "your move";
-export const PLAYED_SUFFIX = "played ●";
-export const THINKING_SUFFIX = "thinking";
-export const SPENT_SUFFIX = "0:00";
+export const scoredDelta = (delta: number, next: number): string => `you ${signed(delta)} · move ${next} opens`;
+export const DONE_PLAYED = "10 of 10 played";
+export const doneFact = (opponentName: string, opponentMoves: number, clockMmSs: string): string =>
+  `waiting for ${opponentName} · ${opponentMoves} of 10 · ${clockMmSs} left`;
+export const TIME_SCORING = "time · scoring";
+export const moveOfSuffix = (move: number): string => `move ${move} of 10`;
+export const moveScoringSuffix = (move: number): string => `move ${move} of 10 · scoring`;
+export const DONE_SUFFIX = "10 of 10 · done";
+export const oppProgress = (moves: number, state: "playing" | "scoring"): string => `${moves} of 10 · ${state}`;
 
 // Notices (live-row styled lines)
 export const rematchRequest = (name: string): string =>
@@ -90,18 +91,19 @@ export const SIGN_IN_TO_SET_THE_FIELD = "sign in to set the field";
 export const RESIGN_QUESTION = "Resign the match?";
 export const resignConsequence = (opponentName: string): string =>
   `${opponentName} wins · your rating moves as a loss`;
-export const resignLabel = (round: number, clockMmSs: string): string =>
-  `round ${round} of 10 · ${clockMmSs} on your clock`;
+export const resignLabel = (move: number, clockMmSs: string): string =>
+  `move ${move} of 10 · ${clockMmSs} left`;
 export const YES_RESIGN = "yes, resign ▸";
 export const KEEP_PLAYING = "keep playing ▸";
 export const KEEP_WAITING = "keep waiting ▸";
 export const isGone = (name: string): string => `${name} is gone`;
-export const RECONNECT_SPENT = "0:00 left to reconnect";
-export const CLAIM_THE_WIN = "claim the win ▸";
+/** The end-early slip's fact (spec 050 FR-012): the absent player's count and the spent window. */
+export const isGoneFact = (name: string, moves: number): string => `${name} ${moves} of 10 · 0:00 left to reconnect`;
+export const END_THE_MATCH = "end the match ▸";
+export const endEarlyLabel = (clockMmSs: string): string => `10 of 10 played · ${clockMmSs} on the clock`;
 export const MATCH_OVER = "match over";
-/** `match over · 10 rounds · 18:50`. Why it ended is the verdict's detail line, said once. */
-export const matchOverLabel = (rounds: number, durationMmSs: string): string =>
-  `${MATCH_OVER} · ${rounds} ${rounds === 1 ? "round" : "rounds"} · ${durationMmSs}`;
+/** `match over · 4:52`. Why it ended is the verdict's detail line, said once. */
+export const matchOverLabel = (durationMmSs: string): string => `${MATCH_OVER} · ${durationMmSs}`;
 export const winsHeadline = (winnerName: string): string => `${winnerName} wins`;
 export const DRAW = "draw";
 export const REVIEW_FIELD = "review the field ▸";
@@ -115,8 +117,11 @@ export const verdictLine = (winnerName: string, a: number, b: number): string =>
   `${winnerName} wins ${a}–${b}`;
 export const drawLine = (a: number, b: number): string => `draw ${a}–${b}`;
 /** A forced end states what ended it, because `by 0 points` beside a rating change is a lie. */
-export const forcedDetail = (loserName: string, reason: "forfeit" | "disconnect" | "timeout"): string =>
-  reason === "forfeit" ? `${loserName} resigned` : reason === "disconnect" ? `${loserName} left` : `${loserName} ran out of time`;
+export const forcedDetail = (loserName: string, reason: "forfeit" | "disconnect"): string =>
+  reason === "forfeit" ? `${loserName} resigned` : `${loserName} left`;
+/** Spec 050 FR-010: a player short of ten moves at the deadline lost by that. */
+export const incompleteDetail = (loserName: string, moves: number): string => `${loserName} played ${moves} of 10`;
+export const NEITHER_FINISHED = "neither finished";
 export const verdictDetail = (margin: number, wordsA: number, wordsB: number, terrA: number, terrB: number) =>
   `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
 

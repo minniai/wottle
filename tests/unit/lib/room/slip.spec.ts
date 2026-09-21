@@ -5,13 +5,12 @@ import { outranks, slipPrecedence, type SlipState } from "@/lib/room/slip";
 import type { MatchState, PlayerIdentity } from "@/lib/types/match";
 
 const BIRNA: PlayerIdentity = { id: "you", username: "birna", displayName: "Birna" } as PlayerIdentity;
-const RESIGN: SlipState = { kind: "resign", round: 4, clockMs: 252_000, opponentName: "Kári" };
-const CLAIM: SlipState = { kind: "claimWin", opponentName: "Kári", round: 4 };
+const RESIGN: SlipState = { kind: "resign", move: 4, clockMs: 192_000, opponentName: "Kári" };
+const CLAIM: SlipState = { kind: "endEarly", opponentName: "Kári", opponentMoves: 8, clockMs: 72_000 };
 const OVER: SlipState = {
   kind: "matchOver",
   verdict: { winnerSeat: "opp", scoreLine: "Kári wins 170–127", detailLine: "by 43 points · 10 words to 8 · territory 32–25" },
-  rounds: 10,
-  durationMmSs: "18:50",
+  durationMmSs: "4:52",
   scores: { you: 127, opp: 170 },
   viewerName: "Birna",
   opponentName: "Kári",
@@ -21,23 +20,24 @@ const OVER: SlipState = {
 };
 
 function matchState(matchId: string): MatchState {
+  const facts = (playerId: string) => ({ playerId, movesPlayed: 0, score: 0, inFlight: null, lastResolution: null });
   return {
     matchId,
     board: [],
-    currentRound: 1,
-    state: "collecting",
-    timers: {
-      playerA: { playerId: "you", remainingMs: 300_000, status: "running" },
-      playerB: { playerId: "opp", remainingMs: 300_000, status: "running" },
-    },
+    state: "in_progress",
+    players: { playerA: facts("you"), playerB: facts("opp") },
+    clock: { startedAt: null, deadlineAt: null, serverNow: "2026-01-01T00:00:00Z" },
+    moveLimit: 10,
+    resolvedSeq: 0,
     scores: { playerA: 0, playerB: 0 },
+    frozenTiles: {},
   };
 }
 
 describe("slip precedence (spec 048 contracts/slip.md)", () => {
-  it("ranks matchOver > claimWin > resign > signIn", () => {
-    expect(slipPrecedence("matchOver")).toBeGreaterThan(slipPrecedence("claimWin"));
-    expect(slipPrecedence("claimWin")).toBeGreaterThan(slipPrecedence("resign"));
+  it("ranks matchOver > endEarly > resign > signIn", () => {
+    expect(slipPrecedence("matchOver")).toBeGreaterThan(slipPrecedence("endEarly"));
+    expect(slipPrecedence("endEarly")).toBeGreaterThan(slipPrecedence("resign"));
     expect(slipPrecedence("resign")).toBeGreaterThan(slipPrecedence("signIn"));
   });
 
@@ -63,15 +63,15 @@ describe("roomStore slip", () => {
     s().clearSlip("matchOver");
     s().setSlip(RESIGN);
     s().setSlip(CLAIM);
-    expect(s().slip?.kind).toBe("claimWin");
+    expect(s().slip?.kind).toBe("endEarly");
   });
 
   it("clearSlip clears only its own kind", () => {
     const s = useRoomStore.getState;
     s().setSlip(CLAIM);
     s().clearSlip("resign");
-    expect(s().slip?.kind).toBe("claimWin");
-    s().clearSlip("claimWin");
+    expect(s().slip?.kind).toBe("endEarly");
+    s().clearSlip("endEarly");
     expect(s().slip).toBeNull();
   });
 
@@ -106,12 +106,12 @@ describe("roomStore slip", () => {
     s().hydrateMatch(matchState("m2"), "you");
     expect(s().slip).toBeNull();
     expect(s().slipDismissed).toBe(false);
-    expect(s().holdRound).toBeNull();
+    expect(s().holdMove).toBeNull();
     // Re-hydrating the same match (a poll) keeps them.
     s().setSlip(OVER);
     s().beginHold(3);
     s().hydrateMatch(matchState("m2"), "you");
     expect(s().slip?.kind).toBe("matchOver");
-    expect(s().holdRound).toBe(3);
+    expect(s().holdMove).toBe(3);
   });
 });

@@ -6,7 +6,7 @@ import type { HistoryWord, MatchWordHistory } from "@/lib/match/wordHistory";
 
 interface Loaded {
   matchId: string;
-  round: number;
+  resolvedSeq: number;
   words: HistoryWord[];
 }
 
@@ -27,25 +27,25 @@ async function fetchHistory(matchId: string): Promise<HistoryWord[] | null> {
 }
 
 /**
- * The completed rounds' words for the match on screen (spec 047 FR-003).
- * Fetched once per match and again when the round number jumps by more than
- * one — a missed broadcast — never on the move path. `null` until loaded or
- * when the request fails; the ledger then fills from broadcasts alone.
+ * The resolved moves' words for the match on screen (spec 047 FR-003, spec
+ * 050). Fetched once per match and again when the resolution cursor jumps by
+ * more than one — a missed broadcast — never on the move path. `null` until
+ * loaded or when the request fails; the ledger then fills from broadcasts alone.
  */
-export function useWordHistory(matchId: string, currentRound: number): HistoryWord[] | null {
+export function useWordHistory(matchId: string, resolvedSeq: number): HistoryWord[] | null {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const stale = loaded?.matchId !== matchId || currentRound - loaded.round > 1;
+  const stale = loaded?.matchId !== matchId || resolvedSeq - loaded.resolvedSeq > 1;
 
   useEffect(() => {
     if (!stale) return;
     let active = true;
     void fetchHistory(matchId).then((words) => {
-      if (active && words) setLoaded({ matchId, round: currentRound, words });
+      if (active && words) setLoaded({ matchId, resolvedSeq, words });
     });
     return () => {
       active = false;
     };
-  }, [matchId, currentRound, stale]);
+  }, [matchId, resolvedSeq, stale]);
 
   return loaded?.matchId === matchId ? loaded.words : null;
 }

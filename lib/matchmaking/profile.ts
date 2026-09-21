@@ -226,9 +226,9 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
 
 // Heal `players.status` when it's stuck at "in_match" but no pending or
 // in_progress match exists for the player. Root cause mirrors issue #117:
-// lib/match/roundEngine.ts updates matches.state then calls
-// completeMatchInternal() in a separate pass; if the second call errors or
-// the process dies, players.status stays "in_match" forever. That stale row
+// completing a match flips matches.state, then resets player status in a
+// separate step (completeMatchInternal); if that step errors or the process
+// dies, players.status stays "in_match" forever. That stale row
 // shows up in /api/lobby/players and fights the realtime-tracked value
 // (status="available" from the session cookie) every ~500ms poll, so the
 // PlayNowCard button visibly oscillates between "Play Now" and

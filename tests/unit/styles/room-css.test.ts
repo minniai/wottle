@@ -12,7 +12,9 @@ describe("room.css motion (design system §6)", () => {
 
   it("declares the room's keyframes", () => {
     const names = keyframes.map((m) => m[1]);
-    for (const k of ["field-shake", "band-draw", "count-up", "lane-blink", "lane-search", "letter-land", "pin-fade"]) expect(names).toContain(k);
+    for (const k of ["field-shake", "band-draw", "count-up", "lane-blink", "lane-search", "letter-land"]) expect(names).toContain(k);
+    // Spec 050: nothing is pinned, so the pin fade is gone.
+    expect(names).not.toContain("pin-fade");
   });
 
   it("every keyframe animates only transform and opacity", () => {
@@ -22,9 +24,15 @@ describe("room.css motion (design system §6)", () => {
     }
   });
 
-  it("reduced motion zeroes durations and holds the low lane solid", () => {
+  it("reduced motion zeroes durations and holds the low clock solid", () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration: 0ms !important/);
-    expect(css).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*\.player-bar__lane--low \.player-bar__lane-fill[\s\S]*animation: none/);
+    // Spec 050: the low clock blinks in the ledger caption; under reduced motion it holds solid.
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*\.ledger__caption-clock\[data-low\][\s\S]*animation: none/);
+    expect(css).not.toMatch(/player-bar__lane--low/);
+  });
+
+  it("the opponent's total in the live row shares line 1, in their column, so the row stays two lines", () => {
+    expect(css).toMatch(/\.ledger__live-text \+ \.ledger__words\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1/);
   });
 
   it("no radii, shadows or gradients", () => {
@@ -201,7 +209,10 @@ describe("room.css ledger rows (spec 047 US3)", () => {
   it("the rows container stacks rows without columns or gaps of its own", () => {
     const rows = block(".ledger__rows");
     expect(rows).toMatch(/display:\s*grid/);
-    expect(rows).toMatch(/grid-auto-rows:\s*minmax\(0, 1fr\)/);
+    // Spec 050: a row never gets less than its content, so a tall live row
+    // cannot push the territory out of the stack; the rest share the height.
+    expect(rows).toMatch(/grid-auto-rows:\s*minmax\(min-content, 1fr\)/);
+    expect(rows).toMatch(/min-height:\s*0/);
     expect(rows).not.toMatch(/grid-template-columns/);
     expect(rows).not.toMatch(/column-gap/);
   });
@@ -223,7 +234,7 @@ describe("room.css ledger rows (spec 047 US3)", () => {
   });
 
   it("round labels clear the live rule", () => {
-    expect(block(".ledger__round")).toMatch(/padding-left:\s*6px/);
+    expect(block(".ledger__move")).toMatch(/padding-left:\s*6px/);
   });
 
   it("the seat header rule is ink (Fig. 2); the hint collapses when empty", () => {
@@ -286,10 +297,6 @@ describe("room.css motion, spec 045 US5", () => {
     const exchange = block(".field__cell--exchange > span:first-child");
     expect(exchange).toMatch(/letter-exchange 150ms/);
     expect(exchange).toMatch(/cubic-bezier\(0\.2, 0, 0\.2, 1\)/);
-  });
-
-  it("fades a released pin over 200ms with the keyframe that was declared and never used", () => {
-    expect(block(".field__cell--unpinned")).toMatch(/pin-fade 200ms/);
   });
 
   it("writes a found opponent's name in over 200ms", () => {

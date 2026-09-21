@@ -31,13 +31,13 @@ describe("copy (design system §8)", () => {
   });
 
   test("clock budget copy reads 5:00", () => {
-    expect(copy.QUEUE_CONTEXT).toBe("10 rounds · 5:00 clocks");
+    expect(copy.QUEUE_CONTEXT).toBe("10 moves each · one 5:00 clock");
   });
 
   test("formatters interpolate", () => {
-    expect(copy.frozenNotice("Kári", 2)).toBe("frozen · Kári R2 · pick another");
+    expect(copy.frozenNotice("Kári", 2)).toBe("frozen · Kári M2 · pick another");
     expect(copy.picking("T", 2)).toBe("picking · T (2)");
-    expect(copy.roundContext(4)).toBe("round 4 of 10");
+    expect(copy.moveContext(4)).toBe("move 4 of 10");
     expect(copy.rematchRequest("Kári")).toBe("Kári asks for a rematch · accept ▸ · decline");
     expect(copy.verdictLine("Kári", 170, 127)).toBe("Kári wins 170–127");
     expect(copy.reconnecting("0:42")).toBe("reconnecting · 0:42 left");
@@ -50,9 +50,10 @@ describe("copy (design system §8)", () => {
   });
 });
 
-describe("the match-over label counts rounds (spec 048)", () => {
-  test("pluralises the round count", () => {
-    expect(copy.matchOverLabel(1, "0:41")).toBe("match over · 1 round · 0:41");
-    expect(copy.matchOverLabel(10, "18:50")).toBe("match over · 10 rounds · 18:50");
+describe("the match-over label counts the match (spec 048, spec 050)", () => {
+  test("the duration alone; why it ended is the verdict's detail line", () => {
+    expect(copy.matchOverLabel("4:52")).toBe("match over · 4:52");
+    expect(copy.incompleteDetail("Kári", 8)).toBe("Kári played 8 of 10");
+    expect(copy.NEITHER_FINISHED).toBe("neither finished");
   });
 });

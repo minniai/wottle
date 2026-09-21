@@ -9,47 +9,42 @@ import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { ProfilePage } from "@/components/profile/ProfilePage";
-import { OPPONENT, TAP_SECOND_LETTER, roundOneIn, searchingSubline, settingField } from "@/lib/constants/copy";
+import { OPPONENT, TAP_SECOND_LETTER, startsIn, searchingSubline, settingField } from "@/lib/constants/copy";
 import type { Seat } from "@/lib/constants/seatColors";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { same } from "@/lib/room/fieldInteraction";
 import { useRoomStore, type RoomPhase as StorePhase } from "@/lib/room/roomStore";
-import type { LiveState } from "@/lib/room/ledgerRows";
+import type { AccumulatedWord, LiveState } from "@/lib/room/ledgerRows";
 import type { SlipState } from "@/lib/room/slip";
-import { turnFrameFor, type RoundState } from "@/lib/room/roundState";
+import { turnFrameFor, type MoveState } from "@/lib/room/moveState";
 import type { Coordinate } from "@/lib/types/board";
-import type { MatchResult } from "@/lib/types/match";
+import type { MatchResult, MatchState } from "@/lib/types/match";
 import {
-  CLAIM_WIN_SLIP,
-  OPP_PLAYED,
-  OVER_SLIP,
-  RESIGN_SLIP,
-  RESOLVING_R3,
-  SCORED_R3,
-  SETTLE_HOLD_ROUND,
-  YOU_PLAYED,
-  YOUR_MOVE,
   BIRNA,
+  CLOCK_MS,
   DISCONNECT_STATE,
+  DONE,
+  DONE_STATE,
+  END_EARLY_SLIP,
   FINAL_STATE,
   FINAL_VERDICT,
   FIXTURE_BOARD,
   FIXTURE_FROZEN,
   FIXTURE_WORDS,
+  HOLD_MOVE,
   ILLEGAL_CELL,
   ILLEGAL_LIVE,
   KARI,
   LOBBY_PLAYERS,
   LOW_CLOCK_MS,
   MATCH_STATE,
-  OPP_CLOCK_MS,
   OPP_FINAL_LINE,
   OPP_ID,
-  OPP_PINS,
+  OPP_REVEAL_WORD,
+  OVER_SLIP,
   PICKED_CELL,
   PICKED_LIVE,
-  PLAYED_PINS,
   PREVIEW_CELLS,
   PREVIEW_LIVE,
   PROFILE_FIXTURE,
@@ -57,9 +52,15 @@ import {
   QUEUE_LETTERS_LANDED,
   RECENT_GAMES,
   RECONNECT_MS_LEFT,
-  YOU_CLOCK_MS,
+  REJECTED_M5,
+  RESIGN_SLIP,
+  SCORED_M4,
+  SCORED_WORD,
+  SCORING_M4,
+  TIME_UP,
   YOU_FINAL_LINE,
   YOU_ID,
+  YOUR_MOVE,
   type RoomPhase,
 } from "./fixtures";
 
@@ -73,11 +74,18 @@ const BANDS = bandsFromWords({
   playerAId: YOU_ID,
 });
 
+/** A word landing on the field: its band at live strength, drawn from its coordinates (spec 050). */
+function liveBands(word: AccumulatedWord) {
+  const key = `${word.playerId}:${word.moveSeq}`;
+  return bandsFromWords({ words: [...FIXTURE_WORDS, word], board: FIXTURE_BOARD, frozenTiles: FIXTURE_FROZEN, viewerSlot: "player_a", playerAId: YOU_ID, liveMoveKey: key, trustMoveKey: key });
+}
+const SCORING_BANDS = liveBands(SCORED_WORD);
+const OPP_REVEAL_BANDS = liveBands(OPP_REVEAL_WORD);
+
 /** The marks one match phase puts on the field (spec 047 amendment P2). */
 interface FieldMarks {
   picked?: Coordinate;
   previewed?: [Coordinate, Coordinate];
-  pins?: { cells: [Coordinate, Coordinate]; seat: Seat };
   shakeAt?: Coordinate;
 }
 
@@ -87,28 +95,25 @@ const inPair = (pair: [Coordinate, Coordinate] | undefined, at: Coordinate) => p
 function markedState(marks: FieldMarks, at: Coordinate, base: CellState): CellState {
   if (isPicked(marks, at)) return "picked";
   if (inPair(marks.previewed, at)) return "previewed";
-  if (inPair(marks.pins?.cells, at)) return "pinned";
   return base;
 }
 
 function markedSeat(marks: FieldMarks, at: Coordinate): Seat | null {
-  if (isPicked(marks, at) || inPair(marks.previewed, at)) return "you";
-  if (inPair(marks.pins?.cells, at)) return marks.pins?.seat ?? null;
-  return null;
+  return isPicked(marks, at) || inPair(marks.previewed, at) ? "you" : null;
 }
 
-/** The match field with rounds 1–3 drawn as bands and one phase's marks on it. */
-function MatchField({ drawnCount, marks, turnFrame, disabled }: { drawnCount: number | null; marks: FieldMarks; turnFrame: Seat | null; disabled: boolean }) {
+/** The match field with the played moves drawn as bands and one phase's marks on it. */
+function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, frozenTiles = FIXTURE_FROZEN }: { drawnCount: number | null; marks: FieldMarks; turnFrame: Seat | null; disabled: boolean; bands?: typeof BANDS; frozenTiles?: typeof FIXTURE_FROZEN }) {
   const board = marks.previewed ? applyLetterSwaps(FIXTURE_BOARD, [marks.previewed]) : FIXTURE_BOARD;
   return (
     <Field
       board={board}
       turnFrame={turnFrame}
       disabled={disabled}
-      frozenTiles={FIXTURE_FROZEN}
+      frozenTiles={frozenTiles}
       viewerSlot="player_a"
       ownerNames={{ player_a: BIRNA.displayName, player_b: KARI.displayName }}
-      bands={BANDS}
+      bands={bands}
       drawnCount={drawnCount}
       cellStateFor={(at, base) => markedState(marks, at, base)}
       seatFor={(at) => markedSeat(marks, at)}
@@ -122,27 +127,27 @@ function MatchField({ drawnCount, marks, turnFrame, disabled }: { drawnCount: nu
 interface SeatOptions {
   completed: boolean;
   reconnectMsLeft: number | null;
-  youClockMs?: number;
-  /** Your clock stops once you have played. */
-  youRunning?: boolean;
+  /** Both players' moves and totals in this phase. */
+  you?: { moves: number; score: number; scoring?: boolean };
+  opp?: { moves: number; score: number; scoring?: boolean };
 }
 
-function matchSeats({ completed, reconnectMsLeft, youClockMs = YOU_CLOCK_MS, youRunning = true }: SeatOptions) {
+function matchSeats({ completed, reconnectMsLeft, you = { moves: 3, score: 46 }, opp = { moves: 6, score: 15 } }: SeatOptions) {
   return {
     you: {
       name: BIRNA.displayName,
       rating: BIRNA.eloRating ?? null,
-      clockMs: completed ? 41_000 : youClockMs,
-      running: !completed && reconnectMsLeft === null && youRunning,
-      score: completed ? 127 : 46,
+      movesPlayed: you.moves,
+      scoring: you.scoring,
+      score: you.score,
       finalLine: completed ? YOU_FINAL_LINE : undefined,
     },
     opp: {
       name: KARI.displayName,
       rating: KARI.eloRating ?? null,
-      clockMs: completed ? 12_000 : OPP_CLOCK_MS,
-      running: false,
-      score: completed ? 170 : 15,
+      movesPlayed: opp.moves,
+      scoring: opp.scoring,
+      score: opp.score,
       reconnectMsLeft,
       finalLine: completed ? OPP_FINAL_LINE : undefined,
     },
@@ -152,42 +157,52 @@ function matchSeats({ completed, reconnectMsLeft, youClockMs = YOU_CLOCK_MS, you
 interface MatchPhaseSpec {
   live: LiveState;
   marks: FieldMarks;
-  youClockMs?: number;
-  youRunning?: boolean;
-  /** The round's beat (spec 048 US2); omitted for the final state. */
-  roundState?: RoundState;
-  holdRound?: number;
+  /** The viewer's beat (spec 050); omitted for the final state. */
+  moveState?: MoveState;
+  holdMove?: number;
+  clockMs?: number;
+  /** Words landing in this phase, drawn at live strength. */
+  liveWord?: AccumulatedWord;
+  /** The match snapshot the phase shows; the base match state when omitted. */
+  state?: MatchState;
+  seats?: Pick<SeatOptions, "you" | "opp">;
 }
 
-const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, roundState: YOUR_MOVE };
-const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, roundState: YOUR_MOVE };
+const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE };
+const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, moveState: YOUR_MOVE };
+const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
 type MatchPhase = Exclude<RoomPhase, "landing-slip" | "lobby" | "queue" | "found" | "profile" | "rules">;
 
-/** Every match-state phase as literals (spec 047 amendment P2). */
+/** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   idle: IDLE,
   picking: PICKING,
   "phone-sheet": PICKING,
-  reveal: { live: { kind: "idle" }, marks: {}, roundState: RESOLVING_R3 },
-  previewed: { live: PREVIEW_LIVE, marks: { previewed: PREVIEW_CELLS }, roundState: YOUR_MOVE },
-  played: { live: { kind: "played" }, marks: { pins: { cells: PLAYED_PINS, seat: "you" } }, youRunning: false, roundState: YOU_PLAYED },
-  "opp-played": { live: { kind: "idle" }, marks: { pins: { cells: OPP_PINS, seat: "opp" } }, roundState: OPP_PLAYED },
-  "low-clock": { ...PICKING, youClockMs: LOW_CLOCK_MS },
-  illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL }, roundState: YOUR_MOVE },
-  settle: { live: { kind: "idle" }, marks: {}, roundState: SCORED_R3, holdRound: SETTLE_HOLD_ROUND },
-  final: { live: { kind: "idle" }, marks: {} },
-  disconnect: { live: { kind: "idle" }, marks: {}, roundState: YOU_PLAYED },
+  previewed: { live: PREVIEW_LIVE, marks: { previewed: PREVIEW_CELLS }, moveState: YOUR_MOVE },
+  illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL }, moveState: YOUR_MOVE },
+  // Your move 4 resolving: the field is locked and TÆK's band is mid-draw.
+  reveal: { live: { kind: "played" }, marks: {}, moveState: SCORING_M4, liveWord: SCORED_WORD, seats: { you: { moves: 3, score: 46, scoring: true } } },
+  scoring: { live: { kind: "played" }, marks: {}, moveState: SCORING_M4, seats: { you: { moves: 3, score: 46, scoring: true } } },
+  scored: { live: { kind: "idle" }, marks: {}, moveState: SCORED_M4, holdMove: HOLD_MOVE, liveWord: SCORED_WORD, seats: { you: { moves: 4, score: 59 } } },
+  // Kári's move 7 landing while you pick: his band draws, your pick stands.
+  "opp-reveal": { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, moveState: YOUR_MOVE, liveWord: OPP_REVEAL_WORD, seats: { opp: { moves: 6, score: 15, scoring: true } } },
+  rejected: { live: { kind: "idle" }, marks: {}, moveState: REJECTED_M5, seats: { you: { moves: 4, score: 59 }, opp: { moves: 7, score: 28 } } },
+  "low-clock": { ...PICKING, clockMs: LOW_CLOCK_MS },
+  "done-waiting": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: LOW_CLOCK_MS, state: DONE_STATE, seats: DONE_SEATS },
+  "time-up": { live: { kind: "idle" }, marks: {}, moveState: TIME_UP, clockMs: 0, state: DONE_STATE, seats: { ...DONE_SEATS, opp: { ...DONE_SEATS.opp, scoring: true } } },
+  final: { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS },
+  disconnect: { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE, state: DISCONNECT_STATE },
   resign: IDLE,
-  "claim-win": { live: { kind: "idle" }, marks: {}, roundState: YOU_PLAYED },
-  "over-slip": { live: { kind: "idle" }, marks: {} },
+  "end-early": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: 72_000, state: { ...DISCONNECT_STATE, ...DONE_STATE, disconnectedPlayerId: OPP_ID }, seats: DONE_SEATS },
+  "over-slip": { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS },
 };
 
 /** The slip each phase seeds (spec 048 contracts/fixture-phases.md). */
 const SLIPS: Partial<Record<RoomPhase, SlipState>> = {
   "landing-slip": { kind: "signIn" },
   resign: RESIGN_SLIP,
-  "claim-win": CLAIM_WIN_SLIP,
+  "end-early": END_EARLY_SLIP,
   "over-slip": OVER_SLIP,
 };
 
@@ -196,7 +211,7 @@ const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "l
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
-  const [revealed, setRevealed] = useState(phase === "reveal" ? 0 : null);
+  const [revealed, setRevealed] = useState<number | null>(phase === "reveal" ? 0 : null);
 
   useEffect(() => {
     // Seed the store so components reading it (Room's data-phase, seat colours)
@@ -213,7 +228,8 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
   useEffect(() => {
     if (phase !== "reveal") return;
-    const id = setTimeout(() => setRevealed(FIXTURE_WORDS.length - 1), 0);
+    // The three settled bands are drawn; the fourth (TÆK) is mid-draw.
+    const id = setTimeout(() => setRevealed(FIXTURE_WORDS.length), 0);
     return () => clearTimeout(id);
   }, [phase]);
 
@@ -266,7 +282,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
           opponent={found ? KARI : null}
           found={found ? { countdown: 3 } : null}
           elapsed={QUEUE_ELAPSED}
-          live={found ? roundOneIn(3) : settingField(QUEUE_LETTERS_LANDED)}
+          live={found ? startsIn(3) : settingField(QUEUE_LETTERS_LANDED)}
           hint={searchingSubline(QUEUE_ELAPSED)}
           onAction={NO_OP}
         >
@@ -282,10 +298,14 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   }
 
   const completed = phase === "final" || phase === "over-slip";
-  const disconnected = phase === "disconnect" || phase === "claim-win";
-  const state = completed ? FINAL_STATE : disconnected ? DISCONNECT_STATE : MATCH_STATE;
+  const disconnected = phase === "disconnect" || phase === "end-early";
   const spec = MATCH_PHASES[phase];
-  const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? RECONNECT_MS_LEFT : null, youClockMs: spec.youClockMs, youRunning: spec.youRunning });
+  const state = spec.state ?? MATCH_STATE;
+  const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? (phase === "end-early" ? 0 : RECONNECT_MS_LEFT) : null, ...spec.seats });
+  const words = spec.liveWord ? [...FIXTURE_WORDS, spec.liveWord] : FIXTURE_WORDS;
+  const bands = spec.liveWord === SCORED_WORD ? SCORING_BANDS : spec.liveWord === OPP_REVEAL_WORD ? OPP_REVEAL_BANDS : BANDS;
+  const drawnCount = phase === "reveal" ? revealed : null;
+  const locked = spec.holdMove !== undefined || spec.moveState?.kind === "scoring" || spec.moveState?.kind === "done" || spec.moveState?.kind === "timeUp";
 
   return (
     <RoomShell viewer={BIRNA}>
@@ -294,20 +314,22 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
         viewerSlot="player_a"
         you={seats.you}
         opp={seats.opp}
-        currentRound={state.currentRound}
+        clockMs={spec.clockMs ?? CLOCK_MS}
+        moveLimit={10}
         completed={completed}
-        words={FIXTURE_WORDS}
+        words={words}
         playerAId={YOU_ID}
         frozenTiles={FIXTURE_FROZEN}
         live={spec.live}
-        roundState={spec.roundState}
-        holdRound={spec.holdRound ?? null}
+        moveState={spec.moveState}
+        holdMove={spec.holdMove ?? null}
         verdict={completed ? FINAL_VERDICT : undefined}
+        caption={completed ? "final · 4:52" : undefined}
         notices={[]}
         hint={disconnected ? `${KARI.displayName} · ${OPPONENT}` : undefined}
         onAction={NO_OP}
       >
-        <MatchField drawnCount={revealed} marks={spec.marks} turnFrame={spec.roundState ? turnFrameFor(spec.roundState) : null} disabled={spec.holdRound !== undefined || phase === "reveal"} />
+        <MatchField drawnCount={drawnCount} marks={spec.marks} turnFrame={spec.moveState ? turnFrameFor(spec.moveState) : null} disabled={completed || locked} bands={bands} />
       </MatchRoomView>
     </RoomShell>
   );

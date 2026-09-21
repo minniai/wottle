@@ -5,8 +5,9 @@ import { useId, useRef, type ReactNode } from "react";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 import {
   ACCEPT,
-  CLAIM_THE_WIN,
   DECLINE,
+  END_THE_MATCH,
+  endEarlyLabel,
   DRAW,
   KEEP_PLAYING,
   KEEP_WAITING,
@@ -15,20 +16,19 @@ import {
   NEW_OPPONENT,
   NEW_HERE_HOW_TO_PLAY,
   NO_ACCOUNT_NEEDED,
-  RECONNECT_SPENT,
   REMATCH,
   rematchRequest,
   resignConsequence,
   resignLabel,
   RESIGN_QUESTION,
   REVIEW_FIELD,
-  roundContext,
   TAGLINE,
   waitingForRematch,
   winsHeadline,
   WORDMARK,
   YES_RESIGN,
   isGone,
+  isGoneFact,
 } from "@/lib/constants/copy";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
@@ -47,7 +47,7 @@ function cancelActionFor(slip: SlipState): LedgerAction | null {
   switch (slip.kind) {
     case "resign":
       return "keepPlaying";
-    case "claimWin":
+    case "endEarly":
       return "keepWaiting";
     case "matchOver":
       return "reviewField";
@@ -91,7 +91,7 @@ function ResignBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, {
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
-        <span className="slip__label">{resignLabel(slip.round, formatClock(slip.clockMs))}</span>
+        <span className="slip__label">{resignLabel(slip.move, formatClock(slip.clockMs))}</span>
         <h2 id={headlineId} className="slip__headline">{RESIGN_QUESTION}</h2>
         <span className="slip__label">{resignConsequence(slip.opponentName)}</span>
       </div>
@@ -104,17 +104,18 @@ function ResignBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, {
   );
 }
 
-function ClaimWinBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "claimWin" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
+/** Spec 050 FR-012: offered only to a player with all their moves whose opponent has been gone for the window. */
+function EndEarlyBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "endEarly" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
-        <span className="slip__label">{roundContext(slip.round)}</span>
+        <span className="slip__label">{endEarlyLabel(formatClock(slip.clockMs))}</span>
         <h2 id={headlineId} className="slip__headline">{isGone(slip.opponentName)}</h2>
-        <span className="slip__label">{RECONNECT_SPENT}</span>
+        <span className="slip__label">{isGoneFact(slip.opponentName, slip.opponentMoves)}</span>
       </div>
       <div className="slip__rule" />
       <div className="slip__actions">
-        <Primary label={CLAIM_THE_WIN} action="claimWin" testId="slip-claim-win" onAction={onAction} />
+        <Primary label={END_THE_MATCH} action="endEarly" testId="slip-end-early" onAction={onAction} />
         <Secondary label={KEEP_WAITING} action="keepWaiting" testId="slip-keep-waiting" onAction={onAction} />
       </div>
     </>
@@ -155,7 +156,7 @@ function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
-        <span className="slip__label">{matchOverLabel(slip.rounds, slip.durationMmSs)}</span>
+        <span className="slip__label">{matchOverLabel(slip.durationMmSs)}</span>
         <h2 id={headlineId} className="slip__headline" data-seat={winner ?? undefined}>{headline}</h2>
         <span className="slip__score" data-testid="slip-score">
           <span data-seat={first}>{slip.scores[first]}</span> – <span data-seat={second}>{slip.scores[second]}</span>
@@ -184,8 +185,8 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedI
       return <SignInBody onSignedIn={onSignedIn} />;
     case "resign":
       return <ResignBody slip={slip} onAction={onAction} headlineId={headlineId} />;
-    case "claimWin":
-      return <ClaimWinBody slip={slip} onAction={onAction} headlineId={headlineId} />;
+    case "endEarly":
+      return <EndEarlyBody slip={slip} onAction={onAction} headlineId={headlineId} />;
     case "matchOver":
       return <MatchOverBody slip={slip} onAction={onAction} headlineId={headlineId} />;
   }

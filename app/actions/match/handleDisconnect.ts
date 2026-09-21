@@ -47,13 +47,9 @@ export async function handlePlayerDisconnect(matchId: string, playerId: string):
   // Broadcast disconnect state to all clients
   await publishMatchStateWithDisconnect(matchId, playerId);
 
-  // Schedule timeout check (in production, use a proper job queue)
-  setTimeout(async () => {
-    if (clearDisconnect(matchId, playerId)) {
-      // Player did not reconnect within the window → finalize the match.
-      await finalizeMatchOnDisconnectTimeout(supabase, matchId, playerId);
-    }
-  }, RECONNECT_WINDOW_MS);
+  // Spec 050: a disconnect decides nothing by itself and the clock keeps
+  // running. The record stays past the window so a player with ten moves can
+  // end the match early (claimWin); otherwise the deadline settles it.
 
   await writeMatchLog(supabase, {
     matchId,
@@ -162,26 +158,4 @@ async function loadMatchStateWithDisconnect(
     ...state,
     disconnectedPlayerId: null,
   };
-}
-
-async function finalizeMatchOnDisconnectTimeout(
-  supabase: ReturnType<typeof getServiceRoleClient>,
-  matchId: string,
-  disconnectedPlayerId: string,
-): Promise<void> {
-  const { completeMatchInternal } = await import("./completeMatch");
-
-  const { data: match } = await supabase
-    .from("matches")
-    .select("player_a_id, player_b_id")
-    .eq("id", matchId)
-    .maybeSingle();
-
-  const nonDisconnectedId = match
-    ? match.player_a_id === disconnectedPlayerId
-      ? match.player_b_id
-      : match.player_a_id
-    : undefined;
-
-  await completeMatchInternal(matchId, "disconnect", nonDisconnectedId);
 }

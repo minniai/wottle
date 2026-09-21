@@ -133,9 +133,9 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
  * plus reference screenshots at 1440×900 and 390×844 attached to the report for
  * comparison with the audit figures (Fig. 2, 5, 6, 7, 8, 9).
  *
- * One deliberate exclusion, and it is the design system's own: the future-round
+ * One deliberate exclusion, and it is the design system's own: the future-move
  * numerals in `#B9B4A6` (§2 names them as the single exception to the palette;
- * they are aria-hidden — the caption carries the round). The two coral
+ * they are aria-hidden — the caption carries the count). The two coral
  * exclusions spec 044 carried are gone: decision 2 gave coral a text-only
  * variant, so those selectors pass on their own (spec 045 T036).
  */
@@ -144,15 +144,15 @@ const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
  * One exclusion, not three. Decision 2 of 15 September gave coral a text-only
  * variant, so the opponent's 14px ledger words and the numerals on scored
  * letters now pass AA on their own (spec 045 FR-032, FR-033). What remains is
- * the design system's single grey exception: future-round numerals, which are
- * aria-hidden because the caption carries the round.
+ * the design system's single grey exception: future-move numerals, which are
+ * aria-hidden because the caption carries the count.
  */
 /**
- * The two future-round marks: the ledger's row labels and the rail's cells. Both
+ * The two future-move marks: the ledger's row labels and the rail's cells. Both
  * are `aria-hidden` progression marks in the one permitted grey (design system
- * §2); the round itself is named by the caption and the rail's own label.
+ * §2); the move itself is named by the caption and the rail's own label.
  */
-const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__round", '.rail__cell[data-state="future"]'];
+const CONTRAST_EXCLUSIONS = [".ledger__row--future .ledger__move", '.rail__cell[data-state="future"]'];
 
 async function expectAxeClean(page: Page, label: string) {
   let builder = new AxeBuilder({ page }).withTags(AXE_TAGS);

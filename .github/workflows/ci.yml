@@ -945,14 +945,14 @@ jobs:
           echo "✓ Server is ready!"
       - name: Run Artillery scenario
         # tests/perf/swap.yml is legacy — it hits /api/board and /api/swap, which were
-        # removed with the two-player match refactor. round-resolution.yml is the modern
+        # removed with the two-player match refactor. move-receipt.yml (spec 050) is the
         # move-latency gate against /api/match/[matchId]/move.
-        run: pnpm exec artillery run --target "http://127.0.0.1:${APP_PORT:-3000}" --output artillery-round-resolution.json tests/perf/round-resolution.yml
+        run: pnpm exec artillery run --target "http://127.0.0.1:${APP_PORT:-3000}" --output artillery-move-receipt.json tests/perf/move-receipt.yml
       - name: Assert move-submission latency thresholds
         env:
           SWAP_LATENCY_THRESHOLD_MS: "200"
           SWAP_LATENCY_MIN_SAMPLE: "20"
-        run: pnpm exec tsx scripts/perf/assert-artillery-thresholds.ts artillery-round-resolution.json
+        run: pnpm exec tsx scripts/perf/assert-artillery-thresholds.ts artillery-move-receipt.json
       - name: Run Artillery preview-swap scenario (spec 044)
         run: pnpm exec artillery run --target "http://127.0.0.1:${APP_PORT:-3000}" --output artillery-preview-swap.json tests/perf/preview-swap.yml
       - name: Assert preview-swap latency thresholds
@@ -978,6 +978,6 @@ jobs:
           path: |
             quickstart-perf.ndjson
             perf-next.log
-            artillery-round-resolution.json
+            artillery-move-receipt.json
             artillery-preview-swap.json
           if-no-files-found: warn

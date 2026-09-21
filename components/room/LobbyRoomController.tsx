@@ -110,12 +110,10 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
 
   const field = useFieldInteraction({
     matchId: null,
-    warmupBoard: me ? board : null,
+    board,
     previewEnabled,
     frozenKeys: EMPTY_FROZEN,
-    opponentPins: null,
     canPick: board.length > 0 && Boolean(me) && landed === null,
-    currentRound: 0,
     onPick: sound.playTileSelect,
     onCommitted: sound.playValidSwap,
     onRejected: () => undefined,

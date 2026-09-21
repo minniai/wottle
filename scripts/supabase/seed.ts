@@ -100,18 +100,23 @@ async function seedPlaytestFixtures(
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   const nowIso = new Date().toISOString();
+  // Spec 050 (decided 2026-09-21): the two dev players start every seed at
+  // the default rating with no games, as the migration does for everyone.
+  const freshRecord = { elo_rating: 1200, games_played: 0, wins: 0, losses: 0, draws: 0 };
   const playersPayload = [
     {
       username: "playtest-alpha",
       display_name: "Playtest Alpha",
       status: "available",
       last_seen_at: nowIso,
+      ...freshRecord,
     },
     {
       username: "playtest-beta",
       display_name: "Playtest Beta",
       status: "available",
       last_seen_at: nowIso,
+      ...freshRecord,
     },
   ];
   const { data: players, error: playerError } = await supabase
@@ -137,7 +142,8 @@ async function seedPlaytestFixtures(
       player_a_id: playerA.id,
       player_b_id: playerB.id,
       state: "pending",
-      round_limit: 10,
+      board: grid,
+      move_limit: 10,
     },
     { onConflict: "id" }
   );
@@ -145,22 +151,6 @@ async function seedPlaytestFixtures(
   if (matchError) {
     throw new Error(
       `matches.upsert: ${matchError.message ?? JSON.stringify(matchError)}`
-    );
-  }
-
-  const { error: roundError } = await supabase.from("rounds").upsert(
-    {
-      match_id: matchId,
-      round_number: 1,
-      state: "collecting",
-      board_snapshot_before: grid,
-    },
-    { onConflict: "match_id,round_number" }
-  );
-
-  if (roundError) {
-    throw new Error(
-      `rounds.upsert: ${roundError.message ?? JSON.stringify(roundError)}`
     );
   }
 

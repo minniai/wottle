@@ -21,7 +21,8 @@ export interface FieldProps {
   turnFrame?: Seat | null;
   /** Scored words drawn as bands under the cells (design system §5.2). */
   bands?: WordBand[];
-  highlightRound?: number | null;
+  /** The ledger row under the pointer: both seats' bands for that move light up. */
+  highlightMove?: number | null;
   drawnCount?: number | null;
   drawingIndex?: number | null;
   /** Queue: only the first `landedCount` letters (reading order) are shown; null = all. */
@@ -52,7 +53,7 @@ export function Field(props: FieldProps) {
     disabled,
     turnFrame = null,
     bands = [],
-    highlightRound = null,
+    highlightMove = null,
     drawnCount = null,
     drawingIndex = null,
     landedCount = null,
@@ -157,7 +158,7 @@ export function Field(props: FieldProps) {
     >
       <FieldBands
         bands={bands}
-        highlightRound={highlightRound}
+        highlightMove={highlightMove}
         drawnCount={drawnCount}
         drawingIndex={drawingIndex}
       />

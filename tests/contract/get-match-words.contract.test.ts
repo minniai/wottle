@@ -16,7 +16,7 @@ import { loadMatchWordHistory } from "@/lib/match/wordHistory";
 
 const MATCH_ID = "11111111-1111-4111-8111-111111111111";
 const WORDS = [
-  { roundNumber: 1, playerId: "player-a", word: "borð", length: 4, lettersPoints: 9, bonusPoints: 10, totalPoints: 19, coordinates: [{ x: 4, y: 6 }], direction: "ltr", isDuplicate: false },
+  { moveSeq: 1, globalSeq: 1, playerId: "player-a", word: "borð", length: 4, lettersPoints: 9, bonusPoints: 10, totalPoints: 19, coordinates: [{ x: 4, y: 6 }], direction: "ltr" },
 ];
 
 function mockMatch(row: Record<string, unknown> | null) {
@@ -33,7 +33,7 @@ describe("GET /api/match/[matchId]/words (spec 047 FR-003)", () => {
   beforeEach(() => {
     vi.mocked(readLobbySession).mockResolvedValue({ player: { id: "player-a" } } as never);
     vi.mocked(loadMatchWordHistory).mockResolvedValue(WORDS as never);
-    mockMatch({ player_a_id: "player-a", player_b_id: "player-b", state: "in_progress", current_round: 3 });
+    mockMatch({ player_a_id: "player-a", player_b_id: "player-b", state: "in_progress" });
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -64,10 +64,10 @@ describe("GET /api/match/[matchId]/words (spec 047 FR-003)", () => {
 
   it("lets a non-participant read a completed match (read-only room)", async () => {
     vi.mocked(readLobbySession).mockResolvedValue({ player: { id: "stranger" } } as never);
-    mockMatch({ player_a_id: "player-a", player_b_id: "player-b", state: "completed", current_round: 11 });
+    mockMatch({ player_a_id: "player-a", player_b_id: "player-b", state: "completed" });
     const res = await GET(request(), { params: Promise.resolve({ matchId: MATCH_ID }) });
     expect(res.status).toBe(200);
-    expect(loadMatchWordHistory).toHaveBeenCalledWith(expect.anything(), MATCH_ID, 11);
+    expect(loadMatchWordHistory).toHaveBeenCalledWith(expect.anything(), MATCH_ID);
   });
 
   it("returns the history for a participant with no-store caching", async () => {
@@ -75,6 +75,6 @@ describe("GET /api/match/[matchId]/words (spec 047 FR-003)", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await res.json()).toEqual({ matchId: MATCH_ID, words: WORDS });
-    expect(loadMatchWordHistory).toHaveBeenCalledWith(expect.anything(), MATCH_ID, 3);
+    expect(loadMatchWordHistory).toHaveBeenCalledWith(expect.anything(), MATCH_ID);
   });
 });

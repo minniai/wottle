@@ -2,15 +2,15 @@ import type { Seat } from "@/lib/constants/seatColors";
 import type { Coordinate } from "@/lib/types/board";
 import type { ReadingDirection } from "@/lib/types/match";
 
-/** Ledger model (spec 044 data-model §3.4). Pure data; built by lib/room/ledgerRows.ts. */
+/** Ledger model (spec 044 data-model §3.4, spec 050). Pure data; built by lib/room/ledgerRows.ts. */
 export interface WordCell {
   word: string;
   points: number;
-  isDuplicate: boolean;
   coordinates: Coordinate[];
   direction: ReadingDirection;
 }
 
+/** One seat's Nth move: its words and their points. Empty words with total 0 is a move that scored nothing. */
 export interface SeatCell {
   words: WordCell[];
   total: number;
@@ -23,11 +23,13 @@ export interface LiveLines {
 }
 
 export interface LedgerRow {
-  round: number;
-  /** `settled`: the scored round held as the tinted row before the next opens (spec 048 FR-022). */
+  /** The move number both columns share. */
+  move: number;
+  /** `settled`: the viewer's scored move held as the tinted row before the next opens (spec 050 FR-013). */
   status: "past" | "live" | "future" | "settled";
   you: SeatCell | null;
   opp: SeatCell | null;
+  /** On a live or settled row: the viewer's column carries these lines instead of words. */
   live?: LiveLines;
   folded: boolean;
 }
@@ -46,8 +48,11 @@ export interface Verdict {
 
 export interface LedgerModel {
   caption: string;
-  /** The current round and whether the match is over: the rail's inputs (spec 048 US3). */
-  round?: number;
+  /** The shared clock, drawn once beside the caption (spec 050 FR-015); absent outside a match. */
+  clock?: string;
+  clockLow?: boolean;
+  /** The viewer's moves played and whether the match is over: the rail's inputs (spec 048 US3). */
+  movesPlayed?: number;
   completed?: boolean;
   rows: LedgerRow[];
   territory: Territory;
@@ -75,7 +80,7 @@ export type LedgerAction =
   | "togglePreview"
   | "signOut"
   | "profile"
-  | "claimWin"
+  | "endEarly"
   | "keepWaiting"
   | "keepPlaying"
   | "reviewField"
@@ -87,7 +92,7 @@ export type LedgerAction =
   | { declineChallenge: string };
 
 export type Notice =
-  | { kind: "pickCleared"; reason: "opponentPinned" | "frozen" }
+  | { kind: "pickCleared"; byName: string }
   | { kind: "rematchRequest"; requesterName: string }
   | { kind: "challenge"; fromName: string; inviteId: string }
   | { kind: "text"; text: string };
@@ -96,7 +101,7 @@ export const EMPTY_TERRITORY: Territory = { you: 0, opp: 0, free: 100 };
 
 export function emptyRows(total = 10): LedgerRow[] {
   return Array.from({ length: total }, (_, i) => ({
-    round: i + 1,
+    move: i + 1,
     status: "future" as const,
     you: null,
     opp: null,

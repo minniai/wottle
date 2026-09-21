@@ -15,8 +15,8 @@ const BOARD = [
   row("AAAAAAAAAA"),
 ];
 
-function record(word: string, coordinates: { x: number; y: number }[], roundNumber = 1): AccumulatedWord {
-  return { roundNumber, playerId: "p", word, totalPoints: 1, coordinates };
+function record(word: string, coordinates: { x: number; y: number }[], moveSeq = 1): AccumulatedWord {
+  return { moveSeq, globalSeq: moveSeq, playerId: "p", word, totalPoints: 1, coordinates };
 }
 
 describe("assertWordsSpellBoard", () => {
@@ -31,12 +31,12 @@ describe("assertWordsSpellBoard", () => {
 
   it("reports a coordinate count that does not match the word's length", () => {
     const words = [record("úðu", [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 0, y: 3 }])];
-    expect(assertWordsSpellBoard(BOARD, words)).toEqual(["R1 úðu: expected 3 coordinates, got 4"]);
+    expect(assertWordsSpellBoard(BOARD, words)).toEqual(["p M1 úðu: expected 3 coordinates, got 4"]);
   });
 
   it("reports what the board spells when the letters differ", () => {
     const words = [record("urg", [{ x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }])];
-    expect(assertWordsSpellBoard(BOARD, words)).toEqual(["R1 urg: board spells ERG at (1,2)…(3,2)"]);
+    expect(assertWordsSpellBoard(BOARD, words)).toEqual(["p M1 urg: board spells ERG at (1,2)…(3,2)"]);
   });
 
   it("reports each bad word once with its round prefix and keeps good ones silent", () => {
@@ -46,8 +46,8 @@ describe("assertWordsSpellBoard", () => {
       record("eti", [{ x: 5, y: 3 }, { x: 6, y: 3 }, { x: 7, y: 3 }, { x: 8, y: 3 }], 2),
     ];
     expect(assertWordsSpellBoard(BOARD, words)).toEqual([
-      "R1 réi: board spells NHM at (0,0)…(2,0)",
-      "R2 eti: expected 3 coordinates, got 4",
+      "p M1 réi: board spells NHM at (0,0)…(2,0)",
+      "p M2 eti: expected 3 coordinates, got 4",
     ]);
   });
 });
@@ -76,7 +76,7 @@ describe("reportWordIntegrity", () => {
     reportWordIntegrity("m1", BOARD, bad);
     expect(lines()).toHaveLength(1);
     expect(JSON.parse(lines()[0])).toMatchObject({ event: "bands.record-mismatch", matchId: "m1" });
-    expect(lines()[0]).toContain("R1 urg: board spells ERG");
+    expect(lines()[0]).toContain("p M1 urg: board spells ERG");
   });
 
   it("reports once per match, then never again for that match; another match reports on its own", () => {

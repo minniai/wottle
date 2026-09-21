@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { roundOneIn, searchingSubline, settingField } from "@/lib/constants/copy";
+import { startsIn, searchingSubline, settingField } from "@/lib/constants/copy";
 import { diffBoards, generateBoard } from "@/lib/game-engine/boardGenerator";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
@@ -42,10 +42,10 @@ function profilesFor(state: MatchState, viewer: PlayerIdentity, opponent: Player
     avatarUrl: p?.avatarUrl ?? null,
     eloRating: p?.eloRating ?? 1200,
   });
-  const viewerIsA = state.timers.playerA.playerId === viewer.id;
+  const viewerIsA = state.players.playerA.playerId === viewer.id;
   return {
-    playerA: toProfile(viewerIsA ? viewer : opponent, state.timers.playerA.playerId),
-    playerB: toProfile(viewerIsA ? opponent : viewer, state.timers.playerB.playerId),
+    playerA: toProfile(viewerIsA ? viewer : opponent, state.players.playerA.playerId),
+    playerB: toProfile(viewerIsA ? opponent : viewer, state.players.playerB.playerId),
   };
 }
 
@@ -147,7 +147,7 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
       opponent={opponent}
       found={phase === "found" && found ? { countdown: found.countdown } : null}
       elapsed={elapsed}
-      live={phase === "found" && found ? roundOneIn(found.countdown) : settingField(Math.min(landed, 100))}
+      live={phase === "found" && found ? startsIn(found.countdown) : settingField(Math.min(landed, 100))}
       hint={searchingSubline(elapsed)}
       onAction={handleAction}
     >

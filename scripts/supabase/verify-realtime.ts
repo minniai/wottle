@@ -14,8 +14,6 @@ import { createClient } from "@supabase/supabase-js";
 const REQUIRED_TABLES = [
   "lobby_presence",
   "matches",
-  "rounds",
-  "move_submissions",
   "match_invitations",
 ];
 

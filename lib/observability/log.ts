@@ -4,7 +4,6 @@ type LogLevel = "info" | "error";
 
 interface PlaytestLogPayload {
   matchId?: string;
-  roundNumber?: number;
   playerId?: string;
   metadata?: Record<string, unknown>;
   error?: unknown;
@@ -18,22 +17,13 @@ type AnalyticsEvent =
       metadata?: Record<string, unknown>;
     }
   | {
-      name: "round.completed";
-      matchId: string;
-      roundNumber: number;
-      acceptedMoves: number;
-      rejectedMoves: number;
-      durationMs?: number;
-      isGameOver?: boolean;
-    }
-  | {
       name: "match.completed";
       matchId: string;
       winnerId: string | null;
       loserId: string | null;
       endedReason: MatchEndedReason;
       isDraw: boolean;
-      totalRounds?: number;
+      moveLimit?: number;
       scores: ScoreTotals;
     };
 
@@ -55,7 +45,6 @@ function buildPayload(
 
   const result: Record<string, unknown> = { ...base };
   if (payload.matchId) result.matchId = payload.matchId;
-  if (payload.roundNumber !== undefined) result.roundNumber = payload.roundNumber;
   if (payload.playerId) result.playerId = payload.playerId;
 
   if (payload.metadata) {
@@ -107,20 +96,10 @@ export function logPlaytestError(event: string, payload: PlaytestLogPayload = {}
 }
 
 /** Spec 049: after a resolution, a record no longer spells or a frozen letter changed. */
-export function trackMatchIntegrityFailed(payload: { matchId: string; roundNumber: number; failures: unknown[] }): void {
+export function trackMatchIntegrityFailed(payload: { matchId: string; globalSeq: number; failures: unknown[] }): void {
   logPlaytestError("match.integrity.failed", {
     matchId: payload.matchId,
-    roundNumber: payload.roundNumber,
-    metadata: { failures: payload.failures },
-  });
-}
-
-/** Spec 049: a round-end write found the match row already advanced or completed and changed nothing. */
-export function trackStaleMatchWrite(payload: { matchId: string; expectedRound: number; carried: Record<string, unknown> }): void {
-  logPlaytestInfo("match.write.stale", {
-    matchId: payload.matchId,
-    roundNumber: payload.expectedRound,
-    metadata: { level: "warn", expectedRound: payload.expectedRound, carried: payload.carried },
+    metadata: { globalSeq: payload.globalSeq, failures: payload.failures },
   });
 }
 
@@ -151,35 +130,6 @@ export function trackInviteAccepted(payload: {
   });
 }
 
-export function trackRoundCompleted(payload: {
-  matchId: string;
-  roundNumber: number;
-  acceptedMoves: number;
-  rejectedMoves: number;
-  durationMs?: number;
-  isGameOver?: boolean;
-}): void {
-  logPlaytestInfo("round.completed", {
-    matchId: payload.matchId,
-    roundNumber: payload.roundNumber,
-    metadata: {
-      acceptedMoves: payload.acceptedMoves,
-      rejectedMoves: payload.rejectedMoves,
-      durationMs: payload.durationMs,
-      isGameOver: payload.isGameOver ?? false,
-    },
-  });
-  emitAnalyticsEvent({
-    name: "round.completed",
-    matchId: payload.matchId,
-    roundNumber: payload.roundNumber,
-    acceptedMoves: payload.acceptedMoves,
-    rejectedMoves: payload.rejectedMoves,
-    durationMs: payload.durationMs,
-    isGameOver: payload.isGameOver,
-  });
-}
-
 export function trackMatchResult(payload: {
   matchId: string;
   winnerId: string | null;
@@ -187,7 +137,7 @@ export function trackMatchResult(payload: {
   endedReason: MatchEndedReason;
   isDraw: boolean;
   scores: ScoreTotals;
-  totalRounds?: number;
+  moveLimit?: number;
 }): void {
   logPlaytestInfo("match.completed", {
     matchId: payload.matchId,
@@ -196,7 +146,7 @@ export function trackMatchResult(payload: {
       loserId: payload.loserId,
       endedReason: payload.endedReason,
       isDraw: payload.isDraw,
-      totalRounds: payload.totalRounds,
+      moveLimit: payload.moveLimit,
       scores: payload.scores,
     },
   });
@@ -207,7 +157,7 @@ export function trackMatchResult(payload: {
     loserId: payload.loserId,
     endedReason: payload.endedReason,
     isDraw: payload.isDraw,
-    totalRounds: payload.totalRounds,
+    moveLimit: payload.moveLimit,
     scores: payload.scores,
   });
 }

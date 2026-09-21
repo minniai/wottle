@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeAll } from "vitest";
 
-import { processRoundScoring } from "@/lib/game-engine/wordEngine";
+import { scoreMovesInReceiptOrder } from "../../../helpers/scoreMoves";
 import { loadDictionary } from "@/lib/game-engine/dictionary";
 import type { BoardGrid } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
@@ -14,7 +14,6 @@ function emptyBoard(fill = " "): BoardGrid {
 const PLAYER_A = "player-a-id";
 const PLAYER_B = "player-b-id";
 const MATCH_ID = "match-123";
-const ROUND_ID = "round-456";
 const EMPTY_FROZEN: FrozenTileMap = {};
 
 describe("wordEngine", () => {
@@ -37,12 +36,11 @@ describe("wordEngine", () => {
     return board;
   }
 
-  test("should return RoundScoreResult with all required fields", async () => {
+  test("returns words, deltas, freezes and the final board", async () => {
     const board = makeHesturBoard();
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [
         {
@@ -69,9 +67,8 @@ describe("wordEngine", () => {
   test("should score 'hestur' with correct letter points and length bonus", async () => {
     const board = makeHesturBoard();
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [
         {
@@ -101,9 +98,8 @@ describe("wordEngine", () => {
   test("should include score deltas from all scored words", async () => {
     const board = makeHesturBoard();
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [
         {
@@ -150,9 +146,8 @@ describe("wordEngine", () => {
       // real #136 screenshot.
       const frozenTiles: FrozenTileMap = {};
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -178,14 +173,13 @@ describe("wordEngine", () => {
       const board = makeBoardWithUnfrozenNeighbor();
       // D at (1,2) is frozen. The physical same-axis scored run after
       // BÆN freezes would be "DBÆN", which is not a dict word — the
-      // cross-round standalone invariant (§3.5a / I7a) rejects BÆN.
+      // cross-move standalone invariant (§3.5a / I7a) rejects BÆN.
       const frozenTiles: FrozenTileMap = {
         "1,2": { owner: "player_b", scoredAxes: ["horizontal"] },
       };
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -207,14 +201,13 @@ describe("wordEngine", () => {
     });
   });
 
-  // T053: zero-move round returns empty result
-  describe("zero accepted moves round", () => {
-    test("should return zero deltas when acceptedMoves is empty", async () => {
+  // T053: no move returns an empty result
+  describe("no moves", () => {
+    test("returns zero deltas when there is no move", async () => {
       const board = emptyBoard();
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [],
         frozenTiles: EMPTY_FROZEN,
@@ -230,9 +223,8 @@ describe("wordEngine", () => {
     test("should still measure duration with zero moves", async () => {
       const board = emptyBoard();
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [],
         frozenTiles: EMPTY_FROZEN,
@@ -245,7 +237,7 @@ describe("wordEngine", () => {
   });
 
   // T052: single-player submission processed correctly
-  test("T052: single-player submission scores correctly", async () => {
+  test("T052: one move scores correctly", async () => {
     // Board where swapping (0,0) ↔ (2,0) creates "búr"
     // Before: r-ú-b, after swap: b-ú-r → "búr"
     const board = emptyBoard();
@@ -253,9 +245,8 @@ describe("wordEngine", () => {
     board[0][1] = "ú";
     board[0][2] = "b";
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [
         {
@@ -279,8 +270,8 @@ describe("wordEngine", () => {
   });
 
   // T047: processes first submitter before second submitter
-  describe("time-based precedence (T047-T050a)", () => {
-    test("T047: first submitter (by submittedAt) is processed first", async () => {
+  describe("receipt order (spec 050; formerly T047-T050)", () => {
+    test("T047: the move received first is resolved first", async () => {
       // Both players create "búr" at different rows
       // Player B submits first → Player B scored first
       const board = emptyBoard();
@@ -293,9 +284,8 @@ describe("wordEngine", () => {
       board[2][1] = "ú";
       board[2][2] = "b";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -329,7 +319,7 @@ describe("wordEngine", () => {
     });
 
     // T048: first submitter's tiles are frozen before second evaluation
-    test("T048: first submitter's tiles frozen before second player's evaluation", async () => {
+    test("T048: the first move's freezes stand before the second move is scored", async () => {
       // Both players' words share a tile position.
       // First submitter freezes it → second submitter's word still valid
       // but opponent-owned tiles score 0 letter points.
@@ -358,9 +348,8 @@ describe("wordEngine", () => {
       // We just need to verify that the frozen tiles from player A's scoring
       // appear in the result. Checking newFrozenTiles confirms sequential processing.
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -389,7 +378,7 @@ describe("wordEngine", () => {
     });
 
     // T049: second submitter's words through first submitter's frozen tiles
-    test("T049: second submitter gets zero letter points for first submitter's frozen tiles", async () => {
+    test("T049: the second move gets zero letter points for letters the first froze", async () => {
       // Player A creates "búr" at row 0, freezes tiles (0,0)-(2,0)
       // Player B creates a word that passes through a frozen tile
       // → zero letter points for that position
@@ -443,9 +432,8 @@ describe("wordEngine", () => {
       board[2][1] = "ú";
       board[2][2] = "b";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -469,7 +457,7 @@ describe("wordEngine", () => {
     });
 
     // T050: precedence by submittedAt, not player slot
-    test("T050: player_b can have precedence when submitting first", async () => {
+    test("T050: player_b's move resolves first when it was received first", async () => {
       const board = emptyBoard();
       // Row 0: r-ú-b → swap → "búr"
       board[0][0] = "r";
@@ -480,9 +468,8 @@ describe("wordEngine", () => {
       board[2][1] = "ú";
       board[2][2] = "b";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -515,53 +502,10 @@ describe("wordEngine", () => {
     });
 
     // T050a: identical timestamps → player_a gets precedence
-    test("T050a: identical timestamps give player_a precedence", async () => {
-      const board = emptyBoard();
-      // Row 0: r-ú-b → swap → "búr"
-      board[0][0] = "r";
-      board[0][1] = "ú";
-      board[0][2] = "b";
-      // Row 2: r-ú-b → swap → "búr"
-      board[2][0] = "r";
-      board[2][1] = "ú";
-      board[2][2] = "b";
-
-      const SAME_TIME = "2026-01-01T00:00:01Z";
-      const result = await processRoundScoring({
-        matchId: MATCH_ID,
-        roundId: ROUND_ID,
-        boardBefore: board,
-        acceptedMoves: [
-          {
-            playerId: PLAYER_B,
-            fromX: 0,
-            fromY: 2,
-            toX: 2,
-            toY: 2,
-            submittedAt: SAME_TIME,
-          },
-          {
-            playerId: PLAYER_A,
-            fromX: 0,
-            fromY: 0,
-            toX: 2,
-            toY: 0,
-            submittedAt: SAME_TIME,
-          },
-        ],
-        frozenTiles: EMPTY_FROZEN,
-        playerAId: PLAYER_A,
-        playerBId: PLAYER_B,
-      });
-
-      // Same timestamp → player_a gets precedence
-      // Player A's tiles frozen first
-      expect(result.newFrozenTiles["0,0"]?.owner).toBe("player_a");
-    });
   });
 
   // Regression: second player's swap rejected when targeting tile frozen by first player
-  test("second player's swap is skipped when targeting a newly frozen tile", async () => {
+  test("a move onto a letter the previous move froze is refused (frozen)", async () => {
     const board = emptyBoard();
     // Row 0: r-ú-b → Player A swaps (0,0)↔(2,0) → "búr"
     board[0][0] = "r";
@@ -570,9 +514,8 @@ describe("wordEngine", () => {
     // Player B wants to swap (5,5)↔(1,0), but (1,0) gets frozen by Player A
     board[5][5] = "x";
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [
         {
@@ -612,9 +555,8 @@ describe("wordEngine", () => {
   test("T051: result has no comboBonus field", async () => {
     const board = makeHesturBoard();
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [
         {
@@ -635,7 +577,7 @@ describe("wordEngine", () => {
   });
 
   // T058a: unfrozen tile safeguard under sequential processing
-  test("T058a: freezeTiles respects 24-unfrozen minimum under sequential processing", async () => {
+  test("T058a: freezeTiles respects the 24-unfrozen minimum", async () => {
     // Pre-freeze 74 tiles far away from the word "búr" at row 9, cols 0-2.
     // They must not physically touch the word to avoid the physical adjacency combined check.
     const frozenTiles: FrozenTileMap = {};
@@ -660,9 +602,8 @@ describe("wordEngine", () => {
     board[9][1] = "ú";
     board[9][2] = "b";
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [
         {
@@ -705,9 +646,8 @@ describe("wordEngine", () => {
       board[0][4] = "u";
       board[0][5] = "h";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -747,9 +687,8 @@ describe("wordEngine", () => {
       board[0][1] = "ú";
       board[0][2] = "b";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -775,9 +714,8 @@ describe("wordEngine", () => {
     test("scores full letter points when no opponent-frozen tiles", async () => {
       const board = makeHesturBoard();
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -817,9 +755,8 @@ describe("wordEngine", () => {
       board[5][1] = "ú";
       board[5][2] = "b";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -869,9 +806,8 @@ describe("wordEngine", () => {
       // Player B wants to swap (1,0)↔(5,5), but (1,0) gets frozen by Player A
       board[5][5] = "x";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -913,9 +849,8 @@ describe("wordEngine", () => {
     test("finalBoard matches boardBefore when no moves accepted", async () => {
       const board = emptyBoard("a");
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [],
         frozenTiles: EMPTY_FROZEN,
@@ -937,9 +872,8 @@ describe("wordEngine", () => {
       board[5][1] = "ú";
       board[5][2] = "b";
 
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [
           {
@@ -1005,9 +939,8 @@ describe("wordEngine", () => {
       // this setup — otherwise the rejection test below would pass
       // vacuously.
       const board = makeNosBoardWithLeftNeighbor("x");
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [nosSwap],
         frozenTiles: EMPTY_FROZEN, // (2,2) NOT frozen
@@ -1030,9 +963,8 @@ describe("wordEngine", () => {
       const frozenTiles: FrozenTileMap = {
         "2,2": { owner: "player_b", scoredAxes: ["vertical"] },
       };
-      const result = await processRoundScoring({
+      const result = await scoreMovesInReceiptOrder({
         matchId: MATCH_ID,
-        roundId: ROUND_ID,
         boardBefore: board,
         acceptedMoves: [nosSwap],
         frozenTiles,

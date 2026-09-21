@@ -17,7 +17,7 @@ describe("Room + slip (spec 048 FR-001)", () => {
   });
 
   it("mounts the slip inside the field slot and marks the slot", () => {
-    useRoomStore.getState().setSlip({ kind: "claimWin", opponentName: "Kári", round: 4 });
+    useRoomStore.getState().setSlip({ kind: "endEarly", opponentName: "Kári", opponentMoves: 8, clockMs: 72_000 });
     render(<Room topBar={null} field={<span>FIELD</span>} bottomBar={null} ledger={null} />);
     const slot = screen.getByTestId("room-slot-field");
     expect(slot).toHaveAttribute("data-slipped", "true");
@@ -25,7 +25,7 @@ describe("Room + slip (spec 048 FR-001)", () => {
   });
 
   it("hides a dismissed slip without clearing it", () => {
-    useRoomStore.getState().setSlip({ kind: "claimWin", opponentName: "Kári", round: 4 });
+    useRoomStore.getState().setSlip({ kind: "endEarly", opponentName: "Kári", opponentMoves: 8, clockMs: 72_000 });
     useRoomStore.getState().dismissSlip();
     render(<Room topBar={null} field={null} bottomBar={null} ledger={null} />);
     expect(screen.queryByTestId("slip")).toBeNull();

@@ -1,8 +1,7 @@
 /**
- * Integration tests for frozen-tile tiebreaker (US4, T021-T022).
- * Verifies that when scores are equal, completeMatchInternal uses
- * exclusively-owned frozen tile counts to break the tie.
- * Each tile has exactly one owner (first-owner-wins).
+ * Frozen-tile tiebreaker (spec 050 FR-010, formerly T021-T022): when both
+ * players have ten moves and equal scores, completeMatchInternal decides by
+ * exclusively-owned frozen tiles; equal counts draw. Each tile has one owner.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,7 +15,9 @@ vi.mock("@/lib/match/logWriter", () => ({
 }));
 vi.mock("@/lib/observability/log", () => ({
   trackMatchResult: vi.fn(),
-  trackRoundCompleted: vi.fn(),
+}));
+vi.mock("@/lib/rating/persistRatingChanges", () => ({
+  persistRatingChanges: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
@@ -42,39 +43,43 @@ function setupMocks(
         player_b_id: PLAYER_B,
         winner_id: null,
         ended_reason: null,
-        round_limit: 10,
+        move_limit: 10,
         frozen_tiles: frozenTiles,
+        player_a_score: scores.playerA,
+        player_b_score: scores.playerB,
+        player_a_moves: 10,
+        player_b_moves: 10,
       },
       error: null,
     }),
   };
 
-  const scoreboardChain = {
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({
-      data: {
-        round_number: 10,
-        player_a_score: scores.playerA,
-        player_b_score: scores.playerB,
-      },
+  const playersSelectChain = {
+    in: vi.fn().mockResolvedValue({
+      data: [
+        { id: PLAYER_A, elo_rating: 1200, games_played: 10 },
+        { id: PLAYER_B, elo_rating: 1200, games_played: 10 },
+      ],
+      error: null,
     }),
   };
 
+  // The completion compare-and-set: update().eq().in().select() → the flipped row.
   const matchesUpdate = vi.fn().mockImplementation((payload: unknown) => {
     matchUpdatePayload = payload;
-    return { eq: vi.fn().mockResolvedValue({ error: null }) };
+    const select = vi.fn().mockResolvedValue({ data: [{ id: MATCH_ID }], error: null });
+    return { eq: vi.fn().mockReturnValue({ in: vi.fn().mockReturnValue({ select }) }) };
   });
 
   vi.mocked(getServiceRoleClient).mockReturnValue({
     from: vi.fn((table: string) => {
       if (table === "matches")
         return { select: vi.fn(() => matchChain), update: matchesUpdate };
-      if (table === "scoreboard_snapshots")
-        return { select: vi.fn(() => scoreboardChain) };
       if (table === "players")
-        return { update: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ error: null }) }) };
+        return {
+          select: vi.fn(() => playersSelectChain),
+          update: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ error: null }) }),
+        };
       if (table === "lobby_presence")
         return { update: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ error: null }) }) };
       if (table === "match_logs")
@@ -86,12 +91,12 @@ function setupMocks(
   return { getMatchUpdatePayload: () => matchUpdatePayload };
 }
 
-describe("frozenTileTiebreaker (T021-T022)", () => {
+describe("frozenTileTiebreaker (spec 050 FR-010)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("T021: equal scores + A has more exclusively-owned frozen tiles → A wins", async () => {
+  it("equal scores + A has more exclusively-owned frozen tiles → A wins", async () => {
     const frozenTiles = {
       "0,0": { owner: "player_a" },
       "1,1": { owner: "player_a" },
@@ -101,14 +106,14 @@ describe("frozenTileTiebreaker (T021-T022)", () => {
 
     const { getMatchUpdatePayload } = setupMocks(frozenTiles);
 
-    const result = await completeMatchInternal(MATCH_ID, "round_limit");
+    const result = await completeMatchInternal(MATCH_ID, "natural");
 
-    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_A });
+    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_A, ended_reason: "moves_complete" });
     expect(result.winnerId).toBe(PLAYER_A);
     expect(result.isDraw).toBe(false);
   });
 
-  it("T022: equal scores + equal frozen tiles → draw", async () => {
+  it("equal scores + equal frozen tiles → draw", async () => {
     const frozenTiles = {
       "0,0": { owner: "player_a" },
       "1,1": { owner: "player_b" },
@@ -116,9 +121,9 @@ describe("frozenTileTiebreaker (T021-T022)", () => {
 
     const { getMatchUpdatePayload } = setupMocks(frozenTiles);
 
-    const result = await completeMatchInternal(MATCH_ID, "round_limit");
+    const result = await completeMatchInternal(MATCH_ID, "natural");
 
-    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: null });
+    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: null, ended_reason: "moves_complete" });
     expect(result.isDraw).toBe(true);
   });
 });

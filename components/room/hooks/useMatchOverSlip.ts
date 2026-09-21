@@ -22,7 +22,7 @@ export interface MatchOverSlipInput {
   opponentName: string;
   ratings: RatingRow[] | null;
   rematch: RematchPhase;
-  /** A reveal or the settle hold is still running; the slip waits for it. */
+  /** A reveal or the move hold is still running; the slip waits for it. */
   busy: boolean;
   /** A reveal ran in this session, so the slip lands after the delay rather than at once. */
   revealed: boolean;
@@ -34,27 +34,27 @@ export interface MatchOverSlipInput {
  * 2026-09-20). Only fall back to a guess for a row written before the reason was.
  */
 const REASONS: Record<string, EndReason> = {
-  round_limit: "rounds",
-  timeout: "timeout",
+  moves_complete: "moves",
+  incomplete: "incomplete",
+  both_incomplete: "incomplete",
   disconnect: "abandoned",
   abandoned: "abandoned",
   forfeit: "resigned",
-  error: "rounds",
+  error: "moves",
 };
 
 export function endReasonFor(match: MatchState): EndReason {
   const recorded = match.endedReason ? REASONS[match.endedReason] : undefined;
   if (recorded) return recorded;
   if (match.state === "abandoned" || match.disconnectedPlayerId) return "abandoned";
-  const spent = match.timers.playerA.remainingMs <= 0 || match.timers.playerB.remainingMs <= 0;
-  if (spent) return "timeout";
-  return match.currentRound < 10 ? "resigned" : "rounds";
+  const bothDone = match.players.playerA.movesPlayed >= match.moveLimit && match.players.playerB.movesPlayed >= match.moveLimit;
+  return bothDone ? "moves" : "incomplete";
 }
 
 function ratingRows(input: MatchOverSlipInput): SlipRatingRow[] {
   const { match, viewerSlot, ratings, verdict, viewerName, opponentName } = input;
-  const youId = match.timers[viewerSlot === "player_a" ? "playerA" : "playerB"].playerId;
-  const oppId = match.timers[viewerSlot === "player_a" ? "playerB" : "playerA"].playerId;
+  const youId = match.players[viewerSlot === "player_a" ? "playerA" : "playerB"].playerId;
+  const oppId = match.players[viewerSlot === "player_a" ? "playerB" : "playerA"].playerId;
   const first: SlipRatingRow = { seat: verdict?.winnerSeat === "you" ? "you" : "opp", name: "", line: "" };
   const rows: SlipRatingRow[] = [
     { seat: "you", name: `${viewerName} · ${YOU}`, line: ratingLine(ratings, youId, verdict?.winnerSeat === "you") },
@@ -72,7 +72,6 @@ export function buildMatchOverSlip(input: MatchOverSlipInput): SlipState | null 
   return {
     kind: "matchOver",
     verdict,
-    rounds: Math.min(match.currentRound, 10),
     durationMmSs,
     scores: { you, opp },
     viewerName,

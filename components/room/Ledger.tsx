@@ -10,7 +10,7 @@ import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
-import { RoundRail } from "./RoundRail";
+import { MoveRail } from "./MoveRail";
 import type { RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
@@ -28,7 +28,7 @@ export interface LedgerProps {
   /** Lobby/queue content rendered in place of the rounds table. */
   body?: ReactNode;
   footActions?: ReactNode;
-  onRowHover?: (round: number | null) => void;
+  onRowHover?: (move: number | null) => void;
   onAction: (action: LedgerAction) => void;
   renderNotice?: (notice: Notice) => ReactNode;
 }
@@ -41,6 +41,14 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
 
 function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
   if (!cell) return <div className="ledger__words" data-seat={seat} />;
+  // A resolved move with no word writes 0 (spec 050 FR-016): played, not pending.
+  if (cell.words.length === 0) {
+    return (
+      <div className="ledger__words ledger__words--empty" data-seat={seat}>
+        <span className="ledger__total">0</span>
+      </div>
+    );
+  }
   // 14px words: the text variant, which passes AA on paper (decision 2).
   const style = { "--seat-ink": getSeatColors(seat).text } as CSSProperties;
   if (folded) {
@@ -75,41 +83,36 @@ function LiveText({ live }: { live?: LiveLines }) {
   );
 }
 
-function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; onRowHover?: (round: number | null) => void }) {
+function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; onRowHover?: (move: number | null) => void }) {
+  const liveOrHeld = row.status === "live" || row.status === "settled";
   return (
     <div
       className={`ledger__row ledger__row--${row.status}${row.folded ? " ledger__row--folded" : ""}`}
-      data-testid={`ledger-row-${row.round}`}
+      data-testid={`ledger-row-${row.move}`}
       data-status={row.status}
       data-folded={row.folded || undefined}
-      onMouseEnter={() => onRowHover?.(row.round)}
+      onMouseEnter={() => onRowHover?.(row.move)}
       onMouseLeave={() => onRowHover?.(null)}
     >
-      {row.status === "settled" ? (
-        /* The settle hold (spec 048 FR-022): the scored row keeps the tint and the
-           rule and says the round scored; its words land when the hold ends, because a
-           third line would push the foot under the bottom bar (the ledger is the
-           height of the stack, §4). */
-        <>
-          <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
-          <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
-            <LiveText live={row.live} />
-          </div>
-        </>
-      ) : row.status === "live" ? (
+      {liveOrHeld ? (
         /* The row itself is the tinted grid item with the 3px rule at its left
-           edge (Fig. 2); the label sits in the same column as every other row's
-           (spec 047 FR-008, review S3 and S6). */
+           edge; the viewer's column carries the beat and the instruction, the
+           opponent's column their Nth move if they have played it (spec 050,
+           design system §5.4). During the hold the row keeps the tint and says
+           the move scored; its words land when the hold ends. */
         <>
-          <div className="ledger__round" data-testid="ledger-live-round">R{row.round}</div>
+          <div className="ledger__move" data-testid="ledger-live-move">M{row.move}</div>
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
             <LiveText live={row.live} />
           </div>
+          {/* Their total only, top-right on line 1: the rows share one height, so
+              the live row must stay two lines. Their words land once it is past. */}
+          <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded />
         </>
       ) : (
         <>
-          {/* Future numerals are a progression mark, not a fact for AT: the caption carries the round (design system §7). */}
-          <div className="ledger__round" aria-hidden={row.status === "future" || undefined}>R{row.round}</div>
+          {/* Future numerals are a progression mark, not a fact for AT: the caption carries the count (design system §7). */}
+          <div className="ledger__move" aria-hidden={row.status === "future" || undefined}>M{row.move}</div>
           <SeatWords cell={row.you} seat="you" showPoints={hovered} folded={row.folded} />
           <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded={row.folded} />
         </>
@@ -164,9 +167,9 @@ export function Ledger(props: LedgerProps) {
   }, []);
   const lineCounts = useMeasuredLines(rowsRef, ".ledger__words", [model.rows]);
   const rows = foldRows(model.rows, lineCounts);
-  const hover = (round: number | null) => {
-    setHovered(round);
-    onRowHover?.(round);
+  const hover = (move: number | null) => {
+    setHovered(move);
+    onRowHover?.(move);
   };
   const total = Math.max(1, territory.you + territory.opp + territory.free);
 
@@ -183,7 +186,7 @@ export function Ledger(props: LedgerProps) {
       </div>
       <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
         {rows.map((row) => (
-          <Row key={row.round} row={row} hovered={hovered === row.round} onRowHover={hover} />
+          <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
         ))}
       </div>
     </>
@@ -209,15 +212,25 @@ export function Ledger(props: LedgerProps) {
   ));
 
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
-  // The rail (spec 048 US3): every ledger with rounds to count — match, final and the queue (all future).
-  const rail = variant === "lobby" ? null : <RoundRail currentRound={model.round ?? 0} completed={model.completed ?? false} />;
+  // The rail (spec 048 US3): every ledger with moves to count — match, final and the queue (all future).
+  const rail = variant === "lobby" ? null : <MoveRail movesPlayed={model.movesPlayed ?? null} completed={model.completed ?? false} />;
 
   return (
     <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
       <div className="ledger__caption" data-testid="ledger-caption">
         <span className="ledger__wordmark">{WORDMARK}</span>
-        <span className="ledger__mono" data-testid="round-indicator">
-          {model.caption}
+        <span className="ledger__caption-right">
+          <span className="ledger__mono" data-testid="ledger-context">
+            {model.caption}
+          </span>
+          {model.clock !== undefined ? (
+            /* The one place the match clock is drawn (spec 050 FR-015). Under 1:00 it
+               is heavier and blinks in colour only; the live row announces the beats,
+               so the timer itself is silent to AT. */
+            <span className="ledger__caption-clock" data-testid="match-clock" data-low={model.clockLow || undefined} role="timer" aria-label="match clock" aria-live="off">
+              {model.clock}
+            </span>
+          ) : null}
         </span>
       </div>
       {rail}

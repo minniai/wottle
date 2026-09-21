@@ -1,11 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
 
 import { previewSwap } from "@/app/actions/match/previewSwap";
 import { Field } from "@/components/room/Field";
-import { useFieldInteraction, type FieldInteractionOptions } from "@/components/room/hooks/useFieldInteraction";
+import { useFieldInteraction, type FieldInteractionApi, type FieldInteractionOptions } from "@/components/room/hooks/useFieldInteraction";
 import { liveText } from "@/lib/room/ledgerRows";
 import { liveStateFor } from "@/lib/room/liveState";
 import type { Coordinate } from "@/lib/types/board";
@@ -16,19 +17,24 @@ function board(): string[][] {
 
 const cell = (x: number, y: number) => screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === String(x) && c.getAttribute("data-y") === String(y))!;
 
+/** Exposes the hook's dispatch so a test can play the server's resolutions into it (spec 050). */
+let api: FieldInteractionApi | null = null;
+
 function Harness(props: Partial<FieldInteractionOptions> & { frozen?: Record<string, { owner: "player_a" | "player_b" }> }) {
   const frozen = props.frozen ?? {};
   const field = useFieldInteraction({
     matchId: "m1",
+    board: board(),
     previewEnabled: props.previewEnabled ?? false,
     frozenKeys: new Set(Object.keys(frozen)),
-    opponentPins: props.opponentPins ?? null,
     canPick: props.canPick ?? true,
-    currentRound: props.currentRound ?? 1,
     onPick: props.onPick ?? (() => undefined),
     onCommitted: props.onCommitted ?? (() => undefined),
     onRejected: props.onRejected ?? (() => undefined),
     onNotice: props.onNotice ?? (() => undefined),
+  });
+  useEffect(() => {
+    api = field;
   });
   // Spec 047 amendment P1: the field state becomes the live row's two lines.
   const live = liveText(liveStateFor(field.interaction, () => ({ letter: "B", value: 1 })));
@@ -36,24 +42,25 @@ function Harness(props: Partial<FieldInteractionOptions> & { frozen?: Record<str
     <>
       <div data-testid="live">{live.line2 ? `${live.line1} / ${live.line2}` : live.line1}</div>
       <div data-testid="kind">{field.interaction.kind}</div>
-      <Field board={board()} frozenTiles={frozen} viewerSlot="player_a" cellStateFor={field.cellStateFor} seatFor={field.seatFor} shakeAt={field.shakeAt} focusAt={field.focusAt} onActivate={(at: Coordinate) => field.dispatch({ type: "tap", at })} onDrag={(from: Coordinate, to: Coordinate) => field.dispatch({ type: "drag", from, to })} onKeyDown={field.onKeyDown} />
+      <Field board={board()} frozenTiles={frozen} viewerSlot="player_a" cellStateFor={field.cellStateFor} seatFor={field.seatFor} shakeAt={field.shakeAt} focusAt={field.focusAt} onActivate={(at: Coordinate) => field.dispatch({ type: "tap", at })} onDrag={(from: Coordinate, to: Coordinate) => field.dispatch({ type: "drag", from, to })} onKeyDown={field.onKeyDown} exchange={field.ownPins} />
     </>
   );
 }
 
-describe("Field interaction (spec 044 US2)", () => {
+describe("Field interaction (spec 044 US2, spec 050)", () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
+    api = null;
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
-    fetchMock.mockResolvedValue({ status: 200, json: async () => ({ status: "accepted", grid: board() }) });
+    fetchMock.mockResolvedValue({ status: 200, json: async () => ({ status: "accepted", moveId: "mv-1", globalSeq: 1, receivedAt: "2026-01-01T00:00:00Z" }) });
     vi.mocked(previewSwap).mockReset();
   });
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("default: first tap picks (your colour, sound), second tap commits and posts the move", async () => {
+  it("default: first tap picks (your colour, sound), second tap commits and posts the move with the two letters seen", async () => {
     const onPick = vi.fn();
     const onCommitted = vi.fn();
     render(<Harness onPick={onPick} onCommitted={onCommitted} />);
@@ -63,10 +70,11 @@ describe("Field interaction (spec 044 US2)", () => {
     expect(onPick).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("live")).toHaveTextContent("picking · B (1) / tap a second letter");
     fireEvent.click(cell(4, 1));
-    expect(cell(1, 1)).toHaveAttribute("data-state", "pinned");
-    expect(cell(4, 1)).toHaveAttribute("data-state", "pinned");
-    expect(screen.getByTestId("live")).toHaveTextContent("played ●");
-    expect(fetchMock).toHaveBeenCalledWith("/api/match/m1/move", expect.objectContaining({ method: "POST", body: JSON.stringify({ fromX: 1, fromY: 1, toX: 4, toY: 1 }) }));
+    // Nothing is pinned any more (spec 050): the two letters exchange in place while the move is in flight.
+    expect(screen.getByTestId("kind")).toHaveTextContent("committed");
+    expect(cell(1, 1)).toHaveAttribute("data-state", "free");
+    expect(screen.getByTestId("live")).toHaveTextContent("scoring");
+    expect(fetchMock).toHaveBeenCalledWith("/api/match/m1/move", expect.objectContaining({ method: "POST", body: JSON.stringify({ fromX: 1, fromY: 1, toX: 4, toY: 1, fromLetter: "C", toLetter: "F" }) }));
     await waitFor(() => expect(onCommitted).toHaveBeenCalled());
     expect(previewSwap).not.toHaveBeenCalled();
   });
@@ -108,25 +116,26 @@ describe("Field interaction (spec 044 US2)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("opponent pins render in coral and clear a pick that they cover", () => {
+  // Spec 050 FR-014: the opponent's resolution clears a pick it touched, and only that.
+  it("an opponent's resolved move clears a pick it touched with a notice, and leaves an untouched pick alone", () => {
     const onNotice = vi.fn();
-    const { rerender } = render(<Harness onNotice={onNotice} />);
+    render(<Harness onNotice={onNotice} />);
     fireEvent.click(cell(5, 5));
     expect(screen.getByTestId("kind")).toHaveTextContent("picked");
-    rerender(<Harness onNotice={onNotice} opponentPins={[{ x: 5, y: 5 }, { x: 6, y: 5 }]} />);
+    act(() => api!.dispatch({ type: "opponentResolved", tiles: [{ x: 8, y: 8 }] }));
+    expect(screen.getByTestId("kind")).toHaveTextContent("picked");
+    act(() => api!.dispatch({ type: "opponentResolved", tiles: [{ x: 5, y: 5 }, { x: 6, y: 5 }] }));
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
-    expect(cell(5, 5)).toHaveAttribute("data-state", "pinned");
-    expect(cell(5, 5)).toHaveAttribute("data-seat", "opp");
     expect(onNotice).toHaveBeenCalledWith("pickCleared", undefined);
   });
 
-  it("a rejected move returns to idle and reports the reason", async () => {
-    fetchMock.mockResolvedValue({ status: 400, json: async () => ({ status: "rejected", error: "Move already submitted for this round" }) });
+  it("a refused post returns to idle and reports the reason", async () => {
+    fetchMock.mockResolvedValue({ status: 400, json: async () => ({ status: "rejected", reason: "in_flight", error: "Your previous move is still being scored" }) });
     const onRejected = vi.fn();
     render(<Harness onRejected={onRejected} />);
     fireEvent.click(cell(1, 1));
     fireEvent.click(cell(2, 1));
-    await waitFor(() => expect(onRejected).toHaveBeenCalledWith("Move already submitted for this round"));
+    await waitFor(() => expect(onRejected).toHaveBeenCalledWith("Your previous move is still being scored"));
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
   });
 
@@ -147,19 +156,25 @@ describe("Field interaction (spec 044 US2)", () => {
     expect(screen.getByTestId("kind")).toHaveTextContent("committed");
   });
 
-  it("round advance clears a committed pair", () => {
-    const { rerender } = render(<Harness currentRound={1} />);
+  // Spec 050: a commit is unwound by its own resolution, never by the opponent's.
+  it("the move's own resolution clears a committed pair; a refusal too; the opponent's never", () => {
+    render(<Harness />);
     fireEvent.click(cell(1, 1));
     fireEvent.click(cell(2, 1));
     expect(screen.getByTestId("kind")).toHaveTextContent("committed");
-    rerender(<Harness currentRound={2} />);
+    act(() => api!.dispatch({ type: "opponentResolved", tiles: [{ x: 1, y: 1 }, { x: 2, y: 1 }] }));
+    expect(screen.getByTestId("kind")).toHaveTextContent("committed");
+    act(() => api!.dispatch({ type: "moveResolved" }));
+    expect(screen.getByTestId("kind")).toHaveTextContent("idle");
+    fireEvent.click(cell(3, 3));
+    fireEvent.click(cell(4, 3));
+    act(() => api!.dispatch({ type: "moveRejected", reason: "frozen" }));
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
   });
 
   /**
-   * Spec 045 US5 (FR-024). The reducer has accepted a `drag` event since spec
-   * 044; nothing ever dispatched one. A pointer that goes down on one letter
-   * and up on another is a swap, and must not also read as a tap.
+   * Spec 045 US5 (FR-024). A pointer that goes down on one letter and up on
+   * another is a swap, and must not also read as a tap.
    */
   describe("pointer drag", () => {
     /** jsdom implements no hit testing at all, so the API has to be supplied. */
@@ -190,11 +205,7 @@ describe("Field interaction (spec 044 US2)", () => {
       fireEvent.click(cell(2, 1));
 
       await waitFor(() => expect(onCommitted).toHaveBeenCalledTimes(1));
-      // A committed swap pins both letters until the round resolves, exactly as
-      // the second tap does — the drag is another way in, not another outcome.
       expect(screen.getByTestId("kind")).toHaveTextContent("committed");
-      expect(cell(1, 1)).toHaveAttribute("data-state", "pinned");
-      expect(cell(2, 1)).toHaveAttribute("data-state", "pinned");
     });
 
     it("down and up on the same letter is a tap, not a drag", () => {

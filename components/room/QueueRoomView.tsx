@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { CANCEL, FINDING_OPPONENT, OPPONENT, QUEUE_CONTEXT, roundOneIn, searchingSubline, YOU } from "@/lib/constants/copy";
+import { CANCEL, FINDING_OPPONENT, OPPONENT, QUEUE_CONTEXT, startsIn, searchingSubline, YOU } from "@/lib/constants/copy";
 import type { LedgerAction, LedgerModel } from "@/lib/room/ledgerTypes";
 import { EMPTY_TERRITORY, emptyRows } from "@/lib/room/ledgerTypes";
 import type { PlayerIdentity } from "@/lib/types/match";
@@ -27,7 +27,6 @@ export interface QueueRoomViewProps {
   children: ReactNode;
 }
 
-const FULL_CLOCK_MS = 300_000;
 
 /**
  * The queue and found phases of the room (spec 044 US8): a placeholder field
@@ -62,9 +61,7 @@ export function QueueRoomView(props: QueueRoomViewProps) {
             position="top"
             state="found"
             name={opponent?.displayName ?? "opponent"}
-            subline={`${opponent?.eloRating ?? "unrated"} · ${OPPONENT} · ${roundOneIn(found.countdown)}`}
-            clockMs={FULL_CLOCK_MS}
-            clockRunning={false}
+            subline={`${opponent?.eloRating ?? "unrated"} · ${OPPONENT} · ${startsIn(found.countdown)}`}
             score={0}
             writing
           />

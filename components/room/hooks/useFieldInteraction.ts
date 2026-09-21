@@ -7,7 +7,6 @@ import type { CellState } from "@/components/room/FieldCell";
 import type { Seat } from "@/lib/constants/seatColors";
 import {
   IDLE,
-  key,
   reduceField,
   swappedPair,
   type FieldContext,
@@ -20,19 +19,17 @@ import type { Coordinate, MoveResult } from "@/lib/types/board";
 export interface FieldInteractionOptions {
   /** Match id for server calls; null in the lobby warm-up (swaps stay local). */
   matchId: string | null;
-  /** Warm-up board for pricing when signed in; null in a match (the server owns the board). */
-  warmupBoard?: string[][] | null;
+  /** The board the player sees: the two letters of a move travel with it (spec 050). */
+  board: string[][];
   /** Warm-up: apply the swap locally instead of posting a move. */
   onLocalSwap?: (from: Coordinate, to: Coordinate) => void;
   previewEnabled: boolean;
   frozenKeys: Set<string>;
-  opponentPins: [Coordinate, Coordinate] | null;
   canPick: boolean;
-  currentRound: number;
   onPick: () => void;
   onCommitted: () => void;
   onRejected: (message: string) => void;
-  onNotice: (notice: "frozen" | "pinned" | "pickCleared", at?: Coordinate) => void;
+  onNotice: (notice: "frozen" | "pickCleared", at?: Coordinate) => void;
 }
 
 export interface FieldInteractionApi {
@@ -48,11 +45,18 @@ export interface FieldInteractionApi {
 
 const SHAKE_MS = 320;
 
-async function postMove(matchId: string, from: Coordinate, to: Coordinate): Promise<MoveResult> {
+async function postMove(matchId: string, board: string[][], from: Coordinate, to: Coordinate): Promise<MoveResult> {
   const res = await fetch(`/api/match/${matchId}/move`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fromX: from.x, fromY: from.y, toX: to.x, toY: to.y }),
+    body: JSON.stringify({
+      fromX: from.x,
+      fromY: from.y,
+      toX: to.x,
+      toY: to.y,
+      fromLetter: board[from.y]?.[from.x] ?? "",
+      toLetter: board[to.y]?.[to.x] ?? "",
+    }),
   });
   const body = (await res.json().catch(() => ({}))) as Partial<MoveResult> & { error?: string };
   if (res.status === 200 && body.status === "accepted") return body as MoveResult;
@@ -69,7 +73,7 @@ function moveFocus(from: Coordinate, keyName: string): Coordinate | null {
 
 const sameCoord = (a: Coordinate, b: Coordinate) => a.x === b.x && a.y === b.y;
 
-/** Holds the pick → (preview) → commit state and runs its effects (spec 044 US2). */
+/** Holds the pick → (preview) → commit state and runs its effects (spec 044 US2, spec 050). */
 export function useFieldInteraction(opts: FieldInteractionOptions): FieldInteractionApi {
   const [interaction, setInteraction] = useState<FieldInteraction>(IDLE);
   const [shakeAt, setShakeAt] = useState<Coordinate | null>(null);
@@ -84,13 +88,8 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
   }, [opts]);
 
   const ctx: FieldContext = useMemo(
-    () => ({
-      previewEnabled: opts.previewEnabled,
-      frozen: opts.frozenKeys,
-      pinned: new Set(opts.opponentPins?.map(key) ?? []),
-      canPick: opts.canPick,
-    }),
-    [opts.previewEnabled, opts.frozenKeys, opts.opponentPins, opts.canPick],
+    () => ({ previewEnabled: opts.previewEnabled, frozen: opts.frozenKeys, canPick: opts.canPick }),
+    [opts.previewEnabled, opts.frozenKeys, opts.canPick],
   );
 
   const runEffect = useCallback((effect: FieldEffect) => {
@@ -104,10 +103,10 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
       if (o.matchId === null) {
         o.onLocalSwap?.(effect.from, effect.to);
         o.onCommitted();
-        dispatchRef.current({ type: "roundAdvanced" });
+        dispatchRef.current({ type: "moveResolved" });
         return;
       }
-      postMove(o.matchId, effect.from, effect.to)
+      postMove(o.matchId, o.board, effect.from, effect.to)
         .then(() => o.onCommitted())
         .catch((error: Error) => {
           dispatchRef.current({ type: "submitRejected" });
@@ -116,9 +115,8 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
     } else if (effect.kind === "requestPrice") {
       const id = ++priceRequest.current;
       const input = o.matchId === null
-        ? o.warmupBoard ? { kind: "warmup" as const, board: o.warmupBoard, from: effect.from, to: effect.to } : null
+        ? { kind: "warmup" as const, board: o.board, from: effect.from, to: effect.to }
         : { kind: "match" as const, matchId: o.matchId, from: effect.from, to: effect.to };
-      if (!input) return;
       previewSwap(input)
         .then((result) => {
           if (id !== priceRequest.current || result.status !== "ok") return;
@@ -156,17 +154,6 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [picking]);
 
-  // These react to *inputs* only; going through dispatchRef keeps a re-created
-  // dispatch (new context) from re-firing them and resetting a live pick.
-  const { opponentPins, currentRound } = opts;
-  useEffect(() => {
-    if (opponentPins) dispatchRef.current({ type: "opponentPinned", tiles: opponentPins });
-  }, [opponentPins]);
-
-  useEffect(() => {
-    dispatchRef.current({ type: "roundAdvanced" });
-  }, [currentRound]);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && dispatchRef.current({ type: "escape" });
     window.addEventListener("keydown", onKey);
@@ -175,21 +162,16 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
 
   const ownPins = swappedPair(interaction);
   const inPair = (c: Coordinate) => ownPins?.some((p) => sameCoord(p, c)) ?? false;
-  const isOpp = (c: Coordinate) => opts.opponentPins?.some((p) => sameCoord(p, c)) ?? false;
   const isPick = (c: Coordinate) => interaction.kind === "picked" && sameCoord(interaction.a, c);
 
   const cellStateFor = (coord: Coordinate, base: CellState): CellState => {
     if (base !== "free") return base;
     if (isPick(coord)) return "picked";
     if (interaction.kind === "preview" && inPair(coord)) return "previewed";
-    if (interaction.kind === "committed" && inPair(coord)) return "pinned";
-    return isOpp(coord) ? "pinned" : base;
+    return base;
   };
 
-  const seatFor = (coord: Coordinate): Seat | null => {
-    if (isOpp(coord)) return "opp";
-    return isPick(coord) || inPair(coord) ? "you" : null;
-  };
+  const seatFor = (coord: Coordinate): Seat | null => (isPick(coord) || inPair(coord) ? "you" : null);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>, coord: Coordinate) => {

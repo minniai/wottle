@@ -1,108 +1,86 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 import { POST } from "@/app/api/match/[matchId]/move/route";
 import { RateLimitExceededError } from "@/lib/rate-limiting/middleware";
 
-// Mock submitMove action
 vi.mock("@/app/actions/match/submitMove", () => ({
-    submitMove: vi.fn(),
+  submitMove: vi.fn(),
 }));
 
 import { submitMove } from "@/app/actions/match/submitMove";
 
+/** Spec 050 contracts/receive-move.md. */
+const BODY = { fromX: 0, fromY: 0, toX: 1, toY: 1, fromLetter: "A", toLetter: "B" };
+
+function post(body: unknown) {
+  const req = new NextRequest("http://localhost/api/match/123/move", { method: "POST", body: JSON.stringify(body) });
+  return POST(req, { params: Promise.resolve({ matchId: "123" }) });
+}
+
 describe("POST /api/match/[matchId]/move", () => {
-    it("should return 200 on success", async () => {
-        (submitMove as any).mockResolvedValue({
-            status: "accepted",
-            grid: Array(10).fill(Array(10).fill("A")),
-        });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-        const req = new NextRequest("http://localhost/api/match/123/move", {
-            method: "POST",
-            body: JSON.stringify({ fromX: 0, fromY: 0, toX: 1, toY: 1 }),
-        });
-
-        const params = Promise.resolve({ matchId: "123" });
-        const res = await POST(req, { params });
-
-        expect(res.status).toBe(200);
-        const json = await res.json();
-        expect(json.status).toBe("accepted");
-        expect(json.grid).toBeDefined();
+  it("returns 200 with the receipt when the move is accepted", async () => {
+    vi.mocked(submitMove).mockResolvedValue({
+      status: "accepted",
+      moveId: "44444444-4444-4444-8444-444444444444",
+      globalSeq: 7,
+      receivedAt: "2026-09-21T12:00:00.000Z",
     });
 
-    it("should return 400 on invalid body", async () => {
-        const req = new NextRequest("http://localhost/api/match/123/move", {
-            method: "POST",
-            body: JSON.stringify({ fromX: "invalid" }),
-        });
+    const res = await post(BODY);
 
-        const params = Promise.resolve({ matchId: "123" });
-        const res = await POST(req, { params });
-
-        expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual({
+      status: "accepted",
+      moveId: "44444444-4444-4444-8444-444444444444",
+      globalSeq: 7,
+      receivedAt: "2026-09-21T12:00:00.000Z",
     });
+    expect(submitMove).toHaveBeenCalledWith("123", BODY);
+  });
 
-    it("should return 400 on action error", async () => {
-        (submitMove as any).mockResolvedValue({ error: "Invalid move" });
+  it("returns 400 when the body lacks the two letters or is out of range", async () => {
+    expect((await post({ fromX: 0, fromY: 0, toX: 1, toY: 1 })).status).toBe(400);
+    expect((await post({ ...BODY, toX: 10 })).status).toBe(400);
+    expect((await post({ ...BODY, fromLetter: "AB" })).status).toBe(400);
+    expect(submitMove).not.toHaveBeenCalled();
+  });
 
-        const req = new NextRequest("http://localhost/api/match/123/move", {
-            method: "POST",
-            body: JSON.stringify({ fromX: 0, fromY: 0, toX: 1, toY: 1 }),
-        });
+  it("returns 400 with the message when the action reports an error", async () => {
+    vi.mocked(submitMove).mockResolvedValue({ error: "Match not found" });
 
-        const params = Promise.resolve({ matchId: "123" });
-        const res = await POST(req, { params });
+    const res = await post(BODY);
 
-        expect(res.status).toBe(400);
-        const json = await res.json();
-        expect(json.error).toBe("Invalid move");
-    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Match not found" });
+  });
 
-    it("should return 400 when move result is rejected", async () => {
-        (submitMove as any).mockResolvedValue({
-            status: "rejected",
-            grid: Array(10)
-                .fill(null)
-                .map(() => Array(10).fill("A")),
-            error: "Round closed",
-        });
+  it("returns 400 with the reason when the move is refused", async () => {
+    vi.mocked(submitMove).mockResolvedValue({ status: "rejected", reason: "in_flight", error: "Your previous move is still being scored" });
 
-        const req = new NextRequest("http://localhost/api/match/123/move", {
-            method: "POST",
-            body: JSON.stringify({ fromX: 0, fromY: 0, toX: 1, toY: 1 }),
-        });
+    const res = await post(BODY);
 
-        const params = Promise.resolve({ matchId: "123" });
-        const res = await POST(req, { params });
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.status).toBe("rejected");
+    expect(json.reason).toBe("in_flight");
+    expect(json.error).toMatch(/still being scored/);
+  });
 
-        expect(res.status).toBe(400);
-        const json = await res.json();
-        expect(json.status).toBe("rejected");
-        expect(json.error).toMatch(/round closed/i);
-    });
+  it("returns 429 with retry-after when the rate limiter blocks the request", async () => {
+    vi.mocked(submitMove).mockRejectedValue(
+      new RateLimitExceededError("match:submit-move", 12, "Too many move submissions. Try again soon."),
+    );
 
-    it("should return 429 when the rate limiter blocks requests", async () => {
-        (submitMove as any).mockRejectedValue(
-            new RateLimitExceededError(
-                "match:submit-move",
-                12,
-                "Too many move submissions. Try again soon.",
-            ),
-        );
+    const res = await post(BODY);
 
-        const req = new NextRequest("http://localhost/api/match/123/move", {
-            method: "POST",
-            body: JSON.stringify({ fromX: 0, fromY: 0, toX: 1, toY: 1 }),
-        });
-
-        const params = Promise.resolve({ matchId: "123" });
-        const res = await POST(req, { params });
-
-        expect(res.status).toBe(429);
-        expect(res.headers.get("retry-after")).toBe("12");
-        const json = await res.json();
-        expect(json.error).toMatch(/too many/i);
-    });
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("12");
+    expect((await res.json()).error).toMatch(/too many/i);
+  });
 });

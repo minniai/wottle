@@ -22,10 +22,16 @@ const kari: PlayerIdentity = { id: "k", username: "kari", displayName: "Kári", 
 const match: MatchState = {
   matchId: "m1",
   board: Array.from({ length: 10 }, (_, y) => Array.from({ length: 10 }, (_, x) => "ÞÐÆÖÝABCDE"[(x + y) % 10])),
-  currentRound: 1,
-  state: "collecting",
-  timers: { playerA: { playerId: "me", remainingMs: 300_000, status: "running" }, playerB: { playerId: "k", remainingMs: 300_000, status: "running" } },
+  state: "in_progress",
+  players: {
+    playerA: { playerId: "me", movesPlayed: 0, score: 0, inFlight: null, lastResolution: null },
+    playerB: { playerId: "k", movesPlayed: 0, score: 0, inFlight: null, lastResolution: null },
+  },
+  clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:00.000Z" },
+  moveLimit: 10,
+  resolvedSeq: 0,
   scores: { playerA: 0, playerB: 0 },
+  frozenTiles: {},
 };
 
 describe("QueueRoomController (spec 044 US8, Q3)", () => {
@@ -49,7 +55,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "queue");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
     expect(screen.getByTestId("player-bar-top").querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("data-mode", "searching");
-    expect(screen.getByTestId("round-indicator")).toHaveTextContent("10 rounds · 5:00 clocks");
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("10 moves each · one 5:00 clock");
     const letterAt = (i: number) => screen.getAllByRole("gridcell")[i].querySelector("span")?.textContent;
     expect(letterAt(5)).toBe("");
     await act(async () => {
@@ -66,7 +72,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(mockReplace).toHaveBeenCalledWith("/lobby");
   });
 
-  it("found: the opponent writes into the top bar, letters swap to the real board, round 1 counts down, then the match phase renders", async () => {
+  it("found: the opponent writes into the top bar, letters swap to the real board, the start counts down, then the match phase renders", async () => {
     vi.mocked(startQueueAction).mockResolvedValue({ status: "matched", matchId: "m1" });
     vi.mocked(getMatchOverviewAction).mockResolvedValue({ status: "ok", self: me, opponent: kari });
     render(<QueueRoomController viewer={me} />);
@@ -75,13 +81,13 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     });
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "found");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Kári");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("round 1 in 3");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("starts in 3");
     expect(screen.getAllByRole("gridcell")[0].querySelector("span")?.textContent).toBe("Þ");
     expect(window.history.replaceState).toHaveBeenCalledWith(null, "", "/match/m1");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("round 1 in 2");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("starts in 2");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2_100);
     });

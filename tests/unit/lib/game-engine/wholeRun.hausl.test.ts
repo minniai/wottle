@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { selectOptimalCombination } from "@/lib/game-engine/crossValidator";
 import { loadDictionary } from "@/lib/game-engine/dictionary";
-import { processRoundScoring } from "@/lib/game-engine/wordEngine";
+import { scoreMovesInReceiptOrder } from "../../../helpers/scoreMoves";
 import type { BoardGrid, BoardWord, Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap } from "@/lib/types/match";
 
@@ -96,20 +96,19 @@ describe("I3: every affected scored run must be a whole dictionary word", () => 
     board[9][9] = "l";
     const params = {
       matchId: "hausl-regression",
-      roundId: "round-2",
       boardBefore: board,
       acceptedMoves: [{ playerId: "b", fromX: 9, fromY: 9, toX: 4, toY: 4 }],
       playerAId: "a",
       playerBId: "b",
     };
-    const rejected = await processRoundScoring({ ...params, frozenTiles: frozen });
+    const rejected = await scoreMovesInReceiptOrder({ ...params, frozenTiles: frozen });
     expect(rejected.playerBWords).toEqual([]);
     expect(rejected.deltas).toEqual({ playerA: 0, playerB: 0 });
     expect(rejected.newFrozenTiles).toEqual(frozen);
     expect(rejected.finalBoard[4][4]).toBe("l");
 
     // Ordinary unscored neighbors do not constrain a scored run.
-    const accepted = await processRoundScoring({ ...params, frozenTiles: {} });
+    const accepted = await scoreMovesInReceiptOrder({ ...params, frozenTiles: {} });
     expect(accepted.playerBWords.map(({ word }) => word)).toContain("sól");
     expect(accepted.newFrozenTiles["4,4"]).toBeDefined();
   });

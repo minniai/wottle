@@ -1,15 +1,13 @@
-import { buildPartialRevealKey } from "@/lib/match/partialReveal";
 import type { HistoryWord } from "@/lib/match/wordHistory";
 import type { AccumulatedWord } from "@/lib/room/ledgerRows";
-import type { PartialRoundSummary, RoundSummary, WordScore } from "@/lib/types/match";
+import type { MoveResolution, WordScore } from "@/lib/types/match";
 
 /**
- * What the room knows about a match's scored words (spec 047 FR-003).
+ * What the room knows about a match's scored words (spec 047 FR-003, spec 050).
  *
- * `canonical` holds one entry per completed round, from the history route or
- * the round's summary broadcast. `partial` holds the live round's first-mover
- * words until the canonical summary for that round replaces them — the server
- * deletes and rewrites those rows, so the client must too.
+ * `byMove` holds the words of every resolved move, keyed by the mover and
+ * their per-player sequence, from the history route or a `move-resolved`
+ * broadcast. A resolution always replaces what history knew for its move.
  *
  * `accumulate` returns its input untouched when nothing is new: every poll
  * hands the room a fresh snapshot object, and a new state here would re-render
@@ -17,71 +15,61 @@ import type { PartialRoundSummary, RoundSummary, WordScore } from "@/lib/types/m
  */
 export interface AccumulatedWords {
   matchId: string | null;
-  canonical: ReadonlyMap<number, AccumulatedWord[]>;
-  partial: { round: number; words: AccumulatedWord[] } | null;
-  /** `round:resolvedAt` of the summary last folded in. */
-  summaryKey: string | null;
-  partialKey: string | null;
+  byMove: ReadonlyMap<string, AccumulatedWord[]>;
+  /** Move ids of the resolutions already folded in. */
+  resolutionIds: ReadonlySet<string>;
 }
 
 export interface AccumulateInput {
   matchId: string;
   history: HistoryWord[] | null;
-  lastSummary: RoundSummary | null | undefined;
-  partialSummary: PartialRoundSummary | null | undefined;
+  resolutions: (MoveResolution | null | undefined)[];
 }
 
-export const EMPTY_WORDS: AccumulatedWords = { matchId: null, canonical: new Map(), partial: null, summaryKey: null, partialKey: null };
+export const EMPTY_WORDS: AccumulatedWords = { matchId: null, byMove: new Map(), resolutionIds: new Set() };
+
+export const moveKey = (playerId: string, seq: number): string => `${playerId}:${seq}`;
 
 export function accumulate(previous: AccumulatedWords, input: AccumulateInput): AccumulatedWords {
   let next = previous.matchId === input.matchId ? previous : { ...EMPTY_WORDS, matchId: input.matchId };
   if (input.history) next = withHistory(next, input.history);
-  if (input.lastSummary?.matchId === input.matchId) next = withSummary(next, input.lastSummary);
-  if (input.partialSummary?.matchId === input.matchId) next = withPartial(next, input.partialSummary);
+  for (const r of input.resolutions) {
+    if (r && r.matchId === input.matchId) next = withResolution(next, r);
+  }
   return next;
 }
 
-/** Canonical rounds in order, then the live round's partial words. */
+/** Every word in receipt order. */
 export function flattenWords(state: AccumulatedWords): AccumulatedWord[] {
-  const rounds = [...state.canonical.keys()].sort((a, b) => a - b);
-  const settled = rounds.flatMap((round) => state.canonical.get(round) ?? []);
-  return state.partial ? [...settled, ...state.partial.words] : settled;
+  return [...state.byMove.values()].flat().sort((a, b) => a.globalSeq - b.globalSeq || a.word.localeCompare(b.word));
 }
 
-/** Rounds the history knows and the state does not; rounds already held keep their words. */
+/** Moves the history knows and the state does not; moves already held keep their words. */
 function withHistory(state: AccumulatedWords, history: HistoryWord[]): AccumulatedWords {
-  const fresh = history.filter((w) => !state.canonical.has(w.roundNumber));
+  const fresh = history.filter((w) => w.moveSeq > 0 && !state.byMove.has(moveKey(w.playerId, w.moveSeq)));
   if (fresh.length === 0) return state;
-  const canonical = new Map(state.canonical);
+  const byMove = new Map(state.byMove);
   for (const w of fresh) {
-    const words = canonical.get(w.roundNumber) ?? [];
-    words.push({ ...toAccumulated(w, w.roundNumber), isDuplicate: w.isDuplicate });
-    canonical.set(w.roundNumber, words);
+    const k = moveKey(w.playerId, w.moveSeq);
+    const words = byMove.get(k) ?? [];
+    words.push(toAccumulated(w, w.moveSeq, w.globalSeq));
+    byMove.set(k, words);
   }
-  return { ...state, canonical };
+  return { ...state, byMove };
 }
 
-function withSummary(state: AccumulatedWords, summary: RoundSummary): AccumulatedWords {
-  const summaryKey = `${summary.roundNumber}:${summary.resolvedAt}`;
-  if (state.summaryKey === summaryKey) return state;
-  const canonical = new Map(state.canonical);
-  canonical.set(summary.roundNumber, summary.words.map((w) => toAccumulated(w, summary.roundNumber)));
-  const partial = state.partial && state.partial.round <= summary.roundNumber ? null : state.partial;
-  return { ...state, canonical, partial, summaryKey };
+function withResolution(state: AccumulatedWords, r: MoveResolution): AccumulatedWords {
+  if (r.status !== "resolved" || r.seq === null || state.resolutionIds.has(r.moveId)) return state;
+  const byMove = new Map(state.byMove);
+  byMove.set(moveKey(r.playerId, r.seq), r.words.map((w) => toAccumulated(w, r.seq as number, r.globalSeq)));
+  return { ...state, byMove, resolutionIds: new Set([...state.resolutionIds, r.moveId]) };
 }
 
-function withPartial(state: AccumulatedWords, partial: PartialRoundSummary): AccumulatedWords {
-  if (state.canonical.has(partial.roundNumber)) return state;
-  const partialKey = `${partial.roundNumber}:${buildPartialRevealKey(partial)}`;
-  if (state.partialKey === partialKey) return state;
-  const words = partial.words.map((w) => toAccumulated(w, partial.roundNumber));
-  return { ...state, partial: { round: partial.roundNumber, words }, partialKey };
-}
-
-function toAccumulated(w: WordScore, roundNumber: number): AccumulatedWord {
+function toAccumulated(w: WordScore, moveSeq: number, globalSeq: number): AccumulatedWord {
   return {
-    roundNumber,
     playerId: w.playerId,
+    moveSeq,
+    globalSeq,
     word: w.word,
     totalPoints: w.totalPoints,
     coordinates: w.coordinates,

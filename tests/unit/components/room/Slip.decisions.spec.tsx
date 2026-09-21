@@ -5,12 +5,12 @@ import { Slip } from "@/components/room/Slip";
 
 vi.mock("@/app/actions/auth/login", () => ({ loginAction: vi.fn(async () => ({ status: "idle" })) }));
 
-describe("Slip · resign and claim the win (spec 048 US7)", () => {
-  it("resign: round and clock, the question, the consequence, yes/keep playing", () => {
+describe("Slip · resign and end early (spec 048 US7, spec 050)", () => {
+  it("resign: move and clock, the question, the consequence, yes/keep playing", () => {
     const onAction = vi.fn();
-    render(<Slip slip={{ kind: "resign", round: 4, clockMs: 252_000, opponentName: "Kári" }} onAction={onAction} />);
+    render(<Slip slip={{ kind: "resign", move: 4, clockMs: 192_000, opponentName: "Kári" }} onAction={onAction} />);
     const slip = screen.getByTestId("slip");
-    expect(slip).toHaveTextContent("round 4 of 10 · 4:12 on your clock");
+    expect(slip).toHaveTextContent("move 4 of 10 · 3:12 left");
     expect(screen.getByRole("heading")).toHaveTextContent("Resign the match?");
     expect(slip).toHaveTextContent("Kári wins · your rating moves as a loss");
     expect(document.activeElement).toBe(screen.getByTestId("slip-confirm-resign"));
@@ -19,16 +19,17 @@ describe("Slip · resign and claim the win (spec 048 US7)", () => {
     expect(onAction.mock.calls.map((c) => c[0])).toEqual(["keepPlaying", "confirmResign"]);
   });
 
-  it("claim the win: the opponent is gone, the window is spent, claim/keep waiting", () => {
+  it("end early: the opponent is gone with moves short, the window is spent, end/keep waiting", () => {
     const onAction = vi.fn();
-    render(<Slip slip={{ kind: "claimWin", opponentName: "Kári", round: 4 }} onAction={onAction} />);
+    render(<Slip slip={{ kind: "endEarly", opponentName: "Kári", opponentMoves: 8, clockMs: 72_000 }} onAction={onAction} />);
     const slip = screen.getByTestId("slip");
-    expect(slip).toHaveTextContent("round 4 of 10");
+    expect(slip).toHaveTextContent("10 of 10 played · 1:12 on the clock");
+    expect(slip).toHaveTextContent("Kári 8 of 10 · 0:00 left to reconnect");
     expect(screen.getByRole("heading")).toHaveTextContent("Kári is gone");
     expect(slip).toHaveTextContent("0:00 left to reconnect");
-    expect(document.activeElement).toBe(screen.getByTestId("slip-claim-win"));
+    expect(document.activeElement).toBe(screen.getByTestId("slip-end-early"));
     fireEvent.click(screen.getByTestId("slip-keep-waiting"));
-    fireEvent.click(screen.getByTestId("slip-claim-win"));
-    expect(onAction.mock.calls.map((c) => c[0])).toEqual(["keepWaiting", "claimWin"]);
+    fireEvent.click(screen.getByTestId("slip-end-early"));
+    expect(onAction.mock.calls.map((c) => c[0])).toEqual(["keepWaiting", "endEarly"]);
   });
 });

@@ -5,19 +5,20 @@ import type { RematchPhase } from "./useRematchNegotiation";
 /**
  * The slip (spec 048, design system §5.9): the one element ever laid over the
  * field. Exactly four kinds, one at a time, ranked so a higher-stakes slip
- * always replaces a lower one and is never replaced by it.
+ * always replaces a lower one and is never replaced by it. Spec 050 turned
+ * `claim the win` into `end early`: offered only to a player with all their
+ * moves whose opponent has been gone for the window.
  */
 /** Why the match ended. The verdict's detail line states it; the slip's label counts the match. */
-export type EndReason = "rounds" | "resigned" | "timeout" | "abandoned";
+export type EndReason = "moves" | "incomplete" | "resigned" | "abandoned";
 
 export type SlipState =
   | { kind: "signIn" }
-  | { kind: "resign"; round: number; clockMs: number; opponentName: string }
-  | { kind: "claimWin"; opponentName: string; round: number }
+  | { kind: "resign"; move: number; clockMs: number; opponentName: string }
+  | { kind: "endEarly"; opponentName: string; opponentMoves: number; clockMs: number }
   | {
       kind: "matchOver";
       verdict: Verdict;
-      rounds: number;
       durationMmSs: string;
       /** Totals by seat; the winner is printed first. */
       scores: { you: number; opp: number };
@@ -38,7 +39,7 @@ export interface SlipRatingRow {
   rating?: RatingRow;
 }
 
-const RANK: Record<SlipKind, number> = { signIn: 0, resign: 1, claimWin: 2, matchOver: 3 };
+const RANK: Record<SlipKind, number> = { signIn: 0, resign: 1, endEarly: 2, matchOver: 3 };
 
 export function slipPrecedence(kind: SlipKind): number {
   return RANK[kind];

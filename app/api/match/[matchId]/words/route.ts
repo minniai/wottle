@@ -12,7 +12,6 @@ type MatchAccessRow = {
   player_a_id: string;
   player_b_id: string;
   state: string;
-  current_round: number;
 };
 
 function reject(status: number, error: string) {
@@ -20,7 +19,7 @@ function reject(status: number, error: string) {
 }
 
 /**
- * Every completed round's scored words for one match (spec 047 FR-003). The
+ * Every resolved move's scored words for one match (spec 047 FR-003, spec 050). The
  * room fetches it once on mount, on a rematch and after a missed broadcast;
  * a completed match is readable by anyone signed in, as the read-only room is.
  */
@@ -33,7 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
   const supabase = getServiceRoleClient();
   const { data, error } = await supabase
     .from("matches")
-    .select("player_a_id, player_b_id, state, current_round")
+    .select("player_a_id, player_b_id, state")
     .eq("id", matchId)
     .single();
   const match = (data ?? null) as MatchAccessRow | null;
@@ -43,7 +42,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mat
   const isParticipant = playerId === match.player_a_id || playerId === match.player_b_id;
   if (!isParticipant && match.state !== "completed") return reject(403, "You are not a participant in this match.");
 
-  const words = await loadMatchWordHistory(supabase, matchId, match.current_round);
+  const words = await loadMatchWordHistory(supabase, matchId);
   const body: MatchWordHistory = { matchId, words };
   return NextResponse.json(body, { status: 200, headers: NO_CACHE_HEADERS });
 }

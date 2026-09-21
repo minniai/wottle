@@ -1,9 +1,9 @@
 /**
- * Integration test for the Phase 6 forced-winner path in completeMatchInternal.
+ * The forced-winner path in completeMatchInternal (spec 050).
  *
- * Disconnect flows (claim-win + 90s auto-finalise) award the still-connected /
- * claiming player regardless of current score. This guards against the earlier
- * behaviour where a disconnected leader would still win based on the scoreboard.
+ * A resignation or a claim names the winner whatever the totals. Without a
+ * forced winner the rules decide: a `natural` end takes its reason from the
+ * decision; a forced reason without a named winner keeps its reason.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,7 +17,6 @@ vi.mock("@/lib/match/logWriter", () => ({
 }));
 vi.mock("@/lib/observability/log", () => ({
   trackMatchResult: vi.fn(),
-  trackRoundCompleted: vi.fn(),
 }));
 vi.mock("@/lib/rating/persistRatingChanges", () => ({
   persistRatingChanges: vi.fn().mockResolvedValue(undefined),
@@ -30,7 +29,12 @@ const MATCH_ID = "match-forced-winner-test";
 const PLAYER_A = "player-a";
 const PLAYER_B = "player-b";
 
-function setupMocks(scores: { playerA: number; playerB: number }) {
+interface Totals {
+  scores: { playerA: number; playerB: number };
+  moves?: { playerA: number; playerB: number };
+}
+
+function setupMocks({ scores, moves = { playerA: 10, playerB: 10 } }: Totals) {
   let matchUpdatePayload: Record<string, unknown> | null = null;
 
   const matchChain = {
@@ -43,23 +47,14 @@ function setupMocks(scores: { playerA: number; playerB: number }) {
         player_b_id: PLAYER_B,
         winner_id: null,
         ended_reason: null,
-        round_limit: 10,
+        move_limit: 10,
         frozen_tiles: {},
-      },
-      error: null,
-    }),
-  };
-
-  const scoreboardChain = {
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({
-      data: {
-        round_number: 10,
         player_a_score: scores.playerA,
         player_b_score: scores.playerB,
+        player_a_moves: moves.playerA,
+        player_b_moves: moves.playerB,
       },
+      error: null,
     }),
   };
 
@@ -73,34 +68,24 @@ function setupMocks(scores: { playerA: number; playerB: number }) {
     }),
   };
 
+  // The completion compare-and-set: update().eq().in().select() → the flipped row.
   const matchesUpdate = vi.fn().mockImplementation((payload: unknown) => {
     matchUpdatePayload = payload as Record<string, unknown>;
-    return { eq: vi.fn().mockResolvedValue({ error: null }) };
+    const select = vi.fn().mockResolvedValue({ data: [{ id: MATCH_ID }], error: null });
+    return { eq: vi.fn().mockReturnValue({ in: vi.fn().mockReturnValue({ select }) }) };
   });
 
   vi.mocked(getServiceRoleClient).mockReturnValue({
     from: vi.fn((table: string) => {
       if (table === "matches")
         return { select: vi.fn(() => matchChain), update: matchesUpdate };
-      if (table === "scoreboard_snapshots")
-        return { select: vi.fn(() => scoreboardChain) };
       if (table === "players")
         return {
           select: vi.fn(() => playersSelectChain),
-          update: vi
-            .fn()
-            .mockReturnValue({
-              in: vi.fn().mockResolvedValue({ error: null }),
-            }),
+          update: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ error: null }) }),
         };
       if (table === "lobby_presence")
-        return {
-          update: vi
-            .fn()
-            .mockReturnValue({
-              in: vi.fn().mockResolvedValue({ error: null }),
-            }),
-        };
+        return { update: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ error: null }) }) };
       if (table === "match_logs")
         return { insert: vi.fn().mockResolvedValue({ error: null }) };
       return {};
@@ -110,14 +95,14 @@ function setupMocks(scores: { playerA: number; playerB: number }) {
   return { getMatchUpdatePayload: () => matchUpdatePayload };
 }
 
-describe("completeMatchInternal forcedWinnerId (Phase 6)", () => {
+describe("completeMatchInternal forcedWinnerId (spec 050)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("uses forcedWinnerId over determineMatchWinner when the disconnected player is leading on score", async () => {
-    // Player B has 30-10 lead, but A is claiming the win after B disconnected.
-    const { getMatchUpdatePayload } = setupMocks({ playerA: 10, playerB: 30 });
+  it("uses forcedWinnerId over the rules when the disconnected player is leading on score", async () => {
+    // Player B has 30-10 lead, but A ends the match after B disconnected.
+    const { getMatchUpdatePayload } = setupMocks({ scores: { playerA: 10, playerB: 30 } });
 
     const result = await completeMatchInternal(MATCH_ID, "disconnect", PLAYER_A);
 
@@ -130,13 +115,24 @@ describe("completeMatchInternal forcedWinnerId (Phase 6)", () => {
     expect(result.isDraw).toBe(false);
   });
 
-  it("falls back to determineMatchWinner when no forcedWinnerId is passed", async () => {
-    // Score-based path: playerB leads → playerB wins.
-    const { getMatchUpdatePayload } = setupMocks({ playerA: 10, playerB: 30 });
+  it("falls back to the rules when no forcedWinnerId is passed: score decides once both have ten", async () => {
+    const { getMatchUpdatePayload } = setupMocks({ scores: { playerA: 10, playerB: 30 } });
 
-    const result = await completeMatchInternal(MATCH_ID, "round_limit");
+    const result = await completeMatchInternal(MATCH_ID, "natural");
 
-    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_B });
+    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_B, ended_reason: "moves_complete" });
     expect(result.winnerId).toBe(PLAYER_B);
+  });
+
+  it("a natural end with one player short of ten is an incomplete loss whatever the score", async () => {
+    const { getMatchUpdatePayload } = setupMocks({
+      scores: { playerA: 10, playerB: 30 },
+      moves: { playerA: 10, playerB: 8 },
+    });
+
+    const result = await completeMatchInternal(MATCH_ID, "natural");
+
+    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_A, ended_reason: "incomplete" });
+    expect(result.endedReason).toBe("incomplete");
   });
 });

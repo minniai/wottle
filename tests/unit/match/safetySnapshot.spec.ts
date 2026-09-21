@@ -1,102 +1,52 @@
 import { describe, expect, it } from "vitest";
 
 import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
-import type { MatchState, PartialRoundSummary } from "@/lib/types/match";
+import type { MatchState, PlayerMatchFacts } from "@/lib/types/match";
 
-function buildState(overrides: Partial<MatchState> = {}): MatchState {
+/** Spec 050 contracts/match-state.md § safety poll. */
+const facts = (playerId: string, over: Partial<PlayerMatchFacts> = {}): PlayerMatchFacts => ({ playerId, movesPlayed: 3, score: 10, inFlight: null, lastResolution: null, ...over });
+
+function buildState(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchFacts> = {}, b: Partial<PlayerMatchFacts> = {}): MatchState {
   return {
     matchId: "match-1",
     board: [["a"]],
-    currentRound: 3,
-    state: "collecting",
-    scores: { playerA: 0, playerB: 0 },
-    timers: {
-      playerA: { playerId: "player-a", remainingMs: 60_000, status: "running" },
-      playerB: { playerId: "player-b", remainingMs: 60_000, status: "running" },
-    },
-    disconnectedPlayerId: null,
+    state: "in_progress",
+    players: { playerA: facts("player-a", a), playerB: facts("player-b", b) },
+    clock: { startedAt: "2026-09-21T10:00:00.000Z", deadlineAt: "2026-09-21T10:05:00.000Z", serverNow: "2026-09-21T10:01:00.000Z" },
+    moveLimit: 10,
+    resolvedSeq: 6,
+    scores: { playerA: 10, playerB: 10 },
     frozenTiles: {},
-    partialSummary: null,
+    disconnectedPlayerId: null,
     ...overrides,
-  } as MatchState;
-}
-
-function buildPartialSummary(): PartialRoundSummary {
-  return {
-    matchId: "match-1",
-    roundNumber: 3,
-    firstMoverId: "player-a",
-    firstSubmissionAt: "2026-06-09T21:00:00.000Z",
-    words: [
-      {
-        playerId: "player-a",
-        word: "orð",
-        totalPoints: 9,
-        lettersPoints: 6,
-        bonusPoints: 3,
-        coordinates: [
-          { x: 0, y: 0 },
-          { x: 1, y: 0 },
-          { x: 2, y: 0 },
-        ],
-      },
-    ],
-    frozenTiles: { "0,0": { owner: "player_a" as const } },
-  } as unknown as PartialRoundSummary;
+  };
 }
 
 describe("shouldApplySafetySnapshot", () => {
-  it("ignores identical snapshots", () => {
+  it("ignores identical snapshots and a fresher serverNow alone", () => {
     expect(shouldApplySafetySnapshot(buildState(), buildState())).toBe(false);
+    expect(shouldApplySafetySnapshot(buildState(), buildState({ clock: { ...buildState().clock, serverNow: "2026-09-21T10:01:02.000Z" } }))).toBe(false);
   });
 
-  it("applies when the round advanced", () => {
-    const snapshot = buildState({ currentRound: 4 });
-    expect(shouldApplySafetySnapshot(buildState(), snapshot)).toBe(true);
+  it("applies when the resolution cursor moved, never when it lags", () => {
+    expect(shouldApplySafetySnapshot(buildState(), buildState({ resolvedSeq: 7 }))).toBe(true);
+    expect(shouldApplySafetySnapshot(buildState(), buildState({ resolvedSeq: 5 }))).toBe(false);
   });
 
-  it("applies when the match completed", () => {
-    const snapshot = buildState({ state: "completed" });
-    expect(shouldApplySafetySnapshot(buildState(), snapshot)).toBe(true);
+  it("applies when the match started or ended", () => {
+    expect(shouldApplySafetySnapshot(buildState(), buildState({ state: "completed" }))).toBe(true);
+    const pending = buildState({ state: "pending", clock: { startedAt: null, deadlineAt: null, serverNow: "2026-09-21T10:00:00.000Z" } });
+    expect(shouldApplySafetySnapshot(pending, buildState())).toBe(true);
   });
 
-  it("applies when disconnect state flips", () => {
-    const snapshot = buildState({ disconnectedPlayerId: "player-b" });
-    expect(shouldApplySafetySnapshot(buildState(), snapshot)).toBe(true);
+  it("applies when a move went in or out of flight for either player", () => {
+    const inFlight = { moveId: "m-7", globalSeq: 7, receivedAt: "2026-09-21T10:01:00.000Z" };
+    expect(shouldApplySafetySnapshot(buildState(), buildState({}, {}, { inFlight }))).toBe(true);
+    expect(shouldApplySafetySnapshot(buildState({}, { inFlight }), buildState())).toBe(true);
   });
 
-  // Spec 042 regression: the instant-scoring fast path freezes tiles while
-  // the round is still `collecting`. When the Realtime broadcast is lost,
-  // the safety poller is the only delivery path — skipping the snapshot
-  // leaves the second player clicking tiles the server already froze.
-  it("applies when tiles froze mid-round", () => {
-    const snapshot = buildState({
-      frozenTiles: { "0,0": { owner: "player_a" as const } },
-    });
-    expect(shouldApplySafetySnapshot(buildState(), snapshot)).toBe(true);
-  });
-
-  it("applies when a partial summary appeared mid-round", () => {
-    const snapshot = buildState({ partialSummary: buildPartialSummary() });
-    expect(shouldApplySafetySnapshot(buildState(), snapshot)).toBe(true);
-  });
-
-  it("ignores a partial summary the client already has", () => {
-    const partial = buildPartialSummary();
-    const current = buildState({
-      partialSummary: partial,
-      frozenTiles: { "0,0": { owner: "player_a" as const } },
-    });
-    const snapshot = buildState({
-      partialSummary: partial,
-      frozenTiles: { "0,0": { owner: "player_a" as const } },
-    });
-    expect(shouldApplySafetySnapshot(current, snapshot)).toBe(false);
-  });
-
-  it("treats missing frozenTiles maps as empty", () => {
-    const current = buildState({ frozenTiles: undefined });
-    const snapshot = buildState({ frozenTiles: {} });
-    expect(shouldApplySafetySnapshot(current, snapshot)).toBe(false);
+  it("applies when the disconnect flag flips either way", () => {
+    expect(shouldApplySafetySnapshot(buildState(), buildState({ disconnectedPlayerId: "player-b" }))).toBe(true);
+    expect(shouldApplySafetySnapshot(buildState({ disconnectedPlayerId: "player-b" }), buildState())).toBe(true);
   });
 });

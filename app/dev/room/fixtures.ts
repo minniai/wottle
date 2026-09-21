@@ -19,10 +19,10 @@
 
 import type { AccumulatedWord, LiveState } from "@/lib/room/ledgerRows";
 import type { SlipState } from "@/lib/room/slip";
-import type { RoundState } from "@/lib/room/roundState";
+import type { MoveState } from "@/lib/room/moveState";
 import type { Coordinate } from "@/lib/types/board";
 import type { Territory, Verdict } from "@/lib/room/ledgerTypes";
-import type { FrozenTileMap, MatchState, PlayerIdentity } from "@/lib/types/match";
+import type { FrozenTileMap, MatchState, MoveResolution, PlayerIdentity } from "@/lib/types/match";
 import type { RecentGameRow } from "@/lib/types/lobby";
 
 export const ROOM_PHASES = [
@@ -33,21 +33,25 @@ export const ROOM_PHASES = [
   "idle",
   "picking",
   "previewed",
-  "played",
-  "opp-played",
-  "low-clock",
   "illegal",
   "reveal",
   "final",
   "disconnect",
   "profile",
   "phone-sheet",
-  // Spec 048: the four slips and the settle hold, one phase each.
+  // Spec 048: the slips, one phase each.
   "resign",
-  "claim-win",
   "over-slip",
-  "settle",
   "rules",
+  // Spec 050: one phase per move beat and the low clock in the caption.
+  "scoring",
+  "scored",
+  "opp-reveal",
+  "rejected",
+  "done-waiting",
+  "time-up",
+  "end-early",
+  "low-clock",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -59,14 +63,14 @@ export function isRoomPhase(value: string | undefined): value is RoomPhase {
 /**
  * ÞAKREISTÖL
  * GÆFUNDIRÓM
- * SKBORÐTÝUN   BORÐ  you  R1  ltr  x 2–5, y 2
+ * SKBORÐTÝUN   BORÐ  you  M1  ltr  x 2–5, y 2
  * ÁLNIRÖSKUM
- * EYÐIHVAGTL   GILT  opp  R2  ttb  x 7, y 4–7
- * RÚNTÆKSIÐÓ
- * ÖFLUGRÁLEK   LEK   you  R3  ltr  x 7–9, y 6  — crosses GILT at (7,6); the L is Kári's
+ * EYÐIHVAGTL   GILT  opp  M1  ttb  x 7, y 4–7
+ * RÚNTÆKSIÐÓ   TÆK   you  M4 (scoring / scored phases)  ltr  x 3–5, y 5
+ * ÖFLUGRÁLEK   LEK   you  M3  ltr  x 7–9, y 6  — crosses GILT at (7,6); the L is Kári's
  * MÝSJAÐETRI
  * ISKÓPUNÆHÖ
- * TRAUÐLEGIS   T at x 0, y 9 is picked in the picking phase
+ * TRAUÐLEGIS   T at x 0, y 9 is picked in the picking phase; LEG (opp M7) x 5–7, y 9 in opp-reveal
  */
 export const FIXTURE_BOARD: string[][] = [
   [..."ÞAKREISTÖL"],
@@ -118,35 +122,22 @@ export const RECENT_GAMES: RecentGameRow[] = [
 
 const coords = (cells: [number, number][]) => cells.map(([x, y]) => ({ x, y }));
 
-/** Rounds 1–3, scored. Round 4 is live in the `match` phase. */
+/**
+ * Spec 050: words by move. You (Birna) have played 3 moves (BORÐ, a blank, LEK);
+ * Kári has played 6 (GILT and five blanks). Move 4 is yours to make.
+ */
 export const FIXTURE_WORDS: AccumulatedWord[] = [
-  {
-    roundNumber: 1,
-    playerId: YOU_ID,
-    word: "BORÐ",
-    totalPoints: 22,
-    coordinates: coords([[2, 2], [3, 2], [4, 2], [5, 2]]),
-    direction: "ltr",
-  },
-  {
-    roundNumber: 2,
-    playerId: OPP_ID,
-    word: "GILT",
-    totalPoints: 15,
-    coordinates: coords([[7, 4], [7, 5], [7, 6], [7, 7]]),
-    direction: "ttb",
-  },
-  {
-    // Crosses GILT at (7, 6): Kári froze the L first, so it keeps his colour and
-    // LEK's band covers (8,6) and (9,6) only (spec 049 US2).
-    roundNumber: 3,
-    playerId: YOU_ID,
-    word: "LEK",
-    totalPoints: 9,
-    coordinates: coords([[7, 6], [8, 6], [9, 6]]),
-    direction: "ltr",
-  },
+  { moveSeq: 1, globalSeq: 1, playerId: YOU_ID, word: "BORÐ", totalPoints: 22, coordinates: coords([[2, 2], [3, 2], [4, 2], [5, 2]]), direction: "ltr" },
+  { moveSeq: 1, globalSeq: 2, playerId: OPP_ID, word: "GILT", totalPoints: 15, coordinates: coords([[7, 4], [7, 5], [7, 6], [7, 7]]), direction: "ttb" },
+  // Crosses GILT at (7, 6): Kári froze the L first, so it keeps his colour and
+  // LEK's band covers (8,6) and (9,6) only (spec 049 US2).
+  { moveSeq: 3, globalSeq: 8, playerId: YOU_ID, word: "LEK", totalPoints: 9, coordinates: coords([[7, 6], [8, 6], [9, 6]]), direction: "ltr" },
 ];
+
+/** Your move 4 as it resolves in the scoring and scored phases: TÆK across row 5. */
+export const SCORED_WORD: AccumulatedWord = { moveSeq: 4, globalSeq: 10, playerId: YOU_ID, word: "TÆK", totalPoints: 13, coordinates: coords([[3, 5], [4, 5], [5, 5]]), direction: "ltr" };
+/** Kári's move 7 landing while you pick: LEG across row 9. */
+export const OPP_REVEAL_WORD: AccumulatedWord = { moveSeq: 7, globalSeq: 10, playerId: OPP_ID, word: "LEG", totalPoints: 13, coordinates: coords([[5, 9], [6, 9], [7, 9]]), direction: "ltr" };
 
 export const FIXTURE_FROZEN: FrozenTileMap = {
   "2,2": { owner: "player_a" },
@@ -163,19 +154,26 @@ export const FIXTURE_FROZEN: FrozenTileMap = {
 
 export const FIXTURE_TERRITORY: Territory = { you: 6, opp: 4, free: 90 };
 
-/** 4:12 and 2:31 of a 5:00 budget — two visibly different lane lengths. */
-export const YOU_CLOCK_MS = 252_000;
-export const OPP_CLOCK_MS = 151_000;
+/** The shared clock (spec 050): 3:12 left of 5:00 in the base phases. */
+export const CLOCK_MS = 192_000;
+/** Your and Kári's moves played in the base phases. */
+export const YOU_MOVES = 3;
+export const OPP_MOVES = 6;
+
+const CLOCK = { startedAt: "2026-09-15T09:55:00.000Z", deadlineAt: "2026-09-15T10:00:00.000Z", serverNow: "2026-09-15T09:56:48.000Z" };
+
+function facts(playerId: string, movesPlayed: number, score: number, lastResolution: MoveResolution | null = null) {
+  return { playerId, movesPlayed, score, inFlight: null, lastResolution };
+}
 
 export const MATCH_STATE: MatchState = {
   matchId: "fixture-match",
   board: FIXTURE_BOARD,
-  currentRound: 4,
-  state: "collecting",
-  timers: {
-    playerA: { playerId: YOU_ID, remainingMs: YOU_CLOCK_MS, status: "running" },
-    playerB: { playerId: OPP_ID, remainingMs: OPP_CLOCK_MS, status: "running" },
-  },
+  state: "in_progress",
+  players: { playerA: facts(YOU_ID, YOU_MOVES, 46), playerB: facts(OPP_ID, OPP_MOVES, 15) },
+  clock: CLOCK,
+  moveLimit: 10,
+  resolvedSeq: 9,
   scores: { playerA: 46, playerB: 15 },
   frozenTiles: FIXTURE_FROZEN,
 };
@@ -191,75 +189,73 @@ export const PICKED_LIVE: LiveState = { kind: "picking", letter: "T", value: 1 }
 export const PREVIEW_CELLS: [Coordinate, Coordinate] = [{ x: 0, y: 9 }, { x: 0, y: 0 }];
 export const PREVIEW_LIVE: LiveState = { kind: "previewing", total: 10, words: ["tak"] };
 
-/** Your played swap: two free letters pinned in your colour, your clock stopped. */
-export const PLAYED_PINS: [Coordinate, Coordinate] = [{ x: 3, y: 5 }, { x: 6, y: 8 }];
-/** The opponent's pending swap, seen from your seat: two coral pins, their clock stopped. */
-export const OPP_PINS: [Coordinate, Coordinate] = [{ x: 1, y: 1 }, { x: 8, y: 3 }];
-
-/** 0:48 of a 5:00 budget: the lane is 8px and blinks (design system §5.3). */
+/** 0:48 on the shared clock: the caption numeral is heavier and blinks (design system §5.4). */
 export const LOW_CLOCK_MS = 48_000;
 
-/** An illegal pick: (7,4) is GILT's G, frozen by Kári in round 2. */
+/** An illegal pick: (7,4) is GILT's G, frozen by Kári with his first move. */
 export const ILLEGAL_CELL: Coordinate = { x: 7, y: 4 };
-export const ILLEGAL_LIVE: LiveState = { kind: "illegal", ownerName: "Kári", round: 2 };
+export const ILLEGAL_LIVE: LiveState = { kind: "illegal", ownerName: "Kári", round: 1 };
 
 export const DISCONNECT_STATE: MatchState = {
   ...MATCH_STATE,
   disconnectedPlayerId: OPP_ID,
   disconnectedAt: "2026-09-15T10:00:00.000Z",
   reconnectWindowMs: 90_000,
-  timers: {
-    playerA: { playerId: YOU_ID, remainingMs: YOU_CLOCK_MS, status: "paused" },
-    playerB: { playerId: OPP_ID, remainingMs: OPP_CLOCK_MS, status: "paused" },
-  },
 };
 
 /** ms left in the reconnection window, shown as `reconnecting · 0:42 left`. */
 export const RECONNECT_MS_LEFT = 42_000;
 
+/** Done: you have all ten (134), Kári is on his ninth (88); 0:48 left. */
+export const DONE_STATE: MatchState = {
+  ...MATCH_STATE,
+  players: { playerA: facts(YOU_ID, 10, 134), playerB: facts(OPP_ID, 8, 88) },
+  scores: { playerA: 134, playerB: 88 },
+};
+
 export const FINAL_STATE: MatchState = {
   ...MATCH_STATE,
-  currentRound: 10,
   state: "completed",
-  scores: { playerA: 127, playerB: 170 },
-  timers: {
-    playerA: { playerId: YOU_ID, remainingMs: 41_000, status: "paused" },
-    playerB: { playerId: OPP_ID, remainingMs: 12_000, status: "paused" },
-  },
+  players: { playerA: facts(YOU_ID, 10, 134), playerB: facts(OPP_ID, 8, 88) },
+  scores: { playerA: 134, playerB: 88 },
+  winnerId: YOU_ID,
+  endedReason: "incomplete",
+  completedAt: "2026-09-15T09:59:52.000Z",
 };
 
+/** Spec 050: the finisher wins; the detail line says the count that decided it. */
 export const FINAL_VERDICT: Verdict = {
-  winnerSeat: "opp",
-  scoreLine: "Kári wins 170–127",
-  detailLine: "by 43 points · 10 words to 8 · territory 32–25",
+  winnerSeat: "you",
+  scoreLine: "Birna wins 134–88",
+  detailLine: "Kári played 8 of 10",
 };
 
-export const YOU_FINAL_LINE = "1204 → 1192 · −12 · loses";
-export const OPP_FINAL_LINE = "1187 → 1199 · +12 · wins";
+export const YOU_FINAL_LINE = "1204 → 1216 · +12 · wins";
+export const OPP_FINAL_LINE = "1187 → 1175 · −12";
 
-/** Spec 048 US2: the round's beat per phase, as literals. */
-export const YOUR_MOVE: RoundState = { kind: "yourMove", round: 4, opponentName: KARI.displayName };
-export const OPP_PLAYED: RoundState = { kind: "oppPlayed", round: 4, opponentName: KARI.displayName };
-export const YOU_PLAYED: RoundState = { kind: "played", round: 4, opponentName: KARI.displayName };
-export const RESOLVING_R3: RoundState = { kind: "resolving", round: 3, opponentName: KARI.displayName };
-export const SCORED_R3: RoundState = { kind: "scored", round: 3, next: 4, you: 9, opp: 0, opponentName: KARI.displayName };
-/** The settle hold: round 3 scored and held; round 4 not yet open (spec 048 FR-022). */
-export const SETTLE_HOLD_ROUND = 3;
+/** Spec 050: the viewer's beat per phase, as literals. */
+export const YOUR_MOVE: MoveState = { kind: "yourMove", move: 4, opponentName: KARI.displayName };
+export const SCORING_M4: MoveState = { kind: "scoring", move: 4, opponentName: KARI.displayName };
+export const SCORED_M4: MoveState = { kind: "scored", move: 4, delta: 13, next: 5, opponentName: KARI.displayName };
+export const REJECTED_M5: MoveState = { kind: "rejected", move: 5, opponentName: KARI.displayName, reason: "frozen" };
+export const DONE: MoveState = { kind: "done", opponentName: KARI.displayName, opponentMoves: 8, clockMmSs: "0:48" };
+export const TIME_UP: MoveState = { kind: "timeUp", opponentName: KARI.displayName };
+/** The move hold: your move 4 scored and held; move 5 not yet open (spec 050 FR-013). */
+export const HOLD_MOVE = 4;
 
-/** The three match slips (spec 048 §5.9), as literals. */
-export const RESIGN_SLIP: SlipState = { kind: "resign", round: 4, clockMs: YOU_CLOCK_MS, opponentName: KARI.displayName };
-export const CLAIM_WIN_SLIP: SlipState = { kind: "claimWin", opponentName: KARI.displayName, round: 4 };
+/** The three match slips (spec 048 §5.9, spec 050), as literals. */
+export const RESIGN_SLIP: SlipState = { kind: "resign", move: 4, clockMs: CLOCK_MS, opponentName: KARI.displayName };
+export const END_EARLY_SLIP: SlipState = { kind: "endEarly", opponentName: KARI.displayName, opponentMoves: 8, clockMs: LOW_CLOCK_MS };
 export const OVER_SLIP: SlipState = {
   kind: "matchOver",
   verdict: FINAL_VERDICT,
-  rounds: 10,
-  durationMmSs: "18:50",
-  scores: { you: 127, opp: 170 },
+  durationMmSs: "4:52",
+  scores: { you: 134, opp: 88 },
   viewerName: BIRNA.displayName,
   opponentName: KARI.displayName,
   ratings: [
-    { seat: "opp", name: KARI.displayName, line: "1187 → 1199 · +12" },
-    { seat: "you", name: `${BIRNA.displayName} · you`, line: "1204 → 1192 · −12" },
+    { seat: "you", name: `${BIRNA.displayName} · you`, line: "1204 → 1216 · +12" },
+    { seat: "opp", name: KARI.displayName, line: "1187 → 1175 · −12" },
   ],
   rematch: "idle",
   readOnly: false,

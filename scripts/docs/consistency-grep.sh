@@ -9,8 +9,9 @@
 #   docs/archive/                                  — history, kept verbatim
 #   docs/design_documentation/                        — design bundles are inputs, not living docs (the
 #                                                       Field & Ledger bundle defines this very list)
-#   specs/<n>-*/ carrying SUPERSEDED.md, and shipped specs 001–043 — immutable records of what
+#   specs/<n>-*/ carrying SUPERSEDED.md, and shipped specs 001–049 — immutable records of what
 #                                                     was built; retired UI specs carry SUPERSEDED.md
+#                                                     (044–049 describe the round model that spec 050 replaced)
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -23,6 +24,10 @@ PHRASES=(
   "5+0" "5-minute" "chess clock" "Icelandic nouns" "eight directions" "diagonal"
   "hidden from opponent" "Move submitted" "wants a rematch!" "HUD card" "pip bar"
   "side panel" "word cloud" "match ring"
+  # spec 050: the round is gone; one shared clock; no pins; no duplicate rule
+  "round 4 · your move" "played · waiting for" "resolving round" "round 4 scored"
+  "timeout pass" "their clock runs" "both played · scoring" "10 rounds · 5:00 clocks"
+  "clock lane" "per-player clock" "claim the win" "settle hold"
 )
 WORD_PHRASES=("Inter")
 
@@ -35,7 +40,7 @@ targets() {
     dir="${dir%/}"
     num="${dir#specs/}"; num="${num%%-*}"
     [[ -f "$dir/SUPERSEDED.md" ]] && continue
-    [[ "$num" =~ ^0[0-3][0-9]$|^04[0-3]$ ]] && continue
+    [[ "$num" =~ ^0[0-3][0-9]$|^04[0-9]$ ]] && continue
     find "$dir" -type f -name '*.md'
   done
 }

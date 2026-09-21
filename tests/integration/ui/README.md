@@ -38,10 +38,10 @@ whatever `components/room/**` and `components/profile/**` render).
 | Surface | Ids |
 | --- | --- |
 | Room | `room` (`data-phase` = lobby · queue · found · match · final, `data-match-id`), `room-shell`, `room-slot-top` / `room-slot-field` / `room-slot-bottom` / `room-slot-ledger` |
-| Player bars | `player-bar-top`, `player-bar-bottom`, `player-bar-name`, `player-bar-clock` (`data-running`), `player-bar-lane` (`role=progressbar`, max 300, `data-mode` = running · stopped · searching · disconnected), `player-bar-score`, `player-bar-subline`, `player-bar-name-input` (+ `name-input-form`, `name-input-error`), `player-bar-action`, `player-bar-action-play`, `player-bar-action-ranked`, `player-bar-action-cancel` |
-| Field | `field`, `field-cell` (`data-x`, `data-y`, `data-state` = free · picked · previewed · pinned · frozen · scored, `data-seat` = the owner's seat), `field-bands`, `field-band` (`data-seat`, `data-direction`, `data-round`, `data-word`, `data-cells` = the cells the band covers, `x,y;x,y`) |
-| Ledger (match) | `ledger`, `ledger-caption`, `ledger-header`, `ledger-rows`, `ledger-row-<n>`, `round-indicator`, `ledger-live-row`, `ledger-territory`, `ledger-hint`, `ledger-notice`, `ledger-foot`, `ledger-how-to-play` (lobby, final), `ledger-result` (final, once the slip is lifted), `round-rail` (`role=img`, `aria-label` = `round N of 10`), `verdict` |
-| Slip (over the field) | `slip` (`role=dialog`, `data-kind` = signIn · resign · claimWin · matchOver), `slip-how-to-play`, `slip-confirm-resign` / `slip-keep-playing`, `slip-claim-win` / `slip-keep-waiting`, `slip-rematch` / `slip-new-opponent` / `slip-review-field` / `slip-lobby`, `slip-accept-rematch` / `slip-decline-rematch`, `slip-rematch-waiting`, `slip-score`, `slip-ratings` |
+| Player bars | `player-bar-top`, `player-bar-bottom`, `player-bar-name`, `player-bar-lane` (`role=progressbar`, max = the move limit, `data-mode` = moves · searching · disconnected), `player-bar-score`, `player-bar-subline`, `player-bar-name-input` (+ `name-input-form`, `name-input-error`), `player-bar-action`, `player-bar-action-play`, `player-bar-action-ranked`, `player-bar-action-cancel` |
+| Field | `field`, `field-cell` (`data-x`, `data-y`, `data-state` = free · picked · previewed · frozen · scored, `data-seat` = the owner's seat), `field-bands`, `field-band` (`data-seat`, `data-direction`, `data-move`, `data-word`, `data-cells` = the cells the band covers, `x,y;x,y`) |
+| Ledger (match) | `ledger`, `ledger-caption`, `ledger-header`, `ledger-rows`, `ledger-row-<n>` (`data-status` = past · live · settled · future), `ledger-context`, `match-clock` (`data-low` under 1:00; the one clock), `ledger-live-row`, `ledger-live-move`, `ledger-territory`, `ledger-hint`, `ledger-notice`, `ledger-foot`, `ledger-how-to-play` (lobby, final), `ledger-result` (final, once the slip is lifted), `move-rail` (`role=img`, `aria-label` = `move N of 10` · `10 of 10 played`), `verdict` |
+| Slip (over the field) | `slip` (`role=dialog`, `data-kind` = signIn · resign · endEarly · matchOver), `slip-how-to-play`, `slip-confirm-resign` / `slip-keep-playing`, `slip-end-early` / `slip-keep-waiting`, `slip-rematch` / `slip-new-opponent` / `slip-review-field` / `slip-lobby`, `slip-accept-rematch` / `slip-decline-rematch`, `slip-rematch-waiting`, `slip-score`, `slip-ratings` |
 | Ledger notices | `notice-accept-challenge` / `notice-decline-challenge` (the resign confirmation, the claim and the rematch request moved to the slip with spec 048) |
 | Ledger menu | `ledger-menu`, `ledger-menu-trigger`, `ledger-menu-list`, `ledger-menu-item-{sound,preview,profile,signout,howToPlay,resign,leave}` (`howToPlay` is an `<a target=_blank>` to `/rules`, match only) |
 | Ledger (lobby / queue / final) | `ledger-here-now`, `ledger-here-now-row`, `ledger-here-now-empty`, `ledger-challenge-<playerId>`, `ledger-last-matches`, `ledger-last-match-row`, `ledger-cancel-queue`, `ledger-lobby` (rematch and new opponent are on the match-over slip) |
@@ -52,14 +52,15 @@ whatever `components/room/**` and `components/profile/**` render).
 Retired with their components (do not reintroduce): `hud-card`, `round-pip-bar`, `your-move-card`,
 `scored-words-card`, `tiles-claimed-card`, `move-lock-banner`, `round-announce`, `match-ring`,
 `post-game-scoreboard-card`, `rematch-banner`, `rematch-interstitial`, `series-badge`, `final-summary`,
-`disconnection-modal`, `board-grid`, `tile-*`.
+`disconnection-modal`, `board-grid`, `tile-*`, and with spec 050 `player-bar-clock`, `round-rail`, `slip-claim-win` (`pinned` survives only in the `/rules` swap figure).
 
 Conventions that follow from the design: the slip is the only thing positioned over the field, so a spec that needs
 another dialog is wrong; frozen letters are `aria-disabled` cells — use `dispatchEvent("click")` if Playwright's
 actionability check refuses them; sign in with `loginViaSlip(page, username)` from `helpers/matchmaking.ts` (it
 waits for the in-place URL rewrite to `/lobby` — navigating earlier is a race); the same file has the
-challenge/accept flow and `helpers/swaps.ts` the field ids. `rounds-flow.spec.ts` is the one
-`@two-player-playtest` spec (ten rounds, Firefox project, `--workers=1`); run two-player files one at a
+challenge/accept flow and `helpers/swaps.ts` the field ids. `moves-flow.spec.ts` and `disconnect-claim.spec.ts` are the
+`@two-player-playtest` specs (ten moves each, Firefox project, `--workers=1`); `deadline-flow.spec.ts` runs only with a short
+`PLAYTEST_MATCH_CLOCK_MS` set for both the server and Playwright; run two-player files one at a
 time locally. Bars show the capitalised display name, so compare names with `ignoreCase: true`.
 
 ## Troubleshooting
