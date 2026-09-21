@@ -109,11 +109,6 @@ describe("Field (design system §5.1, §9)", () => {
       expect(at(2, 2)).toHaveAttribute("data-seat", "opp");
     });
 
-    it("draws a settled band only over the cells its word froze first", () => {
-      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} />);
-      const own = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-move") === "2")!;
-      expect(own).toHaveAttribute("data-cells", "2,3;2,4");
-    });
   });
 
   it("cells inside a band take the scorer's seat and render as scored; the bands SVG sits under the cells", () => {

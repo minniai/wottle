@@ -347,7 +347,7 @@ test.describe("@visual one owner, one colour", () => {
     await expect(crossing).toHaveAttribute("data-seat", "opp");
     await expect(crossing).toHaveAttribute("data-state", "scored");
     await page.goto("/dev/room?phase=idle");
-    await expect(page.locator('[data-testid="field-band"][data-word="LEK"]')).toHaveAttribute("data-cells", "8,6;9,6");
+    await expect(page.locator('[data-testid="field-band"][data-word="LEK"]')).toHaveAttribute("data-cells", "7,6;8,6;9,6");
   });
 });
 

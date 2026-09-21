@@ -124,9 +124,9 @@ describe("bandsFromWords", () => {
     expect(trusted).toHaveLength(1);
   });
 
-  // Spec 049 US2 (contracts/ownership-rendering.md): a band covers the letters
-  // its word froze first; a crossing keeps the earlier owner; the chevron sits
-  // at the whole word's reading start.
+  // Spec 049 US2, amended 2026-09-21: a band covers its whole word, crossings
+  // included; each letter keeps the colour of the player who froze it first;
+  // the chevron sits at the whole word's reading start.
   describe("one owner, one colour", () => {
     const abc = { moveSeq: 1, globalSeq: 1, playerId: A, word: "abc", totalPoints: 1, coordinates: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }] };
     const bxy = { moveSeq: 2, globalSeq: 2, playerId: B, word: "bxy", totalPoints: 1, coordinates: [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 1, y: 2 }] };
@@ -149,15 +149,15 @@ describe("bandsFromWords", () => {
       expect(band.wordCells).toEqual(abc.coordinates);
     });
 
-    it("a word crossing a letter the other seat froze earlier covers all but that letter, and keeps the whole word", () => {
+    it("a word crossing a letter the other seat froze earlier is shaded over the whole word, that letter included", () => {
       const bands = bandsFromWords({ words: crossing, board: spelled(crossing), frozenTiles: owners, viewerSlot: "player_a", playerAId: A });
       const later = bands.find((b) => b.word === "bxy")!;
-      expect(later.cells).toEqual([{ x: 1, y: 1 }, { x: 1, y: 2 }]);
+      expect(later.cells).toEqual(bxy.coordinates);
       expect(later.wordCells).toEqual(bxy.coordinates);
       expect(later.seat).toBe("opp");
     });
 
-    it("a one-letter extension of the other seat's run keeps its one cell; the chevron comes from the whole word", () => {
+    it("an extension of the other seat's run is shaded over the whole longer word", () => {
       const gata = { moveSeq: 1, globalSeq: 1, playerId: B, word: "gáta", totalPoints: 1, coordinates: [{ x: 0, y: 3 }, { x: 1, y: 3 }, { x: 2, y: 3 }, { x: 3, y: 3 }] };
       const gatan = { moveSeq: 2, globalSeq: 2, playerId: A, word: "gátan", totalPoints: 1, coordinates: [...gata.coordinates, { x: 4, y: 3 }] };
       const frozen = {
@@ -166,7 +166,7 @@ describe("bandsFromWords", () => {
       };
       const bands = bandsFromWords({ words: [gata, gatan], board: spelled([gatan]), frozenTiles: frozen, viewerSlot: "player_a", playerAId: A });
       const extension = bands.find((b) => b.word === "gátan")!;
-      expect(extension.cells).toEqual([{ x: 4, y: 3 }]);
+      expect(extension.cells).toEqual(gatan.coordinates);
       expect(extension.wordCells).toHaveLength(5);
       expect(computeBandRect(extension.wordCells, extension.direction).x).toBe(0.5);
     });
@@ -178,9 +178,11 @@ describe("bandsFromWords", () => {
       expect(bands.find((b) => b.word === "bxy")!.cells).toEqual(own.coordinates);
     });
 
-    it("a word none of whose letters it owns draws no band; live moves keep their whole run before their freezes land", () => {
+    it("a word whose letters the other seat froze first is still shaded in its own seat; live moves keep their whole run", () => {
       const allB = Object.fromEntries(Object.keys(owners).map((k) => [k, { owner: "player_b" as const }]));
-      expect(bandsFromWords({ words: [abc], board: spelled(crossing), frozenTiles: allB, viewerSlot: "player_a", playerAId: A })).toEqual([]);
+      const [band] = bandsFromWords({ words: [abc], board: spelled(crossing), frozenTiles: allB, viewerSlot: "player_a", playerAId: A });
+      expect(band.cells).toEqual(abc.coordinates);
+      expect(band.seat).toBe("you");
       const [live] = bandsFromWords({ words: [abc], board: spelled(crossing), frozenTiles: {}, viewerSlot: "player_a", playerAId: A, liveMoveKey: `${A}:1` });
       expect(live.cells).toEqual(abc.coordinates);
     });

@@ -24,9 +24,8 @@ function drawStyle(edge: ChevronEdge): CSSProperties {
 
 /**
  * One SVG under the cells: a rect + chevron per scored word (design system
- * §5.2). The tint covers the letters the word froze first; the chevron sits
- * at the whole word's reading start; a hovered round shows its whole words
- * (spec 049 US2).
+ * §5.2). The tint covers the whole word, crossings included; the chevron
+ * sits at its reading start; the letters keep their first owner's colour.
  */
 export function FieldBands({ bands, highlightMove, drawnCount = null, drawingIndex = null }: FieldBandsProps) {
   return (
