@@ -23,7 +23,7 @@
 11. [Code references](#11-code-references)
 12. [What the player sees](#12-what-the-player-sees)
 
-> **Two rules, two axes — both physical**. The cross-axis uses per-letter coverage (§4): every new tile must sit inside some dict sub-run of length ≥ min. The same-axis uses the standalone invariant (§3.5a, §7.4): if the new word physically abuts a frozen tile on its axis, the maximal combined same-axis scored run must itself be a dict word. Both rules consult only the physical frozen state — `scoredAxes` is audit-only (§4.4). Most past regressions came from gating validation on `scoredAxes`; do not reintroduce that.
+> **Two rules, two axes — both physical**. The cross-axis uses whole-run validation (§4): every connected scored run through a new tile must itself be a dictionary word of length ≥ min (a single isolated tile on that axis is exempt). The same-axis uses the standalone invariant (§3.5a, §7.4): if the new word physically abuts a frozen tile on its axis, the maximal combined same-axis scored run must itself be a dict word. Both rules consult only the physical frozen state — `scoredAxes` is audit-only (§4.4). Most past regressions came from gating validation on `scoredAxes`; do not reintroduce that.
 
 ---
 
@@ -122,7 +122,7 @@ A word scores **every time it is formed at a new location**, by either player, h
 
 ## 4. The per-letter coverage rule (CRITICAL)
 
-> **Plain English**: After a word is scored, every scored letter on the board — old or new — must be part of a valid dictionary word of length ≥ `minimumWordLength` in at least one reading direction. No scored letter may sit in a contiguous scored run that has no valid word covering it.
+> **Plain English**: After a word is scored, each horizontal and vertical scored run created or extended by the scoring must itself be a valid dictionary word of length ≥ `minimumWordLength`, read in either direction. A single scored tile with no scored neighbor on an axis is exempt on that axis. Valid substrings do not make an invalid full run legal.
 
 ### 4.1 Formal statement
 
@@ -130,24 +130,25 @@ Let *S* denote the set of scored (frozen) tiles on the board after a candidate s
 
 For every reading direction *d* ∈ {horizontal, vertical}, and for every maximal contiguous run *R* of tiles from *S* along *d*, and for every tile *t* in *R* that was scored by the candidate event:
 
-> Either *R* has length 1, or there exists a contiguous sub-run *W* of *R* such that:
-> - `|W| >= minimumWordLength`,
-> - *t* ∈ *W*,
-> - *W* (read forward or reversed, NFC-normalized and lowercased) is in the dictionary.
+> Either *R* has length 1, or `|R| >= minimumWordLength` and the **entire run R** (read forward or reversed, NFC-normalized and lowercased) is in the dictionary.
+
+This checks all four reading directions: left-to-right / right-to-left and top-to-bottom / bottom-to-top. Each affected axis must pass; a word need not be valid in both directions on the same axis.
 
 A candidate scoring event that violates this condition for any tile of the new word(s) MUST be rejected.
 
 ### 4.2 Consequences
 
 - A contiguous scored run of length 2 (below `minimumWordLength`) is always a violation: no sub-run of length ≥ 3 can fit inside 2 tiles. Rejection is unconditional.
-- A contiguous scored run of length ≥ `minimumWordLength` is OK as long as the new tiles are *covered* by some valid dict sub-run. The full maximal run need **not** itself be a dictionary word.
+- A contiguous scored run of length ≥ `minimumWordLength` must itself be a dictionary word. A valid prefix, suffix, or interior substring is insufficient.
 - Already-frozen tiles from earlier moves do **not** need to be re-covered by the new scoring — they were covered when they were placed. The rule is only evaluated for tiles introduced by the candidate event.
 
-### 4.3 Two canonical examples
+### 4.3 Canonical examples
 
 **Accepts** (real #136): Player swaps `B` into `(2,2)`, forming `BÆN` at cols 2–4 row 2. The adjacent `Þ` at `(1,2)` is unfrozen (just a plain letter on the board). The cross-axis check for each of `B`/`Æ`/`N` sees no frozen neighbors → per-letter coverage trivially holds. **`BÆN` scores.** (The same-axis standalone check — §3.5a — also sees no frozen neighbor on the horizontal axis and does not fire.)
 
 **Rejects** (issue #195, "ML" at `(7,0)`): Frozen `M` at `(7,0)` (physical state; `scoredAxes` is irrelevant to this check). Player attempts a vertical scoring through `L` at `(8,0)`. After the hypothetical freeze, row 0 would have the scored run `M L` (length 2). No sub-run of length ≥ 3 fits. Per-letter coverage fails for the new tile `L`. **The candidate is rejected.**
+
+**Rejects** (`HAUSL`, screenshot regression 2026-09-21): Frozen horizontal `HAUS` is extended by the `L` of a new vertical word. Although `USL` is in the Icelandic dictionary and covers the new `L`, the entire horizontal scored run `HAUSL` is not a word in either direction. **The vertical candidate is rejected**, earns no points, and freezes no tiles. The same rule applies when `HAUS` is another candidate in the same scoring event.
 
 ### 4.4 Why `scoredAxes` doesn't gate validation
 
@@ -249,15 +250,15 @@ There is **no individual pre-filter** before subset enumeration. A candidate's c
 For each tile *t* of a candidate word *W*, in the cross-axis (perpendicular to *W*):
 
 1. Trace backward and forward from *t* through the set `frozenTileSet ∪ extraTileSet` (i.e., existing frozen tiles plus tiles of other candidates in the current subset). `scoredAxes` is **not** consulted.
-2. Let *runChars* be the resulting contiguous cross-axis run, with *t* at index `tileIdx`.
+2. Let *runChars* be the resulting contiguous cross-axis run through *t*. Already-frozen tiles with no new cross-axis adjacency may be skipped because that run is unchanged.
 3. Reject if:
    - `runLen == 1` → OK, no constraint.
    - `runLen < minimumWordLength` → **violation** (2-letter runs are always invalid).
-   - `runLen ≥ minimumWordLength` and `runContainsValidSubRunCoveringIndex(runChars, tileIdx, dict, min) == false` → **violation** (no dict sub-run covers *t*).
+   - `runLen ≥ minimumWordLength` and `isWholeRunValid(runChars, dict) == false` → **violation** (the entire scored run is not a dictionary word in either direction).
 
 ### 7.4 The same-axis standalone check (`violatesFrozenAdjacencyOnSameAxis`)
 
-Per-letter coverage is trivially satisfied on the candidate's own axis (the candidate itself is a dict sub-run of length ≥ min covering its own tiles). The rule that bites here is the **standalone invariant** (§3.5a): the candidate must not concatenate with a prior scored word into an invalid combined run.
+A candidate is already a dictionary word, but the **standalone invariant** (§3.5a) must also validate any frozen extensions along its own axis: the candidate must not concatenate with a prior scored word into an invalid combined run.
 
 For a candidate *W* on axis *a*:
 
@@ -270,9 +271,9 @@ The check is purely physical — `scoredAxes` is not consulted. The check also u
 
 In a real game a frozen tile cannot be an "isolated perpendicular scored neighbor" on its axis: a frozen tile was part of a prior ≥ `minimumWordLength` scored word, and the other tiles of that word are also frozen, contiguous, on the same axis as that prior word. An unfrozen adjacent letter (like `Þ` in the real #136) never triggers the check.
 
-### 7.5 The coverage helper (`runContainsValidSubRunCoveringIndex`)
+### 7.5 The whole-run helper (`isWholeRunValid`)
 
-Returns `true` iff there exists `start ≤ tileIdx < end`, `end − start ≥ min`, such that the sub-run from `start` to `end` (or its reverse), NFC-normalized and lowercased, is in the dictionary. *O(runLen²)* dict lookups; runs are bounded by `BOARD_SIZE = 10`, so ≤ 45 lookups per tile per axis.
+Returns `true` iff the entire run, NFC-normalized and lowercased, is in the dictionary forward or reversed. At most two dictionary lookups per run; length validation belongs to the caller. Shared by the cross-axis and same-axis checks.
 
 ---
 
@@ -284,7 +285,7 @@ These are board-global post-conditions. A scoring event that would break any of 
 |---|---|---|
 | I1 | Every scored letter is part of a dict word of length ≥ `minimumWordLength` in at least one reading direction. | §4, `hasCrossWordViolation` |
 | I2 | No contiguous scored run of length 2..(min−1) exists on the board. | §4.2, `hasCrossWordViolation` (below-min branch) |
-| I3 | For every maximal contiguous scored run of length ≥ min, every newly-frozen tile is covered by some dict sub-run of length ≥ min that includes it. | §4.1, `runContainsValidSubRunCoveringIndex` |
+| I3 | Every maximal contiguous scored run of length ≥ min that contains a newly-frozen tile is itself a dictionary word, read forward or reversed. Valid substrings cannot excuse an invalid full run. | §4.1, `isWholeRunValid` |
 | I4 | Every frozen tile's `owner` is one of `player_a`, `player_b`, `both`; never undefined. | `freezeTiles` |
 | I5 | The board always has ≥ `MIN_UNFROZEN_TILES` (24) unfrozen tiles. | `freezeTiles` partial-freeze logic |
 | I6 | No resolved move ever targets a frozen tile, or a letter that an earlier receipt sequence exchanged; such a move is refused and not counted. | `moveResolver.resolveOne` refusal branch |
@@ -340,6 +341,7 @@ Read this section before editing anything in `lib/game-engine/crossValidator.ts`
 | 2026-09-20 | spec 049 | — | `advanceRound` step 14 updated the match row by id alone, so a thawed `after()` hook from round 5 landed two minutes after the match completed and wrote round-5 values over it (`current_round` 6, stale clocks). Fixed with a compare-and-set on the round the writer read and on the match not being completed. Regression test: `tests/unit/lib/match/roundEngine.staleWrite.spec.ts`. | Invariant: the round pointer, clocks, state, winner and reason never move backwards. |
 | 2026-09-21 | spec 050 | — | Not a regression — a rules change. Rounds are gone: each player makes ten moves whenever they like on one shared 5:00 clock; moves resolve one at a time in server receipt order; a move landing on a letter an earlier move froze or exchanged is refused and not counted. §2, §2a, §7.1 and I6/I8 rewritten; I9/I10 added. Duplicate suppression (§3.7, §5.4) withdrawn — it had never been implemented (`is_duplicate` was written `false` unconditionally). The instant-scoring fast path, the combined pass, the timeout pass and the round-start baseline (`rounds.frozen_tiles_before`) no longer exist; their regression rows above are history. | §2 (receipt order, refusal), §2a (one clock, deadline at receipt), I8–I10. | <!-- retired-name -->
 | 2026-09-14 | spec 044 | — | Not a regression: pinned the §3.5a design example `BORÐA + GILT` (rejected when `borðagilt` is not a word; accepted when it is) and §3.1 one-record-per-run (`FÁR`/`RÁF` → one record, forward reading) so the Field & Ledger UI's "bands never touch end to end" and "one chevron per band" renderings have named tests. | §3.5a, §3.1 (`tests/unit/lib/game-engine/wholeRun.bordaGilt.test.ts`, `doubleReading.test.ts`). |
+| 2026-09-21 | — | HAUSL screenshot | Cross-axis substring coverage accepted the L of a vertical word beside frozen HAUS because USL is in the dictionary, leaving the invalid scored run HAUSL; require the entire affected cross-run to be a word in either direction. Tests cover all four orientations, same-event candidates, and scoring/freezing with the real dictionary (`wholeRun.hausl.test.ts`). | §4, §7.3, I3 — whole-run validity on both axes. |
 
 When you land a scoring-related fix, append a row here with: date, PR number, issue number, one-sentence description of what went wrong, and the rule section that now prevents it. If the fix exposes a rule that was not previously documented, document it in this file *in the same PR*.
 
@@ -353,7 +355,7 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 - **Reading direction (§3.1, §12)** — `lib/game-engine/readingDirection.ts::deriveReadingDirection` derives ltr / rtl / ttb / btt from the stored tile order of a word record; `lib/match/wordScoreRow.ts` maps `word_score_entries` rows to `WordScore` (with `direction`) for the ledger and the field bands.
 - **Board generation** — `lib/game-engine/boardGenerator.ts::generateBoard` (seeded; also the lobby's warm-up field and the queue's placeholder field).
 - **Preview pricing (§12, pick → preview → commit)** — `app/actions/match/previewSwap.ts` runs the same pipeline read-only for one hypothetical swap (`kind: "match" | "warmup"`, session required, no state change); the dictionary never leaves the server.
-- **Cross-validator** — `lib/game-engine/crossValidator.ts::selectOptimalCombination`, `hasCrossWordViolation` (cross-axis, §7.3), `violatesFrozenAdjacencyOnSameAxis` (same-axis standalone, §7.4), `runContainsValidSubRunCoveringIndex`.
+- **Cross-validator** — `lib/game-engine/crossValidator.ts::selectOptimalCombination`, `hasCrossWordViolation` (cross-axis, §7.3), `violatesFrozenAdjacencyOnSameAxis` (same-axis standalone, §7.4), `isWholeRunValid`.
 - **Scorer** — `lib/game-engine/scorer.ts::calculateLetterPoints`, `calculateLengthBonus`.
 - **Freezer** — `lib/game-engine/frozenTiles.ts::freezeTiles`.
 - **Dictionary** — `lib/game-engine/dictionary.ts::loadDictionary`; wordlist at `data/wordlists/word_list_is.txt`.

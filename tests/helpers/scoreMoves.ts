@@ -10,7 +10,8 @@ export interface ScoredMoveInput {
   fromY: number;
   toX: number;
   toY: number;
-  submittedAt: string;
+  /** Receipt order; moves without it keep their array order. */
+  submittedAt?: string;
 }
 
 export interface ScoreMovesInput {
@@ -44,7 +45,11 @@ export interface ScoreMovesResult {
 export async function scoreMovesInReceiptOrder(input: ScoreMovesInput): Promise<ScoreMovesResult> {
   const started = performance.now();
   const dictionary = await loadDictionary("is");
-  const ordered = [...input.acceptedMoves].sort((a, b) => Date.parse(a.submittedAt) - Date.parse(b.submittedAt));
+  const at = (m: ScoredMoveInput, i: number): number => (m.submittedAt ? Date.parse(m.submittedAt) : i);
+  const ordered = input.acceptedMoves
+    .map((m, i) => ({ m, key: at(m, i) }))
+    .sort((a, b) => a.key - b.key)
+    .map(({ m }) => m);
   let board = input.boardBefore;
   let frozen = input.frozenTiles;
   let wasPartialFreeze = false;
@@ -59,7 +64,7 @@ export async function scoreMovesInReceiptOrder(input: ScoreMovesInput): Promise<
         to: { x: m.toX, y: m.toY },
         fromLetter: board[m.fromY][m.fromX],
         toLetter: board[m.toY][m.toX],
-        receivedAt: m.submittedAt,
+        receivedAt: m.submittedAt ?? new Date(0).toISOString(),
       },
       board,
       frozenTiles: frozen,
