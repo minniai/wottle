@@ -8,56 +8,32 @@ import {
 } from "./scorer";
 
 /**
- * Does `runChars` contain a dictionary word of length >=
- * `minLen` that includes the tile at `tileIdx`?
- *
- * This is the per-letter coverage check: each letter of a
- * newly-scored word must sit inside some valid sub-run in every
- * direction where it has scored neighbors (issue #195).
+ * Validate the entire connected scored run in either reading direction.
+ * A valid substring (e.g. USL inside HAUSL) cannot excuse a non-word.
  */
-function runContainsValidSubRunCoveringIndex(
+function isWholeRunValid(
   runChars: string[],
-  tileIdx: number,
   dictionary: Set<string>,
-  minLen: number,
 ): boolean {
-  const runLen = runChars.length;
-  if (runLen < minLen) return false;
-  for (let start = 0; start <= tileIdx; start++) {
-    const minEnd = Math.max(tileIdx + 1, start + minLen);
-    for (let end = minEnd; end <= runLen; end++) {
-      const sub = runChars
-        .slice(start, end)
-        .join("")
-        .normalize("NFC")
-        .toLowerCase();
-      if (dictionary.has(sub)) return true;
-      const rev = [...sub].reverse().join("");
-      if (dictionary.has(rev)) return true;
-    }
-  }
-  return false;
+  const text = runChars.join("").normalize("NFC").toLowerCase();
+  return dictionary.has(text) || dictionary.has([...text].reverse().join(""));
 }
 
 /**
  * Check whether a candidate word creates an invalid perpendicular
  * scored run through any of its tiles.
  *
- * Rule (issue #195): for each tile of the candidate, trace the
+ * Rule (§4 / I3): for each tile of the candidate, trace the
  * maximal contiguous scored run on the cross-axis through that
  * tile. Every frozen tile physically on the board counts, regardless
  * of which axis it was originally scored on — this is about the
  * physical board state, not metadata. The run is OK iff:
  *   - length 1 (no scored neighbors), OR
- *   - contains a dict-valid sub-run of length >= `minimumWordLength`
- *     that includes this tile.
+ *   - is itself a dict word of length >= `minimumWordLength`,
+ *     read forward or backward.
  * A run of length 2..(minimumWordLength-1) is always a violation:
- * it cannot contain any sub-run of length >= `minimumWordLength`.
- *
- * Replaces the pre-#185 "combined run must itself be a dict word"
- * rule (too strict — rejected BÆN/BÁS in #136) and the #185
- * `scoredAxes`-based skip (too lenient — admitted "ML", "NÐ",
- * "TKH", etc. in #195).
+ * it is below the minimum word length. Unscored neighbors never
+ * extend the run (preserving BÆN/BÁS in #136).
  */
 export function hasCrossWordViolation(
   board: BoardGrid,
@@ -121,18 +97,10 @@ export function hasCrossWordViolation(
       board[tile.y][tile.x],
       ...afterChars,
     ];
-    const tileIdx = beforeChars.length;
     const runLen = runChars.length;
     if (runLen === 1) continue; // no scored neighbor — no constraint
     if (runLen < minimumWordLength) return true;
-    if (
-      !runContainsValidSubRunCoveringIndex(
-        runChars,
-        tileIdx,
-        dictionary,
-        minimumWordLength,
-      )
-    ) {
+    if (!isWholeRunValid(runChars, dictionary)) {
       return true;
     }
   }
@@ -206,9 +174,7 @@ function violatesFrozenAdjacencyOnSameAxis(
   if (beforeChars.length === 0 && afterChars.length === 0) return false;
 
   const fullRun = [...beforeChars, ...wordChars, ...afterChars];
-  const fullText = fullRun.join("").normalize("NFC").toLowerCase();
-  const reversed = [...fullText].reverse().join("");
-  return !dictionary.has(fullText) && !dictionary.has(reversed);
+  return !isWholeRunValid(fullRun, dictionary);
 }
 
 /**
@@ -229,8 +195,8 @@ function scoreWord(word: BoardWord): number {
  *
  * No individual pre-filter: a candidate's per-letter coverage can
  * depend on another candidate in the same round (BÁS in #136 relies
- * on BÆN's tiles to reach a length-3+ horizontal scored run that
- * contains BÆN). Defer all cross-validation to the subset stage so
+ * on BÆN's tiles to complete its horizontal scored run).
+ * Defer all cross-validation to the subset stage so
  * mutual extras are available.
  */
 export function selectOptimalCombination(
