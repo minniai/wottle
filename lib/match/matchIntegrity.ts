@@ -3,25 +3,26 @@ import type { FrozenTileMap } from "@/lib/types/match";
 
 /**
  * Spec 049 (contracts/integrity-check.md): two invariants checked after every
- * round resolution, on the board the server just persisted.
+ * resolved move (spec 050), on the board the server just persisted.
  *
  *   1. spelling     — every word record spells its word at its tiles;
  *   2. immutability — a frozen cell's letter never changes after its freeze.
  *
- * Pure; never throws. The round engine and recovery call it with what they
- * already hold. On 2026-09-20 the records were all sound and the served board
+ * Pure; never throws. The move resolver calls it (via `checkMoveIntegrity`)
+ * with what it already holds. On 2026-09-20 the records were all sound and the served board
  * was the wrong one (research.md §1); this is the check that would have named
  * it the day it happened.
  */
 export interface IntegrityRecord {
   id: string;
   word: string;
-  roundNumber: number;
+  /** The receipt sequence of the move that scored the record. */
+  globalSeq: number;
   tiles: Coordinate[];
 }
 
 export type MatchIntegrityFailure =
-  | { kind: "spelling"; record: string; round: number; expected: string; found: string; cells: string }
+  | { kind: "spelling"; record: string; globalSeq: number; expected: string; found: string; cells: string }
   | { kind: "immutability"; cell: string; expected: string; found: string };
 
 export interface VerifyMatchIntegrityInput {
@@ -46,7 +47,7 @@ function checkSpelling(board: string[][], record: IntegrityRecord): MatchIntegri
   const expected = upper(record.word);
   const found = record.tiles.map((t) => letterAt(board, t)).join("");
   if (found === expected && [...expected].length === record.tiles.length) return null;
-  return { kind: "spelling", record: record.id, round: record.roundNumber, expected, found, cells: describeRun(record.tiles) };
+  return { kind: "spelling", record: record.id, globalSeq: record.globalSeq, expected, found, cells: describeRun(record.tiles) };
 }
 
 export function verifyMatchIntegrity(input: VerifyMatchIntegrityInput): MatchIntegrityFailure[] {
@@ -65,21 +66,21 @@ export function verifyMatchIntegrity(input: VerifyMatchIntegrityInput): MatchInt
   return failures;
 }
 
-export interface RoundBoard {
-  roundNumber: number;
+export interface MoveBoard {
+  globalSeq: number;
   boardAfter: string[][] | null;
 }
 
 /**
  * The letter each frozen cell held when it froze: read from the persisted
- * board of the round whose word froze it, earliest round first, so no column
+ * board of the move whose word froze it, earliest move first, so no column
  * has to remember it.
  */
-export function letterAtFreeze(rounds: RoundBoard[], records: IntegrityRecord[]): Record<string, string> {
-  const boards = new Map(rounds.filter((r) => r.boardAfter).map((r) => [r.roundNumber, r.boardAfter as string[][]]));
+export function letterAtFreeze(moves: MoveBoard[], records: IntegrityRecord[]): Record<string, string> {
+  const boards = new Map(moves.filter((m) => m.boardAfter).map((m) => [m.globalSeq, m.boardAfter as string[][]]));
   const out: Record<string, string> = {};
-  for (const record of [...records].sort((a, b) => a.roundNumber - b.roundNumber)) {
-    const board = boards.get(record.roundNumber);
+  for (const record of [...records].sort((a, b) => a.globalSeq - b.globalSeq)) {
+    const board = boards.get(record.globalSeq);
     if (!board) continue;
     for (const tile of record.tiles) {
       const k = key(tile);

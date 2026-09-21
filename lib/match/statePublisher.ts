@@ -5,8 +5,8 @@ import { loadMatchState } from "./stateLoader";
 /**
  * Max time we'll wait for channel.subscribe() to reach SUBSCRIBED before
  * giving up and resolving. Supabase's internal default is ~10s, which in
- * local dev (and occasionally in prod) stalls the round-advancement pipeline
- * because roundEngine awaits this broadcast. Callers should treat broadcast
+ * local dev (and occasionally in prod) stalls the move resolver, which awaits
+ * this broadcast after each finished move (spec 050). Callers should treat broadcast
  * delivery as best-effort — clients recover via the 2s safety poll.
  */
 const BROADCAST_SUBSCRIBE_TIMEOUT_MS = 2_000;

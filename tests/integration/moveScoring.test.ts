@@ -1,6 +1,6 @@
 /**
- * Integration tests for round scoring pipeline.
- * Verifies processRoundScoring produces correct word breakdowns and deltas.
+ * Move scoring against the full dictionary (spec 050): each move resolved in
+ * receipt order through the resolver's pure step gives the right words and deltas.
  */
 import { describe, expect, test, beforeAll } from "vitest";
 import type { BoardGrid } from "@/lib/types/board";
@@ -9,7 +9,6 @@ import type { FrozenTileMap } from "@/lib/types/match";
 const PLAYER_A = "player-a-id";
 const PLAYER_B = "player-b-id";
 const MATCH_ID = "match-scoring-test";
-const ROUND_ID = "round-1-id";
 
 function emptyBoard(fill = " "): BoardGrid {
   return Array.from({ length: 10 }, () =>
@@ -26,22 +25,19 @@ function makeBurBoard(): BoardGrid {
   return board;
 }
 
-describe("round scoring integration", () => {
+describe("move scoring integration", () => {
   beforeAll(async () => {
     const { loadDictionary } = await import("@/lib/game-engine/dictionary");
     await loadDictionary();
   });
 
   test("scores a valid word with correct letter points and length bonus", async () => {
-    const { processRoundScoring } = await import(
-      "@/lib/game-engine/wordEngine"
-    );
+    const { scoreMovesInReceiptOrder } = await import("../helpers/scoreMoves");
 
     const boardBefore = makeBurBoard();
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore,
       acceptedMoves: [
         {
@@ -65,15 +61,12 @@ describe("round scoring integration", () => {
   });
 
   test("returns zero deltas when no words are formed", async () => {
-    const { processRoundScoring } = await import(
-      "@/lib/game-engine/wordEngine"
-    );
+    const { scoreMovesInReceiptOrder } = await import("../helpers/scoreMoves");
 
     const board = emptyBoard();
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore: board,
       acceptedMoves: [],
       frozenTiles: {} as FrozenTileMap,
@@ -87,15 +80,12 @@ describe("round scoring integration", () => {
   });
 
   test("freezes tiles from scored words", async () => {
-    const { processRoundScoring } = await import(
-      "@/lib/game-engine/wordEngine"
-    );
+    const { scoreMovesInReceiptOrder } = await import("../helpers/scoreMoves");
 
     const boardBefore = makeBurBoard();
 
-    const result = await processRoundScoring({
+    const result = await scoreMovesInReceiptOrder({
       matchId: MATCH_ID,
-      roundId: ROUND_ID,
       boardBefore,
       acceptedMoves: [
         {

@@ -8,7 +8,7 @@ import {
   verifyMatchIntegrity,
   type IntegrityRecord,
   type MatchIntegrityFailure,
-  type RoundBoard,
+  type MoveBoard,
 } from "./matchIntegrity";
 
 type AnyClient = SupabaseClient<any, any, any>;
@@ -45,7 +45,7 @@ export async function checkMoveIntegrity(
       letterAtFreeze: letterAtFreeze(moves, records),
     });
     if (failures.length > 0) {
-      trackMatchIntegrityFailed({ matchId: input.matchId, roundNumber: input.globalSeq, failures });
+      trackMatchIntegrityFailed({ matchId: input.matchId, globalSeq: input.globalSeq, failures });
     }
     return failures;
   } catch (error) {
@@ -54,7 +54,7 @@ export async function checkMoveIntegrity(
   }
 }
 
-async function loadMoveBoards(supabase: AnyClient, input: MoveIntegrityInput): Promise<(RoundBoard & { id: string })[]> {
+async function loadMoveBoards(supabase: AnyClient, input: MoveIntegrityInput): Promise<(MoveBoard & { id: string })[]> {
   const { data, error } = await supabase
     .from("match_moves")
     .select("id, global_seq, board_after")
@@ -64,7 +64,7 @@ async function loadMoveBoards(supabase: AnyClient, input: MoveIntegrityInput): P
   if (error) throw new Error(`Failed to load moves: ${error.message}`);
   return ((data ?? []) as MoveRow[]).map((row) => ({
     id: row.id,
-    roundNumber: row.global_seq,
+    globalSeq: row.global_seq,
     boardAfter:
       row.global_seq === input.globalSeq ? input.board : ((row.board_after as string[][] | null) ?? null),
   }));
@@ -73,15 +73,15 @@ async function loadMoveBoards(supabase: AnyClient, input: MoveIntegrityInput): P
 async function loadRecords(
   supabase: AnyClient,
   matchId: string,
-  moves: (RoundBoard & { id: string })[],
+  moves: (MoveBoard & { id: string })[],
 ): Promise<IntegrityRecord[]> {
   const { data, error } = await supabase
     .from("word_score_entries")
     .select("id, move_id, word, tiles")
     .eq("match_id", matchId);
   if (error) throw new Error(`Failed to load records: ${error.message}`);
-  const seqOf = new Map(moves.map((m) => [m.id, m.roundNumber]));
+  const seqOf = new Map(moves.map((m) => [m.id, m.globalSeq]));
   return ((data ?? []) as RecordRow[])
     .filter((row) => seqOf.has(row.move_id))
-    .map((row) => ({ id: row.id, word: row.word, roundNumber: seqOf.get(row.move_id) as number, tiles: row.tiles ?? [] }));
+    .map((row) => ({ id: row.id, word: row.word, globalSeq: seqOf.get(row.move_id) as number, tiles: row.tiles ?? [] }));
 }

@@ -395,20 +395,3 @@ export interface WordScoreBreakdown {
   playerId: string;
 }
 
-/** Complete scoring result for a round. */
-export interface RoundScoreResult {
-  /** Per-word breakdowns for Player A */
-  playerAWords: WordScoreBreakdown[];
-  /** Per-word breakdowns for Player B */
-  playerBWords: WordScoreBreakdown[];
-  /** Score deltas for this round */
-  deltas: ScoreTotals;
-  /** Updated frozen tile map (merged with existing) */
-  newFrozenTiles: FrozenTileMap;
-  /** True if the 24-unfrozen minimum prevented full tile freezing (FR-016) */
-  wasPartialFreeze: boolean;
-  /** Total pipeline duration in milliseconds */
-  durationMs: number;
-  /** Final board state after all swaps processed by the word engine (accounts for frozen-tile rejections) */
-  finalBoard: BoardGrid;
-}

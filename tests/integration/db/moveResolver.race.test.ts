@@ -11,7 +11,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/match/movePublisher", () => ({ publishMoveResolved: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/match/statePublisher", () => ({ publishMatchState: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/game-engine/dictionary", () => ({ loadDictionary: vi.fn().mockResolvedValue(new Set(["hestur"])) }));
+vi.mock("@/lib/match/integrityCheck", () => ({ checkMoveIntegrity: vi.fn().mockResolvedValue([]) }));
 
+import { checkMoveIntegrity } from "@/lib/match/integrityCheck";
 import { publishMoveResolved } from "@/lib/match/movePublisher";
 import { resolvePendingMoves } from "@/lib/match/moveResolver";
 
@@ -24,6 +26,7 @@ describe.skipIf(!db)("resolvePendingMoves under contention (T026)", () => {
 
   beforeEach(() => {
     vi.mocked(publishMoveResolved).mockClear();
+    vi.mocked(checkMoveIntegrity).mockClear();
   });
   afterEach(async () => {
     if (match) await dropTestMatch(db!, match);
@@ -81,6 +84,9 @@ describe.skipIf(!db)("resolvePendingMoves under contention (T026)", () => {
     expect(words).toEqual([{ word: "hestur", total_points: row.player_a_score, move_id: receipt.moveId }]);
     const [move] = await readMoves(db!, match.matchId);
     expect(move).toMatchObject({ status: "resolved", seq: 1, delta: row.player_a_score, score_a_after: row.player_a_score });
+    // Spec 049 FR-002, per move since spec 050: the board just written is checked.
+    expect(checkMoveIntegrity).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(checkMoveIntegrity).mock.calls[0][1]).toMatchObject({ matchId: match.matchId, globalSeq: 1, board: row.board });
   });
 
   it("a move onto a letter an earlier move froze is refused and not counted", async () => {
@@ -100,5 +106,7 @@ describe.skipIf(!db)("resolvePendingMoves under contention (T026)", () => {
     expect(row.resolved_seq).toBe(2);
     const [, refused] = await readMoves(db!, match.matchId);
     expect(refused).toMatchObject({ status: "rejected", rejection_reason: "frozen", seq: null, delta: 0 });
+    // A refusal changes nothing on the board, so only the scoring move is checked.
+    expect(checkMoveIntegrity).toHaveBeenCalledTimes(1);
   });
 });

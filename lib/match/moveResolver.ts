@@ -17,6 +17,7 @@ import type {
   WordScoreBreakdown,
 } from "@/lib/types/match";
 
+import { checkMoveIntegrity } from "./integrityCheck";
 import { publishMoveResolved } from "./movePublisher";
 import { publishMatchState } from "./statePublisher";
 
@@ -285,6 +286,11 @@ async function resolveClaim(client: Client, matchId: string, claim: Claim): Prom
     },
   });
   await publishMoveResolved(toResolution(matchId, claim, outcome, fin));
+  // Spec 049 FR-002, per move: after the reveal is out, check that every record
+  // still spells and no frozen letter moved. Logs on failure; never throws.
+  if (outcome.status === "resolved") {
+    await checkMoveIntegrity(client, { matchId, globalSeq: claim.move.global_seq, board: outcome.boardAfter, frozenTiles: outcome.frozenAfter });
+  }
   return fin;
 }
 

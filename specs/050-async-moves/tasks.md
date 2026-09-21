@@ -45,4 +45,4 @@ Each task lands red → green → refactor; the test commit precedes the impleme
 
 ## P3 — Sweep
 
-- [ ] T040 `tests/unit/styles/acceptance-grep.test.ts` retired names; `pnpm docs:check`; CLAUDE.md status tables and counts
+- [x] T040 `tests/unit/styles/acceptance-grep.test.ts` retired names; `pnpm docs:check`; CLAUDE.md status tables and counts

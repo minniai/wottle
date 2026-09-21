@@ -213,7 +213,7 @@ export async function completeMatchInternal(
     endedReason: decision.reason,
     isDraw: decision.isDraw,
     scores,
-    totalRounds: match.move_limit,
+    moveLimit: match.move_limit,
   });
 
   return {

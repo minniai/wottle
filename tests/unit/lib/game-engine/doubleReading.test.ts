@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { loadDictionary } from "@/lib/game-engine/dictionary";
 import { deriveReadingDirection } from "@/lib/game-engine/readingDirection";
-import { processRoundScoring } from "@/lib/game-engine/wordEngine";
+import { scoreMovesInReceiptOrder } from "../../../helpers/scoreMoves";
 import type { BoardGrid } from "@/lib/types/board";
 
 function emptyBoard(): BoardGrid {
@@ -13,7 +13,7 @@ const PLAYER_A = "player-a-id";
 const PLAYER_B = "player-b-id";
 
 async function scoreRowSwap(board: BoardGrid, fromX: number, toX: number) {
-  return processRoundScoring({
+  return scoreMovesInReceiptOrder({
     matchId: "m",
     roundId: "r",
     boardBefore: board,

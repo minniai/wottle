@@ -215,7 +215,7 @@ When a word is accepted and scored:
 
 ## 7. Algorithm: how the rules are enforced
 
-The scoring pipeline runs server-side in `processRoundScoring` (`lib/game-engine/wordEngine.ts`), called by the move resolver (`lib/match/moveResolver.ts`) for **one move at a time**. It is a pure function of the board and freeze map as the previous receipt sequence left them and of the one move.
+The scoring pipeline runs server-side in `resolveOne` (`lib/match/moveResolver.ts`), which the move resolver calls for **one move at a time**; it composes the word engine's steps (`applySwap`, `scanFromSwapCoordinates`, `selectOptimalCombination`, `scoreBoardWords`, `freezeTiles`). It is a pure function of the board and freeze map as the previous receipt sequence left them and of the one move.
 
 ### 7.1 Pipeline
 
@@ -303,12 +303,13 @@ If you add a new scoring-related feature, state which invariant(s) your change a
 Tests that exercise scoring live primarily in:
 
 - `tests/unit/lib/game-engine/crossValidator.test.ts`
-- `tests/unit/lib/game-engine/wordEngine.test.ts`
+- `tests/unit/lib/game-engine/wordEngine.test.ts` and `doubleReading.test.ts` (moves resolved in receipt order through `resolveOne`, via `tests/helpers/scoreMoves.ts`)
+- `tests/unit/lib/match/moveResolver.spec.ts` (refusal, determinism, repeated words)
 - `tests/unit/lib/game-engine/boardScanner.test.ts`
 - `tests/unit/lib/game-engine/deltaDetector.test.ts`
 - `tests/unit/lib/game-engine/scorer.test.ts`
 - `tests/unit/lib/game-engine/frozenTiles.test.ts`
-- `tests/integration/roundScoring.test.ts` (per-move scoring against a live board; the name predates spec 050)
+- `tests/integration/moveScoring.test.ts` (per-move scoring against the full dictionary)
 
 For any new or modified scoring behavior, a test MUST:
 
@@ -347,7 +348,7 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 ## 11. Code references
 
 - **Rules surface** — this document is the source of truth; `lib/constants/game-config.ts` holds the numeric constants (`minimumWordLength`, `boardSize`, `language`); the move limit and the clock are `matches.move_limit` and `matches.deadline_at`.
-- **Pipeline entry point** — `lib/game-engine/wordEngine.ts::processRoundScoring`.
+- **Pipeline entry point** — `lib/match/moveResolver.ts::resolveOne` (one move, pure); `resolvePendingMoves` claims and finishes moves in receipt order; the per-word formula is `lib/game-engine/wordEngine.ts::scoreBoardWords`.
 - **Scanner** — `lib/game-engine/boardScanner.ts::scanFromSwapCoordinates`.
 - **Reading direction (§3.1, §12)** — `lib/game-engine/readingDirection.ts::deriveReadingDirection` derives ltr / rtl / ttb / btt from the stored tile order of a word record; `lib/match/wordScoreRow.ts` maps `word_score_entries` rows to `WordScore` (with `direction`) for the ledger and the field bands.
 - **Board generation** — `lib/game-engine/boardGenerator.ts::generateBoard` (seeded; also the lobby's warm-up field and the queue's placeholder field).

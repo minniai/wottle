@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { trackBandRecordMismatch, trackMatchIntegrityFailed, trackStaleMatchWrite } from "@/lib/observability/log";
+import { trackBandRecordMismatch, trackMatchIntegrityFailed } from "@/lib/observability/log";
 
-/** Spec 049 T002: the three events, each on the level the contracts name. */
+/** Spec 049 T002: the events, each on the level the contracts name (the stale round-end write went with rounds, spec 050). */
 describe("spec 049 observability events", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -10,19 +10,11 @@ describe("spec 049 observability events", () => {
 
   it("an integrity failure is an error event carrying the failures", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    trackMatchIntegrityFailed({ matchId: "m1", roundNumber: 4, failures: [{ kind: "spelling" }] });
+    trackMatchIntegrityFailed({ matchId: "m1", globalSeq: 4, failures: [{ kind: "spelling" }] });
     const line = JSON.parse(error.mock.calls[0][0] as string);
-    expect(line).toMatchObject({ level: "error", event: "match.integrity.failed", matchId: "m1", roundNumber: 4 });
+    expect(line).toMatchObject({ level: "error", event: "match.integrity.failed", matchId: "m1" });
+    expect(line.globalSeq ?? line.metadata?.globalSeq).toBe(4);
     expect(line.failures ?? line.metadata?.failures).toEqual([{ kind: "spelling" }]);
-  });
-
-  it("a stale write is a warn-level info event carrying what it would have written", () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    trackStaleMatchWrite({ matchId: "m1", expectedRound: 5, carried: { current_round: 6 } });
-    const line = JSON.parse(log.mock.calls[0][0] as string);
-    expect(line).toMatchObject({ event: "match.write.stale", matchId: "m1" });
-    expect(JSON.stringify(line)).toContain('"level":"warn"');
-    expect(JSON.stringify(line)).toContain('"current_round":6');
   });
 
   it("a band mismatch is a warn-level info event naming the record", () => {
