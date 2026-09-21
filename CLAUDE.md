@@ -240,7 +240,7 @@ Move flow:
 Room flow (spec 044):
 1. app/(room)/layout.tsx reads the session once → RoomShell seeds roomStore.viewer
 2. Lobby page → LobbyRoomController: presence store, warm-up field, LobbyLedger, invites polled every 3s
-3. play ranked ▸ → /matchmaking → QueueRoomController: placeholder letters land, startQueueAction polled
+3. find an opponent ▸ → /matchmaking → QueueRoom (keyed on the store's searchId) → QueueRoomController: placeholder letters land, startQueueAction polled
    every 3s, found → opponent writes into the top bar, real board swapped in, starts in 3·2·1,
    then MatchRoomController renders in place (URL via history.replaceState)
 4. Match page → MatchRoomController: useMatchTransport (Realtime + 2s safety poll + polling fallback)

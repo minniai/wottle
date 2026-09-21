@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { LobbyRoomView } from "@/components/room/LobbyRoomView";
-import { NO_OPPONENT, PLAY_RANKED } from "@/lib/constants/copy";
+import { NO_OPPONENT, FIND_OPPONENT } from "@/lib/constants/copy";
 import type { PlayerIdentity } from "@/lib/types/match";
 
 const me: PlayerIdentity = { id: "me", username: "birna", displayName: "Birna", status: "available", lastSeenAt: "", eloRating: 1204 };
@@ -44,10 +44,10 @@ describe("LobbyRoomView (spec 045 US1, FR-003)", () => {
     expect(screen.getByTestId("room-slot-ledger")).toBeTruthy();
   });
 
-  it("shows the empty opponent bar with the ranked action", () => {
+  it("shows the empty opponent bar with the find-an-opponent action", () => {
     render(view());
     expect(screen.getByText(NO_OPPONENT)).toBeTruthy();
-    expect(screen.getByTestId("player-bar-action-ranked").textContent).toContain(PLAY_RANKED);
+    expect(screen.getByTestId("player-bar-action-find").textContent).toContain(FIND_OPPONENT);
   });
 
   it("captions the ledger with the count of other players, not including the viewer", () => {
@@ -56,20 +56,20 @@ describe("LobbyRoomView (spec 045 US1, FR-003)", () => {
   });
 
   // Spec 048 US4: signed out, the bars are empty and carry no action; the slip holds the input.
-  it("signed out: the bottom bar says sign in to set the field; no ranked action; no input in a bar", () => {
+  it("signed out: the bottom bar says sign in to set the field; no find-an-opponent action; no input in a bar", () => {
     render(view({ viewer: null }));
     const bottom = screen.getByTestId("room-slot-bottom");
     expect(bottom.textContent).not.toContain("Birna");
     expect(bottom.textContent).toContain("sign in to set the field");
     expect(bottom.querySelector('[data-testid="name-input-form"]')).toBeNull();
-    expect(screen.queryByTestId("player-bar-action-ranked")).toBeNull();
+    expect(screen.queryByTestId("player-bar-action-find")).toBeNull();
   });
 
-  it("reports the ranked action to its parent rather than routing itself", () => {
+  it("reports the find-an-opponent action to its parent rather than routing itself", () => {
     const onAction = vi.fn();
     render(view({ onAction }));
-    fireEvent.click(screen.getByTestId("player-bar-action-ranked"));
-    expect(onAction).toHaveBeenCalledWith("playRanked");
+    fireEvent.click(screen.getByTestId("player-bar-action-find"));
+    expect(onAction).toHaveBeenCalledWith("findOpponent");
   });
 
   it("imports no store, transport, router or Server Action", () => {

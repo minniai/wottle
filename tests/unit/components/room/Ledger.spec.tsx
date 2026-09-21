@@ -35,12 +35,12 @@ describe("Ledger (design system §5.4)", () => {
   });
 
   it("queue variant prints its progress in a live row, not the plain hint (spec 045 B7)", () => {
-    const queue = { ...model, rows: [], live: "setting the field · 58 of 100 letters", hint: "ranked · 0:07 · cancel ▸" };
+    const queue = { ...model, rows: [], live: "setting the field · 58 of 100 letters", hint: "searching · 0:07 · cancel ▸" };
     render(<Ledger variant="queue" model={queue} viewerName="Birna" opponentName={null} onAction={() => {}} />);
     const live = screen.getByTestId("ledger-live-row");
     expect(live).toHaveTextContent("setting the field · 58 of 100 letters");
     // Above the hint, which keeps its own line.
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("ranked · 0:07 · cancel ▸");
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent("searching · 0:07 · cancel ▸");
     expect(live.compareDocumentPosition(screen.getByTestId("ledger-hint")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

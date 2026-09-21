@@ -28,6 +28,8 @@ PHRASES=(
   "round 4 · your move" "played · waiting for" "resolving round" "round 4 scored"
   "timeout pass" "their clock runs" "both played · scoring" "10 rounds · 5:00 clocks"
   "clock lane" "per-player clock" "claim the win" "settle hold"
+  # 2026-09-21: every match is rated; the action is `find an opponent ▸`
+  "play ranked" "ranked · "
 )
 WORD_PHRASES=("Inter")
 

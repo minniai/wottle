@@ -7,7 +7,7 @@ pnpm quickstart          # applies 20260921001_async_moves.sql (destructive: del
 pnpm dev
 ```
 
-Open two browsers, sign in as two names, `play ranked ▸` in both. Each player has ten moves; the caption clock counts 5:00 down for both.
+Open two browsers, sign in as two names, `find an opponent ▸` in both. Each player has ten moves; the ledger clock counts 5:00 down for both.
 
 ## See every state without a database
 

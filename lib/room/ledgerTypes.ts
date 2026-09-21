@@ -90,7 +90,7 @@ export type LedgerAction =
   | "reviewField"
   | "result"
   | "howToPlay"
-  | "playRanked"
+  | "findOpponent"
   | { challenge: string }
   | { acceptChallenge: string }
   | { declineChallenge: string };

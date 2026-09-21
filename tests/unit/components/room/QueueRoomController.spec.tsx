@@ -13,7 +13,7 @@ vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
 
 import { getMatchOverviewAction } from "@/app/actions/matchmaking/getMatchOverview";
 import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
-import { QueueRoomController } from "@/components/room/QueueRoomController";
+import { QueueRoom, QueueRoomController } from "@/components/room/QueueRoomController";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { MatchState, PlayerIdentity } from "@/lib/types/match";
 
@@ -66,7 +66,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     // Spec 045 B7: the progress is a live row, as Fig. 7 draws it; the hint
     // keeps the queue's context line.
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/setting the field · \d+ of 100 letters/);
-    expect(screen.getByTestId("ledger-hint")).toHaveTextContent(/ranked · \d+:\d\d · cancel ▸/);
+    expect(screen.getByTestId("ledger-hint")).toHaveTextContent(/searching · \d+:\d\d · cancel ▸/);
     fireEvent.click(screen.getByTestId("ledger-cancel-queue"));
     expect(useRoomStore.getState().phase).toBe("lobby");
     expect(mockReplace).toHaveBeenCalledWith("/lobby");
@@ -96,4 +96,50 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent");
     expect(mockReplace).not.toHaveBeenCalled();
   });
+
+  // Reported 2026-09-21: a queue-found match that ended (here by the clock) fell
+  // back to `Finding an opponent · ranked · 0:00` instead of showing the result.
+  it("a queue-found match that completes stays in the room as the final state; new opponent starts a fresh search", async () => {
+    vi.mocked(startQueueAction).mockResolvedValue({ status: "matched", matchId: "m1" });
+    vi.mocked(getMatchOverviewAction).mockResolvedValue({ status: "ok", self: me, opponent: kari });
+    render(<QueueRoom viewer={me} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_200);
+    });
+    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "match");
+
+    const completed: MatchState = {
+      ...match,
+      state: "completed",
+      endedReason: "both_incomplete",
+      winnerId: null,
+      completedAt: "2026-01-01T00:05:03.000Z",
+      clock: { ...match.clock, serverNow: "2026-01-01T00:05:05.000Z" },
+    };
+    await act(async () => {
+      useRoomStore.getState().applySnapshot(completed);
+      await vi.advanceTimersByTimeAsync(50);
+    });
+
+    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "final");
+    expect(screen.getByTestId("room")).toHaveAttribute("data-match-id", "m1");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished");
+    expect(screen.queryByText("Finding an opponent")).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    // The route is already /matchmaking, so nothing would remount the queue: the
+    // store's search counter does.
+    vi.mocked(startQueueAction).mockResolvedValue({ status: "queued" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    await act(async () => {
+      screen.getByTestId("slip-new-opponent").click();
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    expect(mockReplace).toHaveBeenCalledWith("/matchmaking");
+    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "queue");
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
+  });
 });
+

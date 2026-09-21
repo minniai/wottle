@@ -384,14 +384,18 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 12px;
   padding: 10px 0;
 }
+/* A long context (the queue's) wraps under itself, right-aligned, never into the wordmark. */
 .ledger__caption-right {
   display: flex;
+  justify-content: flex-end;
   align-items: baseline;
   gap: 10px;
+  min-width: 0;
+  text-align: right;
 }
-/* The one match clock (spec 050 FR-015): mono, tabular; heavier and blinking colour-only under 1:00. */
 /* The ledger clock (2026-09-21): the one clock, a boxed block under the caption. */
 .ledger__clock {
   position: relative;
@@ -507,6 +511,7 @@
   border: 1px solid var(--rule);
 }
 .ledger__wordmark {
+  flex: none;
   font-weight: 700;
   font-size: 16px;
   text-transform: lowercase;

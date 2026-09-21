@@ -15,7 +15,7 @@ export async function loginViaSlip(page: Page, username: string): Promise<void> 
   await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 20_000 });
   await expect(page).toHaveURL(/\/lobby$/, { timeout: 20_000 });
   await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId("player-bar-action-ranked")).toBeEnabled({ timeout: 10_000 });
+  await expect(page.getByTestId("player-bar-action-find")).toBeEnabled({ timeout: 10_000 });
 }
 
 /**
@@ -261,13 +261,13 @@ export async function startMatchWithRetry(
 
       // Click both start buttons simultaneously
       await Promise.all([
-        pageA.getByTestId("player-bar-action-ranked").click().catch((e) => {
+        pageA.getByTestId("player-bar-action-find").click().catch((e) => {
           if (!isPageOpen(pageA)) {
             throw new Error("Page A was closed during button click");
           }
           throw e;
         }),
-        pageB.getByTestId("player-bar-action-ranked").click().catch((e) => {
+        pageB.getByTestId("player-bar-action-find").click().catch((e) => {
           if (!isPageOpen(pageB)) {
             throw new Error("Page B was closed during button click");
           }

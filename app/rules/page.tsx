@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { RulesFigure } from "@/components/rules/RulesFigure";
 import { ScoringTable } from "@/components/rules/ScoringTable";
-import { PLAY_RANKED, WORDMARK } from "@/lib/constants/copy";
+import { FIND_OPPONENT, WORDMARK } from "@/lib/constants/copy";
 import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
 import { formatClock, MATCH_CLOCK_BUDGET_MS } from "@/lib/room/clock";
 import "@/app/styles/rules.css";
@@ -123,7 +123,7 @@ export default function RulesPage() {
       </section>
 
       <footer className="rules__footer">
-        <Link href="/lobby" className="action-primary" data-testid="rules-play">{PLAY_RANKED}</Link>
+        <Link href="/lobby" className="action-primary" data-testid="rules-play">{FIND_OPPONENT}</Link>
         <Link href="/lobby" className="action-secondary" data-testid="rules-back-bottom">{BACK}</Link>
       </footer>
     </main>

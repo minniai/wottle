@@ -58,7 +58,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     render(<LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />);
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("No opponent yet");
-    expect(screen.queryByTestId("player-bar-action-ranked")).toBeNull();
+    expect(screen.queryByTestId("player-bar-action-find")).toBeNull();
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("sign in to set the field");
     const slip = screen.getByTestId("slip");
     expect(slip).toHaveAttribute("data-kind", "signIn");
@@ -119,7 +119,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     (useLobbyPresenceStore as unknown as { setState: (s: object) => void }).setState({ players: [me, kari] });
     usePreferencesStore.setState({ previewEnabled: true });
     render(<LobbyRoomController viewer={me} initialPlayers={[me, kari]} recentGames={[]} />);
-    expect(screen.getByTestId("player-bar-action-ranked")).not.toBeDisabled();
+    expect(screen.getByTestId("player-bar-action-find")).not.toBeDisabled();
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("lobby · 1 here");
     fireEvent.click(screen.getByTestId("ledger-challenge-k"));
     expect(sendInviteAction).toHaveBeenCalledWith("k");
@@ -144,9 +144,9 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m9"));
   });
 
-  it("play ranked ▸ moves to the queue route; sign out clears the viewer", async () => {
+  it("find an opponent ▸ moves to the queue route; sign out clears the viewer", async () => {
     render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
-    fireEvent.click(screen.getByTestId("player-bar-action-ranked"));
+    fireEvent.click(screen.getByTestId("player-bar-action-find"));
     expect(mockReplace).toHaveBeenCalledWith("/matchmaking");
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     fireEvent.click(screen.getByTestId("ledger-menu-item-signout"));

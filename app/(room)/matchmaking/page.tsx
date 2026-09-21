@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { QueueRoomController } from "@/components/room/QueueRoomController";
+import { QueueRoom } from "@/components/room/QueueRoomController";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 
 export default async function MatchmakingPage() {
@@ -8,5 +8,5 @@ export default async function MatchmakingPage() {
   if (!session) {
     redirect("/");
   }
-  return <QueueRoomController viewer={session.player} />;
+  return <QueueRoom viewer={session.player} />;
 }

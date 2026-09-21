@@ -22,13 +22,14 @@ export const finalContext = (durationMmSs: string): string => `final · ${durati
 
 // Player bar — empty / searching seats
 export const NO_OPPONENT = "No opponent yet";
-export const NO_OPPONENT_SUBLINE = "ranked · about 0:10 to find one";
-export const PLAY_RANKED = "play ranked ▸";
+export const NO_OPPONENT_SUBLINE = "about 0:10 to find one";
+/** Every match is rated (spec 048), so the action says what it does: search for someone to play. */
+export const FIND_OPPONENT = "find an opponent ▸";
 export const PLAY = "play ▸";
 export const CANCEL = "cancel ▸";
 export const FINDING_OPPONENT = "Finding an opponent";
 export const searchingSubline = (elapsedMmSs: string): string =>
-  `ranked · ${elapsedMmSs} · ${CANCEL}`;
+  `searching · ${elapsedMmSs} · ${CANCEL}`;
 export const startsIn = (seconds: number): string => `starts in ${seconds}`;
 export const YOUR_NAME_PLACEHOLDER = "your name";
 export const NO_ACCOUNT_NEEDED = "no account needed";

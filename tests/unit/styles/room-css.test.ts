@@ -351,3 +351,14 @@ describe("room.css the ledger clock (2026-09-21)", () => {
   });
 });
 
+
+// Reported 2026-09-21: in a narrow ledger the queue's context (`10 moves each ·
+// one 5:00 clock`) wrapped into the wordmark (`wottle10 MOVES EACH`).
+describe("room.css the ledger caption", () => {
+  it("keeps a gap after the wordmark, never shrinks it, and wraps the context right-aligned", () => {
+    expect(block(".ledger__caption")).toMatch(/gap:\s*12px/);
+    expect(block(".ledger__wordmark")).toMatch(/flex:\s*none/);
+    expect(block(".ledger__caption-right")).toMatch(/text-align:\s*right/);
+    expect(block(".ledger__caption-right")).toMatch(/justify-content:\s*flex-end/);
+  });
+});

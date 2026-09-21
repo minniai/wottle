@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, PLAY_RANKED, SIGN_IN_TO_SET_THE_FIELD, YOU } from "@/lib/constants/copy";
+import { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU } from "@/lib/constants/copy";
 import type { LedgerAction, LedgerModel, Notice } from "@/lib/room/ledgerTypes";
 import { EMPTY_TERRITORY } from "@/lib/room/ledgerTypes";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -63,8 +63,8 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
           subline={NO_OPPONENT_SUBLINE}
           action={
             viewer ? (
-              <button type="button" className="action-primary" data-testid="player-bar-action-ranked" onClick={() => onAction("playRanked")}>
-                {PLAY_RANKED}
+              <button type="button" className="action-primary" data-testid="player-bar-action-find" onClick={() => onAction("findOpponent")}>
+                {FIND_OPPONENT}
               </button>
             ) : undefined
           }
