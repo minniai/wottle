@@ -108,6 +108,10 @@ function setupAdvanceRoundMocks() {
 
   const roundChain = {
     eq: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      // The integrity check's list read of the match's rounds (spec 049)
+      then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+        Promise.resolve({ data: [], error: null }).then(onFulfilled),
     single: vi.fn().mockResolvedValue({
       data: {
         id: "round-10",
@@ -168,7 +172,16 @@ function setupAdvanceRoundMocks() {
       if (table === "matches")
         return {
           select: vi.fn(() => matchChain),
-          update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          update: vi.fn().mockImplementation(() => {
+      // Spec 049: the round-end write is a compare-and-set that reads the affected rows.
+      const chain: Record<string, unknown> = {};
+      chain.eq = vi.fn(() => chain);
+      chain.neq = vi.fn(() => chain);
+      chain.select = vi.fn().mockResolvedValue({ data: [{ id: "match" }], error: null });
+      (chain as { then: unknown }).then = (onFulfilled: (v: { error: null }) => unknown) =>
+        Promise.resolve({ error: null }).then(onFulfilled);
+      return chain;
+    }),
         };
       if (table === "rounds")
         return {
@@ -196,6 +209,8 @@ function setupAdvanceRoundMocks() {
         };
       if (table === "scoreboard_snapshots")
         return { select: vi.fn(() => scoreboardChain) };
+      if (table === "word_score_entries")
+        return { select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) };
       if (table === "players")
         return { update: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ error: null }) }) };
       if (table === "lobby_presence")
