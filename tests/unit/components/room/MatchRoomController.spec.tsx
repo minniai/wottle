@@ -542,5 +542,14 @@ describe("MatchRoomController (spec 050)", () => {
     expect(oppFinal).toHaveAttribute("href", "/profile/bob");
     expect(oppFinal).not.toHaveAttribute("target");
   });
+
+  it("lobby on the match-over slip takes the slip down before it navigates", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
+    await screen.findByTestId("slip", {}, { timeout: 3_000 });
+    fireEvent.click(screen.getByTestId("slip-lobby"));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    expect(mockReplace).toHaveBeenCalledWith("/lobby");
+  });
 });
 

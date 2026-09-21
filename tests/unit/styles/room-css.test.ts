@@ -398,3 +398,44 @@ describe("room.css profile links on names", () => {
     expect(css).toMatch(/\.player-bar__name--link:hover,\s*\.player-bar__name--link:focus-visible,\s*\.lobby-ledger__profile:hover,\s*\.lobby-ledger__profile:focus-visible\s*\{[^}]*text-decoration:\s*underline/);
   });
 });
+
+// Reported 2026-09-21: nothing said what was clickable. Every action has a hover,
+// a pressed and a keyboard-focus state, drawn with the tokens and the §6 timing.
+describe("room.css interaction states", () => {
+  const rule = (selector: string): string => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const m = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`));
+    return m?.[1] ?? "";
+  };
+
+  it("primary actions invert on hover to paper inside a 1.5px ink frame, and take the tint when pressed", () => {
+    expect(rule(".action-primary:hover:not(:disabled)")).toMatch(/background:\s*var\(--paper\)/);
+    expect(rule(".action-primary:hover:not(:disabled)")).toMatch(/color:\s*var\(--ink\)/);
+    expect(rule(".action-primary:hover:not(:disabled)")).toMatch(/inset 0 0 0 1\.5px var\(--ink\)/);
+    expect(rule(".action-primary:active:not(:disabled)")).toMatch(/background:\s*var\(--tint\)/);
+  });
+
+  it("secondary actions underline on hover and dim when pressed", () => {
+    expect(rule(".action-secondary:hover:not(:disabled)")).toMatch(/text-decoration:\s*underline/);
+    expect(rule(".action-secondary:active:not(:disabled)")).toMatch(/color:\s*var\(--muted\)/);
+  });
+
+  it("keyboard focus is a 2px ink outline; a pointer click leaves no ring", () => {
+    expect(rule(".action-primary:focus-visible,\n.action-secondary:focus-visible")).toMatch(/outline:\s*2px solid var\(--ink\)/);
+    expect(rule(".action-primary:focus:not(:focus-visible),\n.action-secondary:focus:not(:focus-visible)")).toMatch(/outline:\s*none/);
+  });
+
+  it("state changes take the design system's 120ms ease", () => {
+    expect(block(".action-primary")).toMatch(/transition:[^;]*120ms cubic-bezier\(0\.2, 0, 0\.2, 1\)/);
+    expect(css).toMatch(/\n\.action-secondary \{[^}]*transition:[^;]*120ms/);
+  });
+
+  it("menu items tint their row on hover rather than underline", () => {
+    expect(rule(".room-menu__list .action-secondary:hover")).toMatch(/background:\s*var\(--tint\)/);
+    expect(rule(".room-menu__list .action-secondary:hover")).toMatch(/text-decoration:\s*none/);
+  });
+
+  it("a free letter takes the tint under the pointer only while the field takes picks", () => {
+    expect(rule('.field:not([data-disabled]) .field__cell[data-state="free"]:hover')).toMatch(/background:\s*var\(--tint\)/);
+  });
+});

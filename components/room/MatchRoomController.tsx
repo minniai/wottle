@@ -390,7 +390,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         useRoomStore.getState().requestNewSearch();
         router.replace("/matchmaking");
       }
-      else if (action === "lobby") router.replace("/lobby");
+      else if (action === "lobby") {
+        // The slip belongs to the match: take it down before the lobby draws.
+        dismissSlip();
+        router.replace("/lobby");
+      }
       // The final ⋯ menu offers profile and sign out (reported 2026-09-21: they did nothing here).
       else if (action === "profile") router.push("/profile");
       else if (action === "signOut") {
