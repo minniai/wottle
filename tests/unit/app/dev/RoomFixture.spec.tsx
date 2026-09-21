@@ -26,15 +26,16 @@ describe("RoomFixture", () => {
     vi.unstubAllGlobals();
   });
 
-  // Spec 049 US2: LEK (you, M3) crosses GILT (opp, M1) at (7,6). The L is
-  // Kári's — he froze it first — so LEK's band covers only (8,6) and (9,6).
-  it("the crossing letter is the opponent's; settled, LEK's band covers the two letters it froze", () => {
+  // Spec 049 US2, amended 2026-09-21: LEK (you, M3) crosses GILT (opp, M1) at
+  // (7,6). The L stays Kári's colour — he froze it first — but LEK's band
+  // shades the whole word, the L included.
+  it("the crossing letter is the opponent's; settled, LEK's band covers the whole word", () => {
     render(<RoomFixture phase="idle" />);
     const l = screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === "7" && c.getAttribute("data-y") === "6")!;
     expect(l).toHaveAttribute("data-seat", "opp");
     expect(l).not.toHaveAttribute("data-state", "shared");
     const bands = screen.getAllByTestId("field-band");
-    expect(bands.find((b) => b.getAttribute("data-word") === "LEK")).toHaveAttribute("data-cells", "8,6;9,6");
+    expect(bands.find((b) => b.getAttribute("data-word") === "LEK")).toHaveAttribute("data-cells", "7,6;8,6;9,6");
     expect(bands.find((b) => b.getAttribute("data-word") === "GILT")).toHaveAttribute("data-cells", "7,4;7,5;7,6;7,7");
   });
 

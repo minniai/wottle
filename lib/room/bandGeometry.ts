@@ -24,7 +24,7 @@ export interface BandRect {
 export interface WordBand {
   id: string;
   seat: Seat;
-  /** The letters this word froze first: the band's tint (spec 049 US2). */
+  /** The letters the band shades: the whole word (amended 2026-09-21). */
   cells: Coordinate[];
   /** The whole word: the chevron's place and the hover's extent. */
   wordCells: Coordinate[];
@@ -121,8 +121,6 @@ const isDev = process.env.NODE_ENV !== "production";
 interface BandSource {
   board: string[][];
   frozenTiles: FrozenTileMap;
-  /** The slot whose word this is: the band covers the cells this slot froze. */
-  slot: PlayerSlot;
   trusted: boolean;
 }
 
@@ -130,11 +128,11 @@ interface BandSource {
  * The cells a word's band covers, or `null` when it must not be drawn
  * (spec 047 FR-001, review S4; spec 049). A settled word is drawn only over
  * letters that are still frozen and only when the board spells the word
- * there: on 2026-09-20 the served board was round 1's, and bands were drawn
- * over ÞKHL and GÁAAT. Of those letters it covers the ones its own seat
- * froze — a crossing keeps the earlier owner (spec 049 US2). The live round
- * and the most recently scored round keep their full run — their freezes
- * land with the reveal or the next snapshot. A word under two letters is
+ * there: on 2026-09-20 the served board was the starting one, and bands were
+ * drawn over ÞKHL and GÁAAT. A band shades its whole word, crossings included
+ * (amended 2026-09-21); each letter still takes the colour of the player who
+ * froze it first (`ownerSeatOf`). The live move and the most recently scored
+ * move are trusted before their freezes land. A word under two letters is
  * never drawn.
  */
 function bandCells(w: AccumulatedWord, source: BandSource): Coordinate[] | null {
@@ -147,9 +145,7 @@ function bandCells(w: AccumulatedWord, source: BandSource): Coordinate[] | null 
       return null;
     }
   }
-  if (source.trusted && frozen.length === 0) return w.coordinates;
-  const owned = frozen.filter((c) => source.frozenTiles[`${c.x},${c.y}`]?.owner === source.slot);
-  return owned.length === 0 ? null : owned;
+  return w.coordinates;
 }
 
 const upper = (s: string): string => s.toLocaleUpperCase("is");
@@ -188,7 +184,7 @@ export function bandsFromWords(input: BandsInput): WordBand[] {
     const live = input.liveMoveKey != null && k === input.liveMoveKey;
     const trusted = live || (input.trustMoveKey != null && k === input.trustMoveKey);
     const slot: PlayerSlot = w.playerId === input.playerAId ? "player_a" : "player_b";
-    const cells = bandCells(w, { board: input.board, frozenTiles: input.frozenTiles, slot, trusted });
+    const cells = bandCells(w, { board: input.board, frozenTiles: input.frozenTiles, trusted });
     if (!cells) continue;
     bands.push({
       id,
