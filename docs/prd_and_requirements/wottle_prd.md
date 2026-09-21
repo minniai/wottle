@@ -1,6 +1,6 @@
 # Wottle MVP – Product Requirements Document
 
-Wottle is a competitive **2-player real-time word duel** merging word-search gameplay with chess-clock tension and spatial tile-freezing strategy. This PRD provides exact gameplay rules, scoring formulas, architecture, and UX requirements for implementation of the MVP with clear, testable specifications.
+Wottle is a competitive **2-player real-time word duel** merging word-search gameplay with one shared five-minute clock and spatial tile-freezing strategy. This PRD provides exact gameplay rules, scoring formulas, architecture, and UX requirements for implementation of the MVP with clear, testable specifications.
 
 ## 1. Gameplay Mechanics & Rules
 
@@ -15,7 +15,7 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 - **Valid Words:** Players form words by swapping letters (see **Moves** below). A valid word is any sequence of **3 or more letters** found in a straight line on the grid along one of the **four orthogonal reading directions**: horizontal (left-to-right **and** right-to-left) and vertical (top-down **and** bottom-up). **Diagonals are not scored.** A run that is a valid word in both directions scores once, as the forward reading (rules §3.1). A new word may not abut a frozen run on its own axis unless the whole combined run is itself a word (the whole-run rule, rules §3.5a). Words cannot wrap around edges of the board. The authoritative statement of every rule is `docs/prd_and_requirements/wottle_game_rules.md`.
 - **Contiguous Path:** The letters of a word must lie in contiguous adjacent tiles in one direction with no gaps. Only unfrozen (movable) tiles can form new words (see **Frozen Tiles** below), though a player’s _own_ frozen tiles may be part of a new word if they line up appropriately.
 - **Word Validation:** After each move, the game server checks the four orthogonal directions from the swapped positions to identify any new contiguous sequences of ≥3 letters that form valid dictionary words. Word matching is case-insensitive and respects diacritical marks in the current language.
-- **Word Scoring Uniqueness:** Each distinct word can contribute to a player’s score **only once per match**. If the same exact word (same letter sequence) is formed by the **same player** again in a later move, it will be identified but will **not** award points a second time. (This prevents exploits like re-forming a word repeatedly for points.) Each newly discovered word by a player is only scored the first time that player finds it.
+- **Repeated Words Score:** A word scores every time it is formed at a new location, however often it has been scored before (rules §3.7, decided 2026-09-21). The same word at the same location cannot re-score because its letters are frozen.
 
 ### 1.3 Move Mechanics
 
@@ -27,20 +27,20 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
   - **Mobile:** the same steps by tap.
   - **Touch Area:** the whole cell is the hit target; ≥ 44×44px effective on a 390px-wide phone (the field spans the full width, no scrolling or zooming of the board).
   - **Haptic Feedback:** a pulse on commit (optional, can be disabled from the ledger's `⋯` menu together with sound).
-- **Move Resolution:** Committing pins your two letters (dashed ring in your colour) and stops your clock. When the round resolves, each scored word is drawn as a band along its letters in the scorer's colour with a chevron at the reading start, the word and its points are written into the ledger's live row, and the totals count up (see **Scoring** below). Scored tiles freeze when the round resolves.
-- **Round-Based Submissions:** Gameplay proceeds in rounds. In each round, both players independently submit one swap. A submitted swap is **broadcast to the opponent immediately** (their two letters pin in the opponent's colour on your field); the board itself changes only at round resolution. See rules §2.
+- **Move Resolution:** Committing sends the swap; the server resolves it at once. Each scored word is drawn as a band along its letters in the scorer's colour with a chevron at the reading start, the word and its points are written into the ledger row for that move, and the totals count up (see **Scoring** below). Scored tiles freeze on resolution. Your field takes no pick until your own reveal has drawn and held 600ms; a move that reaches the server while your previous one is unresolved is refused.
+- **Independent Moves:** There are no rounds. Each player makes ten moves whenever they like; both may move at the same moment. The server resolves moves one at a time in the order it received them, and a move that needs a letter an earlier move froze or exchanged is refused and not counted. See rules §2.
 
-### 1.4 Turn Structure & Time Control
+### 1.4 Moves & Time Control
 
-- **Round-Based Simultaneous Play:** The match consists of **10 rounds (“moves”) per player**. In each round, both players may submit exactly one swap.
-- **Clocks:** Each player has **one clock for the whole match** (rules §2a). It runs while that player's move for the current round is open and stops when they submit; the opponent's clock continues until they submit or their time expires. Time spent in one round is not restored later.
-- **Visibility:** A submitted swap is broadcast to the opponent immediately and its two letters are pinned in the submitter's colour on the opponent's field; the board changes only at resolution, when both swaps are applied, words are validated and scores are updated.
-- **Identical Swap Conflict:** If both players submit the exact same swap in a round (same two tiles), the swap with the earlier valid submission time takes precedence. The later identical swap is ignored.
-- **Time Control:** One match-long budget of **5:00** per player (`matches.player_*_timer_ms`), **no increments**. (The Field & Ledger design bundle was drafted with 10:00; the team kept 5:00 — `specs/044-field-ledger-redesign/spec.md`, Decisions Q1.)
-- **Round Progression:** After both moves are revealed and resolved, the next round begins. This continues until each player has completed 10 rounds, or time-based end conditions trigger.
-- **Visual Timer Indication:** Each clock is drawn as a **lane** at the inner edge of that player's bar — full width is the match budget, the filled part in the player's seat colour is the time left — with the mm:ss numeral at the bar's centre (ink while running, muted when stopped). Under 1:00 the lane thickens and blinks in colour only. There is no green / amber / red.
-- **Time Expiration:** If a player’s clock reaches 0 before all rounds are completed, that player cannot submit further swaps; the server records a timeout pass for them in each remaining round. The opponent may continue submitting swaps for all remaining rounds.
-- **Fair Play Safeguards:** Timing and round resolution are enforced server-side for fairness and to prevent client manipulation.
+- **Ten Moves Each, Any Time:** The match is **10 moves per player**, made whenever the player likes. Neither player waits for the other; both may move at the same moment (rules §2).
+- **Receipt Order:** The server stamps every move with a receipt sequence under a per-match lock and resolves moves strictly in that order, one at a time. Client clocks are never consulted. Two moves a millisecond apart resolve in that order, the later one seeing the earlier one's swap and freezes.
+- **Refusal:** A move that, when its turn to resolve comes, needs a letter an earlier move froze or exchanged is refused and **not counted**; the player picks again. There is no other conflict rule.
+- **One in flight:** A player has at most one unresolved move; the field takes no pick until their own reveal has drawn and held 600ms.
+- **Time Control:** **One clock of 5:00 for the match**, shared by both players, starting at match start and **never pausing** (`matches.started_at`, `matches.deadline_at`). No increments.
+- **Visibility:** The opponent's resolved swap exchanges its letters on your field at once and its bands draw while you pick; nothing is pinned. A pick on a letter the opponent exchanged or froze clears with a notice.
+- **Visual Timer Indication:** The clock is drawn once, in the ledger caption (`move 4 of 10 · 3:12`); under 1:00 the numeral is heavier and blinks in colour only. Each player bar's lane counts that player's moves 0–10 in their seat colour, and its sub-line carries the count. There is no green / amber / red.
+- **Deadline:** A move received at or before the deadline is resolved and counted even if its reveal completes after 0:00; a move received after it is refused.
+- **Fair Play Safeguards:** Receipt, ordering, scoring, the deadline and the result are enforced server-side.
 
 ### 1.5 Frozen Tiles & Territory Control
 
@@ -56,17 +56,17 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 
 - **Move Limit:** 10 moves per player (20 total).
 - **Game Ends When:**
-  - Both players reach 10 moves (all rounds completed), or
-  - One player’s time expires and the opponent completes all remaining rounds, or
-  - One player resigns.
-- **Winner:** Highest score wins. Tiebreaker: most frozen tiles. If tied, draw.
+  - Both players have 10 resolved moves, or
+  - The 5:00 clock has run out and every move received before it has resolved, or
+  - One player resigns, or a player with 10 moves ends the match after the opponent has been gone for the reconnection window.
+- **Winner, in this order:** a player with fewer than 10 moves at the end **loses**, whatever the totals; both short of 10 is a **draw**; otherwise the higher total wins, a tie goes to the player with more exclusively owned frozen tiles, and a full tie is a draw. Every outcome is rated.
 
 ## 2. Scoring System
 
 ### 2.1 Formula
 
 ```txt
-Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
+Move Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 ```
 
 - **Base Word Score:** Sum of letter values in all new words.
@@ -127,28 +127,27 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 - **Casual:** Unrated; flexible pairing without Elo constraints.
 - **Challenge:** Direct invite only (unrated unless both players are ranked).
 
-**Flow Summary (room states):** lobby (empty seat) → lobby (signed in) → queue (`Finding an opponent`, the field sets itself letter by letter) → found (opponent's name writes into the top bar, `round 1 in 3 · 2 · 1`) → match → final (verdict in the ledger, field stays) → rematch / new opponent / lobby.
+**Flow Summary (room states):** lobby (empty seat) → lobby (signed in) → queue (`Finding an opponent`, the field sets itself letter by letter) → found (opponent's name writes into the top bar, `starts in 3 · 2 · 1`) → match → final (verdict in the ledger, field stays) → rematch / new opponent / lobby.
 
 ### 3.2 Game Setup
 
 1. Assign seats: the server's `player_a` / `player_b` slots are internal; each client sees itself as `you` (teal, bottom bar) and the other as `opponent` (coral, top bar).
 2. Generate board using weighted letter distribution + seed words.
-3. Initialize both match clocks (rules §2a).
+3. Start the match clock (rules §2a).
 4. On a player's first match, the ledger's live row shows the three-sentence rules; afterwards rules are behind `? rules` in the ledger foot.
-5. Begin Round 1.
+5. Both players may move.
 
 ### 3.3 In-Game Flow
 
-1. Both players independently select and submit one swap for the current round.
-2. When both submissions are in (or a timer condition triggers), the server reveals both swaps, validates words, and calculates scores.
-3. Freeze claimed tiles.
-4. Broadcast updated board state + scores to both players simultaneously.
-5. Begin the next round until all 10 rounds are completed or time expires.
+1. Either player selects and commits a swap whenever they like.
+2. The server receives it, stamps its order, and resolves it at once: validates words, calculates the score, freezes the tiles.
+3. The resolution is broadcast to both players; the mover's field is locked until their reveal has held, the opponent's is not.
+4. Repeat until both players have ten resolved moves or the clock runs out.
 
 ### 3.4 Post-Game Flow (final room state)
 
 - The field stays, with every scored word's band. The bars show final totals and the rating change (`1191 → 1203 · +12 · wins`, or `rating pending`).
-- The ledger states the result once — `<name> wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` — above the full rounds table and territory. No modal, no confetti, no red.
+- The ledger states the result once — `<name> wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` — above the full moves table and territory. The match-over slip carries the same verdict over the faded field. No confetti, no red.
 - Update Elo (ranked mode).
 - Actions in the ledger foot: `rematch ▸ · new opponent ▸ · lobby`. A rematch request from the opponent appears as a live-row line (`<name> asks for a rematch · accept ▸ · decline`).
 
@@ -183,7 +182,7 @@ Turn Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 - **Stack:** Supabase (Postgres + Functions).
 - **Responsibilities:**
   - Validate swaps & scoring.
-  - Manage turn order & clocks.
+  - Order and resolve moves; keep the match clock.
   - Broadcast real-time updates.
   - Store results.
 - **Data Model:**
@@ -229,17 +228,17 @@ opens as a sheet from the live row.
 
 **Layout Elements:**
 
-- **Player bars (60px, 56px on phones):** seat square + name + one-line sub-line (`1204 · you`, `1191 · opponent`) left; clock mm:ss centred; total right. The bar's edge nearest the field is the **clock lane** (§1.4). The opponent is always on top, you always at the bottom.
+- **Player bars (60px, 56px on phones):** seat square + name + one-line sub-line (`1204 · you · move 4 of 10`, `1191 · opponent · 6 of 10 · playing`) left; total right. The bar's edge nearest the field is the **moves lane** (§1.4), that player's moves 0–10 in their seat colour. The opponent is always on top, you always at the bottom.
 - **Field:** the largest square that fits between the bars (≤ 720px), flat paper cells, 1px rules, 1.5px ink frame, letter value in the top-right gutter of each cell. No coordinate labels (coordinates live in the accessible label only). The whole cell is the hit target.
-- **Ledger:** caption (`wottle` · `ranked · round 4 of 10`), seat header, one row per round (words in the scorer's colour, round total), territory bar and counts, hint line, notices, foot (`? rules`, actions, `⋯` menu). It never scrolls.
-- **No top bar, no cards, no move counter.** The round number appears once, in the ledger.
+- **Ledger:** caption (`wottle` · `move 4 of 10 · 3:12`, the one clock), the move rail, seat header, ten rows by move number (your Nth move in your column, theirs in theirs; words in the scorer's colour, the move's points), territory bar and counts, hint line, notices, foot (actions, `⋯` menu). It never scrolls.
+- **No top bar, no cards.** The clock appears once, in the ledger caption; each player's move count in their bar and, for the viewer, on the rail.
 
 ### 7.2 Visual Feedback
 
 - **Colour:** seven tokens only — paper, ink, rule, tint, muted, **you (teal)**, **opp (coral)**. Colour is seat-relative: teal is always the viewer. No gradients, shadows, radii, third accent.
-- **Clock:** the lane drains in the seat colour; stopped clocks have a muted numeral; under 1:00 the lane thickens to 8px and blinks at 1Hz (colour only, solid under reduced motion). No green / amber / red.
-- **Scored words:** drawn as **bands** (14% tint of the scorer's colour along the word, chevron at the reading start). During the reveal each band draws along its word in 400ms, staggered 120ms, at 30% tint, then settles to 14%. A run valid both ways carries two chevrons; a letter shared by both players is ink.
-- **Pick / preview / pin:** picked letter in your colour with an ink ring and slight scale; previewed pair exchanged in place with dotted rings; committed pair pinned with dashed rings in the committer's colour (the opponent's pins appear in coral on broadcast). Pins fade 200ms at settle.
+- **Clock:** one numeral in the ledger caption; under 1:00 it is weight 600 and blinks at 1Hz (colour only, solid under reduced motion). The bars' lanes fill with moves played. No green / amber / red.
+- **Scored words:** drawn as **bands** (14% tint of the scorer's colour along the word, chevron at the reading start). During the reveal each band draws along its word in 400ms, staggered 120ms, at 30% tint, then settles to 14%. A run valid both ways carries one chevron; a crossing letter keeps the colour of the player who froze it first.
+- **Pick / preview / commit:** picked letter in your colour with an ink ring and slight scale; previewed pair exchanged in place with dotted rings; a committed pair exchanges in place and the field's frame returns to ink until your reveal has held. Nothing is pinned; the opponent's letters exchange on your field when their move resolves.
 - **Score reveal:** words and points are written into the ledger's live row as each band lands; totals count up over 400ms. There is no popup.
 - **Invalid pick:** the letter shakes 300ms **in its own colour**; the live row states the fact (`frozen · Kári R2 · pick another`). No red, no flash, no toast.
 - **Sound / haptics:** `tile-select` on pick, `valid-swap` on commit (with haptic where available), a tick per band on reveal. Nothing on cancel or error. Toggled from the `⋯` menu.
@@ -270,12 +269,10 @@ opens as a sheet from the live row.
 ### 10.1 Player Disconnection
 
 - **During Game:**
-  - If a player disconnects mid-match, the game enters a **pause state** with a visible indicator.
-  - Disconnected player's clock **pauses immediately**.
-  - Opponent sees "Waiting for opponent to reconnect..." message.
-  - **Reconnection Window:** Player has ≤10 seconds to reconnect and resume.
-  - **After 10 seconds:** If disconnected player doesn't reconnect, their clock resumes and continues counting down. If their clock expires, they forfeit and opponent wins.
-  - If disconnected player reconnects within window: Game resumes from exact state (board, scores, timers restored).
+  - If a player disconnects mid-match, nothing pauses: the match clock keeps running and the opponent keeps playing.
+  - The opponent's bar shows `reconnecting · 0:42 left` with a dashed lane for the 90-second window.
+  - A player who reconnects resumes from the exact state (board, scores, counts, the clock).
+  - A player who does not come back simply fails to finish ten moves and loses at 0:00. If the opponent already has ten moves, after the window they may end the match early (`end the match ▸`); the ordinary rules decide it.
 - **Before Game Starts:** If a player disconnects during lobby/matchmaking, invitation is cancelled or matchmaking returns to queue.
 - **Network Errors:** Transient network issues are handled with automatic retry logic (up to 3 attempts) before treating as disconnection.
 
@@ -295,10 +292,10 @@ opens as a sheet from the live row.
 
 ### 10.4 Time-Related Edge Cases
 
-- **Simultaneous Time Expiration:** If both players' clocks expire at the same time (within same server tick), game ends immediately. Winner determined by score, then frozen tiles, then draw.
-- **Single Player Time Expiration:** If one player’s clock expires before all rounds are completed, that player submits no further swaps. The opponent may proceed to submit swaps for all remaining rounds; the match concludes once those rounds are completed.
-- **Clock Synchronization Issues:** Server time is authoritative. Client clocks are for display only. Server sends periodic clock sync updates to prevent drift (>1s difference triggers correction).
-- **Negative Time:** Server prevents negative time values. When clock reaches 0, player is flagged immediately and turn switches (if applicable).
+- **Deadline:** The database clock decides at receipt whether a move is in time; a move received one millisecond before the deadline counts and its reveal is shown before the match completes. A move received after it is refused.
+- **Last-second resolution:** Settlement first drains every move received before the deadline, then decides the match; three triggers (the resolver, a state poll, the cron sweep) may race, and completion is a compare-and-set so ratings are applied once.
+- **Clock Synchronization:** Server time is authoritative. The client anchors its countdown to the server's `deadlineAt` and `serverNow` on every snapshot; a drift over 1s corrects on the next one.
+- **Negative Time:** The caption reads `0:00` and never below; `time · scoring` while the last moves resolve.
 
 ### 10.5 Board Generation Edge Cases
 

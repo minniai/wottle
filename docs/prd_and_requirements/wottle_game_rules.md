@@ -2,7 +2,7 @@
 
 > **Authoritative specification of Wottle's gameplay, scoring rules, and the algorithm that enforces them.**
 >
-> This is a normative document, not a narrative. Any code change that touches the scoring pipeline (`lib/game-engine/*`, `lib/match/roundEngine.ts`, `lib/match/stateMachine.ts`) or that changes scoring-adjacent constants (`lib/constants/game-config.ts`) MUST be checked against every rule in §1–§6 below. If a rule here is ambiguous or contradicts the implementation, treat that as a bug report: resolve the contradiction *in this document* before merging the code change, and add a regression test that pins the outcome.
+> This is a normative document, not a narrative. Any code change that touches the scoring pipeline (`lib/game-engine/*`, `lib/match/moveResolver.ts`, `lib/match/matchSettlement.ts`) or that changes scoring-adjacent constants (`lib/constants/game-config.ts`) MUST be checked against every rule in §1–§6 below. If a rule here is ambiguous or contradicts the implementation, treat that as a bug report: resolve the contradiction *in this document* before merging the code change, and add a regression test that pins the outcome.
 >
 > Regressions in scoring are the single most common class of bug in this codebase. The Change Log in §10 lists each past regression and names the rule that would have caught it; when reading this document, treat that log as warnings, not history.
 
@@ -11,7 +11,7 @@
 ## Table of Contents
 
 1. [Board and tile state](#1-board-and-tile-state)
-2. [Rounds and moves](#2-rounds-and-moves) · [2a. Time control](#2a-time-control-clock-model)
+2. [Moves](#2-moves) · [2a. Time control](#2a-time-control-clock-model)
 3. [What counts as a scored word](#3-what-counts-as-a-scored-word)
 4. [The per-letter coverage rule](#4-the-per-letter-coverage-rule-critical)
 5. [Scoring formula](#5-scoring-formula)
@@ -32,7 +32,7 @@
 - The board is a **10×10 grid** (`BOARD_SIZE = 10`, `BOARD_TILE_COUNT = 100`), fully filled with letters at all times. A "cell" is never empty.
 - Each cell has one letter from the active language (default: Icelandic, `language = "is"`).
 - Each cell is either **frozen** or **unfrozen**:
-  - **Frozen** — the tile has been part of at least one scored word in a prior round and is locked. The tile's letter cannot change for the rest of the match.
+  - **Frozen** — the tile has been part of at least one scored word in an earlier move and is locked. The tile's letter cannot change for the rest of the match.
   - **Unfrozen** — the tile can be moved by a swap.
 - A frozen tile carries metadata:
   - `owner` — `player_a`, `player_b`, or `both` (if both players scored words that used it).
@@ -42,30 +42,33 @@
 
 ---
 
-## 2. Rounds and moves
+## 2. Moves
 
-- A match is **exactly 10 rounds**. Each round has a clock and a simultaneous-submission phase.
-- In each round, each player submits **exactly one swap**: a pair of coordinates `(fromX, fromY)` and `(toX, toY)`. A swap exchanges the two letters. A swap may NOT target a frozen tile on either end.
-- **Submission visibility** (issue #210, extended by Linear O-57 / spec 042). When a player submits their swap, the swap is broadcast to the opponent immediately and animated on the opponent's board with a FLIP movement. The opponent's local board updates to reflect the swap; it does not wait for round resolution. The submitting player's clock pauses at the moment of submission (unchanged). Both players still pick their moves independently — there is no signal that the opponent is "thinking" beyond the running clock — but a player who submits second can plan on the post-opponent-swap board layout. Server-side state is unchanged (the canonical board is updated only at round resolution); the visibility change is in what the realtime broadcast carries (`MatchState.pendingMoves`).
-  - **Instant scoring reveal** (spec 042, Linear O-57). When the first player's submission produces scored words, the server's `instantScoreFirstSubmission` fast path runs in the `submitMove` `after()` hook and (a) persists `word_score_entries` and the new `matches.frozen_tiles` row, (b) broadcasts a `MatchState.partialSummary` payload, and (c) returns. Both clients see the scored-word highlights, frozen-tile glow, and score-delta popup attributed to the first mover immediately — they do not have to wait for the second player to submit. The second mover's `submitMove` reads the now-authoritative `matches.frozen_tiles` and the existing frozen-tile guard rejects any swap targeting one of the new freezes. The race-window guard inside `instantScoreFirstSubmission` no-ops when both submissions arrive before the fast path can read the round, deferring to the combined scoring pipeline; the zero-score branch returns silently without broadcasting (the most common round outcome stays a no-op). When the first mover's reveal freezes a tile the second mover has already tapped as the first half of a pending swap, the second mover's selection auto-clears silently and an aria-live region announces the deselect for screen readers (FR-004, FR-005, FR-017).
-- **Conflict resolution**: if both swaps target the same coordinate, the earlier-submitted swap applies and the later one is dropped (first-come-first-served, `submittedAt` ascending; `player_a` wins exact ties).
-- Once both swaps are resolved, the round enters the **scoring phase** (§3–§6).
-
-The swap mechanic is the *only* way to mutate the board. Scoring is a pure function of the board state after both swaps have been applied and the prior round's frozen state.
+- Each player makes **exactly ten moves** in a match (`matches.move_limit`, default 10), **whenever they like**. There are no rounds and no turns: a player never waits for the opponent, and both may move at the same moment.
+- A move is **one swap**: a pair of coordinates `(fromX, fromY)` and `(toX, toY)` plus the two letters the player saw there (`fromLetter`, `toLetter`). A swap exchanges the two letters. A swap may NOT target a frozen tile on either end.
+- **Receipt.** The server receives a move under a per-match lock and gives it a gap-free **receipt sequence** (`match_moves.global_seq`) and a server timestamp (`received_at`). Client timestamps are never read. Receipt refuses a move — without recording it — when the match is over, the clock has passed 0:00 (§2a), the player already has ten resolved moves, or the player has a move still unresolved (**one move in flight per player**).
+- **Resolution in receipt order.** Moves resolve **one at a time, in receipt-sequence order**, each against the board and freeze map as the previous sequence left them (`lib/match/moveResolver.ts`, spec 050). The sequence is the ordering authority; `received_at` is informational, because a database clock is not guaranteed monotone across a restart. Two moves received a millisecond apart resolve in that order even when two server instances race; the later one sees the earlier one's swap and freezes.
+- **Refusal at resolution.** If, by the time a move resolves, either of its letters is frozen (`frozen`) or is no longer the letter the player saw (`moved` — an earlier move exchanged it), the move is **refused and not counted**: it does not consume one of the ten, and the player picks again. This is the whole of conflict resolution; there is no "same swap" rule and no `player_a` tie-break, because no two moves ever resolve together.
+- **Scoring on resolution.** A resolved move is scored at once (§3–§6) and its freezes are written before the next sequence is claimed. Both players see the result the moment it is broadcast (`move-resolved`); the mover's field takes no further pick until their own reveal has drawn and held (600ms), the opponent's field is never locked by it.
+- **The board changes only by resolved moves.** Scoring is a pure function of the board after the move's swap and the freeze map as it stood when the move was claimed.
 
 ### 2a. Time control (clock model)
 
-- Each player has **one clock for the whole match** — a single budget that must cover all ten of their moves. There is no per-round timer and no increment.
-- The budget today is **5:00 (300 000 ms) per player**, stored in `matches.player_a_timer_ms` / `player_b_timer_ms` and carried to the client as `TimerState { playerId, remainingMs, status: "running" | "paused" | "expired" }` (`lib/types/match.ts`, `MatchState.timers`). The Field & Ledger design (`docs/design_documentation/README.md`) draws each clock as a lane whose full width is this budget. The design documents were written assuming 10:00; the team decided on 2026-09-14 to keep **5:00** (`specs/044-field-ledger-redesign/spec.md`, Decisions Q1), so every `10:00` in the design bundle is read as `5:00`.
-- A player's clock **runs while their move for the current round is open** — from `rounds.started_at` until their submission is recorded — and **stops when they submit**. Time spent in one round is not restored later. Enforcement is server-side (spec 007): the deduction is computed from `rounds.started_at` and `move_submissions.submitted_at`, never from the client.
-- **At 0:00** the player can submit no further swaps. The server synthesises a **timeout pass** for that player in every remaining round (`roundEngine.ts`, spec 007), so the round resolves with the opponent's swap alone and the match continues to round 10. A player whose clock has expired keeps their score and frozen tiles; if both clocks expire the match completes immediately. The expired clock renders as `0:00` with an empty lane.
-- Disconnection does not stop a clock by itself; the 90-second reconnection window and the claim-win path are described in `CLAUDE.md` (Disconnect Handling).
+- A match has **one clock**, shared by both players: **5:00 (300 000 ms)** from the moment the match starts (`matches.started_at`, `matches.deadline_at = started_at + 5:00`). It **never pauses** — not for a reveal, not for a disconnection — and it never stops early except by the match ending. The Field & Ledger design draws it once, in the ledger caption (§12).
+- **The deadline is decided at receipt.** A move received at or before `deadline_at` is resolved and counted even if its resolution completes after the deadline; the reveal is shown and only then does the match complete. A move received after the deadline is refused (`deadline`). The comparison is made by the database clock inside the receipt function, never by a serverless instance's clock.
+- **The match ends** when both players have ten resolved moves, or when the deadline has passed and every move received before it has resolved. It is decided in this order (`lib/match/resultCalculator.ts`, spec 050):
+  1. one player has fewer than ten moves → **the other wins** (`incomplete`), whatever the totals;
+  2. both have fewer than ten → **draw** (`both_incomplete`), whatever the totals;
+  3. both have ten → higher total wins; a tie goes to the player with more **exclusively owned frozen tiles**; still tied → **draw** (`moves_complete`).
+  Every outcome is rated.
+- A player who has made ten moves watches the rest of the match with the field locked. If the opponent has been unreachable for the 90-second reconnection window, that player may end the match early (`end the match ▸`); the ordinary rules above decide it. A disconnection by itself changes nothing else: the clock runs, and a player who does not come back simply fails to finish.
+- Resigning ends the match at once as a forfeit (`forfeit`, the other player wins).
 
 ---
 
 ## 3. What counts as a scored word
 
-A *word* is a contiguous sequence of letters on the board. For a word to be **scored** in a given round, **all** of the following must hold:
+A *word* is a contiguous sequence of letters on the board. For a word to be **scored** by a move, **all** of the following must hold:
 
 ### 3.1 Direction
 
@@ -81,23 +84,23 @@ The word length must be at least **`minimumWordLength`**, currently **3** (set i
 
 The word, normalized to NFC and lowercased, must be present in the active language's dictionary. For Icelandic, this is the full inflected BÍN word list (~3.74M entries), loaded once at runtime from `data/wordlists/word_list_is.txt`. **The dictionary accepts BÍN entries and nothing else** — there is no additions mechanism; if a real word is missing (e.g. the *kóla* paradigm, Linear O-70), the fix is regenerating the wordlist from BÍN upstream, never an in-repo addition. A small exclusions file, `word_list_is_exclusions.txt`, is subtracted at load time to remove BÍN entries rejected as playable words (e.g. *sýs*, Linear O-81); it accepts one word per line with `#` comments, NFC-normalized and lowercased on load. Accented and unaccented vowels are distinct letters: *ílæti* is a valid BÍN word while *ilæti*/*itæli* are not, and lookups never conflate them (O-69).
 
-### 3.4 Triggered by this round's swap
+### 3.4 Triggered by this move's swap
 
-Only words that pass through at least one of the round's swap coordinates are candidates. A word that already existed on the board before the round's swaps and is untouched by the swaps does not re-score.
+Only words that pass through at least one of the move's two swap coordinates are candidates. A word that already existed on the board before the move and is untouched by the swap does not re-score.
 
 ### 3.5 Same-axis conflict between new words
 
-Two new words scored in the same round on the same axis (both horizontal or both vertical) must not overlap and must not be physically adjacent (one ending where the other begins). This preserves the standalone invariant: each scored word ends at an unscored tile or the board edge.
+Two new words scored by the same move on the same axis (both horizontal or both vertical) must not overlap and must not be physically adjacent (one ending where the other begins). This preserves the standalone invariant: each scored word ends at an unscored tile or the board edge.
 
 Perpendicular new words (one horizontal, one vertical) may share exactly one tile — the crossing — and that is valid and expected.
 
 ### 3.5a Same-axis conflict with prior-round scored tiles
 
-The standalone invariant (§3.5) also applies **across rounds**, and the rule is purely physical: a new word *W* on axis *a* must not be physically adjacent — at either endpoint along *a* — to a **frozen** tile, unless the maximal contiguous same-axis scored run containing *W*'s tiles is itself a dict word.
+The standalone invariant (§3.5) also applies **across moves**, and the rule is purely physical: a new word *W* on axis *a* must not be physically adjacent — at either endpoint along *a* — to a **frozen** tile, unless the maximal contiguous same-axis scored run containing *W*'s tiles is itself a dict word.
 
 Formal statement: let *E_before* be the maximal contiguous run of **frozen** tiles preceding *W*'s first tile along axis *a*, read outward from *W* (possibly empty — empty when *W*'s first tile is at the board edge or its predecessor is unfrozen). Let *E_after* be the analogous run following *W*'s last tile. If *E_before* and *E_after* are both empty, the rule is trivially satisfied. Otherwise, *W* is valid only if the concatenation `E_before ⧺ W ⧺ E_after` — NFC-normalized, lowercased, read forward or reversed — is in the dictionary.
 
-"Frozen" here means frozen **before this round**. Tiles of other candidate words in the same round's subset are handled separately by §3.5 (`hasNoSameAxisConflict`) and §4 (cross-axis per-letter coverage, which treats same-round candidates as "extra established" tiles). `scoredAxes` is **not** consulted. Physical frozen state is the only signal that matters. This works because in a real game a frozen tile cannot exist in isolation on its axis: if a tile is frozen, it was part of a prior ≥ `minimumWordLength` scored word, so the other tiles of that prior word are also frozen and contiguous on the axis of that prior word.
+"Frozen" here means frozen **before this move was claimed**. Tiles of other candidate words in the same move's subset are handled separately by §3.5 (`hasNoSameAxisConflict`) and §4 (cross-axis per-letter coverage, which treats same-move candidates as "extra established" tiles). `scoredAxes` is **not** consulted. Physical frozen state is the only signal that matters. This works because in a real game a frozen tile cannot exist in isolation on its axis: if a tile is frozen, it was part of a prior ≥ `minimumWordLength` scored word, so the other tiles of that prior word are also frozen and contiguous on the axis of that prior word.
 
 **Accepts** (real #136, preserved): Player swaps `B` into `(2,2)` to form horizontal `BÆN`. The adjacent `Þ` at `(1,2)` is **unfrozen** (plain letter, never scored). *E_before* and *E_after* are both empty → rule satisfied → `BÆN` scores.
 
@@ -111,9 +114,9 @@ Formal statement: let *E_before* be the maximal contiguous run of **frozen** til
 
 The word must not create an **uncovered scored letter** in any reading direction. This is the single most important and most often-misunderstood rule. It has its own section: §4.
 
-### 3.7 Duplicate word suppression
+### 3.7 Repeated words score
 
-If the same word text (case-insensitive, NFC-normalized) has already been scored by the same player in an earlier round of the same match, the word is marked **duplicate** and scores **0 points**. It does not count toward the multi-word combo bonus. Duplicate tracking is per-player — each player independently accumulates their own scored-word history.
+A word scores **every time it is formed at a new location**, by either player, however often it has been scored before in the match. There is no duplicate suppression (withdrawn 2026-09-21, spec 050; the earlier rule was documented but never implemented). The same word at the same location cannot re-score: its letters are frozen, and a move must pass through an unfrozen letter (§3.4, §6).
 
 ---
 
@@ -138,7 +141,7 @@ A candidate scoring event that violates this condition for any tile of the new w
 
 - A contiguous scored run of length 2 (below `minimumWordLength`) is always a violation: no sub-run of length ≥ 3 can fit inside 2 tiles. Rejection is unconditional.
 - A contiguous scored run of length ≥ `minimumWordLength` is OK as long as the new tiles are *covered* by some valid dict sub-run. The full maximal run need **not** itself be a dictionary word.
-- Already-frozen tiles from prior rounds do **not** need to be re-covered by the new scoring — they were covered when they were placed. The rule is only evaluated for tiles introduced by the candidate event.
+- Already-frozen tiles from earlier moves do **not** need to be re-covered by the new scoring — they were covered when they were placed. The rule is only evaluated for tiles introduced by the candidate event.
 
 ### 4.3 Two canonical examples
 
@@ -176,7 +179,7 @@ total = letter_points + length_bonus
 
 ### 5.3 Multi-word combo bonus
 
-If a player scores *n* non-duplicate words in a single round:
+If a player scores *n* words with a single move:
 
 | *n* | Combo bonus |
 |---|---|
@@ -185,16 +188,16 @@ If a player scores *n* non-duplicate words in a single round:
 | 3 | +5 |
 | ≥ 4 | +7 + (*n* − 4) |
 
-Duplicate words (§3.7) do **not** count toward *n*.
+Every scored word counts toward *n* (§3.7).
 
-### 5.4 Duplicates
+### 5.4 Repeated words
 
-A word the same player has already scored in this match scores 0 and does not count toward the combo bonus. It is still reported in the round summary with a "previously scored" label so the player sees the result of their swap.
+Withdrawn 2026-09-21 (spec 050): a repeated word scores in full and counts toward the combo bonus. See §3.7.
 
-### 5.5 Round delta and match total
+### 5.5 Move delta and match total
 
-- **Round delta** for a player = sum of per-word totals (excluding duplicates) + combo bonus.
-- **Match total** = cumulative sum of round deltas across all 10 rounds.
+- **Move delta** for a player = sum of per-word totals + combo bonus.
+- **Match total** = cumulative sum of move deltas across the player's moves (`matches.player_a_score` / `player_b_score`, written by every resolved move).
 
 Ratings (Elo) are computed from match totals after the match ends; they are not part of scoring.
 
@@ -205,40 +208,41 @@ Ratings (Elo) are computed from match totals after the match ends; they are not 
 When a word is accepted and scored:
 
 - Every tile of the word is **frozen**.
-- The frozen tile records its `owner` (the scoring player's slot; `both` if both players scored overlapping words that include this tile in the same round) and its `scoredAxes` (the set of axes it was scored on; can be `["horizontal"]`, `["vertical"]`, or `["horizontal", "vertical"]`).
-- The board MUST maintain at least **24 unfrozen tiles** at all times (`MIN_UNFROZEN_TILES = 24`). If freezing all tiles of newly-scored words would breach this floor, freezing is partial: tiles are frozen in reading order (row first, then column) until the floor would be breached, then the remainder are left unfrozen. The words still score their full points — partial freeze only affects freezing, not scoring. `wasPartialFreeze` is set to `true` in the round result.
+- The frozen tile records its `owner` (the scoring player's slot; a tile keeps the owner that froze it first, so `both` no longer arises in play and is kept in the type for old data only) and its `scoredAxes` (the set of axes it was scored on; can be `["horizontal"]`, `["vertical"]`, or `["horizontal", "vertical"]`).
+- The board MUST maintain at least **24 unfrozen tiles** at all times (`MIN_UNFROZEN_TILES = 24`). If freezing all tiles of newly-scored words would breach this floor, freezing is partial: tiles are frozen in reading order (row first, then column) until the floor would be breached, then the remainder are left unfrozen. The words still score their full points — partial freeze only affects freezing, not scoring. `wasPartialFreeze` is set to `true` in the move result.
 
 ---
 
 ## 7. Algorithm: how the rules are enforced
 
-The scoring pipeline runs server-side in `processRoundScoring` (`lib/game-engine/wordEngine.ts`). It is a pure function of the pre-round board and the accepted moves.
+The scoring pipeline runs server-side in `processRoundScoring` (`lib/game-engine/wordEngine.ts`), called by the move resolver (`lib/match/moveResolver.ts`) for **one move at a time**. It is a pure function of the board and freeze map as the previous receipt sequence left them and of the one move.
 
 ### 7.1 Pipeline
 
-For each round:
+For each match, the resolver **claims** the move whose receipt sequence is `matches.resolved_seq + 1` (a compare-and-set; only one instance can hold it), resolves it, and **finishes** it with a second compare-and-set that advances `resolved_seq` by one. Then it claims the next. The sequence, not the timestamp, is the order (§2).
 
-1. **Sort** accepted moves by `submittedAt` ascending; ties broken by `player_a` first (`sortByPrecedence`).
-2. For each move in order:
-   1. **Reject swap** if either endpoint is already frozen (including frozen earlier in *this* round by a prior move). Skip to the next move.
-   2. **Apply swap** (`applySwap`, immutable, `lib/game-engine/board.ts`).
+For the claimed move:
+
+1. **Refuse** with `frozen` if either endpoint is frozen, or with `moved` if either letter differs from the one the player sent (§2). A refused move is recorded as `rejected`, is not counted, and writes nothing else.
+2. Otherwise:
+   1. **Apply swap** (`applySwap`, immutable, `lib/game-engine/board.ts`).
    3. **Scan** for dictionary-valid words passing through the swap coordinates (`scanFromSwapCoordinates`, `lib/game-engine/boardScanner.ts`). Returns a list of `BoardWord` candidates, each one already ≥ `minimumWordLength` and in the dictionary.
    4. **Cross-validate** and select the best subset (`selectOptimalCombination`, `lib/game-engine/crossValidator.ts`). See §7.2.
    5. **Score** the selected words (letter points + length bonus, excluding opponent-frozen letters from letter points).
    6. **Freeze** the scored tiles, respecting the 24-tile floor (`freezeTiles`, `lib/game-engine/frozenTiles.ts`). Updates `owner` and `scoredAxes`.
-3. Aggregate per-player deltas, combo bonuses, and duplicates into a `RoundScoreResult`.
-4. Emit structured log (`word-engine.scoring`) with duration, words found, words scored, tiles frozen, `wasPartialFreeze`.
+3. Aggregate the words, the combo bonus and the delta into the move's result; the finish writes the board, the freeze map, the player's total and move count, and the `word_score_entries` rows in one transaction.
+4. Emit structured logs (`word-engine.scoring`, `move.resolved`) with duration, words found, words scored, tiles frozen, `wasPartialFreeze`.
 
 ### 7.2 Cross-validation (`selectOptimalCombination`)
 
-Given the list of candidate words for one player's move:
+Given the list of candidate words for the move:
 
 1. **Enumerate all non-empty subsets** of candidates (2^*n* − 1). *n* is small in practice (a handful of candidates per swap).
 2. For each subset, **prune same-axis conflicts** between candidates (`hasNoSameAxisConflict`, §3.5).
 3. For each surviving subset, **check per-letter coverage** and **same-axis standalone invariant** (`isSubsetValid`): for each candidate word in the subset, treat *all other subset candidates' tiles* as "extra established" tiles, then apply both `hasCrossWordViolation` (§7.3, cross-axis) and `violatesFrozenAdjacencyOnSameAxis` (§7.4, same-axis).
 4. Among subsets that pass, pick the one with the **maximum total score** (letter points + length bonus per word, summed).
 
-There is **no individual pre-filter** before subset enumeration. A candidate's coverage can depend on another candidate in the same round (BÁS in #136 only reaches a length-3 horizontal scored run if BÆN is also in the subset), so pruning a candidate before mutual validation is unsound.
+There is **no individual pre-filter** before subset enumeration. A candidate's coverage can depend on another candidate from the same move (BÁS in #136 only reaches a length-3 horizontal scored run if BÆN is also in the subset), so pruning a candidate before mutual validation is unsound.
 
 ### 7.3 The per-letter check (`hasCrossWordViolation`, cross-axis)
 
@@ -262,7 +266,7 @@ For a candidate *W* on axis *a*:
 3. If both extensions are empty → no adjacency, return OK.
 4. Otherwise, build the full run `beforeChars ⧺ W ⧺ afterChars` and accept only if the resulting string (or its reverse), NFC-normalized and lowercased, is in the dictionary.
 
-The check is purely physical — `scoredAxes` is not consulted. The check also uses only `frozenTileSet` (prior-round frozen state); **same-round candidate tiles are not treated as frozen extensions**. Cross-word interactions between candidates in the same subset are handled by `hasNoSameAxisConflict` (§3.5, same-axis pairs) and by `hasCrossWordViolation` (§7.3, which receives the other candidates' tiles as `extraTileSet`).
+The check is purely physical — `scoredAxes` is not consulted. The check also uses only `frozenTileSet` (the freeze map as claimed); **same-move candidate tiles are not treated as frozen extensions**. Cross-word interactions between candidates in the same subset are handled by `hasNoSameAxisConflict` (§3.5, same-axis pairs) and by `hasCrossWordViolation` (§7.3, which receives the other candidates' tiles as `extraTileSet`).
 
 In a real game a frozen tile cannot be an "isolated perpendicular scored neighbor" on its axis: a frozen tile was part of a prior ≥ `minimumWordLength` scored word, and the other tiles of that word are also frozen, contiguous, on the same axis as that prior word. An unfrozen adjacent letter (like `Þ` in the real #136) never triggers the check.
 
@@ -283,10 +287,12 @@ These are board-global post-conditions. A scoring event that would break any of 
 | I3 | For every maximal contiguous scored run of length ≥ min, every newly-frozen tile is covered by some dict sub-run of length ≥ min that includes it. | §4.1, `runContainsValidSubRunCoveringIndex` |
 | I4 | Every frozen tile's `owner` is one of `player_a`, `player_b`, `both`; never undefined. | `freezeTiles` |
 | I5 | The board always has ≥ `MIN_UNFROZEN_TILES` (24) unfrozen tiles. | `freezeTiles` partial-freeze logic |
-| I6 | No swap ever targets a frozen tile (including tiles frozen earlier in the same round). | `processPlayerMove` rejection branch |
-| I7 | No two scored words in the same round on the same axis overlap or are physically adjacent. | `hasNoSameAxisConflict` |
+| I6 | No resolved move ever targets a frozen tile, or a letter that an earlier receipt sequence exchanged; such a move is refused and not counted. | `moveResolver.resolveOne` refusal branch |
+| I7 | No two scored words from the same move on the same axis overlap or are physically adjacent. | `hasNoSameAxisConflict` |
 | I7a | No newly-scored word is physically adjacent on its own axis to any frozen tile, unless the combined maximal same-axis scored run (new word + frozen extensions on both sides) is itself a dict word. | §3.5a, `violatesFrozenAdjacencyOnSameAxis` |
-| I8 | All scoring passes for a round (instant-scoring fast path AND combined pass) score against the same freeze baseline: the map as it stood at round start (`rounds.frozen_tiles_before`). Freezes the fast path persists to `matches.frozen_tiles` mid-round gate *new swap submissions* (FR-014) but never feed back into the same round's scoring. | `roundEngine.advanceRound` + `instantScoring.runFastPath` baseline selection; pinned by `roundEngine.frozenTilesBaseline.test.ts` |
+| I8 | A move is scored against the board and freeze map written by the previous receipt sequence (`match_moves.board_before` / `frozen_before` equal the previous move's `_after`). There is one scoring pass per move. | `claim_next_move` returns the match's live board and map; pinned by `moveResolver.spec.ts` |
+| I9 | `matches.resolved_seq` is gap-free and never decreases; `global_seq` is the ordering authority and `received_at` is informational. A finished move is never finished twice. | `finish_move` compare-and-set; `moveResolver.race.test.ts` |
+| I10 | `player_x_moves` equals the count of that player's `resolved` rows; a `rejected` row has no per-player sequence. | `finish_move` |
 
 If you add a new scoring-related feature, state which invariant(s) your change affects and which it must continue to uphold. If you find an invariant is missing from this list, add it here and write a test that pins it.
 
@@ -302,7 +308,7 @@ Tests that exercise scoring live primarily in:
 - `tests/unit/lib/game-engine/deltaDetector.test.ts`
 - `tests/unit/lib/game-engine/scorer.test.ts`
 - `tests/unit/lib/game-engine/frozenTiles.test.ts`
-- `tests/integration/roundScoring.test.ts`
+- `tests/integration/roundScoring.test.ts` (per-move scoring against a live board; the name predates spec 050)
 
 For any new or modified scoring behavior, a test MUST:
 
@@ -331,6 +337,7 @@ Read this section before editing anything in `lib/game-engine/crossValidator.ts`
 | 2026-06-10 | TBD | O-71 (O-58/O-70 related) | The fast path's 500 ms `Promise.race` budget was below a cold serverless dictionary load (1.3–4 s; "once per process lifetime" is every lambda instance on Vercel), so in production the race always timed out and the instant scoring reveal never fired. Worse, `Promise.race` does not cancel the losing branch: the timed-out run kept executing detached, froze at instance suspend, and on thaw could run `executeScoringPipeline`'s delete-then-insert against a round the combined path had already resolved — wiping both players' canonical `word_score_entries` and re-inserting only the first mover's. Fixed by raising the budget to 5 s, warming the dictionary before scoring, and re-reading `rounds.state` immediately before `computeWordScoresForRound` (defer unless still `collecting`). Regression tests: `tests/unit/match/instantScoring.coldStartBudget.spec.ts`. | §8 invariant: only the combined path may write a resolved round's `word_score_entries`; the fast path writes only while the round is `collecting`. |
 | 2026-09-20 | spec 049 | — | Not a scoring regression — a serving bug. Once a match completed, `matches.current_round` was 11, no round 11 existed, and `loadMatchState`'s `ensureBoardSnapshot` silently regenerated the board from the seed, so every finished match showed its **starting** letters under ten rounds of correct bands and freezes (seen live 2026-09-20 as `ÞKHL`, `GÁAAT`, `DUT`, `ÝGRR`). Fixed by serving a completed match from its last played round and never regenerating a board for a match that has rounds. Regression test: `tests/unit/lib/match/stateLoader.lastPlayed.spec.ts`. | Invariant: the room shows the last played round's board; a missing round row is a fault, never a fresh board. |
 | 2026-09-20 | spec 049 | — | `advanceRound` step 14 updated the match row by id alone, so a thawed `after()` hook from round 5 landed two minutes after the match completed and wrote round-5 values over it (`current_round` 6, stale clocks). Fixed with a compare-and-set on the round the writer read and on the match not being completed. Regression test: `tests/unit/lib/match/roundEngine.staleWrite.spec.ts`. | Invariant: the round pointer, clocks, state, winner and reason never move backwards. |
+| 2026-09-21 | spec 050 | — | Not a regression — a rules change. Rounds are gone: each player makes ten moves whenever they like on one shared 5:00 clock; moves resolve one at a time in server receipt order; a move landing on a letter an earlier move froze or exchanged is refused and not counted. §2, §2a, §7.1 and I6/I8 rewritten; I9/I10 added. Duplicate suppression (§3.7, §5.4) withdrawn — it had never been implemented (`is_duplicate` was written `false` unconditionally). The instant-scoring fast path, the combined pass, the timeout pass and the round-start baseline (`rounds.frozen_tiles_before`) no longer exist; their regression rows above are history. | §2 (receipt order, refusal), §2a (one clock, deadline at receipt), I8–I10. | <!-- retired-name -->
 | 2026-09-14 | spec 044 | — | Not a regression: pinned the §3.5a design example `BORÐA + GILT` (rejected when `borðagilt` is not a word; accepted when it is) and §3.1 one-record-per-run (`FÁR`/`RÁF` → one record, forward reading) so the Field & Ledger UI's "bands never touch end to end" and "one chevron per band" renderings have named tests. | §3.5a, §3.1 (`tests/unit/lib/game-engine/wholeRun.bordaGilt.test.ts`, `doubleReading.test.ts`). |
 
 When you land a scoring-related fix, append a row here with: date, PR number, issue number, one-sentence description of what went wrong, and the rule section that now prevents it. If the fix exposes a rule that was not previously documented, document it in this file *in the same PR*.
@@ -339,7 +346,7 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 
 ## 11. Code references
 
-- **Rules surface** — this document is the source of truth; `lib/constants/game-config.ts` holds the numeric constants (`minimumWordLength`, `maxRounds`, `timePerRoundMs`, `boardSize`, `language`).
+- **Rules surface** — this document is the source of truth; `lib/constants/game-config.ts` holds the numeric constants (`minimumWordLength`, `boardSize`, `language`); the move limit and the clock are `matches.move_limit` and `matches.deadline_at`.
 - **Pipeline entry point** — `lib/game-engine/wordEngine.ts::processRoundScoring`.
 - **Scanner** — `lib/game-engine/boardScanner.ts::scanFromSwapCoordinates`.
 - **Reading direction (§3.1, §12)** — `lib/game-engine/readingDirection.ts::deriveReadingDirection` derives ltr / rtl / ttb / btt from the stored tile order of a word record; `lib/match/wordScoreRow.ts` maps `word_score_entries` rows to `WordScore` (with `direction`) for the ledger and the field bands.
@@ -350,7 +357,7 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 - **Freezer** — `lib/game-engine/frozenTiles.ts::freezeTiles`.
 - **Dictionary** — `lib/game-engine/dictionary.ts::loadDictionary`; wordlist at `data/wordlists/word_list_is.txt`.
 - **Letter values** — `lib/game-engine/letter-values/letter_scoring_values_<lang>.ts`.
-- **Round orchestration** — `lib/match/roundEngine.ts::advanceRound`, `lib/match/stateMachine.ts`.
+- **Move orchestration** — `lib/match/moveResolver.ts::resolvePendingMoves` (claim → `resolveOne` → finish), `lib/match/matchSettlement.ts::settleMatchIfDue`, `lib/match/resultCalculator.ts::determineMatchWinner`; the Postgres functions `receive_move`, `claim_next_move`, `finish_move` (`supabase/migrations/20260921001_async_moves.sql`).
 - **Older narrative (superseded)** — `docs/archive/notes/260303-word-scoring-rules.md`. Kept for history; always prefer this document.
 
 ---
@@ -366,19 +373,21 @@ The Field & Ledger design (`docs/design_documentation/README.md`) renders each r
 | Run valid both ways (§3.1) | One record, one band, **one chevron** at the kept reading's start (forward reading wins); one word in the ledger row. |
 | A tile in two words / crossing (§3.5, §4) | Both words are recorded; the crossing letter keeps the colour and band of the player who froze it first; the later word's band covers its other letters (spec 049). |
 | Standalone / whole-run rule (§3.5a) | Two bands of the same seat on the same axis **never touch end to end**; a legal extension of a frozen run is a single longer word and a single band. |
-| Frozen tile (§6) | The letter sits inside a settled band and cannot be picked; tapping it shakes the letter 300ms in its own colour and the ledger's live row reads `frozen · <name> R<n> · pick another`. |
+| Frozen tile (§6) | The letter sits inside a settled band and cannot be picked; tapping it shakes the letter 300ms in its own colour and the ledger's live row reads `frozen · <name> M<n> · pick another`. |
 | Territory (§6) | A 4px bar in the ledger — you / free / opponent — with the three counts beneath it. Territory is stored per tile but shown as words. |
-| One swap per round, broadcast on submit (§2) | Your two letters **pin** (dashed ring in your colour) when you commit; the opponent's two letters pin in coral the moment their swap is broadcast. Pins fade at settle. |
-| Clock (§2a) | The **lane** at the inner edge of each player bar: full width = the match budget, filled in the seat colour for the time left. Under 1:00 it thickens and blinks (colour only). A stopped clock has a muted numeral; an expired one reads `0:00` with an empty lane. |
-| Round number and progression (§2) | In the ledger: the caption `round 4 of 10`, the **round rail** (ten cells under the caption: played filled ink, current tinted and framed, the rest outlined), and one row per round with the current round as the tinted **live row** whose first line names the beat (`round 4 · your move`, `played · waiting for Kári`, `resolving round 4`, `round 4 scored`). |
-| Whose move it is (§2) | The field's frame is a 3px outline in the viewer's seat colour while the move is theirs; each bar's sub-line ends `· your move` / `· thinking` / `· played ●`. |
-| A round closes (§2, §5) | After the reveal the scored row holds for 1.2s (`round 4 scored` over `you +12 · Kári +0 · round 5 opens in 1`) before the next live row opens; the field takes no pick meanwhile. |
-| Scoring (§5) | Written into the live row as each band lands (`word · points`), round total pinned top right of the row, match totals counting up in the bars. |
-| Duplicate word (§5.4) | Listed in the row with `0` points; its band is still drawn (the tiles freeze). |
-| Reconnection window | The disconnected player's lane becomes a dashed pattern and holds; their sub-line counts `reconnecting · 0:42 left`. When the window is spent, the claim is put to the player on a **slip** over the field (`Kári is gone` · `claim the win ▸` · `keep waiting ▸`). |
-| Match over (§2, §5.5) | A slip over the field, 600ms after the final settle: `Kári wins` in the winner's ink (`draw` in ink), both totals, the detail line, both rating lines, then `rematch ▸` · `new opponent ▸` · `review the field ▸` · `lobby`. The ledger keeps the verdict beneath it. |
-| A forced win (resign, disconnect, spent clock) | The winner is the one the server recorded, not the higher total; the detail line reads `<loser> resigned` / `<loser> left` / `<loser> ran out of time` in place of the counted line. |
-| Resigning | A slip: `Resign the match?` with the round and the player's clock, `yes, resign ▸` · `keep playing ▸`; the clocks keep running. |
+| A move, committed and resolved (§2) | Nothing is pinned: a committed move resolves at once. Your two letters exchange in place on commit; the opponent's exchange on your field the moment their resolution lands. The field's frame returns to ink from commit until your own reveal has held. |
+| A move refused (§2) | The two letters return; the live row reads `frozen · Kári just froze it · pick another` or `moved · Kári just moved it · pick another` for two seconds; the move count is unchanged. |
+| The opponent's move on your field (§2) | Their letters exchange and their bands draw at 30% while you pick; nothing locks. A pick on a letter they exchanged or froze clears with `pick cleared · Kári moved that letter`. |
+| Clock (§2a) | Once, in the ledger caption: `move 4 of 10 · 3:12`. Under 1:00 the numeral is weight 600 and blinks (colour only); `0:00` when spent. The bars carry no clock. |
+| Moves and progression (§2) | In the ledger: the caption `move 4 of 10` (the viewer's next move), the **move rail** (ten cells under the caption counting the viewer's moves: played filled ink, the next tinted and framed, the rest outlined), and ten rows indexed by move number — your Nth move in your column, theirs in theirs — with your next open move as the tinted **live row** whose first line names the beat (`move 4 · your move`, `move 4 · scoring`, `move 4 scored`, `10 of 10 played`, `time · scoring`). Each bar's lane is that player's moves 0–10 in the seat colour and its sub-line carries the count (`move 4 of 10`, `6 of 10 · playing`, `6 of 10 · scoring`, `10 of 10 · done`). |
+| Whose move it is (§2) | The field's frame is a 3px outline in the viewer's seat colour while a move is theirs to make; it is ink while their move is in flight, revealing or holding, and once they have ten. |
+| A move closes (§2, §5) | After your reveal the scored row holds 600ms (`move 4 scored` over `you +13 · move 5 opens`) before the next live row opens; the field takes no pick meanwhile. The opponent's reveal never holds your field. |
+| Scoring (§5) | Written into the row as each band lands (`word · points`), the move's points pinned top right of its cell, match totals counting up in the bars. A resolved move with no word writes `0`. |
+| Repeated word (§3.7) | Scored and drawn like any other; nothing marks it. |
+| Reconnection window | The disconnected player's lane becomes a dashed pattern; their sub-line counts `reconnecting · 0:42 left`. The clock keeps running. When the window is spent and the viewer has ten moves, a **slip** offers `Kári is gone` · `Kári 8 of 10 · 0:00 left to reconnect` · `end the match ▸` · `keep waiting ▸`; otherwise nothing is offered. |
+| Match over (§2a, §5.5) | A slip over the field, 600ms after the final reveal has held: `Kári wins` in the winner's ink (`draw` in ink), both totals, the detail line, both rating lines, then `rematch ▸` · `new opponent ▸` · `review the field ▸` · `lobby`. The label counts the match: `match over · 4:52`. The ledger keeps the verdict beneath it. |
+| Why it ended (§2a) | The detail line says what decided it, once: `by 46 points · 10 words to 8 · territory 27–21` (both finished), `Kári played 8 of 10` (`incomplete`), `neither finished` (`both_incomplete`), `Kári resigned`, `Kári left`. |
+| Resigning | A slip: `Resign the match?` with the viewer's move count and the clock (`move 4 of 10 · 3:12 left`), `yes, resign ▸` · `keep playing ▸`; the clock keeps running. |
 | Every match is rated | No caption or state says otherwise; a rating line reads `rating pending` until the row is written. |
-| Which board the room shows | A live match: the board of the round named by the match's round pointer. A finished match: the board after its **last played round**. Never the starting board regenerated from the seed once a round exists; a missing round is a fault, logged and handed to recovery (spec 049). |
+| Which board the room shows | `matches.board`, the live board written by every resolved move; a finished match keeps the board its last resolved move left. The starting board is generated once, at match start (spec 049's regeneration fault cannot recur: there is no round to look up). |
 

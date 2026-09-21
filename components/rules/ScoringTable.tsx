@@ -5,7 +5,7 @@ export const SCORING_ROWS: { rule: string; value: string }[] = [
   { rule: "letter values", value: "the numerals on the letters, added up" },
   { rule: "length bonus", value: `(letters − 2) × ${calculateLengthBonus(3)}` },
   { rule: "a letter the opponent froze", value: "counts for length, not for points" },
-  { rule: "a word you already scored", value: "0" },
+  { rule: "the same word somewhere new", value: "scores again" },
 ];
 
 export function ScoringTable() {

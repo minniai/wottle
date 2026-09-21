@@ -12,6 +12,8 @@ import type { FrozenTileMap, MatchEndedReason, PlayerSlot, ReadingDirection } fr
 import { emptyRows, type LedgerModel, type LedgerRow, type LiveLines, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
 
 export const TOTAL_ROUNDS = 10;
+/** Spec 050: ten moves per player. `TOTAL_ROUNDS` is retired by its P1 step; until then both name the same count. */
+export const TOTAL_MOVES = TOTAL_ROUNDS;
 
 /** A scored word as accumulated on the client across rounds. */
 export interface AccumulatedWord {
