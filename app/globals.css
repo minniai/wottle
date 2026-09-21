@@ -15,11 +15,13 @@
   --tint: #F4F1E8;
   --muted: #5A6572;
   --you: #147D7A;
-  --opp: #E4573D;
+  /* Coral, calmed 21 September 2026 to weigh the same as teal: same hue
+     (OKLCH H 34), chroma 1.5x teal's (was 2.1x), a shade darker. 3.9:1 on paper. */
+  --opp: #C4634C;
   /* Coral as *text* below 17px: the ledger's words, the numeral on a scored
-     letter, the profile's vs rows. 5.1:1 on paper, where --opp is 3.4:1
-     (spec 045 decision 2). Never for letters, lanes, totals or seat squares. */
-  --opp-text: #C2402A;
+     letter, the profile's vs rows. 5.3:1 on paper (spec 045 decision 2).
+     Never for letters, lanes, totals or seat squares. */
+  --opp-text: #AB4F3B;
 
   /* The only permitted alphas: 14% settled band, 30% live reveal. */
   --you-band: color-mix(in srgb, var(--you) 14%, transparent);
