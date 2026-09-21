@@ -32,12 +32,13 @@ const NO_ACTION = () => undefined;
 export function Room({ matchId, topBar, field, bottomBar, ledger, onSlipAction, onSignedIn }: RoomProps) {
   const phase = useRoomStore((s) => s.phase);
   const slip = useRoomStore((s) => (s.slipDismissed ? null : s.slip));
-  const roomRef = useRef<HTMLDivElement | null>(null);
+  const roomRef = useRef<HTMLElement | null>(null);
   const fieldSize = useFieldSize(roomRef);
   const style = fieldSize > 0 ? ({ "--field-size": `${fieldSize}px` } as CSSProperties) : undefined;
 
   return (
-    <div ref={roomRef} className="room" data-testid="room" data-phase={phase} data-match-id={matchId} style={style}>
+    // The room is the page's main landmark (axe landmark-one-main); the ledger is its aside.
+    <main ref={roomRef} className="room" data-testid="room" data-phase={phase} data-match-id={matchId} style={style}>
       <div className="room__stack">
         <div data-testid="room-slot-top">{topBar}</div>
         <div
@@ -54,6 +55,6 @@ export function Room({ matchId, topBar, field, bottomBar, ledger, onSlipAction, 
       <aside className="room__ledger" data-testid="room-slot-ledger">
         {ledger}
       </aside>
-    </div>
+    </main>
   );
 }
