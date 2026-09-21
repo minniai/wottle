@@ -29,6 +29,7 @@ import {
   YES_RESIGN,
   isGone,
   isGoneFact,
+  points,
 } from "@/lib/constants/copy";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
@@ -159,7 +160,7 @@ function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState
         <span className="slip__label">{matchOverLabel(slip.durationMmSs)}</span>
         <h2 id={headlineId} className="slip__headline" data-seat={winner ?? undefined}>{headline}</h2>
         <span className="slip__score" data-testid="slip-score">
-          <span data-seat={first}>{slip.scores[first]}</span> – <span data-seat={second}>{slip.scores[second]}</span>
+          <span data-seat={first}>{points(slip.scores[first])}</span> – <span data-seat={second}>{points(slip.scores[second])}</span>
         </span>
         <span className="slip__label">{slip.verdict.detailLine}</span>
       </div>

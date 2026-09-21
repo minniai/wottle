@@ -1,4 +1,4 @@
-import { drawLine, finalContext, forcedDetail, incompleteDetail, NEITHER_FINISHED, RATING_PENDING, ratingSubline, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import { drawLine, finalContext, forcedDetail, incompleteDetail, marginDetail, NEITHER_FINISHED, RATING_PENDING, ratingSubline, verdictDetail, verdictLine } from "@/lib/constants/copy";
 import { liveText, type LiveState } from "./liveLines";
 import { liveLinesFor, type MoveState } from "./moveState";
 
@@ -7,6 +7,7 @@ import { clockPhase, formatClock, laneFraction } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { bandIdForWord } from "./bandGeometry";
+import { moveValues } from "@/lib/scoring/missPenalty";
 import type { Coordinate } from "@/lib/types/board";
 import type { FrozenTileMap, MatchEndedReason, PlayerSlot, ReadingDirection } from "@/lib/types/match";
 import { emptyRows, type LedgerModel, type LedgerRow, type LiveLines, type SeatCell, type Territory, type Verdict, type WordCell } from "./ledgerTypes";
@@ -49,6 +50,8 @@ export interface BuildRowsInput {
   moveState?: MoveState;
   /** The viewer's move held after its reveal before the next opens (spec 050 FR-013). */
   holdMove?: number | null;
+  /** The match ended on the clock: unplayed moves are penalised in their rows (rules §5.6). */
+  penalizeUnplayed?: boolean;
 }
 
 function toCell(words: AccumulatedWord[]): SeatCell {
@@ -73,9 +76,20 @@ export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
   const seatOf = (playerId: string): Seat =>
     seatForSlot(input.viewerSlot, playerId === input.playerAId ? "player_a" : "player_b");
   const visible = input.words.filter((w) => !input.hiddenWordIds?.has(bandIdForWord(w) ?? ""));
+  // A miss is a played move with no word at all, hidden or not (rules §5.6).
+  const valuesFor = (seat: Seat) =>
+    moveValues({
+      movesPlayed: seat === "you" ? input.movesPlayed.you : input.movesPlayed.opp,
+      scoredMoves: new Set(input.words.filter((w) => seatOf(w.playerId) === seat).map((w) => w.moveSeq)),
+      moveLimit: limit,
+      penalizeUnplayed: Boolean(input.completed && input.penalizeUnplayed),
+    });
+  const values = { you: valuesFor("you"), opp: valuesFor("opp") };
   const cellFor = (seat: Seat, move: number): SeatCell | null => {
     const played = seat === "you" ? input.movesPlayed.you : input.movesPlayed.opp;
-    if (move > played) return null;
+    const value = values[seat][move - 1];
+    if (move > played) return value === undefined || value === null ? null : { words: [], total: value, miss: true, unplayed: true };
+    if (typeof value === "number") return { words: [], total: value, miss: true };
     return toCell(visible.filter((w) => seatOf(w.playerId) === seat && w.moveSeq === move));
   };
   const holding = input.holdMove != null;
@@ -160,32 +174,40 @@ const FORCED: Record<string, "forfeit" | "disconnect"> = { forfeit: "forfeit", d
 
 /**
  * `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` —
- * stated once, same voice for win and loss. A default result (spec 050) says
- * the count that decided it: `Kári played 8 of 10`, `neither finished`.
+ * stated once, same voice for win and loss. When someone was short of ten at
+ * 0:00 the detail says so first: `Kári played 8 of 10 · by 12 points`,
+ * `neither finished · by 12 points`.
  */
 export function buildVerdict(v: VerdictInput): Verdict {
-  const winnerSeat =
-    v.endedReason === "both_incomplete" ? null : (v.winnerSeat ?? (v.viewerScore === v.opponentScore ? null : v.viewerScore > v.opponentScore ? "you" : "opp"));
+  const forced = v.endedReason ? FORCED[v.endedReason] : undefined;
+  // A forced end names its winner; otherwise the totals decide (rules §2a, 2026-09-21),
+  // with the server's recorded winner breaking a tie on frozen tiles.
+  const byScore: Seat | null = v.viewerScore === v.opponentScore ? null : v.viewerScore > v.opponentScore ? "you" : "opp";
+  const winnerSeat = forced ? (v.winnerSeat ?? byScore) : (byScore ?? v.winnerSeat ?? null);
   const youWin = winnerSeat === "you";
   const [hi, lo] = youWin ? [v.viewerScore, v.opponentScore] : [v.opponentScore, v.viewerScore];
   const [wordsHi, wordsLo] = youWin ? [v.viewerWords, v.opponentWords] : [v.opponentWords, v.viewerWords];
   const [terrHi, terrLo] = youWin ? [v.territory.you, v.territory.opp] : [v.territory.opp, v.territory.you];
   const loserName = youWin ? v.opponentName : v.viewerName;
-  const loserMoves = youWin ? v.opponentMoves : v.viewerMoves;
-  const forced = v.endedReason ? FORCED[v.endedReason] : undefined;
-  const detailLine =
-    v.endedReason === "both_incomplete"
-      ? NEITHER_FINISHED
-      : v.endedReason === "incomplete" && winnerSeat !== null
-        ? incompleteDetail(loserName, loserMoves)
-        : forced && winnerSeat !== null
-          ? forcedDetail(loserName, forced)
-          : verdictDetail(hi - lo, wordsHi, wordsLo, terrHi, terrLo);
   return {
     winnerSeat,
     scoreLine: winnerSeat === null ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
-    detailLine,
+    detailLine: forced && winnerSeat !== null ? forcedDetail(loserName, forced) : naturalDetail(v, winnerSeat, hi - lo, [wordsHi, wordsLo, terrHi, terrLo]),
   };
+}
+
+/** Who was short of ten comes first (their unplayed moves cost them points), then the margin. */
+function naturalDetail(v: VerdictInput, winnerSeat: Seat | null, margin: number, [wordsHi, wordsLo, terrHi, terrLo]: number[]): string {
+  const short =
+    v.endedReason === "both_incomplete"
+      ? NEITHER_FINISHED
+      : v.endedReason === "incomplete"
+        ? v.viewerMoves < v.opponentMoves
+          ? incompleteDetail(v.viewerName, v.viewerMoves)
+          : incompleteDetail(v.opponentName, v.opponentMoves)
+        : null;
+  if (!short) return verdictDetail(margin, wordsHi, wordsLo, terrHi, terrLo);
+  return winnerSeat === null ? short : `${short} · ${marginDetail(margin)}`;
 }
 
 export interface RatingRow {

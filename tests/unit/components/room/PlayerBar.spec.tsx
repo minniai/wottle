@@ -65,4 +65,10 @@ describe("PlayerBar", () => {
     expect(screen.getByTestId("player-bar-lane")).toHaveAttribute("aria-valuenow", "0");
     expect(screen.getByTestId("player-bar-lane").querySelectorAll('.player-bar__segment[data-state="spent"]')).toHaveLength(10);
   });
+
+  it("a negative total takes a real minus sign (rules §5.6)", () => {
+    render(<PlayerBar seat="opp" position="top" state="playing" name="Kári" subline="1191 · opponent" movesPlayed={4} score={-12} />);
+    expect(screen.getByTestId("player-bar-score")).toHaveTextContent("−12");
+  });
 });
+

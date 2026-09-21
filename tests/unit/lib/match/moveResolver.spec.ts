@@ -70,13 +70,14 @@ describe("resolveOne", () => {
     expect(out.frozenBefore).toEqual({});
   });
 
-  it("a move that forms no word resolves with zero delta and no freeze", () => {
+  it("a move that forms no word is a miss: −5, no freeze (rules §5.6)", () => {
     const out = resolveOne({ ...base(), move: move({ from: { x: 5, y: 5 }, to: { x: 6, y: 6 }, fromLetter: "Q", toLetter: "Q" }) });
     expect(out.status).toBe("resolved");
     expect(out.words).toEqual([]);
-    expect(out.delta).toBe(0);
+    expect(out.delta).toBe(-5);
     expect(out.frozenAfter).toEqual({});
   });
+
 
   it("refuses `frozen` when either letter is frozen, writing nothing", () => {
     const frozen: FrozenTileMap = { "9,9": { owner: "player_b" } };

@@ -311,19 +311,20 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver");
   });
 
-  it("final: a default result says the count that decided it (spec 050 FR-010)", () => {
+  it("final: when someone was short of ten the detail says so, the score decides, and the unplayed rows carry their penalties (rules §5.6)", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
-    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 134 }, winnerId: "player-1", endedReason: "incomplete" }, { movesPlayed: 10, score: 88 }, { movesPlayed: 8, score: 134 }));
-    expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 88–134");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("Bob played 8 of 10");
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "incomplete" }, { movesPlayed: 10, score: 88 }, { movesPlayed: 8, score: 124 }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Bob wins 124–88");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Bob played 8 of 10 · by 36 points");
+    expect(screen.getByTestId("ledger-row-9").querySelector('[data-seat="opp"]')).toHaveAttribute("data-unplayed", "true");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("rating pending");
   });
 
-  it("final: both short of ten is a draw that says neither finished", () => {
+  it("final: both short of ten says neither finished, and the score still decides", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
-    renderController(state({ state: "completed", scores: { playerA: 90, playerB: 60 }, winnerId: null, endedReason: "both_incomplete" }, { movesPlayed: 6, score: 90 }, { movesPlayed: 3, score: 60 }));
-    expect(screen.getByTestId("verdict")).toHaveTextContent("draw 90–60");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished");
+    renderController(state({ state: "completed", scores: { playerA: 90, playerB: 60 }, winnerId: "player-1", endedReason: "both_incomplete" }, { movesPlayed: 6, score: 90 }, { movesPlayed: 3, score: 60 }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 90–60");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished · by 30 points");
   });
 
   it("final: an incoming rematch request rewrites the slip's action line; accept ▸ moves to the new match; rematch ▸ asks", async () => {

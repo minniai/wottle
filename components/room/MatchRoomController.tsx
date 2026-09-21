@@ -428,6 +428,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         opp={{ name: opp.displayName, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
+        penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}
         moveLimit={match.moveLimit}
         completed={completed}
         caption={completed ? finalCaption(durationMs) : undefined}

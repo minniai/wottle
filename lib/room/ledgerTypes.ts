@@ -15,6 +15,10 @@ export interface WordCell {
 export interface SeatCell {
   words: WordCell[];
   total: number;
+  /** A move that scored no word (rules §5.6): `total` is its penalty. */
+  miss?: boolean;
+  /** Not played before 0:00, penalised as a miss. */
+  unplayed?: boolean;
 }
 
 /** The live row's two lines (spec 047 amendment P1): a state, then an instruction or nothing. */

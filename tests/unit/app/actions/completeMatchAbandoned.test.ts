@@ -181,7 +181,7 @@ describe("completeMatchInternal — abandoned reason", () => {
 });
 
 describe("completeMatchInternal — the completion compare-and-set (spec 050 FR-011)", () => {
-  test("a natural end decides by the rules: the finisher wins with `incomplete`", async () => {
+  test("a natural end penalises the short player's unplayed moves, then the score decides (`incomplete`, rules §5.6)", async () => {
     const state = freshState();
     state.match.player_a_moves = 10;
     state.match.player_b_moves = 8;
@@ -191,10 +191,11 @@ describe("completeMatchInternal — the completion compare-and-set (spec 050 FR-
 
     const result = await completeMatchInternal(MATCH_ID, "natural");
 
-    expect(result.winnerId).toBe(PLAYER_A);
+    // B's two unplayed moves: −5 each → 134 − 10 = 124, still ahead of 88.
+    expect(result.winnerId).toBe(PLAYER_B);
     expect(result.endedReason).toBe("incomplete");
-    expect(result.scores).toEqual({ playerA: 88, playerB: 134 });
-    expect(state.matchUpdatePayloads[0]).toMatchObject({ state: "completed", winner_id: PLAYER_A, ended_reason: "incomplete" });
+    expect(result.scores).toEqual({ playerA: 88, playerB: 124 });
+    expect(state.matchUpdatePayloads[0]).toMatchObject({ state: "completed", winner_id: PLAYER_B, ended_reason: "incomplete", player_b_score: 124 });
     expect(persistRatingChanges).toHaveBeenCalledTimes(1);
   });
 
