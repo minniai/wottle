@@ -18,8 +18,9 @@ export const recentGameRowSchema = z.object({
   opponentId: z.string().min(1),
   opponentUsername: z.string().min(1),
   opponentDisplayName: z.string().min(1),
-  yourScore: z.number().int().nonnegative(),
-  opponentScore: z.number().int().nonnegative(),
+  // Totals can go below zero since the miss penalty (rules §5.6).
+  yourScore: z.number().int(),
+  opponentScore: z.number().int(),
   wordsFound: z.number().int().nonnegative(),
   completedAt: z.string(),
 });

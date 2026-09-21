@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { CHALLENGE, HERE_NOW, YOUR_LAST_MATCHES } from "@/lib/constants/copy";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -33,7 +35,9 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
           others.map((p) => (
             <div className="lobby-ledger__row" role="row" data-testid="ledger-here-now-row" data-player-id={p.id} key={p.id}>
               <span className="lobby-ledger__name" role="cell">
-                {p.displayName} <span className="ledger__mono">@{p.username}</span>
+                <Link className="lobby-ledger__profile" href={`/profile/${p.username}`}>
+                  {p.displayName} <span className="ledger__mono">@{p.username}</span>
+                </Link>
               </span>
               <span className="ledger__mono" role="cell">{p.eloRating ?? "—"}</span>
               <span className="ledger__mono" role="cell">
@@ -64,7 +68,9 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
             ) : (
               recentGames.map((g) => (
                 <div className="lobby-ledger__row" role="row" key={g.matchId} data-testid="ledger-last-match-row">
-                  <span className="lobby-ledger__name" role="cell">{g.opponentDisplayName}</span>
+                  <span className="lobby-ledger__name" role="cell">
+                    <Link className="lobby-ledger__profile" href={`/profile/${g.opponentUsername}`}>{g.opponentDisplayName}</Link>
+                  </span>
                   <span className="ledger__mono" role="cell">
                     {g.yourScore}–{g.opponentScore}
                   </span>

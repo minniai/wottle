@@ -43,4 +43,12 @@ describe("LobbyLedger (design system §5.6)", () => {
     expect(screen.queryByTestId("ledger-challenge-k")).toBeNull();
     expect(screen.queryByTestId("ledger-last-matches")).toBeNull();
   });
+
+  it("a player's name opens their profile: here now and your last matches", () => {
+    const game = { matchId: "m1", result: "win" as const, opponentId: "k", opponentUsername: "kari", opponentDisplayName: "Kári", yourScore: 40, opponentScore: 30, wordsFound: 0, completedAt: "" };
+    render(<LobbyLedger players={players} viewer={me} recentGames={[game]} onAction={() => {}} />);
+    expect(screen.getAllByTestId("ledger-here-now-row")[0].querySelector("a")).toHaveAttribute("href", "/profile/kari");
+    expect(screen.getByTestId("ledger-last-match-row").querySelector("a")).toHaveAttribute("href", "/profile/kari");
+  });
 });
+
