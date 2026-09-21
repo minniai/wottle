@@ -39,6 +39,12 @@ describe("RoomFixture", () => {
     expect(bands.find((b) => b.getAttribute("data-word") === "GILT")).toHaveAttribute("data-cells", "7,4;7,5;7,6;7,7");
   });
 
+  // axe landmark-one-main (Vercel accessibility review): every room state is one main landmark.
+  it.each(IN_ROOM_PHASES)("the %s phase has exactly one main landmark", (phase) => {
+    render(<RoomFixture phase={phase} />);
+    expect(screen.getAllByRole("main")).toHaveLength(1);
+  });
+
   it.each(IN_ROOM_PHASES)("renders the %s phase", (phase) => {
     render(<RoomFixture phase={phase} />);
     if (phase === "profile") expect(screen.getByTestId("profile-page")).toBeInTheDocument();
