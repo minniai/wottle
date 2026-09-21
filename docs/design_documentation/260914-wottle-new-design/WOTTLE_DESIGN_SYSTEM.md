@@ -104,6 +104,8 @@ One band per scored word record. 14% tint of the scorer's seat colour; square en
 ### 5.5 Primary action
 Text in `--font-mono` 12px uppercase 0.12em on an `--ink` fill with `--paper` text, `10px 14px` padding, square, followed by ` ▸`. One per screen at most (`play ▸`, `find an opponent ▸`). Secondary actions are mono uppercase text with ` ▸` in `--ink` (`challenge ▸`, `rematch ▸`, `cancel ▸`). Destructive actions have no colour of their own; they are a confirmation line in the live row (`resign the match? · yes, resign ▸ · no`).
 
+**Interaction states** (21 September 2026: players could not tell what was clickable). Every action has a hover, a pressed and a keyboard-focus state, all within the eight tokens and the §6 120ms ease. **Primary:** on hover it inverts to `--paper` with `--ink` text inside a 1.5px `--ink` inset frame (the slip's frame); pressed, the ground is `--tint`. **Secondary:** on hover a 1px underline, 4px below the text; pressed, `--muted`. **Menu items** tint their row with `--tint` instead of underlining; the open `⋯` trigger keeps the tint. **Keyboard focus:** a 2px `--ink` outline 3px outside the action; a pointer click leaves no ring. **Disabled** actions never react. **The field:** a free letter takes `--tint` under the pointer, only while a move is the viewer's to make. **Names** that link to a profile keep their ink and underline on hover or focus. Under `prefers-reduced-motion` the states change without the ease.
+
 ### 5.6 Tables (directory, matches, best words)
 Same grammar as the ledger: ruled rows (1px `--rule`), first column in `--font-board` 600, numbers in `--font-mono` 12px, actions as mono uppercase text with ` ▸`. No cards, no avatars, no skeletons; while loading, rows show `—`.
 

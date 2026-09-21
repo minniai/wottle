@@ -108,6 +108,8 @@ test.describe("@match-completion final room state", () => {
 
       await pageA.getByTestId("slip-lobby").click();
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+      // Reported 2026-09-21: the match-over slip stayed up over the lobby.
+      await expect(pageA.getByTestId("slip")).toHaveCount(0);
     } finally {
       await contextA.close();
       await contextB.close();

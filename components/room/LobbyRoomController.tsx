@@ -51,6 +51,12 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const me = storeViewer ?? viewer;
   const setSlip = useRoomStore((s) => s.setSlip);
 
+  // Entering the lobby leaves any match behind: its state and its slip (reported
+  // 2026-09-21: the match-over slip stayed up over the lobby).
+  const leaveToLobby = useRoomStore((s) => s.leaveToLobby);
+  useEffect(() => {
+    leaveToLobby();
+  }, [leaveToLobby]);
   useEffect(() => {
     setPhase("lobby");
     if (board.length === 0) hydrateBoard();

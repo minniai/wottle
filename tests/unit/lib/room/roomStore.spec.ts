@@ -66,6 +66,13 @@ describe("roomStore (spec 044 data-model §3.1, spec 050)", () => {
     expect(s().board).toBe(matchBoard); // the field keeps showing the last board
   });
 
+  it("starting a search takes a leftover slip down (new opponent ▸ from the match-over slip)", () => {
+    useRoomStore.setState({ slip: { kind: "matchOver" } as never, slipDismissed: true });
+    useRoomStore.getState().startQueue(1_000);
+    expect(useRoomStore.getState().slip).toBeNull();
+    expect(useRoomStore.getState().slipDismissed).toBe(false);
+  });
+
   it("queue → lobby on cancel keeps the board", () => {
     const s = useRoomStore.getState;
     const initial = s().board;

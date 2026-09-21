@@ -30,6 +30,7 @@ import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { useRoomStore } from "@/lib/room/roomStore";
+import { OVER_SLIP } from "@/app/dev/room/fixtures";
 import type { PlayerIdentity } from "@/lib/types/match";
 
 const me: PlayerIdentity = { id: "me", username: "birna", displayName: "Birna", status: "available", lastSeenAt: "", eloRating: 1204 };
@@ -113,6 +114,15 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     expect(replaceState).toHaveBeenCalledWith(null, "", "/lobby");
     expect(mockReplace).not.toHaveBeenCalled();
     replaceState.mockRestore();
+  });
+
+  // Reported 2026-09-21: `lobby` on the match-over slip showed the lobby with the slip still over it.
+  it("arriving from a finished match takes the match-over slip down", () => {
+    useRoomStore.setState({ phase: "final", slip: OVER_SLIP });
+    render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
+    expect(useRoomStore.getState().slip).toBeNull();
+    expect(screen.queryByTestId("slip")).toBeNull();
+    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
   });
 
   it("signed in: here-now lists others with challenge ▸; challenging sends the invite; preview prices the warm-up", async () => {

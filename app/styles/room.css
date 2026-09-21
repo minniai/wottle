@@ -318,6 +318,10 @@
 .field__row:last-child .field__cell {
   border-bottom: 0;
 }
+/* A letter you can pick answers the pointer, only while the move is yours. */
+.field:not([data-disabled]) .field__cell[data-state="free"]:hover {
+  background: var(--tint);
+}
 .field__cell:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: -4px;
@@ -690,6 +694,12 @@
 .ledger__live-more {
   grid-column: 2;
   color: var(--muted);
+  transition: color 120ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+.ledger__live-row--trigger:hover .ledger__live-more {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .ledger__live-text--full {
   grid-column: 1 / -1;
@@ -746,11 +756,45 @@
   background: var(--ink);
   color: var(--paper);
   padding: 10px 14px;
+  transition: background-color 120ms cubic-bezier(0.2, 0, 0.2, 1), color 120ms cubic-bezier(0.2, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.2, 0, 0.2, 1);
 }
 .action-secondary {
   background: transparent;
   color: var(--ink);
   padding: 0;
+  text-decoration: none;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  transition: color 120ms cubic-bezier(0.2, 0, 0.2, 1), background-color 120ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+/* Interaction states (2026-09-21): every action says it is one. The primary
+   inverts to paper inside the slip's own 1.5px ink frame; a secondary
+   underlines. Pressed, the primary takes the tint and a secondary dims. */
+.action-primary:hover:not(:disabled) {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.action-primary:active:not(:disabled) {
+  background: var(--tint);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.action-secondary:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.action-secondary:active:not(:disabled) {
+  color: var(--muted);
+}
+/* Keyboard focus is always drawn, in ink; a pointer click leaves no ring. */
+.action-primary:focus-visible,
+.action-secondary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.action-primary:focus:not(:focus-visible),
+.action-secondary:focus:not(:focus-visible) {
+  outline: none;
 }
 .action-primary:disabled,
 .action-secondary:disabled {
@@ -958,6 +1002,24 @@
 .room-menu__trigger {
   font-size: 16px;
   letter-spacing: 0;
+  padding: 2px 8px;
+}
+.room-menu__trigger:hover:not(:disabled),
+.room-menu__trigger[aria-expanded="true"] {
+  background: var(--tint);
+  text-decoration: none;
+}
+/* Menu items tint their row on hover rather than underline. */
+.room-menu__list .action-secondary {
+  display: block;
+  width: 100%;
+  margin: 0 -8px;
+  padding: 6px 8px;
+  text-align: left;
+}
+.room-menu__list .action-secondary:hover {
+  background: var(--tint);
+  text-decoration: none;
 }
 .room-menu__list {
   position: absolute;

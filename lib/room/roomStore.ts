@@ -148,7 +148,8 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   setPhase: (phase) => set({ phase }),
 
   startQueue: (now = Date.now()) =>
-    set({ phase: "queue", queue: { startedAt: now, lettersLanded: 0 }, opponent: null, match: null }),
+    // A search starts clean: a match-over slip from the last match must not ride along.
+    set({ phase: "queue", queue: { startedAt: now, lettersLanded: 0 }, opponent: null, match: null, slip: null, slipDismissed: false, holdMove: null }),
 
   requestNewSearch: () => set((s) => ({ searchId: s.searchId + 1 })),
 
