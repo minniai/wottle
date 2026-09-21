@@ -36,6 +36,11 @@ function draw(reason: NaturalEndReason): MatchWinnerResult {
   return { winnerId: null, loserId: null, isDraw: true, reason };
 }
 
+function endReason(moves: { playerA: number; playerB: number }, limit: number): NaturalEndReason {
+  const short = (moves.playerA < limit ? 1 : 0) + (moves.playerB < limit ? 1 : 0);
+  return short === 0 ? "moves_complete" : short === 1 ? "incomplete" : "both_incomplete";
+}
+
 function higher(pair: { playerA: number; playerB: number }): Seat | null {
   if (pair.playerA > pair.playerB) return "playerA";
   if (pair.playerB > pair.playerA) return "playerB";
@@ -43,9 +48,10 @@ function higher(pair: { playerA: number; playerB: number }): Seat | null {
 }
 
 /**
- * The end rules, in order (rules §2a, spec 050): a player short of the move
- * limit loses whatever the totals; both short is a draw; otherwise the higher
- * total, then more exclusively owned frozen tiles, then a draw.
+ * The end rules, in order (rules §2a, amended 2026-09-21): the higher total,
+ * then more exclusively owned frozen tiles, then a draw. A player short of the
+ * move limit is not a default loser: their unplayed moves are penalised into
+ * the totals before this is called (rules §5.6). The reason records who was short.
  */
 export function determineMatchWinner(
   input: MatchWinnerInput,
@@ -53,16 +59,12 @@ export function determineMatchWinner(
   playerBId: string,
 ): MatchWinnerResult {
   const ids = { playerA: playerAId, playerB: playerBId };
-  const aDone = input.moves.playerA >= input.moveLimit;
-  const bDone = input.moves.playerB >= input.moveLimit;
-  if (!aDone && !bDone) return draw("both_incomplete");
-  if (!aDone) return winner("playerB", ids, "incomplete");
-  if (!bDone) return winner("playerA", ids, "incomplete");
+  const reason = endReason(input.moves, input.moveLimit);
   const byScore = higher(input.scores);
-  if (byScore) return winner(byScore, ids, "moves_complete");
+  if (byScore) return winner(byScore, ids, reason);
   const byTiles = higher(input.frozenCounts);
-  if (byTiles) return winner(byTiles, ids, "moves_complete");
-  return draw("moves_complete");
+  if (byTiles) return winner(byTiles, ids, reason);
+  return draw(reason);
 }
 
 export function assertRematchAllowed(match: MatchStateSummary, playerId: string) {

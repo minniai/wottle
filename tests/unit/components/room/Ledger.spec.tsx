@@ -240,5 +240,21 @@ describe("Ledger (design system §5.4)", () => {
       expect(invert).toHaveTextContent("time");
     });
   });
+
+  it("a missed move writes its penalty with a real minus; a timed-out unplayed one is marked (rules §5.6)", () => {
+    const withMiss: LedgerModel = {
+      ...model,
+      rows: model.rows.map((r) =>
+        r.move === 2 ? { ...r, status: "past", you: { words: [], total: -5, miss: true }, opp: null } : r.move === 9 ? { ...r, status: "past", you: { words: [], total: -5, miss: true, unplayed: true }, opp: null } : r,
+      ),
+    };
+    render(<Ledger variant="final" model={withMiss} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    const miss = screen.getByTestId("ledger-row-2").querySelector('[data-seat="you"]')!;
+    expect(miss).toHaveTextContent("−5");
+    expect(miss).toHaveAttribute("data-miss", "true");
+    const unplayed = screen.getByTestId("ledger-row-9").querySelector('[data-seat="you"]')!;
+    expect(unplayed).toHaveTextContent("−5");
+    expect(unplayed).toHaveAttribute("data-unplayed", "true");
+  });
 });
 

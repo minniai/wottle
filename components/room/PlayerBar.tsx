@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
+import { points } from "@/lib/constants/copy";
 import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
 import { BarLane, type LaneMode } from "./BarLane";
@@ -77,7 +78,7 @@ export function PlayerBar(props: PlayerBarProps) {
       </div>
       {showsScore ? (
         <div className="player-bar__score" data-testid="player-bar-score">
-          {score}
+          {points(score)}
         </div>
       ) : (
         <div className="player-bar__action" data-testid="player-bar-action">

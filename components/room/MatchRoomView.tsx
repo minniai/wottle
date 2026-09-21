@@ -38,6 +38,8 @@ export interface MatchRoomViewProps {
   clockMs?: number;
   /** This match's clock length; the ledger clock's bar drains over it. */
   clockLengthMs?: number;
+  /** The match ended on the clock with a player short of ten: their unplayed rows show penalties (rules §5.6). */
+  penalizeUnplayed?: boolean;
   moveLimit?: number;
   completed: boolean;
   words: AccumulatedWord[];
@@ -69,7 +71,7 @@ function subline(facts: SeatFacts, seatWord: string | null): string {
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
-  const { matchId, viewerSlot, you, opp, clockMs, clockLengthMs, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
+  const { matchId, viewerSlot, you, opp, clockMs, clockLengthMs, penalizeUnplayed = false, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
   const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children, moveState, holdMove = null } = props;
   const reducedMotion = useReducedMotion();
@@ -93,9 +95,10 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       holdMove,
       clockMs: completed ? undefined : clockMs,
       clockLengthMs,
+      penalizeUnplayed,
     });
     return { ...base, caption: caption ?? base.caption, verdict };
-  }, [movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs]);
+  }, [movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed]);
   const turn = moveState && !completed && !readOnly ? moveState : null;
   const counts = { you: you.movesPlayed, opp: opp.movesPlayed, oppScoring: Boolean(opp.scoring), limit: moveLimit };
   const youSuffix = turn ? barSuffixFor(turn, "you", counts) : null;

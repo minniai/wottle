@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-import { HISTORY, lastSeconds, MATCH_CLOCK, TIME_SPENT, WORDMARK } from "@/lib/constants/copy";
+import { HISTORY, lastSeconds, MATCH_CLOCK, points, TIME_SPENT, WORDMARK } from "@/lib/constants/copy";
 import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeText } from "@/lib/room/notices";
@@ -41,11 +41,12 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
 
 function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
   if (!cell) return <div className="ledger__words" data-seat={seat} />;
-  // A resolved move with no word writes 0 (spec 050 FR-016): played, not pending.
+  // A played move with no word writes its penalty (rules §5.6); at a timed-out
+  // end, unplayed moves are penalised too and marked.
   if (cell.words.length === 0) {
     return (
-      <div className="ledger__words ledger__words--empty" data-seat={seat}>
-        <span className="ledger__total">0</span>
+      <div className="ledger__words ledger__words--empty" data-seat={seat} data-miss={cell.miss || undefined} data-unplayed={cell.unplayed || undefined}>
+        <span className="ledger__total">{points(cell.total)}</span>
       </div>
     );
   }
@@ -54,7 +55,7 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   if (folded) {
     return (
       <div className="ledger__words ledger__words--folded" style={style} data-seat={seat} title={cell.words.map((w) => w.word).join(" · ")}>
-        <span className="ledger__total">{cell.total}</span>
+        <span className="ledger__total">{points(cell.total)}</span>
       </div>
     );
   }
@@ -67,7 +68,7 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
           {showPoints ? <span className="ledger__points"> {w.points}</span> : null}
         </span>
       ))}
-      {cell.words.length > 0 ? <span className="ledger__total">{cell.total}</span> : null}
+      {cell.words.length > 0 ? <span className="ledger__total">{points(cell.total)}</span> : null}
     </div>
   );
 }

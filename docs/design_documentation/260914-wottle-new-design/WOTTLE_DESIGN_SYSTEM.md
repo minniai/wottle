@@ -125,7 +125,7 @@ The one element ever laid over the field (spec 048, 20 September 2026). A `--pap
 
 The match-over slip lands 600ms after the final reveal has settled and held (at once on a reload with nothing to reveal); `review the field ▸` lifts it and `result ▸` in the ledger foot brings it back.
 
-**Why it ended.** The server's winner decides the headline and the bars, and the detail line says once what decided it: `by 46 points · 10 words to 8 · territory 27–21` when both finished; `Kári played 8 of 10` when one did not (`incomplete`, spec 050 — the finisher wins whatever the totals); `neither finished` when neither did (a draw); `Kári resigned`; `Kári left`. A counted line beside a default result would be a lie. The label line counts the match and nothing more (amended 20 September 2026, after a live match read `match over · 1 rounds · 0:00 · resigned` for a player who had merely disconnected). The sign-in slip is up whenever there is no session; the letters land only after a name.
+**Why it ended.** The server's winner decides the headline and the bars, and the detail line says once what decided it: `by 46 points · 10 words to 8 · territory 27–21` when both finished; `Kári played 8 of 10 · by 12 points` when one did not (`incomplete`: unplayed moves are penalised, then the score decides, 21 September 2026); `neither finished · by 12 points` when neither did; `Kári resigned`; `Kári left`. A counted line beside a default result would be a lie. The label line counts the match and nothing more (amended 20 September 2026, after a live match read `match over · 1 rounds · 0:00 · resigned` for a player who had merely disconnected). The sign-in slip is up whenever there is no session; the letters land only after a name.
 
 ---
 

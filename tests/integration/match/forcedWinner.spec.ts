@@ -124,7 +124,7 @@ describe("completeMatchInternal forcedWinnerId (spec 050)", () => {
     expect(result.winnerId).toBe(PLAYER_B);
   });
 
-  it("a natural end with one player short of ten is an incomplete loss whatever the score", async () => {
+  it("a natural end with one player short of ten penalises their unplayed moves, then the score decides (rules §5.6)", async () => {
     const { getMatchUpdatePayload } = setupMocks({
       scores: { playerA: 10, playerB: 30 },
       moves: { playerA: 10, playerB: 8 },
@@ -132,7 +132,16 @@ describe("completeMatchInternal forcedWinnerId (spec 050)", () => {
 
     const result = await completeMatchInternal(MATCH_ID, "natural");
 
-    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_A, ended_reason: "incomplete" });
+    // B's two unplayed moves: −5 each → 30 − 10 = 20, still ahead of 10.
+    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_B, ended_reason: "incomplete", player_a_score: 10, player_b_score: 20 });
     expect(result.endedReason).toBe("incomplete");
+    expect(result.scores).toEqual({ playerA: 10, playerB: 20 });
+  });
+
+  it("a forced end (resign, disconnect) applies no timeout penalty", async () => {
+    const { getMatchUpdatePayload } = setupMocks({ scores: { playerA: 10, playerB: 30 }, moves: { playerA: 4, playerB: 3 } });
+    await completeMatchInternal(MATCH_ID, "forfeit", PLAYER_A);
+    expect(getMatchUpdatePayload()).not.toHaveProperty("player_a_score");
+    expect(getMatchUpdatePayload()).not.toHaveProperty("player_b_score");
   });
 });

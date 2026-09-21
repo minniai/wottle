@@ -56,11 +56,11 @@
 
 - A match has **one clock**, shared by both players: **5:00 (300 000 ms)** from the moment the match starts (`matches.started_at`, `matches.deadline_at = started_at + 5:00`). It **never pauses** — not for a reveal, not for a disconnection — and it never stops early except by the match ending. The Field & Ledger design draws it once, in the ledger caption (§12).
 - **The deadline is decided at receipt.** A move received at or before `deadline_at` is resolved and counted even if its resolution completes after the deadline; the reveal is shown and only then does the match complete. A move received after the deadline is refused (`deadline`). The comparison is made by the database clock inside the receipt function, never by a serverless instance's clock.
-- **The match ends** when both players have ten resolved moves, or when the deadline has passed and every move received before it has resolved. It is decided in this order (`lib/match/resultCalculator.ts`, spec 050):
-  1. one player has fewer than ten moves → **the other wins** (`incomplete`), whatever the totals;
-  2. both have fewer than ten → **draw** (`both_incomplete`), whatever the totals;
-  3. both have ten → higher total wins; a tie goes to the player with more **exclusively owned frozen tiles**; still tied → **draw** (`moves_complete`).
-  Every outcome is rated.
+- **The match ends** when both players have ten resolved moves, or when the deadline has passed and every move received before it has resolved. First, every move a player has not made is scored as a miss (§5.6); then it is decided in this order (`lib/match/resultCalculator.ts`; amended 2026-09-21):
+  1. higher total wins;
+  2. a tie goes to the player with more **exclusively owned frozen tiles**;
+  3. still tied → **draw**.
+  Running out of time is not a loss by itself. The recorded reason says who was short: `moves_complete` (both had ten), `incomplete` (one did not), `both_incomplete` (neither did). Every outcome is rated.
 - A player who has made ten moves watches the rest of the match with the field locked. If the opponent has been unreachable for the 90-second reconnection window, that player may end the match early (`end the match ▸`); the ordinary rules above decide it. A disconnection by itself changes nothing else: the clock runs, and a player who does not come back simply fails to finish.
 - Resigning ends the match at once as a forfeit (`forfeit`, the other player wins).
 
@@ -197,10 +197,18 @@ Withdrawn 2026-09-21 (spec 050): a repeated word scores in full and counts towar
 
 ### 5.5 Move delta and match total
 
-- **Move delta** for a player = sum of per-word totals + combo bonus.
+- **Move delta** for a player = sum of per-word totals + combo bonus; for a move that scores no word, the miss penalty (§5.6).
 - **Match total** = cumulative sum of move deltas across the player's moves (`matches.player_a_score` / `player_b_score`, written by every resolved move).
 
 Ratings (Elo) are computed from match totals after the match ends; they are not part of scoring.
+
+### 5.6 Miss penalty (2026-09-21)
+
+- A **miss** is a resolved move that scores no word. Every miss costs a flat **−5** (`lib/scoring/missPenalty.ts`).
+- A **refused** move (`frozen` / `moved`, §2) is not a move: it costs nothing and does not count.
+- At the deadline, every move a player has not made is a miss too: a player with three unplayed moves loses a further 15. These penalties are written into the totals in the same step that completes the match, so they apply once (`app/actions/match/completeMatch.ts`).
+- A resignation or a win by disconnect names its winner and applies no timeout penalty.
+- Totals can go below zero.
 
 ---
 
@@ -340,6 +348,7 @@ Read this section before editing anything in `lib/game-engine/crossValidator.ts`
 | 2026-09-20 | spec 049 | — | Not a scoring regression — a serving bug. Once a match completed, `matches.current_round` was 11, no round 11 existed, and `loadMatchState`'s `ensureBoardSnapshot` silently regenerated the board from the seed, so every finished match showed its **starting** letters under ten rounds of correct bands and freezes (seen live 2026-09-20 as `ÞKHL`, `GÁAAT`, `DUT`, `ÝGRR`). Fixed by serving a completed match from its last played round and never regenerating a board for a match that has rounds. Regression test: `tests/unit/lib/match/stateLoader.lastPlayed.spec.ts`. | Invariant: the room shows the last played round's board; a missing round row is a fault, never a fresh board. |
 | 2026-09-20 | spec 049 | — | `advanceRound` step 14 updated the match row by id alone, so a thawed `after()` hook from round 5 landed two minutes after the match completed and wrote round-5 values over it (`current_round` 6, stale clocks). Fixed with a compare-and-set on the round the writer read and on the match not being completed. Regression test: `tests/unit/lib/match/roundEngine.staleWrite.spec.ts`. | Invariant: the round pointer, clocks, state, winner and reason never move backwards. |
 | 2026-09-21 | spec 050 | — | Not a regression — a rules change. Rounds are gone: each player makes ten moves whenever they like on one shared 5:00 clock; moves resolve one at a time in server receipt order; a move landing on a letter an earlier move froze or exchanged is refused and not counted. §2, §2a, §7.1 and I6/I8 rewritten; I9/I10 added. Duplicate suppression (§3.7, §5.4) withdrawn — it had never been implemented (`is_duplicate` was written `false` unconditionally). The instant-scoring fast path, the combined pass, the timeout pass and the round-start baseline (`rounds.frozen_tiles_before`) no longer exist; their regression rows above are history. | §2 (receipt order, refusal), §2a (one clock, deadline at receipt), I8–I10. | <!-- retired-name -->
+| 2026-09-21 | miss penalty | — | Not a regression — a rules change. A move with no word costs −5 (first drafted as an escalating −4 × N, simplified the same day); at 0:00 each unplayed move costs −5 too; running out of time no longer loses or draws by itself, the score decides. Tests: `tests/unit/lib/scoring/missPenalty.spec.ts`, `tests/unit/lib/match/moveResolver.spec.ts`, `tests/integration/db/settlement.test.ts`, `tests/integration/db/moveResolver.race.test.ts`. | §5.6. |
 | 2026-09-14 | spec 044 | — | Not a regression: pinned the §3.5a design example `BORÐA + GILT` (rejected when `borðagilt` is not a word; accepted when it is) and §3.1 one-record-per-run (`FÁR`/`RÁF` → one record, forward reading) so the Field & Ledger UI's "bands never touch end to end" and "one chevron per band" renderings have named tests. | §3.5a, §3.1 (`tests/unit/lib/game-engine/wholeRun.bordaGilt.test.ts`, `doubleReading.test.ts`). |
 | 2026-09-21 | — | HAUSL screenshot | Cross-axis substring coverage accepted the L of a vertical word beside frozen HAUS because USL is in the dictionary, leaving the invalid scored run HAUSL; require the entire affected cross-run to be a word in either direction. Tests cover all four orientations, same-event candidates, and scoring/freezing with the real dictionary (`wholeRun.hausl.test.ts`). | §4, §7.3, I3 — whole-run validity on both axes. |
 
@@ -385,11 +394,11 @@ The Field & Ledger design (`docs/design_documentation/README.md`) renders each r
 | Moves and progression (§2) | In the ledger: ten rows indexed by move number (the ledger names no move of the viewer's; the move rail went on 21 September 2026) — your Nth move in your column, theirs in theirs — with your next open move as the tinted **live row** whose first line names the beat (`move 4 · your move`, `move 4 · scoring`, `move 4 scored`, `10 of 10 played`, `time · scoring`). Each bar's lane is ten segments, the moves that player has left, in the seat colour: a resolved move empties one, a move in flight shows its segment at 30%, a disconnected player's are outlined; its sub-line carries the count (`move 4 of 10`, `6 of 10 · playing`, `6 of 10 · scoring`, `10 of 10 · done`). |
 | Whose move it is (§2) | The field's frame is a 3px outline in the viewer's seat colour while a move is theirs to make; it is ink while their move is in flight, revealing or holding, and once they have ten. |
 | A move closes (§2, §5) | After your reveal the scored row holds 600ms (`move 4 scored` over `you +13 · move 5 opens`) before the next live row opens; the field takes no pick meanwhile. The opponent's reveal never holds your field. |
-| Scoring (§5) | Written into the row as each band lands (`word · points`), the move's points pinned top right of its cell, match totals counting up in the bars. A resolved move with no word writes `0`. |
+| Scoring (§5) | Written into the row as each band lands (`word · points`), the move's points pinned top right of its cell, match totals counting up in the bars. A resolved move with no word writes its penalty (`−5`, §5.6); at a timed-out end each unplayed row writes its penalty too. A negative total reads with a real minus (`−12`), and a score line with one reads `−4 to −12`. |
 | Repeated word (§3.7) | Scored and drawn like any other; nothing marks it. |
 | Reconnection window | The disconnected player's lane becomes a dashed pattern; their sub-line counts `reconnecting · 0:42 left`. The clock keeps running. When the window is spent and the viewer has ten moves, a **slip** offers `Kári is gone` · `Kári 8 of 10 · 0:00 left to reconnect` · `end the match ▸` · `keep waiting ▸`; otherwise nothing is offered. |
 | Match over (§2a, §5.5) | A slip over the field, 600ms after the final reveal has held: `Kári wins` in the winner's ink (`draw` in ink), both totals, the detail line, both rating lines, then `rematch ▸` · `new opponent ▸` · `review the field ▸` · `lobby`. The label counts the match: `match over · 4:52`. The ledger keeps the verdict beneath it. |
-| Why it ended (§2a) | The detail line says what decided it, once: `by 46 points · 10 words to 8 · territory 27–21` (both finished), `Kári played 8 of 10` (`incomplete`), `neither finished` (`both_incomplete`), `Kári resigned`, `Kári left`. |
+| Why it ended (§2a) | The detail line says what decided it, once: `by 46 points · 10 words to 8 · territory 27–21` (both finished), `Kári played 8 of 10 · by 12 points` (`incomplete`: the score decided, after his unplayed moves were penalised), `neither finished · by 12 points` (`both_incomplete`), `Kári resigned`, `Kári left`. |
 | Resigning | A slip: `Resign the match?` with the viewer's move count and the clock (`move 4 of 10 · 3:12 left`), `yes, resign ▸` · `keep playing ▸`; the clock keeps running. |
 | Every match is rated | No caption or state says otherwise; a rating line reads `rating pending` until the row is written. |
 | Which board the room shows | `matches.board`, the live board written by every resolved move; a finished match keeps the board its last resolved move left. The starting board is generated once, at match start (spec 049's regeneration fault cannot recur: there is no round to look up). |

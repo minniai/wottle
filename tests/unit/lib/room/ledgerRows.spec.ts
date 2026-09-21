@@ -1,3 +1,4 @@
+import { bandIdForWord } from "@/lib/room/bandGeometry";
 import { describe, expect, it } from "vitest";
 
 import { buildLedgerRows, buildMatchLedger, buildTerritory, buildVerdict, finalCaption, foldRows, liveText, ratingLine, type AccumulatedWord } from "@/lib/room/ledgerRows";
@@ -14,7 +15,7 @@ const words: AccumulatedWord[] = [
 
 /** Spec 050 FR-016: rows by move number, each seat's column independent. */
 describe("buildLedgerRows (design system §5.4, spec 050)", () => {
-  it("ten rows: row N holds your Nth move and theirs; a blank move writes 0; your next move is live", () => {
+  it("ten rows: row N holds your Nth move and theirs; a move with no word writes its penalty; your next move is live", () => {
     const rows = buildLedgerRows({ movesPlayed: { you: 2, opp: 3 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "picking", letter: "T", value: 2 } });
     expect(rows).toHaveLength(10);
     expect(rows[0].status).toBe("past");
@@ -23,8 +24,8 @@ describe("buildLedgerRows (design system §5.4, spec 050)", () => {
     expect(rows[0].opp?.words[0]).toMatchObject({ word: "þoka", direction: "btt" });
     expect(rows[1].you?.words.map((w) => w.points)).toEqual([20, 8]);
     expect(rows[1].you?.total).toBe(28);
-    // Kári's second move scored nothing: played, so it writes 0, not nothing.
-    expect(rows[1].opp).toEqual({ words: [], total: 0 });
+    // Kári's second move scored nothing: a miss, −5 (rules §5.6).
+    expect(rows[1].opp).toEqual({ words: [], total: -5, miss: true });
     // Row 3 is your live row while Kári's third move already sits in his column.
     expect(rows[2]).toMatchObject({ status: "live", live: { line1: "picking · T (2)", line2: "tap a second letter" } });
     expect(rows[2].you).toBeNull();
@@ -110,6 +111,28 @@ describe("foldRows", () => {
   });
 });
 
+describe("miss penalties in the rows (rules §5.6, 2026-09-21)", () => {
+  it("each miss is −5; a scored move whose words are still hidden is not a miss", () => {
+    const misses: AccumulatedWord[] = [words[0]];
+    const rows = buildLedgerRows({ movesPlayed: { you: 4, opp: 0 }, completed: false, words: misses, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, hiddenWordIds: new Set([bandIdForWord(words[0])!]) });
+    expect(rows[0].you).toMatchObject({ total: 0 });
+    expect(rows[0].you?.miss).toBeFalsy();
+    expect([rows[1].you?.total, rows[2].you?.total, rows[3].you?.total]).toEqual([-5, -5, -5]);
+  });
+
+  it("at a timed-out end the unplayed rows are penalised −5 each", () => {
+    const rows = buildLedgerRows({ movesPlayed: { you: 8, opp: 10 }, completed: true, penalizeUnplayed: true, words: [words[0]], playerAId: A, viewerSlot: "player_a", live: { kind: "idle" } });
+    expect(rows[8].you).toEqual({ words: [], total: -5, miss: true, unplayed: true });
+    expect(rows[9].you).toEqual({ words: [], total: -5, miss: true, unplayed: true });
+    expect(rows[8].status).toBe("past");
+  });
+
+  it("without a timed-out end, unplayed rows stay empty", () => {
+    const rows = buildLedgerRows({ movesPlayed: { you: 8, opp: 10 }, completed: true, words: [words[0]], playerAId: A, viewerSlot: "player_a", live: { kind: "idle" } });
+    expect(rows[8].you).toBeNull();
+  });
+});
+
 describe("territory and verdict", () => {
   it("buildTerritory counts by seat", () => {
     expect(buildTerritory({ "0,0": { owner: "player_a" }, "1,0": { owner: "player_b" }, "2,0": { owner: "player_b" } }, "player_b")).toEqual({ you: 2, opp: 1, free: 97 });
@@ -118,11 +141,16 @@ describe("territory and verdict", () => {
   it("both finished: the counted line", () => {
     expect(buildVerdict(base)).toEqual({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "by 46 points · 10 words to 8 · territory 27–21" });
   });
-  it("incomplete (spec 050): the winner recorded by the server, the detail says the count", () => {
-    expect(buildVerdict({ ...base, viewerScore: 88, opponentScore: 134, opponentMoves: 8, winnerSeat: "you", endedReason: "incomplete" })).toEqual({ winnerSeat: "you", scoreLine: "Birna wins 88–134", detailLine: "Kári played 8 of 10" });
+  it("incomplete (2026-09-21): the score decides; the detail says who was short, then the margin", () => {
+    expect(buildVerdict({ ...base, viewerScore: 134, opponentScore: 88, opponentMoves: 8, endedReason: "incomplete" })).toEqual({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "Kári played 8 of 10 · by 46 points" });
+    expect(buildVerdict({ ...base, viewerScore: 88, opponentScore: 134, viewerMoves: 8, endedReason: "incomplete" })).toEqual({ winnerSeat: "opp", scoreLine: "Kári wins 134–88", detailLine: "Birna played 8 of 10 · by 46 points" });
   });
-  it("both incomplete: a draw that says neither finished", () => {
-    expect(buildVerdict({ ...base, viewerMoves: 6, opponentMoves: 3, winnerSeat: null, endedReason: "both_incomplete" })).toEqual({ winnerSeat: null, scoreLine: "draw 134–88", detailLine: "neither finished" });
+  it("both incomplete: neither finished, and the score still decides", () => {
+    expect(buildVerdict({ ...base, viewerMoves: 6, opponentMoves: 3, endedReason: "both_incomplete" })).toEqual({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "neither finished · by 46 points" });
+    expect(buildVerdict({ ...base, viewerScore: 50, opponentScore: 50, viewerMoves: 6, opponentMoves: 3, winnerSeat: null, endedReason: "both_incomplete" })).toEqual({ winnerSeat: null, scoreLine: "draw 50–50", detailLine: "neither finished" });
+  });
+  it("negative totals read with a real minus", () => {
+    expect(buildVerdict({ ...base, viewerScore: -4, opponentScore: -12 }).scoreLine).toBe("Birna wins −4 to −12");
   });
   it("forced ends keep their line", () => {
     expect(buildVerdict({ ...base, winnerSeat: "opp", endedReason: "forfeit" }).detailLine).toBe("Birna resigned");

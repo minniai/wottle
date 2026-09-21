@@ -112,12 +112,12 @@ export default function RulesPage() {
       <section className="rules__section" id="winning">
         <div>
           <span className="rules__label">6 · winning</span>
-          <h2>Ten moves first, then most points.</h2>
+          <h2>Most points wins.</h2>
           <p>
-            A player who has not made all ten moves when the clock runs out loses, whatever the totals. If neither has, it
-            is a draw. When both have, the higher total wins; on a tie, the player holding more frozen letters wins; a
-            full tie is a draw. Every match is rated: your rating moves the moment the match ends, and both new ratings
-            are written on the result.
+            The match ends when both players have made all ten moves, or when the clock runs out. If the clock runs out
+            first, each move you have not made counts as a move with no word and costs −5. Then the higher total wins; on a tie, the player holding more
+            frozen letters wins; a full tie is a draw. Totals can fall below zero. Every match is rated: your rating
+            moves the moment the match ends, and both new ratings are written on the result.
           </p>
         </div>
       </section>

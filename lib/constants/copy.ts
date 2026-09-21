@@ -116,15 +116,19 @@ export const ACCEPT = "accept ▸";
 export const DECLINE = "decline";
 
 // Verdict
-export const verdictLine = (winnerName: string, a: number, b: number): string =>
-  `${winnerName} wins ${a}–${b}`;
-export const drawLine = (a: number, b: number): string => `draw ${a}–${b}`;
+/** A total as drawn: a negative one takes a real minus sign (rules §5.6 lets totals go below zero). */
+export const points = (n: number): string => (n < 0 ? `−${Math.abs(n)}` : `${n}`);
+/** `134–88`; with a negative total `−4 to −12`, since a dash between minus signs cannot be read. */
+const scoreSpan = (a: number, b: number): string => (a < 0 || b < 0 ? `${points(a)} to ${points(b)}` : `${a}–${b}`);
+export const verdictLine = (winnerName: string, a: number, b: number): string => `${winnerName} wins ${scoreSpan(a, b)}`;
+export const drawLine = (a: number, b: number): string => `draw ${scoreSpan(a, b)}`;
 /** A forced end states what ended it, because `by 0 points` beside a rating change is a lie. */
 export const forcedDetail = (loserName: string, reason: "forfeit" | "disconnect"): string =>
   reason === "forfeit" ? `${loserName} resigned` : `${loserName} left`;
-/** Spec 050 FR-010: a player short of ten moves at the deadline lost by that. */
-export const incompleteDetail = (loserName: string, moves: number): string => `${loserName} played ${moves} of 10`;
+/** Who was short of ten at 0:00 (rules §2a): their unplayed moves were penalised (§5.6). */
+export const incompleteDetail = (name: string, moves: number): string => `${name} played ${moves} of 10`;
 export const NEITHER_FINISHED = "neither finished";
+export const marginDetail = (margin: number): string => `by ${margin} points`;
 export const verdictDetail = (margin: number, wordsA: number, wordsB: number, terrA: number, terrB: number) =>
   `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
 
