@@ -16,8 +16,8 @@ export interface SeatColors {
   live: string;
   /**
    * Seat colour for text below 17px. The same as `ink` for the viewer (teal is
-   * 4.9:1 on paper); a darker coral for the opponent, where `ink` is 3.4:1 and
-   * fails AA (spec 045 decision 2). The asymmetry lives here so no caller has
+   * 4.9:1 on paper); a darker coral for the opponent, where `ink` is 3.9:1 and
+   * fails AA for small text (spec 045 decision 2). The asymmetry lives here so no caller has
    * to know about it.
    */
   text: string;

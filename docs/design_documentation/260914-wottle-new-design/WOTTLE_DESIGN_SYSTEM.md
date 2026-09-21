@@ -33,8 +33,8 @@ eighth exists only because coral is not legible as small text.
 | `--tint` | `#F4F1E8` | Background of the live row and other "current" rows. |
 | `--muted` | `#5A6572` | Secondary mono labels, stopped clocks, sub-lines. Minimum for text; never lighter (5.7:1 on paper). |
 | `--you` | `#147D7A` teal | Your seat: your letters in scored words, your bands (14% tint), your lane, your total, your ink square. |
-| `--opp` | `#E4573D` coral | The opponent's seat, same uses — but only at 17px and above, or where it is not text. |
-| `--opp-text` | `#C2402A` coral | The opponent's seat wherever it is **text below 17px**: ledger words, the numeral on a scored letter, the profile's best-word names. 5.1:1 on paper, where `--opp` is 3.4:1. |
+| `--opp` | `#C4634C` coral (3.9:1 on paper; calmed 21 September 2026 from `#E4573D` so it weighs the same as teal: same hue, OKLCH chroma 1.5× teal's instead of 2.1×) | The opponent's seat, same uses — but only at 17px and above, or where it is not text. |
+| `--opp-text` | `#AB4F3B` coral (5.3:1 on paper) | The opponent's seat wherever it is **text below 17px**: ledger words, the numeral on a scored letter, the profile's best-word names. 5.3:1 on paper, where `--opp` is 3.9:1. |
 
 Rules:
 - Seat colours are **relative to the viewer** and resolved through one function (`getSeatColors(viewerSlot, slot)`). Never bind a colour to `player_a` / `player_b`.
@@ -44,7 +44,7 @@ Rules:
 - No gradients, no shadows, no radii, no blur, no third accent. `border-radius` is `0` everywhere and stays there.
 - A future move's numeral uses `#B9B4A6`: the ledger's row labels and, since spec 048, the rail's cells. This is the only exception to the eight values and appears in those two places only. Both are `aria-hidden` — the caption and the rail's own label carry the count — and both are the permitted exclusions from the automated contrast check.
 
-Contrast: `--ink` on `--paper` 16:1; `--muted` on `--paper` 5.7:1; `--you` on `--paper` 4.9:1; `--opp` on `--paper` 3.4:1 (used only at ≥17px or for non-text marks; the coral total is 40px).
+Contrast: `--ink` on `--paper` 16:1; `--muted` on `--paper` 5.7:1; `--you` on `--paper` 4.9:1; `--opp` on `--paper` 3.9:1 (used only at ≥17px or for non-text marks; the coral total is 40px).
 
 ---
 

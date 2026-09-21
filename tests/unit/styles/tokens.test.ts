@@ -13,14 +13,17 @@ const SEVEN: Record<string, string> = {
   "--tint": "#F4F1E8",
   "--muted": "#5A6572",
   "--you": "#147D7A",
-  "--opp": "#E4573D",
   /**
-   * Decision 2 of 15 September: coral is 3.4:1 on paper and the design system
-   * allows it as text only at 17px and above. This is the text-only variant at
-   * 5.1:1, used wherever coral is text below that — never for letters, lanes,
-   * totals or seat squares, which stay --opp.
+   * 21 September 2026: coral calmed to balance teal. Same hue (OKLCH H 34);
+   * chroma 0.181 → 0.129 (1.5× teal's, was 2.1×), lightness 0.64 → 0.61.
    */
-  "--opp-text": "#C2402A",
+  "--opp": "#C4634C",
+  /**
+   * Decision 2 of 15 September: coral as text only at 17px and above; this is
+   * the text-only variant for coral text below that — never for letters,
+   * lanes, totals or seat squares, which stay --opp.
+   */
+  "--opp-text": "#AB4F3B",
 };
 
 const DERIVED = ["--you-band", "--you-live", "--opp-band", "--opp-live", "--future-label", "--font-board", "--font-mono"];
@@ -82,5 +85,26 @@ describe("globals.css — Field & Ledger tokens (design system §2)", () => {
     expect(css).toMatch(/color-scheme:\s*light/);
     expect(css).toMatch(/body\s*{[^}]*background:\s*var\(--paper\)/);
     expect(css).toMatch(/border-radius:\s*0/);
+  });
+});
+
+/** WCAG 2.1 relative luminance and contrast, for the floors below. */
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+describe("seat colour contrast on paper (design system §2)", () => {
+  test("each seat colour clears 3:1 for fills, lanes and large totals", () => {
+    expect(contrast(SEVEN["--you"], SEVEN["--paper"])).toBeGreaterThanOrEqual(3);
+    expect(contrast(SEVEN["--opp"], SEVEN["--paper"])).toBeGreaterThanOrEqual(3);
+  });
+  test("seat colour as small text clears 4.5:1", () => {
+    expect(contrast(SEVEN["--you"], SEVEN["--paper"])).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(SEVEN["--opp-text"], SEVEN["--paper"])).toBeGreaterThanOrEqual(4.5);
   });
 });
