@@ -175,7 +175,7 @@ The previous redesign (phases 1a–6, April–June 2026) shipped in full and is 
   - `/lib/types` - Shared TypeScript types
   - `/lib/constants` - Board dimensions, `seatColors.ts` (`getSeatColors`, `resolveSeat`), app constants (fixed strings moved to `lib/i18n/copy/`)
 - `/docs` - PRD, rules, design entry point (`docs/design_documentation/README.md`), archive of superseded material (`docs/archive/`)
-  - `/data/wordlists` - Icelandic word list (~3.74M inflected forms, full BÍN fresh (1+ chars), loaded at runtime), English (~79k) and the not-yet-playable se/no/dk lists
+  - `/data/wordlists` - Source lists: Icelandic (~3.71M inflected forms, full BÍN fresh (1+ chars)), English (~79k) and the not-yet-playable se/no/dk lists. The game loads the **board wordlists** `word_list_<BOARD_SIZE>_<lang>.txt` (Icelandic ~1.16M), the source stripped of words longer than the board; `pnpm wordlists:build` writes them and `loadDictionary` throws if one is missing
 - `/components` - React Client Components. There are two folders:
   - `/components/room` — the whole player-facing UI (spec 044): `Room` / `RoomShell` (the one grid: bar / field / bar + ledger), `PlayerBar` + `BarLane` (moves · searching · disconnected) + `NameInput`, `Field` + `FieldCell` + `FieldBands`, `Ledger` + `LedgerFoot` + `LedgerSheet` + `LobbyLedger` + `RoomMenu`, the controllers `LobbyRoomController`, `QueueRoomController`, `MatchRoomController` (+ `MatchRoomView`), and `hooks/` (`useMatchTransport`, `useFieldInteraction`, `useReveal`, `useMoveHold`, `useDeadlineTick`, `useCountUp`, `useNotices`, `useLobbyInvites`, `useAccumulatedMoves`, `useWordHistory`, `useMatchOverSlip`, `useFieldSize`, `useMeasuredLines`, `useNowTick`, `useReducedMotion`)
   - `/components/i18n` — `LocaleProvider` (`useLocale`, `useCopy`, `useLocalePath`; outside a provider the room reads English)
@@ -304,7 +304,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, match_mov
 | Rate Limiting    | Complete   | 5/min auth, 30/min moves, 1/min end-early, 429 responses                         |
 | Accessibility    | Complete   | Focus traps, aria-live, keyboard nav, 44×44 touch targets, WCAG 2.1 AA axe clean |
 | Observability    | Complete   | Structured logs, perf marks, analytics hooks                                     |
-| Word Finding     | Complete   | Set-based dictionary (3.74M entries), four-direction scanner, delta detection    |
+| Word Finding     | Complete   | Set-based dictionary (1.16M board-length entries), four-direction scanner, delta |
 | Scoring          | Complete   | PRD-compliant formula, length bonus, combo bonuses; repeated words score (050)   |
 | Frozen Tiles     | Complete   | Freeze tracking, swap validation, visual overlay, >=24 unfrozen safeguard        |
 | Field Motion     | Complete   | Band draw + count-up reveal, in-colour shake, caption blink; 0ms reduced-motion  |
@@ -534,7 +534,7 @@ Playtest configuration:
 The word engine pipeline runs server-side for every resolved move:
 
 ```txt
-1. Dictionary loads on first use → Set of ~3.74M Icelandic inflected forms (full BÍN fresh, 1+ chars)
+1. Dictionary loads on first use → Set of ~1.16M Icelandic inflected forms (full BÍN, stripped to the 10-letter board: `word_list_10_is.txt`)
 2. Board Scanner → 4-orthogonal scan from swap coords (both readings per axis) for 3+ letter words
 3. Cross-Validator → selectOptimalCombination enumerates subsets; per-letter coverage rule (game_rules §4)
 4. Scorer → Per-word: base (letter values) + length bonus (word_length - 2) * 5

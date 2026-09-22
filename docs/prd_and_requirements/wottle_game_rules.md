@@ -82,7 +82,7 @@ The word length must be at least **`minimumWordLength`**, currently **3** (set i
 
 ### 3.3 Dictionary membership
 
-The word, normalized to NFC and lowercased, must be present in the active language's dictionary. For Icelandic, this is the full inflected BÍN word list (~3.74M entries), loaded once at runtime from `data/wordlists/word_list_is.txt`. **The dictionary accepts BÍN entries and nothing else** — there is no additions mechanism; if a real word is missing (e.g. the *kóla* paradigm, Linear O-70), the fix is regenerating the wordlist from BÍN upstream, never an in-repo addition. A small exclusions file, `word_list_is_exclusions.txt`, is subtracted at load time to remove BÍN entries rejected as playable words (e.g. *sýs*, Linear O-81); it accepts one word per line with `#` comments, NFC-normalized and lowercased on load. Accented and unaccented vowels are distinct letters: *ílæti* is a valid BÍN word while *ilæti*/*itæli* are not, and lookups never conflate them (O-69).
+The word, normalized to NFC and lowercased, must be present in the active language's dictionary. For Icelandic, this is the full inflected BÍN word list (~3.74M entries), stored in `data/wordlists/word_list_is.txt`. The game loads the **board wordlist** built from it, `word_list_<BOARD_SIZE>_is.txt` (`word_list_10_is.txt`, ~1.16M entries): a word longer than the board can never be spelled on it, so `pnpm wordlists:build` strips those, and the loader throws if the board wordlist for the current board size is missing. **The dictionary accepts BÍN entries and nothing else** — there is no additions mechanism; if a real word is missing (e.g. the *kóla* paradigm, Linear O-70), the fix is regenerating the wordlist from BÍN upstream, never an in-repo addition. A small exclusions file, `word_list_is_exclusions.txt`, is subtracted at load time to remove BÍN entries rejected as playable words (e.g. *sýs*, Linear O-81); it accepts one word per line with `#` comments, NFC-normalized and lowercased on load. Accented and unaccented vowels are distinct letters: *ílæti* is a valid BÍN word while *ilæti*/*itæli* are not, and lookups never conflate them (O-69).
 
 ### 3.4 Triggered by this move's swap
 
@@ -367,7 +367,7 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 - **Cross-validator** — `lib/game-engine/crossValidator.ts::selectOptimalCombination`, `hasCrossWordViolation` (cross-axis, §7.3), `violatesFrozenAdjacencyOnSameAxis` (same-axis standalone, §7.4), `isWholeRunValid`.
 - **Scorer** — `lib/game-engine/scorer.ts::calculateLetterPoints`, `calculateLengthBonus`.
 - **Freezer** — `lib/game-engine/frozenTiles.ts::freezeTiles`.
-- **Dictionary** — `lib/game-engine/dictionary.ts::loadDictionary`; wordlist at `data/wordlists/word_list_is.txt`.
+- **Dictionary** — `lib/game-engine/dictionary.ts::loadDictionary`; loads `data/wordlists/word_list_<BOARD_SIZE>_<lang>.txt`, built from `word_list_<lang>.txt` by `pnpm wordlists:build` (`lib/game-engine/boardWordlist.ts`).
 - **Letter values** — `lib/game-engine/letter-values/letter_scoring_values_<lang>.ts`.
 - **Move orchestration** — `lib/match/moveResolver.ts::resolvePendingMoves` (claim → `resolveOne` → finish), `lib/match/matchSettlement.ts::settleMatchIfDue`, `lib/match/resultCalculator.ts::determineMatchWinner`; the Postgres functions `receive_move`, `claim_next_move`, `finish_move` (`supabase/migrations/20260921001_async_moves.sql`).
 - **Older narrative (superseded)** — `docs/archive/notes/260303-word-scoring-rules.md`. Kept for history; always prefer this document.
