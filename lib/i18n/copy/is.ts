@@ -170,7 +170,7 @@ export const copyIs = {
   ) => `${byPoints(margin)} · ${wordsA} orð gegn ${wordsB} · svæði ${terrA}–${terrB}`,
 
   REMATCH: "annan leik? ▸",
-  NEW_OPPONENT: "nýr andstæðingur ▸",
+  NEW_OPPONENT: "nýr mótspilari ▸",
   LOBBY: "lobbí",
   CHALLENGE: "skora á ▸",
   HERE_NOW: "hér núna",
@@ -214,7 +214,7 @@ export const copyIs = {
     ownerName?: string;
   }): string =>
     `röð ${c.row}, dálkur ${c.column}, ${c.letter}, gildi ${c.value}, ${c.state === "frozen" && c.ownerName ? `${c.ownerName} frysti` : (CELL_STATES[c.state] ?? c.state)}`,
-  THE_OPPONENT: "andstæðingurinn",
+  THE_OPPONENT: "mótspilarinn",
 
   PROFILE: "prófíll",
   playingSince: (month: string): string => `spilar síðan ${month}`,
@@ -275,7 +275,7 @@ export const copyIs = {
   ): Array<{ rule: string; value: string }> => [
     { rule: "gildi stafa", value: "tölurnar á stöfunum, lagðar saman" },
     { rule: "lengdarbónus", value: `(stafir − 2) × ${lengthBonus}` },
-    { rule: "stafur sem andstæðingurinn frysti", value: "telur til lengdar, ekki stiga" },
+    { rule: "stafur sem mótspilarinn frysti", value: "telur til lengdar, ekki stiga" },
     { rule: "sama orð á nýjum stað", value: "gefur stig aftur" },
     { rule: "leikur án orðs", value: `${missPenalty}, þó aldrei undir 0` },
   ],

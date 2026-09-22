@@ -28,7 +28,7 @@ export function RulesIs({ clock, totalMoves, copy }: RulesContentProps) {
           </p>
           <p>
             Frosinn staf má ekki færa. Leikir eru reiknaðir í þeirri röð sem þeir berast
-            þjóninum. Ef andstæðingurinn frysti eða færði annan stafinn þinn rétt áður en
+            þjóninum. Ef mótspilarinn frysti eða færði annan stafinn þinn rétt áður en
             leikurinn þinn barst er honum hafnað og þú velur aftur; hann telst ekki einn
             af tíu.
           </p>
