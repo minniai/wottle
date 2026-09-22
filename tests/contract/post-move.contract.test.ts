@@ -1,14 +1,20 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return { ...actual, after: (work: () => void) => work() };
+});
+
 import { POST } from "@/app/api/match/[matchId]/move/route";
 import { RateLimitExceededError } from "@/lib/rate-limiting/middleware";
 
 vi.mock("@/app/actions/match/submitMove", () => ({
   submitMove: vi.fn(),
+  resolveReceivedMove: vi.fn(),
 }));
 
-import { submitMove } from "@/app/actions/match/submitMove";
+import { resolveReceivedMove, submitMove } from "@/app/actions/match/submitMove";
 
 /** Spec 050 contracts/receive-move.md. */
 const BODY = { fromX: 0, fromY: 0, toX: 1, toY: 1, fromLetter: "A", toLetter: "B" };
@@ -42,6 +48,7 @@ describe("POST /api/match/[matchId]/move", () => {
       receivedAt: "2026-09-21T12:00:00.000Z",
     });
     expect(submitMove).toHaveBeenCalledWith("123", BODY);
+    expect(resolveReceivedMove).toHaveBeenCalledWith("123");
   });
 
   it("returns 400 when the body lacks the two letters or is out of range", async () => {

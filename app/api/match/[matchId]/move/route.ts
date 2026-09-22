@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 
-import { submitMove } from "@/app/actions/match/submitMove";
+import { resolveReceivedMove, submitMove } from "@/app/actions/match/submitMove";
 import { moveRequestSchema } from "@/lib/match/schemas";
 import { RateLimitExceededError } from "@/lib/rate-limiting/middleware";
 
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!("status" in result)) {
       return NextResponse.json({ error: result.error }, { status: 400, headers: NO_CACHE_HEADERS });
     }
+    if (result.status === "accepted") after(() => resolveReceivedMove(matchId));
     const status = result.status === "accepted" ? 200 : 400;
     return NextResponse.json(result, { status, headers: NO_CACHE_HEADERS });
   } catch (error) {
