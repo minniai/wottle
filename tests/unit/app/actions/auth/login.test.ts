@@ -5,6 +5,7 @@ vi.mock("@/lib/matchmaking/profile", () => ({
   LoginValidationError: class LoginValidationError extends Error {},
   performUsernameLogin: vi.fn(),
   persistLobbySession: vi.fn().mockResolvedValue(undefined),
+  viewerInLanguage: vi.fn(async (player: unknown) => player),
 }));
 vi.mock("@/lib/rate-limiting/middleware", async () => {
   const actual = await vi.importActual<typeof import("@/lib/rate-limiting/middleware")>("@/lib/rate-limiting/middleware");

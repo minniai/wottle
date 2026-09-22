@@ -44,6 +44,15 @@ export const ICELANDIC_LETTER_WEIGHTS: Record<string, number> = {
   Ö: 2,
 };
 
+/**
+ * English board frequencies (spec 060 research R6): the counts of a standard
+ * word-game bag, the same basis as `LETTER_SCORING_VALUES_EN`.
+ */
+export const ENGLISH_LETTER_WEIGHTS: Record<string, number> = {
+  E: 12, A: 9, I: 9, O: 8, N: 6, R: 6, T: 6, L: 4, S: 4, U: 4, D: 4, G: 3, B: 2,
+  C: 2, M: 2, P: 2, F: 2, H: 2, V: 2, W: 2, Y: 2, K: 1, J: 1, X: 1, Q: 1, Z: 1,
+};
+
 export interface GenerateBoardOptions {
   /** Deterministic seed — the match's `board_seed`, or any string for warm-up/placeholder boards. */
   seed: string;

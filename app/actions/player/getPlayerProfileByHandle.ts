@@ -4,6 +4,7 @@ import "server-only";
 import { z } from "zod";
 
 import { getPlayerProfile } from "@/app/actions/player/getPlayerProfile";
+import type { Language } from "@/lib/types/game-config";
 import type { GetPlayerProfileResult } from "@/app/actions/player/getPlayerProfile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -19,6 +20,7 @@ const handleSchema = z
 
 export async function getPlayerProfileByHandle(
   handle: string,
+  language: Language = "is",
 ): Promise<GetPlayerProfileResult> {
   const parsed = handleSchema.safeParse(handle);
   if (!parsed.success) {
@@ -39,5 +41,5 @@ export async function getPlayerProfileByHandle(
     return { status: "not_found" };
   }
 
-  return getPlayerProfile(data.id);
+  return getPlayerProfile(data.id, language);
 }

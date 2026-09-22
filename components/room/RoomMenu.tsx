@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
+import type { Copy } from "@/lib/i18n/copy/types";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 
@@ -20,13 +22,27 @@ interface Item {
   href?: string;
 }
 
-function itemsFor(variant: RoomMenuVariant, sound: boolean, preview: boolean): Item[] {
+interface MenuState {
+  sound: boolean;
+  preview: boolean;
+  rulesHref: string;
+  copy: Copy;
+}
+
+function itemsFor(variant: RoomMenuVariant, { sound, preview, rulesHref, copy }: MenuState): Item[] {
   const shared: Item[] = [
-    { key: "sound", label: `sound · ${sound ? "on" : "off"}`, action: "toggleSound" },
-    { key: "preview", label: `preview · ${preview ? "on" : "off"}`, action: "togglePreview" },
+    { key: "sound", label: copy.soundToggle(sound), action: "toggleSound" },
+    { key: "preview", label: copy.previewToggle(preview), action: "togglePreview" },
   ];
-  if (variant === "match") return [...shared, { key: "howToPlay", label: "how to play", href: "/rules" }, { key: "resign", label: "resign", action: "resign" }, { key: "leave", label: "leave", action: "leave" }];
-  return [...shared, { key: "profile", label: "profile", action: "profile" }, { key: "signout", label: "sign out", action: "signOut" }];
+  if (variant === "match") {
+    return [
+      ...shared,
+      { key: "howToPlay", label: copy.MENU_HOW_TO_PLAY, href: rulesHref },
+      { key: "resign", label: copy.MENU_RESIGN, action: "resign" },
+      { key: "leave", label: copy.MENU_LEAVE, action: "leave" },
+    ];
+  }
+  return [...shared, { key: "profile", label: copy.MENU_PROFILE, action: "profile" }, { key: "signout", label: copy.SIGN_OUT, action: "signOut" }];
 }
 
 /** The `⋯` menu in the ledger foot (design system §5.4). No dialog: a plain list. */
@@ -37,6 +53,8 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
   const preview = usePreferencesStore((s) => s.previewEnabled);
   const setSound = usePreferencesStore((s) => s.setSoundEnabled);
   const setPreview = usePreferencesStore((s) => s.setPreviewEnabled);
+  const to = useLocalePath();
+  const copy = useCopy();
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -67,7 +85,7 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
         className="action-secondary room-menu__trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="menu"
+        aria-label={copy.MENU}
         data-testid="ledger-menu-trigger"
         onClick={() => setOpen((v) => !v)}
       >
@@ -75,7 +93,7 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
       </button>
       {open ? (
         <ul className="room-menu__list" role="menu" data-testid="ledger-menu-list">
-          {itemsFor(variant, sound, preview).map((item) => (
+          {itemsFor(variant, { sound, preview, rulesHref: to("/rules"), copy }).map((item) => (
             <li key={item.key} role="none">
               {item.href ? (
                 <a role="menuitem" className="action-secondary" data-testid={`ledger-menu-item-${item.key}`} href={item.href} target="_blank" rel="noopener" onClick={() => setOpen(false)}>

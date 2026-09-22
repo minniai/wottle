@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 
-import { CHALLENGE, HERE_NOW, YOUR_LAST_MATCHES } from "@/lib/constants/copy";
+import { useLocalePath } from "@/components/i18n/LocaleProvider";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { PlayerIdentity } from "@/lib/types/match";
@@ -21,12 +22,14 @@ function signed(n: number): string {
 
 /** Lobby tables (design system §5.6): ruled rows, no cards, no avatars, `—` while loading. */
 export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = false, onAction }: LobbyLedgerProps) {
+  const { CHALLENGE, HERE_NOW, YOUR_LAST_MATCHES, IN_A_MATCH } = useCopy();
+  const to = useLocalePath();
   const others = players.filter((p) => p.id !== viewer?.id);
   const viewerRating = viewer?.eloRating ?? null;
   return (
     <div className="lobby-ledger">
       <div className="ledger__mono lobby-ledger__title">{HERE_NOW}</div>
-      <div className="lobby-ledger__table" data-testid="ledger-here-now" role="table" aria-label="here now">
+      <div className="lobby-ledger__table" data-testid="ledger-here-now" role="table" aria-label={HERE_NOW}>
         {loadingPlayers ? (
           <div className="lobby-ledger__row ledger__mono" role="row"><span role="cell">—</span></div>
         ) : others.length === 0 ? (
@@ -35,7 +38,7 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
           others.map((p) => (
             <div className="lobby-ledger__row" role="row" data-testid="ledger-here-now-row" data-player-id={p.id} key={p.id}>
               <span className="lobby-ledger__name" role="cell">
-                <Link className="lobby-ledger__profile" href={`/profile/${p.username}`}>
+                <Link className="lobby-ledger__profile" href={to(`/profile/${p.username}`)}>
                   {p.displayName} <span className="ledger__mono">@{p.username}</span>
                 </Link>
               </span>
@@ -49,7 +52,7 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
                     {CHALLENGE}
                   </button>
                 ) : (
-                  <span className="ledger__mono">{p.status === "in_match" ? "in a match" : ""}</span>
+                  <span className="ledger__mono">{p.status === "in_match" ? IN_A_MATCH : ""}</span>
                 )}
               </span>
             </div>
@@ -60,7 +63,7 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
       {viewer ? (
         <>
           <div className="ledger__mono lobby-ledger__title">{YOUR_LAST_MATCHES}</div>
-          <div className="lobby-ledger__table" data-testid="ledger-last-matches" role="table" aria-label="your last matches">
+          <div className="lobby-ledger__table" data-testid="ledger-last-matches" role="table" aria-label={YOUR_LAST_MATCHES}>
             {recentGames === null ? (
               <div className="lobby-ledger__row ledger__mono" role="row"><span role="cell">—</span></div>
             ) : recentGames.length === 0 ? (
@@ -69,7 +72,7 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
               recentGames.map((g) => (
                 <div className="lobby-ledger__row" role="row" key={g.matchId} data-testid="ledger-last-match-row">
                   <span className="lobby-ledger__name" role="cell">
-                    <Link className="lobby-ledger__profile" href={`/profile/${g.opponentUsername}`}>{g.opponentDisplayName}</Link>
+                    <Link className="lobby-ledger__profile" href={to(`/profile/${g.opponentUsername}`)}>{g.opponentDisplayName}</Link>
                   </span>
                   <span className="ledger__mono" role="cell">
                     {g.yourScore}–{g.opponentScore}

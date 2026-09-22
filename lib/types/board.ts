@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ALL_LETTERS } from "@/lib/game-engine/languagePack";
 import { GameConfig } from "@/lib/types";
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 
@@ -11,7 +12,7 @@ export const getBoardGridSchema = (config: GameConfig = DEFAULT_GAME_CONFIG) => 
   .array(
     z
       .array(
-        z.string().length(1).regex(/^[A-ZÁÐÉÍÓÚÝÞÆÖa-záðéíóúýþæö ]$/)
+        z.string().length(1).refine((c) => c === " " || ALL_LETTERS.has(c.toUpperCase()), "Not a board letter")
       )
       .length(config.boardSize)
   )

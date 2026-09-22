@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { copyEn } from "@/lib/i18n/copy/en";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildMatchOverSlip, endReasonFor, useMatchOverSlip, type MatchOverSlipInput } from "@/components/room/hooks/useMatchOverSlip";
@@ -14,6 +15,7 @@ const match: MatchState = {
   players: { playerA: facts("you", 10, 127), playerB: facts("opp", 10, 170) },
   clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:04:52Z" },
   moveLimit: 10,
+  language: "is",
   resolvedSeq: 20,
   scores: { playerA: 127, playerB: 170 },
   frozenTiles: {},
@@ -44,7 +46,7 @@ describe("useMatchOverSlip (spec 048 FR-003)", () => {
   });
 
   it("builds the slip winner-first with rating pending until rows arrive", () => {
-    const slip = buildMatchOverSlip(input);
+    const slip = buildMatchOverSlip(input, copyEn);
     expect(slip).toMatchObject({ kind: "matchOver", scores: { you: 127, opp: 170 }, durationMmSs: "4:52" });
     expect(slip && slip.kind === "matchOver" ? slip.ratings.map((r) => [r.seat, r.line]) : null).toEqual([["opp", "rating pending"], ["you", "rating pending"]]);
   });

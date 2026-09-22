@@ -12,7 +12,7 @@ The Field & Ledger room (specs 044, 045, 047) put every fact in one of three hom
 
 This feature keeps the room's grammar (eight tokens, two type families, three homes) and adds one permitted overlay, the **slip**, for the moments a player must notice or decide. Everything else is stronger signals in the homes that already exist.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - The match ends and the player knows it (Priority: P1)
 
@@ -24,8 +24,8 @@ When the tenth round settles, a slip lands over the field stating the result onc
 
 **Acceptance Scenarios**:
 
-1. **Given** round 10 has resolved and the last band has settled, **When** 600ms have passed, **Then** a slip is centred over the field reading `Kári wins` (the winner's name, in the winner's seat colour), the score with each total in its seat's ink, the detail line (`by 43 points · 10 words to 8 · territory 32–25`), both players' rating lines (`1187 → 1199 · +12`), and the actions `rematch ▸`, `new opponent ▸`, `review the field ▸`, with `lobby` beneath. The field beneath is faded.
-2. **Given** the slip is up, **When** the player chooses `review the field ▸`, **Then** the slip lifts, the field returns to full strength, the ledger shows the final state, and the ledger foot offers `result ▸`, which brings the slip back.
+1. **Given** round 10 has resolved and the last band has settled, **When** 600ms have passed, **Then** a slip is centred over the field reading `Kári wins` (the winner's name, in the winner's seat colour), the score with each total in its seat's ink, the detail line (`by 43 points · 10 words to 8 · territory 32–25`), both players' rating lines (`1187 → 1199 · +12`), and the actions `rematch ▸`, `new opponent ▸`, `review the match ▸`, with `lobby` beneath. The field beneath is faded.
+2. **Given** the slip is up, **When** the player chooses `review the match ▸`, **Then** the slip lifts, the field returns to full strength, the ledger shows the final state, and the ledger foot offers `result ▸`, which brings the slip back.
 3. **Given** the slip is up, **When** the opponent requests a rematch, **Then** the slip's action line becomes `Kári asks for a rematch · accept ▸ · decline`; no separate ledger notice appears.
 4. **Given** a draw, **When** the slip lands, **Then** its headline reads `draw 140–140` in ink.
 5. **Given** the viewer is not a participant (read-only completed match), **When** the page opens, **Then** the slip shows the result and rating lines with only `lobby` as an action.
@@ -153,7 +153,7 @@ The two decisions that end a match early are put to the player on a slip, in the
 - A name is entered while offline: the slip shows the existing connection error beneath the input.
 - The rules page is opened from the menu on a phone where a new tab is a full navigation: the match resumes from the safety poll on return, as after any backgrounding.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -161,8 +161,8 @@ The two decisions that end a match early are put to the player on a slip, in the
 
 - **FR-001**: The room MUST provide a slip: a paper panel with a 1.5px ink frame and no radius or shadow, centred over the field, with the field and its bands faded to 32% beneath it. It is the only element ever drawn over the field.
 - **FR-002**: A slip MUST appear for exactly these moments and no others: sign-in on landing, resign confirmation, claim the win, and match over. A rematch request rewrites the match-over slip's action line rather than opening a new slip or a ledger notice.
-- **FR-003**: The match-over slip MUST land 600ms after the last band of the final reveal has settled, MUST state the verdict in the winner's name and seat colour (`draw` in ink), the score with each total in its seat's ink, the detail line, both rating lines, and the actions `rematch ▸`, `new opponent ▸`, `review the field ▸`, `lobby`.
-- **FR-004**: `review the field ▸` MUST lift the slip and restore the field; the ledger foot MUST then offer `result ▸`, which restores the slip.
+- **FR-003**: The match-over slip MUST land 600ms after the last band of the final reveal has settled, MUST state the verdict in the winner's name and seat colour (`draw` in ink), the score with each total in its seat's ink, the detail line, both rating lines, and the actions `rematch ▸`, `new opponent ▸`, `review the match ▸`, `lobby`.
+- **FR-004**: `review the match ▸` MUST lift the slip and restore the field; the ledger foot MUST then offer `result ▸`, which restores the slip.
 - **FR-005**: The resign slip MUST show the round, the player's remaining clock, the consequence line, and the actions `yes, resign ▸` and `keep playing ▸`; clocks MUST keep running while it is up; Escape MUST cancel it.
 - **FR-006**: The claim-win slip MUST replace the `claim the win ▸` ledger line, offer `claim the win ▸` and `keep waiting ▸`, and lift itself if the opponent reconnects.
 - **FR-007**: A slip MUST trap focus while open, be announced once assertively, and return focus to the element that opened it (or the live row) when it lifts. Under `prefers-reduced-motion` it MUST appear and lift with no transition.
@@ -223,7 +223,7 @@ The two decisions that end a match early are put to the player on a slip, in the
 - The fixture route and the visual suite are the acceptance instruments, as in spec 045; no new tooling.
 - **Deviation from artboard 5 (settle), 2026-09-20**: the canvas draws the held row with the round's words beneath its two lines. The implementation holds only the two lines. A third line pushes the ledger foot below the bottom bar at 1440×900, because the ledger is the height of the stack (design system §4) and cannot grow; the words land in the row the moment the hold ends. The deltas line already carries the round's score, so nothing is lost for the 1.2s.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

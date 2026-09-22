@@ -376,6 +376,8 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 
 ## 12. What the player sees
 
+Every rule in this document holds in every language; a match's language (spec 060) chooses only the dictionary (§3.3), the letter values (§5) and how often each letter appears on the board (§8). The room speaks the language of its address — Icelandic at `/`, English at `/en` — and a match is always shown under its own.
+
 The Field & Ledger design (`docs/design_documentation/README.md`) renders each rule above as exactly one mark. This table is the contract between the rules and the UI; a rendering that needs a second mark for the same fact is a design bug.
 
 | Rule | Rendering |

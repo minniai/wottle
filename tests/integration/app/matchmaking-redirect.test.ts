@@ -8,10 +8,11 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/matchmaking/profile", () => ({
   readLobbySession: vi.fn(),
+  viewerInLanguage: vi.fn(async (player: unknown) => player),
 }));
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import MatchmakingPage from "@/app/(room)/matchmaking/page";
+import MatchmakingPage from "@/app/[locale]/(room)/matchmaking/page";
 
 describe("MatchmakingPage route", () => {
   test("redirects to / when no session cookie is present", async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FIXTURE_BOARD, FIXTURE_FROZEN, FIXTURE_WORDS } from "@/app/dev/room/fixtures";
+import { FIXTURE_BOARD, FIXTURE_FROZEN, FIXTURE_WORDS } from "@/app/[locale]/dev/room/fixtures";
 import { assertWordsSpellBoard } from "@/lib/room/wordIntegrity";
 
 /** The fixture may never carry the bug it exists to catch (spec 047 T006). */

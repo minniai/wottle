@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/app/actions/auth/login", () => ({
   loginAction: vi.fn(async (_prev: unknown, formData: FormData) => {
     const name = String(formData.get("username") ?? "");
-    if (name.length < 3) return { status: "error", message: "Username must be at least 3 characters!" };
+    if (name.length < 3) return { status: "error", code: "invalid_name", message: "Username must be at least 3 characters!" };
     return { status: "success", player: { id: "p1", username: name, displayName: name, status: "available", lastSeenAt: "" } };
   }),
 }));
@@ -26,13 +26,13 @@ describe("NameInput (design system §5.7)", () => {
     await waitFor(() => expect(onSignedIn).toHaveBeenCalledWith(expect.objectContaining({ username: "birna" })));
   });
 
-  it("shows the error as a lowercase line without exclamation marks", async () => {
+  it("shows the error in the page's words: a lowercase line without exclamation marks", async () => {
     render(<NameInput onSignedIn={() => {}} />);
     const input = screen.getByTestId("player-bar-name-input");
     input.removeAttribute("minlength");
     fireEvent.change(input, { target: { value: "ab" } });
     fireEvent.submit(screen.getByTestId("name-input-form"));
-    await waitFor(() => expect(screen.getByTestId("name-input-error")).toHaveTextContent("username must be at least 3 characters"));
+    await waitFor(() => expect(screen.getByTestId("name-input-error")).toHaveTextContent("3 to 24 letters, digits, - or _"));
     expect(screen.getByTestId("name-input-error").textContent).not.toContain("!");
   });
 });

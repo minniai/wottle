@@ -8,7 +8,7 @@ describe("LedgerFoot (spec 048 US5)", () => {
     for (const variant of ["lobby", "final"] as const) {
       const { unmount } = render(<LedgerFoot variant={variant} onAction={() => {}} />);
       const link = screen.getByTestId("ledger-how-to-play");
-      expect(link).toHaveAttribute("href", "/rules");
+      expect(link).toHaveAttribute("href", "/en/rules");
       expect(link).not.toHaveAttribute("target");
       expect(link).toHaveTextContent("how to play ▸");
       unmount();

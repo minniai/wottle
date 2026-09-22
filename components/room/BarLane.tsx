@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
 
 export type LaneMode = "moves" | "searching" | "disconnected" | "empty";
@@ -32,6 +33,7 @@ function segmentStates(movesPlayed: number, moveLimit: number, moveInFlight: boo
  * Disconnected, the moves left are outlined; searching, a segment travels.
  */
 export function BarLane({ label, movesPlayed, moveLimit = TOTAL_MOVES, moveInFlight = false, mode = "moves" }: BarLaneProps) {
+  const { SEARCHING, movesLeft } = useCopy();
   const segmented = mode === "moves" || mode === "disconnected";
   const left = Math.max(0, moveLimit - movesPlayed);
   const className = [
@@ -42,7 +44,7 @@ export function BarLane({ label, movesPlayed, moveLimit = TOTAL_MOVES, moveInFli
   ]
     .filter(Boolean)
     .join(" ");
-  const valueText = mode === "searching" ? "searching" : `${left} of ${moveLimit} moves left`;
+  const valueText = mode === "searching" ? SEARCHING : movesLeft(left, moveLimit);
 
   return (
     <div

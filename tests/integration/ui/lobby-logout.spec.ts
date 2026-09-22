@@ -9,7 +9,7 @@ test.describe("@lobby-logout sign out from the ⋯ menu", () => {
   test("user A signs out and user B signs in on the same page", async ({ page }) => {
     const userA = generateTestUsername("out-a");
     const userB = generateTestUsername("out-b");
-    await page.goto("/");
+    await page.goto("/en");
     await page.getByTestId("player-bar-name-input").fill(userA);
     await page.getByTestId("player-bar-action-play").click();
     // The bar shows the display name (first letter capitalised by formatDisplayName); compare case-insensitively.

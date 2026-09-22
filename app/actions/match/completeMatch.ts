@@ -1,5 +1,7 @@
 "use server";
 
+import { readRatings } from "@/lib/rating/playerRatings";
+import type { Language } from "@/lib/types/game-config";
 import "server-only";
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -28,6 +30,7 @@ interface MatchRow {
   player_b_score: number;
   player_a_moves: number;
   player_b_moves: number;
+  language: Language | null;
 }
 
 /** `natural` means: decide by the rules (spec 050 FR-010); the reason comes out of the decision. */
@@ -48,7 +51,7 @@ export interface CompleteMatchResult {
 type Client = ReturnType<typeof getServiceRoleClient>;
 
 const MATCH_COLUMNS =
-  "id,state,player_a_id,player_b_id,winner_id,ended_reason,move_limit,frozen_tiles,player_a_score,player_b_score,player_a_moves,player_b_moves";
+  "id,state,player_a_id,player_b_id,winner_id,ended_reason,move_limit,frozen_tiles,player_a_score,player_b_score,player_a_moves,player_b_moves,language";
 
 async function fetchMatch(client: Client, matchId: string): Promise<MatchRow> {
   const { data, error } = await client.from("matches").select(MATCH_COLUMNS).eq("id", matchId).single();
@@ -177,7 +180,7 @@ async function resetPlayerStatuses(client: Client, playerIds: string[]) {
 async function rateIfRated(client: Client, match: MatchRow, decision: Decision): Promise<RatingChange | undefined> {
   if (decision.reason === "abandoned") return undefined;
   try {
-    return await applyRatingChanges(client, match.id, match.player_a_id, match.player_b_id, decision);
+    return await applyRatingChanges(client, match, decision);
   } catch (err) {
     console.error(
       JSON.stringify({ event: "rating.update.error", matchId: match.id, error: err instanceof Error ? err.message : String(err) }),
@@ -270,24 +273,19 @@ export async function completeMatchAction(
   return completeMatchInternal(matchId, reason);
 }
 
+/** Elo in the match's language (spec 060 US4): each player's rating there, 1200 if they have none. */
 async function applyRatingChanges(
   supabase: Client,
-  matchId: string,
-  playerAId: string,
-  playerBId: string,
+  match: Pick<MatchRow, "id" | "player_a_id" | "player_b_id" | "language">,
   winnerResult: { winnerId: string | null; isDraw: boolean },
 ): Promise<RatingChange> {
-  const { data: players, error } = await supabase
-    .from("players")
-    .select("id, elo_rating, games_played")
-    .in("id", [playerAId, playerBId]);
-
-  if (error || !players || players.length !== 2) {
-    throw new Error("Failed to fetch player ratings.");
-  }
-
-  const pA = players.find((p) => p.id === playerAId)!;
-  const pB = players.find((p) => p.id === playerBId)!;
+  const { id: matchId, player_a_id: playerAId, player_b_id: playerBId } = match;
+  const language = match.language ?? "is";
+  const records = await readRatings(supabase, [playerAId, playerBId], language);
+  const beforeA = records.get(playerAId)!;
+  const beforeB = records.get(playerBId)!;
+  const pA = { elo_rating: beforeA.eloRating, games_played: beforeA.gamesPlayed };
+  const pB = { elo_rating: beforeB.eloRating, games_played: beforeB.gamesPlayed };
 
   const scoreA = winnerResult.isDraw
     ? 0.5
@@ -339,7 +337,11 @@ async function applyRatingChanges(
         : "loss",
   };
 
-  await persistRatingChanges(matchId, resultA, resultB);
+  await persistRatingChanges(matchId, {
+    language,
+    playerA: { ...resultA, before: beforeA },
+    playerB: { ...resultB, before: beforeB },
+  });
 
   return {
     playerADelta: eloA.delta,

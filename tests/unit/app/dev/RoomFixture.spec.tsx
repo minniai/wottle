@@ -6,8 +6,8 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/dev/room",
 }));
 
-import { RoomFixture } from "@/app/dev/room/RoomFixture";
-import { ROOM_PHASES } from "@/app/dev/room/fixtures";
+import { RoomFixture } from "@/app/[locale]/dev/room/RoomFixture";
+import { ROOM_PHASES } from "@/app/[locale]/dev/room/fixtures";
 
 // The rules fixture is a server-rendered page outside the room/store.
 const IN_ROOM_PHASES = ROOM_PHASES.filter((phase) => phase !== "rules");

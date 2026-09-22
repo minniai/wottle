@@ -50,7 +50,7 @@ describe("getPlayerProfileByHandle", () => {
       profile: { identity: { id: "p1" } } as never,
     });
     const result = await getPlayerProfileByHandle("ARI");
-    expect(getPlayerProfileMock).toHaveBeenCalledWith("p1");
+    expect(getPlayerProfileMock).toHaveBeenCalledWith("p1", "is");
     expect(result.status).toBe("ok");
   });
 

@@ -1,3 +1,4 @@
+import type { Language } from "@/lib/types/game-config";
 import "server-only";
 
 import { randomUUID } from "crypto";
@@ -20,6 +21,8 @@ export interface SendDirectInviteParams {
   senderId: string;
   recipientId: string;
   ttlSeconds?: number;
+  /** Spec 060: the lobby the challenge is sent from; Icelandic unless given. */
+  language?: Language;
 }
 
 export interface SendDirectInviteResult {
@@ -55,6 +58,8 @@ export interface OutgoingInviteSummary {
 
 export interface StartQueueParams {
   playerId: string;
+  /** Spec 060: the lobby's game language; players are paired only within it. Icelandic unless given. */
+  language?: Language;
 }
 
 export interface QueueResult {
@@ -71,6 +76,7 @@ interface InviteRow {
   created_at: string;
   responded_at: string | null;
   match_id: string | null;
+  language?: Language | null;
 }
 
 interface QueueCandidate {
@@ -136,6 +142,10 @@ export async function sendDirectInvite(
   if (recipient.status !== "available") {
     throw new Error("Recipient is unavailable right now.");
   }
+  const language = params.language ?? "is";
+  if ((await presenceLanguage(client, params.recipientId)) !== language) {
+    throw new Error("Recipient is in another language's lobby.");
+  }
 
   const existing = await client
     .from("match_invitations")
@@ -158,6 +168,7 @@ export async function sendDirectInvite(
       sender_id: params.senderId,
       recipient_id: params.recipientId,
       status: "pending",
+      language,
     })
     .select("id,created_at")
     .single();
@@ -227,6 +238,7 @@ export async function respondToInvite(
     boardSeed: randomUUID(),
     playerAId: invite.sender_id,
     playerBId: invite.recipient_id,
+    language: invite.language ?? "is",
   });
 
   await client
@@ -353,7 +365,7 @@ async function releaseOtherChallengers(client: AnyClient, recipientId: string, a
 async function releaseSenders(client: AnyClient, senderIds: string[]) {
   const unique = [...new Set(senderIds)];
   if (unique.length === 0) return;
-  await client.from("players").update({ status: "available" }).in("id", unique);
+  await client.from("players").update({ status: "available", queue_language: null }).in("id", unique);
   await client
     .from("lobby_presence")
     .update({ invite_token: null, mode: "auto" })
@@ -394,14 +406,15 @@ export async function startAutoQueue(
     };
   }
 
-  // 3. Mark as matchmaking
-  await setPlayerStatus(client, params.playerId, "matchmaking");
+  // 3. Join the queue for this language (spec 060 FR-018)
+  const language = params.language ?? "is";
+  await joinQueue(client, params.playerId, language);
   await updatePresenceMode(client, params.playerId, {
     mode: "auto",
     inviteToken: null,
   });
 
-  const candidates = await fetchQueueCandidates(client, params.playerId);
+  const candidates = await fetchQueueCandidates(client, params.playerId, language);
   const opponent = selectQueueOpponent(
     candidates.map((candidate) => ({
       id: candidate.id,
@@ -422,9 +435,10 @@ export async function startAutoQueue(
   // This prevents race conditions when two players try to match simultaneously
   const { data: claimed } = await client
     .from("players")
-    .update({ status: "in_match" })
+    .update({ status: "in_match", queue_language: null })
     .eq("id", opponent.id)
     .eq("status", "matchmaking") // Only update if still in matchmaking
+    .eq("queue_language", language) // …in this language: a switch between fetch and claim loses the race
     .select("id");
 
   // If we couldn't claim the opponent (someone else got them first), stay in queue
@@ -440,6 +454,7 @@ export async function startAutoQueue(
     boardSeed: randomUUID(),
     playerAId: params.playerId,
     playerBId: opponent.id,
+    language,
   });
 
   // Update our own status and presence
@@ -523,10 +538,16 @@ async function fetchPlayer(client: AnyClient, playerId: string) {
     | null;
 }
 
+/** The lobby a player is present in; a player with no presence row counts as Icelandic (the default lobby). */
+async function presenceLanguage(client: AnyClient, playerId: string): Promise<Language> {
+  const { data } = await client.from("lobby_presence").select("language").eq("player_id", playerId).maybeSingle();
+  return ((data as { language?: Language } | null)?.language ?? "is") as Language;
+}
+
 async function fetchInvite(client: AnyClient, inviteId: string) {
   const { data, error } = await client
     .from("match_invitations")
-    .select("id,sender_id,recipient_id,status,created_at")
+    .select("id,sender_id,recipient_id,status,created_at,language")
     .eq("id", inviteId)
     .maybeSingle();
 
@@ -537,11 +558,12 @@ async function fetchInvite(client: AnyClient, inviteId: string) {
   return data as InviteRow | null;
 }
 
-async function fetchQueueCandidates(client: AnyClient, excludePlayerId: string) {
+async function fetchQueueCandidates(client: AnyClient, excludePlayerId: string, language: Language) {
   const { data, error } = await client
     .from("players")
     .select("id,username,last_seen_at")
     .eq("status", "matchmaking")
+    .eq("queue_language", language)
     .neq("id", excludePlayerId)
     .order("last_seen_at", { ascending: true })
     .limit(5);
@@ -554,15 +576,25 @@ async function fetchQueueCandidates(client: AnyClient, excludePlayerId: string) 
   return (data ?? []) as QueueCandidate[];
 }
 
+async function joinQueue(client: AnyClient, playerId: string, language: Language) {
+  const { error } = await client
+    .from("players")
+    .update({ status: "matchmaking", queue_language: language, last_seen_at: new Date().toISOString() })
+    .eq("id", playerId);
+  if (error) logPlaytestError("matchmaking.player_status_failed", { playerId, metadata: { status: "matchmaking", language }, error });
+}
+
 async function setPlayerStatus(
   client: AnyClient,
   playerId: string,
   status: LobbyStatus
 ) {
+  // Only the queue sets a queue language; any other status leaves the queue.
   const { error } = await client
     .from("players")
     .update({
       status,
+      queue_language: null,
       last_seen_at: new Date().toISOString(),
     })
     .eq("id", playerId);

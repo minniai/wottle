@@ -9,6 +9,8 @@ import {
   sliceRatingHistoryWindow,
 } from "@/components/profile/deriveProfileChartData";
 import { ProfileRatingChart } from "@/components/profile/ProfileRatingChart";
+import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import type { Copy } from "@/lib/i18n/copy/types";
 import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -21,12 +23,11 @@ interface ProfilePageProps {
   isSelf: boolean;
 }
 
-const MONTH = new Intl.DateTimeFormat("en-GB", { year: "numeric", month: "long" });
-
-function since(iso: string | undefined): string | null {
+/** `september 2026` in the page's language. */
+function since(iso: string | undefined, copy: Copy): string | null {
   if (!iso) return null;
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : MONTH.format(d).toLowerCase();
+  return Number.isNaN(d.getTime()) ? null : copy.monthYear(d.getUTCMonth(), d.getUTCFullYear());
 }
 
 function signed(n: number): string {
@@ -44,6 +45,9 @@ function winRate(rate: number | null): string {
  */
 export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProps) {
   const router = useRouter();
+  const to = useLocalePath();
+  const copy = useCopy();
+  const { wordmark } = useLocale();
   const setViewer = useRoomStore((s) => s.setViewer);
   const seat: Seat = isSelf ? "you" : "opp";
   const seatInk = getSeatColors(seat).ink;
@@ -52,7 +56,7 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
   const { identity, stats, peakRating, ratingHistory } = profile;
   const thirtyDay = sliceRatingHistoryWindow(ratingHistory, 30);
   const weekDelta = deriveRecentRatingDelta(ratingHistory, 7);
-  const playingSince = since(identity.createdAt);
+  const playingSince = since(identity.createdAt, copy);
 
   const signOut = (target: string) => {
     void logoutAction({}).finally(() => {
@@ -72,8 +76,8 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
               <h1 className="profile__name">{identity.displayName}</h1>
               <p className="ledger__mono" data-testid="profile-handle">
                 @{identity.username}
-                {playingSince ? ` · playing since ${playingSince}` : ""} ·{" "}
-                {stats.gamesPlayed} matches
+                {playingSince ? ` · ${copy.playingSince(playingSince)}` : ""} ·{" "}
+                {copy.matchesPlayed(stats.gamesPlayed)}
               </p>
             </div>
           </div>
@@ -86,7 +90,7 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
               {stats.eloRating}
             </div>
             <p className="ledger__mono">
-              rating · peak {peakRating} · {signed(weekDelta)} this week
+              {copy.ratingPeak(peakRating, signed(weekDelta))}
             </p>
           </div>
         </header>
@@ -97,14 +101,14 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
           className="profile__record"
           data-testid="profile-record"
           role="table"
-          aria-label="record"
+          aria-label={copy.RECORD}
         >
           <div className="profile__record-row" role="row">
             {[
-              ["won", stats.wins],
-              ["lost", stats.losses],
-              ["drawn", stats.draws],
-              ["win rate", winRate(stats.winRate)],
+              [copy.WON, stats.wins],
+              [copy.LOST, stats.losses],
+              [copy.DRAWN, stats.draws],
+              [copy.WIN_RATE, winRate(stats.winRate)],
             ].map(([label, value]) => (
               <div className="profile__record-cell" role="cell" key={String(label)}>
                 <span className="profile__record-value">{value}</span>
@@ -117,16 +121,16 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
 
       <aside className="room__ledger ledger profile__right">
         <div className="ledger__caption">
-          <span className="ledger__wordmark">wottle</span>
-          <span className="ledger__mono">profile</span>
+          <span className="ledger__wordmark">{wordmark}</span>
+          <span className="ledger__mono">{copy.PROFILE}</span>
         </div>
 
-        <div className="ledger__mono lobby-ledger__title">best words</div>
+        <div className="ledger__mono lobby-ledger__title">{copy.BEST_WORDS}</div>
         <div
           className="lobby-ledger__table"
           data-testid="profile-best-words"
           role="table"
-          aria-label="best words"
+          aria-label={copy.BEST_WORDS}
         >
           {words.length === 0 ? (
             <div className="lobby-ledger__row ledger__mono" role="row">
@@ -151,7 +155,7 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
                   {w.points}
                 </span>
                 <span className="ledger__mono" role="cell">
-                  {w.opponentName ? `vs ${w.opponentName}` : ""}
+                  {w.opponentName ? copy.versus(w.opponentName) : ""}
                 </span>
                 <span role="cell" />
               </div>
@@ -159,12 +163,12 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
           )}
         </div>
 
-        <div className="ledger__mono lobby-ledger__title">recent matches</div>
+        <div className="ledger__mono lobby-ledger__title">{copy.RECENT_MATCHES}</div>
         <div
           className="lobby-ledger__table"
           data-testid="profile-recent-matches"
           role="table"
-          aria-label="recent matches"
+          aria-label={copy.RECENT_MATCHES}
         >
           {matches.length === 0 ? (
             <div className="lobby-ledger__row ledger__mono" role="row">
@@ -179,7 +183,7 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
                 data-testid="profile-recent-match"
               >
                 <span className="lobby-ledger__name" role="cell">
-                  <Link href={`/match/${m.matchId}`} className="profile__match-link">
+                  <Link href={to(`/match/${m.matchId}`)} className="profile__match-link">
                     {m.opponentDisplayName}
                   </Link>
                 </span>
@@ -187,7 +191,7 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
                   {m.yourScore}–{m.opponentScore}
                 </span>
                 <span className="ledger__mono" role="cell">
-                  {m.result}
+                  {copy.matchResult(m.result)}
                 </span>
                 <span className="ledger__mono" role="cell">
                   ▸
@@ -199,11 +203,11 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
 
         <div className="ledger__foot" data-testid="profile-foot">
           <Link
-            href="/lobby"
+            href={to("/lobby")}
             className="action-secondary"
             data-testid="profile-back-lobby"
           >
-            ◂ lobby
+            {copy.BACK_LOBBY}
           </Link>
           {isSelf ? (
             <div className="ledger__actions">
@@ -211,17 +215,17 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
                 type="button"
                 className="action-secondary"
                 data-testid="profile-change-name"
-                onClick={() => signOut("/")}
+                onClick={() => signOut(to("/"))}
               >
-                change name
+                {copy.CHANGE_NAME}
               </button>
               <button
                 type="button"
                 className="action-secondary"
                 data-testid="profile-sign-out"
-                onClick={() => signOut("/")}
+                onClick={() => signOut(to("/"))}
               >
-                sign out
+                {copy.SIGN_OUT}
               </button>
             </div>
           ) : null}

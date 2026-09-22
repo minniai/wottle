@@ -8,7 +8,8 @@ import { MATCH_OVER_DELAY_MS } from "@/lib/room/revealSequence";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { EndReason, SlipRatingRow, SlipState } from "@/lib/room/slip";
 import type { RematchPhase } from "@/lib/room/useRematchNegotiation";
-import { YOU } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
+import type { Copy } from "@/lib/i18n/copy/types";
 import type { MatchState, PlayerSlot } from "@/lib/types/match";
 
 export interface MatchOverSlipInput {
@@ -51,20 +52,20 @@ export function endReasonFor(match: MatchState): EndReason {
   return bothDone ? "moves" : "incomplete";
 }
 
-function ratingRows(input: MatchOverSlipInput): SlipRatingRow[] {
+function ratingRows(input: MatchOverSlipInput, copy: Copy): SlipRatingRow[] {
   const { match, viewerSlot, ratings, verdict, viewerName, opponentName } = input;
   const youId = match.players[viewerSlot === "player_a" ? "playerA" : "playerB"].playerId;
   const oppId = match.players[viewerSlot === "player_a" ? "playerB" : "playerA"].playerId;
   const first: SlipRatingRow = { seat: verdict?.winnerSeat === "you" ? "you" : "opp", name: "", line: "" };
   const rows: SlipRatingRow[] = [
-    { seat: "you", name: `${viewerName} · ${YOU}`, line: ratingLine(ratings, youId, verdict?.winnerSeat === "you") },
-    { seat: "opp", name: opponentName, line: ratingLine(ratings, oppId, verdict?.winnerSeat === "opp") },
+    { seat: "you", name: `${viewerName} · ${copy.YOU}`, line: ratingLine(ratings, youId, verdict?.winnerSeat === "you", copy) },
+    { seat: "opp", name: opponentName, line: ratingLine(ratings, oppId, verdict?.winnerSeat === "opp", copy) },
   ];
   // The winner's row first, as on the bars.
   return rows.sort((a) => (a.seat === first.seat ? -1 : 1));
 }
 
-export function buildMatchOverSlip(input: MatchOverSlipInput): SlipState | null {
+export function buildMatchOverSlip(input: MatchOverSlipInput, copy: Copy): SlipState | null {
   const { match, viewerSlot, verdict, durationMmSs, viewerName, opponentName, rematch, readOnly } = input;
   if (!verdict) return null;
   const you = match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"];
@@ -76,7 +77,7 @@ export function buildMatchOverSlip(input: MatchOverSlipInput): SlipState | null 
     scores: { you, opp },
     viewerName,
     opponentName,
-    ratings: ratingRows(input),
+    ratings: ratingRows(input, copy),
     rematch,
     readOnly,
   };
@@ -95,7 +96,8 @@ export function useMatchOverSlip(input: MatchOverSlipInput): void {
     landed.current = false;
   }, [matchId]);
   const { completed, busy, revealed } = input;
-  const slip = buildMatchOverSlip(input);
+  const copy = useCopy();
+  const slip = buildMatchOverSlip(input, copy);
   const key = slip ? JSON.stringify(slip) : null;
 
   useEffect(() => {

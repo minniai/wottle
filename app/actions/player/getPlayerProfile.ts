@@ -4,7 +4,9 @@ import "server-only";
 
 import { z } from "zod";
 import { readLobbySession } from "@/lib/matchmaking/profile";
+import { readRatings } from "@/lib/rating/playerRatings";
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import type { Language } from "@/lib/types/game-config";
 import type {
   PlayerProfile,
   PlayerIdentity,
@@ -23,8 +25,10 @@ export interface GetPlayerProfileResult {
   error?: string;
 }
 
+/** The profile in one language (spec 060 US4): that language's rating, record, history and best word. */
 export async function getPlayerProfile(
   playerId: string,
+  language: Language = "is",
 ): Promise<GetPlayerProfileResult> {
   const session = await readLobbySession();
   if (!session) {
@@ -41,7 +45,7 @@ export async function getPlayerProfile(
   const { data: player, error: playerError } = await supabase
     .from("players")
     .select(
-      "id, username, display_name, avatar_url, status, last_seen_at, created_at, elo_rating, games_played, wins, losses, draws",
+      "id, username, display_name, avatar_url, status, last_seen_at, created_at",
     )
     .eq("id", parsed.data.playerId)
     .single();
@@ -50,10 +54,13 @@ export async function getPlayerProfile(
     return { status: "not_found" };
   }
 
+  const record = (await readRatings(supabase, [parsed.data.playerId], language)).get(parsed.data.playerId)!;
+
   const { data: trendRows } = await supabase
     .from("match_ratings")
     .select("rating_after")
     .eq("player_id", parsed.data.playerId)
+    .eq("language", language)
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -66,6 +73,7 @@ export async function getPlayerProfile(
     .from("match_ratings")
     .select("rating_after, created_at")
     .eq("player_id", parsed.data.playerId)
+    .eq("language", language)
     .order("created_at", { ascending: true });
 
   const ratingHistory: RatingHistoryEntry[] = (ratingRows ?? []).map((row) => ({
@@ -75,7 +83,7 @@ export async function getPlayerProfile(
 
   const peakRating = ratingHistory.reduce(
     (max, entry) => Math.max(max, entry.rating),
-    player.elo_rating as number,
+    record.eloRating,
   );
 
   // Last 10 match results → W/L/D (newest first).
@@ -83,6 +91,7 @@ export async function getPlayerProfile(
     .from("match_ratings")
     .select("match_result, created_at")
     .eq("player_id", parsed.data.playerId)
+    .eq("language", language)
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -98,8 +107,9 @@ export async function getPlayerProfile(
   // Best word = single highest-points row the player has produced.
   const { data: bestWordRows } = await supabase
     .from("word_score_entries")
-    .select("word, total_points")
+    .select("word, total_points, matches!inner(language)")
     .eq("player_id", parsed.data.playerId)
+    .eq("matches.language", language)
     .order("total_points", { ascending: false })
     .limit(1);
 
@@ -110,8 +120,7 @@ export async function getPlayerProfile(
       }
     : null;
 
-  const wins = player.wins as number;
-  const losses = player.losses as number;
+  const { wins, losses } = record;
   const decisiveGames = wins + losses;
 
   const identity: PlayerIdentity = {
@@ -122,7 +131,7 @@ export async function getPlayerProfile(
     status: player.status as PlayerIdentity["status"],
     lastSeenAt: player.last_seen_at as string,
     createdAt: (player.created_at as string | null) ?? undefined,
-    eloRating: player.elo_rating as number,
+    eloRating: record.eloRating,
   };
 
   return {
@@ -130,11 +139,11 @@ export async function getPlayerProfile(
     profile: {
       identity,
       stats: {
-        eloRating: player.elo_rating as number,
-        gamesPlayed: player.games_played as number,
+        eloRating: record.eloRating,
+        gamesPlayed: record.gamesPlayed,
         wins,
         losses,
-        draws: player.draws as number,
+        draws: record.draws,
         winRate:
           decisiveGames > 0
             ? Math.round((wins / decisiveGames) * 100) / 100

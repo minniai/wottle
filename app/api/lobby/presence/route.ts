@@ -6,6 +6,7 @@ import {
   expireLobbyPresence,
   upsertLobbyPresence,
 } from "@/lib/matchmaking/service";
+import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const PRESENCE_TTL_SECONDS = Number(
@@ -19,8 +20,12 @@ const PRESENCE_TTL_SECONDS = Number(
  * login expires after PRESENCE_TTL_SECONDS and the player silently vanishes
  * from `/api/lobby/players`.
  */
-export async function POST() {
+export async function POST(request?: Request) {
   try {
+    // The lobby the page is in (spec 060); an old client that sends no body stays in the Icelandic one.
+    const body = (await request?.json().catch(() => null)) as { language?: unknown } | null;
+    const parsed = playableLanguageSchema.safeParse(body?.language ?? undefined);
+    const language = parsed.success ? parsed.data : "is";
     const session = await readLobbySession();
     if (!session) {
       return NextResponse.json(
@@ -38,11 +43,12 @@ export async function POST() {
       mode: "auto",
       inviteToken: null,
       expiresAt,
+      language,
     });
 
     // Mirror the fresh presence into the server-side cache so short-lived
     // snapshot reads stay consistent between heartbeats.
-    rememberPresence(session.player);
+    rememberPresence(session.player, language);
 
     return NextResponse.json({
       ok: true,

@@ -11,8 +11,8 @@ vi.mock("@/lib/matchmaking/profile", () => ({
 }));
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import LandingPage from "@/app/(room)/page";
-import { LobbyRoomPage } from "@/app/(room)/LobbyRoomPage";
+import LandingPage from "@/app/[locale]/(room)/page";
+import { LobbyRoomPage } from "@/app/[locale]/(room)/LobbyRoomPage";
 
 const session = {
   token: "tok",

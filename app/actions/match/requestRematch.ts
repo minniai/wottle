@@ -2,7 +2,6 @@
 
 import "server-only";
 
-import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
@@ -18,7 +17,7 @@ import {
   detectSimultaneousRematch,
   validateRematchRequest,
 } from "@/lib/match/rematchService";
-import { bootstrapMatchRecord } from "@/lib/matchmaking/service";
+import { createRematchMatch } from "@/lib/match/rematchMatch";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -70,12 +69,7 @@ async function acceptRematchInternal(
 ): Promise<string> {
   const supabase = getServiceRoleClient();
 
-  const newMatchId = await bootstrapMatchRecord(supabase, {
-    boardSeed: randomUUID(),
-    playerAId,
-    playerBId,
-    rematchOf: matchId,
-  });
+  const newMatchId = await createRematchMatch(supabase, { matchId, playerAId, playerBId });
 
   await updateRematchRequestStatus(supabase, requestId, "accepted", newMatchId);
   await setPlayersInMatch([playerAId, playerBId]);

@@ -11,7 +11,7 @@ describe("RoomMenu (spec 048 US5)", () => {
     expect(items).toEqual(["ledger-menu-item-sound", "ledger-menu-item-preview", "ledger-menu-item-howToPlay", "ledger-menu-item-resign", "ledger-menu-item-leave"]);
     const link = screen.getByTestId("ledger-menu-item-howToPlay");
     expect(link.tagName).toBe("A");
-    expect(link).toHaveAttribute("href", "/rules");
+    expect(link).toHaveAttribute("href", "/en/rules");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener");
   });

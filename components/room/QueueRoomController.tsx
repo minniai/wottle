@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { startsIn, searchingSubline, settingField } from "@/lib/constants/copy";
+import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { diffBoards, generateBoard } from "@/lib/game-engine/boardGenerator";
+import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -66,7 +68,10 @@ export function QueueRoom({ viewer }: QueueRoomControllerProps) {
  * route change.
  */
 export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
+  const { startsIn, searchingSubline, settingField } = useCopy();
   const router = useRouter();
+  const to = useLocalePath();
+  const { language } = useLocale();
   const reducedMotion = useReducedMotion();
   const phase = useRoomStore((s) => s.phase);
   const queue = useRoomStore((s) => s.queue);
@@ -82,10 +87,10 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
 
   useEffect(() => {
     startQueue(startedAt);
-    setBoard(generateBoard({ seed: `queue:${viewer.id}:${startedAt}` }));
-  }, [startQueue, setBoard, viewer.id, startedAt]);
+    setBoard(generateBoard({ seed: `queue:${viewer.id}:${startedAt}`, weights: getLanguagePack(language).letterWeights }));
+  }, [startQueue, setBoard, viewer.id, startedAt, language]);
 
-  const { state, cancel } = useMatchmaking(phase === "queue", startedAt);
+  const { state, cancel } = useMatchmaking(phase === "queue", startedAt, language);
 
   // Letters land ~100 ms apart (all at once under reduced motion).
   const landed = queue?.lettersLanded ?? 100;
@@ -106,14 +111,14 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
     let active = true;
     void fetchMatch(state.matchId).then((match) => {
       if (!active || !match) {
-        if (active) router.replace(`/match/${state.matchId}`);
+        if (active) router.replace(to(`/match/${state.matchId}`));
         return;
       }
       setLettersLanded(100);
       setBoard(board.length === 10 && diffBoards(board, match.board).length > 0 ? match.board : match.board);
       setFound(state.opponent, 3);
       setReady({ matchId: state.matchId, state: match, profiles: profilesFor(match, viewer, state.opponent) });
-      window.history.replaceState(null, "", `/match/${state.matchId}`);
+      window.history.replaceState(null, "", to(`/match/${state.matchId}`));
     });
     return () => {
       active = false;
@@ -135,10 +140,10 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
       if (action === "cancelQueue") {
         void cancel();
         cancelQueue();
-        router.replace("/lobby");
+        router.replace(to("/lobby"));
       }
     },
-    [cancel, cancelQueue, router],
+    [cancel, cancelQueue, router, to],
   );
 
   // `?` opens the rules, `M` mutes (design system §9, FR-026).

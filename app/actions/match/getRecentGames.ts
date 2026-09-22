@@ -8,6 +8,8 @@ import type { RecentGameRow } from "@/lib/types/lobby";
 const inputSchema = z.object({
   playerId: z.string().min(1),
   limit: z.number().int().min(1).max(50).default(6),
+  /** Spec 060: only matches played in this language. */
+  language: z.enum(["is", "en", "se", "no", "dk"]).default("is"),
 });
 
 interface MatchRow {
@@ -33,7 +35,7 @@ function computeResult(
 export async function getRecentGames(
   input: z.input<typeof inputSchema>,
 ): Promise<{ games: RecentGameRow[] }> {
-  const { playerId, limit } = inputSchema.parse(input);
+  const { playerId, limit, language } = inputSchema.parse(input);
   const supabase = getServiceRoleClient();
 
   const { data: matches, error } = await supabase
@@ -52,6 +54,7 @@ export async function getRecentGames(
       `,
     )
     .eq("state", "completed")
+    .eq("language", language)
     .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`)
     .order("completed_at", { ascending: false })
     .limit(limit);

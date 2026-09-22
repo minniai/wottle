@@ -12,7 +12,7 @@ interface RoomShellProps {
 
 /**
  * The one client tree that persists across `/`, `/lobby`, `/matchmaking` and
- * `/match/[id]` (mounted from app/(room)/layout.tsx). It seeds the room store
+ * `/match/[id]` (mounted from app/[locale]/(room)/layout.tsx). It seeds the room store
  * with the session read once by the layout; pages hydrate the rest. Realtime
  * and polling move here from MatchClient when the match phase is folded in
  * (spec 044, research R5).

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { copyEn } from "@/lib/i18n/copy/en";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -37,7 +38,7 @@ function Harness(props: Partial<FieldInteractionOptions> & { frozen?: Record<str
     api = field;
   });
   // Spec 047 amendment P1: the field state becomes the live row's two lines.
-  const live = liveText(liveStateFor(field.interaction, () => ({ letter: "B", value: 1 })));
+  const live = liveText(liveStateFor(field.interaction, () => ({ letter: "B", value: 1 })), copyEn);
   return (
     <>
       <div data-testid="live">{live.line2 ? `${live.line1} / ${live.line2}` : live.line1}</div>
@@ -135,7 +136,7 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
     render(<Harness onRejected={onRejected} />);
     fireEvent.click(cell(1, 1));
     fireEvent.click(cell(2, 1));
-    await waitFor(() => expect(onRejected).toHaveBeenCalledWith("Your previous move is still being scored"));
+    await waitFor(() => expect(onRejected).toHaveBeenCalledWith("move_in_flight"));
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
   });
 

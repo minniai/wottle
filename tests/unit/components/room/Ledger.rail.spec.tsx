@@ -1,11 +1,12 @@
 import { render, screen } from "@testing-library/react";
+import { copyEn } from "@/lib/i18n/copy/en";
 import { describe, expect, it } from "vitest";
 
 import { Ledger } from "@/components/room/Ledger";
 import { buildLedgerRows, buildMatchLedger } from "@/lib/room/ledgerRows";
 import { EMPTY_TERRITORY, type LedgerModel } from "@/lib/room/ledgerTypes";
 
-const rows = buildLedgerRows({ movesPlayed: { you: 3, opp: 6 }, completed: false, words: [], playerAId: "a", viewerSlot: "player_a", live: { kind: "idle" } });
+const rows = buildLedgerRows({ movesPlayed: { you: 3, opp: 6 }, completed: false, words: [], playerAId: "a", viewerSlot: "player_a", live: { kind: "idle" } }, copyEn);
 const base: LedgerModel = { caption: "", completed: false, rows, territory: EMPTY_TERRITORY, hint: "" };
 
 /**
@@ -21,7 +22,7 @@ describe("Ledger without the move rail", () => {
   });
 
   it("a match's caption carries no move of the viewer's; the final one keeps the duration", () => {
-    const live = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words: [], playerAId: "a", viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 192_000 });
+    const live = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words: [], playerAId: "a", viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 192_000 }, copyEn);
     expect(live.caption).toBe("");
     expect("movesPlayed" in live).toBe(false);
   });

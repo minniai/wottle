@@ -101,7 +101,7 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.queryByTestId("ledger-how-to-play")).toBeNull();
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     const howTo = screen.getByTestId("ledger-menu-item-howToPlay");
-    expect(howTo).toHaveAttribute("href", "/rules");
+    expect(howTo).toHaveAttribute("href", "/en/rules");
     expect(howTo).toHaveAttribute("target", "_blank");
     expect(screen.getByTestId("ledger-menu-item-resign")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-menu-item-leave")).toBeInTheDocument();

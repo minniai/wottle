@@ -2,7 +2,8 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { OPPONENT, YOU, reconnecting } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
+import type { Copy } from "@/lib/i18n/copy/types";
 import { formatClock } from "@/lib/room/clock";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
 import { barSuffixFor, barToneFor, type MoveState } from "@/lib/room/moveState";
@@ -66,14 +67,17 @@ export interface MatchRoomViewProps {
   children: ReactNode;
 }
 
-function subline(facts: SeatFacts, seatWord: string | null): string {
+function subline(facts: SeatFacts, seatWord: string | null, copy: Copy): string {
   if (facts.finalLine) return facts.finalLine;
-  if (facts.reconnectMsLeft != null) return reconnecting(formatClock(facts.reconnectMsLeft));
-  return seatWord ? `${facts.rating ?? "unrated"} · ${seatWord}` : String(facts.rating ?? "unrated");
+  if (facts.reconnectMsLeft != null) return copy.reconnecting(formatClock(facts.reconnectMsLeft));
+  const rating = String(facts.rating ?? copy.UNRATED);
+  return seatWord ? `${rating} · ${seatWord}` : rating;
 }
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
+  const copy = useCopy();
+  const { OPPONENT, YOU } = copy;
   const { matchId, viewerSlot, you, opp, clockMs, clockLengthMs, penalizeUnplayed = false, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
   const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children, moveState, holdMove = null } = props;
@@ -99,14 +103,14 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       clockMs: completed ? undefined : clockMs,
       clockLengthMs,
       penalizeUnplayed,
-    });
+    }, copy);
     const totals = completed ? { you: you.score, opp: opp.score } : undefined;
     return { ...base, caption: caption ?? base.caption, verdict, totals };
-  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed]);
+  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed, copy]);
   const turn = moveState && !completed && !readOnly ? moveState : null;
   const counts = { you: you.movesPlayed, opp: opp.movesPlayed, oppScoring: Boolean(opp.scoring), limit: moveLimit };
-  const youSuffix = turn ? barSuffixFor(turn, "you", counts) : null;
-  const oppSuffix = turn ? barSuffixFor(turn, "opp", counts) : null;
+  const youSuffix = turn ? barSuffixFor(turn, "you", counts, copy) : null;
+  const oppSuffix = turn ? barSuffixFor(turn, "opp", counts, copy) : null;
 
   return (
     <Room
@@ -120,7 +124,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           name={opp.name}
           profileHref={opp.profileHref}
           profileInNewTab={opp.profileInNewTab}
-          subline={subline(opp, readOnly ? null : OPPONENT)}
+          subline={subline(opp, readOnly ? null : OPPONENT, copy)}
           sublineSuffix={opp.reconnectMsLeft != null ? null : oppSuffix}
           movesPlayed={opp.movesPlayed}
           moveInFlight={opp.scoring}
@@ -138,7 +142,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           name={you.name}
           profileHref={you.profileHref}
           profileInNewTab={you.profileInNewTab}
-          subline={subline(you, readOnly ? null : YOU)}
+          subline={subline(you, readOnly ? null : YOU, copy)}
           sublineSuffix={youSuffix}
           sublineTone={turn ? barToneFor(turn) : "muted"}
           movesPlayed={you.movesPlayed}

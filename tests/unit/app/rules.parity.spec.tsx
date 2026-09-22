@@ -1,8 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import RulesPage from "@/app/rules/page";
-import { SCORING_ROWS } from "@/components/rules/ScoringTable";
+import RulesPage from "@/app/[locale]/rules/page";
+import { scoringRowsFor } from "@/components/rules/ScoringTable";
+import { copyEn } from "@/lib/i18n/copy/en";
+
+const SCORING_ROWS = scoringRowsFor(copyEn);
 import { DEFAULT_GAME_CONFIG } from "@/lib/constants/game-config";
 import { calculateLengthBonus } from "@/lib/game-engine/scorer";
 import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
@@ -20,8 +23,8 @@ describe("/rules parity", () => {
     expect(SCORING_ROWS[4].value).toBe(`−${Math.abs(MISS_PENALTY)}`);
   });
 
-  it("has six sections in order, three figures and the clock and move figures from the constants", () => {
-    render(<RulesPage />);
+  it("has six sections in order, three figures and the clock and move figures from the constants", async () => {
+    render(await RulesPage({ params: { locale: "en" } }));
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
       "Swap two letters.",
       "Three letters or more, in a straight line.",
@@ -37,8 +40,8 @@ describe("/rules parity", () => {
     expect(screen.getByTestId("rules-figure-words").querySelector(".field")).toHaveAttribute("aria-label", "the field");
     expect(screen.getByTestId("rules-figure-words").querySelector('[aria-hidden="true"]')).toBeTruthy();
     expect(screen.getByTestId("rules-figure-words").querySelector(".rules__field")).toHaveAttribute("inert");
-    expect(screen.getByTestId("rules-play")).toHaveAttribute("href", "/lobby");
-    expect(screen.getByTestId("rules-back-top")).toHaveAttribute("href", "/lobby");
+    expect(screen.getByTestId("rules-play")).toHaveAttribute("href", "/en/lobby");
+    expect(screen.getByTestId("rules-back-top")).toHaveAttribute("href", "/en/lobby");
   });
 
   it("minimum word length is three, as the page says", () => {

@@ -8,6 +8,8 @@ import { claimWinAction } from "@/app/actions/match/claimWin";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { settleMatch } from "@/app/actions/match/settleMatch";
+import { useLocalePath } from "@/components/i18n/LocaleProvider";
+import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
@@ -18,7 +20,7 @@ import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
-import { LOBBY, RESULT } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
@@ -89,7 +91,10 @@ function clockLengthOf(clock: MatchState["clock"]): number | null {
 }
 
 export function MatchRoomController({ initialState, currentPlayerId, matchId, playerProfiles, pollIntervalMs }: MatchRoomControllerProps) {
+  const copy = useCopy();
+  const { LOBBY, RESULT } = copy;
   const router = useRouter();
+  const to = useLocalePath();
   const searchParams = useSearchParams();
   const showDebug = process.env.NODE_ENV !== "production" && searchParams.get("debug") === "1";
   const hydrateMatch = useRoomStore((s) => s.hydrateMatch);
@@ -104,7 +109,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     hydrateMatch(initialState, currentPlayerId);
   }, [initialState, currentPlayerId, hydrateMatch]);
 
-  const onNewMatch = useCallback((newMatchId: string) => router.replace(`/match/${newMatchId}`), [router]);
+  const onNewMatch = useCallback((newMatchId: string) => router.replace(to(`/match/${newMatchId}`)), [router, to]);
   const rematch = useRematchNegotiation({ matchId, currentPlayerId, onNewMatch });
   const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
   const history = useWordHistory(matchId, match.resolvedSeq);
@@ -158,7 +163,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     },
     [push, holdNotice, frozenTiles, ownerNames, opp.displayName, words, youFacts.movesPlayed],
   );
-  const onRejected = useCallback((message: string) => push({ kind: "text", text: message.toLowerCase() }), [push]);
+  const onRejected = useCallback((code: ErrorCode) => push({ kind: "text", text: copy.errors[code] }), [push, copy]);
   const onCommitted = useCallback(() => {
     sound.playValidSwap();
     haptics.vibrateValidSwap();
@@ -253,7 +258,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightMove, setHighlightMove] = useState<number | null>(null);
 
-  const letterAt = useMemo(() => letterFactsOn(match.board), [match.board]);
+  const letterAt = useMemo(() => letterFactsOn(match.board, match.language), [match.board, match.language]);
   // The field's own state (pick / preview / illegal); the move's beat is layered on by
   // `moveState` (spec 050), which owns line 1 of the live row.
   const live: LiveState = useMemo(() => {
@@ -348,9 +353,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
             territory: buildTerritory(frozenTiles, viewerSlot),
             winnerSeat: recordedWinnerSeat,
             endedReason: match.endedReason,
-          })
+          }, copy)
         : null,
-    [completed, you.displayName, opp.displayName, youScore, oppScore, words, youFacts.playerId, oppFacts.playerId, youFacts.movesPlayed, oppFacts.movesPlayed, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason],
+    [copy, completed, you.displayName, opp.displayName, youScore, oppScore, words, youFacts.playerId, oppFacts.playerId, youFacts.movesPlayed, oppFacts.movesPlayed, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason],
   );
   const durationMs = match.clock.startedAt
     ? Math.max(0, new Date(match.completedAt ?? match.clock.deadlineAt ?? match.clock.startedAt).getTime() - new Date(match.clock.startedAt).getTime())
@@ -388,19 +393,19 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         // A queue-found match runs under /matchmaking, so the route alone would
         // not remount the queue; the store's search counter does.
         useRoomStore.getState().requestNewSearch();
-        router.replace("/matchmaking");
+        router.replace(to("/matchmaking"));
       }
       else if (action === "lobby") {
         // The slip belongs to the match: take it down before the lobby draws.
         dismissSlip();
-        router.replace("/lobby");
+        router.replace(to("/lobby"));
       }
       // The final ⋯ menu offers profile and sign out (reported 2026-09-21: they did nothing here).
-      else if (action === "profile") router.push("/profile");
+      else if (action === "profile") router.push(to("/profile"));
       else if (action === "signOut") {
         void logoutAction({}).finally(() => {
           useRoomStore.getState().setViewer(null);
-          router.replace("/");
+          router.replace(to("/"));
           router.refresh();
         });
       }
@@ -408,7 +413,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "keepPlaying") clearSlip("resign");
       else if (action === "confirmResign") {
         clearSlip("resign");
-        resignMatch(matchId).catch((e: Error) => push({ kind: "text", text: e.message.toLowerCase() }));
+        resignMatch(matchId).catch(() => push({ kind: "text", text: copy.errors.resign_failed }));
       } else if (action === "keepWaiting") {
         setEndDeferred(true);
         clearSlip("endEarly");
@@ -417,18 +422,19 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         claimWinAction(matchId).then((r) => r.status !== "ok" && r.status !== "already_completed" && push({ kind: "text", text: r.status.replace("_", " ") }));
       }
     },
-    [matchId, push, rematch, router, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName],
+    [copy, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
   useRoomHotkeys(handleAction);
 
-  const rematchLine = rematch.phase === "declined" ? `${opp.displayName} declined` : rematch.phase === "expired" ? "rematch request expired" : rematch.error;
+  const rematchLine =
+    rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.error ? copy.errors[rematch.error] : null;
   const allNotices: Notice[] = [
     ...notices,
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
-    ...(transport.isReconnecting && match.disconnectedPlayerId === currentPlayerId ? [{ kind: "text", text: "reconnecting" } as Notice] : []),
-    ...(transport.usePolling && !transport.isReconnecting ? [{ kind: "text", text: "realtime lost · polling" } as Notice] : []),
+    ...(transport.isReconnecting && match.disconnectedPlayerId === currentPlayerId ? [{ kind: "text", text: copy.RECONNECTING } as Notice] : []),
+    ...(transport.usePolling && !transport.isReconnecting ? [{ kind: "text", text: copy.REALTIME_LOST } as Notice] : []),
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
   ];
   void dismiss;
@@ -438,14 +444,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, profileHref: `/profile/${you.username}`, profileInNewTab: !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, profileHref: `/profile/${opp.username}`, profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft }}
+        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
+        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
         penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}
         moveLimit={match.moveLimit}
         completed={completed}
-        caption={completed ? finalCaption(durationMs) : undefined}
+        caption={completed ? finalCaption(durationMs, copy) : undefined}
         verdict={verdict ?? undefined}
         readOnly={readOnly}
         footActions={
@@ -479,6 +485,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       >
         <Field
           board={displayBoard}
+          language={match.language}
           frozenTiles={frozenTiles}
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}

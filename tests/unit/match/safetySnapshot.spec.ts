@@ -14,6 +14,7 @@ function buildState(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchF
     players: { playerA: facts("player-a", a), playerB: facts("player-b", b) },
     clock: { startedAt: "2026-09-21T10:00:00.000Z", deadlineAt: "2026-09-21T10:05:00.000Z", serverNow: "2026-09-21T10:01:00.000Z" },
     moveLimit: 10,
+    language: "is",
     resolvedSeq: 6,
     scores: { playerA: 10, playerB: 10 },
     frozenTiles: {},

@@ -17,6 +17,8 @@ interface PresenceOptions<TPollState extends object> {
   poller?: () => Promise<TPollState[]>;
   pollIntervalMs?: number;
   key?: string;
+  /** The Realtime topic; one per lobby language (spec 060). */
+  topic?: string;
 }
 
 // Reconnect back-off schedule: 5s → 10s → 20s → 40s, then cap at 60s.
@@ -121,7 +123,7 @@ export function subscribeToLobbyPresence<
         console.warn("[Realtime] Failed to remove stale channel:", error);
       }
     }
-    channel = client.channel("lobby-presence", {
+    channel = client.channel(options.topic ?? "lobby-presence", {
       config: {
         presence: {
           key: options.key ?? "anonymous",

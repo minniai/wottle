@@ -64,6 +64,8 @@ export interface MatchOptions {
   deadlineInMs?: number;
   moves?: { a: number; b: number };
   moveLimit?: number;
+  /** Spec 060: the match's game language; Icelandic unless given. */
+  language?: "is" | "en";
 }
 
 /** Two fresh players and one match between them, in progress with the clock running unless told otherwise. */
@@ -89,6 +91,7 @@ export async function createTestMatch(db: TestDb, options: MatchOptions = {}): P
     board: options.board ?? blankBoard(),
     frozen_tiles: {},
     move_limit: options.moveLimit ?? 10,
+    language: options.language ?? "is",
     started_at: new Date(now - 1000).toISOString(),
     deadline_at: new Date(now + (options.deadlineInMs ?? 300_000)).toISOString(),
     player_a_moves: options.moves?.a ?? 0,
@@ -140,7 +143,7 @@ export async function receive(db: TestDb, match: TestMatch, playerId: string, sw
 
 export interface Claimed {
   move: { id: string; global_seq: number; player_id: string; claim_count: number; status: string };
-  match: { resolved_seq: number; board: string[][]; frozen_tiles: Record<string, unknown> | null };
+  match: { resolved_seq: number; board: string[][]; frozen_tiles: Record<string, unknown> | null; language?: string };
 }
 
 export async function claim(db: TestDb, matchId: string, staleMs = 10_000): Promise<Claimed | null> {

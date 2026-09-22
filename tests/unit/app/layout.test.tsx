@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
-const layoutSource = readFileSync(resolve(__dirname, "../../../app/layout.tsx"), "utf-8");
+const layoutSource = readFileSync(resolve(__dirname, "../../../app/[locale]/layout.tsx"), "utf-8");
 
 describe("app/layout.tsx font wiring (design system §3)", () => {
   test("imports Zilla_Slab and Red_Hat_Mono from next/font/google", () => {
@@ -27,6 +27,6 @@ describe("app/layout.tsx font wiring (design system §3)", () => {
   });
 
   test("imports the room stylesheet", () => {
-    expect(layoutSource).toMatch(/import\s*"\.\/styles\/room\.css"/);
+    expect(layoutSource).toMatch(/import\s*"\.\.\/styles\/room\.css"/);
   });
 });

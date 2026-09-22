@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
+import { copyEn } from "@/lib/i18n/copy/en";
 
-import { finalContext, HERE_NOW, QUEUE_CONTEXT, RATING_PENDING } from "@/lib/constants/copy";
 import { finalCaption, ratingLine } from "@/lib/room/ledgerRows";
+
+const { finalContext, HERE_NOW, QUEUE_CONTEXT, RATING_PENDING } = copyEn;
 
 /**
  * Spec 048 US6 (20 September 2026): every match is rated, so no caption carries
@@ -12,7 +14,7 @@ import { finalCaption, ratingLine } from "@/lib/room/ledgerRows";
 describe("captions, rated only", () => {
   test("the final caption carries the match's duration", () => {
     expect(finalContext("4:52")).toBe("final · 4:52");
-    expect(finalCaption(292_000)).toBe("final · 4:52");
+    expect(finalCaption(292_000, copyEn)).toBe("final · 4:52");
   });
 
   test("the queue caption states the format without a rank", () => {
@@ -24,7 +26,7 @@ describe("captions, rated only", () => {
   });
 
   test("a final without a rating row is pending, never no rating change", () => {
-    expect(ratingLine(null, "p1", true)).toBe(RATING_PENDING);
-    expect(ratingLine([], "p1", true)).toBe(RATING_PENDING);
+    expect(ratingLine(null, "p1", true, copyEn)).toBe(RATING_PENDING);
+    expect(ratingLine([], "p1", true, copyEn)).toBe(RATING_PENDING);
   });
 });

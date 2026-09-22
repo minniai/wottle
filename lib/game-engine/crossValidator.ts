@@ -180,8 +180,8 @@ function violatesFrozenAdjacencyOnSameAxis(
 /**
  * Calculate total score for a word (letter points + length bonus).
  */
-function scoreWord(word: BoardWord): number {
-  return calculateLetterPoints(word.text) + calculateLengthBonus(word.length);
+function scoreWord(word: BoardWord, letterValues?: Record<string, number>): number {
+  return calculateLetterPoints(word.text, letterValues) + calculateLengthBonus(word.length);
 }
 
 /**
@@ -205,6 +205,8 @@ export function selectOptimalCombination(
   frozenTiles: FrozenTileMap,
   dictionary: Set<string>,
   _playerSlot: "player_a" | "player_b",
+  /** The match language's values (spec 060); Icelandic when omitted, as every scorer defaults. */
+  letterValues?: Record<string, number>,
 ): BoardWord[] {
   if (candidates.length === 0) return [];
 
@@ -226,7 +228,7 @@ export function selectOptimalCombination(
 
     if (isSubsetValid(subset, board, frozenTileSet, dictionary)) {
       const totalScore = subset.reduce(
-        (sum, word) => sum + scoreWord(word),
+        (sum, word) => sum + scoreWord(word, letterValues),
         0,
       );
       if (totalScore > bestScore) {

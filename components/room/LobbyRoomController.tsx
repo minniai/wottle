@@ -5,9 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth/logout";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { generateBoard } from "@/lib/game-engine/boardGenerator";
+import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
-import { EMPTY_LOBBY_HINT, NO_SUCH_MATCH, TAP_SECOND_LETTER } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
+import { isLandingPath } from "@/lib/i18n/locales";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
@@ -41,14 +44,21 @@ const EMPTY_FROZEN = new Set<string>();
  * Landing and lobby are the same screen; signing in converts the bar in place.
  */
 export function LobbyRoomController({ viewer, initialPlayers, recentGames }: LobbyRoomControllerProps) {
+  const copy = useCopy();
+  const { EMPTY_LOBBY_HINT, NO_SUCH_MATCH, TAP_SECOND_LETTER } = copy;
   const router = useRouter();
   const storeViewer = useRoomStore((s) => s.viewer);
   const setViewer = useRoomStore((s) => s.setViewer);
   const board = useRoomStore((s) => s.board);
-  const letterAt = useMemo(() => letterFactsOn(board), [board]);
+  const { language } = useLocale();
+  const letterAt = useMemo(() => letterFactsOn(board, language), [board, language]);
   const setBoard = useRoomStore((s) => s.setBoard);
   const setPhase = useRoomStore((s) => s.setPhase);
-  const hydrateBoard = useCallback(() => setBoard(generateBoard({ seed: `warmup:${Date.now()}` })), [setBoard]);
+  // The warm-up field is dealt in the lobby's language (spec 060 FR-016).
+  const hydrateBoard = useCallback(
+    () => setBoard(generateBoard({ seed: `warmup:${Date.now()}`, weights: getLanguagePack(language).letterWeights })),
+    [setBoard, language],
+  );
   const me = storeViewer ?? viewer;
   const setSlip = useRoomStore((s) => s.setSlip);
 
@@ -80,11 +90,13 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     return () => clearTimeout(id);
   }, [me, landed, reducedMotion]);
 
-  // `/` and `/lobby` are one page (app/(room)/LobbyRoomPage). A signed-in viewer's URL is /lobby, rewritten
+  // `/` and `/lobby` are one page (app/[locale]/(room)/LobbyRoomPage). A signed-in viewer's URL is /lobby, rewritten
   // in place: routing would swap the page segment and remount the field (spec 044 SC-008).
+  const locale = useLocale();
+  const to = useLocalePath();
   useEffect(() => {
-    if (me && window.location.pathname === "/") window.history.replaceState(null, "", "/lobby");
-  }, [me]);
+    if (me && isLandingPath(window.location.pathname, locale.id)) window.history.replaceState(null, "", to("/lobby"));
+  }, [me, locale.id, to]);
 
   const players = useLobbyPresenceStore((s) => s.players);
   const presenceStatus = useLobbyPresenceStore((s) => s.status);
@@ -92,9 +104,9 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const disconnect = useLobbyPresenceStore((s) => s.disconnect);
   useEffect(() => {
     if (!me) return;
-    void connect({ self: me, initialPlayers });
+    void connect({ self: me, initialPlayers, language });
     return () => disconnect();
-  }, [me, initialPlayers, connect, disconnect]);
+  }, [me, initialPlayers, connect, disconnect, language]);
 
   const { notices, push, dismiss, apply } = useNotices();
   // The challenge this viewer sent, until the poll reports what became of it.
@@ -112,7 +124,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     params.delete("match");
     const query = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
-  }, [push]);
+  }, [push, NO_SUCH_MATCH]);
 
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
   const previewEnabled = usePreferencesStore((s) => s.previewEnabled) && Boolean(me);
@@ -140,53 +152,53 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       if (!outgoing || outgoing.id !== sentChallenge.current || outgoing.status === "pending") return;
       sentChallenge.current = null;
       dismiss("challengeSent");
-      const outcome = challengeOutcome(outgoing);
+      const outcome = challengeOutcome(outgoing, copy);
       if (outcome) push({ kind: "text", text: outcome });
     },
-    [dismiss, push],
+    [dismiss, push, copy],
   );
   const onActiveMatch = useCallback(
     (activeMatchId: string) => {
       // Never return to a match we were just bounced out of: it would fail to
       // load again and bounce again, forever.
       if (activeMatchId === unreachableMatch.current) return;
-      router.replace(`/match/${activeMatchId}`);
+      router.replace(to(`/match/${activeMatchId}`));
     },
-    [router],
+    [router, to],
   );
   useLobbyInvites({ enabled: Boolean(me), onInvites, onOutgoing, onActiveMatch });
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
-      if (action === "findOpponent") router.replace("/matchmaking");
-      else if (action === "profile") router.push("/profile");
+      if (action === "findOpponent") router.replace(to("/matchmaking"));
+      else if (action === "profile") router.push(to("/profile"));
       else if (action === "signOut") {
         void logoutAction({}).finally(() => {
           disconnect();
           setViewer(null);
-          router.replace("/");
+          router.replace(to("/"));
           router.refresh();
         });
       }
       else if (typeof action === "object" && "challenge" in action) {
-        const to = players.find((p) => p.id === action.challenge);
-        sendInviteAction(action.challenge).then((r) => {
-          if (r.status !== "sent") return push({ kind: "text", text: (r.message ?? "challenge failed").toLowerCase() });
+        const target = players.find((p) => p.id === action.challenge);
+        sendInviteAction(action.challenge, language).then((r) => {
+          if (r.status !== "sent") return push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "invite_failed"] });
           sentChallenge.current = r.inviteId;
-          push({ kind: "challengeSent", toName: to?.displayName ?? to?.username ?? "", inviteId: r.inviteId });
+          push({ kind: "challengeSent", toName: target?.displayName ?? target?.username ?? "", inviteId: r.inviteId });
         });
       } else if (typeof action === "object" && "acceptChallenge" in action) {
         dismiss(`challenge:${action.acceptChallenge}`);
         respondInviteAction(action.acceptChallenge, "accepted").then((r) => {
-          if (r.status === "accepted" && r.matchId) router.replace(`/match/${r.matchId}`);
-          else push({ kind: "text", text: (r.message ?? r.status).toLowerCase() });
+          if (r.status === "accepted" && r.matchId) router.replace(to(`/match/${r.matchId}`));
+          else if (r.status !== "declined") push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "accept_failed"] });
         });
       } else if (typeof action === "object" && "declineChallenge" in action) {
         dismiss(`challenge:${action.declineChallenge}`);
         void respondInviteAction(action.declineChallenge, "declined");
       }
     },
-    [router, push, dismiss, disconnect, setViewer, players],
+    [router, push, dismiss, disconnect, setViewer, players, to, copy, language],
   );
 
   // `?` opens the rules, `M` mutes (design system §9, FR-026).
@@ -200,7 +212,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       players={players}
       recentGames={recentGames}
       loadingPlayers={Boolean(me) && presenceStatus === "connecting" && players.length === 0}
-      hint={me ? (previewEnabled ? hintLine(field.interaction, letterAt) : TAP_SECOND_LETTER) : EMPTY_LOBBY_HINT}
+      hint={me ? (previewEnabled ? hintLine(field.interaction, letterAt, copy) : TAP_SECOND_LETTER) : EMPTY_LOBBY_HINT}
       notices={notices}
       onAction={handleAction}
       onSignedIn={onSignedIn}

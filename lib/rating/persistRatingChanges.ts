@@ -1,47 +1,19 @@
 import { getServiceRoleClient } from "../supabase/server";
+import type { Language } from "../types/game-config";
 import type { MatchRatingResult } from "../types/match";
+import { writeRatingResult, type RatingRecord } from "./playerRatings";
 
-async function incrementPlayerStats(
-  supabase: ReturnType<typeof getServiceRoleClient>,
-  player: MatchRatingResult,
-): Promise<void> {
-  const { data, error: fetchError } = await supabase
-    .from("players")
-    .select("games_played, wins, losses, draws")
-    .eq("id", player.playerId)
-    .single();
+/** A player's change and the record it was computed from. */
+export type RatedPlayer = MatchRatingResult & { before: RatingRecord };
 
-  if (fetchError || !data) {
-    throw new Error(
-      `Failed to fetch player stats: ${fetchError?.message}`,
-    );
-  }
-
-  const { error: updateError } = await supabase
-    .from("players")
-    .update({
-      elo_rating: player.ratingAfter,
-      games_played: data.games_played + 1,
-      wins: data.wins + (player.matchResult === "win" ? 1 : 0),
-      losses:
-        data.losses + (player.matchResult === "loss" ? 1 : 0),
-      draws:
-        data.draws + (player.matchResult === "draw" ? 1 : 0),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", player.playerId);
-
-  if (updateError) {
-    throw new Error(
-      `Failed to update player stats: ${updateError.message}`,
-    );
-  }
-}
-
+/**
+ * Record a match's rating changes in its language (spec 060 US4): one
+ * `match_ratings` row per player, and both players' `player_ratings` row for
+ * that language. `before` is each player's record as the change was computed.
+ */
 export async function persistRatingChanges(
   matchId: string,
-  playerA: MatchRatingResult,
-  playerB: MatchRatingResult,
+  { language, playerA, playerB }: { language: Language; playerA: RatedPlayer; playerB: RatedPlayer },
 ): Promise<void> {
   const supabase = getServiceRoleClient();
 
@@ -56,6 +28,7 @@ export async function persistRatingChanges(
         rating_delta: playerA.ratingDelta,
         k_factor: playerA.kFactor,
         match_result: playerA.matchResult,
+        language,
       },
       {
         match_id: matchId,
@@ -65,6 +38,7 @@ export async function persistRatingChanges(
         rating_delta: playerB.ratingDelta,
         k_factor: playerB.kFactor,
         match_result: playerB.matchResult,
+        language,
       },
     ]);
 
@@ -74,13 +48,21 @@ export async function persistRatingChanges(
     );
   }
 
-  await incrementPlayerStats(supabase, playerA);
-  await incrementPlayerStats(supabase, playerB);
+  for (const player of [playerA, playerB]) {
+    await writeRatingResult(supabase, {
+      playerId: player.playerId,
+      language,
+      before: player.before,
+      ratingAfter: player.ratingAfter,
+      result: player.matchResult,
+    });
+  }
 
   console.log(
     JSON.stringify({
       event: "rating.updated",
       matchId,
+      language,
       playerA: {
         id: playerA.playerId,
         before: playerA.ratingBefore,

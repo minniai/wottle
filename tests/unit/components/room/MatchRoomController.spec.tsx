@@ -71,6 +71,7 @@ function state(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchFacts>
     players: { playerA: facts("player-1", a), playerB: facts("player-2", { score: 30, movesPlayed: 5, ...b }) },
     clock: { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: NOW },
     moveLimit: 10,
+    language: "is",
     resolvedSeq: 7,
     scores: { playerA: 45, playerB: 30 },
     frozenTiles: {},
@@ -340,7 +341,7 @@ describe("MatchRoomController (spec 050)", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("slip-accept-rematch"));
     });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m2"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m2"));
   });
 
   it("final: rematch ▸ sends the request and shows waiting for the opponent", async () => {
@@ -522,24 +523,24 @@ describe("MatchRoomController (spec 050)", () => {
     expect(await screen.findByTestId("slip", {}, { timeout: 3_000 })).toHaveAttribute("data-kind", "matchOver");
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     fireEvent.click(screen.getByTestId("ledger-menu-item-profile"));
-    expect(mockPush).toHaveBeenCalledWith("/profile");
+    expect(mockPush).toHaveBeenCalledWith("/en/profile");
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     fireEvent.click(screen.getByTestId("ledger-menu-item-signout"));
     await waitFor(() => expect(logoutAction).toHaveBeenCalled());
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en"));
   });
 
   it("a player's name opens their profile: in a live match in a new tab, after it in the same tab", () => {
     const live = renderController();
     const oppLive = screen.getByTestId("player-bar-top").querySelector("a")!;
-    expect(oppLive).toHaveAttribute("href", "/profile/bob");
+    expect(oppLive).toHaveAttribute("href", "/en/profile/bob");
     expect(oppLive).toHaveAttribute("target", "_blank");
-    expect(screen.getByTestId("player-bar-bottom").querySelector("a")).toHaveAttribute("href", "/profile/alice");
+    expect(screen.getByTestId("player-bar-bottom").querySelector("a")).toHaveAttribute("href", "/en/profile/alice");
     live.unmount();
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
     const oppFinal = screen.getByTestId("player-bar-top").querySelector("a")!;
-    expect(oppFinal).toHaveAttribute("href", "/profile/bob");
+    expect(oppFinal).toHaveAttribute("href", "/en/profile/bob");
     expect(oppFinal).not.toHaveAttribute("target");
   });
 
@@ -549,7 +550,7 @@ describe("MatchRoomController (spec 050)", () => {
     await screen.findByTestId("slip", {}, { timeout: 3_000 });
     fireEvent.click(screen.getByTestId("slip-lobby"));
     expect(screen.queryByTestId("slip")).toBeNull();
-    expect(mockReplace).toHaveBeenCalledWith("/lobby");
+    expect(mockReplace).toHaveBeenCalledWith("/en/lobby");
   });
 });
 

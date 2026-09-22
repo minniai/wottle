@@ -1,5 +1,6 @@
 "use client";
 
+import type { Language } from "@/lib/types/game-config";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cancelQueueAction } from "@/app/actions/matchmaking/cancelQueue";
@@ -25,7 +26,8 @@ export interface MatchmakingApi {
  * every 3 s until `matched`; the opponent's identity comes from
  * `getMatchOverviewAction`. Pure state — rendering is the room's job.
  */
-export function useMatchmaking(enabled: boolean, startedAt = Date.now()): MatchmakingApi {
+/** `language` is the lobby's game language (spec 060): the queue pairs only within it. */
+export function useMatchmaking(enabled: boolean, startedAt = Date.now(), language: Language = "is"): MatchmakingApi {
   const [state, setState] = useState<MatchmakingState>({ kind: "searching", elapsedSeconds: 0 });
   const stopped = useRef(false);
 
@@ -43,7 +45,7 @@ export function useMatchmaking(enabled: boolean, startedAt = Date.now()): Matchm
     let active = true;
     const poll = async () => {
       if (stopped.current) return;
-      const result = await startQueueAction().catch((e: Error) => ({ status: "error" as const, message: e.message }));
+      const result = await startQueueAction({ language }).catch((e: Error) => ({ status: "error" as const, message: e.message }));
       if (!active || stopped.current) return;
       if (result.status === "matched" && result.matchId) {
         stopped.current = true;
@@ -60,7 +62,7 @@ export function useMatchmaking(enabled: boolean, startedAt = Date.now()): Matchm
       active = false;
       clearInterval(id);
     };
-  }, [enabled]);
+  }, [enabled, language]);
 
   const cancel = useCallback(async () => {
     stopped.current = true;
