@@ -4,7 +4,6 @@ import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { moveErrorCode } from "@/lib/i18n/errorCodes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { previewSwap } from "@/app/actions/match/previewSwap";
 import type { CellState } from "@/components/room/FieldCell";
 import type { Seat } from "@/lib/constants/seatColors";
 import {
@@ -25,7 +24,6 @@ export interface FieldInteractionOptions {
   board: string[][];
   /** Warm-up: apply the swap locally instead of posting a move. */
   onLocalSwap?: (from: Coordinate, to: Coordinate) => void;
-  previewEnabled: boolean;
   frozenKeys: Set<string>;
   canPick: boolean;
   onPick: () => void;
@@ -87,14 +85,13 @@ function moveFocus(from: Coordinate, keyName: string): Coordinate | null {
 
 const sameCoord = (a: Coordinate, b: Coordinate) => a.x === b.x && a.y === b.y;
 
-/** Holds the pick → (preview) → commit state and runs its effects (spec 044 US2, spec 050). */
+/** Holds the pick → commit state and runs its effects (spec 044 US2, spec 050). */
 export function useFieldInteraction(opts: FieldInteractionOptions): FieldInteractionApi {
   const [interaction, setInteraction] = useState<FieldInteraction>(IDLE);
   const [shakeAt, setShakeAt] = useState<Coordinate | null>(null);
   const [focusAt, setFocusAt] = useState<Coordinate | null>(null);
   const stateRef = useRef<FieldInteraction>(IDLE);
   const optsRef = useRef(opts);
-  const priceRequest = useRef(0);
   const dispatchRef = useRef<(event: FieldEvent) => void>(() => undefined);
 
   useEffect(() => {
@@ -102,8 +99,8 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
   }, [opts]);
 
   const ctx: FieldContext = useMemo(
-    () => ({ previewEnabled: opts.previewEnabled, frozen: opts.frozenKeys, canPick: opts.canPick }),
-    [opts.previewEnabled, opts.frozenKeys, opts.canPick],
+    () => ({ frozen: opts.frozenKeys, canPick: opts.canPick }),
+    [opts.frozenKeys, opts.canPick],
   );
 
   const runEffect = useCallback((effect: FieldEffect) => {
@@ -126,17 +123,6 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
           dispatchRef.current({ type: "submitRejected" });
           o.onRejected(error instanceof MoveRefused ? error.code : "move_failed");
         });
-    } else if (effect.kind === "requestPrice") {
-      const id = ++priceRequest.current;
-      const input = o.matchId === null
-        ? { kind: "warmup" as const, board: o.board, from: effect.from, to: effect.to }
-        : { kind: "match" as const, matchId: o.matchId, from: effect.from, to: effect.to };
-      previewSwap(input)
-        .then((result) => {
-          if (id !== priceRequest.current || result.status !== "ok") return;
-          dispatchRef.current({ type: "priced", price: { words: result.words ?? [], total: result.total ?? 0 } });
-        })
-        .catch(() => undefined);
     }
   }, []);
 
@@ -180,9 +166,7 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
 
   const cellStateFor = (coord: Coordinate, base: CellState): CellState => {
     if (base !== "free") return base;
-    if (isPick(coord)) return "picked";
-    if (interaction.kind === "preview" && inPair(coord)) return "previewed";
-    return base;
+    return isPick(coord) ? "picked" : base;
   };
 
   const seatFor = (coord: Coordinate): Seat | null => (isPick(coord) || inPair(coord) ? "you" : null);
@@ -193,12 +177,9 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
       if (next) {
         event.preventDefault();
         setFocusAt(next);
-      } else if (event.key === " ") {
+      } else if (event.key === " " || event.key === "Enter") {
         event.preventDefault();
         dispatch({ type: "tap", at: coord });
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        dispatch(stateRef.current.kind === "preview" ? { type: "enter" } : { type: "tap", at: coord });
       }
     },
     [dispatch],

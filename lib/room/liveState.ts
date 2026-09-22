@@ -1,7 +1,6 @@
 import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import type { FieldInteraction } from "@/lib/room/fieldInteraction";
-import type { Copy } from "@/lib/i18n/copy/types";
-import { liveText, type LiveState } from "@/lib/room/liveLines";
+import type { LiveState } from "@/lib/room/liveLines";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 import type { Language } from "@/lib/types/game-config";
 
@@ -34,19 +33,9 @@ export function liveStateFor(interaction: FieldInteraction, letterAt: (at: Coord
   switch (interaction.kind) {
     case "committed":
       return { kind: "played" };
-    case "preview":
-      return interaction.price === "pending"
-        ? { kind: "previewing", total: null, words: [] }
-        : { kind: "previewing", total: interaction.price.total, words: interaction.price.words.map((w) => w.word) };
     case "picked":
       return { kind: "picking", ...letterAt(interaction.a) };
     default:
       return { kind: "idle" };
   }
-}
-
-/** One line for a ledger that has no live row (the lobby's warm-up field). */
-export function hintLine(interaction: FieldInteraction, letterAt: (at: Coordinate) => LetterFacts, copy: Copy): string {
-  const { line1, line2 } = liveText(liveStateFor(interaction, letterAt), copy);
-  return [line1, line2].filter(Boolean).join(" · ");
 }

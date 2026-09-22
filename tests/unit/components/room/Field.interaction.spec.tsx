@@ -3,9 +3,6 @@ import { copyEn } from "@/lib/i18n/copy/en";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
-
-import { previewSwap } from "@/app/actions/match/previewSwap";
 import { Field } from "@/components/room/Field";
 import { useFieldInteraction, type FieldInteractionApi, type FieldInteractionOptions } from "@/components/room/hooks/useFieldInteraction";
 import { liveText } from "@/lib/room/ledgerRows";
@@ -26,7 +23,6 @@ function Harness(props: Partial<FieldInteractionOptions> & { frozen?: Record<str
   const field = useFieldInteraction({
     matchId: "m1",
     board: board(),
-    previewEnabled: props.previewEnabled ?? false,
     frozenKeys: new Set(Object.keys(frozen)),
     canPick: props.canPick ?? true,
     onPick: props.onPick ?? (() => undefined),
@@ -55,7 +51,6 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockResolvedValue({ status: 200, json: async () => ({ status: "accepted", moveId: "mv-1", globalSeq: 1, receivedAt: "2026-01-01T00:00:00Z" }) });
-    vi.mocked(previewSwap).mockReset();
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -77,36 +72,18 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
     expect(screen.getByTestId("live")).toHaveTextContent("scoring");
     expect(fetchMock).toHaveBeenCalledWith("/api/match/m1/move", expect.objectContaining({ method: "POST", body: JSON.stringify({ fromX: 1, fromY: 1, toX: 4, toY: 1, fromLetter: "C", toLetter: "F" }) }));
     await waitFor(() => expect(onCommitted).toHaveBeenCalled());
-    expect(previewSwap).not.toHaveBeenCalled();
   });
 
-  it("preview on: second tap previews with dotted rings and prices via the server; third tap commits", async () => {
-    vi.mocked(previewSwap).mockResolvedValue({ status: "ok", words: [{ word: "hestur", points: 24, direction: "ltr" }], total: 24 });
-    render(<Harness previewEnabled />);
+  it("Escape cancels a pick; the picked letter tapped again returns to idle", () => {
+    render(<Harness />);
     fireEvent.click(cell(1, 1));
-    fireEvent.click(cell(4, 1));
-    expect(cell(1, 1)).toHaveAttribute("data-state", "previewed");
-    expect(cell(4, 1)).toHaveAttribute("data-state", "previewed");
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(previewSwap).toHaveBeenCalledWith({ kind: "match", matchId: "m1", from: { x: 1, y: 1 }, to: { x: 4, y: 1 } });
-    expect(screen.getByTestId("live")).toHaveTextContent("previewing / tap again to play · esc cancels");
-    await waitFor(() => expect(screen.getByTestId("live")).toHaveTextContent("24 · hestur / tap again to play · esc cancels"));
-    fireEvent.click(cell(4, 1));
-    expect(screen.getByTestId("kind")).toHaveTextContent("committed");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("Escape reverses a preview; the picked letter tapped again returns to idle", () => {
-    vi.mocked(previewSwap).mockResolvedValue({ status: "ok", words: [], total: 0 });
-    render(<Harness previewEnabled />);
-    fireEvent.click(cell(1, 1));
-    fireEvent.click(cell(4, 1));
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
     expect(cell(1, 1)).toHaveAttribute("data-state", "free");
     fireEvent.click(cell(2, 2));
     fireEvent.click(cell(2, 2));
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("a frozen letter shakes in place and notifies; nothing is posted", () => {
@@ -140,9 +117,8 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
     expect(screen.getByTestId("kind")).toHaveTextContent("idle");
   });
 
-  it("keyboard: arrows move focus, Space picks, Enter commits a preview", async () => {
-    vi.mocked(previewSwap).mockResolvedValue({ status: "ok", words: [], total: 0 });
-    render(<Harness previewEnabled />);
+  it("keyboard: arrows move focus, Space picks, Enter on a second letter commits", async () => {
+    render(<Harness />);
     const first = cell(0, 0);
     first.focus();
     fireEvent.keyDown(first, { key: "ArrowRight" });
@@ -151,10 +127,9 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
     expect(cell(1, 0)).toHaveAttribute("data-state", "picked");
     fireEvent.keyDown(cell(1, 0), { key: "ArrowDown" });
     await waitFor(() => expect(document.activeElement).toBe(cell(1, 1)));
-    fireEvent.keyDown(cell(1, 1), { key: " " });
-    expect(screen.getByTestId("kind")).toHaveTextContent("preview");
     fireEvent.keyDown(cell(1, 1), { key: "Enter" });
     expect(screen.getByTestId("kind")).toHaveTextContent("committed");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   // Spec 050: a commit is unwound by its own resolution, never by the opponent's.

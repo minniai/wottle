@@ -24,16 +24,10 @@ async function twoFreeCells(page: Page, y: number): Promise<[number, number]> {
   return [free[0], free[1]];
 }
 
-async function togglePreview(page: Page) {
-  await page.getByTestId("ledger-menu-trigger").click();
-  await page.getByTestId("ledger-menu-item-preview").click();
-  await page.keyboard.press("Escape");
-}
-
 test.describe.configure({ mode: "serial", retries: 1 });
 
-test.describe("@room-flow US2 pick, preview, commit", () => {
-  test("default second tap commits and scores at once; preview is an opt-in with Esc cancel", async ({ browser }) => {
+test.describe("@room-flow US2 pick, commit", () => {
+  test("the second tap commits and scores at once; Esc cancels a pick", async ({ browser }) => {
     const contextA = await browser.newContext();
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
@@ -47,7 +41,7 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(pageB.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
 
-      // A: default mode — pick then commit on the second tap.
+      // A: pick, then the second tap commits.
       const [ax1, ax2] = await twoFreeCells(pageA, 0);
       await cell(pageA, ax1, 0).click();
       await expect(cell(pageA, ax1, 0)).toHaveAttribute("data-state", "picked");
@@ -62,19 +56,13 @@ test.describe("@room-flow US2 pick, preview, commit", () => {
       await expect(pageB.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
       await expect(pageB.getByTestId("ledger-live-row")).toContainText("move 1 · your move");
 
-      // B: opt into preview — second tap previews, Esc reverses, third tap commits.
-      await togglePreview(pageB);
+      // B: Esc cancels a pick; picking again and a second tap commits.
       const [bx1, bx2] = await twoFreeCells(pageB, 9);
       await cell(pageB, bx1, 9).click();
-      await cell(pageB, bx2, 9).click();
-      await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "previewed");
-      // Spec 047 amendment P1: the preview line lives in the live row, not the hint.
-      await expect(pageB.getByTestId("ledger-live-row")).toContainText(/tap again to play/);
+      await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "picked");
       await pageB.keyboard.press("Escape");
       await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "free");
       await cell(pageB, bx1, 9).click();
-      await cell(pageB, bx2, 9).click();
-      await expect(cell(pageB, bx1, 9)).toHaveAttribute("data-state", "previewed");
       await cell(pageB, bx2, 9).click();
       await expect(rail(pageB)).toHaveAttribute("aria-valuenow", "9", { timeout: 20_000 });
       await expect(pageA.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });

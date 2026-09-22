@@ -11,9 +11,6 @@ import type { Copy } from "@/lib/i18n/copy/types";
  */
 
 const CANCEL = "hætta við ▸";
-const TAP_AGAIN_TO_PLAY = "ýttu aftur til að leika";
-const ESC_CANCELS = "esc hættir við";
-const NO_WORD = "ekkert orð";
 const MATCH_OVER = "viðureign lokið";
 
 const signed = (n: number): string => `${n < 0 ? "−" : "+"}${Math.abs(n)}`;
@@ -24,7 +21,6 @@ const scoreSpan = (a: number, b: number): string =>
 const CELL_STATES: Record<string, string> = {
   free: "laus",
   picked: "valinn",
-  previewed: "í forskoðun",
   pinned: "festur",
   frozen: "frosinn",
   scored: "skorar",
@@ -80,14 +76,8 @@ export const copyIs = {
   picking: (letter: string, value: number): string => `velur · ${letter} (${value})`,
   SCORING: "stigareikningur",
   TAP_SECOND_LETTER: "veldu annan staf",
-  TAP_AGAIN_TO_PLAY,
-  ESC_CANCELS,
   PICK_A_LETTER: "veldu staf",
-  PREVIEWING: "forskoðun",
-  NO_WORD,
-  PREVIEW_INSTRUCTION: `${TAP_AGAIN_TO_PLAY} · ${ESC_CANCELS}`,
-  previewLine: (total: number, words: string[]): string =>
-    `${total} · ${words.length > 0 ? words.join(" · ") : NO_WORD}`,
+  NO_WORD: "ekkert orð",
   HOVER_ROW_HINT: "færðu bendilinn yfir línu til að sjá orðin",
   frozenNotice: (ownerName: string, move: number): string =>
     `frosinn · ${ownerName} L${move} · veldu annan`,
@@ -181,7 +171,6 @@ export const copyIs = {
 
   MENU: "valmynd",
   soundToggle: (on: boolean): string => `hljóð · ${on ? "á" : "af"}`,
-  previewToggle: (on: boolean): string => `forskoðun · ${on ? "á" : "af"}`,
   MENU_HOW_TO_PLAY: "leiðbeiningar",
   MENU_RESIGN: "gefast upp",
   MENU_LEAVE: "fara",

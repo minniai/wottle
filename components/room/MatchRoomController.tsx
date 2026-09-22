@@ -129,7 +129,6 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const clockMs = clockLengthMs === null ? tickMs : Math.min(tickMs, clockLengthMs);
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
   const haptics = useHapticFeedback(usePreferencesStore((s) => s.hapticsEnabled));
-  const previewEnabled = usePreferencesStore((s) => s.previewEnabled);
 
   const opponentSlot = viewerSlot === "player_a" ? "player_b" : "player_a";
   const you = playerProfiles[viewerSlot === "player_a" ? "playerA" : "playerB"];
@@ -235,7 +234,6 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const field = useFieldInteraction({
     matchId,
     board: match.board,
-    previewEnabled,
     frozenKeys,
     canPick,
     onPick: sound.playTileSelect,
@@ -260,7 +258,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const [highlightMove, setHighlightMove] = useState<number | null>(null);
 
   const letterAt = useMemo(() => letterFactsOn(match.board, match.language), [match.board, match.language]);
-  // The field's own state (pick / preview / illegal); the move's beat is layered on by
+  // The field's own state (pick / illegal); the move's beat is layered on by
   // `moveState` (spec 050), which owns line 1 of the live row.
   const live: LiveState = useMemo(() => {
     const fromField = liveStateFor(field.interaction, letterAt);

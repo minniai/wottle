@@ -366,11 +366,6 @@
   color: var(--ink);
   font-weight: 500;
 }
-.field__cell[data-state="previewed"] {
-  box-shadow: none;
-  outline: 2px dotted var(--ink);
-  outline-offset: -2px;
-}
 .field__cell[data-state="pinned"] {
   color: var(--seat-ink);
   outline: 2px dashed var(--seat-ink);

@@ -86,7 +86,6 @@ export type LedgerAction =
   | "lobby"
   | "cancelQueue"
   | "toggleSound"
-  | "togglePreview"
   | "signOut"
   | "profile"
   | "endEarly"

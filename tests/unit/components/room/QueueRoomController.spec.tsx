@@ -9,7 +9,6 @@ vi.mock("@/app/actions/matchmaking/getMatchOverview", () => ({ getMatchOverviewA
 vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn() }) }));
 vi.mock("@/lib/realtime/matchChannel", () => ({ subscribeToMatchChannel: () => ({ on: () => ({ on: vi.fn() }), unsubscribe: vi.fn() }) }));
 vi.mock("@/app/actions/match/handleDisconnect", () => ({ handlePlayerDisconnect: vi.fn() }));
-vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
 
 import { getMatchOverviewAction } from "@/app/actions/matchmaking/getMatchOverview";
 import { startQueueAction } from "@/app/actions/matchmaking/startQueue";

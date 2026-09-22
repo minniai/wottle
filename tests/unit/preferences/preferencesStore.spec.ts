@@ -24,25 +24,23 @@ describe("preferencesStore (spec 044 R14)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("defaults: sound on, haptics on, preview off", () => {
-    expect(readStoredPreferences()).toEqual({ soundEnabled: true, hapticsEnabled: true, previewEnabled: false });
+  it("defaults: sound on, haptics on", () => {
+    expect(readStoredPreferences()).toEqual({ soundEnabled: true, hapticsEnabled: true });
   });
 
-  it("a legacy stored object without previewEnabled reads as preview off", () => {
+  it("a stored object is read back", () => {
     store[SENSORY_PREFS_STORAGE_KEY] = JSON.stringify({ soundEnabled: false, hapticsEnabled: true });
     usePreferencesStore.getState().hydrate();
-    const s = usePreferencesStore.getState();
-    expect(s.soundEnabled).toBe(false);
-    expect(s.previewEnabled).toBe(false);
+    expect(usePreferencesStore.getState().soundEnabled).toBe(false);
   });
 
   it("two subscribers see one toggle and it persists", () => {
     const seen: boolean[] = [];
-    const unsubscribe = usePreferencesStore.subscribe((s) => seen.push(s.previewEnabled));
-    usePreferencesStore.getState().setPreviewEnabled(true);
-    expect(usePreferencesStore.getState().previewEnabled).toBe(true);
-    expect(seen).toContain(true);
-    expect(JSON.parse(store[SENSORY_PREFS_STORAGE_KEY]).previewEnabled).toBe(true);
+    const unsubscribe = usePreferencesStore.subscribe((s) => seen.push(s.soundEnabled));
+    usePreferencesStore.getState().setSoundEnabled(false);
+    expect(usePreferencesStore.getState().soundEnabled).toBe(false);
+    expect(seen).toContain(false);
+    expect(JSON.parse(store[SENSORY_PREFS_STORAGE_KEY]).soundEnabled).toBe(false);
     unsubscribe();
   });
 });

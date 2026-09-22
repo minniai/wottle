@@ -31,7 +31,6 @@
     "perf:lobby-presence": "SWAP_LATENCY_THRESHOLD_MS=2000 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-lobby-presence.json tests/perf/lobby-presence.yml && SWAP_LATENCY_THRESHOLD_MS=2000 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-lobby-presence.json",
     "perf:move-receipt": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-move-receipt.json tests/perf/move-receipt.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-move-receipt.json",
     "perf:move-resolve": "vitest run --config vitest.perf.config.ts tests/perf/moveResolve.bench.ts",
-    "perf:preview-swap": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-preview-swap.json tests/perf/preview-swap.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-preview-swap.json",
     "test:visual": "playwright test room-fixtures --project=visual-1440x900 --project=visual-1280x800 --project=visual-390x844"
   },
   "dependencies": {

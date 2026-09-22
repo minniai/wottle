@@ -2,7 +2,7 @@ import type { Coordinate } from "@/lib/types/board";
 
 /**
  * The board the player sees: the server snapshot with in-flight swaps applied
- * (the opponent's pinned move, then the player's own committed or previewed
+ * (the opponent's pinned move, then the player's own committed
  * pair). Pure; never mutates the input.
  */
 export function applyLetterSwaps(board: string[][], swaps: Array<[Coordinate, Coordinate] | null | undefined>): string[][] {

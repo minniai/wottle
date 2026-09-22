@@ -25,7 +25,6 @@ vi.mock("@/lib/realtime/matchChannel", () => ({
   },
 }));
 vi.mock("@/app/actions/match/handleDisconnect", () => ({ handlePlayerDisconnect: vi.fn() }));
-vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn() }));
 vi.mock("@/app/actions/match/resignMatch", () => ({ resignMatch: vi.fn().mockResolvedValue({ status: "ok" }) }));
 vi.mock("@/app/actions/match/claimWin", () => ({ claimWinAction: vi.fn().mockResolvedValue({ status: "ok", matchId: "m1" }) }));
 vi.mock("@/app/actions/match/settleMatch", () => ({ settleMatch: vi.fn().mockResolvedValue({ status: "ok", outcome: "not_due" }) }));
