@@ -38,9 +38,9 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
           others.map((p) => (
             <div className="lobby-ledger__row" role="row" data-testid="ledger-here-now-row" data-player-id={p.id} key={p.id}>
               <span className="lobby-ledger__name" role="cell">
-                <a href={`/profile/${encodeURIComponent(p.username)}`}>
+                <Link className="lobby-ledger__profile" href={to(`/profile/${p.username}`)}>
                   {p.displayName} <span className="ledger__mono">@{p.username}</span>
-                </a>
+                </Link>
               </span>
               <span className="ledger__mono" role="cell">{p.eloRating ?? "—"}</span>
               <span className="ledger__mono" role="cell">
@@ -71,7 +71,9 @@ export function LobbyLedger({ players, viewer, recentGames, loadingPlayers = fal
             ) : (
               recentGames.map((g) => (
                 <div className="lobby-ledger__row" role="row" key={g.matchId} data-testid="ledger-last-match-row">
-                  <span className="lobby-ledger__name" role="cell"><a href={`/profile/${encodeURIComponent(g.opponentUsername)}`}>{g.opponentDisplayName}</a></span>
+                  <span className="lobby-ledger__name" role="cell">
+                    <Link className="lobby-ledger__profile" href={to(`/profile/${g.opponentUsername}`)}>{g.opponentDisplayName}</Link>
+                  </span>
                   <span className="ledger__mono" role="cell">
                     {g.yourScore}–{g.opponentScore}
                   </span>
