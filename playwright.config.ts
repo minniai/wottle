@@ -47,6 +47,11 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], baseURL, viewport: { width, height } },
     })),
     {
+      name: "mobile-safari",
+      testMatch: /ledger-scroll\.spec\.ts/,
+      use: { ...devices["iPhone 13"], baseURL },
+    },
+    {
       name: "playtest-firefox",
       // As for chromium: the visual suite owns its viewports and its baselines.
       testIgnore: /room-fixtures\.spec\.ts/,
