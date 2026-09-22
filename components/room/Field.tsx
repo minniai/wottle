@@ -46,7 +46,7 @@ export interface FieldProps {
 /**
  * The field (design system §5.1): a hundred capitals on paper, 1px rules,
  * 1.5px ink frame, value numeral in the top-right gutter. Static in P1; the
- * pick/preview/commit reducer drives it from P3 through `cellStateFor`.
+ * pick/commit reducer drives it from P3 through `cellStateFor`.
  */
 export function Field(props: FieldProps) {
   const { THE_FIELD } = useCopy();
