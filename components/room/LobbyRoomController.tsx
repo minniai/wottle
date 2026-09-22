@@ -14,7 +14,6 @@ import { isLandingPath } from "@/lib/i18n/locales";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
-import { hintLine, letterFactsOn } from "@/lib/room/liveState";
 import type { LedgerAction, OutgoingChallenge } from "@/lib/room/ledgerTypes";
 import { challengeOutcome, syncChallenges } from "@/lib/room/notices";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -51,7 +50,6 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const setViewer = useRoomStore((s) => s.setViewer);
   const board = useRoomStore((s) => s.board);
   const { language } = useLocale();
-  const letterAt = useMemo(() => letterFactsOn(board, language), [board, language]);
   const setBoard = useRoomStore((s) => s.setBoard);
   const setPhase = useRoomStore((s) => s.setPhase);
   // The warm-up field is dealt in the lobby's language (spec 060 FR-016).
@@ -127,12 +125,10 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   }, [push, NO_SUCH_MATCH]);
 
   const sound = useSoundEffects(usePreferencesStore((s) => s.soundEnabled));
-  const previewEnabled = usePreferencesStore((s) => s.previewEnabled) && Boolean(me);
 
   const field = useFieldInteraction({
     matchId: null,
     board,
-    previewEnabled,
     frozenKeys: EMPTY_FROZEN,
     canPick: board.length > 0 && Boolean(me) && landed === null,
     onPick: sound.playTileSelect,
@@ -212,7 +208,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       players={players}
       recentGames={recentGames}
       loadingPlayers={Boolean(me) && presenceStatus === "connecting" && players.length === 0}
-      hint={me ? (previewEnabled ? hintLine(field.interaction, letterAt, copy) : TAP_SECOND_LETTER) : EMPTY_LOBBY_HINT}
+      hint={me ? TAP_SECOND_LETTER : EMPTY_LOBBY_HINT}
       notices={notices}
       onAction={handleAction}
       onSignedIn={onSignedIn}

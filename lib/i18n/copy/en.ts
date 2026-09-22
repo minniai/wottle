@@ -46,16 +46,9 @@ const picking = (letter: string, value: number): string =>
 /** The live row while your own move is in flight or revealing (spec 050). */
 const SCORING = "scoring";
 const TAP_SECOND_LETTER = "tap a second letter";
-const TAP_AGAIN_TO_PLAY = "tap again to play";
-const ESC_CANCELS = "esc cancels";
 /** Spec 047 amendment P1: the live row's two lines — a state, then an instruction. */
 const PICK_A_LETTER = "pick a letter";
-const PREVIEWING = "previewing";
 const NO_WORD = "no word";
-const PREVIEW_INSTRUCTION = `${TAP_AGAIN_TO_PLAY} · ${ESC_CANCELS}`;
-/** `24 · hestur` or `0 · no word` — the priced preview on the live row's first line. */
-const previewLine = (total: number, words: string[]): string =>
-  `${total} · ${words.length > 0 ? words.join(" · ") : NO_WORD}`;
 const HOVER_ROW_HINT = "hover a row to see its words";
 const frozenNotice = (ownerName: string, move: number): string =>
   `frozen · ${ownerName} M${move} · pick another`;
@@ -159,7 +152,6 @@ const NO_SUCH_MATCH = "that match does not exist";
 // The ⋯ menu
 const MENU = "menu";
 const soundToggle = (on: boolean): string => `sound · ${on ? "on" : "off"}`;
-const previewToggle = (on: boolean): string => `preview · ${on ? "on" : "off"}`;
 const MENU_HOW_TO_PLAY = "how to play";
 const MENU_RESIGN = "resign";
 const MENU_LEAVE = "leave";
@@ -273,13 +265,8 @@ export const copyEn = {
   picking,
   SCORING,
   TAP_SECOND_LETTER,
-  TAP_AGAIN_TO_PLAY,
-  ESC_CANCELS,
   PICK_A_LETTER,
-  PREVIEWING,
   NO_WORD,
-  PREVIEW_INSTRUCTION,
-  previewLine,
   HOVER_ROW_HINT,
   frozenNotice,
   frozenJustNow,
@@ -348,7 +335,6 @@ export const copyEn = {
   NO_SUCH_MATCH,
   MENU,
   soundToggle,
-  previewToggle,
   MENU_HOW_TO_PLAY,
   MENU_RESIGN,
   MENU_LEAVE,

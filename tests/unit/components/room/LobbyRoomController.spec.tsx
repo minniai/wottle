@@ -12,7 +12,6 @@ vi.mock("@/app/actions/matchmaking/sendInvite", () => ({
   sendInviteAction: vi.fn().mockResolvedValue({ status: "sent", inviteId: "i1", expiresAt: "" }),
   respondInviteAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m9" }),
 }));
-vi.mock("@/app/actions/match/previewSwap", () => ({ previewSwap: vi.fn().mockResolvedValue({ status: "ok", words: [], total: 0 }) }));
 vi.mock("@/lib/matchmaking/presenceStore", async () => {
   const { create } = await import("zustand");
   const store = create(() => ({
@@ -25,10 +24,8 @@ vi.mock("@/lib/matchmaking/presenceStore", async () => {
 });
 
 import { LobbyRoomController } from "@/components/room/LobbyRoomController";
-import { previewSwap } from "@/app/actions/match/previewSwap";
 import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
-import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { OVER_SLIP } from "@/app/[locale]/dev/room/fixtures";
 import type { PlayerIdentity } from "@/lib/types/match";
@@ -42,12 +39,10 @@ describe("LobbyRoomController (spec 044 US7)", () => {
   beforeEach(() => {
     useRoomStore.getState().leaveToLobby();
     useRoomStore.setState({ viewer: null, board: [] });
-    usePreferencesStore.setState({ previewEnabled: false });
     fetchMock.mockReset();
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ pending: [], match: null }) });
     vi.stubGlobal("fetch", fetchMock);
     mockReplace.mockClear();
-    vi.mocked(previewSwap).mockClear();
     (useLobbyPresenceStore as unknown as { setState: (s: object) => void }).setState({ players: [] });
   });
   afterEach(() => {
@@ -76,7 +71,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     expect(cell(0, 0)).not.toHaveAttribute("data-state", "picked");
   });
 
-  it("warm-up swap is local: letters exchange, nothing is posted, no pricing", () => {
+  it("warm-up swap is local: letters exchange, nothing is posted", () => {
     render(<LobbyRoomController viewer={{ id: "p1", username: "birna", displayName: "Birna", status: "available", lastSeenAt: "", eloRating: 1204 }} initialPlayers={[]} recentGames={null} />);
     const a = cell(0, 0).textContent;
     const b = cell(1, 0).textContent;
@@ -84,7 +79,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     fireEvent.click(cell(1, 0));
     expect(cell(0, 0).textContent).toBe(b);
     expect(cell(1, 0).textContent).toBe(a);
-    expect(previewSwap).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/move"))).toBe(false);
   });
 
   it("signing in converts the bottom bar in place and replaces the URL with /lobby", async () => {
@@ -125,17 +120,13 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
   });
 
-  it("signed in: here-now lists others with challenge ▸; challenging sends the invite; preview prices the warm-up", async () => {
+  it("signed in: here-now lists others with challenge ▸; challenging sends the invite", async () => {
     (useLobbyPresenceStore as unknown as { setState: (s: object) => void }).setState({ players: [me, kari] });
-    usePreferencesStore.setState({ previewEnabled: true });
     render(<LobbyRoomController viewer={me} initialPlayers={[me, kari]} recentGames={[]} />);
     expect(screen.getByTestId("player-bar-action-find")).not.toBeDisabled();
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("lobby · 1 here");
     fireEvent.click(screen.getByTestId("ledger-challenge-k"));
     expect(sendInviteAction).toHaveBeenCalledWith("k", "en");
-    fireEvent.click(cell(0, 0));
-    fireEvent.click(cell(1, 0));
-    expect(previewSwap).toHaveBeenCalledWith(expect.objectContaining({ kind: "warmup" }));
     expect(fetchMock.mock.calls.every(([url]) => String(url).startsWith("/api/lobby") || String(url).startsWith("/api/match/active"))).toBe(true);
   });
 

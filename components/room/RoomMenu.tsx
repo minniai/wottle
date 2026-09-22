@@ -24,16 +24,12 @@ interface Item {
 
 interface MenuState {
   sound: boolean;
-  preview: boolean;
   rulesHref: string;
   copy: Copy;
 }
 
-function itemsFor(variant: RoomMenuVariant, { sound, preview, rulesHref, copy }: MenuState): Item[] {
-  const shared: Item[] = [
-    { key: "sound", label: copy.soundToggle(sound), action: "toggleSound" },
-    { key: "preview", label: copy.previewToggle(preview), action: "togglePreview" },
-  ];
+function itemsFor(variant: RoomMenuVariant, { sound, rulesHref, copy }: MenuState): Item[] {
+  const shared: Item[] = [{ key: "sound", label: copy.soundToggle(sound), action: "toggleSound" }];
   if (variant === "match") {
     return [
       ...shared,
@@ -50,9 +46,7 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sound = usePreferencesStore((s) => s.soundEnabled);
-  const preview = usePreferencesStore((s) => s.previewEnabled);
   const setSound = usePreferencesStore((s) => s.setSoundEnabled);
-  const setPreview = usePreferencesStore((s) => s.setPreviewEnabled);
   const to = useLocalePath();
   const copy = useCopy();
 
@@ -73,9 +67,8 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
   const select = (item: Item) => {
     if (!item.action) return;
     if (item.action === "toggleSound") setSound(!sound);
-    else if (item.action === "togglePreview") setPreview(!preview);
     onAction(item.action);
-    if (item.action !== "toggleSound" && item.action !== "togglePreview") close();
+    if (item.action !== "toggleSound") close();
   };
 
   return (
@@ -93,7 +86,7 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
       </button>
       {open ? (
         <ul className="room-menu__list" role="menu" data-testid="ledger-menu-list">
-          {itemsFor(variant, { sound, preview, rulesHref: to("/rules"), copy }).map((item) => (
+          {itemsFor(variant, { sound, rulesHref: to("/rules"), copy }).map((item) => (
             <li key={item.key} role="none">
               {item.href ? (
                 <a role="menuitem" className="action-secondary" data-testid={`ledger-menu-item-${item.key}`} href={item.href} target="_blank" rel="noopener" onClick={() => setOpen(false)}>

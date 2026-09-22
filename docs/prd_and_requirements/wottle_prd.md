@@ -20,10 +20,9 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 ### 1.3 Move Mechanics
 
 - **Swapping Letters:** A **move** consists of selecting any two letter tiles on the board (they do **not** need to be adjacent) and swapping their positions. This is the only move action in the game. After a swap, the resulting board is automatically checked for new words formed by that swap.
-- **Controls — pick → commit, optional preview** (Field & Ledger design, `docs/design_documentation/README.md`):
-  - Tapping a letter **picks** it (letter in your colour, slight scale-up, ink ring). By default, tapping a second letter **commits** the swap. Escape, tapping elsewhere or tapping the first letter again cancels a pick.
-  - **Preview (opt-in setting, default off — decision Q2, spec 044):** with it on, the second tap **previews** the swap — the two letters exchange in place and the ledger's hint line shows the total the swap would score, nothing is sent — and a third tap on either letter, or Enter, commits. Escape reverses the preview.
-  - **Desktop:** the same steps by click; dragging one letter onto another acts as the second tap. Keyboard: arrows move focus, Space picks (and previews when the setting is on), Enter commits, Escape cancels.
+- **Controls — pick → commit** (Field & Ledger design, `docs/design_documentation/README.md`):
+  - Tapping a letter **picks** it (letter in your colour, slight scale-up, ink ring). Tapping a second letter **commits** the swap at once and it resolves; there is no preview (the opt-in preview was removed 2026-09-22). Escape, tapping elsewhere or tapping the first letter again cancels a pick.
+  - **Desktop:** the same steps by click; dragging one letter onto another acts as the second tap. Keyboard: arrows move focus, Space or Enter picks, and on a second letter commits; Escape cancels a pick.
   - **Mobile:** the same steps by tap.
   - **Touch Area:** the whole cell is the hit target; ≥ 44×44px effective on a 390px-wide phone (the field spans the full width, no scrolling or zooming of the board).
   - **Haptic Feedback:** a pulse on commit (optional, can be disabled from the ledger's `⋯` menu together with sound).
@@ -95,7 +94,7 @@ Move Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 **Landing & Authentication (lobby state, empty seat):**
 
-1. The visitor sees the lobby room with a real warm-up field they can pick and preview on (nothing is scored), an empty top bar (`No opponent yet`) and their own bar with an inline name input (`your name`, `no account needed`) and a `play ▸` action.
+1. The visitor sees the lobby room with a real warm-up field they can swap letters on (nothing is scored), an empty top bar (`No opponent yet`) and their own bar with an inline name input (`your name`, `no account needed`) and a `play ▸` action.
 2. Submitting the name registers/authenticates the user and creates a profile (if new).
 3. The bottom bar becomes the signed-in bar (name, rating, `you`) in place, without navigation.
 
@@ -240,7 +239,7 @@ opens as a sheet from the live row.
 - **Colour:** seven tokens only — paper, ink, rule, tint, muted, **you (teal)**, **opp (coral)**. Colour is seat-relative: teal is always the viewer. No gradients, shadows, radii, third accent.
 - **Clock:** one numeral in the ledger caption; under 1:00 it is weight 600 and blinks at 1Hz (colour only, solid under reduced motion). The bars' lanes fill with moves played. No green / amber / red.
 - **Scored words:** drawn as **bands** (14% tint of the scorer's colour along the word, chevron at the reading start). During the reveal each band draws along its word in 400ms, staggered 120ms, at 30% tint, then settles to 14%. A run valid both ways carries one chevron; a crossing letter keeps the colour of the player who froze it first.
-- **Pick / preview / commit:** picked letter in your colour with an ink ring and slight scale; previewed pair exchanged in place with dotted rings; a committed pair exchanges in place and the field's frame returns to ink until your reveal has held. Nothing is pinned; the opponent's letters exchange on your field when their move resolves.
+- **Pick / commit:** picked letter in your colour with an ink ring and slight scale; a committed pair exchanges in place and the field's frame returns to ink until your reveal has held. Nothing is pinned; the opponent's letters exchange on your field when their move resolves.
 - **Score reveal:** words and points are written into the ledger's live row as each band lands; totals count up over 400ms. There is no popup.
 - **Invalid pick:** the letter shakes 300ms **in its own colour**; the live row states the fact (`frozen · Kári R2 · pick another`). No red, no flash, no toast.
 - **Sound / haptics:** `tile-select` on pick, `valid-swap` on commit (with haptic where available), a tick per band on reveal. Nothing on cancel or error. Toggled from the `⋯` menu.

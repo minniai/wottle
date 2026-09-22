@@ -364,7 +364,6 @@ When you land a scoring-related fix, append a row here with: date, PR number, is
 - **Scanner** — `lib/game-engine/boardScanner.ts::scanFromSwapCoordinates`.
 - **Reading direction (§3.1, §12)** — `lib/game-engine/readingDirection.ts::deriveReadingDirection` derives ltr / rtl / ttb / btt from the stored tile order of a word record; `lib/match/wordScoreRow.ts` maps `word_score_entries` rows to `WordScore` (with `direction`) for the ledger and the field bands.
 - **Board generation** — `lib/game-engine/boardGenerator.ts::generateBoard` (seeded; also the lobby's warm-up field and the queue's placeholder field).
-- **Preview pricing (§12, pick → preview → commit)** — `app/actions/match/previewSwap.ts` runs the same pipeline read-only for one hypothetical swap (`kind: "match" | "warmup"`, session required, no state change); the dictionary never leaves the server.
 - **Cross-validator** — `lib/game-engine/crossValidator.ts::selectOptimalCombination`, `hasCrossWordViolation` (cross-axis, §7.3), `violatesFrozenAdjacencyOnSameAxis` (same-axis standalone, §7.4), `isWholeRunValid`.
 - **Scorer** — `lib/game-engine/scorer.ts::calculateLetterPoints`, `calculateLengthBonus`.
 - **Freezer** — `lib/game-engine/frozenTiles.ts::freezeTiles`.

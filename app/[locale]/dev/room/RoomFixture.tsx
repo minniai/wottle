@@ -13,7 +13,6 @@ import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { Seat } from "@/lib/constants/seatColors";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
-import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { same } from "@/lib/room/fieldInteraction";
 import { useRoomStore, type RoomPhase as StorePhase } from "@/lib/room/roomStore";
 import type { AccumulatedWord, LiveState } from "@/lib/room/ledgerRows";
@@ -47,8 +46,6 @@ import {
   OPP_REVEAL_WORD,
   PICKED_CELL,
   PICKED_LIVE,
-  PREVIEW_CELLS,
-  PREVIEW_LIVE,
   PROFILE_FIXTURE,
   QUEUE_ELAPSED,
   QUEUE_LETTERS_LANDED,
@@ -86,30 +83,25 @@ const OPP_REVEAL_BANDS = liveBands(OPP_REVEAL_WORD);
 /** The marks one match phase puts on the field (spec 047 amendment P2). */
 interface FieldMarks {
   picked?: Coordinate;
-  previewed?: [Coordinate, Coordinate];
   shakeAt?: Coordinate;
 }
 
 const isPicked = (marks: FieldMarks, at: Coordinate) => marks.picked !== undefined && same(marks.picked, at);
-const inPair = (pair: [Coordinate, Coordinate] | undefined, at: Coordinate) => pair?.some((c) => same(c, at)) ?? false;
 
 function markedState(marks: FieldMarks, at: Coordinate, base: CellState): CellState {
-  if (isPicked(marks, at)) return "picked";
-  if (inPair(marks.previewed, at)) return "previewed";
-  return base;
+  return isPicked(marks, at) ? "picked" : base;
 }
 
 function markedSeat(marks: FieldMarks, at: Coordinate): Seat | null {
-  return isPicked(marks, at) || inPair(marks.previewed, at) ? "you" : null;
+  return isPicked(marks, at) ? "you" : null;
 }
 
 /** The match field with the played moves drawn as bands and one phase's marks on it. */
 function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, frozenTiles = FIXTURE_FROZEN }: { drawnCount: number | null; marks: FieldMarks; turnFrame: Seat | null; disabled: boolean; bands?: typeof BANDS; frozenTiles?: typeof FIXTURE_FROZEN }) {
-  const board = marks.previewed ? applyLetterSwaps(FIXTURE_BOARD, [marks.previewed]) : FIXTURE_BOARD;
   return (
     <Field
           language="is"
-      board={board}
+      board={FIXTURE_BOARD}
       turnFrame={turnFrame}
       disabled={disabled}
       frozenTiles={frozenTiles}
@@ -120,7 +112,6 @@ function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, fro
       cellStateFor={(at, base) => markedState(marks, at, base)}
       seatFor={(at) => markedSeat(marks, at)}
       shakeAt={marks.shakeAt ?? null}
-      exchange={marks.previewed ?? null}
       onActivate={NO_OP}
     />
   );
@@ -182,7 +173,6 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   idle: IDLE,
   picking: PICKING,
   "phone-sheet": PICKING,
-  previewed: { live: PREVIEW_LIVE, marks: { previewed: PREVIEW_CELLS }, moveState: YOUR_MOVE },
   illegal: { live: ILLEGAL_LIVE, marks: { shakeAt: ILLEGAL_CELL }, moveState: YOUR_MOVE },
   // Your move 4 resolving: the field is locked and TÆK's band is mid-draw.
   reveal: { live: { kind: "played" }, marks: {}, moveState: SCORING_M4, liveWord: SCORED_WORD, seats: { you: { moves: 3, score: 46, scoring: true } } },

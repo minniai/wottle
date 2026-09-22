@@ -11,13 +11,11 @@ import {
 /**
  * One store for every player preference so the ⋯ menu, the field and the
  * sound/haptics hooks always agree (spec 044, R14). Persisted under the
- * pre-existing localStorage key; objects written by older builds lack
- * `previewEnabled` and read as `false` (decision Q2).
+ * pre-existing localStorage key.
  */
 interface PreferencesState extends PlayerPreferences {
   setSoundEnabled: (enabled: boolean) => void;
   setHapticsEnabled: (enabled: boolean) => void;
-  setPreviewEnabled: (enabled: boolean) => void;
   /** Re-read storage (tests, or after a sign-in on another tab). */
   hydrate: () => void;
 }
@@ -46,7 +44,6 @@ function pick(state: PreferencesState): PlayerPreferences {
   return {
     soundEnabled: state.soundEnabled,
     hapticsEnabled: state.hapticsEnabled,
-    previewEnabled: state.previewEnabled,
   };
 }
 
@@ -58,10 +55,6 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   },
   setHapticsEnabled: (hapticsEnabled) => {
     set({ hapticsEnabled });
-    persist(pick(get()));
-  },
-  setPreviewEnabled: (previewEnabled) => {
-    set({ previewEnabled });
     persist(pick(get()));
   },
   hydrate: () => set(readStoredPreferences()),

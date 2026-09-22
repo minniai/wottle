@@ -8,7 +8,7 @@ describe("RoomMenu (spec 048 US5)", () => {
     render(<RoomMenu variant="match" onAction={() => {}} />);
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     const items = screen.getAllByRole("menuitem").map((el) => el.getAttribute("data-testid"));
-    expect(items).toEqual(["ledger-menu-item-sound", "ledger-menu-item-preview", "ledger-menu-item-howToPlay", "ledger-menu-item-resign", "ledger-menu-item-leave"]);
+    expect(items).toEqual(["ledger-menu-item-sound", "ledger-menu-item-howToPlay", "ledger-menu-item-resign", "ledger-menu-item-leave"]);
     const link = screen.getByTestId("ledger-menu-item-howToPlay");
     expect(link.tagName).toBe("A");
     expect(link).toHaveAttribute("href", "/en/rules");

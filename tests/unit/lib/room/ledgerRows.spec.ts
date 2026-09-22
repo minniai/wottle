@@ -80,9 +80,6 @@ describe("buildLedgerRows (design system §5.4, spec 050)", () => {
   it("live text is a state line and an instruction line", () => {
     expect(liveText({ kind: "idle" }, copyEn)).toEqual({ line1: "pick a letter", line2: "" });
     expect(liveText({ kind: "picking", letter: "T", value: 2 }, copyEn)).toEqual({ line1: "picking · T (2)", line2: "tap a second letter" });
-    expect(liveText({ kind: "previewing", total: null, words: [] }, copyEn)).toEqual({ line1: "previewing", line2: "tap again to play · esc cancels" });
-    expect(liveText({ kind: "previewing", total: 24, words: ["hestur"] }, copyEn)).toEqual({ line1: "24 · hestur", line2: "tap again to play · esc cancels" });
-    expect(liveText({ kind: "previewing", total: 0, words: [] }, copyEn)).toEqual({ line1: "0 · no word", line2: "tap again to play · esc cancels" });
     expect(liveText({ kind: "played" }, copyEn)).toEqual({ line1: "scoring", line2: "" });
     expect(liveText({ kind: "illegal", ownerName: "Kári", round: 2 }, copyEn)).toEqual({ line1: "frozen · Kári M2 · pick another", line2: "" });
   });

@@ -60,7 +60,6 @@ describe("RoomFixture", () => {
     };
     expect(lineOf("idle")).toBe("move 4 · your movepick a letter");
     expect(lineOf("picking")).toBe("move 4 · your movepicking · T (1) · tap a second letter");
-    expect(lineOf("previewed")).toBe("move 4 · your move10 · tak · tap again to play · esc cancels");
     expect(lineOf("illegal")).toBe("move 4 · your movefrozen · Kári M1 · pick another");
     expect(lineOf("scoring")).toBe("move 4 · scoring");
     expect(lineOf("scored")).toBe("move 4 scoredyou +13 · move 5 opens");
@@ -83,14 +82,8 @@ describe("RoomFixture", () => {
     expect(screen.getByTestId("match-clock")).toHaveTextContent("3:12");
   });
 
-  it("previewed exchanges the two letters; scoring locks the field; opp-reveal keeps your pick; low-clock is heavy", () => {
+  it("scoring locks the field; opp-reveal keeps your pick; low-clock is heavy", () => {
     const cell = (x: number, y: number) => screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === String(x) && c.getAttribute("data-y") === String(y))!;
-
-    const previewed = render(<RoomFixture phase="previewed" />);
-    expect(cell(0, 0)).toHaveAttribute("data-state", "previewed");
-    expect(cell(0, 0)).toHaveTextContent(/^T/);
-    expect(cell(0, 9)).toHaveTextContent(/^Þ/);
-    previewed.unmount();
 
     const scoring = render(<RoomFixture phase="scoring" />);
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");

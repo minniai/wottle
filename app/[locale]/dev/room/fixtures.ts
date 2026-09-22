@@ -13,7 +13,7 @@
  * screenshot of `?phase=picking` is directly comparable with its fixture B.
  *
  * Spec 047 amendment P2: one phase per asymmetric signal — idle, picking,
- * previewed, played, opp-played, low-clock, illegal — and `phone-sheet`, which
+ * played, opp-played, low-clock, illegal — and `phone-sheet`, which
  * the visual spec opens at 390×844.
  */
 
@@ -34,7 +34,6 @@ export const ROOM_PHASES = [
   "found",
   "idle",
   "picking",
-  "previewed",
   "illegal",
   "reveal",
   "final",
@@ -186,13 +185,6 @@ export const MATCH_STATE: MatchState = {
 /** The picked letter in the picking phase: T at x 0, y 9, worth one point. */
 export const PICKED_CELL: Coordinate = { x: 0, y: 9 };
 export const PICKED_LIVE: LiveState = { kind: "picking", letter: "T", value: 1 };
-
-/**
- * The preview phase: T (0,9) and Þ (0,0) exchanged. Priced once against the
- * real dictionary with `priceSwap` on this board: TAK across row 0, 10 points.
- */
-export const PREVIEW_CELLS: [Coordinate, Coordinate] = [{ x: 0, y: 9 }, { x: 0, y: 0 }];
-export const PREVIEW_LIVE: LiveState = { kind: "previewing", total: 10, words: ["tak"] };
 
 /** 0:48 on the shared clock: the caption numeral is heavier and blinks (design system §5.4). */
 export const LOW_CLOCK_MS = 48_000;

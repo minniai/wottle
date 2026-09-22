@@ -5,8 +5,6 @@ import type { LiveLines } from "./ledgerTypes";
 export type LiveState =
   | { kind: "idle" }
   | { kind: "picking"; letter: string; value: number }
-  /** Opt-in preview: `total` is null until the server has priced the swap. */
-  | { kind: "previewing"; total: number | null; words: string[] }
   | { kind: "played" }
   /** A frozen letter was tapped; held for two seconds, then back to idle. `move` is the mover's Nth move that froze it. */
   | { kind: "illegal"; ownerName: string; round: number }
@@ -21,8 +19,6 @@ export function liveText(live: LiveState, copy: Copy): LiveLines {
   switch (live.kind) {
     case "picking":
       return { line1: copy.picking(live.letter, live.value), line2: copy.TAP_SECOND_LETTER };
-    case "previewing":
-      return { line1: live.total === null ? copy.PREVIEWING : copy.previewLine(live.total, live.words), line2: copy.PREVIEW_INSTRUCTION };
     case "played":
       return { line1: copy.SCORING, line2: "" };
     case "illegal":
