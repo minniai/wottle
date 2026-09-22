@@ -486,12 +486,14 @@ jobs:
           echo "Supabase URL (.env.local): ${NEXT_PUBLIC_SUPABASE_URL:-NOT_SET}"
           echo "Service Role Key present: ${SUPABASE_SERVICE_ROLE_KEY:+yes}"
           # Export required env vars explicitly — setsid/bash -c doesn't inherit them.
+          # ROOM_FIXTURES opens /dev/room in this production build: ledger-scroll.spec.ts reads it.
           setsid bash -c "export CI=${CI}; \
             export PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}; \
             export NEXT_PUBLIC_SUPABASE_URL='${NEXT_PUBLIC_SUPABASE_URL}'; \
             export NEXT_PUBLIC_SUPABASE_ANON_KEY='${NEXT_PUBLIC_SUPABASE_ANON_KEY}'; \
             export SUPABASE_ANON_KEY='${SUPABASE_ANON_KEY}'; \
             export SUPABASE_SERVICE_ROLE_KEY='${SUPABASE_SERVICE_ROLE_KEY}'; \
+            export ROOM_FIXTURES=1; \
             echo \$\$ > .next-pid; \
             exec pnpm start --hostname 0.0.0.0 --port ${APP_PORT:-3000}" < /dev/null > next.log 2>&1 &
           # Wait for server to initialize
