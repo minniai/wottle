@@ -34,6 +34,7 @@ describe("move resolution performance (spec 050, warm dictionary)", () => {
         playerAId: PLAYER_A,
         playerBId: PLAYER_B,
         dictionary,
+        moverTotal: 0,
       });
       durations.push(performance.now() - started);
       expect(outcome.status).toBe("resolved");

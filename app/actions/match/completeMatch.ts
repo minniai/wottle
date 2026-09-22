@@ -117,17 +117,22 @@ function decide(match: MatchRow, reason: CompletionReason, forcedWinnerId?: stri
   return { ...natural, reason };
 }
 
+function withPenalty(total: number, unplayed: number): number {
+  return total + timeoutPenalty(total, unplayed);
+}
+
 /**
  * At a natural end (rules §2a, §5.6, 2026-09-21) every move a player has not
  * made is a miss: it is penalised into their total before the winner is
- * decided, so running out of time costs points rather than the match.
+ * decided, so running out of time costs points rather than the match. Like
+ * any miss, they never take a total below 0.
  */
 function withTimeoutPenalties(match: MatchRow): MatchRow {
   const limit = match.move_limit ?? 10;
   return {
     ...match,
-    player_a_score: (match.player_a_score ?? 0) + timeoutPenalty(limit - (match.player_a_moves ?? 0)),
-    player_b_score: (match.player_b_score ?? 0) + timeoutPenalty(limit - (match.player_b_moves ?? 0)),
+    player_a_score: withPenalty(match.player_a_score ?? 0, limit - (match.player_a_moves ?? 0)),
+    player_b_score: withPenalty(match.player_b_score ?? 0, limit - (match.player_b_moves ?? 0)),
   };
 }
 

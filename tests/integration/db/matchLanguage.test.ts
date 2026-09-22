@@ -58,6 +58,7 @@ describe.skipIf(!db)("a match resolves in its own language (spec 060)", () => {
     await resolvePendingMoves(match.matchId);
 
     expect(loadDictionary).toHaveBeenCalledWith("is");
-    expect(await readMatch(db!, match.matchId)).toMatchObject({ player_a_score: -5, player_a_moves: 1 });
+    // A miss at 0 points costs nothing (rules §5.6): no English word scored.
+    expect(await readMatch(db!, match.matchId)).toMatchObject({ player_a_score: 0, player_a_moves: 1 });
   });
 });

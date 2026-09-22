@@ -112,7 +112,7 @@ describe("foldRows", () => {
   });
 });
 
-describe("miss penalties in the rows (rules §5.6, 2026-09-21)", () => {
+describe("miss penalties in the rows (rules §5.6, 2026-09-21; floored 2026-09-22)", () => {
   it("each miss is −5; a scored move whose words are still hidden is not a miss", () => {
     const misses: AccumulatedWord[] = [words[0]];
     const rows = buildLedgerRows({ movesPlayed: { you: 4, opp: 0 }, completed: false, words: misses, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, hiddenWordIds: new Set([bandIdForWord(words[0])!]) }, copyEn);
@@ -121,11 +121,20 @@ describe("miss penalties in the rows (rules §5.6, 2026-09-21)", () => {
     expect([rows[1].you?.total, rows[2].you?.total, rows[3].you?.total]).toEqual([-5, -5, -5]);
   });
 
-  it("at a timed-out end the unplayed rows are penalised −5 each", () => {
-    const rows = buildLedgerRows({ movesPlayed: { you: 8, opp: 10 }, completed: true, penalizeUnplayed: true, words: [words[0]], playerAId: A, viewerSlot: "player_a", live: { kind: "idle" } }, copyEn);
-    expect(rows[8].you).toEqual({ words: [], total: -5, miss: true, unplayed: true });
-    expect(rows[9].you).toEqual({ words: [], total: -5, miss: true, unplayed: true });
-    expect(rows[8].status).toBe("past");
+  it("at a timed-out end the unplayed rows are penalised up to −5 each, down to a 0 total (2026-09-22)", () => {
+    // 24 after move 1; move 2 a miss (19); unplayed 3–10 take 5, 5, 5, 4, then nothing.
+    const rows = buildLedgerRows({ movesPlayed: { you: 2, opp: 10 }, completed: true, penalizeUnplayed: true, words: [words[0]], playerAId: A, viewerSlot: "player_a", live: { kind: "idle" } }, copyEn);
+    expect(rows[1].you).toEqual({ words: [], total: -5, miss: true });
+    expect(rows[2].you).toEqual({ words: [], total: -5, miss: true, unplayed: true });
+    expect(rows.slice(2).map((r) => r.you?.total)).toEqual([-5, -5, -5, -4, 0, 0, 0, 0]);
+    expect(rows[2].status).toBe("past");
+  });
+
+  it("a miss never takes the running total below 0 (rules §5.6, 2026-09-22)", () => {
+    // No word yet: the opening misses cost nothing. Then 24, and misses take 5, 5, 5, 5, 4.
+    const late: AccumulatedWord[] = [{ ...words[0], moveSeq: 3 }];
+    const rows = buildLedgerRows({ movesPlayed: { you: 9, opp: 0 }, completed: false, words: late, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" } }, copyEn);
+    expect(rows.slice(0, 9).map((r) => r.you?.total)).toEqual([0, 0, 24, -5, -5, -5, -5, -4, 0]);
   });
 
   it("without a timed-out end, unplayed rows stay empty", () => {

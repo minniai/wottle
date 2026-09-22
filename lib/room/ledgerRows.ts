@@ -64,11 +64,19 @@ function toCell(words: AccumulatedWord[]): SeatCell {
   return { words: cells, total: cells.reduce((sum, c) => sum + c.points, 0) };
 }
 
+/** Each scoring move's points, so a miss can be priced against the running total (rules §5.6). */
+function pointsByMove(words: AccumulatedWord[]): Map<number, number> {
+  const points = new Map<number, number>();
+  for (const w of words) points.set(w.moveSeq, (points.get(w.moveSeq) ?? 0) + w.totalPoints);
+  return points;
+}
+
 /**
  * Ten rows indexed by move number (design system §5.4, spec 050): row N holds
  * the viewer's Nth move in their column and the opponent's Nth in theirs, so
- * the columns fill at their own pace. A resolved move with no word is a `0`
- * cell; an unplayed move is empty. The live row is the viewer's next open
+ * the columns fill at their own pace. A resolved move with no word is a miss
+ * cell carrying its penalty (up to −5, never below a 0 total); an unplayed
+ * move is empty. The live row is the viewer's next open
  * move; during the hold it is the move just scored.
  */
 export function buildLedgerRows(input: BuildRowsInput, copy: Copy): LedgerRow[] {
@@ -80,7 +88,7 @@ export function buildLedgerRows(input: BuildRowsInput, copy: Copy): LedgerRow[] 
   const valuesFor = (seat: Seat) =>
     moveValues({
       movesPlayed: seat === "you" ? input.movesPlayed.you : input.movesPlayed.opp,
-      scoredMoves: new Set(input.words.filter((w) => seatOf(w.playerId) === seat).map((w) => w.moveSeq)),
+      movePoints: pointsByMove(input.words.filter((w) => seatOf(w.playerId) === seat)),
       moveLimit: limit,
       penalizeUnplayed: Boolean(input.completed && input.penalizeUnplayed),
     });

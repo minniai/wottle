@@ -59,7 +59,7 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
   - Both players have 10 resolved moves, or
   - The 5:00 clock has run out and every move received before it has resolved, or
   - One player resigns, or a player with 10 moves ends the match after the opponent has been gone for the reconnection window.
-- **Miss penalty:** a move that scores no word costs −5. At 0:00 every unplayed move costs −5 too. Totals can go below zero.
+- **Miss penalty:** a move that scores no word costs up to −5, never taking a total below zero (at 4 points it costs −4, at 0 nothing). At 0:00 every unplayed move is a miss too.
 - **Winner, in this order:** the higher total (after any timeout penalties), then the player with more exclusively owned frozen tiles; a full tie is a draw. Running out of time is not a loss by itself. Every outcome is rated.
 
 ## 2. Scoring System

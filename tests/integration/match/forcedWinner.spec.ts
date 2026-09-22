@@ -138,6 +138,13 @@ describe("completeMatchInternal forcedWinnerId (spec 050)", () => {
     expect(result.scores).toEqual({ playerA: 10, playerB: 20 });
   });
 
+  it("the timeout penalty never takes a total below 0 (rules §5.6, 2026-09-22)", async () => {
+    const { getMatchUpdatePayload } = setupMocks({ scores: { playerA: 10, playerB: 7 }, moves: { playerA: 10, playerB: 8 } });
+    await completeMatchInternal(MATCH_ID, "natural");
+    // B's two unplayed moves would cost −10; 7 is all B has.
+    expect(getMatchUpdatePayload()).toMatchObject({ winner_id: PLAYER_A, player_a_score: 10, player_b_score: 0 });
+  });
+
   it("a forced end (resign, disconnect) applies no timeout penalty", async () => {
     const { getMatchUpdatePayload } = setupMocks({ scores: { playerA: 10, playerB: 30 }, moves: { playerA: 4, playerB: 3 } });
     await completeMatchInternal(MATCH_ID, "forfeit", PLAYER_A);
