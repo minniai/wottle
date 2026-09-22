@@ -253,8 +253,8 @@ Room flow (spec 044):
    `end the match ▸` (→ claimWinAction, normal rules); otherwise nothing is offered
 6. state = completed → final phase in the same room: verdict block, rating lines from
    getMatchRatings; the match-over slip lands 600ms after the final settle with the verdict,
-   both rating lines and rematch ▸ · new opponent ▸ · review the field ▸ · lobby (rematch
-   negotiation rewrites its action line). `review the field ▸` lifts it; `result ▸` in the foot restores it
+   both rating lines and rematch ▸ · new opponent ▸ · review the match ▸ · lobby (rematch
+   negotiation rewrites its action line). `review the match ▸` lifts it; `result ▸` in the foot restores it
 ```
 
 ### Core Types & Validation

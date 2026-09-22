@@ -36,7 +36,7 @@ describe("Slip · match over (spec 048 US1)", () => {
     expect(screen.getByTestId("slip-ratings")).toHaveTextContent("Kári1187 → 1199 · +12Birna · you1204 → 1192 · −12");
   });
 
-  it("offers rematch ▸ (primary), new opponent ▸, review the field ▸ and lobby", () => {
+  it("offers rematch ▸ (primary), new opponent ▸, review the match ▸ and lobby", () => {
     const onAction = vi.fn();
     render(<Slip slip={OVER} onAction={onAction} />);
     expect(document.activeElement).toBe(screen.getByTestId("slip-rematch"));

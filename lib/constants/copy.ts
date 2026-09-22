@@ -113,7 +113,7 @@ export const MATCH_OVER = "match over";
 export const matchOverLabel = (durationMmSs: string): string => `${MATCH_OVER} · ${durationMmSs}`;
 export const winsHeadline = (winnerName: string): string => `${winnerName} wins`;
 export const DRAW = "draw";
-export const REVIEW_FIELD = "review the field ▸";
+export const REVIEW_FIELD = "review the match ▸";
 export const RESULT = "result ▸";
 export const HOW_TO_PLAY = "how to play ▸";
 export const ACCEPT = "accept ▸";

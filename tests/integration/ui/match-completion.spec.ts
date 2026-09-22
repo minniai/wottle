@@ -93,7 +93,7 @@ test.describe("@match-completion final room state", () => {
       // Every match is rated (spec 048 US6): an invite-created match writes rating rows too.
       await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/\d+ → \d+ · [+−]\d+/, { timeout: 15_000 });
 
-      // review the field ▸ lifts the slip; result ▸ in the foot brings it back.
+      // review the match ▸ lifts the slip; result ▸ in the foot brings it back.
       await pageA.getByTestId("slip-review-field").click();
       await expect(pageA.getByTestId("slip")).toHaveCount(0);
       await pageA.getByTestId("ledger-result").click();
