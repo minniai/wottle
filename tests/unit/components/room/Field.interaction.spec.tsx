@@ -230,6 +230,24 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
       expect(cell(4, 4)).not.toHaveAttribute("data-state", "picked");
     });
 
+    // A drag's click lands on the grid, not on a letter, so the flag that
+    // swallows it must not outlive the gesture and eat the next real tap.
+    it("the tap after a drag is a tap", async () => {
+      vi.mocked(previewSwap).mockResolvedValue({ status: "ok", words: [], total: 0 });
+      render(<Harness previewEnabled />);
+      fireEvent.pointerDown(cell(1, 1));
+      releaseOver(cell(2, 1));
+      fireEvent.pointerUp(cell(2, 1));
+      expect(screen.getByTestId("kind")).toHaveTextContent("preview");
+
+      fireEvent.pointerDown(cell(2, 1));
+      releaseOver(cell(2, 1));
+      fireEvent.pointerUp(cell(2, 1));
+      fireEvent.click(cell(2, 1));
+      expect(screen.getByTestId("kind")).toHaveTextContent("committed");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
     it("a drag onto a frozen letter shakes it rather than swapping", () => {
       render(<Harness frozen={{ "5,5": { owner: "player_b" } }} />);
       fireEvent.pointerDown(cell(4, 5));
@@ -304,6 +322,19 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
         expect(el.style.getPropertyValue("--dx")).not.toBe("");
         expect(el.style.getPropertyValue("--dy")).not.toBe("");
       }
+    });
+
+    // Production 2026-09-22: every clock tick re-rendered the room with a new
+    // pair array and the previewed letters flew again, so a tap on one landed
+    // on the other's travelling letter and never committed.
+    it("runs once per pair: a re-render with the same two letters does not start it again", () => {
+      const pair = (): [Coordinate, Coordinate] => [{ x: 0, y: 0 }, { x: 1, y: 0 }];
+      const { rerender } = render(<Field board={board()} viewerSlot="player_a" exchange={pair()} />);
+      for (const el of document.querySelectorAll(".field__cell--exchange span")) fireEvent.animationEnd(el);
+      expect(document.querySelectorAll(".field__cell--exchange")).toHaveLength(0);
+
+      rerender(<Field board={board()} viewerSlot="player_a" exchange={pair()} />);
+      expect(document.querySelectorAll(".field__cell--exchange")).toHaveLength(0);
     });
 
     it("clears the mark when the animation ends, so it can run again", () => {
