@@ -15,7 +15,7 @@ test.describe("@locale Orðusta at the plain address", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "is");
     await expect(page).toHaveTitle("orðusta");
     await expect(page.getByTestId("slip")).toContainText("orðusta");
-    await expect(page.getByTestId("player-bar-name-input")).toHaveAttribute("placeholder", "nafnið þitt");
+    await expect(page.getByTestId("player-bar-name-input")).toHaveAttribute("placeholder", "nafn");
   });
 
   test("/is redirects to the unprefixed address, keeping the path", async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe("@locale Orðusta at the plain address", () => {
     await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 20_000 });
     await expect(page).toHaveURL(/\/lobby$/, { timeout: 20_000 });
     expect(new URL(page.url()).pathname).toBe("/lobby");
-    await expect(page.getByTestId("player-bar-action-find")).toHaveText("finna andstæðing ▸");
+    await expect(page.getByTestId("player-bar-action-find")).toHaveText("finna mótspilara ▸");
     const text = await page.locator("body").innerText();
     const english = [copyEn.FIND_OPPONENT, copyEn.HERE_NOW, copyEn.HOW_TO_PLAY, copyEn.YOUR_LAST_MATCHES, copyEn.NO_OPPONENT];
     for (const line of english) expect(text.toLowerCase()).not.toContain(line.toLowerCase());

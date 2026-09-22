@@ -51,34 +51,34 @@ const byPoints = (n: number): string =>
 export const copyIs = {
   WORDMARK: "orðusta",
 
-  QUEUE_CONTEXT: "10 leikir hvor · ein 5:00 klukka",
-  MATCH_CLOCK: "klukkan",
+  QUEUE_CONTEXT: "10 leikir á 5 mínútum",
+  MATCH_CLOCK: "leikklukka",
   lastSeconds: (seconds: number): string => `síðustu ${seconds} sek`,
   TIME_SPENT: "tími",
   lobbyContext: (hereCount: number): string => `lobbí · ${hereCount} hér`,
   finalContext: (durationMmSs: string): string => `lok · ${durationMmSs}`,
 
-  NO_OPPONENT: "Enginn andstæðingur enn",
-  NO_OPPONENT_SUBLINE: "um 0:10 að finna einn",
-  FIND_OPPONENT: "finna andstæðing ▸",
+  NO_OPPONENT: "Enginn mótspilari enn",
+  NO_OPPONENT_SUBLINE: "um 10 sekúndur að finna einn",
+  FIND_OPPONENT: "finna mótspilara ▸",
   PLAY: "spila ▸",
   CANCEL,
-  FINDING_OPPONENT: "Leitar að andstæðingi",
+  FINDING_OPPONENT: "Leita að mótspilara",
   searchingSubline: (elapsedMmSs: string): string =>
     `leitar · ${elapsedMmSs} · ${CANCEL}`,
   startsIn: (seconds: number): string => `hefst eftir ${seconds}`,
-  YOUR_NAME_PLACEHOLDER: "nafnið þitt",
-  NO_ACCOUNT_NEEDED: "enga skráningu þarf",
+  YOUR_NAME_PLACEHOLDER: "nafn",
+  NO_ACCOUNT_NEEDED: "skráning óþörf",
   YOU: "þú",
-  OPPONENT: "mótherji",
-  RATING_PENDING: "Elo í vinnslu",
+  OPPONENT: "mótspilari",
+  RATING_PENDING: "reikna Elo stig",
   reconnecting: (remainingMmSs: string): string =>
     `tengist aftur · ${remainingMmSs} eftir`,
   ratingSubline: (before: number, after: number, delta: number, wins: boolean) =>
     `${before} → ${after} · ${delta >= 0 ? "+" : "−"}${Math.abs(delta)}${wins ? " · vinnur" : ""}`,
 
   picking: (letter: string, value: number): string => `velur · ${letter} (${value})`,
-  SCORING: "reiknast",
+  SCORING: "stigareikningur",
   TAP_SECOND_LETTER: "veldu annan staf",
   TAP_AGAIN_TO_PLAY,
   ESC_CANCELS,
@@ -169,8 +169,8 @@ export const copyIs = {
     terrB: number,
   ) => `${byPoints(margin)} · ${wordsA} orð gegn ${wordsB} · svæði ${terrA}–${terrB}`,
 
-  REMATCH: "aftur ▸",
-  NEW_OPPONENT: "nýr andstæðingur ▸",
+  REMATCH: "annan leik? ▸",
+  NEW_OPPONENT: "nýr mótspilari ▸",
   LOBBY: "lobbí",
   CHALLENGE: "skora á ▸",
   HERE_NOW: "hér núna",
@@ -214,7 +214,7 @@ export const copyIs = {
     ownerName?: string;
   }): string =>
     `röð ${c.row}, dálkur ${c.column}, ${c.letter}, gildi ${c.value}, ${c.state === "frozen" && c.ownerName ? `${c.ownerName} frysti` : (CELL_STATES[c.state] ?? c.state)}`,
-  THE_OPPONENT: "andstæðingurinn",
+  THE_OPPONENT: "mótspilarinn",
 
   PROFILE: "prófíll",
   playingSince: (month: string): string => `spilar síðan ${month}`,
@@ -268,14 +268,14 @@ export const copyIs = {
   rulesMetaTitle: (wordmark: string): string => `leiðbeiningar · ${wordmark}`,
   RULES_DESCRIPTION:
     "Tveir leikmenn, eitt borð, tíu leikir hvor. Svona er Orðusta spiluð og talin.",
-  BACK_TO_LOBBY: "aftur í biðsalinn ▸",
+  BACK_TO_LOBBY: "fara í lobbíið ▸",
   scoringRows: (
     lengthBonus: number,
     missPenalty: string,
   ): Array<{ rule: string; value: string }> => [
     { rule: "gildi stafa", value: "tölurnar á stöfunum, lagðar saman" },
     { rule: "lengdarbónus", value: `(stafir − 2) × ${lengthBonus}` },
-    { rule: "stafur sem andstæðingurinn frysti", value: "telur til lengdar, ekki stiga" },
+    { rule: "stafur sem mótspilarinn frysti", value: "telur til lengdar, ekki stiga" },
     { rule: "sama orð á nýjum stað", value: "gefur stig aftur" },
     { rule: "leikur án orðs", value: `${missPenalty}, þó aldrei undir 0` },
   ],
