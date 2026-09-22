@@ -1,7 +1,5 @@
 "use server";
 
-import { after } from "next/server";
-
 import { moveRequestSchema } from "@/lib/match/schemas";
 import { settleMatchIfDue } from "@/lib/match/matchSettlement";
 import { resolvePendingMoves } from "@/lib/match/moveResolver";
@@ -81,16 +79,20 @@ export async function submitMove(matchId: string, input: unknown): Promise<MoveR
   }
 
   const result = toMoveResult((data as ReceiveRow | null) ?? { status: "rejected", reason: "not_found" });
-  if ("status" in result && result.status === "accepted") {
-    after(async () => {
-      try {
-        const { bothDone } = await resolvePendingMoves(matchId);
-        // Both players have ten: the match ends now, not at the deadline (FR-009).
-        if (bothDone) await settleMatchIfDue(matchId);
-      } catch (e) {
-        console.error("[submitMove] resolution failed:", e);
-      }
-    });
-  }
   return result;
+}
+
+/**
+ * Resolves an accepted receipt after its HTTP response is sent. This is kept
+ * outside the server action because `after()` must be registered by the route
+ * handler that owns the request lifecycle on the deployment runtime.
+ */
+export async function resolveReceivedMove(matchId: string): Promise<void> {
+  try {
+    const { bothDone } = await resolvePendingMoves(matchId);
+    // Both players have ten: the match ends now, not at the deadline (FR-009).
+    if (bothDone) await settleMatchIfDue(matchId);
+  } catch (error) {
+    console.error("[submitMove] resolution failed:", error);
+  }
 }

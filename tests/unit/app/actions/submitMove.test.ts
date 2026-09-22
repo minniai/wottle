@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/server", () => ({ after: (fn: () => void) => fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/rate-limiting/middleware", () => ({ assertWithinRateLimit: vi.fn() }));
 vi.mock("@/lib/match/moveResolver", () => ({ resolvePendingMoves: vi.fn().mockResolvedValue({ resolved: 1, bothDone: false }) }));
 vi.mock("@/lib/match/matchSettlement", () => ({ settleMatchIfDue: vi.fn().mockResolvedValue("completed") }));
 
-import { submitMove } from "@/app/actions/match/submitMove";
+import { resolveReceivedMove, submitMove } from "@/app/actions/match/submitMove";
 import { resolvePendingMoves } from "@/lib/match/moveResolver";
 import { settleMatchIfDue } from "@/lib/match/matchSettlement";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -65,7 +64,7 @@ describe("submitMove", () => {
       p_to_letter: "B",
     });
     expect(result).toEqual({ status: "accepted", moveId: "m-1", globalSeq: 7, receivedAt: "2026-09-21T12:00:00.000Z" });
-    expect(resolvePendingMoves).toHaveBeenCalledWith(MATCH_ID);
+    expect(resolvePendingMoves).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -93,17 +92,16 @@ describe("submitMove", () => {
     expect(resolvePendingMoves).not.toHaveBeenCalled();
   });
 
-  it("settles the match once the resolved move brought both players to ten (contracts/move-resolver.md)", async () => {
-    withRpc({ status: "accepted", moveId: "m-10", globalSeq: 20, receivedAt: "2026-09-21T12:00:00.000Z" });
+  it("resolves an accepted receipt and settles once it brought both players to ten (contracts/move-resolver.md)", async () => {
     vi.mocked(resolvePendingMoves).mockResolvedValueOnce({ resolved: 1, bothDone: true });
-    await submitMove(MATCH_ID, MOVE);
-    await vi.waitFor(() => expect(settleMatchIfDue).toHaveBeenCalledWith(MATCH_ID));
+    await resolveReceivedMove(MATCH_ID);
+    expect(resolvePendingMoves).toHaveBeenCalledWith(MATCH_ID);
+    expect(settleMatchIfDue).toHaveBeenCalledWith(MATCH_ID);
   });
 
   it("does not settle while either player is short of ten", async () => {
-    withRpc({ status: "accepted", moveId: "m-4", globalSeq: 7, receivedAt: "2026-09-21T12:00:00.000Z" });
-    await submitMove(MATCH_ID, MOVE);
-    await vi.waitFor(() => expect(resolvePendingMoves).toHaveBeenCalled());
+    await resolveReceivedMove(MATCH_ID);
+    expect(resolvePendingMoves).toHaveBeenCalledWith(MATCH_ID);
     expect(settleMatchIfDue).not.toHaveBeenCalled();
   });
 });
