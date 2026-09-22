@@ -1,14 +1,18 @@
 import type { ReactNode } from "react";
 
 import { RoomShell } from "@/components/room/RoomShell";
-import { readLobbySession } from "@/lib/matchmaking/profile";
+import { getLocale } from "@/lib/i18n/locales";
+import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
+import { readLobbySession, viewerInLanguage } from "@/lib/matchmaking/profile";
 
 /**
  * One persisting shell for every room route (`/`, `/lobby`, `/matchmaking`,
  * `/match/[id]`). The session is read once here; child pages hydrate the room
  * store and never remount the field (spec 044, research R5).
  */
-export default async function RoomLayout({ children }: { children: ReactNode }) {
+export default async function RoomLayout({ children, params }: { children: ReactNode; params?: LocaleParams }) {
+  const locale = await readLocaleParam(params);
   const session = await readLobbySession();
-  return <RoomShell viewer={session?.player ?? null}>{children}</RoomShell>;
+  const viewer = session ? await viewerInLanguage(session.player, getLocale(locale).language) : null;
+  return <RoomShell viewer={viewer}>{children}</RoomShell>;
 }

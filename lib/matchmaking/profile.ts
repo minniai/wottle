@@ -1,3 +1,4 @@
+import { readEloRatings } from "@/lib/rating/playerRatings";
 import type { Language } from "@/lib/types/game-config";
 import "server-only";
 
@@ -224,8 +225,10 @@ export async function fetchLobbySnapshot(language: Language = "is"): Promise<Pla
     }));
 
   const cachedPlayers = listCachedPresence(language);
-
-  return sortPlayers(dedupePlayers([...players, ...cachedPlayers]));
+  const everyone = dedupePlayers([...players, ...cachedPlayers]);
+  // The rating beside each name is the lobby's language's (spec 060 US4).
+  const ratings = await readEloRatings(supabase, everyone.map((p) => p.id), language);
+  return sortPlayers(everyone.map((p) => ({ ...p, eloRating: ratings.get(p.id) ?? p.eloRating })));
 }
 
 // Heal `players.status` when it's stuck at "in_match" but no pending or
@@ -363,3 +366,18 @@ function shouldUseSecureCookies(): boolean {
 
 
 
+
+/**
+ * The signed-in player with their rating in `language` (spec 060 US4). The
+ * session cookie carries the rating from sign-in, in no particular language;
+ * every page that shows the viewer's own bar reads it fresh here.
+ */
+export async function viewerInLanguage(player: PlayerIdentity, language: Language): Promise<PlayerIdentity> {
+  try {
+    const ratings = await readEloRatings(getServiceRoleClient(), [player.id], language);
+    return { ...player, eloRating: ratings.get(player.id) ?? player.eloRating };
+  } catch (error) {
+    console.warn("[viewerInLanguage] rating read failed", error);
+    return player;
+  }
+}

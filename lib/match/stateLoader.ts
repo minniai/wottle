@@ -1,3 +1,4 @@
+import { readRatings } from "@/lib/rating/playerRatings";
 import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import type { Language } from "@/lib/types/game-config";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -375,10 +376,12 @@ function fallbackProfile(playerId: string, label: string): MatchPlayerProfile {
   };
 }
 
+/** Both players as the match shows them: names, and ratings in the match's language (spec 060 US4). */
 export async function loadMatchPlayerProfiles(
   client: AnyClient,
   playerAId: string,
   playerBId: string,
+  language: Language = "is",
 ): Promise<MatchPlayerProfiles> {
   const { data, error } = await client
     .from("players")
@@ -393,7 +396,12 @@ export async function loadMatchPlayerProfiles(
     };
   }
 
-  const byId = new Map(data.map((row: any) => [row.id, row]));
+  const ratings = await readRatings(client, [playerAId, playerBId], language).catch(() => null);
+  const withRating = (row: any) => {
+    const record = ratings?.get(row.id);
+    return record ? { ...row, elo_rating: record.eloRating, games_played: record.gamesPlayed } : row;
+  };
+  const byId = new Map(data.map((row: any) => [row.id, withRating(row)]));
   const rowA = byId.get(playerAId);
   const rowB = byId.get(playerBId);
 

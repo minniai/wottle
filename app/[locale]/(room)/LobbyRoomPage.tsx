@@ -1,7 +1,7 @@
 import { getRecentGames } from "@/app/actions/match/getRecentGames";
 import { LobbyRoomController } from "@/components/room/LobbyRoomController";
 import type { Language } from "@/lib/types/game-config";
-import { fetchLobbySnapshot, healStuckInMatchStatus, type LobbySession } from "@/lib/matchmaking/profile";
+import { fetchLobbySnapshot, healStuckInMatchStatus, viewerInLanguage, type LobbySession } from "@/lib/matchmaking/profile";
 
 /**
  * The lobby room for both `/` and `/lobby` (spec 044 US7). One server component
@@ -17,13 +17,14 @@ export async function LobbyRoomPage({ session, language = "is" }: { session: Lob
 
   await healStuckInMatchStatus(session.player.id);
 
-  const [initialPlayers, recentGamesResult] = await Promise.all([
+  const [initialPlayers, recentGamesResult, viewer] = await Promise.all([
     fetchLobbySnapshot(language),
-    getRecentGames({ playerId: session.player.id, limit: 6 }).catch((error) => {
+    getRecentGames({ playerId: session.player.id, limit: 6, language }).catch((error) => {
       console.error(JSON.stringify({ event: "lobby.recent_games.failed", error: error instanceof Error ? error.message : String(error) }));
       return { games: [] };
     }),
+    viewerInLanguage(session.player, language),
   ]);
 
-  return <LobbyRoomController viewer={session.player} initialPlayers={initialPlayers} recentGames={recentGamesResult.games} />;
+  return <LobbyRoomController viewer={viewer} initialPlayers={initialPlayers} recentGames={recentGamesResult.games} />;
 }

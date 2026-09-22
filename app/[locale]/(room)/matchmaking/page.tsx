@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { QueueRoom } from "@/components/room/QueueRoomController";
-import { localePath } from "@/lib/i18n/locales";
+import { getLocale, localePath } from "@/lib/i18n/locales";
 import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
-import { readLobbySession } from "@/lib/matchmaking/profile";
+import { readLobbySession, viewerInLanguage } from "@/lib/matchmaking/profile";
 
 export default async function MatchmakingPage({ params }: { params?: LocaleParams } = {}) {
   const locale = await readLocaleParam(params);
@@ -11,5 +11,5 @@ export default async function MatchmakingPage({ params }: { params?: LocaleParam
   if (!session) {
     redirect(localePath(locale, "/"));
   }
-  return <QueueRoom viewer={session.player} />;
+  return <QueueRoom viewer={await viewerInLanguage(session.player, getLocale(locale).language)} />;
 }

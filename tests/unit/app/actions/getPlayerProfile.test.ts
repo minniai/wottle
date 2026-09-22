@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+// Spec 060: the profile reads its rating and record per language; here they are PLAYER_ROW's.
+vi.mock("@/lib/rating/playerRatings", () => ({
+  readRatings: vi.fn(async (_c: unknown, ids: string[]) =>
+    new Map(ids.map((id) => [id, { eloRating: 1234, gamesPlayed: 7, wins: 4, losses: 2, draws: 1 }])),
+  ),
+}));
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 
 import { getPlayerProfile } from "@/app/actions/player/getPlayerProfile";
+import { readRatings } from "@/lib/rating/playerRatings";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -141,9 +148,12 @@ describe("getPlayerProfile", () => {
       { rating_after: 1210, created_at: "2026-04-02T00:00:00Z" },
       { rating_after: 1190, created_at: "2026-04-03T00:00:00Z" },
     ];
+    vi.mocked(readRatings).mockResolvedValueOnce(
+      new Map([[VALID_PLAYER_ID, { eloRating: 1205, gamesPlayed: 7, wins: 4, losses: 2, draws: 1 }]]),
+    );
     vi.mocked(getServiceRoleClient).mockReturnValue(
       buildSupabase({
-        playerData: { ...PLAYER_ROW, elo_rating: 1205 },
+        playerData: PLAYER_ROW,
         ratingHistoryRows,
       }) as never,
     );

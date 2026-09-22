@@ -22,6 +22,7 @@ Format: `- [ ] T### [P?] [US?] description — path`
 - T056: the wrong-locale redirect is pinned by `tests/integration/app/match-locale-redirect.test.ts` (both directions) instead of a Playwright step.
 - English copy now says English where the game is English: the tagline (`two players · one field · English words`) and the rules page, whose figures are WORD / GAME / MEN on an English board (`rulesFiguresFor`). English `landing-slip` and `rules` baselines refreshed.
 - The visual tolerance (`maxDiffPixelRatio: 0.002`) lets a one-word change in small mono text pass against a stale baseline; refresh the affected phases on purpose after any copy change.
+- US4: `lib/rating/playerRatings.ts` (`readRatings`, `readEloRatings`, `writeRatingResult`) is the only rating source; `players.elo_rating` and the record columns are no longer written or read. The viewer's own bar reads the page language's rating through `viewerInLanguage` (room layout, lobby page, queue page, sign-in), since the session cookie carries a stale, language-blind rating. Best words and recent matches on the profile and in the lobby are the page language's (`matches!inner(language)`). SC-006 was checked at migration time: 889 players, 889 Icelandic rows.
 - Local E2E hygiene: `matchmaking.spec` ends with a player still searching, and a leftover `matchmaking` row is offered first to the next run's players (oldest first), so reruns can hang in the queue. Reset queued players between runs; run the dev server with `RATE_LIMIT_DISABLED_SCOPES=auth:login` to avoid the 5/min sign-in limit.
 
 ## Phase 1: Setup
@@ -187,22 +188,22 @@ Format: `- [ ] T### [P?] [US?] description — path`
 **Goal**: Separate Elo per language, with existing ratings becoming Icelandic.
 **Independent test**: Winning an en match moves only the en rating, and `/profile/x` and `/en/profile/x` differ.
 
-- [ ] T057 [P] [US4] Write failing unit tests `tests/unit/lib/rating/persistRatingChanges.language.spec.ts`:
+- [X] T057 [P] [US4] Write failing unit tests `tests/unit/lib/rating/persistRatingChanges.language.spec.ts`:
   - It reads and upserts `player_ratings` for the match language.
   - A missing row is treated as 1200/0.
   - `match_ratings.language` is written.
-- [ ] T058 [US4] Write migration `supabase/migrations/20260922002_ratings_by_language.sql` per data-model: the `player_ratings` table, its RLS, the backfill, `match_ratings.language` with backfill, and an index.
-- [ ] T059 [US4] Implement `readRating` and a language-aware `persistRatingChanges` in `lib/rating/`, and pass the language from `app/actions/match/completeMatch.ts` and `settleMatch.ts`.
-- [ ] T060 [US4] Make the readers language-aware:
+- [X] T058 [US4] Write migration `supabase/migrations/20260922002_ratings_by_language.sql` per data-model: the `player_ratings` table, its RLS, the backfill, `match_ratings.language` with backfill, and an index.
+- [X] T059 [US4] Implement `readRating` and a language-aware `persistRatingChanges` in `lib/rating/`, and pass the language from `app/actions/match/completeMatch.ts` and `settleMatch.ts`.
+- [X] T060 [US4] Make the readers language-aware:
   - `app/actions/match/getMatchRatings.ts`.
   - `app/actions/player/{getPlayerProfile,getPlayerProfileByHandle,getTopPlayers,getBestWords}.ts` and `app/actions/matchmaking/getMatchOverview.ts`.
   - The presence rating join in `lib/matchmaking/{profile,service}.ts`.
   - The `stateLoader` rating lines.
   - `app/[locale]/profile/**` pages pass `locale.language`.
-- [ ] T061 [US4] Add integration test `tests/integration/db/ratingsByLanguage.spec.ts`:
+- [X] T061 [US4] Add integration test `tests/integration/db/ratingsByLanguage.spec.ts`:
   - Backfill equality for every player (SC-006).
   - Settling an en match changes only the en rows and inserts `match_ratings.language='en'`.
-- [ ] T062 [US4] Run the checkpoint and commit `feat(rating): a rating for each language`.
+- [X] T062 [US4] Run the checkpoint and commit `feat(rating): a rating for each language`.
 
 ## Phase 7: User Story 5 — switch language from the room (P3)
 

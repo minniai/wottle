@@ -10,6 +10,7 @@ import {
   LoginValidationError,
   performUsernameLogin,
   persistLobbySession,
+  viewerInLanguage,
 } from "@/lib/matchmaking/profile";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { loginErrorCode } from "@/lib/i18n/errorCodes";
@@ -59,7 +60,9 @@ export async function loginAction(
 
     // No revalidatePath("/"): the room converts the bar in place and rewrites the URL to /lobby
     // (spec 044 US7). A server re-render of / here would hit its signed-in redirect and remount the field.
-    return { status: "success", player, sessionToken };
+    // The bar shows the rating of the lobby the player signed in to (spec 060 US4).
+    const shown = await viewerInLanguage(player, language.success ? language.data : "is");
+    return { status: "success", player: shown, sessionToken };
   } catch (error) {
     console.error(`[LOGIN_DEBUG] Error during login:`, error);
 

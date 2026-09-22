@@ -64,6 +64,7 @@ export default async function MatchPage({
     supabase,
     matchState.players.playerA.playerId,
     matchState.players.playerB.playerId,
+    matchState.language,
   );
 
   return (

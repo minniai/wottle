@@ -37,7 +37,7 @@ export interface LobbyRoomViewProps {
  * fixture route can mount it without a database (spec 045 FR-003).
  */
 export function LobbyRoomView(props: LobbyRoomViewProps) {
-  const { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU } = useCopy();
+  const { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU, UNRATED } = useCopy();
   const { viewer, players, recentGames, loadingPlayers, hint, notices, onAction, onSignedIn, children } = props;
   const isPhone = useIsPhone();
 
@@ -74,7 +74,7 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
       field={children}
       bottomBar={
         viewer ? (
-          <PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} subline={`${viewer.eloRating ?? "unrated"} · ${YOU}`} />
+          <PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} subline={`${viewer.eloRating ?? UNRATED} · ${YOU}`} />
         ) : (
           <PlayerBar seat="you" position="bottom" state="empty" name="—" subline={SIGN_IN_TO_SET_THE_FIELD} />
         )

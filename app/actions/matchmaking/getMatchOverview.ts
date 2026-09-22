@@ -1,5 +1,7 @@
 "use server";
 
+import { readEloRatings } from "@/lib/rating/playerRatings";
+import type { Language } from "@/lib/types/game-config";
 import "server-only";
 import { z } from "zod";
 
@@ -35,7 +37,7 @@ export async function getMatchOverviewAction(
     const supabase = getServiceRoleClient();
     const { data: match } = await supabase
       .from("matches")
-      .select("player_a_id, player_b_id")
+      .select("player_a_id, player_b_id, language")
       .eq("id", parsed.data.matchId)
       .maybeSingle();
 
@@ -72,8 +74,10 @@ export async function getMatchOverviewAction(
       eloRating: row.elo_rating,
     });
 
-    const self = toIdentity(players.find((p) => p.id === selfId)!);
-    const opponent = toIdentity(players.find((p) => p.id === opponentId)!);
+    // Ratings in the match's language (spec 060 US4).
+    const ratings = await readEloRatings(supabase, [selfId, opponentId], (match.language as Language | null) ?? "is");
+    const self = { ...toIdentity(players.find((p) => p.id === selfId)!), eloRating: ratings.get(selfId) ?? null };
+    const opponent = { ...toIdentity(players.find((p) => p.id === opponentId)!), eloRating: ratings.get(opponentId) ?? null };
 
     return { status: "ok", self, opponent };
   } catch (error) {
