@@ -17,6 +17,7 @@
     "test": "pnpm test:unit",
     "test:unit": "vitest --config vitest.config.ts --run --passWithNoTests",
     "test:integration": "vitest --config vitest.integration.config.ts --run --passWithNoTests",
+    "wordlists:build": "tsx scripts/wordlists/build-board-wordlists.ts",
     "guard:no-service-role": "tsx scripts/guards/no-service-role-in-client.ts",
     "supabase:migrate": "supabase migration up",
     "supabase:seed": "tsx scripts/supabase/seed.ts",

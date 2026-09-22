@@ -2,7 +2,7 @@
  * Next.js instrumentation hook — runs once on server startup.
  *
  * Pre-warms the Icelandic dictionary so round 1 doesn't pay
- * the ~600-1000ms cold-start cost of loading 3.7M entries.
+ * the ~300ms cold-start cost of loading the ~1.16M-entry board wordlist.
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {

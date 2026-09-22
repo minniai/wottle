@@ -7,8 +7,6 @@ export interface GameConfig {
   /** The time limit for a single round in milliseconds. */
   /** The minimum allowed length for a submitted word. */
   minimumWordLength: number;
-  /** The maximum allowed length for a submitted word. If omitted, constrained by board. */
-  maxWordLength?: number;
   /** The dimensions of the square game board (e.g., 15 for a 15x15 board). */
   boardSize: number;
   /** The explicitly permitted directions for reading a primary word. */
