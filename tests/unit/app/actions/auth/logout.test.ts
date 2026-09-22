@@ -47,6 +47,7 @@ import {
   RateLimitExceededError,
 } from "@/lib/rate-limiting/middleware";
 import { resignMatch } from "@/app/actions/match/resignMatch";
+import { revalidatePath } from "next/cache";
 
 function buildSession(
   overrides: Partial<LobbySession["player"]> = {},
@@ -95,6 +96,14 @@ describe("logoutAction", () => {
       name: "wottle-playtest-session",
       path: "/",
     });
+  });
+
+  it("revalidates no path: a layout-wide revalidation turns the static /rules pages into 404s", async () => {
+    vi.mocked(readLobbySession).mockResolvedValue(buildSession());
+
+    await logoutAction();
+
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("does not resign when the opt-in flag is absent", async () => {

@@ -3,7 +3,6 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 
 import { resignMatch } from "@/app/actions/match/resignMatch";
@@ -72,6 +71,8 @@ export async function logoutAction(
   const cookieStore = await cookies();
   cookieStore.delete({ name: SESSION_COOKIE_NAME, path: "/" });
 
-  revalidatePath("/", "layout");
+  // No revalidatePath: every caller already runs router.refresh(), and a layout-wide
+  // revalidation of `/` also purges the prerendered /rules pages, which then 404
+  // (NoFallbackError) until the next deploy.
   return { status: "signed-out", resignedMatchId };
 }

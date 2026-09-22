@@ -18,7 +18,7 @@ test.describe("@rules the how-to-play page", () => {
       "Scored letters freeze in your ink.",
       "Values and length.",
       "Five minutes for the whole match.",
-      "Ten moves first, then most points.",
+      "Most points wins.",
     ]);
     for (const kind of ["swap", "words", "crossing"]) await expect(page.getByTestId(`rules-figure-${kind}`)).toBeVisible();
     await expect(page.getByTestId("rules-scoring")).toBeVisible();
