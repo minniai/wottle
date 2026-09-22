@@ -697,8 +697,8 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
-/* A miss (rules §5.6) says so in words, and its −5 is muted and lighter, so it
-   never reads as a score. No colour: coral and teal already mean the players. */
+/* A miss (rules §5.6) says so in words, and its −5 is muted, so it never reads
+   as a score. No colour: coral and teal already mean the players. */
 .ledger__miss {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -709,7 +709,6 @@
 }
 .ledger__words--empty .ledger__total {
   color: var(--muted);
-  font-weight: 500;
 }
 /* The final ledger closes with the totals, facing off across the spine. */
 .ledger__totals {
