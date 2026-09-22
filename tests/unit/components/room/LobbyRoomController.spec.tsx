@@ -154,6 +154,66 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m9"));
   });
 
+  it("two challengers each get a line; an answered or expired challenge leaves the ledger", async () => {
+    const nari = { id: "i1", sender: { id: "n", username: "nari", displayName: "Nari" }, expiresAt: "" };
+    const silu = { id: "i2", sender: { id: "s", username: "silu", displayName: "Silú" }, expiresAt: "" };
+    let pending = [nari];
+    fetchMock.mockImplementation(async (url: string) =>
+      url.startsWith("/api/lobby/invite") ? { ok: true, json: async () => ({ pending, outgoing: null }) } : { ok: true, json: async () => ({ match: null }) },
+    );
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
+      await waitFor(() => expect(screen.getAllByTestId("ledger-notice")).toHaveLength(1));
+      pending = [nari, silu];
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+      await waitFor(() => expect(screen.getAllByTestId("ledger-notice").map((n) => n.textContent)).toEqual([
+        expect.stringContaining("Nari challenges you"),
+        expect.stringContaining("Silú challenges you"),
+      ]));
+      // Nari's challenge expires: her line goes, Silú's stays.
+      pending = [silu];
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+      await waitFor(() => expect(screen.getAllByTestId("ledger-notice").map((n) => n.textContent)).toEqual([expect.stringContaining("Silú challenges you")]));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the challenger sees the challenge wait, then what became of it", async () => {
+    (useLobbyPresenceStore as unknown as { setState: (s: object) => void }).setState({ players: [me, kari] });
+    let outgoing: object | null = null;
+    fetchMock.mockImplementation(async (url: string) =>
+      url.startsWith("/api/lobby/invite") ? { ok: true, json: async () => ({ pending: [], outgoing }) } : { ok: true, json: async () => ({ match: null }) },
+    );
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<LobbyRoomController viewer={me} initialPlayers={[me, kari]} recentGames={[]} />);
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("ledger-challenge-k"));
+      });
+      await waitFor(() => expect(screen.getByTestId("ledger-notice")).toHaveTextContent("challenge sent · waiting for Kári"));
+      outgoing = { id: "i1", status: "pending", recipientName: "Kári", recipientInMatch: false };
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+      expect(screen.getByTestId("ledger-notice")).toHaveTextContent("challenge sent · waiting for Kári");
+      // Kári took Silú's challenge: this one was answered for him.
+      outgoing = { id: "i1", status: "declined", recipientName: "Kári", recipientInMatch: true };
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+      await waitFor(() => expect(screen.getByTestId("ledger-notice")).toHaveTextContent("Kári took another challenge"));
+      expect(screen.getAllByTestId("ledger-notice")).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("find an opponent ▸ moves to the queue route; sign out clears the viewer", async () => {
     render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
     fireEvent.click(screen.getByTestId("player-bar-action-find"));

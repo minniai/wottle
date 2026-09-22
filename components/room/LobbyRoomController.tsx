@@ -12,7 +12,8 @@ import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { hintLine, letterFactsOn } from "@/lib/room/liveState";
-import type { LedgerAction } from "@/lib/room/ledgerTypes";
+import type { LedgerAction, OutgoingChallenge } from "@/lib/room/ledgerTypes";
+import { challengeOutcome, syncChallenges } from "@/lib/room/notices";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { Coordinate } from "@/lib/types/board";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -95,7 +96,9 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     return () => disconnect();
   }, [me, initialPlayers, connect, disconnect]);
 
-  const { notices, push, dismiss } = useNotices();
+  const { notices, push, dismiss, apply } = useNotices();
+  // The challenge this viewer sent, until the poll reports what became of it.
+  const sentChallenge = useRef<string | null>(null);
 
   // A match that does not exist redirects here with ?notice=no-match; show it
   // once and clear the param so a reload does not repeat it (spec 045 FR-017).
@@ -127,9 +130,20 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     onLocalSwap: (from: Coordinate, to: Coordinate) => setBoard(applyLetterSwaps(board, [[from, to]])),
   });
 
-  const onInvite = useCallback(
-    (invite: PendingInvite) => push({ kind: "challenge", fromName: invite.sender.displayName ?? invite.sender.username, inviteId: invite.id }),
-    [push],
+  const onInvites = useCallback(
+    (pending: PendingInvite[]) =>
+      apply((prev) => syncChallenges(prev, pending.map((i) => ({ kind: "challenge", fromName: i.sender.displayName ?? i.sender.username, inviteId: i.id })))),
+    [apply],
+  );
+  const onOutgoing = useCallback(
+    (outgoing: OutgoingChallenge | null) => {
+      if (!outgoing || outgoing.id !== sentChallenge.current || outgoing.status === "pending") return;
+      sentChallenge.current = null;
+      dismiss("challengeSent");
+      const outcome = challengeOutcome(outgoing);
+      if (outcome) push({ kind: "text", text: outcome });
+    },
+    [dismiss, push],
   );
   const onActiveMatch = useCallback(
     (activeMatchId: string) => {
@@ -140,7 +154,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     },
     [router],
   );
-  useLobbyInvites({ enabled: Boolean(me), onInvite, onActiveMatch });
+  useLobbyInvites({ enabled: Boolean(me), onInvites, onOutgoing, onActiveMatch });
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
@@ -155,19 +169,24 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
         });
       }
       else if (typeof action === "object" && "challenge" in action) {
-        sendInviteAction(action.challenge).then((r) => r.status !== "sent" && push({ kind: "text", text: (r.message ?? "challenge failed").toLowerCase() }));
+        const to = players.find((p) => p.id === action.challenge);
+        sendInviteAction(action.challenge).then((r) => {
+          if (r.status !== "sent") return push({ kind: "text", text: (r.message ?? "challenge failed").toLowerCase() });
+          sentChallenge.current = r.inviteId;
+          push({ kind: "challengeSent", toName: to?.displayName ?? to?.username ?? "", inviteId: r.inviteId });
+        });
       } else if (typeof action === "object" && "acceptChallenge" in action) {
-        dismiss("challenge");
+        dismiss(`challenge:${action.acceptChallenge}`);
         respondInviteAction(action.acceptChallenge, "accepted").then((r) => {
           if (r.status === "accepted" && r.matchId) router.replace(`/match/${r.matchId}`);
           else push({ kind: "text", text: (r.message ?? r.status).toLowerCase() });
         });
       } else if (typeof action === "object" && "declineChallenge" in action) {
-        dismiss("challenge");
+        dismiss(`challenge:${action.declineChallenge}`);
         void respondInviteAction(action.declineChallenge, "declined");
       }
     },
-    [router, push, dismiss, disconnect, setViewer],
+    [router, push, dismiss, disconnect, setViewer, players],
   );
 
   // `?` opens the rules, `M` mutes (design system §9, FR-026).

@@ -44,6 +44,15 @@ export interface PendingInviteSummary {
   expiresAt: string;
 }
 
+/** What became of the challenger's latest challenge (the lobby's waiting line reads it). */
+export interface OutgoingInviteSummary {
+  id: string;
+  status: InviteRow["status"];
+  recipientName: string;
+  /** Declined while the recipient is in a match: they took another challenge. */
+  recipientInMatch: boolean;
+}
+
 export interface StartQueueParams {
   playerId: string;
 }
@@ -229,6 +238,7 @@ export async function respondToInvite(
     })
     .eq("id", params.inviteId);
 
+  await releaseOtherChallengers(client, invite.recipient_id, invite.id);
   await Promise.all([
     setPlayerStatus(client, invite.sender_id, "in_match"),
     setPlayerStatus(client, invite.recipient_id, "in_match"),
@@ -292,6 +302,62 @@ export async function listPendingInvites(
         ttlSeconds
       ),
     }));
+}
+
+export async function getOutgoingInvite(
+  client: AnyClient,
+  senderId: string
+): Promise<OutgoingInviteSummary | null> {
+  const { data, error } = await client
+    .from("match_invitations")
+    .select("id,status,recipient:recipient_id(username,display_name,status)")
+    .eq("sender_id", senderId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Unable to load the sent invite: ${error.message}`);
+  }
+  if (!data) return null;
+  const row = data as any;
+  return {
+    id: row.id as string,
+    status: row.status as InviteRow["status"],
+    recipientName: (row.recipient?.display_name ?? row.recipient?.username ?? "") as string,
+    recipientInMatch: row.recipient?.status === "in_match",
+  };
+}
+
+/**
+ * A recipient can be challenged by several players at once; accepting one
+ * answers the rest, so no challenger waits on a player already in a match.
+ */
+async function releaseOtherChallengers(client: AnyClient, recipientId: string, acceptedId: string) {
+  const { data, error } = await client
+    .from("match_invitations")
+    .update({ status: "declined", responded_at: new Date().toISOString() })
+    .eq("recipient_id", recipientId)
+    .eq("status", "pending")
+    .neq("id", acceptedId)
+    .select("sender_id");
+
+  if (error) {
+    logPlaytestError("matchmaking.invite.release_failed", { playerId: recipientId, error });
+    return;
+  }
+  await releaseSenders(client, (data ?? []).map((row: { sender_id: string }) => row.sender_id));
+}
+
+/** A sender whose challenge is answered or expired is available again. */
+async function releaseSenders(client: AnyClient, senderIds: string[]) {
+  const unique = [...new Set(senderIds)];
+  if (unique.length === 0) return;
+  await client.from("players").update({ status: "available" }).in("id", unique);
+  await client
+    .from("lobby_presence")
+    .update({ invite_token: null, mode: "auto" })
+    .in("player_id", unique);
 }
 
 export async function startAutoQueue(
@@ -424,19 +490,7 @@ export async function expireStaleInvites(
   }
 
   const expiredIds = data?.map((row) => row.id as string) ?? [];
-  const senderIds = [...new Set(data?.map((row) => row.sender_id as string) ?? [])];
-
-  if (senderIds.length > 0) {
-    await client
-      .from("players")
-      .update({ status: "available" })
-      .in("id", senderIds);
-
-    await client
-      .from("lobby_presence")
-      .update({ invite_token: null, mode: "auto" })
-      .in("player_id", senderIds);
-  }
+  await releaseSenders(client, data?.map((row) => row.sender_id as string) ?? []);
 
   if (expiredIds.length > 0) {
     logPlaytestInfo("matchmaking.invite.expired", {
