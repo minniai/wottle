@@ -177,7 +177,7 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
       const context = await browser.newContext({ viewport, isMobile: viewport.width < 600, hasTouch: viewport.width < 600 });
       const page = await context.newPage();
       try {
-        await page.goto("/");
+        await page.goto("/en");
         await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
         await expect(page.getByTestId("player-bar-name-input")).toBeVisible();
         await expectAxeClean(page, `lobby-empty-${viewport.tag}`);
@@ -199,7 +199,7 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
           test.info().annotations.push({ type: "note", description: `queue skipped at ${viewport.tag}: paired immediately` });
         }
 
-        await page.goto("/profile");
+        await page.goto("/en/profile");
         await expect(page.getByTestId("profile-page")).toBeVisible({ timeout: 20_000 });
         await expectAxeClean(page, `profile-${viewport.tag}`);
         await snap(page, `profile-${viewport.tag}.png`);

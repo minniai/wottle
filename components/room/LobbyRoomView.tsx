@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, LedgerModel, Notice } from "@/lib/room/ledgerTypes";
 import { EMPTY_TERRITORY } from "@/lib/room/ledgerTypes";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -37,6 +37,7 @@ export interface LobbyRoomViewProps {
  * fixture route can mount it without a database (spec 045 FR-003).
  */
 export function LobbyRoomView(props: LobbyRoomViewProps) {
+  const { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU } = useCopy();
   const { viewer, players, recentGames, loadingPlayers, hint, notices, onAction, onSignedIn, children } = props;
   const isPhone = useIsPhone();
 
@@ -47,7 +48,7 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
       territory: EMPTY_TERRITORY,
       hint: viewer ? hint : EMPTY_LOBBY_HINT,
     }),
-    [players, viewer, hint],
+    [players, viewer, hint, EMPTY_LOBBY_HINT, lobbyContext],
   );
 
   return (

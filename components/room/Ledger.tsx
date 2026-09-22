@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-import { HISTORY, lastSeconds, MATCH_CLOCK, NO_WORD, NOT_PLAYED, points, SPINE_HEADER, TIME_SPENT, TOTAL_LABEL, WORDMARK } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeKey, noticeText } from "@/lib/room/notices";
@@ -45,6 +45,7 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
  * says so in words, and its −5 is muted, so it never reads as a score.
  */
 function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
+  const { NO_WORD, NOT_PLAYED, points } = useCopy();
   if (!cell) return <div className="ledger__words" data-seat={seat} />;
   const total = <span className="ledger__total">{points(cell.total)}</span>;
   const inward = (content: ReactNode) => (seat === "you" ? <>{content}{total}</> : <>{total}{content}</>);
@@ -120,10 +121,11 @@ function ClockFace({ time, label, fraction }: { time: string; label: string; fra
  * holds inverted. The live row announces the beats, so the timer is silent to AT.
  */
 function LedgerClock({ time, phase, fraction }: { time: string; phase: ClockPhase; fraction: number }) {
+  const { lastSeconds, MATCH_CLOCK, TIME_SPENT, clockAria } = useCopy();
   const inverted = phase === "flash" || phase === "spent";
   const invertedLabel = phase === "spent" ? TIME_SPENT : lastSeconds(secondsIn(time));
   return (
-    <div className="ledger__clock" data-testid="match-clock" data-phase={phase} role="timer" aria-label={`${MATCH_CLOCK}, ${time} left`} aria-live="off">
+    <div className="ledger__clock" data-testid="match-clock" data-phase={phase} role="timer" aria-label={clockAria(MATCH_CLOCK, time)} aria-live="off">
       <ClockFace time={time} label={MATCH_CLOCK} fraction={fraction} />
       {inverted ? (
         <div className="ledger__clock-invert" aria-hidden="true">
@@ -174,21 +176,22 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
 }
 
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
+  const copy = useCopy();
   if (notice.kind === "challenge") {
     return (
       <>
-        {notice.fromName} challenges you ·{" "}
+        {notice.fromName} {copy.CHALLENGES_YOU} ·{" "}
         <button type="button" className="action-secondary" data-testid="notice-accept-challenge" onClick={() => onAction({ acceptChallenge: notice.inviteId })}>
-          accept ▸
+          {copy.ACCEPT}
         </button>{" "}
         ·{" "}
         <button type="button" className="action-secondary" data-testid="notice-decline-challenge" onClick={() => onAction({ declineChallenge: notice.inviteId })}>
-          decline
+          {copy.DECLINE}
         </button>
       </>
     );
   }
-  return <>{noticeText(notice)}</>;
+  return <>{noticeText(notice, copy)}</>;
 }
 
 /**
@@ -196,6 +199,7 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
+  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, territoryAria, territoryLine, YOU } = useCopy();
   const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
   /**
@@ -230,7 +234,7 @@ export function Ledger(props: LedgerProps) {
       <div className="ledger__header" data-testid="ledger-header">
         <span className="ledger__header-you">
           {viewerName}
-          {readOnly ? "" : " · you"}
+          {readOnly ? "" : ` · ${YOU}`}
           <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden />
         </span>
         <span className="ledger__header-spine">{SPINE_HEADER}</span>
@@ -256,13 +260,13 @@ export function Ledger(props: LedgerProps) {
 
   const territoryBlock = showsTable ? (
     <>
-      <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={`territory ${territory.you}–${territory.opp}`}>
+      <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={territoryAria(territory.you, territory.opp)}>
         <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
         <span style={{ flex: 1 }} />
         <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
       </div>
       <div className="ledger__mono">
-        {territory.you} · {territory.free} free · {territory.opp}
+        {territoryLine(territory.you, territory.free, territory.opp)}
       </div>
     </>
   ) : null;
@@ -276,7 +280,7 @@ export function Ledger(props: LedgerProps) {
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
 
   return (
-    <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
+    <section className="ledger" data-testid="ledger" data-variant={variant} aria-label={LEDGER}>
       <div className="ledger__caption" data-testid="ledger-caption">
         <span className="ledger__wordmark">{WORDMARK}</span>
         <span className="ledger__caption-right">

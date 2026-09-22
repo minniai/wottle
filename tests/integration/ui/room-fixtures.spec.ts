@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-import { ROOM_PHASES } from "../../../app/dev/room/fixtures";
+import { ROOM_PHASES } from "../../../app/[locale]/dev/room/fixtures";
 
 /**
  * The visual suite (spec 045 US1, FR-004). Every room state, from static
@@ -26,7 +26,7 @@ test.describe("@visual the room, from fixtures", () => {
   for (const phase of ROOM_PHASES) {
     test(`${phase} matches its baseline`, async ({ page }, testInfo) => {
       test.skip(phase === "phone-sheet" && testInfo.project.name !== "visual-390x844", "the open sheet exists only on a phone");
-      await page.goto(`/dev/room?phase=${phase}`);
+      await page.goto(`/en/dev/room?phase=${phase}`);
 
       // Application state, not font state: Playwright already awaits
       // document.fonts.ready before every screenshot.
@@ -47,7 +47,7 @@ test.describe("@visual the room, from fixtures", () => {
     const context = await browser.newContext({ viewport: testInfo.project.use.viewport!, reducedMotion: "reduce" });
     const page = await context.newPage();
     try {
-      await page.goto("/dev/room?phase=last-seconds");
+      await page.goto("/en/dev/room?phase=last-seconds");
       await expect(page.getByTestId("field")).toBeVisible();
       const clock = page.getByTestId("match-clock");
       await expect(clock).toHaveAttribute("data-phase", "flash");
@@ -68,7 +68,7 @@ test.describe("@visual the room renders without a database", () => {
       if (/supabase|\/api\/match|\/api\/lobby/.test(request.url())) supabaseCalls.push(request.url());
     });
 
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
     await expect(page.getByTestId("field").getByRole("gridcell")).toHaveCount(100);
 
@@ -83,7 +83,7 @@ test.describe("@visual the room renders without a database", () => {
  */
 test.describe("@visual the field is painted to the design", () => {
   test("paper ground, 1px rules inside a 1.5px frame, type that follows the cell", async ({ page }) => {
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     const field = page.getByTestId("field");
     await expect(field).toBeVisible();
 
@@ -140,7 +140,7 @@ test.describe("@visual the room is one composition", () => {
     test.skip(testInfo.project.name === "visual-390x844", "one column below 900px");
     const expected = testInfo.project.use.viewport!.width >= 1100 ? 56 : 40;
 
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
 
     const { gutter, leftMargin, rightMargin } = await page.evaluate(() => {
@@ -178,7 +178,7 @@ test.describe("@visual the ledger is the height of the stack", () => {
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
-      await page.goto("/dev/room?phase=picking");
+      await page.goto("/en/dev/room?phase=picking");
       await expect(page.getByTestId("field")).toBeVisible();
       // Rows keep at least their content height (spec 050), and a fallback face
       // wraps the live row; measure with the room's own faces, as screenshots do.
@@ -209,7 +209,7 @@ test.describe("@visual the ledger is the height of the stack", () => {
 test.describe("@visual the ledger rows", () => {
   test("each row draws one rule; the live label is clear of the live rule; no hint", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "visual-390x844", "the rows live in the sheet on a phone");
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
 
     const rows = await page.evaluate(() =>
@@ -249,7 +249,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("bar / field / bar / live row, and the page does not scroll", async ({ page }) => {
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
 
     // Collapsed: the glance only.
@@ -270,7 +270,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("the sheet opens in flow, below the bottom bar, and still does not scroll the page", async ({ page }) => {
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();
 
     const sheet = page.getByTestId("ledger-sheet");
@@ -295,7 +295,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("Escape closes the sheet and returns focus to the live row", async ({ page }) => {
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     const trigger = page.getByTestId("ledger-live-trigger");
     await trigger.click();
     await expect(page.getByTestId("ledger-sheet")).toBeVisible();
@@ -306,7 +306,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("every control in the sheet meets the 44px touch minimum", async ({ page }) => {
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();
     const sheet = page.getByTestId("ledger-sheet");
 
@@ -320,7 +320,7 @@ test.describe("@visual the room fits a phone", () => {
   });
 
   test("axe is clean with the sheet open", async ({ page }) => {
-    await page.goto("/dev/room?phase=picking");
+    await page.goto("/en/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();
     await expect(page.getByTestId("ledger-sheet")).toBeVisible();
 
@@ -341,22 +341,22 @@ test.describe("@visual one owner, one colour", () => {
     test.skip(testInfo.project.name !== "visual-1440x900", "one viewport is enough for an attribute");
     for (const phase of ROOM_PHASES) {
       if (phase === "rules" || phase === "profile") continue;
-      await page.goto(`/dev/room?phase=${phase}`);
+      await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByTestId("field")).toBeVisible();
       await expect(page.locator('[data-testid="field-cell"][data-state="shared"]')).toHaveCount(0);
     }
-    await page.goto("/dev/room?phase=reveal");
+    await page.goto("/en/dev/room?phase=reveal");
     const crossing = page.locator('[data-testid="field-cell"][data-x="7"][data-y="6"]');
     await expect(crossing).toHaveAttribute("data-seat", "opp");
     await expect(crossing).toHaveAttribute("data-state", "scored");
-    await page.goto("/dev/room?phase=idle");
+    await page.goto("/en/dev/room?phase=idle");
     await expect(page.locator('[data-testid="field-band"][data-word="LEK"]')).toHaveAttribute("data-cells", "7,6;8,6;9,6");
   });
 });
 
 test.describe("@visual room clarity", () => {
   test("each bar's lane is ten segments, the moves left, legible at every size", async ({ page }) => {
-    await page.goto("/dev/room?phase=idle");
+    await page.goto("/en/dev/room?phase=idle");
     await expect(page.getByTestId("move-rail")).toHaveCount(0);
     const lane = (bar: string) => page.getByTestId(bar).getByTestId("player-bar-lane");
     await expect(lane("player-bar-bottom")).toHaveAttribute("aria-valuenow", "7");
@@ -373,7 +373,7 @@ test.describe("@visual room clarity", () => {
 
   for (const phase of ["landing-slip", "resign", "end-early", "over-slip"]) {
     test(`${phase} is accessible with the slip open`, async ({ page }) => {
-      await page.goto(`/dev/room?phase=${phase}`);
+      await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByRole("dialog")).toBeVisible();
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -381,6 +381,27 @@ test.describe("@visual room clarity", () => {
         .exclude(".ledger__row--future .ledger__move")
         .analyze();
       expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
+    });
+  }
+});
+
+/**
+ * Spec 060: Orðusta, the Icelandic room at the unprefixed URL. A representative
+ * set rather than every phase: the English set above pins the layout, this one
+ * pins the Icelandic lines fitting it — the longest strings, the slips, the
+ * final verdict, the profile and the rules.
+ */
+const ICELANDIC_PHASES = ["landing-slip", "lobby", "picking", "reveal", "done-waiting", "final", "over-slip", "profile", "rules"] as const;
+
+test.describe("@visual @is the room in Icelandic", () => {
+  for (const phase of ICELANDIC_PHASES) {
+    test(`${phase} (is) matches its baseline`, async ({ page }) => {
+      await page.goto(`/dev/room?phase=${phase}`);
+      await expect(page.locator("html")).toHaveAttribute("lang", "is");
+      if (phase === "profile") await expect(page.getByTestId("profile-page")).toBeVisible();
+      else if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
+      else await expect(page.getByTestId("field")).toBeVisible();
+      await expect(page).toHaveScreenshot(`is-${phase}.png`, { fullPage: phase === "rules" });
     });
   }
 });

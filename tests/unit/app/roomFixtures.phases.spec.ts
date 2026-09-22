@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isRoomPhase, ROOM_PHASES } from "@/app/dev/room/fixtures";
+import { isRoomPhase, ROOM_PHASES } from "@/app/[locale]/dev/room/fixtures";
 
 /** Spec 048 contracts/fixture-phases.md, spec 050: one phase per slip and per beat. */
 describe("fixture phases (spec 048, spec 050)", () => {

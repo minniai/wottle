@@ -7,7 +7,7 @@ import { expect, type Page } from "@playwright/test";
  * Use this in every spec; navigating away before the URL settled is a race.
  */
 export async function loginViaSlip(page: Page, username: string): Promise<void> {
-  await page.goto("/");
+  await page.goto("/en");
   // Spec 048 US4: the name input is on the sign-in slip over the empty field.
   await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn");
   await page.getByTestId("player-bar-name-input").fill(username);

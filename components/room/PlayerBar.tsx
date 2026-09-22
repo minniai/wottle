@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
-import { points } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
 import { BarLane, type LaneMode } from "./BarLane";
@@ -49,6 +49,7 @@ function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
  * viewer the bottom; the lane sits on the edge nearest the field.
  */
 export function PlayerBar(props: PlayerBarProps) {
+  const { points, YOUR_MOVES, OPPONENT_MOVES } = useCopy();
   const { seat, position, state, name, subline, writing = false, movesPlayed = 0, moveLimit = TOTAL_MOVES, moveInFlight = false } = props;
   const { score, disconnected = false, action } = props;
   const inMatch = state === "playing" || state === "final";
@@ -102,7 +103,7 @@ export function PlayerBar(props: PlayerBarProps) {
           {action}
         </div>
       )}
-      <BarLane label={seat === "you" ? "your moves" : "opponent's moves"} movesPlayed={movesPlayed} moveLimit={moveLimit} moveInFlight={moveInFlight} mode={laneMode(state, disconnected)} />
+      <BarLane label={seat === "you" ? YOUR_MOVES : OPPONENT_MOVES} movesPlayed={movesPlayed} moveLimit={moveLimit} moveInFlight={moveInFlight} mode={laneMode(state, disconnected)} />
     </div>
   );
 }

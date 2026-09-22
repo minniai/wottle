@@ -11,7 +11,7 @@ vi.mock("@/lib/matchmaking/profile", () => ({
 }));
 
 import { readLobbySession } from "@/lib/matchmaking/profile";
-import MatchmakingPage from "@/app/(room)/matchmaking/page";
+import MatchmakingPage from "@/app/[locale]/(room)/matchmaking/page";
 
 describe("MatchmakingPage route", () => {
   test("redirects to / when no session cookie is present", async () => {

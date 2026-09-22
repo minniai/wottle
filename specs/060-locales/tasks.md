@@ -8,10 +8,19 @@
 
 Format: `- [ ] T### [P?] [US?] description — path`
 
+## Implementation notes (2026-09-22)
+
+- T001 baseline: typecheck, lint, 1526 unit tests and 109 visual tests green. Port 3000 on this machine served another checkout (`~/codex/wottle`), so every local Playwright run here uses `APP_PORT=3100`.
+- T011/T015: `useLocale` outside a provider reads English instead of throwing, so the existing component tests needed no wrapper; `renderWithLocale` was not added.
+- T022: no re-export shim — every caller moved to `useCopy()` / a `copy` argument in one step and `lib/constants/copy.ts` is deleted.
+- T027: moves, challenges, rematch and resign map to codes on the client (the server already returned a `reason` or a status); only the login action gained a `code`. Preview errors are never shown, so they have no code.
+- Chromium E2E before/after: the base commit fails 9 specs locally (lobby-presence, match-completion, profile-room ×2, reconnect-flow, room-flow, room-layout ×2, rules-page); the branch fails the same set, none new. The login rate limit (5/min, not disabled locally) causes the sign-in timeouts.
+- Linux baselines for the new `is-*` set come from the CI visual job's artifacts, as for every baseline.
+
 ## Phase 1: Setup
 
-- [ ] T001 Confirm the baseline is green on the branch before any change: `pnpm typecheck && pnpm lint && pnpm test:unit && pnpm test:visual`, and record the results in `specs/060-locales/tasks.md` notes.
-- [ ] T002 [P] Create the directories `lib/i18n/`, `lib/i18n/copy/`, `components/i18n/`, `components/rules/content/` and `tests/unit/lib/i18n/`.
+- [X] T001 Confirm the baseline is green on the branch before any change: `pnpm typecheck && pnpm lint && pnpm test:unit && pnpm test:visual`, and record the results in `specs/060-locales/tasks.md` notes.
+- [X] T002 [P] Create the directories `lib/i18n/`, `lib/i18n/copy/`, `components/i18n/`, `components/rules/content/` and `tests/unit/lib/i18n/`.
 
 ## Phase 2: Foundational — locale routing (plan P1; blocks all stories)
 
@@ -21,34 +30,34 @@ Format: `- [ ] T### [P?] [US?] description — path`
 - Every internal link keeps the prefix.
 - The en visual baselines pass at `/en`.
 
-- [ ] T003 [P] Write the failing tests for the registry in `tests/unit/lib/i18n/locales.spec.ts`:
+- [X] T003 [P] Write the failing tests for the registry in `tests/unit/lib/i18n/locales.spec.ts`:
   - `LOCALES`, `DEFAULT_LOCALE`, `isLocale`.
   - `localePath` for is and en, and that it throws when the path has no leading slash.
   - `switchLocalePath`.
   - `isLandingPath`, per `contracts/locale-routing.md`.
   - A stub third locale can be registered in the test (SC-007).
-- [ ] T004 [P] Write the failing tests for `decideLocaleRoute` in `tests/unit/lib/i18n/routing.spec.ts`, covering every row of the contract table, including query preservation and `/xx/lobby`.
-- [ ] T005 Implement the registry in `lib/i18n/locales.ts` (`Locale`, `LocaleConfig`, `LOCALES`, `DEFAULT_LOCALE`, `isLocale`, `localePath`, `switchLocalePath`, `isLandingPath`, `localeForLanguage`) until T003 passes.
-- [ ] T006 Implement the pure `decideLocaleRoute` in `lib/i18n/routing.ts` until T004 passes.
-- [ ] T007 Add `proxy.ts` at the repo root. It calls `decideLocaleRoute`, uses `NextResponse.rewrite` / `redirect(308)` / `next`, preserves the query, and uses matcher `['/((?!api|_next|.*\\..*).*)']`.
-- [ ] T008 Move the page tree with `git mv` so history is kept:
+- [X] T004 [P] Write the failing tests for `decideLocaleRoute` in `tests/unit/lib/i18n/routing.spec.ts`, covering every row of the contract table, including query preservation and `/xx/lobby`.
+- [X] T005 Implement the registry in `lib/i18n/locales.ts` (`Locale`, `LocaleConfig`, `LOCALES`, `DEFAULT_LOCALE`, `isLocale`, `localePath`, `switchLocalePath`, `isLandingPath`, `localeForLanguage`) until T003 passes.
+- [X] T006 Implement the pure `decideLocaleRoute` in `lib/i18n/routing.ts` until T004 passes.
+- [X] T007 Add `proxy.ts` at the repo root. It calls `decideLocaleRoute`, uses `NextResponse.rewrite` / `redirect(308)` / `next`, preserves the query, and uses matcher `['/((?!api|_next|.*\\..*).*)']`.
+- [X] T008 Move the page tree with `git mv` so history is kept:
   - `app/(room)` → `app/[locale]/(room)`.
   - `app/rules` → `app/[locale]/rules`.
   - `app/profile` → `app/[locale]/profile`.
   - `app/match` → `app/[locale]/match`.
   - `app/dev` → `app/[locale]/dev`.
   - `app/layout.tsx` → `app/[locale]/layout.tsx`, and fix relative imports (`globals.css`, `styles/*`).
-- [ ] T009 In `app/[locale]/layout.tsx`:
+- [X] T009 In `app/[locale]/layout.tsx`:
   - Await `params.locale` and call `notFound()` unless `isLocale`.
   - Add `generateStaticParams` over `LOCALES` and `export const dynamicParams = false`.
   - Set `<html lang={htmlLang}>`.
   - Make `generateMetadata` set the title to the locale's wordmark and use a per-locale description, English for both until US1.
   - Add `app/[locale]/not-found.tsx`.
-- [ ] T010 [P] Write the failing tests for `LocaleProvider` in `tests/unit/components/i18n/LocaleProvider.spec.tsx`: `useLocale` and `useLocalePath` return the provided locale's config and prefixed paths, and throw outside a provider.
-- [ ] T011 Implement `components/i18n/LocaleProvider.tsx` (`LocaleProvider`, `useLocale`, `useLocalePath`), mount it in `app/[locale]/layout.tsx`, and add `tests/helpers/renderWithLocale.tsx`, which defaults to `en`.
-- [ ] T012 [P] Write the failing grep-guard test `tests/unit/styles/locale-links-grep.test.ts`. It fails on literal internal paths in `app/[locale]`, `components/` and `lib/room`: `href="/`, `` href={`/ ``, `push("/`, `replace("/`, `redirect("/`, and `replaceState` with a `"/` literal.
-- [ ] T013 Sweep the server redirects to `localePath(locale, …)` in `app/[locale]/(room)/lobby/page.tsx`, `matchmaking/page.tsx`, `match/[matchId]/page.tsx`, `app/[locale]/profile/page.tsx` and `app/[locale]/match/[matchId]/summary/page.tsx`.
-- [ ] T014 Sweep the client navigation to `useLocalePath()`:
+- [X] T010 [P] Write the failing tests for `LocaleProvider` in `tests/unit/components/i18n/LocaleProvider.spec.tsx`: `useLocale` and `useLocalePath` return the provided locale's config and prefixed paths, and throw outside a provider.
+- [X] T011 Implement `components/i18n/LocaleProvider.tsx` (`LocaleProvider`, `useLocale`, `useLocalePath`), mount it in `app/[locale]/layout.tsx`, and add `tests/helpers/renderWithLocale.tsx`, which defaults to `en`.
+- [X] T012 [P] Write the failing grep-guard test `tests/unit/styles/locale-links-grep.test.ts`. It fails on literal internal paths in `app/[locale]`, `components/` and `lib/room`: `href="/`, `` href={`/ ``, `push("/`, `replace("/`, `redirect("/`, and `replaceState` with a `"/` literal.
+- [X] T013 Sweep the server redirects to `localePath(locale, …)` in `app/[locale]/(room)/lobby/page.tsx`, `matchmaking/page.tsx`, `match/[matchId]/page.tsx`, `app/[locale]/profile/page.tsx` and `app/[locale]/match/[matchId]/summary/page.tsx`.
+- [X] T014 Sweep the client navigation to `useLocalePath()`:
   - `components/room/{Slip,LedgerFoot,RoomMenu,LobbyLedger}.tsx`.
   - `components/profile/ProfilePage.tsx`.
   - `components/room/MatchRoomController.tsx`, including `profileHref`.
@@ -56,30 +65,30 @@ Format: `- [ ] T### [P?] [US?] description — path`
   - `components/room/LobbyRoomController.tsx`, where `isLandingPath` replaces `pathname === "/"` and the existing replaceState keeps the prefix.
   - `app/[locale]/rules/page.tsx`.
   - T012 must pass.
-- [ ] T015 Wrap the component tests that render room, profile or rules components with `renderWithLocale` (en) wherever they throw without a provider, under `tests/unit/components/**`.
-- [ ] T016 Point the visual suite at `/en/dev/room` in `tests/integration/ui/room-fixtures.spec.ts` with the same snapshot names. `pnpm test:visual` must pass with no baseline change (SC-002).
-- [ ] T017 Prefix the Playwright navigation with `/en` in `tests/integration/ui/helpers/matchmaking.ts` (`loginViaSlip`, `goto`, `toHaveURL` patterns) and in the room specs that hardcode `/lobby` or `/match/`. Run `pnpm exec playwright test --project=chromium`.
-- [ ] T018 Run the checkpoint: `pnpm typecheck && pnpm lint && pnpm test:unit && pnpm test:visual`, then commit `feat(i18n): locale segment, proxy and prefixed links`.
+- [X] T015 Wrap the component tests that render room, profile or rules components with `renderWithLocale` (en) wherever they throw without a provider, under `tests/unit/components/**`.
+- [X] T016 Point the visual suite at `/en/dev/room` in `tests/integration/ui/room-fixtures.spec.ts` with the same snapshot names. `pnpm test:visual` must pass with no baseline change (SC-002).
+- [X] T017 Prefix the Playwright navigation with `/en` in `tests/integration/ui/helpers/matchmaking.ts` (`loginViaSlip`, `goto`, `toHaveURL` patterns) and in the room specs that hardcode `/lobby` or `/match/`. Run `pnpm exec playwright test --project=chromium`.
+- [X] T018 Run the checkpoint: `pnpm typecheck && pnpm lint && pnpm test:unit && pnpm test:visual`, then commit `feat(i18n): locale segment, proxy and prefixed links`.
 
 ## Phase 3: User Story 1 — Icelandic Orðusta at the plain address (P1) 🎯 MVP
 
 **Goal**: Every player-facing string is Icelandic at `/…` and English at `/en/…`, the wordmark is `orðusta` or `wottle`, and the game is unchanged.
 **Independent test**: Open `/`, then sign in, lobby, queue, match, final, profile and rules; no English string appears (SC-001).
 
-- [ ] T019 [P] [US1] Write the failing parity test in `tests/unit/lib/i18n/copyParity.spec.ts`:
+- [X] T019 [P] [US1] Write the failing parity test in `tests/unit/lib/i18n/copyParity.spec.ts`:
   - Every key of `copyEn` is present in `copyIs` with the same `typeof`.
   - Every `copyIs` function called with sample args returns a non-empty string with no `undefined` or `NaN`.
   - No English stopword appears as a whole word: `the`, `your`, `move`, `waiting`, `wins`, `points`, `you`.
-- [ ] T020 [P] [US1] Write the failing tests in `tests/unit/lib/i18n/plural.spec.ts`: `plural("is", n, …)` gives one for 1, 21 and 101, and other for 0, 2, 11 and 111; en gives one only for 1.
-- [ ] T021 [US1] Create `lib/i18n/copy/en.ts`, which moves every export of `lib/constants/copy.ts` into `copyEn` with the same names and values. Also create `lib/i18n/copy/types.ts` (`Copy`, `ErrorCode`), `lib/i18n/plural.ts` and `lib/i18n/getCopy.ts`. `useCopy()` goes in `LocaleProvider`.
-- [ ] T022 [US1] Temporarily turn `lib/constants/copy.ts` into a re-export of `copyEn` fields so callers keep compiling. Move `tests/unit/lib/constants/copy.spec.ts` to `tests/unit/lib/i18n/copyEn.spec.ts`, unchanged in its assertions.
-- [ ] T023 [US1] Make the pure room functions take `copy: Copy` as an argument instead of importing it: `lib/room/{ledgerRows,liveLines,moveState,notices}.ts`. Update their unit tests to pass `copyEn`.
-- [ ] T024 [US1] Switch every component that imports `lib/constants/copy` to `useCopy()`:
+- [X] T020 [P] [US1] Write the failing tests in `tests/unit/lib/i18n/plural.spec.ts`: `plural("is", n, …)` gives one for 1, 21 and 101, and other for 0, 2, 11 and 111; en gives one only for 1.
+- [X] T021 [US1] Create `lib/i18n/copy/en.ts`, which moves every export of `lib/constants/copy.ts` into `copyEn` with the same names and values. Also create `lib/i18n/copy/types.ts` (`Copy`, `ErrorCode`), `lib/i18n/plural.ts` and `lib/i18n/getCopy.ts`. `useCopy()` goes in `LocaleProvider`.
+- [X] T022 [US1] Temporarily turn `lib/constants/copy.ts` into a re-export of `copyEn` fields so callers keep compiling. Move `tests/unit/lib/constants/copy.spec.ts` to `tests/unit/lib/i18n/copyEn.spec.ts`, unchanged in its assertions.
+- [X] T023 [US1] Make the pure room functions take `copy: Copy` as an argument instead of importing it: `lib/room/{ledgerRows,liveLines,moveState,notices}.ts`. Update their unit tests to pass `copyEn`.
+- [X] T024 [US1] Switch every component that imports `lib/constants/copy` to `useCopy()`:
   - `components/room/*`, including `hooks/useMatchOverSlip.ts`.
   - `components/rules/ScoringTable.tsx`.
   - `app/[locale]/dev/room/RoomFixture.tsx`.
   - Then delete `lib/constants/copy.ts` and update the scope of `tests/unit/styles/acceptance-grep.test.ts`, which should include `lib/i18n/copy/en.ts`.
-- [ ] T025 [US1] Move the hardcoded strings into `copyEn`:
+- [X] T025 [US1] Move the hardcoded strings into `copyEn`:
   - `components/profile/ProfilePage.tsx`, where `Intl.DateTimeFormat` takes `htmlLang` and `wottle` becomes the wordmark.
   - `components/profile/ProfileRatingChart.tsx`.
   - `components/room/RoomMenu.tsx`.
@@ -90,18 +99,18 @@ Format: `- [ ] T### [P?] [US?] description — path`
   - `lib/room/useRematchNegotiation.ts` errors.
   - The profile route error pages.
   - `components/rules/RulesFigure.tsx`.
-- [ ] T026 [US1] Write the failing tests for server message codes in `tests/unit/app/actions/errorCodes.spec.ts`: login, startQueue, sendInvite, requestRematch, respondToRematch and previewSwap each return a `code` from `ErrorCode` on their player-visible failures.
-- [ ] T027 [US1] Add `code` to the failure results of `app/actions/{auth/login,matchmaking/startQueue,matchmaking/sendInvite,match/requestRematch,match/respondToRematch,match/previewSwap,match/claimWin,match/resignMatch}.ts` and the matching `app/api/**/route.ts` JSON. Clients render `copy.errors[code]` in `lib/room/useMatchmaking.ts`, `useRematchNegotiation.ts`, `LobbyRoomController.tsx` and `NameInput`/slip sign-in.
-- [ ] T028 [US1] Write the Icelandic translation `lib/i18n/copy/is.ts` (`satisfies Copy`) following design-system copy rules: sentence case, no exclamation marks, one idea per line, lowercase `orðusta`. Use `plural("is", …)` for counts. T019 must pass.
-- [ ] T029 [P] [US1] Split the rules prose into `components/rules/content/en.tsx`, which takes today's text from `app/[locale]/rules/page.tsx`, and `components/rules/content/is.tsx`, the Icelandic rules. The page picks by locale and its metadata comes from copy.
-- [ ] T030 [US1] Make `app/[locale]/layout.tsx` `generateMetadata` return the Icelandic title and description for is, `orðusta · orðaeinvígi` or as per the copy.
-- [ ] T031 [US1] Update `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` §8 with an Icelandic column for the fixed strings, and run `pnpm docs:check`.
-- [ ] T032 [US1] Add an Icelandic visual set to `tests/integration/ui/room-fixtures.spec.ts`. It covers the unprefixed `/dev/room` at 3 viewports for landing-slip, lobby, idle, reveal, final, over-slip, profile and rules. Generate only those baselines with `pnpm test:visual --update-snapshots --grep "@is"` and review every PNG.
-- [ ] T033 [US1] Add the Playwright spec `tests/integration/ui/locale-is.spec.ts`:
+- [X] T026 [US1] Write the failing tests for server message codes in `tests/unit/app/actions/errorCodes.spec.ts`: login, startQueue, sendInvite, requestRematch, respondToRematch and previewSwap each return a `code` from `ErrorCode` on their player-visible failures.
+- [X] T027 [US1] Add `code` to the failure results of `app/actions/{auth/login,matchmaking/startQueue,matchmaking/sendInvite,match/requestRematch,match/respondToRematch,match/previewSwap,match/claimWin,match/resignMatch}.ts` and the matching `app/api/**/route.ts` JSON. Clients render `copy.errors[code]` in `lib/room/useMatchmaking.ts`, `useRematchNegotiation.ts`, `LobbyRoomController.tsx` and `NameInput`/slip sign-in.
+- [X] T028 [US1] Write the Icelandic translation `lib/i18n/copy/is.ts` (`satisfies Copy`) following design-system copy rules: sentence case, no exclamation marks, one idea per line, lowercase `orðusta`. Use `plural("is", …)` for counts. T019 must pass.
+- [X] T029 [P] [US1] Split the rules prose into `components/rules/content/en.tsx`, which takes today's text from `app/[locale]/rules/page.tsx`, and `components/rules/content/is.tsx`, the Icelandic rules. The page picks by locale and its metadata comes from copy.
+- [X] T030 [US1] Make `app/[locale]/layout.tsx` `generateMetadata` return the Icelandic title and description for is, `orðusta · orðaeinvígi` or as per the copy.
+- [X] T031 [US1] Update `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` §8 with an Icelandic column for the fixed strings, and run `pnpm docs:check`.
+- [X] T032 [US1] Add an Icelandic visual set to `tests/integration/ui/room-fixtures.spec.ts`. It covers the unprefixed `/dev/room` at 3 viewports for landing-slip, lobby, idle, reveal, final, over-slip, profile and rules. Generate only those baselines with `pnpm test:visual --update-snapshots --grep "@is"` and review every PNG.
+- [X] T033 [US1] Add the Playwright spec `tests/integration/ui/locale-is.spec.ts`:
   - `/` has `lang="is"`, the wordmark `orðusta` and an Icelandic sign-in slip.
   - `/is/lobby` redirects to `/lobby`.
   - A signed-in lobby shows no English copyEn value.
-- [ ] T034 [US1] Run the checkpoint: typecheck, lint, unit, visual and docs:check, then commit `feat(i18n): Icelandic Orðusta at the plain address`.
+- [X] T034 [US1] Run the checkpoint: typecheck, lint, unit, visual and docs:check, then commit `feat(i18n): Icelandic Orðusta at the plain address`.
 
 ## Phase 4: User Story 2 — English wottle plays English (P2)
 

@@ -8,7 +8,7 @@ import { describe, expect, test } from "vitest";
  * P5 scope: all of `app/` and `components/`, plus the room's lib modules.
  */
 const ROOT = resolve(__dirname, "../../..");
-const SCOPE = ["app", "components", "lib/room", "lib/constants/seatColors.ts", "lib/constants/copy.ts"];
+const SCOPE = ["app", "components", "lib/room", "lib/constants/seatColors.ts", "lib/i18n/copy/en.ts"];
 /**
  * Case-insensitive (spec 045 D1): the retired font aliases were declared in
  * lower case, so `/Fraunces|JetBrains/` passed over the very tokens it existed
@@ -25,7 +25,7 @@ const ALLOWLIST: RegExp[] = [];
  * a scored letter has one owner and one colour.
  */
 const RETIRED = /\bunranked\b|no rating change|\? rules|FIRST_MATCH_RULES|firstMatchRules|resignConfirm|RESIGN_CONFIRM|claimWinLine|notice-claim-win|notice-confirm-resign|rankLabel|isMatchRated|sharedCells|seatOfCell|"shared"/;
-const RETIRED_SCOPE = ["app", "components", "lib/room", "lib/constants/copy.ts", "lib/matchmaking", "app/actions/match"];
+const RETIRED_SCOPE = ["app", "components", "lib/room", "lib/i18n/copy/en.ts", "lib/matchmaking", "app/actions/match"];
 /**
  * Spec 050: the names retired with rounds, per-player clocks, pins and
  * duplicate suppression. Matched in the room and in the server code that

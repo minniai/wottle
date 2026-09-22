@@ -69,7 +69,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent(/searching · \d+:\d\d · cancel ▸/);
     fireEvent.click(screen.getByTestId("ledger-cancel-queue"));
     expect(useRoomStore.getState().phase).toBe("lobby");
-    expect(mockReplace).toHaveBeenCalledWith("/lobby");
+    expect(mockReplace).toHaveBeenCalledWith("/en/lobby");
   });
 
   it("found: the opponent writes into the top bar, letters swap to the real board, the start counts down, then the match phase renders", async () => {
@@ -83,7 +83,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Kári");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("starts in 3");
     expect(screen.getAllByRole("gridcell")[0].querySelector("span")?.textContent).toBe("Þ");
-    expect(window.history.replaceState).toHaveBeenCalledWith(null, "", "/match/m1");
+    expect(window.history.replaceState).toHaveBeenCalledWith(null, "", "/en/match/m1");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
@@ -137,7 +137,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
       screen.getByTestId("slip-new-opponent").click();
       await vi.advanceTimersByTimeAsync(50);
     });
-    expect(mockReplace).toHaveBeenCalledWith("/matchmaking");
+    expect(mockReplace).toHaveBeenCalledWith("/en/matchmaking");
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "queue");
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
   });

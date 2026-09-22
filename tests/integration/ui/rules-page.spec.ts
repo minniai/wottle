@@ -10,7 +10,7 @@ import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "
 
 test.describe("@rules the how-to-play page", () => {
   test("renders without a session: six sections in order, three figures, the table, axe clean", async ({ page }) => {
-    await page.goto("/rules");
+    await page.goto("/en/rules");
     await expect(page.getByTestId("rules-page")).toBeVisible();
     await expect(page.getByRole("heading", { level: 2 })).toHaveText([
       "Swap two letters.",
@@ -28,14 +28,14 @@ test.describe("@rules the how-to-play page", () => {
 
   test("is a single column with no horizontal scroll at phone width", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/rules");
+    await page.goto("/en/rules");
     const scrollWidth = await page.evaluate(() => document.scrollingElement?.scrollWidth ?? 0);
     expect(scrollWidth).toBeLessThanOrEqual(390);
   });
 
   test("the sign-in slip and the lobby foot link to it in the same tab", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/rules");
+    await page.goto("/en");
+    await expect(page.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/en/rules");
     await loginViaSlip(page, generateTestUsername("rules"));
     await page.getByTestId("ledger-how-to-play").click();
     await expect(page).toHaveURL(/\/rules$/);

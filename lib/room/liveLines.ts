@@ -1,4 +1,4 @@
-import { frozenNotice, PICK_A_LETTER, PREVIEW_INSTRUCTION, PREVIEWING, picking, previewLine, SCORING, TAP_SECOND_LETTER } from "@/lib/constants/copy";
+import type { Copy } from "@/lib/i18n/copy/types";
 import type { LiveLines } from "./ledgerTypes";
 
 /** The live-row state the field interaction implies (spec 047 amendment P1). */
@@ -17,19 +17,19 @@ export type LiveState =
  * is the state, line 2 the instruction — present only while there is a next
  * step to take. Every beat has a signal, and nothing is said twice.
  */
-export function liveText(live: LiveState): LiveLines {
+export function liveText(live: LiveState, copy: Copy): LiveLines {
   switch (live.kind) {
     case "picking":
-      return { line1: picking(live.letter, live.value), line2: TAP_SECOND_LETTER };
+      return { line1: copy.picking(live.letter, live.value), line2: copy.TAP_SECOND_LETTER };
     case "previewing":
-      return { line1: live.total === null ? PREVIEWING : previewLine(live.total, live.words), line2: PREVIEW_INSTRUCTION };
+      return { line1: live.total === null ? copy.PREVIEWING : copy.previewLine(live.total, live.words), line2: copy.PREVIEW_INSTRUCTION };
     case "played":
-      return { line1: SCORING, line2: "" };
+      return { line1: copy.SCORING, line2: "" };
     case "illegal":
-      return { line1: frozenNotice(live.ownerName, live.round), line2: "" };
+      return { line1: copy.frozenNotice(live.ownerName, live.round), line2: "" };
     case "resolving":
-      return { line1: SCORING, line2: "" };
+      return { line1: copy.SCORING, line2: "" };
     default:
-      return { line1: PICK_A_LETTER, line2: "" };
+      return { line1: copy.PICK_A_LETTER, line2: "" };
   }
 }

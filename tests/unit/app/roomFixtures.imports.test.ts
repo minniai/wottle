@@ -9,7 +9,7 @@ import { describe, expect, test } from "vitest";
  * images would drift. Enforced here rather than intended.
  */
 const ROOT = resolve(__dirname, "../../..");
-const FIXTURE_DIR = join(ROOT, "app/dev/room");
+const FIXTURE_DIR = join(ROOT, "app/[locale]/dev/room");
 
 const BANNED: { pattern: RegExp; why: string }[] = [
   { pattern: /from\s+["']@?\/?lib\/supabase\//, why: "a Supabase client" },

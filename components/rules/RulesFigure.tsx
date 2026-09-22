@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { Field } from "@/components/room/Field";
 import type { CellState } from "@/components/room/FieldCell";
 import type { Seat } from "@/lib/constants/seatColors";
@@ -24,6 +25,7 @@ const pinned = (at: Coordinate): boolean => SWAP_PINS.some((p) => same(p, at));
 /** A 300px field drawn in the room's grammar, with a caption for the reader and none for AT. */
 export function RulesFigure({ kind, caption }: { kind: RulesFigureKind; caption: string }) {
   const bands = kind === "words" ? WORD_BANDS : kind === "crossing" ? CROSSING_BANDS : [];
+  const { YOU, THE_OPPONENT } = useCopy();
   return (
     <figure className="rules__figure" data-testid={`rules-figure-${kind}`}>
       <div className="rules__field" style={{ "--field-size": `${SIZE}px` } as CSSProperties} aria-hidden="true" inert>
@@ -31,7 +33,7 @@ export function RulesFigure({ kind, caption }: { kind: RulesFigureKind; caption:
           board={RULES_BOARD}
           viewerSlot="player_a"
           frozenTiles={frozenFrom(kind)}
-          ownerNames={{ player_a: "you", player_b: "the opponent" }}
+          ownerNames={{ player_a: YOU, player_b: THE_OPPONENT }}
           bands={bands}
           disabled
           cellStateFor={kind === "swap" ? (at: Coordinate, base: CellState) => (pinned(at) ? "pinned" : base) : undefined}

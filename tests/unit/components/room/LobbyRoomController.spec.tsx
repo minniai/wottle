@@ -30,7 +30,7 @@ import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { useRoomStore } from "@/lib/room/roomStore";
-import { OVER_SLIP } from "@/app/dev/room/fixtures";
+import { OVER_SLIP } from "@/app/[locale]/dev/room/fixtures";
 import type { PlayerIdentity } from "@/lib/types/match";
 
 const me: PlayerIdentity = { id: "me", username: "birna", displayName: "Birna", status: "available", lastSeenAt: "", eloRating: 1204 };
@@ -64,7 +64,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     const slip = screen.getByTestId("slip");
     expect(slip).toHaveAttribute("data-kind", "signIn");
     expect(slip).toContainElement(screen.getByTestId("player-bar-name-input"));
-    expect(screen.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/rules");
+    expect(screen.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/en/rules");
     expect(screen.getAllByRole("gridcell")).toHaveLength(100);
     expect(screen.getAllByRole("gridcell").every((c) => c.textContent === "")).toBe(true);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
   });
 
   it("signing in converts the bottom bar in place and replaces the URL with /lobby", async () => {
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/en");
     const replaceState = vi.spyOn(window.history, "replaceState").mockImplementation(() => undefined);
     render(<LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />);
     const field = screen.getByTestId("field");
@@ -101,17 +101,17 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     // The letters land after the name (spec 048 FR-014); the first is already on its way.
     await waitFor(() => expect(cell(0, 0).textContent).not.toBe(""));
     // Same page element: the URL is rewritten in place, never routed (a route swap would remount the field).
-    expect(replaceState).toHaveBeenCalledWith(null, "", "/lobby");
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/en/lobby");
     expect(mockReplace).not.toHaveBeenCalled();
     expect(screen.getByTestId("field")).toBe(field);
     replaceState.mockRestore();
   });
 
   it("signed-in render at / rewrites the URL to /lobby in place (the server never redirects /; the field must not remount)", () => {
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/en");
     const replaceState = vi.spyOn(window.history, "replaceState").mockImplementation(() => undefined);
     render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
-    expect(replaceState).toHaveBeenCalledWith(null, "", "/lobby");
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/en/lobby");
     expect(mockReplace).not.toHaveBeenCalled();
     replaceState.mockRestore();
   });
@@ -151,7 +151,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("notice-accept-challenge"));
     });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m9"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m9"));
   });
 
   it("two challengers each get a line; an answered or expired challenge leaves the ledger", async () => {
@@ -217,10 +217,10 @@ describe("LobbyRoomController (spec 044 US7)", () => {
   it("find an opponent ▸ moves to the queue route; sign out clears the viewer", async () => {
     render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
     fireEvent.click(screen.getByTestId("player-bar-action-find"));
-    expect(mockReplace).toHaveBeenCalledWith("/matchmaking");
+    expect(mockReplace).toHaveBeenCalledWith("/en/matchmaking");
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     fireEvent.click(screen.getByTestId("ledger-menu-item-signout"));
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en"));
     expect(useRoomStore.getState().viewer).toBeNull();
   });
 
@@ -235,7 +235,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await waitFor(() => expect(screen.getByTestId("ledger-notice")).toHaveTextContent("that match does not exist"));
 
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(mockReplace).not.toHaveBeenCalledWith("/match/m-broken");
+    expect(mockReplace).not.toHaveBeenCalledWith("/en/match/m-broken");
   });
 
   it("still follows the poll to a different active match", async () => {
@@ -243,7 +243,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ pending: [], match: { id: "m-other" } }) });
 
     render(<LobbyRoomController viewer={me} initialPlayers={[]} recentGames={null} />);
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m-other"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m-other"));
   });
 
   it("shows a notice when redirected from a match that does not exist", async () => {

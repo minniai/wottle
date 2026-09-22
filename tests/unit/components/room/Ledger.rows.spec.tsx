@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { copyEn } from "@/lib/i18n/copy/en";
 import { describe, expect, it, vi } from "vitest";
 
 import { Ledger } from "@/components/room/Ledger";
@@ -8,7 +9,7 @@ import type { LedgerModel } from "@/lib/room/ledgerTypes";
 
 const A = "a";
 const words = Array.from({ length: 5 }, (_, r) => ({ moveSeq: r + 1, globalSeq: r + 1, playerId: A, word: `orð${r + 1}`, totalPoints: 10 + r, coordinates: [{ x: r, y: 0 }, { x: r + 1, y: 0 }] }));
-const rows = buildLedgerRows({ movesPlayed: { you: 5, opp: 0 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "played" } });
+const rows = buildLedgerRows({ movesPlayed: { you: 5, opp: 0 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "played" } }, copyEn);
 const model: LedgerModel = { caption: "move 6 of 10", rows, territory: { you: 10, opp: 5, free: 85 }, hint: "tap a second letter" };
 
 describe("Ledger rows (design system §5.4)", () => {

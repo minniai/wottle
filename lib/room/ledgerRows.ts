@@ -1,4 +1,4 @@
-import { drawLine, finalContext, forcedDetail, incompleteDetail, marginDetail, NEITHER_FINISHED, RATING_PENDING, ratingSubline, verdictDetail, verdictLine } from "@/lib/constants/copy";
+import type { Copy } from "@/lib/i18n/copy/types";
 import { liveText, type LiveState } from "./liveLines";
 import { liveLinesFor, type MoveState } from "./moveState";
 
@@ -71,7 +71,7 @@ function toCell(words: AccumulatedWord[]): SeatCell {
  * cell; an unplayed move is empty. The live row is the viewer's next open
  * move; during the hold it is the move just scored.
  */
-export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
+export function buildLedgerRows(input: BuildRowsInput, copy: Copy): LedgerRow[] {
   const limit = input.moveLimit ?? TOTAL_MOVES;
   const seatOf = (playerId: string): Seat =>
     seatForSlot(input.viewerSlot, playerId === input.playerAId ? "player_a" : "player_b");
@@ -94,7 +94,7 @@ export function buildLedgerRows(input: BuildRowsInput): LedgerRow[] {
   };
   const holding = input.holdMove != null;
   const liveMove = holding ? null : Math.min(input.movesPlayed.you + 1, limit);
-  const lines = input.moveState ? liveLinesFor(input.moveState, input.live) : liveText(input.live);
+  const lines = input.moveState ? liveLinesFor(input.moveState, input.live, copy) : liveText(input.live, copy);
   return emptyRows(limit).map((row) => {
     const cells = { you: cellFor("you", row.move), opp: cellFor("opp", row.move) };
     if (!input.completed && holding && row.move === input.holdMove) return { ...row, ...cells, status: "settled", live: lines };
@@ -129,14 +129,14 @@ export interface BuildLedgerInput extends BuildRowsInput {
  * move of the viewer's (the bottom bar counts those); the final caption is set
  * by the caller.
  */
-export function buildMatchLedger(input: BuildLedgerInput): LedgerModel {
+export function buildMatchLedger(input: BuildLedgerInput, copy: Copy): LedgerModel {
   return {
     caption: "",
     clock: input.clockMs === undefined ? undefined : formatClock(input.clockMs),
     clockPhase: input.clockMs === undefined ? undefined : clockPhase(input.clockMs),
     clockFraction: input.clockMs === undefined ? undefined : laneFraction(input.clockMs, input.clockLengthMs),
     completed: input.completed,
-    rows: buildLedgerRows(input),
+    rows: buildLedgerRows(input, copy),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),
     hint: input.hint ?? "",
   };
@@ -178,7 +178,7 @@ const FORCED: Record<string, "forfeit" | "disconnect"> = { forfeit: "forfeit", d
  * 0:00 the detail says so first: `Kári played 8 of 10 · by 12 points`,
  * `neither finished · by 12 points`.
  */
-export function buildVerdict(v: VerdictInput): Verdict {
+export function buildVerdict(v: VerdictInput, copy: Copy): Verdict {
   const forced = v.endedReason ? FORCED[v.endedReason] : undefined;
   // A forced end names its winner; otherwise the totals decide (rules §2a, 2026-09-21),
   // with the server's recorded winner breaking a tie on frozen tiles.
@@ -191,23 +191,27 @@ export function buildVerdict(v: VerdictInput): Verdict {
   const loserName = youWin ? v.opponentName : v.viewerName;
   return {
     winnerSeat,
-    scoreLine: winnerSeat === null ? drawLine(v.viewerScore, v.opponentScore) : verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
-    detailLine: forced && winnerSeat !== null ? forcedDetail(loserName, forced) : naturalDetail(v, winnerSeat, hi - lo, [wordsHi, wordsLo, terrHi, terrLo]),
+    scoreLine: winnerSeat === null ? copy.drawLine(v.viewerScore, v.opponentScore) : copy.verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
+    detailLine: forced && winnerSeat !== null ? copy.forcedDetail(loserName, forced) : naturalDetail(v, { winnerSeat, margin: hi - lo, counts: [wordsHi, wordsLo, terrHi, terrLo] }, copy),
   };
 }
 
 /** Who was short of ten comes first (their unplayed moves cost them points), then the margin. */
-function naturalDetail(v: VerdictInput, winnerSeat: Seat | null, margin: number, [wordsHi, wordsLo, terrHi, terrLo]: number[]): string {
+function naturalDetail(
+  v: VerdictInput,
+  { winnerSeat, margin, counts: [wordsHi, wordsLo, terrHi, terrLo] }: { winnerSeat: Seat | null; margin: number; counts: number[] },
+  copy: Copy,
+): string {
   const short =
     v.endedReason === "both_incomplete"
-      ? NEITHER_FINISHED
+      ? copy.NEITHER_FINISHED
       : v.endedReason === "incomplete"
         ? v.viewerMoves < v.opponentMoves
-          ? incompleteDetail(v.viewerName, v.viewerMoves)
-          : incompleteDetail(v.opponentName, v.opponentMoves)
+          ? copy.incompleteDetail(v.viewerName, v.viewerMoves)
+          : copy.incompleteDetail(v.opponentName, v.opponentMoves)
         : null;
-  if (!short) return verdictDetail(margin, wordsHi, wordsLo, terrHi, terrLo);
-  return winnerSeat === null ? short : `${short} · ${marginDetail(margin)}`;
+  if (!short) return copy.verdictDetail(margin, wordsHi, wordsLo, terrHi, terrLo);
+  return winnerSeat === null ? short : `${short} · ${copy.marginDetail(margin)}`;
 }
 
 export interface RatingRow {
@@ -218,13 +222,13 @@ export interface RatingRow {
 }
 
 /** `1191 → 1203 · +12 · wins` for the final bars (design system §5.3); `rating pending` until the row is written. */
-export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSeatIsThis: boolean): string {
+export function ratingLine(rows: RatingRow[] | null, playerId: string, winnerSeatIsThis: boolean, copy: Copy): string {
   const row = rows?.find((r) => r.playerId === playerId);
-  if (!row) return RATING_PENDING;
-  return ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);
+  if (!row) return copy.RATING_PENDING;
+  return copy.ratingSubline(row.ratingBefore, row.ratingAfter, row.ratingDelta, winnerSeatIsThis);
 }
 
 /** `final · 4:52` — how long the match ran. */
-export function finalCaption(durationMs: number): string {
-  return finalContext(formatClock(Math.max(0, durationMs)));
+export function finalCaption(durationMs: number, copy: Copy): string {
+  return copy.finalContext(formatClock(Math.max(0, durationMs)));
 }

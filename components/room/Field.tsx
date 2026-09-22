@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { letterValue } from "@/lib/room/liveState";
@@ -45,6 +46,7 @@ export interface FieldProps {
  * pick/preview/commit reducer drives it from P3 through `cellStateFor`.
  */
 export function Field(props: FieldProps) {
+  const { THE_FIELD } = useCopy();
   const {
     board,
     frozenTiles = {},
@@ -151,7 +153,7 @@ export function Field(props: FieldProps) {
       ref={ref}
       className="field"
       role="grid"
-      aria-label="the field"
+      aria-label={THE_FIELD}
       data-testid="field"
       data-disabled={disabled || undefined}
       data-turn={turnFrame ?? undefined}

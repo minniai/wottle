@@ -11,6 +11,8 @@ import {
   performUsernameLogin,
   persistLobbySession,
 } from "@/lib/matchmaking/profile";
+import type { ErrorCode } from "@/lib/i18n/copy/types";
+import { loginErrorCode } from "@/lib/i18n/errorCodes";
 import {
   RateLimitExceededError,
   assertWithinRateLimit,
@@ -19,6 +21,8 @@ import {
 
 export interface LoginActionState {
   status: "idle" | "success" | "error";
+  /** What the room shows, in the page's language (spec 060); `message` stays English for logs and tests. */
+  code?: ErrorCode;
   message?: string;
   player?: PlayerIdentity;
   sessionToken?: string;
@@ -56,10 +60,10 @@ export async function loginAction(
   } catch (error) {
     console.error(`[LOGIN_DEBUG] Error during login:`, error);
 
+    const code = loginErrorCode(error);
     if (error instanceof RateLimitExceededError || error instanceof LoginValidationError || error instanceof Error) {
-      return { status: "error", message: error.message };
-    } else {
-      return { status: "error", message: "Unable to log in right now. Please try again." };
-    };
+      return { status: "error", code, message: error.message };
+    }
+    return { status: "error", code, message: "Unable to log in right now. Please try again." };
   }
 }

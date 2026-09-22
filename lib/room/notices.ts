@@ -1,18 +1,18 @@
-import { challengeDeclined, challengeNotice, challengeSent, challengeTaken, challengeUnanswered, pickClearedMoved, rematchRequest } from "@/lib/constants/copy";
+import type { Copy } from "@/lib/i18n/copy/types";
 import type { OutgoingChallenge } from "./ledgerTypes";
 import type { Notice } from "./ledgerTypes";
 
 /** Text for a notice line (design system §8). Notices with actions render their own controls. */
-export function noticeText(notice: Notice): string {
+export function noticeText(notice: Notice, copy: Copy): string {
   switch (notice.kind) {
     case "pickCleared":
-      return pickClearedMoved(notice.byName);
+      return copy.pickClearedMoved(notice.byName);
     case "rematchRequest":
-      return rematchRequest(notice.requesterName);
+      return copy.rematchRequest(notice.requesterName);
     case "challenge":
-      return challengeNotice(notice.fromName);
+      return copy.challengeNotice(notice.fromName);
     case "challengeSent":
-      return challengeSent(notice.toName);
+      return copy.challengeSent(notice.toName);
     case "text":
       return notice.text;
   }
@@ -60,12 +60,12 @@ export function syncChallenges(notices: Notice[], pending: Challenge[]): Notice[
 }
 
 /** The line that replaces `challenge sent · waiting for Kári` once it is answered; accepted opens the match instead. */
-export function challengeOutcome(outgoing: OutgoingChallenge): string | null {
+export function challengeOutcome(outgoing: OutgoingChallenge, copy: Copy): string | null {
   switch (outgoing.status) {
     case "expired":
-      return challengeUnanswered(outgoing.recipientName);
+      return copy.challengeUnanswered(outgoing.recipientName);
     case "declined":
-      return outgoing.recipientInMatch ? challengeTaken(outgoing.recipientName) : challengeDeclined(outgoing.recipientName);
+      return outgoing.recipientInMatch ? copy.challengeTaken(outgoing.recipientName) : copy.challengeDeclined(outgoing.recipientName);
     default:
       return null;
   }
