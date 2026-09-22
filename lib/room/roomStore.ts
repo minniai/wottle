@@ -33,7 +33,7 @@ export interface RoomState {
   connection: ConnectionMode;
   /** The one overlay (spec 048 §5.9); precedence enforced by `setSlip`. */
   slip: SlipState | null;
-  /** Final phase: `review the field ▸` hides the match-over slip; `result ▸` restores it. */
+  /** Final phase: `review the match ▸` hides the match-over slip; `result ▸` restores it. */
   slipDismissed: boolean;
   /** The viewer's move (its per-player sequence) held after its reveal before the next opens (spec 050 FR-013). */
   holdMove: number | null;
