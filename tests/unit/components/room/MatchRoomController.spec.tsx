@@ -124,14 +124,14 @@ describe("MatchRoomController (spec 050)", () => {
     await screen.findByTestId("slip-rematch");
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     fireEvent.click(screen.getByTestId("ledger-menu-item-profile"));
-    expect(mockPush).toHaveBeenCalledWith("/profile");
+    expect(mockPush).toHaveBeenCalledWith("/en/profile");
     expect(screen.queryByTestId("slip")).toBeNull();
   });
 
   it("links both players to their own profiles", () => {
     renderController();
-    expect(screen.getByRole("link", { name: "Alice" })).toHaveAttribute("href", "/profile/alice");
-    expect(screen.getByRole("link", { name: "Bob" })).toHaveAttribute("href", "/profile/bob");
+    expect(screen.getByRole("link", { name: "Alice, profile opens in a new tab" })).toHaveAttribute("href", "/en/profile/alice");
+    expect(screen.getByRole("link", { name: "Bob, profile opens in a new tab" })).toHaveAttribute("href", "/en/profile/bob");
   });
 
   // Spec 049: the report is a warn event in every environment, once per match.

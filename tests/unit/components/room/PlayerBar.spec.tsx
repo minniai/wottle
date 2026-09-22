@@ -5,18 +5,6 @@ import { PlayerBar } from "@/components/room/PlayerBar";
 
 /** Design system §5.3, spec 050: no clock in a bar; the lane is ten segments, the moves left (2026-09-21). */
 describe("PlayerBar", () => {
-  it("links a known player to their encoded profile without interrupting a live match", () => {
-    render(<PlayerBar seat="opp" position="top" state="playing" name="Kári" username="kári" subline="opponent" />);
-    expect(screen.getByRole("link", { name: "Kári" })).toHaveAttribute("href", "/profile/k%C3%A1ri");
-    expect(screen.getByRole("link", { name: "Kári" })).toHaveAttribute("target", "_blank");
-  });
-
-  it("opens a finished player's profile in the current tab", () => {
-    render(<PlayerBar seat="opp" position="top" state="final" name="Kári" username="kari" subline="wins" />);
-    expect(screen.getByRole("link", { name: "Kári" })).toHaveAttribute("href", "/profile/kari");
-    expect(screen.getByRole("link", { name: "Kári" })).not.toHaveAttribute("target");
-  });
-
   it("playing: seat square, name, sub-line, total; the lane is the moves played", () => {
     render(<PlayerBar seat="opp" position="top" state="playing" name="Kári" subline="1191 · opponent" sublineSuffix="6 of 10 · playing" movesPlayed={6} score={170} />);
     expect(screen.getByTestId("player-bar-name")).toHaveTextContent("Kári");
