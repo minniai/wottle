@@ -2,34 +2,9 @@
 
 import { useId, useRef, type ReactNode } from "react";
 
+import { useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
-import {
-  ACCEPT,
-  DECLINE,
-  END_THE_MATCH,
-  endEarlyLabel,
-  DRAW,
-  KEEP_PLAYING,
-  KEEP_WAITING,
-  LOBBY,
-  matchOverLabel,
-  NEW_OPPONENT,
-  NEW_HERE_HOW_TO_PLAY,
-  NO_ACCOUNT_NEEDED,
-  REMATCH,
-  rematchRequest,
-  resignConsequence,
-  resignLabel,
-  RESIGN_QUESTION,
-  REVIEW_FIELD,
-  TAGLINE,
-  waitingForRematch,
-  winsHeadline,
-  WORDMARK,
-  YES_RESIGN,
-  isGone,
-  isGoneFact,
-} from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import type { SlipState } from "@/lib/room/slip";
@@ -73,6 +48,8 @@ function Secondary({ label, action, testId, onAction }: { label: string; action:
 }
 
 function SignInBody({ onSignedIn }: { onSignedIn?: (player: PlayerIdentity) => void }) {
+  const { NEW_HERE_HOW_TO_PLAY, NO_ACCOUNT_NEEDED, TAGLINE, WORDMARK } = useCopy();
+  const to = useLocalePath();
   return (
     <>
       <span className="slip__wordmark">{WORDMARK}</span>
@@ -80,7 +57,7 @@ function SignInBody({ onSignedIn }: { onSignedIn?: (player: PlayerIdentity) => v
       <div className="slip__rule" />
       <NameInput onSignedIn={onSignedIn ?? (() => undefined)} />
       <span className="slip__label">{NO_ACCOUNT_NEEDED}</span>
-      <a className="action-secondary" href="/rules" data-testid="slip-how-to-play">
+      <a className="action-secondary" href={to("/rules")} data-testid="slip-how-to-play">
         {NEW_HERE_HOW_TO_PLAY}
       </a>
     </>
@@ -88,6 +65,7 @@ function SignInBody({ onSignedIn }: { onSignedIn?: (player: PlayerIdentity) => v
 }
 
 function ResignBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "resign" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
+  const { KEEP_PLAYING, resignConsequence, resignLabel, RESIGN_QUESTION, YES_RESIGN } = useCopy();
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
@@ -106,6 +84,7 @@ function ResignBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, {
 
 /** Spec 050 FR-012: offered only to a player with all their moves whose opponent has been gone for the window. */
 function EndEarlyBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "endEarly" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
+  const { END_THE_MATCH, endEarlyLabel, KEEP_WAITING, isGone, isGoneFact } = useCopy();
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
@@ -123,6 +102,7 @@ function EndEarlyBody({ slip, onAction, headlineId }: { slip: Extract<SlipState,
 }
 
 function MatchOverActions({ slip, onAction }: { slip: Extract<SlipState, { kind: "matchOver" }>; onAction: (a: LedgerAction) => void }) {
+  const { ACCEPT, DECLINE, LOBBY, NEW_OPPONENT, REMATCH, rematchRequest, REVIEW_FIELD, waitingForRematch } = useCopy();
   if (slip.readOnly) return <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} />;
   if (slip.rematch === "incoming") {
     return (
@@ -149,6 +129,7 @@ function MatchOverActions({ slip, onAction }: { slip: Extract<SlipState, { kind:
 }
 
 function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "matchOver" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
+  const { DRAW, matchOverLabel, winsHeadline, points } = useCopy();
   const winner = slip.verdict.winnerSeat;
   const headline = winner === null ? DRAW : winsHeadline(winner === "you" ? slip.viewerName : slip.opponentName);
   const first = winner === "opp" ? "opp" : "you";
@@ -159,7 +140,7 @@ function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState
         <span className="slip__label">{matchOverLabel(slip.durationMmSs)}</span>
         <h2 id={headlineId} className="slip__headline" data-seat={winner ?? undefined}>{headline}</h2>
         <span className="slip__score" data-testid="slip-score">
-          <span data-seat={first}>{slip.scores[first]}</span> – <span data-seat={second}>{slip.scores[second]}</span>
+          <span data-seat={first}>{points(slip.scores[first])}</span> – <span data-seat={second}>{points(slip.scores[second])}</span>
         </span>
         <span className="slip__label">{slip.verdict.detailLine}</span>
       </div>
@@ -198,6 +179,7 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedI
  * headline is announced once, and Escape is the kind's cancel.
  */
 export function Slip({ slip, onAction, onSignedIn }: SlipProps) {
+  const { WORDMARK } = useCopy();
   const ref = useRef<HTMLDivElement | null>(null);
   const headlineId = useId();
   const cancel = cancelActionFor(slip);

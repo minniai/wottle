@@ -7,6 +7,7 @@ import {
   startAutoQueue,
   type QueueResult,
 } from "@/lib/matchmaking/inviteService";
+import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export interface QueueActionState {
@@ -16,7 +17,10 @@ export interface QueueActionState {
   message?: string;
 }
 
-export async function startQueueAction(): Promise<QueueActionState> {
+/** Spec 060: the queue is the lobby's language; a player is paired only within it. */
+export async function startQueueAction(input: { language?: string } = {}): Promise<QueueActionState> {
+  const parsed = playableLanguageSchema.safeParse(input.language);
+  if (!parsed.success) return { status: "error", message: "Unsupported language." };
   const session = await readLobbySession();
   if (!session) {
     return {
@@ -29,6 +33,7 @@ export async function startQueueAction(): Promise<QueueActionState> {
     const supabase = getServiceRoleClient();
     const result = await startAutoQueue(supabase, {
       playerId: session.player.id,
+      language: parsed.data,
     });
     return result;
   } catch (error) {

@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { CANCEL, FINDING_OPPONENT, OPPONENT, QUEUE_CONTEXT, startsIn, searchingSubline, YOU } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, LedgerModel } from "@/lib/room/ledgerTypes";
 import { EMPTY_TERRITORY, emptyRows } from "@/lib/room/ledgerTypes";
 import type { PlayerIdentity } from "@/lib/types/match";
@@ -38,12 +38,13 @@ export interface QueueRoomViewProps {
  * (spec 045 FR-003).
  */
 export function QueueRoomView(props: QueueRoomViewProps) {
+  const { CANCEL, FINDING_OPPONENT, OPPONENT, QUEUE_CONTEXT, startsIn, searchingSubline, YOU, UNRATED } = useCopy();
   const { viewer, opponent, found, elapsed, live, hint, onAction, children } = props;
   const isPhone = useIsPhone();
 
   const model: LedgerModel = useMemo(
     () => ({ caption: QUEUE_CONTEXT, rows: emptyRows(), territory: EMPTY_TERRITORY, hint, live }),
-    [hint, live],
+    [hint, live, QUEUE_CONTEXT],
   );
 
   const cancelButton = (testId: string, className: string) => (

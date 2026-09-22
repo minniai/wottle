@@ -11,7 +11,8 @@ import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "
 import { submitSwap } from "./helpers/swaps";
 
 const live = (p: Page) => p.getByTestId("ledger-live-row");
-const rail = (p: Page) => p.getByTestId("move-rail");
+// The viewer's moves left, on the bottom bar's lane (2026-09-21: the ledger's rail is gone).
+const rail = (p: Page) => p.getByTestId("player-bar-bottom").getByTestId("player-bar-lane");
 
 test.describe("Move flow", () => {
   test("ten moves each at their own pace, then the final room @two-player-playtest", async ({ browser }) => {
@@ -37,13 +38,13 @@ test.describe("Move flow", () => {
         await expect(p.getByTestId("field")).toHaveAttribute("data-turn", "you");
         await expect(p.getByTestId("player-bar-bottom")).toContainText("move 1 of 10");
         await expect(p.getByTestId("match-clock")).toHaveText(/\d:\d\d/);
-        await expect(rail(p)).toHaveAttribute("aria-label", "move 1 of 10");
+        await expect(rail(p)).toHaveAttribute("aria-valuenow", "10");
       }
 
       // A plays three in a row; B never has to wait and keeps move 1.
       for (let n = 1; n <= 3; n += 1) {
         await submitSwap(pageA);
-        await expect(rail(pageA)).toHaveAttribute("aria-label", `move ${n + 1} of 10`, { timeout: 20_000 });
+        await expect(rail(pageA)).toHaveAttribute("aria-valuenow", `${10 - n}`, { timeout: 20_000 });
       }
       await expect(live(pageB)).toContainText("move 1 · your move");
       await expect(pageB.getByTestId("field")).toHaveAttribute("data-turn", "you");
@@ -65,7 +66,7 @@ test.describe("Move flow", () => {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 45_000 });
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 20_000 });
         await expect(p.getByTestId("slip")).toContainText(/wins|draw/);
-        await expect(rail(p).locator('[data-state="past"]')).toHaveCount(10);
+        await expect(rail(p)).toHaveAttribute("aria-valuenow", "0");
         await expect(p.getByTestId("ledger-caption")).toContainText(/final · \d+:\d\d/);
         await expect(p.getByTestId("field")).toBeVisible();
       }

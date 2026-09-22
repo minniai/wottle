@@ -1,5 +1,6 @@
 import type { WordBand } from "@/lib/room/bandGeometry";
 import type { Coordinate } from "@/lib/types/board";
+import type { Language } from "@/lib/types/game-config";
 
 /**
  * The rules page's three figures (spec 048 US5): literal boards and bands in the
@@ -42,5 +43,45 @@ export const CROSSING_BANDS: WordBand[] = [
   ...WORD_BANDS,
   { id: "lek", seat: "you", cells: LEK.slice(1), wordCells: LEK, direction: "ltr", strength: "settled", move: 3, word: "LEK" },
 ];
+
+/**
+ * The same three figures for an English match (spec 060): WORD across, GAME
+ * down, MEN crossing GAME at the M — the geometry of the Icelandic set.
+ */
+export const RULES_BOARD_EN: string[][] = [
+  ["T", "A", "K", "R", "E", "I", "S", "T", "O", "L"],
+  ["G", "E", "F", "U", "N", "D", "I", "R", "O", "M"],
+  ["S", "K", "W", "O", "R", "D", "T", "Y", "U", "N"],
+  ["A", "L", "N", "I", "R", "O", "S", "K", "U", "M"],
+  ["E", "Y", "D", "I", "H", "V", "A", "G", "T", "L"],
+  ["R", "U", "N", "T", "A", "K", "S", "A", "D", "O"],
+  ["O", "F", "L", "U", "G", "R", "A", "M", "E", "N"],
+  ["M", "Y", "S", "J", "A", "D", "B", "E", "R", "I"],
+  ["I", "S", "K", "O", "P", "U", "N", "A", "H", "O"],
+  ["T", "R", "A", "U", "D", "L", "E", "G", "I", "S"],
+];
+
+const WORD_BANDS_EN: WordBand[] = [
+  { id: "word", seat: "you", cells: BORD, wordCells: BORD, direction: "ltr", strength: "settled", move: 1, word: "WORD" },
+  { id: "game", seat: "opp", cells: GILT, wordCells: GILT, direction: "ttb", strength: "settled", move: 1, word: "GAME" },
+];
+
+const CROSSING_BANDS_EN: WordBand[] = [
+  ...WORD_BANDS_EN,
+  { id: "men", seat: "you", cells: LEK.slice(1), wordCells: LEK, direction: "ltr", strength: "settled", move: 3, word: "MEN" },
+];
+
+export interface RulesFigureSet {
+  board: string[][];
+  wordBands: WordBand[];
+  crossingBands: WordBand[];
+}
+
+/** The figures in the language the page plays (spec 060). */
+export function rulesFiguresFor(language: Language): RulesFigureSet {
+  return language === "en"
+    ? { board: RULES_BOARD_EN, wordBands: WORD_BANDS_EN, crossingBands: CROSSING_BANDS_EN }
+    : { board: RULES_BOARD, wordBands: WORD_BANDS, crossingBands: CROSSING_BANDS };
+}
 
 export type RulesFigureKind = "swap" | "words" | "crossing";

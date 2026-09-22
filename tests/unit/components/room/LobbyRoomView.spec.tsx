@@ -4,8 +4,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { LobbyRoomView } from "@/components/room/LobbyRoomView";
-import { NO_OPPONENT, FIND_OPPONENT } from "@/lib/constants/copy";
+import { copyEn } from "@/lib/i18n/copy/en";
 import type { PlayerIdentity } from "@/lib/types/match";
+
+const { NO_OPPONENT, FIND_OPPONENT } = copyEn;
 
 const me: PlayerIdentity = { id: "me", username: "birna", displayName: "Birna", status: "available", lastSeenAt: "", eloRating: 1204 };
 const kari: PlayerIdentity = { id: "k", username: "kari", displayName: "Kári", status: "available", lastSeenAt: "", eloRating: 1191 };

@@ -13,6 +13,7 @@ vi.mock("@/lib/game-engine/dictionary", () => ({
 vi.mock("@/lib/observability/log", () => ({ logPlaytestInfo: vi.fn(), logPlaytestError: vi.fn() }));
 
 import { previewSwap } from "@/app/actions/match/previewSwap";
+import { loadDictionary } from "@/lib/game-engine/dictionary";
 import { logPlaytestInfo } from "@/lib/observability/log";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -30,7 +31,7 @@ function hesturBoard(): string[][] {
   return grid;
 }
 
-function makeSupabaseMock(opts: { frozen?: Record<string, unknown>; state?: string; board?: string[][] } = {}) {
+function makeSupabaseMock(opts: { frozen?: Record<string, unknown>; state?: string; board?: string[][]; language?: string } = {}) {
   const writes = vi.fn();
   // Spec 050: the live board is on the match row, as the last resolved move left it.
   const match = {
@@ -38,6 +39,7 @@ function makeSupabaseMock(opts: { frozen?: Record<string, unknown>; state?: stri
     player_a_id: PLAYER_A,
     player_b_id: PLAYER_B,
     frozen_tiles: opts.frozen ?? {},
+    language: opts.language ?? "is",
     board: (opts.board ?? hesturBoard()).map((r) => r.map((c) => c.toLowerCase())),
   };
   return {
@@ -144,5 +146,18 @@ describe("previewSwap", () => {
     vi.mocked(readLobbySession).mockResolvedValue({ player: { id: PLAYER_A } } as never);
     vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock({ state: "completed" }) as never);
     expect((await previewSwap({ kind: "match", matchId: MATCH_ID, from: { x: 0, y: 0 }, to: { x: 5, y: 0 } })).status).toBe("rejected");
+  });
+
+  it("prices in the match's language, and a warm-up in the lobby's (spec 060 FR-014)", async () => {
+    vi.mocked(readLobbySession).mockResolvedValue({ player: { id: PLAYER_A } } as never);
+    vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock({ language: "en" }) as never);
+    vi.mocked(loadDictionary).mockClear();
+    await previewSwap({ kind: "match", matchId: MATCH_ID, from: { x: 0, y: 0 }, to: { x: 5, y: 0 } });
+    expect(loadDictionary).toHaveBeenLastCalledWith("en");
+
+    await previewSwap({ kind: "warmup", board: hesturBoard(), from: { x: 0, y: 0 }, to: { x: 5, y: 0 }, language: "en" });
+    expect(loadDictionary).toHaveBeenLastCalledWith("en");
+    await previewSwap({ kind: "warmup", board: hesturBoard(), from: { x: 0, y: 0 }, to: { x: 5, y: 0 } });
+    expect(loadDictionary).toHaveBeenLastCalledWith("is");
   });
 });

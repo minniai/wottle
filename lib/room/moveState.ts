@@ -1,20 +1,4 @@
-import {
-  DONE_PLAYED,
-  DONE_SUFFIX,
-  doneFact,
-  frozenJustNow,
-  movedJustNow,
-  moveOfSuffix,
-  moveScored,
-  moveScoring,
-  moveScoringSuffix,
-  moveYourMove,
-  oppProgress,
-  PICK_A_LETTER,
-  scoredDelta,
-  startsIn,
-  TIME_SCORING,
-} from "@/lib/constants/copy";
+import type { Copy } from "@/lib/i18n/copy/types";
 import type { Seat } from "@/lib/constants/seatColors";
 import type { MatchState, MoveRejectionReason, PlayerMatchFacts, PlayerSlot } from "@/lib/types/match";
 
@@ -78,29 +62,29 @@ export function deriveMoveState(input: DeriveMoveStateInput): MoveState {
 }
 
 /** The field's instruction while a move is the viewer's to make. */
-function instructionFor(field: LiveState): string {
-  if (field.kind === "idle") return PICK_A_LETTER;
-  const { line1, line2 } = liveText(field);
+function instructionFor(field: LiveState, copy: Copy): string {
+  if (field.kind === "idle") return copy.PICK_A_LETTER;
+  const { line1, line2 } = liveText(field, copy);
   return line2 ? `${line1} · ${line2}` : line1;
 }
 
 /** Line 1 is the move's beat in the board face, line 2 the instruction or the fact for that beat. */
-export function liveLinesFor(state: MoveState, field: LiveState): LiveLines {
+export function liveLinesFor(state: MoveState, field: LiveState, copy: Copy): LiveLines {
   switch (state.kind) {
     case "starting":
-      return { line1: startsIn(state.seconds), line2: "" };
+      return { line1: copy.startsIn(state.seconds), line2: "" };
     case "yourMove":
-      return { line1: moveYourMove(state.move), line2: instructionFor(field) };
+      return { line1: copy.moveYourMove(state.move), line2: instructionFor(field, copy) };
     case "rejected":
-      return { line1: moveYourMove(state.move), line2: state.reason === "frozen" ? frozenJustNow(state.opponentName) : movedJustNow(state.opponentName) };
+      return { line1: copy.moveYourMove(state.move), line2: state.reason === "frozen" ? copy.frozenJustNow(state.opponentName) : copy.movedJustNow(state.opponentName) };
     case "scoring":
-      return { line1: moveScoring(state.move), line2: "" };
+      return { line1: copy.moveScoring(state.move), line2: "" };
     case "scored":
-      return { line1: moveScored(state.move), line2: scoredDelta(state.delta, state.next) };
+      return { line1: copy.moveScored(state.move), line2: copy.scoredDelta(state.delta, state.next) };
     case "done":
-      return { line1: DONE_PLAYED, line2: doneFact(state.opponentName, state.opponentMoves, state.clockMmSs) };
+      return { line1: copy.DONE_PLAYED, line2: copy.doneFact(state.opponentName, state.opponentMoves, state.clockMmSs) };
     case "timeUp":
-      return { line1: TIME_SCORING, line2: "" };
+      return { line1: copy.TIME_SCORING, line2: "" };
   }
 }
 
@@ -113,16 +97,16 @@ export interface BarCounts {
 }
 
 /** The suffix a bar's sub-line carries for this beat, or null when the clock is spent. */
-export function barSuffixFor(state: MoveState, seat: Seat, counts: BarCounts): string | null {
+export function barSuffixFor(state: MoveState, seat: Seat, counts: BarCounts, copy: Copy): string | null {
   if (state.kind === "timeUp") return null;
   if (seat === "you") {
-    if (state.kind === "done") return DONE_SUFFIX;
-    if (state.kind === "scoring") return moveScoringSuffix(state.move);
-    if (state.kind === "starting") return moveOfSuffix(counts.you + 1);
-    return moveOfSuffix(state.move);
+    if (state.kind === "done") return copy.DONE_SUFFIX;
+    if (state.kind === "scoring") return copy.moveScoringSuffix(state.move);
+    if (state.kind === "starting") return copy.moveOfSuffix(counts.you + 1);
+    return copy.moveOfSuffix(state.move);
   }
-  if (counts.opp >= counts.limit) return DONE_SUFFIX;
-  return oppProgress(counts.opp, counts.oppScoring ? "scoring" : "playing");
+  if (counts.opp >= counts.limit) return copy.DONE_SUFFIX;
+  return copy.oppProgress(counts.opp, counts.oppScoring ? "scoring" : "playing");
 }
 
 /** The viewer's suffix is in the seat colour only while a move is theirs to make. */

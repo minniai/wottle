@@ -42,6 +42,7 @@ export function priceSwap(input: PriceSwapInput): SwapPrice {
     input.frozenTiles,
     input.dictionary,
     input.playerSlot,
+    input.letterValues ?? LETTER_SCORING_VALUES_IS,
   );
   const breakdowns = scoreBoardWords(
     accepted,

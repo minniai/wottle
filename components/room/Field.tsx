@@ -1,5 +1,7 @@
 "use client";
 
+import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
+import type { Language } from "@/lib/types/game-config";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { letterValue } from "@/lib/room/liveState";
@@ -12,6 +14,8 @@ import { FieldCell, type CellState } from "./FieldCell";
 
 export interface FieldProps {
   board: string[][];
+  /** Whose letter values the gutters show (spec 060); the page's game language unless a match says otherwise. */
+  language?: Language;
   frozenTiles?: FrozenTileMap;
   viewerSlot: PlayerSlot | null;
   /** Names by slot for the frozen-cell label (`frozen by Kári`). */
@@ -45,8 +49,11 @@ export interface FieldProps {
  * pick/preview/commit reducer drives it from P3 through `cellStateFor`.
  */
 export function Field(props: FieldProps) {
+  const { THE_FIELD } = useCopy();
+  const pageLanguage = useLocale().language;
   const {
     board,
+    language = pageLanguage,
     frozenTiles = {},
     viewerSlot,
     ownerNames = {},
@@ -151,7 +158,7 @@ export function Field(props: FieldProps) {
       ref={ref}
       className="field"
       role="grid"
-      aria-label="the field"
+      aria-label={THE_FIELD}
       data-testid="field"
       data-disabled={disabled || undefined}
       data-turn={turnFrame ?? undefined}
@@ -180,7 +187,7 @@ export function Field(props: FieldProps) {
                 x={x}
                 y={y}
                 letter={landed ? letter : ""}
-                value={landed ? letterValue(letter) : 0}
+                value={landed ? letterValue(letter, language) : 0}
                 landing={landedCount !== null && index === landedCount - 1}
                 state={state}
                 seat={seat}

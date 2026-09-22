@@ -1,6 +1,9 @@
+import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
 import { NextResponse } from "next/server";
 
 import {
+  expireStaleInvites,
+  getOutgoingInvite,
   listPendingInvites,
   sendDirectInvite,
 } from "@/lib/matchmaking/inviteService";
@@ -41,10 +44,15 @@ export async function POST(request: Request) {
 
   try {
     const supabase = getServiceRoleClient();
+    const language = playableLanguageSchema.safeParse(payload?.language);
+    if (!language.success) {
+      return NextResponse.json({ error: "Unsupported language." }, { status: 400, headers: NO_CACHE_HEADERS });
+    }
     const result = await sendDirectInvite(supabase, {
       senderId: session.player.id,
       recipientId,
       ttlSeconds: TTL_SECONDS,
+      language: language.data,
     });
     return NextResponse.json(result, { headers: NO_CACHE_HEADERS });
   } catch (error) {
@@ -68,12 +76,14 @@ export async function GET() {
 
   try {
     const supabase = getServiceRoleClient();
-    const pending = await listPendingInvites(
-      supabase,
-      session.player.id,
-      TTL_SECONDS
-    );
-    return NextResponse.json({ pending }, { headers: NO_CACHE_HEADERS });
+    // Nothing else expires a challenge: without this an unanswered one is
+    // pending forever and its sender is never told.
+    await expireStaleInvites(supabase, { ttlSeconds: TTL_SECONDS });
+    const [pending, outgoing] = await Promise.all([
+      listPendingInvites(supabase, session.player.id, TTL_SECONDS),
+      getOutgoingInvite(supabase, session.player.id),
+    ]);
+    return NextResponse.json({ pending, outgoing }, { headers: NO_CACHE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       {

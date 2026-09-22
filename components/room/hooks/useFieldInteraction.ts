@@ -1,5 +1,7 @@
 "use client";
 
+import type { ErrorCode } from "@/lib/i18n/copy/types";
+import { moveErrorCode } from "@/lib/i18n/errorCodes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { previewSwap } from "@/app/actions/match/previewSwap";
@@ -28,7 +30,8 @@ export interface FieldInteractionOptions {
   canPick: boolean;
   onPick: () => void;
   onCommitted: () => void;
-  onRejected: (message: string) => void;
+  /** A move the server refused, as a code the room words in the page's language (spec 060). */
+  onRejected: (code: ErrorCode) => void;
   onNotice: (notice: "frozen" | "pickCleared", at?: Coordinate) => void;
 }
 
@@ -45,6 +48,17 @@ export interface FieldInteractionApi {
 
 const SHAKE_MS = 320;
 
+/** A refused move: `code` for the room, the server's English `message` for logs. */
+class MoveRefused extends Error {
+  constructor(
+    readonly code: ErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "MoveRefused";
+  }
+}
+
 async function postMove(matchId: string, board: string[][], from: Coordinate, to: Coordinate): Promise<MoveResult> {
   const res = await fetch(`/api/match/${matchId}/move`, {
     method: "POST",
@@ -58,9 +72,9 @@ async function postMove(matchId: string, board: string[][], from: Coordinate, to
       toLetter: board[to.y]?.[to.x] ?? "",
     }),
   });
-  const body = (await res.json().catch(() => ({}))) as Partial<MoveResult> & { error?: string };
+  const body = (await res.json().catch(() => ({}))) as Partial<MoveResult> & { error?: string; reason?: string };
   if (res.status === 200 && body.status === "accepted") return body as MoveResult;
-  throw new Error(body.error ?? "swap rejected");
+  throw new MoveRefused(moveErrorCode(res.status, body), body.error ?? "swap rejected");
 }
 
 const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
@@ -108,9 +122,9 @@ export function useFieldInteraction(opts: FieldInteractionOptions): FieldInterac
       }
       postMove(o.matchId, o.board, effect.from, effect.to)
         .then(() => o.onCommitted())
-        .catch((error: Error) => {
+        .catch((error: unknown) => {
           dispatchRef.current({ type: "submitRejected" });
-          o.onRejected(error.message);
+          o.onRejected(error instanceof MoveRefused ? error.code : "move_failed");
         });
     } else if (effect.kind === "requestPrice") {
       const id = ++priceRequest.current;

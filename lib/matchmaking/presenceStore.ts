@@ -1,5 +1,6 @@
 "use client";
 
+import type { Language } from "@/lib/types/game-config";
 import { create } from "zustand";
 
 import { subscribeToLobbyPresence } from "@/lib/realtime/presenceChannel";
@@ -23,6 +24,8 @@ type ConnectionMode = "realtime" | "polling";
 interface ConnectOptions {
   self: PlayerIdentity | null;
   initialPlayers?: PlayerIdentity[];
+  /** The lobby's game language (spec 060): presence, the poll and the channel are per language. */
+  language?: Language;
 }
 
 interface LobbyPresenceState {
@@ -42,6 +45,7 @@ let activeSubscription: PresenceSubscription | null = null;
 let trackedPlayerId: string | null = null;
 let trackedPlayer: PlayerIdentity | null = null;
 let trackedConnectionId: string | null = null;
+let trackedLanguage: Language = "is";
 
 // Presence heartbeat — POSTs to /api/lobby/presence on an interval so the
 // server-side `lobby_presence.expires_at` keeps rolling forward. Without it,
@@ -56,6 +60,8 @@ async function sendHeartbeat(): Promise<void> {
       method: "POST",
       keepalive: true,
       cache: "no-store",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language: trackedLanguage }),
     });
   } catch (error) {
     // Silent — the next interval tick will retry. Log so we see persistent
@@ -88,7 +94,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
   error: null,
   reconnecting: false,
   lastEventAt: null,
-  async connect({ self, initialPlayers }) {
+  async connect({ self, initialPlayers, language = "is" }) {
     console.log("[presenceStore] connect() called", {
       hasSelf: Boolean(self),
       hasInitialPlayers: Boolean(initialPlayers),
@@ -119,7 +125,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
       return;
     }
 
-    if (trackedPlayerId === self.id && get().status === "ready") {
+    if (trackedPlayerId === self.id && trackedLanguage === language && get().status === "ready") {
       console.log("[presenceStore] Already connected for this player, skipping");
       return;
     }
@@ -226,7 +232,8 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
         },
         {
           key: self.id,
-          poller: fetchPollingSnapshot,
+          topic: `lobby-presence:${language}`,
+          poller: () => fetchPollingSnapshot(language),
           // 2 s matches MatchClient's safety-net cadence. Was 500 ms back when
           // the poller ran unconditionally as the primary transport; now that
           // it only runs while Realtime is down, there's no UX win from
@@ -237,6 +244,7 @@ export const useLobbyPresenceStore = create<LobbyPresenceState>((set, get) => ({
 
       activeSubscription = subscription;
       trackedPlayerId = self.id;
+      trackedLanguage = language;
       trackedConnectionId = createConnectionId();
       trackedPlayer = self;
 
@@ -377,9 +385,9 @@ function upsert(
   return clone;
 }
 
-async function fetchPollingSnapshot(): Promise<PlayerIdentity[]> {
+async function fetchPollingSnapshot(language: Language): Promise<PlayerIdentity[]> {
   console.log("[presenceStore] Polling /api/lobby/players...");
-  const response = await fetch("/api/lobby/players", {
+  const response = await fetch(`/api/lobby/players?language=${language}`, {
     headers: {
       accept: "application/json",
     },

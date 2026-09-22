@@ -12,7 +12,7 @@ const mockPush = vi.fn();
 const mockReplace = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn() }) }));
@@ -33,6 +33,7 @@ vi.mock("@/app/actions/match/getMatchRatings", () => ({ getMatchRatings: vi.fn()
 vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.fn().mockResolvedValue({ status: "pending" }) }));
 vi.mock("@/app/actions/match/respondToRematch", () => ({ acceptRematchAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m2" }), declineRematchAction: vi.fn().mockResolvedValue({ status: "declined" }) }));
 vi.mock("@/app/actions/match/cancelRematch", () => ({ cancelRematchAction: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "ok" }) }));
 
 import { __resetWordIntegrityForTests } from "@/lib/room/wordIntegrity";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
@@ -40,6 +41,7 @@ import { resignMatch } from "@/app/actions/match/resignMatch";
 import { claimWinAction } from "@/app/actions/match/claimWin";
 import { settleMatch } from "@/app/actions/match/settleMatch";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
+import { logoutAction } from "@/app/actions/auth/logout";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -69,6 +71,7 @@ function state(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchFacts>
     players: { playerA: facts("player-1", a), playerB: facts("player-2", { score: 30, movesPlayed: 5, ...b }) },
     clock: { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: NOW },
     moveLimit: 10,
+    language: "is",
     resolvedSeq: 7,
     scores: { playerA: 45, playerB: 30 },
     frozenTiles: {},
@@ -146,7 +149,7 @@ describe("MatchRoomController (spec 050)", () => {
     log.mockRestore();
   });
 
-  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer, the clock once in the caption", () => {
+  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer, the clock once in the ledger", () => {
     renderController();
     const room = screen.getByTestId("room");
     expect(room).toHaveAttribute("data-phase", "match");
@@ -154,7 +157,9 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent · 5 of 10 · playing");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you · move 3 of 10");
-    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 3 of 10");
+    // 2026-09-21: the ledger names no move of the viewer's; the bottom bar's lane counts them.
+    expect(screen.getByTestId("ledger-context")).toHaveTextContent("");
+    expect(screen.getByTestId("player-bar-bottom").querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("aria-valuenow", "8");
     expect(screen.getByTestId("match-clock")).toBeInTheDocument();
     expect(screen.queryByTestId("player-bar-clock")).toBeNull();
     const ids = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
@@ -231,7 +236,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
     expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "live");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
-    expect(screen.getByTestId("ledger-context")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
     expect(cell(1, 2)).toHaveAttribute("data-state", "scored");
@@ -324,19 +329,20 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver");
   });
 
-  it("final: a default result says the count that decided it (spec 050 FR-010)", () => {
+  it("final: when someone was short of ten the detail says so, the score decides, and the unplayed rows carry their penalties (rules §5.6)", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
-    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 134 }, winnerId: "player-1", endedReason: "incomplete" }, { movesPlayed: 10, score: 88 }, { movesPlayed: 8, score: 134 }));
-    expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 88–134");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("Bob played 8 of 10");
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "incomplete" }, { movesPlayed: 10, score: 88 }, { movesPlayed: 8, score: 124 }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Bob wins 124–88");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Bob played 8 of 10 · by 36 points");
+    expect(screen.getByTestId("ledger-row-9").querySelector('[data-seat="opp"]')).toHaveAttribute("data-unplayed", "true");
     expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("rating pending");
   });
 
-  it("final: both short of ten is a draw that says neither finished", () => {
+  it("final: both short of ten says neither finished, and the score still decides", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
-    renderController(state({ state: "completed", scores: { playerA: 90, playerB: 60 }, winnerId: null, endedReason: "both_incomplete" }, { movesPlayed: 6, score: 90 }, { movesPlayed: 3, score: 60 }));
-    expect(screen.getByTestId("verdict")).toHaveTextContent("draw 90–60");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished");
+    renderController(state({ state: "completed", scores: { playerA: 90, playerB: 60 }, winnerId: "player-1", endedReason: "both_incomplete" }, { movesPlayed: 6, score: 90 }, { movesPlayed: 3, score: 60 }));
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 90–60");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished · by 30 points");
   });
 
   it("final: an incoming rematch request rewrites the slip's action line; accept ▸ moves to the new match; rematch ▸ asks", async () => {
@@ -350,7 +356,7 @@ describe("MatchRoomController (spec 050)", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("slip-accept-rematch"));
     });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/match/m2"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m2"));
   });
 
   it("final: rematch ▸ sends the request and shows waiting for the opponent", async () => {
@@ -524,4 +530,42 @@ describe("MatchRoomController (spec 050)", () => {
     expect(vi.mocked(getMatchRatings).mock.calls.length).toBe(callsAtUnmount);
     vi.useRealTimers();
   });
+
+  // Reported 2026-09-21: after a match, the ⋯ menu's profile and sign out did nothing.
+  it("final: the ⋯ menu's profile opens your profile and sign out signs you out, with the slip up", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10, score: 88 }, { movesPlayed: 10, score: 124 }));
+    expect(await screen.findByTestId("slip", {}, { timeout: 3_000 })).toHaveAttribute("data-kind", "matchOver");
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    fireEvent.click(screen.getByTestId("ledger-menu-item-profile"));
+    expect(mockPush).toHaveBeenCalledWith("/en/profile");
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    fireEvent.click(screen.getByTestId("ledger-menu-item-signout"));
+    await waitFor(() => expect(logoutAction).toHaveBeenCalled());
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en"));
+  });
+
+  it("a player's name opens their profile: in a live match in a new tab, after it in the same tab", () => {
+    const live = renderController();
+    const oppLive = screen.getByTestId("player-bar-top").querySelector("a")!;
+    expect(oppLive).toHaveAttribute("href", "/en/profile/bob");
+    expect(oppLive).toHaveAttribute("target", "_blank");
+    expect(screen.getByTestId("player-bar-bottom").querySelector("a")).toHaveAttribute("href", "/en/profile/alice");
+    live.unmount();
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
+    const oppFinal = screen.getByTestId("player-bar-top").querySelector("a")!;
+    expect(oppFinal).toHaveAttribute("href", "/en/profile/bob");
+    expect(oppFinal).not.toHaveAttribute("target");
+  });
+
+  it("lobby on the match-over slip takes the slip down before it navigates", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
+    await screen.findByTestId("slip", {}, { timeout: 3_000 });
+    fireEvent.click(screen.getByTestId("slip-lobby"));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    expect(mockReplace).toHaveBeenCalledWith("/en/lobby");
+  });
 });
+

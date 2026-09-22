@@ -32,7 +32,8 @@ describe("room.css motion (design system §6)", () => {
     expect(css).not.toMatch(/player-bar__lane--low/);
   });
 
-  it("the opponent's total in the live row shares line 1, in their column, so the row stays two lines", () => {
+  it("the live row is one band: the beat spans it, the opponent's total on line 1 at the right", () => {
+    expect(css).toMatch(/\.ledger__row--live \.ledger__live-text,\s*\.ledger__row--settled \.ledger__live-text\s*\{[^}]*grid-column:\s*1 \/ -1/);
     expect(css).toMatch(/\.ledger__live-text \+ \.ledger__words\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1/);
   });
 
@@ -221,8 +222,9 @@ describe("room.css ledger rows (spec 047 US3)", () => {
   it("the row is the grid item and owns the rule", () => {
     const row = block(".ledger__row");
     expect(row).toMatch(/display:\s*grid/);
-    expect(row).toMatch(/grid-template-columns:\s*34px 1fr 1fr/);
-    expect(row).toMatch(/column-gap:\s*8px/);
+    // The spine (2026-09-21): your cell, the move number, theirs.
+    expect(row).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\) 40px minmax\(0, 1fr\)/);
+    expect(row).toMatch(/column-gap:\s*0/);
     expect(row).toMatch(/grid-column:\s*1 \/ -1/);
     expect(row).toMatch(/border-bottom:\s*1px solid var\(--rule\)/);
     expect(block(".ledger__row > *")).not.toMatch(/border/);
@@ -234,8 +236,28 @@ describe("room.css ledger rows (spec 047 US3)", () => {
     expect(live).toMatch(/box-shadow:\s*inset 3px 0 0 var\(--ink\)/);
   });
 
-  it("round labels clear the live rule", () => {
-    expect(block(".ledger__move")).toMatch(/padding-left:\s*6px/);
+  it("the spine: the move number centred between two 1px rules", () => {
+    const spine = block(".ledger__move");
+    expect(spine).toMatch(/text-align:\s*center/);
+    expect(spine).toMatch(/border-left:\s*1px solid var\(--rule\)/);
+    expect(spine).toMatch(/border-right:\s*1px solid var\(--rule\)/);
+    expect(block('.ledger__words[data-seat="you"]')).toMatch(/justify-content:\s*flex-end/);
+    expect(block('.ledger__words[data-seat="you"]')).toMatch(/text-align:\s*right/);
+    expect(block('.ledger__words[data-seat="opp"]')).toMatch(/justify-content:\s*flex-start/);
+  });
+
+  it("a miss is words in muted mono and a muted, lighter −5; a score is bold ink", () => {
+    expect(block(".ledger__miss")).toMatch(/color:\s*var\(--muted\)/);
+    expect(block(".ledger__miss")).toMatch(/text-transform:\s*uppercase/);
+    expect(block(".ledger__total")).toMatch(/font-weight:\s*600/);
+    expect(block(".ledger__words--empty .ledger__total")).toMatch(/color:\s*var\(--muted\)/);
+    expect(block(".ledger__words--empty .ledger__total")).toMatch(/font-weight:\s*500/);
+  });
+
+  it("the total row closes the table in the seat colours", () => {
+    expect(block(".ledger__totals")).toMatch(/border-bottom:\s*1\.5px solid var\(--ink\)/);
+    expect(block(".ledger__totals-you")).toMatch(/color:\s*var\(--you\)/);
+    expect(block(".ledger__totals-opp")).toMatch(/color:\s*var\(--opp\)/);
   });
 
   it("the seat header rule is ink (Fig. 2); the hint collapses when empty", () => {
@@ -360,5 +382,82 @@ describe("room.css the ledger caption", () => {
     expect(block(".ledger__wordmark")).toMatch(/flex:\s*none/);
     expect(block(".ledger__caption-right")).toMatch(/text-align:\s*right/);
     expect(block(".ledger__caption-right")).toMatch(/justify-content:\s*flex-end/);
+  });
+});
+
+// 2026-09-21: the lane is ten segments, the moves left; the ledger's rail is gone.
+describe("room.css the segmented move lane", () => {
+  it("is a 6px grid of ten segments, 3px apart, on the bar's edge", () => {
+    const lane = block(".player-bar__lane--segments");
+    expect(lane).toMatch(/display:\s*grid/);
+    expect(lane).toMatch(/repeat\(10, minmax\(0, 1fr\)\)/);
+    expect(lane).toMatch(/column-gap:\s*3px/);
+    expect(lane).toMatch(/height:\s*6px/);
+    expect(lane).toMatch(/background:\s*transparent/);
+  });
+  it("a move left is the seat colour, a spent one the rule, one in flight the 30% live tint", () => {
+    expect(block('.player-bar__segment[data-state="left"]')).toMatch(/background:\s*var\(--seat-ink\)/);
+    expect(block('.player-bar__segment[data-state="spent"]')).toMatch(/background:\s*var\(--rule\)/);
+    expect(block('.player-bar__segment[data-state="scoring"]')).toMatch(/color-mix\(in srgb, var\(--seat-ink\) 30%, transparent\)/);
+  });
+  it("a disconnected player's moves left are outlined, not filled", () => {
+    const outlined = block('.player-bar__lane--disconnected .player-bar__segment[data-state="left"]');
+    expect(outlined).toMatch(/background:\s*transparent/);
+    expect(outlined).toMatch(/inset 0 0 0 1\.5px var\(--seat-ink\)/);
+  });
+  it("the move rail's styles are gone", () => {
+    expect(css).not.toMatch(/\.rail__cell|\.rail\s*\{/);
+  });
+});
+
+// 2026-09-21: player names open their profiles; a link keeps the name's look.
+describe("room.css profile links on names", () => {
+  it("inherit the name's ink, with no underline until hover or keyboard focus", () => {
+    for (const sel of [".player-bar__name--link", ".lobby-ledger__profile"]) {
+      expect(block(sel)).toMatch(/color:\s*inherit/);
+      expect(block(sel)).toMatch(/text-decoration:\s*none/);
+    }
+    expect(css).toMatch(/\.player-bar__name--link:hover,\s*\.player-bar__name--link:focus-visible,\s*\.lobby-ledger__profile:hover,\s*\.lobby-ledger__profile:focus-visible\s*\{[^}]*text-decoration:\s*underline/);
+  });
+});
+
+// Reported 2026-09-21: nothing said what was clickable. Every action has a hover,
+// a pressed and a keyboard-focus state, drawn with the tokens and the §6 timing.
+describe("room.css interaction states", () => {
+  const rule = (selector: string): string => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const m = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`));
+    return m?.[1] ?? "";
+  };
+
+  it("primary actions invert on hover to paper inside a 1.5px ink frame, and take the tint when pressed", () => {
+    expect(rule(".action-primary:hover:not(:disabled)")).toMatch(/background:\s*var\(--paper\)/);
+    expect(rule(".action-primary:hover:not(:disabled)")).toMatch(/color:\s*var\(--ink\)/);
+    expect(rule(".action-primary:hover:not(:disabled)")).toMatch(/inset 0 0 0 1\.5px var\(--ink\)/);
+    expect(rule(".action-primary:active:not(:disabled)")).toMatch(/background:\s*var\(--tint\)/);
+  });
+
+  it("secondary actions underline on hover and dim when pressed", () => {
+    expect(rule(".action-secondary:hover:not(:disabled)")).toMatch(/text-decoration:\s*underline/);
+    expect(rule(".action-secondary:active:not(:disabled)")).toMatch(/color:\s*var\(--muted\)/);
+  });
+
+  it("keyboard focus is a 2px ink outline; a pointer click leaves no ring", () => {
+    expect(rule(".action-primary:focus-visible,\n.action-secondary:focus-visible")).toMatch(/outline:\s*2px solid var\(--ink\)/);
+    expect(rule(".action-primary:focus:not(:focus-visible),\n.action-secondary:focus:not(:focus-visible)")).toMatch(/outline:\s*none/);
+  });
+
+  it("state changes take the design system's 120ms ease", () => {
+    expect(block(".action-primary")).toMatch(/transition:[^;]*120ms cubic-bezier\(0\.2, 0, 0\.2, 1\)/);
+    expect(css).toMatch(/\n\.action-secondary \{[^}]*transition:[^;]*120ms/);
+  });
+
+  it("menu items tint their row on hover rather than underline", () => {
+    expect(rule(".room-menu__list .action-secondary:hover")).toMatch(/background:\s*var\(--tint\)/);
+    expect(rule(".room-menu__list .action-secondary:hover")).toMatch(/text-decoration:\s*none/);
+  });
+
+  it("a free letter takes the tint under the pointer only while the field takes picks", () => {
+    expect(rule('.field:not([data-disabled]) .field__cell[data-state="free"]:hover')).toMatch(/background:\s*var\(--tint\)/);
   });
 });

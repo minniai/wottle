@@ -21,6 +21,8 @@ interface PresenceOptions<TPollState extends object> {
   poller?: () => Promise<TPollState[]>;
   pollIntervalMs?: number;
   key?: string;
+  /** The Realtime topic; one per lobby language (spec 060). */
+  topic?: string;
 }
 
 export function subscribeToLobbyPresencePollingOnly<

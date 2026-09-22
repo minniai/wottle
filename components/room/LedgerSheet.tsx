@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { useRef, type ReactNode } from "react";
 
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
@@ -15,13 +16,14 @@ interface LedgerSheetProps {
  * from that row (design system §4). Plain, focus-trapped, no backdrop over the field.
  */
 export function LedgerSheet({ open, onClose, children }: LedgerSheetProps) {
+  const { CLOSE } = useCopy();
   const ref = useRef<HTMLDivElement | null>(null);
   useFocusTrap({ isActive: open, containerRef: ref, onEscape: onClose });
   if (!open) return null;
   return (
     <div ref={ref} className="ledger-sheet" role="region" aria-label="ledger" data-testid="ledger-sheet">
       <button type="button" className="action-secondary ledger-sheet__close" data-testid="ledger-sheet-close" onClick={onClose}>
-        close
+        {CLOSE}
       </button>
       {children}
     </div>

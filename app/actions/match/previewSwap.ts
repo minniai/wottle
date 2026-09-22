@@ -1,6 +1,8 @@
 "use server";
 
 import { loadDictionary } from "@/lib/game-engine/dictionary";
+import { getLanguagePack } from "@/lib/game-engine/languagePack";
+import type { Language } from "@/lib/types/game-config";
 import { priceSwap, type PricedWord } from "@/lib/match/previewScoring";
 import { previewSwapInputSchema } from "@/lib/match/previewSchemas";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -47,7 +49,7 @@ export async function previewSwap(rawInput: unknown): Promise<PreviewSwapResult>
   const context =
     input.kind === "match"
       ? await loadMatchPreviewContext(input.matchId, session.player.id)
-      : { board: input.board as BoardGrid, frozenTiles: {} as FrozenTileMap, playerSlot: "player_a" as PlayerSlot };
+      : { board: input.board as BoardGrid, frozenTiles: {} as FrozenTileMap, playerSlot: "player_a" as PlayerSlot, language: input.language ?? "is" };
   if ("status" in context) {
     return context;
   }
@@ -58,7 +60,7 @@ export async function previewSwap(rawInput: unknown): Promise<PreviewSwapResult>
     return { status: "rejected", error: "A frozen letter cannot be swapped" };
   }
 
-  const dictionary = await loadDictionary("is");
+  const dictionary = await loadDictionary(context.language);
   const price = priceSwap({
     board: context.board,
     from: input.from,
@@ -66,6 +68,7 @@ export async function previewSwap(rawInput: unknown): Promise<PreviewSwapResult>
     frozenTiles: context.frozenTiles,
     playerSlot: context.playerSlot,
     dictionary,
+    letterValues: getLanguagePack(context.language).letterValues,
   });
 
   logPlaytestInfo("preview-swap.priced", {
@@ -81,6 +84,7 @@ interface PreviewContext {
   board: BoardGrid;
   frozenTiles: FrozenTileMap;
   playerSlot: PlayerSlot;
+  language: Language;
 }
 
 /**
@@ -95,7 +99,7 @@ async function loadMatchPreviewContext(
   const supabase = getServiceRoleClient();
   const { data: match, error: matchError } = await supabase
     .from("matches")
-    .select("board, state, player_a_id, player_b_id, frozen_tiles")
+    .select("board, state, player_a_id, player_b_id, frozen_tiles, language")
     .eq("id", matchId)
     .single();
   if (matchError || !match) return { status: "error", error: "Match not found" };
@@ -115,5 +119,6 @@ async function loadMatchPreviewContext(
     board,
     frozenTiles: (match.frozen_tiles ?? {}) as FrozenTileMap,
     playerSlot: playerId === match.player_a_id ? "player_a" : "player_b",
+    language: (match.language as Language | null) ?? "is",
   };
 }

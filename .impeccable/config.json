@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "app/styles/room.css"
+        ],
+        "createdAt": "2026-09-22T10:36:42.768Z",
+        "reason": "Project design authority: WOTTLE_DESIGN_PLAN.md section P2 item 6 specifies live-row-styled notices; WOTTLE_DESIGN_SYSTEM.md section 5.4 specifies the 3px ink left rule. Preserve the intentional ledger notice rule."
+      }
+    ]
+  }
+}

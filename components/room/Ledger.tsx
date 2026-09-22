@@ -2,16 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-import { HISTORY, lastSeconds, MATCH_CLOCK, TIME_SPENT, WORDMARK } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
-import { noticeText } from "@/lib/room/notices";
+import { noticeKey, noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { ClockPhase } from "@/lib/room/clock";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
-import { MoveRail } from "./MoveRail";
 import type { RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
@@ -40,13 +39,20 @@ function menuVariant(variant: LedgerVariant): RoomMenuVariant {
   return "lobby";
 }
 
+/**
+ * One player's cell (the spine, 2026-09-21): words and the move's points, the
+ * points always beside the spine — after your words, before theirs. A miss
+ * says so in words, and its −5 is muted, so it never reads as a score.
+ */
 function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; seat: "you" | "opp"; showPoints: boolean; folded: boolean }) {
+  const { NO_WORD, NOT_PLAYED, points } = useCopy();
   if (!cell) return <div className="ledger__words" data-seat={seat} />;
-  // A resolved move with no word writes 0 (spec 050 FR-016): played, not pending.
+  const total = <span className="ledger__total">{points(cell.total)}</span>;
+  const inward = (content: ReactNode) => (seat === "you" ? <>{content}{total}</> : <>{total}{content}</>);
   if (cell.words.length === 0) {
     return (
-      <div className="ledger__words ledger__words--empty" data-seat={seat}>
-        <span className="ledger__total">0</span>
+      <div className="ledger__words ledger__words--empty" data-seat={seat} data-miss={cell.miss || undefined} data-unplayed={cell.unplayed || undefined}>
+        {inward(<span className="ledger__miss">{cell.unplayed ? NOT_PLAYED : NO_WORD}</span>)}
       </div>
     );
   }
@@ -55,20 +61,23 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   if (folded) {
     return (
       <div className="ledger__words ledger__words--folded" style={style} data-seat={seat} title={cell.words.map((w) => w.word).join(" · ")}>
-        <span className="ledger__total">{cell.total}</span>
+        {total}
       </div>
     );
   }
   return (
     <div className="ledger__words" style={style} data-seat={seat}>
-      {cell.words.map((w, i) => (
-        <span key={`${w.word}-${i}`}>
-          {i > 0 ? " · " : ""}
-          {w.word}
-          {showPoints ? <span className="ledger__points"> {w.points}</span> : null}
-        </span>
-      ))}
-      {cell.words.length > 0 ? <span className="ledger__total">{cell.total}</span> : null}
+      {inward(
+        <span className="ledger__word-list">
+          {cell.words.map((w, i) => (
+            <span key={`${w.word}-${i}`}>
+              {i > 0 ? " · " : ""}
+              {w.word}
+              {showPoints ? <span className="ledger__points"> {w.points}</span> : null}
+            </span>
+          ))}
+        </span>,
+      )}
     </div>
   );
 }
@@ -112,10 +121,11 @@ function ClockFace({ time, label, fraction }: { time: string; label: string; fra
  * holds inverted. The live row announces the beats, so the timer is silent to AT.
  */
 function LedgerClock({ time, phase, fraction }: { time: string; phase: ClockPhase; fraction: number }) {
+  const { lastSeconds, MATCH_CLOCK, TIME_SPENT, clockAria } = useCopy();
   const inverted = phase === "flash" || phase === "spent";
   const invertedLabel = phase === "spent" ? TIME_SPENT : lastSeconds(secondsIn(time));
   return (
-    <div className="ledger__clock" data-testid="match-clock" data-phase={phase} role="timer" aria-label={`${MATCH_CLOCK}, ${time} left`} aria-live="off">
+    <div className="ledger__clock" data-testid="match-clock" data-phase={phase} role="timer" aria-label={clockAria(MATCH_CLOCK, time)} aria-live="off">
       <ClockFace time={time} label={MATCH_CLOCK} fraction={fraction} />
       {inverted ? (
         <div className="ledger__clock-invert" aria-hidden="true">
@@ -144,7 +154,7 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
            design system §5.4). During the hold the row keeps the tint and says
            the move scored; its words land when the hold ends. */
         <>
-          <div className="ledger__move" data-testid="ledger-live-move">M{row.move}</div>
+          {/* One band across the ledger: the beat names the move, so the spine breaks here. */}
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
             <LiveText live={row.live} />
           </div>
@@ -154,9 +164,10 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
         </>
       ) : (
         <>
-          {/* Future numerals are a progression mark, not a fact for AT: the caption carries the count (design system §7). */}
-          <div className="ledger__move" aria-hidden={row.status === "future" || undefined}>M{row.move}</div>
+          {/* Your cell, the spine, theirs: the move number separates the players. Future
+              numerals are a progression mark, not a fact for AT (design system §7). */}
           <SeatWords cell={row.you} seat="you" showPoints={hovered} folded={row.folded} />
+          <div className="ledger__move" aria-hidden={row.status === "future" || undefined}>{row.move}</div>
           <SeatWords cell={row.opp} seat="opp" showPoints={hovered} folded={row.folded} />
         </>
       )}
@@ -165,21 +176,22 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
 }
 
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
+  const copy = useCopy();
   if (notice.kind === "challenge") {
     return (
       <>
-        {notice.fromName} challenges you ·{" "}
+        {notice.fromName} {copy.CHALLENGES_YOU} ·{" "}
         <button type="button" className="action-secondary" data-testid="notice-accept-challenge" onClick={() => onAction({ acceptChallenge: notice.inviteId })}>
-          accept ▸
+          {copy.ACCEPT}
         </button>{" "}
         ·{" "}
         <button type="button" className="action-secondary" data-testid="notice-decline-challenge" onClick={() => onAction({ declineChallenge: notice.inviteId })}>
-          decline
+          {copy.DECLINE}
         </button>
       </>
     );
   }
-  return <>{noticeText(notice)}</>;
+  return <>{noticeText(notice, copy)}</>;
 }
 
 /**
@@ -187,6 +199,7 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
+  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, territoryAria, territoryLine, YOU } = useCopy();
   const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
   /**
@@ -219,12 +232,15 @@ export function Ledger(props: LedgerProps) {
   const table = (
     <>
       <div className="ledger__header" data-testid="ledger-header">
-        <span />
-        <span>
-          <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden /> {viewerName}{readOnly ? "" : " · you"}
+        <span className="ledger__header-you">
+          {viewerName}
+          {readOnly ? "" : ` · ${YOU}`}
+          <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden />
         </span>
-        <span>
-          <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden /> {opponentName ?? "—"}
+        <span className="ledger__header-spine">{SPINE_HEADER}</span>
+        <span className="ledger__header-opp">
+          <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden />
+          {opponentName ?? "—"}
         </span>
       </div>
       <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
@@ -232,34 +248,39 @@ export function Ledger(props: LedgerProps) {
           <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
         ))}
       </div>
+      {model.completed && model.totals ? (
+        <div className="ledger__totals" data-testid="ledger-totals">
+          <span className="ledger__totals-you">{points(model.totals.you)}</span>
+          <span className="ledger__header-spine">{TOTAL_LABEL}</span>
+          <span className="ledger__totals-opp">{points(model.totals.opp)}</span>
+        </div>
+      ) : null}
     </>
   );
 
   const territoryBlock = showsTable ? (
     <>
-      <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={`territory ${territory.you}–${territory.opp}`}>
+      <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={territoryAria(territory.you, territory.opp)}>
         <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
         <span style={{ flex: 1 }} />
         <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
       </div>
       <div className="ledger__mono">
-        {territory.you} · {territory.free} free · {territory.opp}
+        {territoryLine(territory.you, territory.free, territory.opp)}
       </div>
     </>
   ) : null;
 
-  const noticeLines = notices.map((notice, i) => (
-    <div key={`${notice.kind}-${i}`} className="ledger__notice" data-testid="ledger-notice" data-field-safe data-kind={notice.kind} aria-live="polite">
+  const noticeLines = notices.map((notice) => (
+    <div key={noticeKey(notice)} className="ledger__notice" data-testid="ledger-notice" data-field-safe data-kind={notice.kind} aria-live="polite">
       {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
     </div>
   ));
 
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
-  // The rail (spec 048 US3): every ledger with moves to count — match, final and the queue (all future).
-  const rail = variant === "lobby" ? null : <MoveRail movesPlayed={model.movesPlayed ?? null} completed={model.completed ?? false} />;
 
   return (
-    <section className="ledger" data-testid="ledger" data-variant={variant} aria-label="ledger">
+    <section className="ledger" data-testid="ledger" data-variant={variant} aria-label={LEDGER}>
       <div className="ledger__caption" data-testid="ledger-caption">
         <span className="ledger__wordmark">{WORDMARK}</span>
         <span className="ledger__caption-right">
@@ -269,7 +290,6 @@ export function Ledger(props: LedgerProps) {
         </span>
       </div>
       {model.clock !== undefined ? <LedgerClock time={model.clock} phase={model.clockPhase ?? "calm"} fraction={model.clockFraction ?? 1} /> : null}
-      {rail}
 
       {model.verdict ? (
         <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">

@@ -1,3 +1,4 @@
+import type { Language } from "@/lib/types/game-config";
 import type { BoardGrid, Coordinate } from "./board";
 
 // Re-export Coordinate for convenience
@@ -135,6 +136,8 @@ export interface MatchState {
   };
   clock: MatchClock;
   moveLimit: number;
+  /** Spec 060: the game language — dictionary, letter values, letter frequencies. Fixed at creation. */
+  language: Language;
   /** The last receipt sequence finished; the client's idempotency key for resolutions. */
   resolvedSeq: number;
   scores: ScoreTotals;

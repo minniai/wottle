@@ -11,11 +11,11 @@ describe("Slip · sign in (spec 048 US4)", () => {
     const slip = screen.getByTestId("slip");
     expect(slip).toHaveAttribute("aria-label", "wottle");
     expect(slip.querySelector(".slip__wordmark")).toHaveTextContent("wottle");
-    expect(slip).toHaveTextContent("two players · one field · Icelandic words");
+    expect(slip).toHaveTextContent("two players · one field · English words");
     expect(screen.getByTestId("player-bar-name-input")).toHaveAttribute("aria-label", "your name");
     expect(screen.getByTestId("player-bar-action-play")).toHaveTextContent("play ▸");
     expect(slip).toHaveTextContent("no account needed");
-    expect(screen.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/rules");
+    expect(screen.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/en/rules");
     expect(screen.getByTestId("slip-how-to-play")).toHaveTextContent("new here · how to play ▸");
   });
 

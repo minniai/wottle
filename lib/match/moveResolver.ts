@@ -1,3 +1,5 @@
+import { getLanguagePack } from "@/lib/game-engine/languagePack";
+import type { Language } from "@/lib/types/game-config";
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
 import { applySwap } from "@/lib/game-engine/board";
 import { scanFromSwapCoordinates } from "@/lib/game-engine/boardScanner";
@@ -7,6 +9,7 @@ import { freezeTiles } from "@/lib/game-engine/frozenTiles";
 import { scoreBoardWords } from "@/lib/game-engine/wordEngine";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { logPlaytestError, logPlaytestInfo } from "@/lib/observability/log";
+import { MISS_PENALTY } from "@/lib/scoring/missPenalty";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 import type {
@@ -94,6 +97,7 @@ function refusalFor(input: ResolveInput): MoveRejectionReason | null {
 /**
  * Pure and deterministic: apply the swap, scan from its two coordinates,
  * cross-validate, score, freeze (rules §7.1). No duplicate suppression (§3.7).
+ * A move that scores no word is a miss and costs a flat −5 (§5.6).
  */
 export function resolveOne(input: ResolveInput): ResolveOutcome {
   const refusal = refusalFor(input);
@@ -103,8 +107,9 @@ export function resolveOne(input: ResolveInput): ResolveOutcome {
   const slot = move.playerId === playerAId ? "player_a" : "player_b";
   const boardAfter = applySwap(board, { from: move.from, to: move.to });
   const candidates = scanFromSwapCoordinates(boardAfter, [move.from, move.to], dictionary);
-  const valid = selectOptimalCombination(candidates, boardAfter, frozenTiles, dictionary, slot);
-  const words = scoreBoardWords(valid, move.playerId, frozenTiles, slot, input.letterValues ?? LETTER_SCORING_VALUES_IS);
+  const letterValues = input.letterValues ?? LETTER_SCORING_VALUES_IS;
+  const valid = selectOptimalCombination(candidates, boardAfter, frozenTiles, dictionary, slot, letterValues);
+  const words = scoreBoardWords(valid, move.playerId, frozenTiles, slot, letterValues);
   const freeze = freezeTiles({ scoredWords: words, existingFrozenTiles: frozenTiles, playerAId, playerBId });
   return {
     status: "resolved",
@@ -113,7 +118,7 @@ export function resolveOne(input: ResolveInput): ResolveOutcome {
     frozenBefore: frozenTiles,
     frozenAfter: freeze.updatedFrozenTiles,
     words,
-    delta: words.reduce((sum, w) => sum + w.totalPoints, 0),
+    delta: words.length > 0 ? words.reduce((sum, w) => sum + w.totalPoints, 0) : MISS_PENALTY,
     wasPartialFreeze: freeze.wasPartialFreeze,
   };
 }
@@ -145,6 +150,8 @@ interface ClaimMatch {
   player_b_moves: number;
   move_limit: number;
   resolved_seq: number;
+  /** Spec 060: the match's game language; absent only from a claim made before the column existed. */
+  language?: Language | null;
 }
 
 interface Claim {
@@ -261,7 +268,8 @@ async function failMatch(matchId: string, claim: Claim, cause: unknown): Promise
 
 async function resolveClaim(client: Client, matchId: string, claim: Claim): Promise<FinishResult> {
   const started = performance.now();
-  const dictionary = await loadDictionary("is");
+  const language = claim.match.language ?? "is";
+  const dictionary = await loadDictionary(language);
   const outcome = resolveOne({
     move: toClaimedMove(claim.move),
     board: claim.match.board,
@@ -269,6 +277,7 @@ async function resolveClaim(client: Client, matchId: string, claim: Claim): Prom
     playerAId: claim.match.player_a_id,
     playerBId: claim.match.player_b_id,
     dictionary,
+    letterValues: getLanguagePack(language).letterValues,
   });
   const fin = await finish(client, claim, outcome);
   if (fin.written === 0) return fin;
@@ -278,6 +287,7 @@ async function resolveClaim(client: Client, matchId: string, claim: Claim): Prom
       moveId: claim.move.id,
       playerId: claim.move.player_id,
       globalSeq: claim.move.global_seq,
+      language,
       status: outcome.status,
       rejectionReason: outcome.rejectionReason ?? null,
       words: outcome.words.length,

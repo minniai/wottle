@@ -17,21 +17,24 @@ describe("resultCalculator", () => {
       frozenCounts = noFrozen,
     ) => determineMatchWinner({ scores, moves, moveLimit: 10, frozenCounts }, playerAId, playerBId);
 
-    // Spec 050 FR-010: move count decides first.
-    it("a player short of ten moves loses whatever the totals (incomplete)", () => {
+    // Rules §2a (amended 2026-09-21): a short player is not a default loser; unplayed
+    // moves are penalised into the score beforehand, and the score decides.
+    it("a player short of ten moves can still win on score; the reason records the shortfall (incomplete)", () => {
       const result = decide({ playerA: 134, playerB: 88 }, { playerA: 8, playerB: 10 });
-      expect(result).toEqual({ winnerId: playerBId, loserId: playerAId, isDraw: false, reason: "incomplete" });
+      expect(result).toEqual({ winnerId: playerAId, loserId: playerBId, isDraw: false, reason: "incomplete" });
     });
 
-    it("the finisher wins even with the lower score", () => {
-      const result = decide({ playerA: 88, playerB: 134 }, { playerA: 10, playerB: 8 });
-      expect(result.winnerId).toBe(playerAId);
-      expect(result.reason).toBe("incomplete");
+    it("both short of ten: the score still decides (both_incomplete)", () => {
+      const result = decide({ playerA: 70, playerB: 88 }, { playerA: 9, playerB: 3 });
+      expect(result).toEqual({ winnerId: playerBId, loserId: playerAId, isDraw: false, reason: "both_incomplete" });
     });
 
-    it("both short of ten is a draw whatever the totals (both_incomplete)", () => {
-      const result = decide({ playerA: 134, playerB: 88 }, { playerA: 9, playerB: 3 });
-      expect(result).toEqual({ winnerId: null, loserId: null, isDraw: true, reason: "both_incomplete" });
+    it("both short and level on score and tiles is a draw", () => {
+      expect(decide({ playerA: 10, playerB: 10 }, { playerA: 9, playerB: 3 })).toEqual({ winnerId: null, loserId: null, isDraw: true, reason: "both_incomplete" });
+    });
+
+    it("negative totals compare as numbers", () => {
+      expect(decide({ playerA: -12, playerB: -4 }).winnerId).toBe(playerBId);
     });
 
     it("returns player A when both finished and their score is higher", () => {

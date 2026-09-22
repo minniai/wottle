@@ -14,7 +14,7 @@ function board(): string[][] {
 
 describe("Field (design system §5.1, §9)", () => {
   it("grid → ten rows → ten gridcells each (ARIA structure; axe aria-required-children/parent)", () => {
-    render(<Field board={board()} viewerSlot="player_a" />);
+    render(<Field language="is" board={board()} viewerSlot="player_a" />);
     const grid = screen.getByRole("grid");
     const rows = screen.getAllByRole("row");
     expect(rows).toHaveLength(10);
@@ -25,7 +25,7 @@ describe("Field (design system §5.1, §9)", () => {
   });
 
   it("renders 100 gridcells with coordinate + letter + value + state labels", () => {
-    render(<Field board={board()} viewerSlot="player_a" />);
+    render(<Field language="is" board={board()} viewerSlot="player_a" />);
     const cells = screen.getAllByRole("gridcell");
     expect(cells).toHaveLength(100);
     const t = cells.find((c) => c.getAttribute("data-x") === "5" && c.getAttribute("data-y") === "7")!;
@@ -38,6 +38,7 @@ describe("Field (design system §5.1, §9)", () => {
     const onActivate = vi.fn();
     render(
       <Field
+        language="is"
         board={board()}
         viewerSlot="player_a"
         frozenTiles={{ "0,0": { owner: "player_b" }, "1,0": { owner: "player_a" } }}
@@ -58,17 +59,17 @@ describe("Field (design system §5.1, §9)", () => {
 
   it("free cells activate with their coordinate; disabled fields do not", () => {
     const onActivate = vi.fn();
-    const { rerender } = render(<Field board={board()} viewerSlot="player_a" onActivate={onActivate} />);
+    const { rerender } = render(<Field language="is" board={board()} viewerSlot="player_a" onActivate={onActivate} />);
     fireEvent.click(screen.getAllByRole("gridcell")[12]);
     expect(onActivate).toHaveBeenCalledWith({ x: 2, y: 1 });
-    rerender(<Field board={board()} viewerSlot="player_a" onActivate={onActivate} disabled />);
+    rerender(<Field language="is" board={board()} viewerSlot="player_a" onActivate={onActivate} disabled />);
     fireEvent.click(screen.getAllByRole("gridcell")[12]);
     expect(onActivate).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
   });
 
   it("read-only viewer colours player A as you and player B as opp", () => {
-    render(<Field board={board()} viewerSlot={null} frozenTiles={{ "0,0": { owner: "player_a" }, "1,0": { owner: "player_b" } }} />);
+    render(<Field language="is" board={board()} viewerSlot={null} frozenTiles={{ "0,0": { owner: "player_a" }, "1,0": { owner: "player_b" } }} />);
     const cells = screen.getAllByRole("gridcell");
     expect(cells[0]).toHaveAttribute("data-seat", "you");
     expect(cells[1]).toHaveAttribute("data-seat", "opp");
@@ -86,7 +87,7 @@ describe("Field (design system §5.1, §9)", () => {
     const at = (x: number, y: number) => screen.getAllByRole("gridcell").find((c) => c.getAttribute("data-x") === String(x) && c.getAttribute("data-y") === String(y))!;
 
     it("the crossing letter keeps the seat of the player who froze it first, under both bands", () => {
-      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} ownerNames={{ player_b: "Kári", player_a: "Birna" }} bands={bands} />);
+      render(<Field language="is" board={board()} viewerSlot="player_a" frozenTiles={crossing} ownerNames={{ player_b: "Kári", player_a: "Birna" }} bands={bands} />);
       const shared = at(2, 2);
       expect(shared).toHaveAttribute("data-state", "scored");
       expect(shared).toHaveAttribute("data-seat", "opp");
@@ -98,12 +99,12 @@ describe("Field (design system §5.1, §9)", () => {
 
     it("a letter frozen by the viewer under the opponent's band is still the viewer's", () => {
       const swapped = { ...crossing, "2,2": { owner: "player_a" as const } };
-      render(<Field board={board()} viewerSlot="player_a" frozenTiles={swapped} bands={bands} />);
+      render(<Field language="is" board={board()} viewerSlot="player_a" frozenTiles={swapped} bands={bands} />);
       expect(at(2, 2)).toHaveAttribute("data-seat", "you");
     });
 
     it("hovering a move draws its bands over the whole word; the lit letter keeps its owner", () => {
-      render(<Field board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} highlightMove={2} />);
+      render(<Field language="is" board={board()} viewerSlot="player_a" frozenTiles={crossing} bands={bands} highlightMove={2} />);
       const lit = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-move") === "2")!;
       expect(lit).toHaveAttribute("data-cells", "2,2;2,3;2,4");
       expect(at(2, 2)).toHaveAttribute("data-seat", "opp");
@@ -114,6 +115,7 @@ describe("Field (design system §5.1, §9)", () => {
   it("cells inside a band take the scorer's seat and render as scored; the bands SVG sits under the cells", () => {
     render(
       <Field
+        language="is"
         board={board()}
         viewerSlot="player_a"
         frozenTiles={{ "1,2": { owner: "player_b" }, "2,2": { owner: "player_b" } }}

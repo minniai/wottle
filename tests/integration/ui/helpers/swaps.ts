@@ -9,8 +9,8 @@ const READ_TIMEOUT_MS = 1_000;
 
 /**
  * Plays one move on the field (spec 050): waits until the move is the
- * viewer's to make, taps two adjacent free letters, then waits until the move
- * rail counts it. A move refused at resolution (`frozen` / `moved` because the
+ * viewer's to make, taps two adjacent free letters, then waits until the
+ * bottom bar's lane counts it. A move refused at resolution (`frozen` / `moved` because the
  * opponent's move landed first) is not counted, so the helper picks a fresh
  * pair and tries again.
  */
@@ -32,9 +32,9 @@ export async function waitForYourMove(page: Page): Promise<void> {
   await page.getByTestId("field").and(page.locator('[data-turn="you"]')).waitFor({ timeout: TURN_TIMEOUT_MS });
 }
 
-/** The move rail's label: `move 4 of 10`, then `10 of 10 played`. */
+/** The viewer's moves left, from the bottom bar's lane: `7`, then `0` (2026-09-21). */
 export async function readRail(page: Page): Promise<string | null> {
-  return page.getByTestId("move-rail").getAttribute("aria-label", { timeout: READ_TIMEOUT_MS }).catch(() => null);
+  return page.getByTestId("player-bar-bottom").getByTestId("player-bar-lane").getAttribute("aria-valuenow", { timeout: READ_TIMEOUT_MS }).catch(() => null);
 }
 
 /** First horizontal pair (n, n+1) from `startIndex` (wrapping) whose cells are both `free`. */

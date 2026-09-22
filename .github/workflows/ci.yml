@@ -280,7 +280,7 @@ jobs:
       - name: Start the app
         run: |
           pnpm start &
-          npx wait-on "http://127.0.0.1:3000/dev/room?phase=picking" --timeout 60000
+          npx wait-on "http://127.0.0.1:3000/en/dev/room?phase=picking" --timeout 60000
       - name: Visual suite
         run: pnpm test:visual --reporter=line
       - name: Upload screenshots
@@ -610,7 +610,7 @@ jobs:
           else
             # One worker: the room specs share one server, one DB and one ranked queue; parallel
             # workers pair each other's queued players and stretch broadcast latency past the asserts.
-            pnpm exec playwright test --config=playwright.config.ts --project=chromium --reporter=line --workers=1 --grep-invert "@two-player-playtest"
+            pnpm exec playwright test --config=playwright.config.ts --project=chromium --project=mobile-safari --reporter=line --workers=1 --grep-invert "@two-player-playtest"
           fi
       - name: Stop Next.js server
         if: always()

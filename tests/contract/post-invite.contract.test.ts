@@ -73,6 +73,7 @@ describe("POST /api/lobby/invite", () => {
       senderId: session.player.id,
       recipientId: "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
       ttlSeconds: expect.any(Number),
+      language: "is",
     });
   });
 

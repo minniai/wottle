@@ -28,6 +28,7 @@ function matchState(matchId: string): MatchState {
     players: { playerA: facts("you"), playerB: facts("opp") },
     clock: { startedAt: null, deadlineAt: null, serverNow: "2026-01-01T00:00:00Z" },
     moveLimit: 10,
+    language: "is",
     resolvedSeq: 0,
     scores: { playerA: 0, playerB: 0 },
     frozenTiles: {},

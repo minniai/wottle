@@ -7,7 +7,7 @@ import { generateTestUsername } from "./helpers/matchmaking";
 
 test.describe("@sensory preferences in the ⋯ menu", () => {
   test("sound toggle persists to localStorage and survives navigation; preview defaults off", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/en");
     await page.getByTestId("player-bar-name-input").fill(generateTestUsername("sens"));
     await page.getByTestId("player-bar-action-play").click();
     await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });

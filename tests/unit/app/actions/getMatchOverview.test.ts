@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+// Spec 060: ratings are read per language from player_ratings; this test's database stub has none.
+vi.mock("@/lib/rating/playerRatings", async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import("@/lib/rating/playerRatings");
+  return {
+    ...actual,
+    readRatings: vi.fn(async (_c: unknown, ids: string[]) => new Map(ids.map((id) => [id, { ...actual.DEFAULT_RATING_RECORD }]))),
+    readEloRatings: vi.fn(async (_c: unknown, ids: string[]) => new Map(ids.map((id) => [id, 1200]))),
+  };
+});
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 

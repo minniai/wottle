@@ -65,7 +65,6 @@ describe("Ledger (design system §5.4)", () => {
     expect(row).toHaveAttribute("data-status", "live");
     expect(row.style.gridColumn).toBe("");
     expect(row.querySelector(".ledger__live-row")).toBeNull();
-    expect(row.querySelector('[data-testid="ledger-live-move"]')).toHaveTextContent("4");
     // Amendment P1: the state on line 1, the instruction beneath it.
     const live = screen.getByTestId("ledger-live-row");
     expect(live.querySelector(".ledger__live-line1")).toHaveTextContent("picking · T (2)");
@@ -102,7 +101,7 @@ describe("Ledger (design system §5.4)", () => {
     expect(screen.queryByTestId("ledger-how-to-play")).toBeNull();
     fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
     const howTo = screen.getByTestId("ledger-menu-item-howToPlay");
-    expect(howTo).toHaveAttribute("href", "/rules");
+    expect(howTo).toHaveAttribute("href", "/en/rules");
     expect(howTo).toHaveAttribute("target", "_blank");
     expect(screen.getByTestId("ledger-menu-item-resign")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-menu-item-leave")).toBeInTheDocument();
@@ -238,6 +237,81 @@ describe("Ledger (design system §5.4)", () => {
       render(<Ledger variant="match" model={at("0:00", "spent", 0)} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
       const invert = screen.getByTestId("match-clock").querySelector(".ledger__clock-invert")!;
       expect(invert).toHaveTextContent("time");
+    });
+  });
+
+  it("a missed move writes its penalty with a real minus; a timed-out unplayed one is marked (rules §5.6)", () => {
+    const withMiss: LedgerModel = {
+      ...model,
+      rows: model.rows.map((r) =>
+        r.move === 2 ? { ...r, status: "past", you: { words: [], total: -5, miss: true }, opp: null } : r.move === 9 ? { ...r, status: "past", you: { words: [], total: -5, miss: true, unplayed: true }, opp: null } : r,
+      ),
+    };
+    render(<Ledger variant="final" model={withMiss} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    const miss = screen.getByTestId("ledger-row-2").querySelector('[data-seat="you"]')!;
+    expect(miss).toHaveTextContent("−5");
+    expect(miss).toHaveAttribute("data-miss", "true");
+    const unplayed = screen.getByTestId("ledger-row-9").querySelector('[data-seat="you"]')!;
+    expect(unplayed).toHaveTextContent("−5");
+    expect(unplayed).toHaveAttribute("data-unplayed", "true");
+  });
+
+  // 2026-09-21: the spine. The move number sits between the two columns, your
+  // moves read inward from the left and theirs from the right, and each row's
+  // two scores meet at the spine.
+  describe("the spine", () => {
+    const played: LedgerModel = {
+      ...model,
+      rows: model.rows.map((r) =>
+        r.move === 2
+          ? { ...r, status: "past", you: { words: [{ word: "sæli", points: 12, coordinates: [], direction: "ltr" }, { word: "tói", points: 8, coordinates: [], direction: "ltr" }], total: 20 }, opp: { words: [{ word: "áta", points: 22, coordinates: [], direction: "ltr" }], total: 22 } }
+          : r.move === 1
+            ? { ...r, status: "past", you: { words: [], total: -5, miss: true }, opp: { words: [], total: -5, miss: true, unplayed: true } }
+            : r,
+      ),
+    };
+
+    it("each row is your cell, the move number, their cell, in that order; the scores meet at the spine", () => {
+      render(<Ledger variant="match" model={played} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      const cells = [...screen.getByTestId("ledger-row-2").children];
+      expect(cells.map((c) => c.className.split(" ")[0])).toEqual(["ledger__words", "ledger__move", "ledger__words"]);
+      expect(cells[0]).toHaveAttribute("data-seat", "you");
+      expect(cells[1]).toHaveTextContent(/^2$/);
+      expect(cells[2]).toHaveAttribute("data-seat", "opp");
+      // Your points come after your words (next to the spine); theirs come first.
+      expect(cells[0].lastElementChild).toHaveClass("ledger__total");
+      expect(cells[0].lastElementChild).toHaveTextContent("20");
+      expect(cells[2].firstElementChild).toHaveClass("ledger__total");
+      expect(cells[2].firstElementChild).toHaveTextContent("22");
+    });
+
+    it("the header faces off across the spine", () => {
+      render(<Ledger variant="match" model={played} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      const header = [...screen.getByTestId("ledger-header").children];
+      expect(header).toHaveLength(3);
+      expect(header[0]).toHaveTextContent("Birna · you");
+      expect(header[1]).toHaveTextContent("move");
+      expect(header[2]).toHaveTextContent("Kári");
+    });
+
+    it("a miss says no word, a move lost to the clock says not played, each beside its −5", () => {
+      render(<Ledger variant="final" model={played} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      const row = screen.getByTestId("ledger-row-1");
+      expect(row.querySelector('[data-seat="you"]')).toHaveTextContent("no word−5");
+      expect(row.querySelector('[data-seat="opp"]')).toHaveTextContent("−5not played");
+      expect(row.querySelector('[data-seat="you"] .ledger__miss')).toBeInTheDocument();
+    });
+
+    it("the final ledger closes with a total row in the seat colours", () => {
+      render(<Ledger variant="final" model={{ ...played, completed: true, totals: { you: 99, opp: 105 } }} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      const totals = screen.getByTestId("ledger-totals");
+      expect([...totals.children].map((c) => c.textContent)).toEqual(["99", "total", "105"]);
+    });
+
+    it("the live row is one band across the ledger: the beat, with their total at the right", () => {
+      render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      expect(screen.getByTestId("ledger-row-4").querySelector(".ledger__move")).toBeNull();
+      expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("picking · T (2)");
     });
   });
 });

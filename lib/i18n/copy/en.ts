@@ -1,0 +1,404 @@
+/**
+ * English strings for the room (design system §8; spec 060: one object per locale,
+ * `lib/i18n/copy/is.ts` is the Icelandic).
+ *
+ * Rules: sentence case for sentences, mono labels are uppercased by CSS (not
+ * here), the wordmark is always lowercase, no exclamation marks, numerals carry
+ * their unit or context. The clock budget is 5:00 (spec 044, decision Q1).
+ */
+
+const WORDMARK = "wottle";
+
+// Ledger context captions (spec 050: moves, one clock)
+const QUEUE_CONTEXT = "10 moves each · one 5:00 clock";
+/** The ledger clock's label (2026-09-21): `match clock`, `last 12s` in the last 15 seconds, `time` at 0:00. */
+const MATCH_CLOCK = "match clock";
+const lastSeconds = (seconds: number): string => `last ${seconds}s`;
+const TIME_SPENT = "time";
+const lobbyContext = (hereCount: number): string => `lobby · ${hereCount} here`;
+/** `final` is the phase word here, as `lobby` is in lobbyContext; the clock's place holds the match's duration. */
+const finalContext = (durationMmSs: string): string => `final · ${durationMmSs}`;
+
+// Player bar — empty / searching seats
+const NO_OPPONENT = "No opponent yet";
+const NO_OPPONENT_SUBLINE = "about 0:10 to find one";
+/** Every match is rated (spec 048), so the action says what it does: search for someone to play. */
+const FIND_OPPONENT = "find an opponent ▸";
+const PLAY = "play ▸";
+const CANCEL = "cancel ▸";
+const FINDING_OPPONENT = "Finding an opponent";
+const searchingSubline = (elapsedMmSs: string): string =>
+  `searching · ${elapsedMmSs} · ${CANCEL}`;
+const startsIn = (seconds: number): string => `starts in ${seconds}`;
+const YOUR_NAME_PLACEHOLDER = "your name";
+const NO_ACCOUNT_NEEDED = "no account needed";
+const YOU = "you";
+const OPPONENT = "opponent";
+const RATING_PENDING = "rating pending";
+const reconnecting = (remainingMmSs: string): string =>
+  `reconnecting · ${remainingMmSs} left`;
+const ratingSubline = (before: number, after: number, delta: number, wins: boolean) =>
+  `${before} → ${after} · ${delta >= 0 ? "+" : "−"}${Math.abs(delta)}${wins ? " · wins" : ""}`;
+
+// Live row states and hints
+const picking = (letter: string, value: number): string =>
+  `picking · ${letter} (${value})`;
+/** The live row while your own move is in flight or revealing (spec 050). */
+const SCORING = "scoring";
+const TAP_SECOND_LETTER = "tap a second letter";
+const TAP_AGAIN_TO_PLAY = "tap again to play";
+const ESC_CANCELS = "esc cancels";
+/** Spec 047 amendment P1: the live row's two lines — a state, then an instruction. */
+const PICK_A_LETTER = "pick a letter";
+const PREVIEWING = "previewing";
+const NO_WORD = "no word";
+const PREVIEW_INSTRUCTION = `${TAP_AGAIN_TO_PLAY} · ${ESC_CANCELS}`;
+/** `24 · hestur` or `0 · no word` — the priced preview on the live row's first line. */
+const previewLine = (total: number, words: string[]): string =>
+  `${total} · ${words.length > 0 ? words.join(" · ") : NO_WORD}`;
+const HOVER_ROW_HINT = "hover a row to see its words";
+const frozenNotice = (ownerName: string, move: number): string =>
+  `frozen · ${ownerName} M${move} · pick another`;
+/** A move refused at resolution (spec 050 FR-005): the reason, then the next step. */
+const frozenJustNow = (name: string): string => `frozen · ${name} just froze it · pick another`;
+const movedJustNow = (name: string): string => `moved · ${name} just moved it · pick another`;
+const pickClearedMoved = (name: string): string => `pick cleared · ${name} moved that letter`;
+const settingField = (landed: number): string =>
+  `setting the field · ${landed} of 100 letters`;
+
+// Move state (spec 050, contracts/move-state.md): line 1 of the live row, and the bar sub-line suffixes
+const moveYourMove = (move: number): string => `move ${move} · your move`;
+const moveScoring = (move: number): string => `move ${move} · scoring`;
+const moveScored = (move: number): string => `move ${move} scored`;
+const signed = (n: number): string => `${n < 0 ? "−" : "+"}${Math.abs(n)}`;
+const scoredDelta = (delta: number, next: number): string => `you ${signed(delta)} · move ${next} opens`;
+const DONE_PLAYED = "10 of 10 played";
+const doneFact = (opponentName: string, opponentMoves: number, clockMmSs: string): string =>
+  `waiting for ${opponentName} · ${opponentMoves} of 10 · ${clockMmSs} left`;
+const TIME_SCORING = "time · scoring";
+const moveOfSuffix = (move: number): string => `move ${move} of 10`;
+const moveScoringSuffix = (move: number): string => `move ${move} of 10 · scoring`;
+const DONE_SUFFIX = "10 of 10 · done";
+const oppProgress = (moves: number, state: "playing" | "scoring"): string => `${moves} of 10 · ${state}`;
+
+// Notices (live-row styled lines)
+const rematchRequest = (name: string): string =>
+  `${name} asks for a rematch · accept ▸ · decline`;
+const waitingForRematch = (name: string): string => `waiting for ${name}`;
+const challengeNotice = (name: string): string =>
+  `${name} challenges you · accept ▸ · decline`;
+const challengeSent = (name: string): string => `challenge sent · waiting for ${name}`;
+const challengeDeclined = (name: string): string => `${name} declined your challenge`;
+const challengeUnanswered = (name: string): string => `${name} did not answer`;
+const challengeTaken = (name: string): string => `${name} took another challenge`;
+
+// The slip (spec 048, design system §5.9)
+/** Under /en the game plays English (spec 060); Icelandic says `íslensk orð`. */
+const TAGLINE = "two players · one field · English words";
+const NEW_HERE_HOW_TO_PLAY = "new here · how to play ▸";
+const SIGN_IN_TO_SET_THE_FIELD = "sign in to set the field";
+const RESIGN_QUESTION = "Resign the match?";
+const resignConsequence = (opponentName: string): string =>
+  `${opponentName} wins · your rating moves as a loss`;
+const resignLabel = (move: number, clockMmSs: string): string =>
+  `move ${move} of 10 · ${clockMmSs} left`;
+const YES_RESIGN = "yes, resign ▸";
+const KEEP_PLAYING = "keep playing ▸";
+const KEEP_WAITING = "keep waiting ▸";
+const isGone = (name: string): string => `${name} is gone`;
+/** The end-early slip's fact (spec 050 FR-012): the absent player's count and the spent window. */
+const isGoneFact = (name: string, moves: number): string => `${name} ${moves} of 10 · 0:00 left to reconnect`;
+const END_THE_MATCH = "end the match ▸";
+const endEarlyLabel = (clockMmSs: string): string => `10 of 10 played · ${clockMmSs} on the clock`;
+const MATCH_OVER = "match over";
+/** `match over · 4:52`. Why it ended is the verdict's detail line, said once. */
+const matchOverLabel = (durationMmSs: string): string => `${MATCH_OVER} · ${durationMmSs}`;
+const winsHeadline = (winnerName: string): string => `${winnerName} wins`;
+const DRAW = "draw";
+const REVIEW_FIELD = "review the match ▸";
+const RESULT = "result ▸";
+const HOW_TO_PLAY = "how to play ▸";
+const ACCEPT = "accept ▸";
+const DECLINE = "decline";
+
+// Verdict
+/** A total as drawn: a negative one takes a real minus sign (rules §5.6 lets totals go below zero). */
+const points = (n: number): string => (n < 0 ? `−${Math.abs(n)}` : `${n}`);
+/** `134–88`; with a negative total `−4 to −12`, since a dash between minus signs cannot be read. */
+const scoreSpan = (a: number, b: number): string => (a < 0 || b < 0 ? `${points(a)} to ${points(b)}` : `${a}–${b}`);
+const verdictLine = (winnerName: string, a: number, b: number): string => `${winnerName} wins ${scoreSpan(a, b)}`;
+const drawLine = (a: number, b: number): string => `draw ${scoreSpan(a, b)}`;
+/** A forced end states what ended it, because `by 0 points` beside a rating change is a lie. */
+const forcedDetail = (loserName: string, reason: "forfeit" | "disconnect"): string =>
+  reason === "forfeit" ? `${loserName} resigned` : `${loserName} left`;
+/** Who was short of ten at 0:00 (rules §2a): their unplayed moves were penalised (§5.6). */
+const incompleteDetail = (name: string, moves: number): string => `${name} played ${moves} of 10`;
+const NEITHER_FINISHED = "neither finished";
+const marginDetail = (margin: number): string => `by ${margin} points`;
+/** The ledger's spine (2026-09-21): header, total row and the miss cells. */
+const SPINE_HEADER = "move";
+const TOTAL_LABEL = "total";
+const NOT_PLAYED = "not played";
+const verdictDetail = (margin: number, wordsA: number, wordsB: number, terrA: number, terrB: number) =>
+  `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
+
+// Foot actions
+const REMATCH = "rematch ▸";
+const NEW_OPPONENT = "new opponent ▸";
+const LOBBY = "lobby";
+const CHALLENGE = "challenge ▸";
+const HERE_NOW = "here now";
+const YOUR_LAST_MATCHES = "your last matches";
+const EMPTY_LOBBY_HINT = "No runs yet. Start one from the lobby.";
+/** The phone ledger's live row opens the rest of the ledger (design system §4). */
+const HISTORY = "history ▸";
+/** A match id that resolves to nothing: the room says so, no page of its own. */
+const NO_SUCH_MATCH = "that match does not exist";
+
+// Spec 060: strings that used to be written inline in components
+// The ⋯ menu
+const MENU = "menu";
+const soundToggle = (on: boolean): string => `sound · ${on ? "on" : "off"}`;
+const previewToggle = (on: boolean): string => `preview · ${on ? "on" : "off"}`;
+const MENU_HOW_TO_PLAY = "how to play";
+const MENU_RESIGN = "resign";
+const MENU_LEAVE = "leave";
+const MENU_PROFILE = "profile";
+const SIGN_OUT = "sign out";
+// Ledger and bars
+const LEDGER = "ledger";
+const clockAria = (label: string, time: string): string => `${label}, ${time} left`;
+const territoryAria = (you: number, opp: number): string => `territory ${you}–${opp}`;
+const CHALLENGES_YOU = "challenges you";
+const IN_A_MATCH = "in a match";
+const territoryLine = (you: number, free: number, opp: number): string => `${you} · ${free} free · ${opp}`;
+const rematchDeclined = (name: string): string => `${name} declined`;
+const REMATCH_EXPIRED = "rematch request expired";
+const REALTIME_LOST = "realtime lost · polling";
+const RECONNECTING = "reconnecting";
+const UNRATED = "unrated";
+const YOUR_MOVES = "your moves";
+const OPPONENT_MOVES = "opponent's moves";
+const SEARCHING = "searching";
+const movesLeft = (left: number, limit: number): string => `${left} of ${limit} moves left`;
+const CLOSE = "close";
+const THE_FIELD = "the field";
+/** A cell for AT: `row 8, column F, T, value 2, free` (design system §9). */
+const cellLabel = (c: { row: number; column: string; letter: string; value: number; state: string; ownerName?: string }): string =>
+  `row ${c.row}, column ${c.column}, ${c.letter}, value ${c.value}, ${c.state === "frozen" && c.ownerName ? `frozen by ${c.ownerName}` : c.state}`;
+const THE_OPPONENT = "the opponent";
+// Profile
+const PROFILE = "profile";
+const playingSince = (month: string): string => `playing since ${month}`;
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+/** Written out rather than left to `Intl`, whose month names differ between the server and some browsers. */
+const monthYear = (monthIndex: number, year: number): string => `${MONTHS[monthIndex]} ${year}`;
+const matchesPlayed = (n: number): string => `${n} matches`;
+const ratingPeak = (peak: number, weekDelta: string): string => `rating · peak ${peak} · ${weekDelta} this week`;
+const RECORD = "record";
+const WON = "won";
+const LOST = "lost";
+const DRAWN = "drawn";
+const WIN_RATE = "win rate";
+const BEST_WORDS = "best words";
+const RECENT_MATCHES = "recent matches";
+const versus = (name: string): string => `vs ${name}`;
+const matchResult = (result: "win" | "loss" | "draw"): string => result;
+const BACK_LOBBY = "◂ lobby";
+const CHANGE_NAME = "change name";
+const NO_RATED_MATCHES = "no rated matches in the last 30 days";
+const ratingChartAria = (min: number, max: number): string => `rating over the last 30 days, ${min} to ${max}`;
+const profileUnavailable = (reason: string | null): string =>
+  `profile unavailable · ${(reason ?? "try again in a moment").toLowerCase()}`;
+const noSuchPlayer = (handle: string): string => `No such player · @${handle} has not played a round here yet`;
+// Messages the server sends back, by code (research R4)
+const errors = {
+  rate_limited: "too many tries · wait a minute",
+  invalid_name: "3 to 24 letters, digits, - or _",
+  login_failed: "could not sign in · try again",
+  signed_out: "sign in first",
+  queue_failed: "could not start a search · try again",
+  invite_failed: "challenge failed",
+  rematch_failed: "unable to request a rematch",
+  accept_failed: "unable to accept",
+  resign_failed: "could not resign · try again",
+  move_ended: "the match has ended",
+  move_not_started: "the match has not started yet",
+  move_deadline: "the clock has run out",
+  move_cap: "you have made all your moves",
+  move_in_flight: "your previous move is still being scored",
+  move_failed: "swap rejected",
+  unknown: "something went wrong · try again",
+} as const satisfies Record<string, string>;
+// Rules page
+const RULES_TITLE = "how to play";
+const rulesMetaTitle = (wordmark: string): string => `how to play · ${wordmark}`;
+const RULES_DESCRIPTION = "Two players, one field, ten moves each. How a match is played and scored.";
+const BACK_TO_LOBBY = "back to the lobby ▸";
+const scoringRows = (lengthBonus: number, missPenalty: string): Array<{ rule: string; value: string }> => [
+  { rule: "letter values", value: "the numerals on the letters, added up" },
+  { rule: "length bonus", value: `(letters − 2) × ${lengthBonus}` },
+  { rule: "a letter the opponent froze", value: "counts for length, not for points" },
+  { rule: "the same word somewhere new", value: "scores again" },
+  { rule: "a move with no word", value: missPenalty },
+];
+// Metadata and the language link
+const SITE_DESCRIPTION =
+  "A two-player word duel. Swap two letters; words of three or more score and freeze in your ink.";
+const LANGUAGE_LINK = "íslenska ▸";
+
+export const copyEn = {
+  WORDMARK,
+  QUEUE_CONTEXT,
+  MATCH_CLOCK,
+  lastSeconds,
+  TIME_SPENT,
+  lobbyContext,
+  finalContext,
+  NO_OPPONENT,
+  NO_OPPONENT_SUBLINE,
+  FIND_OPPONENT,
+  PLAY,
+  CANCEL,
+  FINDING_OPPONENT,
+  searchingSubline,
+  startsIn,
+  YOUR_NAME_PLACEHOLDER,
+  NO_ACCOUNT_NEEDED,
+  YOU,
+  OPPONENT,
+  RATING_PENDING,
+  reconnecting,
+  ratingSubline,
+  picking,
+  SCORING,
+  TAP_SECOND_LETTER,
+  TAP_AGAIN_TO_PLAY,
+  ESC_CANCELS,
+  PICK_A_LETTER,
+  PREVIEWING,
+  NO_WORD,
+  PREVIEW_INSTRUCTION,
+  previewLine,
+  HOVER_ROW_HINT,
+  frozenNotice,
+  frozenJustNow,
+  movedJustNow,
+  pickClearedMoved,
+  settingField,
+  moveYourMove,
+  moveScoring,
+  moveScored,
+  scoredDelta,
+  DONE_PLAYED,
+  doneFact,
+  TIME_SCORING,
+  moveOfSuffix,
+  moveScoringSuffix,
+  DONE_SUFFIX,
+  oppProgress,
+  rematchRequest,
+  waitingForRematch,
+  challengeNotice,
+  challengeSent,
+  challengeDeclined,
+  challengeUnanswered,
+  challengeTaken,
+  TAGLINE,
+  NEW_HERE_HOW_TO_PLAY,
+  SIGN_IN_TO_SET_THE_FIELD,
+  RESIGN_QUESTION,
+  resignConsequence,
+  resignLabel,
+  YES_RESIGN,
+  KEEP_PLAYING,
+  KEEP_WAITING,
+  isGone,
+  isGoneFact,
+  END_THE_MATCH,
+  endEarlyLabel,
+  MATCH_OVER,
+  matchOverLabel,
+  winsHeadline,
+  DRAW,
+  REVIEW_FIELD,
+  RESULT,
+  HOW_TO_PLAY,
+  ACCEPT,
+  DECLINE,
+  points,
+  verdictLine,
+  drawLine,
+  forcedDetail,
+  incompleteDetail,
+  NEITHER_FINISHED,
+  marginDetail,
+  SPINE_HEADER,
+  TOTAL_LABEL,
+  NOT_PLAYED,
+  verdictDetail,
+  REMATCH,
+  NEW_OPPONENT,
+  LOBBY,
+  CHALLENGE,
+  HERE_NOW,
+  YOUR_LAST_MATCHES,
+  EMPTY_LOBBY_HINT,
+  HISTORY,
+  NO_SUCH_MATCH,
+  MENU,
+  soundToggle,
+  previewToggle,
+  MENU_HOW_TO_PLAY,
+  MENU_RESIGN,
+  MENU_LEAVE,
+  MENU_PROFILE,
+  SIGN_OUT,
+  LEDGER,
+  clockAria,
+  territoryAria,
+  CHALLENGES_YOU,
+  IN_A_MATCH,
+  territoryLine,
+  rematchDeclined,
+  REMATCH_EXPIRED,
+  REALTIME_LOST,
+  RECONNECTING,
+  UNRATED,
+  YOUR_MOVES,
+  OPPONENT_MOVES,
+  SEARCHING,
+  movesLeft,
+  CLOSE,
+  THE_FIELD,
+  cellLabel,
+  THE_OPPONENT,
+  PROFILE,
+  playingSince,
+  monthYear,
+  matchesPlayed,
+  ratingPeak,
+  RECORD,
+  WON,
+  LOST,
+  DRAWN,
+  WIN_RATE,
+  BEST_WORDS,
+  RECENT_MATCHES,
+  versus,
+  matchResult,
+  BACK_LOBBY,
+  CHANGE_NAME,
+  NO_RATED_MATCHES,
+  ratingChartAria,
+  profileUnavailable,
+  noSuchPlayer,
+  errors,
+  RULES_TITLE,
+  rulesMetaTitle,
+  RULES_DESCRIPTION,
+  BACK_TO_LOBBY,
+  scoringRows,
+  SITE_DESCRIPTION,
+  LANGUAGE_LINK,
+};

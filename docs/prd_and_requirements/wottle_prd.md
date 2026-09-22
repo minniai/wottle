@@ -59,7 +59,8 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
   - Both players have 10 resolved moves, or
   - The 5:00 clock has run out and every move received before it has resolved, or
   - One player resigns, or a player with 10 moves ends the match after the opponent has been gone for the reconnection window.
-- **Winner, in this order:** a player with fewer than 10 moves at the end **loses**, whatever the totals; both short of 10 is a **draw**; otherwise the higher total wins, a tie goes to the player with more exclusively owned frozen tiles, and a full tie is a draw. Every outcome is rated.
+- **Miss penalty:** a move that scores no word costs −5. At 0:00 every unplayed move costs −5 too. Totals can go below zero.
+- **Winner, in this order:** the higher total (after any timeout penalties), then the player with more exclusively owned frozen tiles; a full tie is a draw. Running out of time is not a loss by itself. Every outcome is rated.
 
 ## 2. Scoring System
 
@@ -167,7 +168,8 @@ Move Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 - **Validation Engine:** In-memory Trie or hash set; O(1) lookup.
 - **Multi-Language Support:** Configurable via dictionary ID and letter values.
 - **Unicode Handling:** NFC normalized, language-specific.
-- **Localization:** UI and messages translatable (EN/IS at launch).
+- **English (spec 060):** `data/wordlists/word_list_en.txt` (~79k lowercase a–z forms), English letter values, board weights from a standard word-game bag.
+- **Languages by URL (spec 060):** Icelandic — the game is called **Orðusta** — at the unprefixed addresses, English (**wottle**) under `/en`. The interface language comes from the address; the game language is a property of the match, fixed at creation, and decides the dictionary, letter values and letter frequencies. Queue, lobby and ratings are separate for each language. Adding a language is data: a locale entry, its strings, its word list and a language pack.
 
 ## 6. Technical Architecture
 

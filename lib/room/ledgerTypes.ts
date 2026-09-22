@@ -15,6 +15,10 @@ export interface WordCell {
 export interface SeatCell {
   words: WordCell[];
   total: number;
+  /** A move that scored no word (rules §5.6): `total` is its penalty. */
+  miss?: boolean;
+  /** Not played before 0:00, penalised as a miss. */
+  unplayed?: boolean;
 }
 
 /** The live row's two lines (spec 047 amendment P1): a state, then an instruction or nothing. */
@@ -55,9 +59,10 @@ export interface LedgerModel {
   clockPhase?: ClockPhase;
   /** Time left over the match's clock length, 0..1: the bar's fill. */
   clockFraction?: number;
-  /** The viewer's moves played and whether the match is over: the rail's inputs (spec 048 US3). */
-  movesPlayed?: number;
+  /** Whether the match is over. */
   completed?: boolean;
+  /** The final totals, closing the table in the final state (2026-09-21). */
+  totals?: { you: number; opp: number };
   rows: LedgerRow[];
   territory: Territory;
   hint: string;
@@ -99,7 +104,16 @@ export type Notice =
   | { kind: "pickCleared"; byName: string }
   | { kind: "rematchRequest"; requesterName: string }
   | { kind: "challenge"; fromName: string; inviteId: string }
+  | { kind: "challengeSent"; toName: string; inviteId: string }
   | { kind: "text"; text: string };
+
+/** The viewer's latest challenge as the lobby poll reports it (GET /api/lobby/invite). */
+export interface OutgoingChallenge {
+  id: string;
+  status: "pending" | "accepted" | "declined" | "expired";
+  recipientName: string;
+  recipientInMatch: boolean;
+}
 
 export const EMPTY_TERRITORY: Territory = { you: 0, opp: 0, free: 100 };
 

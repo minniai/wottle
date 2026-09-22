@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
 import { BarLane, type LaneMode } from "./BarLane";
@@ -23,13 +24,19 @@ export interface PlayerBarProps {
   sublineTone?: "seat" | "muted";
   /** The opponent has just been found: their name is written in (FR-028). */
   writing?: boolean;
-  /** Resolved moves: the lane's length (spec 050 FR-015). */
+  /** Resolved moves: the lane empties one segment per move (2026-09-21). */
   movesPlayed?: number;
+  /** A move of this player's is in flight: its segment shows as scoring. */
+  moveInFlight?: boolean;
   moveLimit?: number;
   score?: number;
   disconnected?: boolean;
   /** Primary action when the seat is empty or searching. */
   action?: ReactNode;
+  /** The player's profile: the name becomes a link to it. */
+  profileHref?: string;
+  /** During a live match the profile opens in a new tab, so the match keeps running. */
+  profileInNewTab?: boolean;
 }
 
 function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
@@ -41,11 +48,12 @@ function laneMode(state: PlayerBarState, disconnected: boolean): LaneMode {
 /**
  * One player's facts (design system §5.3, spec 050): seat square + name +
  * one-line sub-line | total or primary action. There is no clock in a bar; the
- * match clock is the ledger caption's. The opponent is always the top bar, the
+ * match clock is the ledger's. The opponent is always the top bar, the
  * viewer the bottom; the lane sits on the edge nearest the field.
  */
 export function PlayerBar(props: PlayerBarProps) {
-  const { seat, position, state, name, subline, writing = false, movesPlayed = 0, moveLimit = TOTAL_MOVES } = props;
+  const { points, YOUR_MOVES, OPPONENT_MOVES } = useCopy();
+  const { seat, position, state, name, subline, writing = false, movesPlayed = 0, moveLimit = TOTAL_MOVES, moveInFlight = false } = props;
   const { score, disconnected = false, action } = props;
   const inMatch = state === "playing" || state === "final";
   const showsScore = inMatch && typeof score === "number";
@@ -82,14 +90,14 @@ export function PlayerBar(props: PlayerBarProps) {
       </div>
       {showsScore ? (
         <div className="player-bar__score" data-testid="player-bar-score">
-          {score}
+          {points(score)}
         </div>
       ) : (
         <div className="player-bar__action" data-testid="player-bar-action">
           {action}
         </div>
       )}
-      <BarLane label={seat === "you" ? "your moves" : "opponent's moves"} movesPlayed={movesPlayed} moveLimit={moveLimit} mode={laneMode(state, disconnected)} />
+      <BarLane label={seat === "you" ? YOUR_MOVES : OPPONENT_MOVES} movesPlayed={movesPlayed} moveLimit={moveLimit} moveInFlight={moveInFlight} mode={laneMode(state, disconnected)} />
     </div>
   );
 }

@@ -6,8 +6,8 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/dev/room",
 }));
 
-import { RoomFixture } from "@/app/dev/room/RoomFixture";
-import { ROOM_PHASES } from "@/app/dev/room/fixtures";
+import { RoomFixture } from "@/app/[locale]/dev/room/RoomFixture";
+import { ROOM_PHASES } from "@/app/[locale]/dev/room/fixtures";
 
 // The rules fixture is a server-rendered page outside the room/store.
 const IN_ROOM_PHASES = ROOM_PHASES.filter((phase) => phase !== "rules");
@@ -123,5 +123,16 @@ describe("RoomFixture", () => {
     expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
     expect(screen.getByTestId("slip")).toHaveTextContent("Kári is gone");
     expect(screen.getByTestId("slip-end-early")).toBeInTheDocument();
+  });
+
+  it("final: the ledger closes on a totals row across the spine; a live match has none", () => {
+    const final = render(<RoomFixture phase="final" />);
+    const totals = screen.getByTestId("ledger-totals");
+    expect(totals.children).toHaveLength(3);
+    expect(totals.children[1]).toHaveTextContent("total");
+    final.unmount();
+
+    render(<RoomFixture phase="idle" />);
+    expect(screen.queryByTestId("ledger-totals")).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cancelRematchAction } from "@/app/actions/match/cancelRematch";
@@ -20,7 +21,8 @@ export interface RematchOptions {
 
 export interface RematchApi {
   phase: RematchPhase;
-  error: string | null;
+  /** A failure, as a code the room words in the page's language (spec 060). */
+  error: ErrorCode | null;
   request: () => Promise<void>;
   accept: () => Promise<void>;
   decline: () => Promise<void>;
@@ -35,7 +37,7 @@ export interface RematchApi {
  */
 export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: RematchOptions): RematchApi {
   const [phase, setPhase] = useState<RematchPhase>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorCode | null>(null);
   const phaseRef = useRef(phase);
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onNewMatchRef = useRef(onNewMatch);
@@ -94,7 +96,8 @@ export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: 
       timeout.current = setTimeout(() => setPhase("expired"), REMATCH_TIMEOUT_MS);
     } catch (e) {
       setPhase("idle");
-      setError(e instanceof Error ? e.message : "unable to request a rematch");
+      console.warn("[rematch] request failed", e);
+      setError("rematch_failed");
     }
   }, [matchId]);
 
@@ -109,7 +112,8 @@ export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: 
       } else setPhase("expired");
     } catch (e) {
       setPhase("incoming");
-      setError(e instanceof Error ? e.message : "unable to accept");
+      console.warn("[rematch] accept failed", e);
+      setError("accept_failed");
     }
   }, [matchId]);
 

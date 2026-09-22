@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { CSSProperties } from "react";
 
 import type { Seat } from "@/lib/constants/seatColors";
@@ -32,13 +33,9 @@ export interface FieldCellProps {
 
 const COLUMN_LETTERS = "ABCDEFGHIJ";
 
-/** `row 8, column F, T, value 2, free` — coordinates live only here (design system §9). */
-export function cellLabel(x: number, y: number, letter: string, value: number, state: CellState, ownerName?: string): string {
-  const stateWord = state === "frozen" && ownerName ? `frozen by ${ownerName}` : state;
-  return `row ${y + 1}, column ${COLUMN_LETTERS[x]}, ${letter}, value ${value}, ${stateWord}`;
-}
 
 export function FieldCell(props: FieldCellProps) {
+  const copy = useCopy();
   const { x, y, letter, value, state, seat, ownerName, shake, landing, disabled, tabIndex = -1, onActivate, onPointerDown, onPointerUp, onKeyDown, exchange = null, onExchangeEnd } = props;
   const style = {
     ...(seat ? { "--seat-ink": getSeatColors(seat).ink } : {}),
@@ -54,7 +51,7 @@ export function FieldCell(props: FieldCellProps) {
       data-y={y}
       data-state={state}
       data-seat={seat ?? undefined}
-      aria-label={cellLabel(x, y, letter, value, state, ownerName)}
+      aria-label={copy.cellLabel({ row: y + 1, column: COLUMN_LETTERS[x], letter, value, state, ownerName })}
       aria-disabled={disabled || undefined}
       tabIndex={tabIndex}
       style={style}

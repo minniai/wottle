@@ -20,6 +20,7 @@ function matchState(overrides: Partial<MatchState> = {}): MatchState {
     players: { playerA: facts(A), playerB: facts(B) },
     clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:01Z" },
     moveLimit: 10,
+    language: "is",
     resolvedSeq: 0,
     scores: { playerA: 0, playerB: 0 },
     frozenTiles: {},
@@ -64,6 +65,13 @@ describe("roomStore (spec 044 data-model §3.1, spec 050)", () => {
     expect(s().phase).toBe("lobby");
     expect(s().match).toBeNull();
     expect(s().board).toBe(matchBoard); // the field keeps showing the last board
+  });
+
+  it("starting a search takes a leftover slip down (new opponent ▸ from the match-over slip)", () => {
+    useRoomStore.setState({ slip: { kind: "matchOver" } as never, slipDismissed: true });
+    useRoomStore.getState().startQueue(1_000);
+    expect(useRoomStore.getState().slip).toBeNull();
+    expect(useRoomStore.getState().slipDismissed).toBe(false);
   });
 
   it("queue → lobby on cancel keeps the board", () => {

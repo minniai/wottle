@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+// Spec 060: ratings are read per language from player_ratings; this test's database stub has none.
+vi.mock("@/lib/rating/playerRatings", async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import("@/lib/rating/playerRatings");
+  return {
+    ...actual,
+    readRatings: vi.fn(async (_c: unknown, ids: string[]) => new Map(ids.map((id) => [id, { ...actual.DEFAULT_RATING_RECORD }]))),
+    readEloRatings: vi.fn(async (_c: unknown, ids: string[]) => new Map(ids.map((id) => [id, 1200]))),
+  };
+});
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/match/statePublisher", () => ({
   publishMatchState: vi.fn().mockResolvedValue(undefined),
@@ -181,7 +190,7 @@ describe("completeMatchInternal — abandoned reason", () => {
 });
 
 describe("completeMatchInternal — the completion compare-and-set (spec 050 FR-011)", () => {
-  test("a natural end decides by the rules: the finisher wins with `incomplete`", async () => {
+  test("a natural end penalises the short player's unplayed moves, then the score decides (`incomplete`, rules §5.6)", async () => {
     const state = freshState();
     state.match.player_a_moves = 10;
     state.match.player_b_moves = 8;
@@ -191,10 +200,11 @@ describe("completeMatchInternal — the completion compare-and-set (spec 050 FR-
 
     const result = await completeMatchInternal(MATCH_ID, "natural");
 
-    expect(result.winnerId).toBe(PLAYER_A);
+    // B's two unplayed moves: −5 each → 134 − 10 = 124, still ahead of 88.
+    expect(result.winnerId).toBe(PLAYER_B);
     expect(result.endedReason).toBe("incomplete");
-    expect(result.scores).toEqual({ playerA: 88, playerB: 134 });
-    expect(state.matchUpdatePayloads[0]).toMatchObject({ state: "completed", winner_id: PLAYER_A, ended_reason: "incomplete" });
+    expect(result.scores).toEqual({ playerA: 88, playerB: 124 });
+    expect(state.matchUpdatePayloads[0]).toMatchObject({ state: "completed", winner_id: PLAYER_B, ended_reason: "incomplete", player_b_score: 124 });
     expect(persistRatingChanges).toHaveBeenCalledTimes(1);
   });
 

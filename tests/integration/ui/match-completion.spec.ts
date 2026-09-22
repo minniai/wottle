@@ -63,7 +63,7 @@ test.describe("@match-completion final room state", () => {
       await submitSwap(pageA);
       await submitSwap(pageB);
       for (const p of [pageA, pageB]) {
-        await expect(p.getByTestId("move-rail")).toHaveAttribute("aria-label", "move 2 of 10", { timeout: 45_000 });
+        await expect(p.getByTestId("player-bar-bottom").getByTestId("player-bar-lane")).toHaveAttribute("aria-valuenow", "9", { timeout: 45_000 });
         await expect(p.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 20_000 });
       }
       const playedBoard = await readField(pageA);
@@ -77,7 +77,7 @@ test.describe("@match-completion final room state", () => {
       for (const p of [pageA, pageB]) {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
         await expect(p.getByTestId("field")).toBeVisible();
-        await expect(p.getByTestId("verdict")).toContainText(/wins \d+–\d+|draw \d+–\d+/);
+        await expect(p.getByTestId("verdict")).toContainText(/(wins|draw) (\d+–\d+|−?\d+ to −?\d+)/);
         await expect(p.getByTestId("ledger-context")).toContainText(/final · \d+:\d\d/);
         await expect(p).toHaveURL(/\/match\/[0-9a-f-]+$/);
         // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
@@ -93,7 +93,7 @@ test.describe("@match-completion final room state", () => {
       // Every match is rated (spec 048 US6): an invite-created match writes rating rows too.
       await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/\d+ → \d+ · [+−]\d+/, { timeout: 15_000 });
 
-      // review the field ▸ lifts the slip; result ▸ in the foot brings it back.
+      // review the match ▸ lifts the slip; result ▸ in the foot brings it back.
       await pageA.getByTestId("slip-review-field").click();
       await expect(pageA.getByTestId("slip")).toHaveCount(0);
       await pageA.getByTestId("ledger-result").click();
@@ -108,6 +108,8 @@ test.describe("@match-completion final room state", () => {
 
       await pageA.getByTestId("slip-lobby").click();
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+      // Reported 2026-09-21: the match-over slip stayed up over the lobby.
+      await expect(pageA.getByTestId("slip")).toHaveCount(0);
     } finally {
       await contextA.close();
       await contextB.close();

@@ -47,7 +47,7 @@ describe("ProfilePage (design system Fig. 9, spec 044 US10)", () => {
     const match = screen.getByTestId("profile-recent-match");
     expect(match).toHaveAttribute("role", "row");
     expect(match.tagName).not.toBe("A");
-    expect(match.querySelector("a")).toHaveAttribute("href", "/match/m1");
+    expect(match.querySelector("a")).toHaveAttribute("href", "/en/match/m1");
     expect(match).toHaveTextContent("170–127");
   });
 
@@ -63,7 +63,7 @@ describe("ProfilePage (design system Fig. 9, spec 044 US10)", () => {
 
   it("foot: ◂ lobby, and change name · sign out only for the owner", () => {
     const { rerender } = render(<ProfilePage profile={profile} words={[]} matches={[]} isSelf />);
-    expect(screen.getByTestId("profile-back-lobby")).toHaveAttribute("href", "/lobby");
+    expect(screen.getByTestId("profile-back-lobby")).toHaveAttribute("href", "/en/lobby");
     expect(screen.getByTestId("profile-change-name")).toBeInTheDocument();
     expect(screen.getByTestId("profile-sign-out")).toBeInTheDocument();
     rerender(<ProfilePage profile={profile} words={[]} matches={[]} isSelf={false} />);

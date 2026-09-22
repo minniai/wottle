@@ -2,7 +2,8 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { OPPONENT, YOU, reconnecting } from "@/lib/constants/copy";
+import { useCopy } from "@/components/i18n/LocaleProvider";
+import type { Copy } from "@/lib/i18n/copy/types";
 import { formatClock } from "@/lib/room/clock";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
 import { barSuffixFor, barToneFor, type MoveState } from "@/lib/room/moveState";
@@ -28,6 +29,9 @@ export interface SeatFacts {
   reconnectMsLeft?: number | null;
   /** Final: `1191 → 1203 · +12 · wins` or `rating pending`. */
   finalLine?: string;
+  /** The player's profile; opened in a new tab while the match is live. */
+  profileHref?: string;
+  profileInNewTab?: boolean;
 }
 
 export interface MatchRoomViewProps {
@@ -39,6 +43,8 @@ export interface MatchRoomViewProps {
   clockMs?: number;
   /** This match's clock length; the ledger clock's bar drains over it. */
   clockLengthMs?: number;
+  /** The match ended on the clock with a player short of ten: their unplayed rows show penalties (rules §5.6). */
+  penalizeUnplayed?: boolean;
   moveLimit?: number;
   completed: boolean;
   words: AccumulatedWord[];
@@ -62,15 +68,18 @@ export interface MatchRoomViewProps {
   children: ReactNode;
 }
 
-function subline(facts: SeatFacts, seatWord: string | null): string {
+function subline(facts: SeatFacts, seatWord: string | null, copy: Copy): string {
   if (facts.finalLine) return facts.finalLine;
-  if (facts.reconnectMsLeft != null) return reconnecting(formatClock(facts.reconnectMsLeft));
-  return seatWord ? `${facts.rating ?? "unrated"} · ${seatWord}` : String(facts.rating ?? "unrated");
+  if (facts.reconnectMsLeft != null) return copy.reconnecting(formatClock(facts.reconnectMsLeft));
+  const rating = String(facts.rating ?? copy.UNRATED);
+  return seatWord ? `${rating} · ${seatWord}` : rating;
 }
 
 /** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
-  const { matchId, viewerSlot, you, opp, clockMs, clockLengthMs, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
+  const copy = useCopy();
+  const { OPPONENT, YOU } = copy;
+  const { matchId, viewerSlot, you, opp, clockMs, clockLengthMs, penalizeUnplayed = false, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
   const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children, moveState, holdMove = null } = props;
   const reducedMotion = useReducedMotion();
@@ -94,13 +103,15 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       holdMove,
       clockMs: completed ? undefined : clockMs,
       clockLengthMs,
-    });
-    return { ...base, caption: caption ?? base.caption, verdict };
-  }, [movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs]);
+      penalizeUnplayed,
+    }, copy);
+    const totals = completed ? { you: you.score, opp: opp.score } : undefined;
+    return { ...base, caption: caption ?? base.caption, verdict, totals };
+  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed, copy]);
   const turn = moveState && !completed && !readOnly ? moveState : null;
   const counts = { you: you.movesPlayed, opp: opp.movesPlayed, oppScoring: Boolean(opp.scoring), limit: moveLimit };
-  const youSuffix = turn ? barSuffixFor(turn, "you", counts) : null;
-  const oppSuffix = turn ? barSuffixFor(turn, "opp", counts) : null;
+  const youSuffix = turn ? barSuffixFor(turn, "you", counts, copy) : null;
+  const oppSuffix = turn ? barSuffixFor(turn, "opp", counts, copy) : null;
 
   return (
     <Room
@@ -116,6 +127,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           subline={subline(opp, readOnly ? null : OPPONENT)}
           sublineSuffix={opp.reconnectMsLeft != null ? null : oppSuffix}
           movesPlayed={opp.movesPlayed}
+          moveInFlight={opp.scoring}
           moveLimit={moveLimit}
           score={oppScore}
           disconnected={opp.reconnectMsLeft != null}
@@ -133,6 +145,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           sublineSuffix={youSuffix}
           sublineTone={turn ? barToneFor(turn) : "muted"}
           movesPlayed={you.movesPlayed}
+          moveInFlight={you.scoring}
           moveLimit={moveLimit}
           score={youScore}
           disconnected={you.reconnectMsLeft != null}

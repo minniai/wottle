@@ -1,3 +1,5 @@
+import { readEloRatings } from "@/lib/rating/playerRatings";
+import type { Language } from "@/lib/types/game-config";
 import "server-only";
 
 import { cookies } from "next/headers";
@@ -68,7 +70,8 @@ export class LoginValidationError extends Error {
   }
 }
 
-export async function performUsernameLogin(usernameInput: string): Promise<LoginResult> {
+/** `language` is the lobby the sign-in happened in (spec 060); the player is present there first. */
+export async function performUsernameLogin(usernameInput: string, language: Language = "is"): Promise<LoginResult> {
   console.log("[performUsernameLogin] Starting login for:", usernameInput);
   
   const parsed = usernameSchema.safeParse(usernameInput);
@@ -90,7 +93,7 @@ export async function performUsernameLogin(usernameInput: string): Promise<Login
   console.log("[performUsernameLogin] Player created:", player.id);
 
   console.log("[performUsernameLogin] Creating presence record...");
-  const presence = await createPresenceRecord(supabase, player.id);
+  const presence = await createPresenceRecord(supabase, player.id, language);
   console.log("[performUsernameLogin] Presence created:", {
     playerId: presence.playerId,
     expiresAt: presence.expiresAt,
@@ -115,7 +118,7 @@ export async function performUsernameLogin(usernameInput: string): Promise<Login
     isExpired: new Date(verification.expires_at) <= new Date(),
   });
 
-  rememberPresence(player);
+  rememberPresence(player, language);
   console.log("[performUsernameLogin] Player added to server cache");
 
   return {
@@ -176,7 +179,8 @@ type LobbySnapshotRow = {
   } | null;
 };
 
-export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
+/** Who is here in one language's lobby (spec 060 FR-019). */
+export async function fetchLobbySnapshot(language: Language = "is"): Promise<PlayerIdentity[]> {
   const supabase = getServiceRoleClient();
 
   const { data, error } = await supabase
@@ -195,6 +199,7 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
       `
     )
     .gt("expires_at", new Date().toISOString())
+    .eq("language", language)
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -219,9 +224,11 @@ export async function fetchLobbySnapshot(): Promise<PlayerIdentity[]> {
       eloRating: playerRow.elo_rating,
     }));
 
-  const cachedPlayers = listCachedPresence();
-
-  return sortPlayers(dedupePlayers([...players, ...cachedPlayers]));
+  const cachedPlayers = listCachedPresence(language);
+  const everyone = dedupePlayers([...players, ...cachedPlayers]);
+  // The rating beside each name is the lobby's language's (spec 060 US4).
+  const ratings = await readEloRatings(supabase, everyone.map((p) => p.id), language);
+  return sortPlayers(everyone.map((p) => ({ ...p, eloRating: ratings.get(p.id) ?? p.eloRating })));
 }
 
 // Heal `players.status` when it's stuck at "in_match" but no pending or
@@ -300,7 +307,7 @@ function formatDisplayName(username: string): string {
   return username.charAt(0).toUpperCase() + username.slice(1);
 }
 
-async function createPresenceRecord(supabase: ReturnType<typeof getServiceRoleClient>, playerId: string) {
+async function createPresenceRecord(supabase: ReturnType<typeof getServiceRoleClient>, playerId: string, language: Language) {
   const connectionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + PRESENCE_TTL_SECONDS * 1_000);
 
@@ -310,6 +317,7 @@ async function createPresenceRecord(supabase: ReturnType<typeof getServiceRoleCl
     mode: "auto",
     inviteToken: null,
     expiresAt,
+    language,
   });
 }
 
@@ -358,3 +366,18 @@ function shouldUseSecureCookies(): boolean {
 
 
 
+
+/**
+ * The signed-in player with their rating in `language` (spec 060 US4). The
+ * session cookie carries the rating from sign-in, in no particular language;
+ * every page that shows the viewer's own bar reads it fresh here.
+ */
+export async function viewerInLanguage(player: PlayerIdentity, language: Language): Promise<PlayerIdentity> {
+  try {
+    const ratings = await readEloRatings(getServiceRoleClient(), [player.id], language);
+    return { ...player, eloRating: ratings.get(player.id) ?? player.eloRating };
+  } catch (error) {
+    console.warn("[viewerInLanguage] rating read failed", error);
+    return player;
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { useEffect, useRef, useState } from "react";
 
 import type { Seat } from "@/lib/constants/seatColors";
@@ -24,6 +25,7 @@ const PAD_Y = 14;
  * No area fill, no markers, no tooltip.
  */
 export function ProfileRatingChart({ history, seat }: ProfileRatingChartProps) {
+  const { NO_RATED_MATCHES, ratingChartAria } = useCopy();
   // The coordinate system matches the rendered box, so one user unit is one
   // pixel and nothing the SVG draws is stretched — least of all the mono axis
   // labels (spec 045 B9).
@@ -62,9 +64,7 @@ export function ProfileRatingChart({ history, seat }: ProfileRatingChartProps) {
         data-testid="profile-rating-chart"
         role="img"
         aria-label={
-          history.length
-            ? `rating over the last 30 days, ${min} to ${max}`
-            : "no rated matches in the last 30 days"
+          history.length ? ratingChartAria(min, max) : NO_RATED_MATCHES
         }
         viewBox={`0 0 ${width} ${H}`}
         preserveAspectRatio="xMinYMin meet"
@@ -136,7 +136,7 @@ export function ProfileRatingChart({ history, seat }: ProfileRatingChartProps) {
             textAnchor="middle"
             className="profile-chart__label"
           >
-            no rated matches in the last 30 days
+            {NO_RATED_MATCHES}
           </text>
         )}
       </svg>

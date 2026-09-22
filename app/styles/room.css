@@ -97,7 +97,13 @@
   .room__ledger {
     display: flex;
     flex-direction: column;
+    /* Override the desktop top alignment: the sheet needs the remaining
+       grid track's definite height, not the height of all ten moves. */
+    align-self: stretch;
     height: auto;
+    min-height: 0;
+  }
+  .room__ledger > .ledger {
     min-height: 0;
   }
   /* Every control a thumb reaches in the sheet (constitution IV). A text link
@@ -186,11 +192,28 @@
   color: var(--seat-ink);
   text-align: right;
 }
+/* A player's name opens their profile (2026-09-21): the link keeps the name's look. */
+.player-bar__name--link {
+  color: inherit;
+  text-decoration: none;
+}
+.lobby-ledger__profile {
+  color: inherit;
+  text-decoration: none;
+}
+.player-bar__name--link:hover,
+.player-bar__name--link:focus-visible,
+.lobby-ledger__profile:hover,
+.lobby-ledger__profile:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
 .player-bar__action {
   justify-self: end;
 }
 
-/* Clock lane: the bar's edge nearest the field. */
+/* The lane: the bar's edge nearest the field. */
 .player-bar__lane {
   position: absolute;
   left: 0;
@@ -207,13 +230,32 @@
 .player-bar__lane-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  width: calc(var(--lane-fraction, 1) * 100%);
   background: var(--seat-ink);
 }
-.player-bar__lane-dash {
-  /* The pattern is drawn in the SVG; the lane only places it. */
+/* The move lane (2026-09-21): ten segments, one per move left, 3px apart. */
+.player-bar__lane--segments {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  column-gap: 3px;
+  height: 6px;
+  background: transparent;
+}
+.player-bar__segment {
   display: block;
-  width: 100%;
+}
+.player-bar__segment[data-state="left"] {
+  background: var(--seat-ink);
+}
+.player-bar__segment[data-state="spent"] {
+  background: var(--rule);
+}
+.player-bar__segment[data-state="scoring"] {
+  background: color-mix(in srgb, var(--seat-ink) 30%, transparent);
+}
+/* Present, not playing: the moves left outlined. */
+.player-bar__lane--disconnected .player-bar__segment[data-state="left"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--seat-ink);
 }
 .player-bar__lane--searching .player-bar__lane-fill {
   width: 12%;
@@ -281,6 +323,10 @@
    :nth-last-of-type(-n + 10) would match every cell of every row. */
 .field__row:last-child .field__cell {
   border-bottom: 0;
+}
+/* A letter you can pick answers the pointer, only while the move is yours. */
+.field:not([data-disabled]) .field__cell[data-state="free"]:hover {
+  background: var(--tint);
 }
 .field__cell:focus-visible {
   outline: 2px solid var(--ink);
@@ -475,41 +521,6 @@
 .ledger__clock[data-phase="flash"] .ledger__clock-invert {
   animation: clock-flash 1s infinite;
 }
-/* The round rail (spec 048 US3, §5.4): ten cells, three states, no motion. */
-.rail {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 0;
-  width: 100%;
-  margin-bottom: 4px;
-}
-.rail__cell {
-  height: 26px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-.rail__cell[data-state="past"] {
-  background: var(--ink);
-  color: var(--paper);
-  border: 1px solid var(--ink);
-}
-.rail__cell[data-state="current"] {
-  background: var(--tint);
-  color: var(--ink);
-  border: 2px solid var(--ink);
-  font-weight: 600;
-}
-.rail__cell[data-state="future"] {
-  background: var(--paper);
-  color: #B9B4A6;
-  border: 1px solid var(--rule);
-}
 .ledger__wordmark {
   flex: none;
   font-weight: 700;
@@ -523,10 +534,12 @@
   text-transform: uppercase;
   color: var(--muted);
 }
+/* The spine (2026-09-21): your cell, the move number, theirs. The header, the
+   rows and the total row share the grid, so the players face off across it. */
 .ledger__header {
   display: grid;
-  grid-template-columns: 34px 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  align-items: center;
   padding: 6px 0;
   /* The seat header's rule is ink (Fig. 2); rules between rows are --rule (review S9). */
   border-bottom: 1px solid var(--ink);
@@ -537,8 +550,30 @@
   display: inline-block;
   width: 10px;
   height: 10px;
-  margin-right: 6px;
   vertical-align: middle;
+}
+.ledger__header-you {
+  justify-self: end;
+  padding-right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ledger__header-opp {
+  justify-self: start;
+  padding-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ledger__header-spine {
+  justify-self: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 /* Rows share the stack's height, but a row never gets less than its content:
    a live row with a long fact takes its three lines and the others share the
@@ -553,14 +588,15 @@
    line instead of three dashes across the column gaps (review S6). */
 .ledger__row {
   display: grid;
-  grid-template-columns: 34px 1fr 1fr;
-  column-gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  column-gap: 0;
+  align-items: center;
   grid-column: 1 / -1;
   border-bottom: 1px solid var(--rule);
   min-width: 0;
 }
 .ledger__row > * {
-  padding: 4px 0;
+  padding: 4px 10px;
   min-width: 0;
 }
 /* Fig. 2: the live row — the table's and the queue's — is tinted with the 3px
@@ -609,32 +645,98 @@
   outline: 3px solid var(--opp);
   outline-offset: -3px;
 }
-/* 6px clears the live row's rule; every label keeps the same left edge (review S3). */
+/* The spine: the move number, centred between two 1px rules that run the
+   height of the row, so the columns never read as one. */
 .ledger__move {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
   font-family: var(--font-mono);
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
-  padding-left: 6px;
 }
 /* Future numerals are a progression mark, not a fact; the caption carries the count. */
 .ledger__row--future .ledger__move {
   color: var(--future-label);
 }
 .ledger__words {
-  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.04em;
   color: var(--seat-ink);
   overflow-wrap: anywhere;
 }
+/* Words read inward: yours end at the spine, theirs start from it. */
+.ledger__words[data-seat="you"] {
+  justify-content: flex-end;
+  text-align: right;
+}
+.ledger__words[data-seat="opp"] {
+  justify-content: flex-start;
+  text-align: left;
+}
+.ledger__word-list {
+  min-width: 0;
+}
+/* The move's points, beside the spine: a score is bold ink. */
 .ledger__total {
-  position: absolute;
-  top: 4px;
-  right: 0;
+  flex: none;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
+}
+/* A miss (rules §5.6) says so in words, and its −5 is muted and lighter, so it
+   never reads as a score. No colour: coral and teal already mean the players. */
+.ledger__miss {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ledger__words--empty .ledger__total {
+  color: var(--muted);
+  font-weight: 500;
+}
+/* The final ledger closes with the totals, facing off across the spine. */
+.ledger__totals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  align-items: baseline;
+  padding: 10px 0 8px;
+  border-bottom: 1.5px solid var(--ink);
+}
+/* 24px is large text, where --opp meets 3:1 (it fails 4.5:1 below). */
+.ledger__totals-you {
+  justify-self: end;
+  padding-right: 10px;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--you);
+}
+.ledger__totals-opp {
+  justify-self: start;
+  padding-left: 10px;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--opp);
 }
 .ledger__points {
   font-family: var(--font-mono);
@@ -659,9 +761,18 @@
 .ledger__live-text {
   grid-row: 1;
 }
+/* The live row is one band: the beat spans it (it names the move, so the spine
+   breaks here); the opponent's total for that move sits at the right of line 1. */
+.ledger__row--live .ledger__live-text,
+.ledger__row--settled .ledger__live-text {
+  grid-column: 1 / -1;
+  padding-left: 10px;
+  padding-right: 40px;
+}
 .ledger__live-text + .ledger__words {
   grid-column: 3;
   grid-row: 1;
+  justify-self: end;
   /* Not baseline: the total is positioned, so a baseline would drop it onto line 2. */
   align-self: start;
 }
@@ -689,6 +800,12 @@
 .ledger__live-more {
   grid-column: 2;
   color: var(--muted);
+  transition: color 120ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+.ledger__live-row--trigger:hover .ledger__live-more {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .ledger__live-text--full {
   grid-column: 1 / -1;
@@ -745,11 +862,45 @@
   background: var(--ink);
   color: var(--paper);
   padding: 10px 14px;
+  transition: background-color 120ms cubic-bezier(0.2, 0, 0.2, 1), color 120ms cubic-bezier(0.2, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.2, 0, 0.2, 1);
 }
 .action-secondary {
   background: transparent;
   color: var(--ink);
   padding: 0;
+  text-decoration: none;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  transition: color 120ms cubic-bezier(0.2, 0, 0.2, 1), background-color 120ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+/* Interaction states (2026-09-21): every action says it is one. The primary
+   inverts to paper inside the slip's own 1.5px ink frame; a secondary
+   underlines. Pressed, the primary takes the tint and a secondary dims. */
+.action-primary:hover:not(:disabled) {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.action-primary:active:not(:disabled) {
+  background: var(--tint);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.action-secondary:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.action-secondary:active:not(:disabled) {
+  color: var(--muted);
+}
+/* Keyboard focus is always drawn, in ink; a pointer click leaves no ring. */
+.action-primary:focus-visible,
+.action-secondary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.action-primary:focus:not(:focus-visible),
+.action-secondary:focus:not(:focus-visible) {
+  outline: none;
 }
 .action-primary:disabled,
 .action-secondary:disabled {
@@ -957,6 +1108,24 @@
 .room-menu__trigger {
   font-size: 16px;
   letter-spacing: 0;
+  padding: 2px 8px;
+}
+.room-menu__trigger:hover:not(:disabled),
+.room-menu__trigger[aria-expanded="true"] {
+  background: var(--tint);
+  text-decoration: none;
+}
+/* Menu items tint their row on hover rather than underline. */
+.room-menu__list .action-secondary {
+  display: block;
+  width: 100%;
+  margin: 0 -8px;
+  padding: 6px 8px;
+  text-align: left;
+}
+.room-menu__list .action-secondary:hover {
+  background: var(--tint);
+  text-decoration: none;
 }
 .room-menu__list {
   position: absolute;
@@ -996,6 +1165,14 @@
 .ledger-sheet__close {
   display: block;
   margin-left: auto;
+}
+/* Keep the content at its reading height inside the scrollport. In particular,
+   the rows must not collapse while their grid children paint over the totals. */
+.ledger-sheet > * {
+  flex-shrink: 0;
+}
+.ledger-sheet > .ledger__rows {
+  flex: none;
 }
 
 /* ---------- Lobby ledger tables (§5.6) + name input (§5.7) ---------- */

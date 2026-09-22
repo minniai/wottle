@@ -1,5 +1,6 @@
 "use server";
 
+import type { Language } from "@/lib/types/game-config";
 import "server-only";
 import { z } from "zod";
 
@@ -30,7 +31,8 @@ interface EntryRow {
 }
 
 /** Best distinct words by points, each with the opponent it was scored against. */
-export async function getBestWords(playerId: string, limit = 12): Promise<GetBestWordsResult> {
+/** The player's best words in one language (spec 060). */
+export async function getBestWords(playerId: string, limit = 12, language: Language = "is"): Promise<GetBestWordsResult> {
   const parsed = inputSchema.safeParse({ playerId, limit });
   if (!parsed.success) {
     return { status: "error", error: "Invalid input." };
@@ -40,8 +42,9 @@ export async function getBestWords(playerId: string, limit = 12): Promise<GetBes
   // Fetch more than we need, then dedupe by (word, max total_points).
   const { data, error } = await supabase
     .from("word_score_entries")
-    .select("word, total_points, match_id")
+    .select("word, total_points, match_id, matches!inner(language)")
     .eq("player_id", parsed.data.playerId)
+    .eq("matches.language", language)
     .order("total_points", { ascending: false })
     .limit(parsed.data.limit * 4);
 
