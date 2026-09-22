@@ -1,5 +1,7 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import { BOARD_SIZE } from "@/lib/constants/board";
+import { boardWordlistPath } from "@/lib/game-engine/boardWordlist";
 import { Language } from "@/lib/types/game-config";
 
 /**
@@ -18,20 +20,22 @@ export class DictionaryLoadError extends Error {
   }
 }
 
-/** Per-language wordlist paths and minimum entry counts to detect corrupt/partial files. */
+/**
+ * Minimum entry counts per language, to detect corrupt/partial files. They
+ * apply to the board wordlist, which holds only words that fit the board.
+ */
 const LANGUAGE_DICTIONARY_CONFIG: Record<
   Language,
-  { file: string; minEntries: number; exclusionsFile?: string }
+  { minEntries: number; exclusionsFile?: string }
 > = {
   is: {
-    file: "data/wordlists/word_list_is.txt",
-    minEntries: 2_000_000,
+    minEntries: 1_000_000,
     exclusionsFile: "data/wordlists/word_list_is_exclusions.txt",
   },
-  en: { file: "data/wordlists/word_list_en.txt", minEntries: 10_000 },
-  se: { file: "data/wordlists/word_list_se.txt", minEntries: 100_000 },
-  no: { file: "data/wordlists/word_list_no.txt", minEntries: 100_000 },
-  dk: { file: "data/wordlists/word_list_dk.txt", minEntries: 100_000 },
+  en: { minEntries: 10_000 },
+  se: { minEntries: 100_000 },
+  no: { minEntries: 100_000 },
+  dk: { minEntries: 100_000 },
 };
 
 /**
@@ -43,7 +47,10 @@ function readExclusionWords(file: string | undefined): string[] {
   if (!file) {
     return [];
   }
-  const raw = readFileSync(resolve(process.cwd(), file), "utf-8");
+  const raw = readFileSync(
+    resolve(/* turbopackIgnore: true */ process.cwd(), file),
+    "utf-8",
+  );
   return raw
     .split("\n")
     .map((line) => line.trim())
@@ -57,10 +64,7 @@ function readExclusionWords(file: string | undefined): string[] {
  * missing real word is a wordlist-extraction bug to fix upstream, never an
  * in-repo addition.
  */
-function applyExclusions(
-  words: Set<string>,
-  config: { exclusionsFile?: string },
-): void {
+function applyExclusions(words: Set<string>, config: { exclusionsFile?: string }): void {
   for (const word of readExclusionWords(config.exclusionsFile)) {
     words.delete(word);
   }
@@ -72,8 +76,9 @@ const cachedDictionaries = new Map<Language, Set<string>>();
 /**
  * Load a language dictionary into an in-memory Set.
  *
- * Reads the entire word list synchronously, splits by newline,
- * NFC-normalizes and lowercases each entry, and inserts into a Set
+ * Reads the board wordlist (`word_list_<BOARD_SIZE>_<language>.txt`, only
+ * words that fit the board, pre-normalized by `pnpm wordlists:build`)
+ * synchronously, splits by newline and inserts the entries into a Set
  * for O(1) lookups. Uses sync I/O for maximum throughput on the
  * single bulk read. The result is cached per language — subsequent
  * calls for the same language return instantly.
@@ -83,17 +88,18 @@ const cachedDictionaries = new Map<Language, Set<string>>();
  * @throws {DictionaryLoadError} if the dictionary file cannot be read, is empty, or is corrupt
  * @performance MUST complete in <1000ms on cold start (FR-022, SC-007)
  */
-export async function loadDictionary(
-  language: Language = "is",
-): Promise<Set<string>> {
+export async function loadDictionary(language: Language = "is"): Promise<Set<string>> {
   const cached = cachedDictionaries.get(language);
   if (cached) {
     return cached;
   }
 
   const config = LANGUAGE_DICTIONARY_CONFIG[language];
-  const { file, minEntries } = config;
-  const wordlistPath = resolve(process.cwd(), file);
+  const { minEntries } = config;
+  const wordlistPath = resolve(
+    /* turbopackIgnore: true */ process.cwd(),
+    boardWordlistPath(language, BOARD_SIZE),
+  );
 
   const startMark = `dictionary-load-start-${language}`;
   const endMark = `dictionary-load-end-${language}`;
@@ -153,7 +159,7 @@ export async function loadDictionary(
     const fsError = error as NodeJS.ErrnoException;
     const errorMessage =
       fsError.code === "ENOENT"
-        ? `Failed to load dictionary for '${language}': file not found at ${wordlistPath}. The game cannot be played without a valid dictionary.`
+        ? `Failed to load dictionary for '${language}': file not found at ${wordlistPath}. Build it from the full word list with \`pnpm wordlists:build\`. The game cannot be played without a valid dictionary.`
         : `Failed to load dictionary for '${language}': ${fsError.message}. The game cannot be played without a valid dictionary.`;
 
     throw new DictionaryLoadError(errorMessage, fsError);
@@ -170,10 +176,7 @@ export async function loadDictionary(
  * @param word - The word to look up
  * @returns true if the word is in the dictionary
  */
-export function lookupWord(
-  dictionary: Set<string>,
-  word: string,
-): boolean {
+export function lookupWord(dictionary: Set<string>, word: string): boolean {
   if (word.length === 0) {
     return false;
   }

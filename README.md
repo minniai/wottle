@@ -18,7 +18,9 @@ Default match configuration (`lib/constants/game-config.ts`, `lib/match/roundEng
 | Language            | Icelandic (`is`)                                         |
 
 Word validity is decided against the BÍN-derived Icelandic word list in `data/wordlists/`
-(`word_list_is.txt`, with `word_list_is_exclusions.txt` as the curation overlay).
+(`word_list_is.txt`, with `word_list_is_exclusions.txt` as the curation overlay). The game loads
+`word_list_10_is.txt`, the same list without words longer than the board; `pnpm wordlists:build`
+rebuilds it.
 
 ## UI / design
 

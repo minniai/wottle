@@ -6,8 +6,8 @@ import {
 } from "@/lib/game-engine/dictionary";
 
 // The 200ms target (FR-022) was estimated for ~18k entries.
-// The actual dictionary has ~2.76M inflected forms. V8's Set
-// construction for 2.76M strings takes ~600-700ms. Lookups
+// The game loads the board wordlist (~1.16M Icelandic forms of at
+// most 10 letters, word_list_10_is.txt), not the full ~3.71M BÍN list. Lookups
 // remain O(1). Lazy singleton caching ensures only the first
 // request pays the load cost. Budget set at 1000ms for cold start.
 const COLD_START_BUDGET_MS = 1000;

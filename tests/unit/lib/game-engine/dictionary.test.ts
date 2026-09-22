@@ -12,9 +12,9 @@ describe("dictionary", () => {
   });
 
   describe("loadDictionary", () => {
-    test("should load more than 2 million entries from the word list", async () => {
+    test("should load more than 1 million entries from the board word list", async () => {
       const dict = await loadDictionary();
-      expect(dict.size).toBeGreaterThan(2_000_000);
+      expect(dict.size).toBeGreaterThan(1_000_000);
     });
 
     test("should return a Set instance", async () => {
@@ -33,7 +33,7 @@ describe("dictionary", () => {
       const dict = await loadDictionary();
       for (const word of dict) {
         expect(word).toBe(word.toLowerCase());
-        // Only check a sample to avoid iterating 2.76M entries
+        // Only check a sample to avoid iterating 1.16M entries
         break;
       }
       // Verify no uppercase letters exist in a sample
@@ -139,7 +139,7 @@ describe("dictionary", () => {
 
     test("loadDictionary('is') still works with explicit language param", async () => {
       const dict = await loadDictionary("is");
-      expect(dict.size).toBeGreaterThan(2_000_000);
+      expect(dict.size).toBeGreaterThan(1_000_000);
     });
 
     test("loadDictionary() with no arg defaults to Icelandic", async () => {
