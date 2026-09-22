@@ -86,14 +86,4 @@ describe("rate-limiting middleware", () => {
   it("falls back to 'unknown' when no headers match", () => {
     expect(resolveClientIp(new Headers())).toBe("unknown");
   });
-
-  it("spec 044: match:preview-swap admits 60 previews per minute per player, then throws", () => {
-    const config = { scope: "match:preview-swap", limit: 60, windowMs: 60_000, identifier: "player-a" };
-    for (let i = 0; i < 60; i += 1) {
-      expect(() => assertWithinRateLimit(config)).not.toThrow();
-    }
-    expect(() => assertWithinRateLimit(config)).toThrow(RateLimitExceededError);
-    // Another player has an independent budget.
-    expect(() => assertWithinRateLimit({ ...config, identifier: "player-b" })).not.toThrow();
-  });
 });

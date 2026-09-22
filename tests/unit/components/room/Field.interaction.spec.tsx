@@ -207,20 +207,20 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
 
     // A drag's click lands on the grid, not on a letter, so the flag that
     // swallows it must not outlive the gesture and eat the next real tap.
-    it("the tap after a drag is a tap", async () => {
-      vi.mocked(previewSwap).mockResolvedValue({ status: "ok", words: [], total: 0 });
-      render(<Harness previewEnabled />);
+    it("the tap after a drag is a tap", () => {
+      render(<Harness />);
       fireEvent.pointerDown(cell(1, 1));
       releaseOver(cell(2, 1));
       fireEvent.pointerUp(cell(2, 1));
-      expect(screen.getByTestId("kind")).toHaveTextContent("preview");
-
-      fireEvent.pointerDown(cell(2, 1));
-      releaseOver(cell(2, 1));
-      fireEvent.pointerUp(cell(2, 1));
-      fireEvent.click(cell(2, 1));
       expect(screen.getByTestId("kind")).toHaveTextContent("committed");
       expect(fetchMock).toHaveBeenCalledTimes(1);
+      act(() => api!.dispatch({ type: "moveResolved" }));
+
+      fireEvent.pointerDown(cell(3, 3));
+      releaseOver(cell(3, 3));
+      fireEvent.pointerUp(cell(3, 3));
+      fireEvent.click(cell(3, 3));
+      expect(screen.getByTestId("kind")).toHaveTextContent("picked");
     });
 
     it("a drag onto a frozen letter shakes it rather than swapping", () => {
@@ -300,7 +300,7 @@ describe("Field interaction (spec 044 US2, spec 050)", () => {
     });
 
     // Production 2026-09-22: every clock tick re-rendered the room with a new
-    // pair array and the previewed letters flew again, so a tap on one landed
+    // pair array and the exchanged letters flew again, so a tap on one landed
     // on the other's travelling letter and never committed.
     it("runs once per pair: a re-render with the same two letters does not start it again", () => {
       const pair = (): [Coordinate, Coordinate] => [{ x: 0, y: 0 }, { x: 1, y: 0 }];

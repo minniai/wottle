@@ -1,6 +1,6 @@
 /**
  * Spec 044 — the two-player room flow. Grows with each user story:
- *   US2: pick → commit (default), preview opt-in, Esc; the opponent's move clears a touched pick.
+ *   US2: pick → commit, Esc cancels a pick; the opponent's move clears a touched pick.
  *   US3: bands — one per ledger word, chevron edge matches data-direction.
  *   US4: ledger — rows fill per move, live row text, resign on the slip.
  * Spec 050: there are no rounds and no pins; a committed move resolves at once.
