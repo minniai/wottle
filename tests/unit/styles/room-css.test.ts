@@ -246,12 +246,12 @@ describe("room.css ledger rows (spec 047 US3)", () => {
     expect(block('.ledger__words[data-seat="opp"]')).toMatch(/justify-content:\s*flex-start/);
   });
 
-  it("a miss is words in muted mono and a muted, lighter −5; a score is bold ink", () => {
+  it("a miss is words in muted mono and a muted −5 as bold as a score; a score is bold ink", () => {
     expect(block(".ledger__miss")).toMatch(/color:\s*var\(--muted\)/);
     expect(block(".ledger__miss")).toMatch(/text-transform:\s*uppercase/);
     expect(block(".ledger__total")).toMatch(/font-weight:\s*600/);
     expect(block(".ledger__words--empty .ledger__total")).toMatch(/color:\s*var\(--muted\)/);
-    expect(block(".ledger__words--empty .ledger__total")).toMatch(/font-weight:\s*500/);
+    expect(block(".ledger__words--empty .ledger__total")).not.toMatch(/font-weight/);
   });
 
   it("the total row closes the table in the seat colours", () => {
