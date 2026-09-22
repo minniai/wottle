@@ -291,6 +291,16 @@
   touch-action: none;
   font-family: var(--font-board);
 }
+/* Cell backgrounds paint above the field's own border. Keep the frame in a
+   separate, non-interactive layer so an edge-cell hover can never cover it. */
+.field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--ink);
+  pointer-events: none;
+  z-index: 1;
+}
 
 .field__row {
   display: contents;
