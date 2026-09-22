@@ -1,17 +1,19 @@
 /**
  * Build the board wordlists the game loads: each language's full list
- * (`word_list_<lang>.txt`) stripped of every word longer than the board,
- * written to `word_list_<BOARD_SIZE>_<lang>.txt`.
+ * (`word_list_<lang>.txt`) stripped of every word shorter than the minimum
+ * word length or longer than the board, written to
+ * `word_list_<min>_<max>_<lang>.txt` (e.g. `word_list_3_10_is.txt`).
  *
- * Run after changing BOARD_SIZE or regenerating a source list:
+ * Run after changing BOARD_SIZE or minimumWordLength, or regenerating a
+ * source list:
  *   pnpm wordlists:build          # every language with a source list
  *   pnpm wordlists:build is en    # only these
  */
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
-import { BOARD_SIZE } from "@/lib/constants/board";
 import {
+  BOARD_WORD_LENGTHS,
   boardWordlistPath,
   filterWordsForBoard,
   sourceWordlistPath,
@@ -27,8 +29,8 @@ function buildBoardWordlist(language: Language): void {
     return;
   }
   const lines = readFileSync(source, "utf-8").split("\n");
-  const words = filterWordsForBoard(lines, BOARD_SIZE);
-  const target = boardWordlistPath(language, BOARD_SIZE);
+  const words = filterWordsForBoard(lines, BOARD_WORD_LENGTHS);
+  const target = boardWordlistPath(language, BOARD_WORD_LENGTHS);
   writeFileSync(resolve(process.cwd(), target), `${words.join("\n")}\n`);
   console.log(
     `${target}: ${words.length.toLocaleString()} of ${lines.length.toLocaleString()} lines`,

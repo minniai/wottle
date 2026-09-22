@@ -1,5 +1,4 @@
 aabenraaer
-ab
 abacus
 abacusen
 abacusens
@@ -392,7 +391,6 @@ acyklisk
 acykliske
 acykliskes
 acyklisks
-ad
 ada
 adagio
 adam
@@ -760,7 +758,6 @@ adækvat
 adækvate
 adækvates
 adækvats
-ae
 aede
 aende
 aer
@@ -810,7 +807,6 @@ aerosolets
 aerosols
 aes
 aet
-af
 afart
 afarten
 afartens
@@ -3417,7 +3413,6 @@ afæskende
 afæsker
 afæskes
 afæsket
-ag
 agam
 agamen
 agamens
@@ -3752,7 +3747,6 @@ agurketern
 agurketid
 agurketids
 agurks
-ah
 aha
 ahistorisk
 ahorn
@@ -3849,7 +3843,6 @@ ajvar
 ajvaren
 ajvarens
 ajvars
-ak
 akacie
 akacien
 akaciens
@@ -4285,7 +4278,6 @@ akvøse
 akvøses
 akvøst
 akvøsts
-al
 alabast
 alabasten
 alabastens
@@ -5333,7 +5325,6 @@ alvorsords
 alvorstung
 alzheimer
 alzheimers
-am
 amager
 amagere
 amageren
@@ -5807,7 +5798,6 @@ amøboide
 amøboides
 amøboidt
 amøboidts
-an
 anabaptist
 anabol
 anabole
@@ -7757,7 +7747,6 @@ apteringen
 apteringer
 apterings
 apv
-ar
 ara
 araber
 arabere
@@ -8648,7 +8637,6 @@ aræometers
 aræometre
 aræometres
 aræometret
-as
 asatro
 asatroen
 asatroende
@@ -9136,7 +9124,6 @@ asynkrone
 asynkrones
 asynkront
 asynkronts
-at
 ataksi
 ataksien
 ataksiens
@@ -9843,7 +9830,6 @@ auxiners
 auxinet
 auxinets
 auxins
-av
 avance
 avancement
 avancen
@@ -10099,7 +10085,6 @@ azurblåts
 azuren
 azurens
 azurs
-ba
 babe
 babelsk
 babelske
@@ -15948,7 +15933,6 @@ beærende
 beærer
 beæres
 beæret
-bh
 bhutaner
 bhutanere
 bhutaneren
@@ -15959,7 +15943,6 @@ bhutansk
 bhutanske
 bhutanskes
 bhutansks
-bi
 bias
 biatlet
 biatleten
@@ -19602,7 +19585,6 @@ bmi
 bmx
 bni
 bnp
-bo
 boa
 boaen
 boaens
@@ -23753,11 +23735,9 @@ brøstene
 brøstenes
 brøstens
 brøsts
-bs
 bse
 bses
 bst
-bu
 buckram
 buckramet
 buckramets
@@ -25006,7 +24986,6 @@ buzzwordet
 buzzwords
 bvadr
 bvd
-by
 bybane
 bybanen
 bybanens
@@ -26070,7 +26049,6 @@ båtter
 båttes
 båttet
 båttets
-bæ
 bæbrun
 bæbrune
 bæbrunes
@@ -27472,8 +27450,6 @@ cayenne
 cayennen
 cayennens
 cayennes
-cb
-cd
 ceder
 cederen
 cederens
@@ -28440,7 +28416,6 @@ chutneys
 chymosin
 chymosinet
 chymosins
-ci
 ciabatta
 ciabattas
 ciao
@@ -29687,7 +29662,6 @@ cuvetter
 cuvetterne
 cuvetters
 cuvettes
-cv
 cvu
 cyan
 cyanblå
@@ -29975,7 +29949,6 @@ cølibat
 cølibatet
 cølibatets
 cølibats
-da
 dabradio
 dabradioen
 dabradioer
@@ -31128,7 +31101,6 @@ daytrader
 daytradere
 daytraders
 ddt
-de
 deadline
 deadlinen
 deadlinene
@@ -32643,7 +32615,6 @@ dholerne
 dholernes
 dholers
 dhols
-di
 diabas
 diabasen
 diabasens
@@ -33783,7 +33754,6 @@ diætmaden
 diætmadens
 diætmads
 diæts
-dj
 djembe
 djemben
 djembens
@@ -33844,10 +33814,8 @@ djøfisere
 djøfiserer
 djøfiseres
 djøfiseret
-dm
 dms
 dna
-do
 dobbelt
 dobbeltdør
 dobbelte
@@ -35734,7 +35702,6 @@ drønvarmts
 drøv
 drøvs
 drøvtygger
-du
 dualisme
 dualismen
 dualismens
@@ -36552,7 +36519,6 @@ dværgtræer
 dværgtræet
 dværgtræs
 dværgvækst
-dy
 dyade
 dyaden
 dyadens
@@ -37244,7 +37210,6 @@ dyvler
 dyvlerne
 dyvlernes
 dyvlers
-då
 dåb
 dåben
 dåbene
@@ -37662,7 +37627,6 @@ dængende
 dænger
 dænges
 dænget
-dø
 døb
 døbe
 døbefont
@@ -38392,7 +38356,6 @@ døvstumt
 døvstumts
 døvt
 døvts
-ea
 eagle
 eaglen
 eaglens
@@ -38402,7 +38365,6 @@ eaglernes
 eaglers
 eagles
 eas
-eb
 ebbe
 ebbede
 ebben
@@ -38443,7 +38405,6 @@ ecuene
 ecuenes
 ecuens
 ecus
-ed
 edam
 edams
 edb
@@ -38793,7 +38754,6 @@ efterårene
 efteråret
 efterårets
 efterårs
-eg
 egal
 egale
 egales
@@ -39049,7 +39009,6 @@ eissernes
 eissers
 eisset
 eissets
-ej
 ejakuler
 ejakulere
 ejakulerer
@@ -39487,7 +39446,6 @@ ekvivokke
 ekvivokkes
 ekvivokt
 ekvivokts
-el
 elaborer
 elaborere
 elaborerer
@@ -40122,7 +40080,6 @@ elysiskes
 elysisks
 elysium
 elysiums
-em
 emalje
 emaljen
 emaljens
@@ -40467,7 +40424,6 @@ emulsionen
 emulsioner
 emulsions
 emus
-en
 enakter
 enaktere
 enakteren
@@ -41311,7 +41267,6 @@ enøjet
 enøjethed
 enøjetheds
 enøjets
-ep
 epaulet
 epaulets
 epauletten
@@ -41503,7 +41458,6 @@ epsilons
 equalizer
 equalizere
 equalizers
-er
 erantis
 erantissen
 erantisser
@@ -41784,7 +41738,6 @@ eruptivt
 eruptivts
 erytrocyt
 erytrocyts
-es
 escalope
 escalopen
 escalopene
@@ -41984,7 +41937,6 @@ estragon
 estragonen
 estragoner
 estragons
-et
 eta
 etabler
 etablere
@@ -42532,7 +42484,6 @@ evnesvagts
 evnet
 evolution
 evolutions
-ex
 exajoule
 exajoules
 exameter
@@ -42614,7 +42565,6 @@ eyelineren
 eyelineres
 eyelinerne
 eyeliners
-fa
 fabel
 fabelagtig
 fabeldyr
@@ -44438,7 +44388,6 @@ faxnummers
 faxnumre
 faxnumrene
 faxnumres
-fe
 feagtig
 feagtige
 feagtiges
@@ -45523,7 +45472,6 @@ fezer
 fezerne
 fezernes
 fezers
-fi
 fiasko
 fiaskoen
 fiaskoens
@@ -56985,7 +56933,6 @@ fuzz
 fuzzen
 fuzzens
 fuzzylogik
-fy
 fyg
 fyge
 fygede
@@ -57332,7 +57279,6 @@ fytin
 fytinet
 fytinets
 fytins
-få
 fående
 fået
 fåmælt
@@ -57438,7 +57384,6 @@ fåtalliges
 fåtalligt
 fåtalligts
 fåtals
-fæ
 fæces
 fædre
 fædreland
@@ -61629,7 +61574,6 @@ ghostet
 ghosting
 ghostingen
 ghostings
-gi
 gib
 gibbe
 gibbede
@@ -63197,7 +63141,6 @@ gnæggende
 gnægger
 gnægges
 gnægget
-go
 goalball
 goalballen
 goalballs
@@ -65818,7 +65761,6 @@ grønærtens
 grønærter
 grønærters
 grønærts
-gu
 guacamole
 guacamolen
 guacamoles
@@ -67124,7 +67066,6 @@ gyvler
 gyvlerne
 gyvlernes
 gyvlers
-gå
 gåafstand
 gåafstands
 gåben
@@ -67617,7 +67558,6 @@ gævestes
 gævests
 gævt
 gævts
-gø
 gøb
 gøbben
 gøbbens
@@ -67754,7 +67694,6 @@ gøsene
 gøsenes
 gøsens
 gøses
-ha
 habengut
 habenguts
 habil
@@ -70193,10 +70132,8 @@ havørreder
 havørreds
 hawaiianer
 hawaiiansk
-hd
 hdmi
 hdtv
-he
 head
 headbang
 headbange
@@ -71815,11 +71752,7 @@ hev
 hevet
 hevets
 hey
-hf
-hg
-hh
 hhx
-hi
 hiat
 hiaten
 hiatens
@@ -72846,9 +72779,7 @@ hjørnet
 hjørnetand
 hjørnets
 hjørnetårn
-hm
 hmm
-ho
 hoax
 hoaxen
 hoaxene
@@ -74008,7 +73939,6 @@ hovslags
 hpv
 html
 htx
-hu
 hub
 hubben
 hubbene
@@ -77156,7 +77086,6 @@ hårvoksets
 hårvækst
 hårvæksten
 hårvæksts
-hæ
 hæder
 hæderen
 hæderens
@@ -77832,7 +77761,6 @@ hævntogtet
 hævntogts
 hævntørst
 hævntørsts
-hø
 høet
 høets
 høfde
@@ -78863,7 +78791,6 @@ icebergens
 icebergs
 icing
 icings
-id
 ide
 ideal
 ideale
@@ -79221,7 +79148,6 @@ ignorerer
 ignoreres
 ignoreret
 ignorering
-ih
 ihjel
 ihjelbed
 ihjelbid
@@ -79249,7 +79175,6 @@ ihærdigste
 ihærdigsts
 ihærdigt
 ihærdigts
-ik
 ikarisk
 ikariske
 ikariskes
@@ -79330,7 +79255,6 @@ ikterne
 ikternes
 ikters
 iktes
-il
 ilagde
 ilagdes
 ilagt
@@ -79910,7 +79834,6 @@ imødeser
 imødeses
 imødeset
 imødeså
-in
 inadækvat
 inadækvate
 inadækvats
@@ -82547,8 +82470,6 @@ iotaet
 iotaets
 iotas
 ipa
-iq
-ir
 iraker
 irakere
 irakeren
@@ -82718,7 +82639,6 @@ irørt
 irørte
 irørtes
 irørts
-is
 isafkøl
 isafkøle
 isafkølede
@@ -83512,7 +83432,6 @@ iværksat
 iværksatte
 iværksæt
 iværksætte
-ja
 jab
 jabbene
 jabbenes
@@ -84413,7 +84332,6 @@ jive
 jiven
 jivens
 jives
-jo
 job
 jobannonce
 jobansøger
@@ -92816,7 +92734,6 @@ knøsene
 knøsenes
 knøsens
 knøses
-ko
 koaguler
 koagulere
 koagulerer
@@ -97607,7 +97524,6 @@ ksiers
 ksiet
 ksiets
 ksis
-ku
 kube
 kubeformet
 kuben
@@ -100485,7 +100401,6 @@ kævles
 kævlet
 kævlets
 kævls
-kø
 køb
 købe
 købedygtig
@@ -101338,7 +101253,6 @@ køternes
 køters
 køtilbud
 køtilbuds
-la
 lab
 laban
 labanen
@@ -103169,7 +103083,6 @@ lazaronens
 lazaroner
 lazaroners
 lazarons
-le
 lean
 leane
 leanede
@@ -104392,7 +104305,6 @@ levvellet
 levvellets
 levvels
 lex
-li
 lian
 lianen
 lianens
@@ -105914,7 +105826,6 @@ lixtallene
 lixtallet
 lixtallets
 lixtals
-lo
 load
 loade
 loadede
@@ -106898,9 +106809,7 @@ loyalitet
 loyalitets
 loyalt
 loyalts
-lp
 lsd
-lu
 lubbe
 lubben
 lubbens
@@ -107809,7 +107718,6 @@ luxmetrene
 luxmetres
 luxmetret
 luxmetrets
-ly
 lybsk
 lybske
 lybskes
@@ -108956,7 +108864,6 @@ lyvende
 lyver
 lyves
 lyvs
-lå
 låg
 låge
 lågen
@@ -109204,7 +109111,6 @@ låst
 låste
 låstes
 låsts
-læ
 læbe
 læbeblomst
 læbeblyant
@@ -113867,7 +113773,6 @@ mazurkaers
 mazurkas
 mba
 mbas
-mc
 mdf
 med
 medalje
@@ -115429,9 +115334,6 @@ mezzoers
 mezzoforte
 mezzos
 mezzotinte
-mf
-mg
-mi
 miav
 miave
 miavede
@@ -116848,7 +116750,6 @@ mjødurtens
 mjødurter
 mjødurters
 mjødurts
-mm
 mms
 mob
 mobbe
@@ -119707,7 +119608,6 @@ muzak
 muzakken
 muzakkens
 muzaks
-my
 myanmarer
 myanmarere
 myanmarers
@@ -120002,7 +119902,6 @@ myxødem
 myxødemet
 myxødemets
 myxødems
-må
 måb
 måbe
 måbede
@@ -120810,7 +120709,6 @@ méngrader
 méngraders
 méngrads
 méns
-mø
 møbel
 møbelfirma
 møbelhus
@@ -123923,7 +123821,6 @@ nexøboerne
 nexøboers
 nexøbos
 ngo
-ni
 nibenit
 nibenits
 nibenitten
@@ -124926,8 +124823,6 @@ novicernes
 novicers
 novices
 novra
-ns
-nu
 nuance
 nuancen
 nuancens
@@ -125190,7 +125085,6 @@ nuttets
 nuvel
 nuværende
 nuværendes
-ny
 nyankommen
 nyankommet
 nyankomne
@@ -125931,7 +125825,6 @@ nyåbnede
 nyåbnedes
 nyåbnet
 nyåbnets
-nå
 nåd
 nådden
 nåddens
@@ -126046,7 +125939,6 @@ nåleøjets
 nåls
 når
 nårh
-næ
 næb
 næbagtig
 næbagtige
@@ -127002,7 +126894,6 @@ oceanolog
 oceanologi
 oceanologs
 oceans
-od
 odalisk
 odalisken
 odaliskens
@@ -127219,7 +127110,6 @@ oftere
 oftest
 ofteste
 oftestes
-og
 oggenok
 oggenokken
 oggenokker
@@ -127229,7 +127119,6 @@ ogginokken
 ogginokker
 ogginoks
 også
-oh
 ohm
 ohmmeter
 ohmmeteret
@@ -127244,7 +127133,6 @@ ohøj
 oilskin
 oilskinnet
 oilskins
-ok
 okapi
 okapien
 okapiens
@@ -127454,7 +127342,6 @@ okuleres
 okuleret
 okulering
 okulerings
-ol
 old
 oldboy
 oldboys
@@ -127808,7 +127695,6 @@ olympisk
 olympiske
 olympiskes
 olympisks
-om
 omadresser
 omaner
 omanere
@@ -128913,7 +128799,6 @@ oolongte
 oolongteen
 oolongteer
 oolongtes
-op
 opacitet
 opaciteten
 opaciteter
@@ -132029,7 +131914,6 @@ ortopæds
 ortoreksi
 ortoreksis
 orv
-os
 oscillator
 osciller
 oscillere
@@ -132322,7 +132206,6 @@ ouzoerne
 ouzoernes
 ouzoers
 ouzos
-ov
 oval
 ovale
 ovalen
@@ -133513,7 +133396,6 @@ ozonlaget
 ozonlagets
 ozonlags
 ozons
-pa
 pace
 pacede
 pacemaker
@@ -135612,9 +135494,7 @@ pavillonen
 pavilloner
 pavillons
 pba
-pc
 pcb
-pd
 pda
 peacetegn
 peacetegns
@@ -136698,7 +136578,6 @@ pfennigen
 pfennigene
 pfennigens
 pfennigs
-ph
 phish
 phishe
 phishede
@@ -136720,7 +136599,6 @@ phoners
 phonostik
 phonostiks
 photoshop
-pi
 pianette
 pianetter
 pianetters
@@ -140782,7 +140660,6 @@ powershop
 poweryoga
 poweryogas
 pps
-pr
 pragmatik
 pragmatiks
 pragmatisk
@@ -142547,7 +142424,6 @@ prøvning
 prøvningen
 prøvninger
 prøvnings
-ps
 psalter
 psaltere
 psalteren
@@ -143466,7 +143342,6 @@ puttoen
 puttoens
 puttos
 pvc
-py
 pyen
 pyens
 pyer
@@ -143618,7 +143493,6 @@ pytter
 pytterne
 pytternes
 pytters
-på
 påagtede
 påagtedes
 påagtet
@@ -145925,7 +145799,6 @@ razziaer
 razziaerne
 razziaers
 razzias
-re
 readymade
 readymaden
 readymades
@@ -148558,7 +148431,6 @@ rhoers
 rhoet
 rhoets
 rhos
-ri
 rib
 ribbe
 ribbebort
@@ -149605,7 +149477,6 @@ rivs
 rna
 rne
 rnes
-ro
 roadie
 roadien
 roadiens
@@ -150572,7 +150443,6 @@ royaltyens
 royaltyer
 royaltyers
 royaltys
-ru
 rub
 rubato
 rubbe
@@ -151655,7 +151525,6 @@ rwandisk
 rwandiske
 rwandiskes
 rwandisks
-ry
 rya
 ryaen
 ryaens
@@ -152082,7 +151951,6 @@ rytterske
 ryttersken
 ryttersker
 rytterskes
-rå
 råb
 råbalance
 råbalancen
@@ -155944,7 +155812,6 @@ sculleres
 scullerne
 scullernes
 scullers
-se
 seaborgium
 seance
 seancen
@@ -157809,7 +157676,6 @@ shunternes
 shunters
 shunts
 shuttlebus
-si
 siameser
 siamesere
 siameseren
@@ -167934,7 +167800,6 @@ snøvls
 snøvs
 snøvsen
 snøvsens
-so
 soap
 soapen
 soapene
@@ -179047,7 +178912,6 @@ switches
 switchet
 switchets
 switchs
-sy
 syarbejde
 syarbejdes
 syarbejdet
@@ -180079,7 +179943,6 @@ syæskerne
 syæskernes
 syæskers
 syæskes
-så
 såbed
 såbede
 såbedene
@@ -180818,7 +180681,6 @@ sættevogne
 sættevogns
 sætvis
 sætvist
-sø
 søanemone
 søanemonen
 søanemoner
@@ -183657,7 +183519,6 @@ tchadisk
 tchadiske
 tchadiskes
 tchadisks
-te
 teak
 teaken
 teakens
@@ -185000,7 +184861,6 @@ teæggenes
 teægget
 teæggets
 teægs
-tg
 thai
 thaibokser
 thaiboxing
@@ -185104,7 +184964,6 @@ thybos
 thymus
 thymussen
 thymussens
-ti
 tiara
 tiaraen
 tiaraens
@@ -187217,7 +187076,6 @@ tjørnenes
 tjørnens
 tjørnes
 tjørns
-to
 toast
 toastbrød
 toastbrøds
@@ -192594,7 +192452,6 @@ tuttets
 tutti
 tuvaluaner
 tuvaluansk
-tv
 tvandt
 tvandts
 tvang
@@ -192911,7 +192768,6 @@ twittende
 twitter
 twittes
 twittet
-ty
 tyd
 tyde
 tydede
@@ -193464,7 +193320,6 @@ tyvstjæles
 tzatziki
 tzatzikien
 tzatzikis
-tå
 tåbe
 tåbelig
 tåbelige
@@ -194074,7 +193929,6 @@ tævers
 tæves
 tævet
 tævs
-tø
 tøbrud
 tøbruddene
 tøbruddet
@@ -195045,7 +194899,6 @@ ubøjeligts
 ubøjet
 ubøjets
 ubønhørlig
-ud
 udad
 udadgående
 udadlelig
@@ -198050,7 +197903,6 @@ uetisk
 uetiske
 uetiskes
 uetisks
-uf
 ufaglært
 ufaglærte
 ufaglærtes
@@ -198268,7 +198120,6 @@ uføre
 uføres
 uføret
 uførets
-ug
 ugander
 ugandere
 uganderen
@@ -198495,7 +198346,6 @@ ugørlige
 ugørliges
 ugørligt
 ugørligts
-uh
 uha
 uhandelig
 uhandelige
@@ -200311,7 +200161,6 @@ upåtalts
 upåvirkede
 upåvirket
 upåvirkets
-ur
 uran
 uranen
 uranens
@@ -203582,7 +203431,6 @@ vattæppes
 vattæppet
 vattæppets
 vaudeville
-ve
 ved
 veda
 vedaen
@@ -204986,7 +204834,6 @@ vetorets
 vetoretten
 vetos
 vhf
-vi
 via
 viadukt
 viadukten
@@ -206891,7 +206738,6 @@ vivariums
 viven
 vivens
 vivs
-vj
 vlieseline
 vlog
 vloggen
@@ -206907,7 +206753,6 @@ vloggerne
 vloggernes
 vloggers
 vlogs
-vm
 vms
 vod
 voddene
@@ -207909,7 +207754,6 @@ vuvuzelaer
 vuvuzelas
 vvm
 vvs
-vy
 vyer
 vyerne
 vyernes
@@ -209052,7 +208896,6 @@ wattmetret
 watts
 wau
 wauw
-wc
 web
 webadresse
 webbaseret
@@ -209440,7 +209283,6 @@ yazidisk
 yazidiske
 yazidiskes
 yazidisks
-yd
 yde
 ydede
 ydedygtig
@@ -209809,7 +209651,6 @@ yoyos
 yoyovægt
 yoyovægten
 yoyovægts
-yp
 yppe
 yppede
 yppende
@@ -209841,7 +209682,6 @@ ypsiloners
 ypsilonet
 ypsilonets
 ypsilons
-yt
 ytr
 ytre
 ytrede
@@ -210324,7 +210164,6 @@ zygotes
 åbrinkerne
 åbrinkers
 åbrinks
-åd
 ådal
 ådale
 ådalen
@@ -210360,7 +210199,6 @@ zygotes
 åerne
 åernes
 åers
-åg
 ågene
 ågenes
 åger
@@ -210389,7 +210227,6 @@ zygotes
 ågres
 ågret
 ågs
-åh
 åhh
 åhr
 åkande
@@ -210402,7 +210239,6 @@ zygotes
 åkanders
 åkandes
 åkirkebybo
-ål
 ålandsk
 ålandske
 ålandskes
@@ -210665,7 +210501,6 @@ zygotes
 åndssvagts
 ångstrøm
 ångstrøms
-år
 årbog
 årbogen
 årbogens
@@ -210945,7 +210780,6 @@ zygotes
 årvågents
 årvågne
 årvågnes
-ås
 åse
 åsen
 åsene
@@ -211070,7 +210904,6 @@ zygotes
 æblevinen
 æblevinens
 æblevins
-æd
 æde
 ædedolk
 ædedolke
@@ -211164,7 +210997,6 @@ zygotes
 ædrus
 ædt
 ædts
-æg
 ægcelle
 ægcellen
 ægcellens
@@ -211392,7 +211224,6 @@ zygotes
 ægæiske
 ægæiskes
 ægæisks
-æh
 ækel
 ækelhed
 ækelheden
@@ -211532,7 +211363,6 @@ zygotes
 æonernes
 æoners
 æons
-ær
 æra
 æraen
 æraens
@@ -211898,7 +211728,6 @@ zygotes
 æstetiskes
 æstetisks
 æstets
-æt
 ætan
 ætanal
 ætanalet
@@ -211990,7 +211819,6 @@ zygotes
 ætylet
 ætylets
 ætyls
-æv
 ævl
 ævle
 ævlede
@@ -212009,8 +211837,6 @@ zygotes
 ævls
 ævred
 ævreds
-én
-ét
 étmål
 étmålene
 étmålenes
@@ -212029,7 +211855,6 @@ zygotes
 øboernes
 øboers
 øbos
-ød
 øde
 ødede
 ødegård
@@ -212108,7 +211933,6 @@ zygotes
 øerne
 øernes
 øers
-øf
 øffe
 øffede
 øffende
@@ -212124,7 +211948,6 @@ zygotes
 øfgrisenes
 øfgrisens
 øfgrises
-øg
 øge
 øgede
 øgenavn
@@ -212164,7 +211987,6 @@ zygotes
 øgruppers
 øgruppes
 øgs
-øh
 øhav
 øhave
 øhavene
@@ -212194,7 +212016,6 @@ zygotes
 øhoppingen
 øhoppings
 øhops
-øj
 øje
 øjeblik
 øjeblikke
@@ -212476,7 +212297,6 @@ zygotes
 økumenisk
 økumeniske
 økumenisks
-øl
 ølafgift
 ølafgiften
 ølafgifter
@@ -212747,7 +212567,6 @@ zygotes
 ølvommens
 ølvommes
 ølvoms
-øm
 ømfindtlig
 ømhed
 ømheden
@@ -212840,7 +212659,6 @@ zygotes
 ønsket
 ønskets
 ønskværdig
-ør
 øre
 ørebarn
 ørebarnet
@@ -213120,7 +212938,6 @@ zygotes
 ørreds
 ørt
 ørts
-øs
 øsamfund
 øsamfundet
 øsamfunds
@@ -213325,7 +213142,6 @@ zygotes
 østvendte
 østvendtes
 østvendts
-øv
 øvdag
 øvdage
 øvdagen
