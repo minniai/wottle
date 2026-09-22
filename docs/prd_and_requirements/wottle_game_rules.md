@@ -74,7 +74,7 @@ A *word* is a contiguous sequence of letters on the board. For a word to be **sc
 
 The word must be read along one of **four orthogonal reading directions**: left-to-right, right-to-left, top-to-bottom, bottom-to-top. **No other direction is read.** The scanner may find matches along other lines as a side effect; they are filtered out before scoring.
 
-**One record per run.** A run is scored **once** even when it is a valid word in **both** directions. The scanner builds a forward and a reversed `BoardWord` for every run, but two readings of the same tiles overlap on the same axis (§3.5, `hasNoSameAxisConflict`), so `selectOptimalCombination` keeps exactly one: the **forward** reading (left-to-right or top-to-bottom) when both are words, the reversed reading only when it alone is a word. `FÁR`/`RÁF` therefore yields one record, `fár`, read left-to-right. The kept record's tile order is its reading direction, which the UI uses to place a single chevron (§12). Pinned by `tests/unit/lib/game-engine/doubleReading.test.ts`.
+**Both directions are scored if valid.** A run is scored **twice** if it forms a valid word in **both** directions. The scanner builds a forward and a reversed `BoardWord` for every run. Two readings of the exact same tiles on the same axis are an exception to the same-axis conflict rule (§3.5, `hasNoSameAxisConflict`). `FÁR`/`RÁF` therefore yields two records: `fár` (read left-to-right) and `ráf` (read right-to-left). The UI renders both, placing a chevron at both ends (§12). Pinned by `tests/unit/lib/game-engine/doubleReading.test.ts`.
 
 ### 3.2 Length
 
