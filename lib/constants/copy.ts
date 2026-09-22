@@ -86,6 +86,10 @@ export const rematchRequest = (name: string): string =>
 export const waitingForRematch = (name: string): string => `waiting for ${name}`;
 export const challengeNotice = (name: string): string =>
   `${name} challenges you · accept ▸ · decline`;
+export const challengeSent = (name: string): string => `challenge sent · waiting for ${name}`;
+export const challengeDeclined = (name: string): string => `${name} declined your challenge`;
+export const challengeUnanswered = (name: string): string => `${name} did not answer`;
+export const challengeTaken = (name: string): string => `${name} took another challenge`;
 
 // The slip (spec 048, design system §5.9)
 export const TAGLINE = "two players · one field · Icelandic words";

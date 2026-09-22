@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import { HISTORY, lastSeconds, MATCH_CLOCK, NO_WORD, NOT_PLAYED, points, SPINE_HEADER, TIME_SPENT, TOTAL_LABEL, WORDMARK } from "@/lib/constants/copy";
 import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
-import { noticeText } from "@/lib/room/notices";
+import { noticeKey, noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { ClockPhase } from "@/lib/room/clock";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
@@ -267,8 +267,8 @@ export function Ledger(props: LedgerProps) {
     </>
   ) : null;
 
-  const noticeLines = notices.map((notice, i) => (
-    <div key={`${notice.kind}-${i}`} className="ledger__notice" data-testid="ledger-notice" data-field-safe data-kind={notice.kind} aria-live="polite">
+  const noticeLines = notices.map((notice) => (
+    <div key={noticeKey(notice)} className="ledger__notice" data-testid="ledger-notice" data-field-safe data-kind={notice.kind} aria-live="polite">
       {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
     </div>
   ));

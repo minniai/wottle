@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import type { OutgoingChallenge } from "@/lib/room/ledgerTypes";
+
 export interface PendingInvite {
   id: string;
   sender: { id: string; username: string; displayName?: string | null };
@@ -10,19 +12,21 @@ export interface PendingInvite {
 
 interface LobbyInviteOptions {
   enabled: boolean;
-  onInvite: (invite: PendingInvite) => void;
+  /** Every poll: the challenges still pending for the viewer, oldest first. */
+  onInvites: (pending: PendingInvite[]) => void;
+  /** Every poll: the viewer's latest challenge, or null. */
+  onOutgoing: (outgoing: OutgoingChallenge | null) => void;
   onActiveMatch: (matchId: string) => void;
   intervalMs?: number;
 }
 
-/** Polls pending invites and an active match (ported from LobbyList). */
-export function useLobbyInvites({ enabled, onInvite, onActiveMatch, intervalMs = 3_000 }: LobbyInviteOptions): void {
-  const seen = useRef(new Set<string>());
+/** Polls the viewer's challenges, both ways, and an active match (ported from LobbyList). */
+export function useLobbyInvites({ enabled, onInvites, onOutgoing, onActiveMatch, intervalMs = 3_000 }: LobbyInviteOptions): void {
   const activeRef = useRef<string | null>(null);
-  const callbacks = useRef({ onInvite, onActiveMatch });
+  const callbacks = useRef({ onInvites, onOutgoing, onActiveMatch });
   useEffect(() => {
-    callbacks.current = { onInvite, onActiveMatch };
-  }, [onInvite, onActiveMatch]);
+    callbacks.current = { onInvites, onOutgoing, onActiveMatch };
+  }, [onInvites, onOutgoing, onActiveMatch]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -35,12 +39,9 @@ export function useLobbyInvites({ enabled, onInvite, onActiveMatch, intervalMs =
         ]);
         if (!mounted) return;
         if (inviteRes.ok) {
-          const { pending } = (await inviteRes.json()) as { pending?: PendingInvite[] };
-          for (const invite of pending ?? []) {
-            if (seen.current.has(invite.id)) continue;
-            seen.current.add(invite.id);
-            callbacks.current.onInvite(invite);
-          }
+          const { pending, outgoing } = (await inviteRes.json()) as { pending?: PendingInvite[]; outgoing?: OutgoingChallenge | null };
+          callbacks.current.onInvites(pending ?? []);
+          callbacks.current.onOutgoing(outgoing ?? null);
         }
         if (activeRes.ok) {
           const { match } = (await activeRes.json()) as { match?: { id: string } | null };
