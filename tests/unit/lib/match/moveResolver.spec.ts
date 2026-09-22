@@ -53,6 +53,7 @@ const base = (frozen: FrozenTileMap = {}) => ({
   playerAId: A,
   playerBId: B,
   dictionary: DICT,
+  moverTotal: 40,
 });
 
 describe("resolveOne", () => {
@@ -76,6 +77,13 @@ describe("resolveOne", () => {
     expect(out.words).toEqual([]);
     expect(out.delta).toBe(-5);
     expect(out.frozenAfter).toEqual({});
+  });
+
+  it("a miss never takes the mover's total below 0 (rules §5.6, 2026-09-22)", () => {
+    const miss = move({ from: { x: 5, y: 5 }, to: { x: 6, y: 6 }, fromLetter: "Q", toLetter: "Q" });
+    expect(resolveOne({ ...base(), moverTotal: 4, move: miss }).delta).toBe(-4);
+    expect(Object.is(resolveOne({ ...base(), moverTotal: 0, move: miss }).delta, 0)).toBe(true);
+    expect(resolveOne({ ...base(), moverTotal: 4, move: move() }).delta).toBe(33);
   });
 
 

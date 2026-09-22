@@ -110,15 +110,16 @@ describe.skipIf(!db)("resolvePendingMoves under contention (T026)", () => {
     expect(checkMoveIntegrity).toHaveBeenCalledTimes(1);
   });
 
-  it("every miss costs a flat −5 (rules §5.6)", async () => {
+  it("a miss costs up to −5, never taking the total below 0 (rules §5.6, 2026-09-22)", async () => {
     match = await createTestMatch(db!);
+    await db!.client.from("matches").update({ player_a_score: 7 }).eq("id", match.matchId);
     for (let i = 0; i < 2; i += 1) {
       expect((await receive(db!, match, match.playerAId, { x: i, y: 5, tx: i, ty: 6 })).status).toBe("accepted");
       await resolvePendingMoves(match.matchId);
     }
     const moves = await readMoves(db!, match.matchId);
-    expect(moves.map((m) => m.delta)).toEqual([-5, -5]);
-    expect(await readMatch(db!, match.matchId)).toMatchObject({ player_a_moves: 2, player_a_score: -10 });
+    expect(moves.map((m) => m.delta)).toEqual([-5, -2]);
+    expect(await readMatch(db!, match.matchId)).toMatchObject({ player_a_moves: 2, player_a_score: 0 });
   });
 });
 

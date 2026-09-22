@@ -54,6 +54,7 @@ export async function scoreMovesInReceiptOrder(input: ScoreMovesInput): Promise<
   let frozen = input.frozenTiles;
   let wasPartialFreeze = false;
   const words: WordScoreBreakdown[] = [];
+  const totals = new Map<string, number>();
   ordered.forEach((m, i) => {
     const outcome = resolveOne({
       move: {
@@ -71,7 +72,9 @@ export async function scoreMovesInReceiptOrder(input: ScoreMovesInput): Promise<
       playerAId: input.playerAId,
       playerBId: input.playerBId,
       dictionary,
+      moverTotal: totals.get(m.playerId) ?? 0,
     });
+    totals.set(m.playerId, (totals.get(m.playerId) ?? 0) + outcome.delta);
     words.push(...outcome.words);
     board = outcome.boardAfter;
     frozen = outcome.frozenAfter;

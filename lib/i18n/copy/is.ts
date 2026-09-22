@@ -277,7 +277,7 @@ export const copyIs = {
     { rule: "lengdarbónus", value: `(stafir − 2) × ${lengthBonus}` },
     { rule: "stafur sem andstæðingurinn frysti", value: "telur til lengdar, ekki stiga" },
     { rule: "sama orð á nýjum stað", value: "gefur stig aftur" },
-    { rule: "leikur án orðs", value: missPenalty },
+    { rule: "leikur án orðs", value: `${missPenalty}, þó aldrei undir 0` },
   ],
   SITE_DESCRIPTION:
     "Orðaeinvígi fyrir tvo. Skiptu á tveimur stöfum; orð með þremur stöfum eða fleiri gefa stig og frjósa í þínum lit.",

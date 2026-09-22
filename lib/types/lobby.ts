@@ -18,7 +18,7 @@ export const recentGameRowSchema = z.object({
   opponentId: z.string().min(1),
   opponentUsername: z.string().min(1),
   opponentDisplayName: z.string().min(1),
-  // Totals can go below zero since the miss penalty (rules §5.6).
+  // Matches from 2026-09-21 until the §5.6 floor (2026-09-22) can have totals below zero.
   yourScore: z.number().int(),
   opponentScore: z.number().int(),
   wordsFound: z.number().int().nonnegative(),

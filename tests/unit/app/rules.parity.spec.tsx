@@ -19,8 +19,8 @@ describe("/rules parity", () => {
     expect(SCORING_ROWS[1].value).toBe(`(letters − 2) × ${calculateLengthBonus(3)}`);
     expect(calculateLengthBonus(DEFAULT_GAME_CONFIG.minimumWordLength)).toBe(5);
     expect(SCORING_ROWS[3].value).toBe("scores again");
-    // Rules §5.6 (2026-09-21): the page states the penalty the engine applies.
-    expect(SCORING_ROWS[4].value).toBe(`−${Math.abs(MISS_PENALTY)}`);
+    // Rules §5.6 (2026-09-22): the page states the penalty the engine applies, and its floor.
+    expect(SCORING_ROWS[4].value).toBe(`−${Math.abs(MISS_PENALTY)}, never below 0`);
   });
 
   it("has six sections in order, three figures and the clock and move figures from the constants", async () => {

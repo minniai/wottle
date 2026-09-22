@@ -110,9 +110,9 @@ export function RulesIs({ clock, totalMoves, copy }: RulesContentProps) {
           <p>
             Viðureigninni lýkur þegar báðir hafa leikið öllum tíu leikjunum, eða þegar
             klukkan rennur út. Renni klukkan út fyrst telst hver leikur sem þú lékst ekki
-            sem leikur án orðs og kostar −5. Þá vinnur hærri heildartalan; sé jafnt vinnur
-            sá sem á fleiri frosna stafi; sé allt jafnt er jafntefli. Heildartalan getur
-            farið undir núll. Allar viðureignir gilda til Elo-stiga: stigin þín breytast
+            sem leikur án orðs og kostar allt að −5. Þá vinnur hærri heildartalan; sé jafnt vinnur
+            sá sem á fleiri frosna stafi; sé allt jafnt er jafntefli. Heildartalan fer
+            aldrei undir núll: með 3 stig kostar leikur án orðs −3. Allar viðureignir gilda til Elo-stiga: stigin þín breytast
             um leið og viðureigninni lýkur og nýju stig beggja standa á úrslitunum.
           </p>
         </div>

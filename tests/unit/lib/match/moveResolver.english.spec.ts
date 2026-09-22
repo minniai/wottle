@@ -38,6 +38,7 @@ describe("resolveOne in English", () => {
       playerBId: B,
       dictionary: EN_DICT,
       letterValues: getLanguagePack("en").letterValues,
+      moverTotal: 0,
       move: move(),
     });
     expect(out.status).toBe("resolved");
@@ -55,6 +56,7 @@ describe("resolveOne in English", () => {
       playerBId: B,
       dictionary: EN_DICT,
       letterValues: getLanguagePack("en").letterValues,
+      moverTotal: 0,
       move: move({ toLetter: "H" }),
     });
     expect(out.words).toEqual([]);

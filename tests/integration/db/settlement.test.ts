@@ -52,19 +52,30 @@ describe.skipIf(!db)("settleMatchIfDue (T026)", () => {
     expect(ratings).toHaveLength(2);
   });
 
-  it("both short of ten at 0:00: both are penalised and the score decides (both_incomplete)", async () => {
+  it("both short of ten at 0:00: both are penalised, never below 0, and the score decides (both_incomplete)", async () => {
     match = await createTestMatch(db!, { moves: { a: 7, b: 9 }, deadlineInMs: -5000 });
+    await db!.client.from("matches").update({ player_a_score: 12, player_b_score: 30 }).eq("id", match.matchId);
     expect(await settleMatchIfDue(match.matchId)).toBe("completed");
-    // A: three unplayed, −15; B: one, −5.
-    expect(await readMatch(db!, match.matchId)).toMatchObject({ winner_id: match.playerBId, ended_reason: "both_incomplete", player_a_score: -15, player_b_score: -5 });
+    // A: three unplayed would be −15, but 12 is all A has; B: one, −5.
+    expect(await readMatch(db!, match.matchId)).toMatchObject({ winner_id: match.playerBId, ended_reason: "both_incomplete", player_a_score: 0, player_b_score: 25 });
   });
 
   it("a drained miss and an unplayed move each cost −5", async () => {
     match = await createTestMatch(db!, { moves: { a: 8, b: 10 }, deadlineInMs: -5000 });
+    await db!.client.from("matches").update({ player_a_score: 30 }).eq("id", match.matchId);
     await insertPendingMoves(db!, match, 1); // A's ninth, received before 0:00: a miss on the blank board
     expect(await settleMatchIfDue(match.matchId)).toBe("completed");
     // The drained move is a miss (−5); the one unplayed move is another −5.
-    expect(await readMatch(db!, match.matchId)).toMatchObject({ player_a_moves: 9, player_a_score: -10, ended_reason: "incomplete" });
+    expect(await readMatch(db!, match.matchId)).toMatchObject({ player_a_moves: 9, player_a_score: 20, ended_reason: "incomplete" });
+  });
+
+  it("a drained miss and an unplayed move never take a total below 0 (rules §5.6, 2026-09-22)", async () => {
+    match = await createTestMatch(db!, { moves: { a: 8, b: 10 }, deadlineInMs: -5000 });
+    await db!.client.from("matches").update({ player_a_score: 7 }).eq("id", match.matchId);
+    await insertPendingMoves(db!, match, 1);
+    expect(await settleMatchIfDue(match.matchId)).toBe("completed");
+    // The miss takes 5 of 7; the unplayed move takes the last 2.
+    expect(await readMatch(db!, match.matchId)).toMatchObject({ player_a_moves: 9, player_a_score: 0, ended_reason: "incomplete" });
   });
 
   it("drains moves received before the deadline before deciding", async () => {

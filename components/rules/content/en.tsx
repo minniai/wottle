@@ -92,8 +92,8 @@ export function RulesEn({ clock, totalMoves, copy }: RulesContentProps) {
           <h2>Most points wins.</h2>
           <p>
             The match ends when both players have made all ten moves, or when the clock runs out. If the clock runs out
-            first, each move you have not made counts as a move with no word and costs −5. Then the higher total wins; on a tie, the player holding more
-            frozen letters wins; a full tie is a draw. Totals can fall below zero. Every match is rated: your rating
+            first, each move you have not made counts as a move with no word and costs up to −5. Then the higher total wins; on a tie, the player holding more
+            frozen letters wins; a full tie is a draw. A total never falls below zero: at 3 points, a move with no word costs −3. Every match is rated: your rating
             moves the moment the match ends, and both new ratings are written on the result.
           </p>
         </div>

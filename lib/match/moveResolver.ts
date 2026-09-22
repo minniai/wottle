@@ -9,7 +9,7 @@ import { freezeTiles } from "@/lib/game-engine/frozenTiles";
 import { scoreBoardWords } from "@/lib/game-engine/wordEngine";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { logPlaytestError, logPlaytestInfo } from "@/lib/observability/log";
-import { MISS_PENALTY } from "@/lib/scoring/missPenalty";
+import { missPenaltyFor } from "@/lib/scoring/missPenalty";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import type { BoardGrid, Coordinate } from "@/lib/types/board";
 import type {
@@ -55,6 +55,8 @@ export interface ResolveInput {
   playerBId: string;
   dictionary: Set<string>;
   letterValues?: Record<string, number>;
+  /** The mover's total before this move: a miss never takes it below 0 (rules §5.6). */
+  moverTotal: number;
 }
 
 export interface ResolveOutcome {
@@ -97,7 +99,8 @@ function refusalFor(input: ResolveInput): MoveRejectionReason | null {
 /**
  * Pure and deterministic: apply the swap, scan from its two coordinates,
  * cross-validate, score, freeze (rules §7.1). No duplicate suppression (§3.7).
- * A move that scores no word is a miss and costs a flat −5 (§5.6).
+ * A move that scores no word is a miss and costs up to 5, never taking the
+ * mover's total below 0 (§5.6).
  */
 export function resolveOne(input: ResolveInput): ResolveOutcome {
   const refusal = refusalFor(input);
@@ -118,7 +121,7 @@ export function resolveOne(input: ResolveInput): ResolveOutcome {
     frozenBefore: frozenTiles,
     frozenAfter: freeze.updatedFrozenTiles,
     words,
-    delta: words.length > 0 ? words.reduce((sum, w) => sum + w.totalPoints, 0) : MISS_PENALTY,
+    delta: words.length > 0 ? words.reduce((sum, w) => sum + w.totalPoints, 0) : missPenaltyFor(input.moverTotal),
     wasPartialFreeze: freeze.wasPartialFreeze,
   };
 }
@@ -278,6 +281,8 @@ async function resolveClaim(client: Client, matchId: string, claim: Claim): Prom
     playerBId: claim.match.player_b_id,
     dictionary,
     letterValues: getLanguagePack(language).letterValues,
+    // Moves resolve one at a time under the resolved_seq CAS, so the claim's total is current.
+    moverTotal: claim.move.player_id === claim.match.player_a_id ? claim.match.player_a_score : claim.match.player_b_score,
   });
   const fin = await finish(client, claim, outcome);
   if (fin.written === 0) return fin;

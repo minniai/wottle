@@ -122,7 +122,7 @@ const ACCEPT = "accept ▸";
 const DECLINE = "decline";
 
 // Verdict
-/** A total as drawn: a negative one takes a real minus sign (rules §5.6 lets totals go below zero). */
+/** A total as drawn: a negative one (from before the §5.6 floor, 2026-09-22) takes a real minus sign. */
 const points = (n: number): string => (n < 0 ? `−${Math.abs(n)}` : `${n}`);
 /** `134–88`; with a negative total `−4 to −12`, since a dash between minus signs cannot be read. */
 const scoreSpan = (a: number, b: number): string => (a < 0 || b < 0 ? `${points(a)} to ${points(b)}` : `${a}–${b}`);
@@ -240,7 +240,7 @@ const scoringRows = (lengthBonus: number, missPenalty: string): Array<{ rule: st
   { rule: "length bonus", value: `(letters − 2) × ${lengthBonus}` },
   { rule: "a letter the opponent froze", value: "counts for length, not for points" },
   { rule: "the same word somewhere new", value: "scores again" },
-  { rule: "a move with no word", value: missPenalty },
+  { rule: "a move with no word", value: `${missPenalty}, never below 0` },
 ];
 // Metadata and the language link
 const SITE_DESCRIPTION =
