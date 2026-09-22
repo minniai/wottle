@@ -23,6 +23,8 @@ Format: `- [ ] T### [P?] [US?] description — path`
 - English copy now says English where the game is English: the tagline (`two players · one field · English words`) and the rules page, whose figures are WORD / GAME / MEN on an English board (`rulesFiguresFor`). English `landing-slip` and `rules` baselines refreshed.
 - The visual tolerance (`maxDiffPixelRatio: 0.002`) lets a one-word change in small mono text pass against a stale baseline; refresh the affected phases on purpose after any copy change.
 - US4: `lib/rating/playerRatings.ts` (`readRatings`, `readEloRatings`, `writeRatingResult`) is the only rating source; `players.elo_rating` and the record columns are no longer written or read. The viewer's own bar reads the page language's rating through `viewerInLanguage` (room layout, lobby page, queue page, sign-in), since the session cookie carries a stale, language-blind rating. Best words and recent matches on the profile and in the lobby are the page language's (`matches!inner(language)`). SC-006 was checked at migration time: 889 players, 889 Icelandic rows.
+- US5: the link leads to the other language's lobby (`english ▸` / `íslenska ▸`, `lang` set on the link), from the lobby and from a finished match alike; a finished match keeps its language, so "the same page" would bounce back. A plain `<a>`: the switch is a full load, so `<html lang>`, the title and the room remount together.
+- Baselines: after US5 the whole visual set was refreshed with `--update-snapshots=all`, which also caught phases whose earlier one-word changes had passed inside the tolerance (`review the match ▸`, the English tagline).
 - Local E2E hygiene: `matchmaking.spec` ends with a player still searching, and a leftover `matchmaking` row is offered first to the next run's players (oldest first), so reruns can hang in the queue. Reset queued players between runs; run the dev server with `RATE_LIMIT_DISABLED_SCOPES=auth:login` to avoid the 5/min sign-in limit.
 
 ## Phase 1: Setup
@@ -210,10 +212,10 @@ Format: `- [ ] T### [P?] [US?] description — path`
 **Goal**: One link in the lobby and final ledger foot, and none during a live match.
 **Independent test**: At `/lobby`, following `english ▸` lands on `/en/lobby`, still signed in.
 
-- [ ] T063 [P] [US5] Write a failing component test `tests/unit/components/room/LedgerFoot.language.spec.tsx`:
+- [X] T063 [P] [US5] Write a failing component test `tests/unit/components/room/LedgerFoot.language.spec.tsx`:
   - Lobby and final render `copy.languageLink` with an `href` equal to `switchLocalePath`.
   - The live match renders no language link.
-- [ ] T064 [US5] Implement the link in `components/room/LedgerFoot.tsx` (lobby and final variants only). Add `languageLink` to both copies (`english ▸` / `íslenska ▸`) and re-baseline only the fixtures whose foot changed. Review the PNGs and commit.
+- [X] T064 [US5] Implement the link in `components/room/LedgerFoot.tsx` (lobby and final variants only). Add `languageLink` to both copies (`english ▸` / `íslenska ▸`) and re-baseline only the fixtures whose foot changed. Review the PNGs and commit.
 
 ## Phase 8: Polish and cross-cutting
 
