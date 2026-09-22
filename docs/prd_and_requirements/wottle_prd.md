@@ -168,7 +168,8 @@ Move Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 - **Validation Engine:** In-memory Trie or hash set; O(1) lookup.
 - **Multi-Language Support:** Configurable via dictionary ID and letter values.
 - **Unicode Handling:** NFC normalized, language-specific.
-- **Localization:** UI and messages translatable (EN/IS at launch).
+- **English (spec 060):** `data/wordlists/word_list_en.txt` (~79k lowercase a–z forms), English letter values, board weights from a standard word-game bag.
+- **Languages by URL (spec 060):** Icelandic — the game is called **Orðusta** — at the unprefixed addresses, English (**wottle**) under `/en`. The interface language comes from the address; the game language is a property of the match, fixed at creation, and decides the dictionary, letter values and letter frequencies. Queue, lobby and ratings are separate for each language. Adding a language is data: a locale entry, its strings, its word list and a language pack.
 
 ## 6. Technical Architecture
 

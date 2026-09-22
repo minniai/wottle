@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 import { copyEn } from "../../../lib/i18n/copy/en";
@@ -42,5 +43,21 @@ test.describe("@locale Orðusta at the plain address", () => {
     const text = await page.locator("body").innerText();
     const english = [copyEn.FIND_OPPONENT, copyEn.HERE_NOW, copyEn.HOW_TO_PLAY, copyEn.YOUR_LAST_MATCHES, copyEn.NO_OPPONENT];
     for (const line of english) expect(text.toLowerCase()).not.toContain(line.toLowerCase());
+  });
+
+  test("both languages are axe clean: the Icelandic landing, the English lobby and both rules pages, WCAG 2.1 AA (T066)", async ({ page }) => {
+    for (const path of ["/", "/rules", "/en/rules"]) {
+      await page.goto(path);
+      const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+      expect(results.violations, path).toEqual([]);
+    }
+    await page.goto("/en");
+    await page.getByTestId("player-bar-name-input").fill(generateTestUsername("axe"));
+    await page.getByTestId("player-bar-action-play").click();
+    await expect(page).toHaveURL(/\/en\/lobby$/, { timeout: 20_000 });
+    await expect(page.getByTestId("ledger-here-now")).toBeVisible();
+    // The room is checked against WCAG 2.1 AA, as in room-fixtures.spec.ts (it has no h1 by design).
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+    expect(results.violations, "/en/lobby").toEqual([]);
   });
 });

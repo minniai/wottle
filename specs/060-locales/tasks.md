@@ -25,6 +25,9 @@ Format: `- [ ] T### [P?] [US?] description — path`
 - US4: `lib/rating/playerRatings.ts` (`readRatings`, `readEloRatings`, `writeRatingResult`) is the only rating source; `players.elo_rating` and the record columns are no longer written or read. The viewer's own bar reads the page language's rating through `viewerInLanguage` (room layout, lobby page, queue page, sign-in), since the session cookie carries a stale, language-blind rating. Best words and recent matches on the profile and in the lobby are the page language's (`matches!inner(language)`). SC-006 was checked at migration time: 889 players, 889 Icelandic rows.
 - US5: the link leads to the other language's lobby (`english ▸` / `íslenska ▸`, `lang` set on the link), from the lobby and from a finished match alike; a finished match keeps its language, so "the same page" would bounce back. A plain `<a>`: the switch is a full load, so `<html lang>`, the title and the room remount together.
 - Baselines: after US5 the whole visual set was refreshed with `--update-snapshots=all`, which also caught phases whose earlier one-word changes had passed inside the tolerance (`review the match ▸`, the English tagline).
+- T066: the axe checks use the WCAG 2.1 AA tags, as room-fixtures does; the room has no h1 by design, which axe's best-practice set flags.
+- T067 (2026-09-22): two players at `/en` are paired into `/en/match/…`, `<html lang="en">`, a board of A–Z only; a reload stays there and the unprefixed match URL redirects to it. `moves-flow` passes on Firefox, and its English match scored LIN, NIL, SEE, SUMOS, ESS, SAUL, TOE. `disconnect-claim` times out locally on this branch and on the base commit alike (different steps), so it is not a regression.
+- T068 is left for the owner: nothing has been pushed.
 - Local E2E hygiene: `matchmaking.spec` ends with a player still searching, and a leftover `matchmaking` row is offered first to the next run's players (oldest first), so reruns can hang in the queue. Reset queued players between runs; run the dev server with `RATE_LIMIT_DISABLED_SCOPES=auth:login` to avoid the 5/min sign-in limit.
 
 ## Phase 1: Setup
@@ -219,13 +222,13 @@ Format: `- [ ] T### [P?] [US?] description — path`
 
 ## Phase 8: Polish and cross-cutting
 
-- [ ] T065 [P] Update the docs:
+- [X] T065 [P] Update the docs:
   - `CLAUDE.md`: routing under `app/[locale]`, `lib/i18n`, language packs, the new columns and table, the fixture URL `/en/dev/room`, and Remaining Gaps (`players.elo_rating` and related columns are unread).
   - `docs/prd_and_requirements/wottle_game_rules.md` §12: the language is a property of the match.
   - PRD §1: languages.
   - Run `pnpm docs:check`.
-- [ ] T066 [P] Check accessibility: extend the axe run (`@axe-core/playwright`) to `/` and `/en/lobby` so the `lang` attribute and translated aria labels are covered.
-- [ ] T067 Run the full quickstart (`specs/060-locales/quickstart.md`) by hand with `pnpm dev`. Then run the two-player Playwright specs one at a time on firefox (`moves-flow`, `disconnect-claim`, `cross-language-queue`).
+- [X] T066 [P] Check accessibility: extend the axe run (`@axe-core/playwright`) to `/` and `/en/lobby` so the `lang` attribute and translated aria labels are covered.
+- [X] T067 Run the full quickstart (`specs/060-locales/quickstart.md`) by hand with `pnpm dev`. Then run the two-player Playwright specs one at a time on firefox (`moves-flow`, `disconnect-claim`, `cross-language-queue`).
 - [ ] T068 Open the PR for 060, stacked on #282 or rebased onto `main` after #282 merges. The description asks for a native Icelandic review of `lib/i18n/copy/is.ts` and `components/rules/content/is.tsx` before release.
 
 ## Dependencies
