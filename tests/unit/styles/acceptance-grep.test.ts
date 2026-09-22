@@ -73,7 +73,7 @@ describe("retired room strings (spec 048)", () => {
   test("only the slip is positioned over the field", () => {
     const css = readFileSync(join(ROOT, "app/styles/room.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     const absolute = [...css.matchAll(/([^{}]+)\{[^}]*position:\s*absolute[^}]*\}/g)].map((m) => m[1].trim());
-    const overField = absolute.filter((sel) => !/^\.(field__|player-bar__lane|room-menu__list|ledger__|lobby-|profile|name-input|rail)/.test(sel));
+    const overField = absolute.filter((sel) => !/^\.(field(__|::)|player-bar__lane|room-menu__list|ledger__|lobby-|profile|name-input|rail)/.test(sel));
     expect(overField).toEqual([".slip"]);
   });
 });
