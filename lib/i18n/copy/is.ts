@@ -55,7 +55,7 @@ export const copyIs = {
   MATCH_CLOCK: "klukkan",
   lastSeconds: (seconds: number): string => `síðustu ${seconds} sek`,
   TIME_SPENT: "tími",
-  lobbyContext: (hereCount: number): string => `biðsalur · ${hereCount} hér`,
+  lobbyContext: (hereCount: number): string => `lobbí · ${hereCount} hér`,
   finalContext: (durationMmSs: string): string => `lok · ${durationMmSs}`,
 
   NO_OPPONENT: "Enginn andstæðingur enn",
@@ -171,7 +171,7 @@ export const copyIs = {
 
   REMATCH: "aftur ▸",
   NEW_OPPONENT: "nýr andstæðingur ▸",
-  LOBBY: "biðsalur",
+  LOBBY: "lobbí",
   CHALLENGE: "skora á ▸",
   HERE_NOW: "hér núna",
   YOUR_LAST_MATCHES: "síðustu viðureignir þínar",
@@ -234,7 +234,7 @@ export const copyIs = {
   versus: (name: string): string => `gegn ${name}`,
   matchResult: (result: "win" | "loss" | "draw"): string =>
     result === "win" ? "sigur" : result === "loss" ? "tap" : "jafnt",
-  BACK_LOBBY: "◂ biðsalur",
+  BACK_LOBBY: "◂ lobbí",
   CHANGE_NAME: "breyta nafni",
   NO_RATED_MATCHES: "engar viðureignir síðustu 30 daga",
   ratingChartAria: (min: number, max: number): string =>

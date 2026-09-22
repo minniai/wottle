@@ -341,7 +341,6 @@ adólfssyni
 adúelsson
 adúelssona
 adúelssyni
-af
 afa
 afabarn
 afabarna
@@ -15553,7 +15552,6 @@ ajöxuð
 ajöxuðu
 ajöxuðum
 ajöxuðuð
-ak
 aka
 akabsson
 akabssona
@@ -17044,7 +17042,6 @@ akörnin
 akörnum
 akörnunum
 akút
-al
 ala
 alabast
 alabasti
@@ -27836,7 +27833,6 @@ amýjar
 amýjarson
 amýjarsona
 amýjarsyni
-an
 ana
 anabólísk
 anabólíska
@@ -32485,7 +32481,6 @@ apöldrum
 apöldrunum
 apöldum
 apöldunum
-ar
 ara
 araba
 arabaheim
@@ -36222,7 +36217,6 @@ aröbum
 aröbunum
 arúba
 arúbu
-as
 asa
 asael
 asaels
@@ -37285,7 +37279,6 @@ asúrsteina
 asúrsteini
 asúrsteinn
 asúrsteins
-at
 ata
 ataleyg
 ataleyga
@@ -45561,7 +45554,6 @@ avókadóinu
 avókadóið
 avókadós
 avókadóum
-ax
 axa
 axabrodd
 axabrodda
@@ -46422,7 +46414,6 @@ aíss
 aíssins
 aísum
 aísunum
-að
 aða
 aðaflana
 aðaflanir
@@ -88446,7 +88437,6 @@ blýþök
 blýþökin
 blýþökum
 blýþökunum
-bo
 bobb
 bobba
 bobbabeita
@@ -115663,7 +115653,6 @@ báðumst
 báðust
 báðuð
 báðuði
-bæ
 bæg
 bægi
 bægifæti
@@ -117836,7 +117825,6 @@ bæðumst
 bæðust
 bæðuð
 bæðuði
-bé
 béa
 béanna
 béans
@@ -117941,7 +117929,6 @@ bévítisins
 bévítið
 bévítum
 bévítunum
-bí
 bía
 bíaframann
 bíaframenn
@@ -120371,7 +120358,6 @@ bíóárs
 bíóársins
 bíóárum
 bíóárunum
-bó
 bóa
 bóas
 bóasar
@@ -125743,7 +125729,6 @@ böðvínu
 böðvínuson
 böótía
 böótíu
-bú
 búa
 búadætra
 búadætrum
@@ -129988,7 +129973,6 @@ búþröng
 búþröngar
 búþröngin
 búþröngina
-bý
 býfa
 býfan
 býfanna
@@ -155637,7 +155621,6 @@ dyttuðu
 dyttuðum
 dyttuðuð
 dyttuðuði
-dá
 dáblóm
 dáblóma
 dáblómanna
@@ -158009,7 +157992,6 @@ dætrumfrjó
 dætrunum
 dætur
 dæturnar
-dé
 déa
 déanna
 défsa
@@ -159032,7 +159014,6 @@ díönusonar
 díönusonum
 díönusyni
 díönusynir
-dó
 dóa
 dóar
 dóast
@@ -164028,7 +164009,6 @@ dúós
 dúósins
 dúóum
 dúóunum
-dý
 dýf
 dýfa
 dýfan
@@ -166248,7 +166228,6 @@ edómíti
 edómítinn
 edómítum
 edómítunum
-ef
 efa
 efablandin
 efablandið
@@ -169658,7 +169637,6 @@ egós
 egósins
 egóum
 egóunum
-ei
 eibreska
 eibreskan
 eibresku
@@ -176880,7 +176858,6 @@ eiðvöru
 eiðvörum
 eiðvörust
 eiðvörustu
-ek
 eka
 ekan
 ekanna
@@ -177404,7 +177381,6 @@ ekvadorsks
 ekvadorskt
 ekvadorsku
 ekvadorum
-el
 elason
 elasona
 elasonar
@@ -182500,7 +182476,6 @@ elóstiginu
 elóstigið
 elóstigs
 elóstigum
-em
 ema
 emalera
 emalerandi
@@ -182896,7 +182871,6 @@ emýjar
 emýjarson
 emýjarsona
 emýjarsyni
-en
 enansson
 enanssona
 enanssonar
@@ -185932,7 +185906,6 @@ epískur
 epískust
 epískustu
 epískustum
-er
 erasmus
 erasmusar
 erasmusi
@@ -187729,7 +187702,6 @@ erúðar
 erúðin
 erúðina
 erúðinni
-es
 esa
 esajas
 esajasar
@@ -188333,7 +188305,6 @@ esum
 esunum
 esvatíní
 esvatínísk
-et
 eta
 etan
 etanal
@@ -188975,7 +188946,6 @@ evítusonar
 evítusonum
 evítusyni
 evítusynir
-ex
 exa
 exabita
 exabitana
@@ -189154,7 +189124,6 @@ exótísku
 exótískum
 exótískur
 exótískust
-ey
 eybaug
 eybauga
 eybaugana
@@ -191892,7 +191861,6 @@ eíss
 eíssins
 eísum
 eísunum
-eð
 eða
 eðalbela
 eðalbelana
@@ -251963,7 +251931,6 @@ fyðli
 fyðlinum
 fyðlum
 fyðlunum
-fá
 fáa
 fáan
 fáandi
@@ -254509,7 +254476,6 @@ fáþykkt
 fáþykktar
 fáþykktin
 fáþykktina
-fæ
 fædd
 fædda
 fæddan
@@ -255596,7 +255562,6 @@ fæðuþrepum
 fæðuþörf
 fæðuþörfin
 fæðuþörfum
-fé
 fébest
 fébesta
 fébestan
@@ -257124,7 +257089,6 @@ féþúfu
 féþúfuna
 féþúfunnar
 féþúfunni
-fí
 fía
 fíandi
 fíanna
@@ -274180,7 +274144,6 @@ gaðssonar
 gaðssonum
 gaðssyni
 gaðssynir
-ge
 gea
 geanna
 gedaljason
@@ -321990,7 +321953,6 @@ gyðusonar
 gyðusonum
 gyðusyni
 gyðusynir
-gá
 gádaost
 gádaosta
 gádaostana
@@ -325472,7 +325434,6 @@ gæðst
 gæðum
 gæðumst
 gæðunum
-gé
 géa
 géanna
 géborg
@@ -326582,7 +326543,6 @@ gíturum
 gíturunum
 gítörum
 gítörunum
-gó
 góa
 góan
 góbelín
@@ -332090,7 +332050,6 @@ gýtunum
 gýtur
 gýturnar
 gýturðu
-ha
 haakansson
 haarde
 habba
@@ -410658,7 +410617,6 @@ hyttu
 hyttuna
 hyttunnar
 hyttunni
-há
 háa
 háaalda
 háabakka
@@ -421516,7 +421474,6 @@ háþýskum
 háþýskuna
 háþýskunni
 háþýskur
-hæ
 hædd
 hædda
 hæddan
@@ -425685,7 +425642,6 @@ héðunni
 héðunum
 héður
 héðurnar
-hí
 hía
 híalín
 híalíni
@@ -426072,7 +426028,6 @@ híðunni
 híðunum
 híður
 híðurnar
-hó
 hóa
 hóana
 hóandi
@@ -437771,7 +437726,6 @@ húðþurrkur
 húðþykkni
 húðþykknis
 húðþykknið
-hý
 hýalín
 hýalíni
 hýalíninu
@@ -438639,7 +438593,6 @@ iktunni
 iktunum
 iktur
 ikturnar
-il
 ilband
 ilbanda
 ilbandanna
@@ -441007,7 +440960,6 @@ ilþófi
 ilþófinn
 ilþófum
 ilþófunum
-im
 imba
 imbakassa
 imbakassar
@@ -445608,7 +445560,6 @@ ivanssyni
 ivanssynir
 ivonsdætra
 ivonsdætur
-ið
 iða
 iðaberg
 iðabergi
@@ -451888,7 +451839,6 @@ jaðurspóa
 jaðurspóar
 jaðurspói
 jaðurspóum
-je
 jea
 jeanna
 jebbs
@@ -453208,7 +453158,6 @@ jysumst
 jysust
 jysuð
 jysuði
-já
 jáa
 jáanna
 jáatkvæða
@@ -455731,7 +455680,6 @@ jíhads
 jíhadsins
 jíkamarót
 jíkamaróta
-jó
 jóa
 jóab
 jóabs
@@ -459959,7 +459907,6 @@ jöðruð
 jöðruðu
 jöðruðum
 jöðruðuð
-jú
 júa
 júan
 júana
@@ -519833,7 +519780,6 @@ kytruðumst
 kytruðust
 kytruðuð
 kytruðuði
-ká
 káa
 káanna
 kádilják
@@ -522795,7 +522741,6 @@ kættuð
 kættuði
 kætum
 kætumst
-kí
 kía
 kíafræ
 kíafræi
@@ -528547,7 +528492,6 @@ köðuðumst
 köðuðust
 köðuðuð
 köðuðuði
-kú
 kúa
 kúaband
 kúabanda
@@ -574843,7 +574787,6 @@ lyðrunni
 lyðrunum
 lyðrur
 lyðrurnar
-lá
 láa
 láandi
 lábarin
@@ -577762,7 +577705,6 @@ láðum
 láðunum
 láðuð
 láðuði
-læ
 læblandin
 læblandinn
 læblandins
@@ -579570,7 +579512,6 @@ læðupokist
 læðupokum
 læður
 læðurnar
-lé
 lébarða
 lébarðana
 lébarðann
@@ -586185,7 +586126,6 @@ líönunni
 líönunum
 líönur
 líönurnar
-ló
 lóa
 lóamal
 lóamalinn
@@ -591132,7 +591072,6 @@ löðuðumst
 löðuðust
 löðuðuð
 löðuðuði
-lú
 lúa
 lúadautt
 lúadauð
@@ -593294,7 +593233,6 @@ lúðóttum
 lúðóttur
 lúðóttust
 lúðóttustu
-lý
 lýbika
 lýbiku
 lýbikumann
@@ -630371,7 +630309,6 @@ muðluðuði
 mvara
 mvörum
 mvörur
-my
 mygla
 myglan
 myglandi
@@ -633001,7 +632938,6 @@ mysutöð
 mysutöðin
 mysutöðum
 mysuþykkni
-má
 mábergsnes
 mábergsá
 mábergsár
@@ -639010,7 +638946,6 @@ mæörvar
 mæörvarnar
 mæörvum
 mæörvunum
-mé
 mél
 méla
 mélan
@@ -639818,7 +639753,6 @@ míósen
 míósens
 míósentíma
 míósentími
-mó
 móa
 móabarð
 móabarða
@@ -647916,7 +647850,6 @@ múðruðuði
 múður
 múðurs
 múðursins
-mý
 mýbit
 mýbiti
 mýbitin
@@ -662152,7 +662085,6 @@ nuðuðumst
 nuðuðust
 nuðuðuð
 nuðuðuði
-ny
 nybba
 nybban
 nybbanna
@@ -662774,7 +662706,6 @@ nytunum
 nytust
 nytuð
 nytuði
-ná
 náa
 náalda
 náaldanna
@@ -666387,7 +666318,6 @@ náþefs
 náþefsins
 náþefur
 náþefurinn
-næ
 næddi
 næddir
 næddirðu
@@ -668390,7 +668320,6 @@ næðurnar
 næðust
 næðuð
 næðuði
-né
 néogana
 néogananna
 néoganir
@@ -669509,7 +669438,6 @@ níóbínsins
 níóbíum
 níóbíuminu
 níóbíumið
-nó
 nóa
 nóaborg
 nóaborgar
@@ -671256,7 +671184,6 @@ nöðruvaðna
 nöðruvöðu
 nöðruvöðum
 nöðruvöður
-nú
 núa
 núandi
 núans
@@ -672182,7 +672109,6 @@ núþálegt
 núþálegu
 núþálegum
 núþálegur
-ný
 nýafl
 nýafli
 nýaflokin
@@ -676414,7 +676340,6 @@ odysseif
 odysseifi
 odysseifs
 odysseifur
-of
 ofa
 ofal
 ofala
@@ -682867,7 +682792,6 @@ ofþögli
 ofþöglin
 ofþöglina
 ofþöglinni
-og
 ogana
 ogananna
 oganir
@@ -682943,7 +682867,6 @@ ohmskust
 ohmskustu
 ohmskustum
 ohmslögmál
-oj
 oja
 ojandi
 ojar
@@ -682984,7 +682907,6 @@ ojuðumst
 ojuðust
 ojuðuð
 ojuðuði
-ok
 oka
 okagat
 okagata
@@ -684782,7 +684704,6 @@ omíkrons
 onyfir
 oná
 oní
-op
 opa
 opandi
 opanna
@@ -685179,7 +685100,6 @@ opíusonar
 opíusonum
 opíusyni
 opíusynir
-or
 ora
 orandi
 orar
@@ -708499,7 +708419,6 @@ páþröst
 páþröstinn
 páþröstum
 páþröstur
-pæ
 pæi
 pæin
 pæinn
@@ -708741,7 +708660,6 @@ pænur
 pænurnar
 pæs
 pæsins
-pé
 péa
 péanna
 péi
@@ -708885,7 +708803,6 @@ péturína
 péturínu
 péum
 péunum
-pí
 pía
 pían
 píanetta
@@ -712071,7 +711988,6 @@ pötuðu
 pötuðum
 pötuðuð
 pötuðuði
-pú
 púa
 púana
 púandi
@@ -713576,7 +713492,6 @@ pýróps
 pýrópsins
 pýþagóras
 pýþagórasi
-ra
 rabarbara
 rabarbarar
 rabarbari
@@ -744564,7 +744479,6 @@ ryþmi
 ryþminn
 ryþmum
 ryþmunum
-rá
 ráa
 ráar
 ráarbás
@@ -747524,7 +747438,6 @@ ráðþægum
 ráðþægur
 ráðþægust
 ráðþægustu
-ræ
 rædd
 rædda
 ræddan
@@ -749293,7 +749206,6 @@ ræðuþráðum
 ræðuþráður
 ræðuþræði
 ræðuþræðir
-ré
 réi
 réinu
 réið
@@ -750425,7 +750337,6 @@ réðumst
 réðust
 réðuð
 réðuði
-rí
 ríal
 ríala
 ríalanna
@@ -752521,7 +752432,6 @@ ríöl
 ríölin
 ríölum
 ríölunum
-ró
 róa
 róan
 róana
@@ -758382,7 +758292,6 @@ röðuðustu
 röðuðustum
 röðuðuð
 röðuðuði
-rú
 rúafjár
 rúafjárins
 rúafé
@@ -761134,7 +761043,6 @@ rúþeníum
 rúþeníumi
 rúþeníumið
 rúþeníums
-rý
 rýf
 rýfur
 rýfurðu
@@ -903167,7 +903075,6 @@ syðu
 syðum
 syðuð
 syðuði
-sá
 sáa
 sáanna
 sáda
@@ -906455,7 +906362,6 @@ sáðá
 sáðár
 sáðökrum
 sáðökrunum
-sæ
 sæagnar
 sæaldan
 sæarna
@@ -909863,7 +909769,6 @@ sæþörungi
 sæþörungs
 sæþörungum
 sæþörungur
-sé
 séddarost
 séddarosta
 séddarosti
@@ -911805,7 +911710,6 @@ séður
 séðust
 séðustu
 séðustum
-sí
 sía
 síam
 síamra
@@ -924878,7 +924782,6 @@ söðulþófum
 söðulþök
 söðulþökin
 söðulþökum
-sú
 súa
 súana
 súann
@@ -927157,7 +927060,6 @@ súðþöktu
 súðþöktum
 súðþökum
 súðþökunum
-sý
 sýan
 sýani
 sýaninu
@@ -934495,7 +934397,6 @@ taós
 taóspeki
 taóspekin
 taóspekina
-te
 tea
 teakra
 teakrana
@@ -963724,7 +963625,6 @@ tytluðum
 tytluðumst
 tytluðust
 tytluðuð
-tá
 táa
 táafýla
 táafýlan
@@ -967728,7 +967628,6 @@ tæðu
 tæðum
 tæðuð
 tæðuði
-té
 téa
 téanna
 téi
@@ -967946,7 +967845,6 @@ téðu
 téðum
 téður
 téðuð
-tí
 tía
 tíamín
 tíamíni
@@ -971052,7 +970950,6 @@ tíður
 tíðust
 tíðustu
 tíðustum
-tó
 tóa
 tóahraun
 tóahrauni
@@ -978743,7 +978640,6 @@ túður
 túðurnar
 túðurs
 túðursins
-tý
 týfa
 týfan
 týfanna
@@ -980479,7 +980375,6 @@ ultu
 ultum
 ultuð
 ultuði
-um
 uma
 umalaust
 umami
@@ -983840,7 +983735,6 @@ umþýðingar
 umþýðingin
 umþýðingu
 umþýðingum
-un
 una
 unadal
 unadals
@@ -992106,7 +992000,6 @@ uðruðum
 uðruðumst
 uðruðust
 uðruðuð
-va
 vaage
 vaddu
 vaf
@@ -1032587,7 +1032480,6 @@ vurderuð
 vurderuðu
 vurderuðum
 vurderuðuð
-vá
 váa
 váandi
 váar
@@ -1035116,7 +1035008,6 @@ væðustu
 væðustum
 væðuð
 væðuði
-vé
 véa
 véanna
 vébanda
@@ -1037097,7 +1036988,6 @@ véttur
 vétturin
 véum
 véunum
-ví
 vía
 vían
 víandi
@@ -1042888,7 +1042778,6 @@ víólur
 víóluradda
 víólurnar
 víólurödd
-vó
 vóal
 vóali
 vóalinu
@@ -1046041,7 +1045930,6 @@ xhósað
 xhús
 xhúsi
 xhúss
-xí
 xía
 xíanna
 xíi
@@ -1048159,7 +1048047,6 @@ ykjuð
 ykjuði
 ykkar
 ykkur
-yl
 yla
 ylana
 ylananna
@@ -1048870,7 +1048757,6 @@ ylþýður
 ylþýðust
 ylþýðustu
 ylþýðustum
-ym
 ymdi
 ymdir
 ymdirðu
@@ -1049503,7 +1049389,6 @@ ypsíloninu
 ypsílonið
 ypsílons
 ypsílonum
-yr
 yrja
 yrjaheiðar
 yrjaheiði
@@ -1049817,7 +1049702,6 @@ yrðunum
 yrðust
 yrðuð
 yrðuði
-ys
 ysi
 ysinn
 ysir
@@ -1050271,8 +1050155,6 @@ yðrirðu
 yður
 yördum
 yördunum
-á
-áa
 áablóð
 áablóði
 áablóðinu
@@ -1053005,7 +1052887,6 @@ yördunum
 áhöllust
 áhöllustu
 áhöllustum
-ái
 áifanga
 áifangana
 áifangann
@@ -1053700,7 +1053581,6 @@ yördunum
 ákúrununum
 ákúrur
 ákúrurnar
-ál
 ála
 álablíða
 álablíðan
@@ -1057065,7 +1056945,6 @@ yördunum
 álþynnunni
 álþynnunum
 álþynnur
-ám
 áma
 ámakoma
 ámakoman
@@ -1057333,7 +1057212,6 @@ yördunum
 ámótlega
 ámótum
 ámótunum
-án
 ána
 ánabrekka
 ánabrekku
@@ -1057822,7 +1057700,6 @@ yördunum
 ápökkunin
 ápökkunina
 ápökkunum
-ár
 ára
 áraandar
 áraarka
@@ -1061666,7 +1061543,6 @@ yördunum
 árþúsundið
 árþúsunds
 árþúsundum
-ás
 ása
 ásabanda
 ásaberg
@@ -1065148,7 +1065024,6 @@ yördunum
 ásþórsson
 ásþórssona
 ásþórssyni
-át
 áta
 átak
 átaka
@@ -1067151,7 +1067026,6 @@ yördunum
 áætluðust
 áætluðuð
 áætluðuði
-áð
 áðan
 áði
 áðir
@@ -1067318,7 +1067192,6 @@ yördunum
 áþrýstings
 áþéttarorð
 áþéttisorð
-æ
 æddi
 æddir
 æddirðu
@@ -1067342,7 +1067215,6 @@ yördunum
 ædísarsona
 ædísarsyni
 ædísi
-æf
 æfa
 æfan
 æfandi
@@ -1067478,7 +1067350,6 @@ yördunum
 æfðustum
 æfðuð
 æfðuði
-æg
 æga
 ægan
 ægar
@@ -1068078,14 +1067949,12 @@ yördunum
 ægðum
 ægðuð
 ægðuði
-æi
 æin
 æinu
 æir
 æirðu
 æið
 æiði
-æj
 æja
 æjan
 æjandi
@@ -1068136,7 +1068005,6 @@ yördunum
 ækjust
 ækjuð
 ækjuði
-æl
 æla
 ælan
 ælandi
@@ -1068284,7 +1068152,6 @@ yördunum
 æmtuð
 ænahermann
 ænahermenn
-æp
 æpa
 æpanda
 æpandann
@@ -1068318,7 +1068185,6 @@ yördunum
 æptuð
 æptuði
 æpum
-ær
 æra
 æran
 ærandi
@@ -1069367,7 +1069233,6 @@ yördunum
 ærðustum
 ærðuð
 ærðuði
-æs
 æsa
 æsakyn
 æsakyni
@@ -1070392,7 +1070257,6 @@ yördunum
 æsustöðum
 æsusyni
 æsusynir
-æt
 æta
 ætaleysi
 ætaleysinu
@@ -1072968,7 +1072832,6 @@ yördunum
 æxluðust
 æxluðuð
 æxluðuði
-æð
 æða
 æðabelg
 æðabelgi
@@ -1073974,8 +1073837,6 @@ yördunum
 éarnið
 éarns
 éarnsins
-ég
-él
 élgrá
 élgráa
 élgráan
@@ -1074164,7 +1074025,6 @@ yördunum
 élslitring
 élyséehöll
 ést
-ét
 éta
 étandi
 étast
@@ -1074194,7 +1074054,6 @@ yördunum
 étumst
 étur
 éturðu
-í
 ían
 íans
 íansdætra
@@ -1075856,7 +1075715,6 @@ yördunum
 íkúptust
 íkúptustu
 íkúptustum
-íl
 íla
 ílag
 ílaga
@@ -1076193,7 +1076051,6 @@ yördunum
 ílöngunin
 ílöngunina
 ílöngunum
-ím
 íma
 ímadal
 ímadals
@@ -1076561,7 +1076418,6 @@ yördunum
 íplöntunar
 íplöntunin
 íplöntunum
-ír
 íra
 írabakka
 írabakki
@@ -1077019,7 +1076875,6 @@ yördunum
 íröskust
 íröskustu
 íröskustum
-ís
 ísa
 ísabakka
 ísabakki
@@ -1081509,7 +1081364,6 @@ yördunum
 ívusynir
 ívör
 ívöru
-íð
 íða
 íðanna
 íðar
@@ -1081765,8 +1081619,6 @@ yördunum
 íþættuð
 íþættuði
 íþöku
-ó
-óa
 óafgreidd
 óafgreidda
 óafgreiddi
@@ -1084382,7 +1084234,6 @@ yördunum
 óeðlis
 óeðlisins
 óeðlið
-óf
 ófa
 ófafjár
 ófafjárins
@@ -1089478,7 +1089329,6 @@ yördunum
 óhýrust
 óhýrustu
 óhýrustum
-ói
 óinnbundin
 óinnbundið
 óinnbundna
@@ -1089597,7 +1089447,6 @@ yördunum
 ójöfnuðu
 ójöfnuðum
 ójöfnuður
-ók
 ókannað
 ókannaða
 ókannaðan
@@ -1090729,7 +1090578,6 @@ yördunum
 óköruð
 óköruðu
 óköruðum
-ól
 óla
 óladætra
 óladætrum
@@ -1092825,7 +1092673,6 @@ yördunum
 ólýsunum
 ólýsur
 ólýsurnar
-óm
 óma
 ómadætra
 ómadætrum
@@ -1094237,7 +1094084,6 @@ yördunum
 ómþýðust
 ómþýðustu
 ómþýðustum
-ón
 óna
 ónafn
 ónafna
@@ -1095107,7 +1094953,6 @@ yördunum
 óorðvöru
 óorðvörum
 óorðvörust
-óp
 ópa
 ópakkað
 ópakkaða
@@ -1097315,7 +1097160,6 @@ yördunum
 órýrust
 órýrustu
 órýrustum
-ós
 ósa
 ósabakka
 ósabakki
@@ -1104835,7 +1104679,6 @@ yördunum
 óvörum
 óvörðu
 óvörðum
-óx
 óxt
 óxtu
 óyfirfarin
@@ -1105324,7 +1105167,6 @@ yördunum
 óíslensku
 óíslenskum
 óíslenskur
-óð
 óða
 óðaannar
 óðaberkla
@@ -1108296,7 +1108138,6 @@ yördunum
 ögðusonum
 ögðusyni
 ögðusynir
-öh
 ökkla
 ökklaband
 ökklabanda
@@ -1108808,7 +1108649,6 @@ yördunum
 ökuþórsins
 ökuþórum
 ökuþórunum
-öl
 öla
 ölanna
 ölbera
@@ -1111569,7 +1111409,6 @@ yördunum
 öpuðust
 öpuðuð
 öpuðuði
-ör
 öra
 öragna
 öragnanna
@@ -1114949,7 +1114788,6 @@ yördunum
 örþörungs
 örþörungum
 örþörungur
-ös
 ösfiski
 ösfiskinu
 ösfiskis
@@ -1115798,7 +1115636,6 @@ yördunum
 östrógeni
 östrógenið
 östrógens
-öt
 ötin
 ötlu
 ötludætra
@@ -1115919,7 +1115756,6 @@ yördunum
 ötuðuð
 ötuðuði
 övu
-öx
 öxar
 öxarbrjót
 öxarbrjóta
@@ -1116261,7 +1116097,6 @@ yördunum
 öðusúpunni
 öðusúpunum
 öðusúpur
-úa
 úaleg
 úalega
 úalegan
@@ -1116326,7 +1116161,6 @@ yördunum
 údílsins
 údílum
 údílunum
-úf
 úfa
 úfaleg
 úfalega
@@ -1116553,8 +1116387,6 @@ yördunum
 úgönsk
 úgönsku
 úgönskum
-úh
-úi
 úinn
 úir
 úirðu
@@ -1117373,7 +1117205,6 @@ yördunum
 únítörum
 únítörunum
 úps
-úr
 úra
 úralbrá
 úralbráa
@@ -1119010,7 +1118841,6 @@ yördunum
 ússísyni
 ússísynir
 úsu
-út
 úta
 útaf
 útafakstri
@@ -1127215,7 +1127045,6 @@ yördunum
 útþýðingin
 útþýðingu
 útþýðingum
-úu
 úudætra
 úudætrum
 úudætur
@@ -1127236,7 +1127065,6 @@ yördunum
 úuðust
 úuðuð
 úuðuði
-úð
 úða
 úðabað
 úðabaða
@@ -1127756,7 +1127584,6 @@ yördunum
 úðvaðanum
 úðvaði
 úðvaðinn
-ý
 ýboga
 ýbogana
 ýbogann
@@ -1127785,7 +1127612,6 @@ yördunum
 ýdrógum
 ýdrógunum
 ýdölum
-ýf
 ýfa
 ýfan
 ýfandi
@@ -1127957,7 +1127783,6 @@ yördunum
 ýfðustum
 ýfðuð
 ýfðuði
-ýg
 ýga
 ýgan
 ýgar
@@ -1128025,7 +1127850,6 @@ yördunum
 ýgust
 ýgustu
 ýgustum
-ýi
 ýinn
 ýir
 ýirðu
@@ -1128068,7 +1127892,6 @@ yördunum
 ýjuðum
 ýjuðuð
 ýjuðuði
-ýk
 ýki
 ýkin
 ýking
@@ -1128298,7 +1128121,6 @@ yördunum
 ýktustum
 ýktuð
 ýktuði
-ýl
 ýla
 ýlan
 ýlandi
@@ -1128646,7 +1128468,6 @@ yördunum
 ýmum
 ýmunum
 ýnum
-ýr
 ýra
 ýran
 ýrana
@@ -1128880,7 +1128701,6 @@ yördunum
 ýróttust
 ýróttustu
 ýróttustum
-ýs
 ýsa
 ýsan
 ýsanna
@@ -1129260,7 +1129080,6 @@ yördunum
 ýsópunum
 ýsópur
 ýsópurinn
-ýt
 ýta
 ýtan
 ýtana
@@ -1154722,7 +1154541,6 @@ yördunum
 þyturinn
 þytuð
 þytuði
-þá
 þáa
 þáameira
 þáameiri
@@ -1156299,7 +1156117,6 @@ yördunum
 þíðviðris
 þíðviðrið
 þíðviðrum
-þó
 þóa
 þóað
 þóf
@@ -1157556,7 +1157373,6 @@ yördunum
 þörungunum
 þörungur
 þörunum
-þú
 þúa
 þúan
 þúana
@@ -1158163,7 +1157979,6 @@ yördunum
 þúuðust
 þúuðuð
 þúuðuði
-þý
 þýborin
 þýborinn
 þýborinna

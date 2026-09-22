@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 import { BOARD_SIZE } from "./lib/constants/board";
+import { DEFAULT_GAME_CONFIG } from "./lib/constants/game-config";
 
 // Deny-by-default list of Permissions-Policy features we do not use. Browsers
 // that ship newer feature names will ignore the unknown entries. Keeping them
@@ -52,7 +53,7 @@ const nextConfig: NextConfig = {
   // lists they are built from (55MB for Icelandic).
   outputFileTracingIncludes: {
     "/**": [
-      `data/wordlists/word_list_${BOARD_SIZE}_*.txt`,
+      `data/wordlists/word_list_${DEFAULT_GAME_CONFIG.minimumWordLength}_${BOARD_SIZE}_*.txt`,
       "data/wordlists/word_list_*_exclusions.txt",
     ],
   },

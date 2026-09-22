@@ -1,7 +1,6 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { BOARD_SIZE } from "@/lib/constants/board";
-import { boardWordlistPath } from "@/lib/game-engine/boardWordlist";
+import { BOARD_WORD_LENGTHS, boardWordlistPath } from "@/lib/game-engine/boardWordlist";
 import { Language } from "@/lib/types/game-config";
 
 /**
@@ -22,7 +21,7 @@ export class DictionaryLoadError extends Error {
 
 /**
  * Minimum entry counts per language, to detect corrupt/partial files. They
- * apply to the board wordlist, which holds only words that fit the board.
+ * apply to the board wordlist, which holds only words the game can score.
  */
 const LANGUAGE_DICTIONARY_CONFIG: Record<
   Language,
@@ -76,8 +75,8 @@ const cachedDictionaries = new Map<Language, Set<string>>();
 /**
  * Load a language dictionary into an in-memory Set.
  *
- * Reads the board wordlist (`word_list_<BOARD_SIZE>_<language>.txt`, only
- * words that fit the board, pre-normalized by `pnpm wordlists:build`)
+ * Reads the board wordlist (`word_list_<min>_<max>_<language>.txt`, only
+ * words of 3 to BOARD_SIZE letters, pre-normalized by `pnpm wordlists:build`)
  * synchronously, splits by newline and inserts the entries into a Set
  * for O(1) lookups. Uses sync I/O for maximum throughput on the
  * single bulk read. The result is cached per language — subsequent
@@ -98,7 +97,7 @@ export async function loadDictionary(language: Language = "is"): Promise<Set<str
   const { minEntries } = config;
   const wordlistPath = resolve(
     /* turbopackIgnore: true */ process.cwd(),
-    boardWordlistPath(language, BOARD_SIZE),
+    boardWordlistPath(language, BOARD_WORD_LENGTHS),
   );
 
   const startMark = `dictionary-load-start-${language}`;

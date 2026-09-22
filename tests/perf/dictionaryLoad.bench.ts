@@ -6,8 +6,8 @@ import {
 } from "@/lib/game-engine/dictionary";
 
 // The 200ms target (FR-022) was estimated for ~18k entries.
-// The game loads the board wordlist (~1.16M Icelandic forms of at
-// most 10 letters, word_list_10_is.txt), not the full ~3.71M BÍN list. Lookups
+// The game loads the board wordlist (~1.16M Icelandic forms of
+// 3 to 10 letters, word_list_3_10_is.txt), not the full ~3.71M BÍN list. Lookups
 // remain O(1). Lazy singleton caching ensures only the first
 // request pays the load cost. Budget set at 1000ms for cold start.
 const COLD_START_BUDGET_MS = 1000;
