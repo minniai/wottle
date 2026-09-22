@@ -17,6 +17,8 @@ describe("LobbyLedger (design system §5.6)", () => {
     render(<LobbyLedger players={players} viewer={me} recentGames={[]} onAction={onAction} />);
     const rows = screen.getAllByTestId("ledger-here-now-row");
     expect(rows).toHaveLength(2);
+    expect(screen.getByRole("link", { name: /Kári/ })).toHaveAttribute("href", "/profile/kari");
+    expect(screen.getByRole("link", { name: /Elín/ })).toHaveAttribute("href", "/profile/elin");
     expect(rows[0]).toHaveTextContent("Kári");
     expect(rows[0]).toHaveTextContent("1191");
     expect(rows[0]).toHaveTextContent("-13");
@@ -35,6 +37,7 @@ describe("LobbyLedger (design system §5.6)", () => {
     rerender(<LobbyLedger players={[me]} viewer={me} recentGames={[{ matchId: "m", result: "win", opponentId: "k", opponentUsername: "kari", opponentDisplayName: "Kári", yourScore: 170, opponentScore: 127, wordsFound: 10, completedAt: "" }]} onAction={() => {}} />);
     expect(screen.getByTestId("ledger-here-now-empty")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-last-match-row")).toHaveTextContent("Kári");
+    expect(screen.getByRole("link", { name: "Kári" })).toHaveAttribute("href", "/profile/kari");
     expect(screen.getByTestId("ledger-last-match-row")).toHaveTextContent("170–127");
   });
 

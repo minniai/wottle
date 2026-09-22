@@ -18,6 +18,7 @@ import { useReducedMotion } from "./hooks/useReducedMotion";
 
 export interface SeatFacts {
   name: string;
+  username?: string;
   rating: number | null;
   /** Resolved moves (spec 050): the lane's length and the sub-line's count. */
   movesPlayed: number;
@@ -122,9 +123,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           position="top"
           state={completed ? "final" : "playing"}
           name={opp.name}
-          profileHref={opp.profileHref}
-          profileInNewTab={opp.profileInNewTab}
-          subline={subline(opp, readOnly ? null : OPPONENT, copy)}
+          username={opp.username}
+          subline={subline(opp, readOnly ? null : OPPONENT)}
           sublineSuffix={opp.reconnectMsLeft != null ? null : oppSuffix}
           movesPlayed={opp.movesPlayed}
           moveInFlight={opp.scoring}
@@ -140,9 +140,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           position="bottom"
           state={completed ? "final" : "playing"}
           name={you.name}
-          profileHref={you.profileHref}
-          profileInNewTab={you.profileInNewTab}
-          subline={subline(you, readOnly ? null : YOU, copy)}
+          username={you.username}
+          subline={subline(you, readOnly ? null : YOU)}
           sublineSuffix={youSuffix}
           sublineTone={turn ? barToneFor(turn) : "muted"}
           movesPlayed={you.movesPlayed}

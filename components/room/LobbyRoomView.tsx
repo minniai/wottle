@@ -74,7 +74,7 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
       field={children}
       bottomBar={
         viewer ? (
-          <PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} subline={`${viewer.eloRating ?? UNRATED} · ${YOU}`} />
+          <PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} username={viewer.username} subline={`${viewer.eloRating ?? "unrated"} · ${YOU}`} />
         ) : (
           <PlayerBar seat="you" position="bottom" state="empty" name="—" subline={SIGN_IN_TO_SET_THE_FIELD} />
         )
