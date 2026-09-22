@@ -553,6 +553,8 @@ Key files:
 - TypeScript 5.x, Node.js 22, React 19, Next.js 16 (App Router) + Supabase JS v2 (three security-definer functions: `receive_move`, `claim_next_move`, `finish_move`), Zod, zustand. No new dependency. (050-async-moves)
 - Supabase PostgreSQL. **One destructive migration** `20260921001_async_moves.sql`: deletes all matches, resets ratings, adds `match_moves` and the clock/counter columns on `matches`, drops `rounds`, `move_submissions`, `scoreboard_snapshots`, `is_duplicate`. (050-async-moves)
 - Supabase PostgreSQL. **No schema change.** No data repair: the loader change renders the affected matches correctly from the rows they have. (049-scored-letter-integrity)
+- TypeScript 5.x, Node.js 22, React 19, Next.js 16.2 (App Router, `proxy.ts` convention) + Supabase JS v2, Zod, zustand, Tailwind 4. No new dependency; i18n is a typed object per locale plus `Intl.PluralRules` / `Intl.DateTimeFormat`. (060-locales)
+- Supabase PostgreSQL. Two additive migrations. `claim_next_move` is recreated to return `language`. (060-locales)
 
 - **Runtime (current)**: Node.js 22 (`.nvmrc`, `engines.node >=22`), pnpm 11.7 (`packageManager`; settings live in `pnpm-workspace.yaml`). Per-spec lines below that say "Node.js 20" are historical.
 - TypeScript 5.x, Node.js 20 + Next.js 16 (App Router), Supabase JS v2, Zod (007-server-authoritative-timer)
