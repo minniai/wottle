@@ -97,7 +97,13 @@
   .room__ledger {
     display: flex;
     flex-direction: column;
+    /* Override the desktop top alignment: the sheet needs the remaining
+       grid track's definite height, not the height of all ten moves. */
+    align-self: stretch;
     height: auto;
+    min-height: 0;
+  }
+  .room__ledger > .ledger {
     min-height: 0;
   }
   /* Every control a thumb reaches in the sheet (constitution IV). A text link
@@ -1159,6 +1165,14 @@
 .ledger-sheet__close {
   display: block;
   margin-left: auto;
+}
+/* Keep the content at its reading height inside the scrollport. In particular,
+   the rows must not collapse while their grid children paint over the totals. */
+.ledger-sheet > * {
+  flex-shrink: 0;
+}
+.ledger-sheet > .ledger__rows {
+  flex: none;
 }
 
 /* ---------- Lobby ledger tables (§5.6) + name input (§5.7) ---------- */
