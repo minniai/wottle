@@ -286,12 +286,25 @@ function wordsAdjacentOnSameAxis(a: BoardWord, b: BoardWord): boolean {
  * Check that no two words in the subset overlap or are adjacent along
  * the same axis. Adjacent words violate the standalone invariant: each
  * scored word must end at an unscored tile or the board edge.
+ *
+ * Exception (§3.1): If two words cover the EXACT same tiles (e.g. forward
+ * and backward reading of the same word), they are allowed to co-exist.
  */
 function hasNoSameAxisConflict(subset: BoardWord[]): boolean {
   for (let i = 0; i < subset.length; i++) {
     for (let j = i + 1; j < subset.length; j++) {
-      if (wordsOverlapSameAxis(subset[i], subset[j])) return false;
-      if (wordsAdjacentOnSameAxis(subset[i], subset[j])) return false;
+      const a = subset[i];
+      const b = subset[j];
+      if (wordsOverlapSameAxis(a, b)) {
+        // Exception: Double reading of the same tiles is allowed.
+        const aTiles = a.tiles.map((t) => `${t.x},${t.y}`).sort().join("|");
+        const bTiles = b.tiles.map((t) => `${t.x},${t.y}`).sort().join("|");
+        if (aTiles === bTiles) {
+          continue; // allowed
+        }
+        return false;
+      }
+      if (wordsAdjacentOnSameAxis(a, b)) return false;
     }
   }
   return true;

@@ -27,25 +27,37 @@ async function scoreRowSwap(board: BoardGrid, fromX: number, toX: number) {
 }
 
 /**
- * Rules §3.1 "One record per run": a run that reads as a word both ways is
- * scored once, as the forward reading; a reversed record exists only when the
- * reversed reading alone is a word. Pinned for spec 044 (one chevron per band).
+ * Rules §3.1 "Both directions are scored if valid": a run that reads as a word both ways is
+ * scored twice, yielding two records.
  */
-describe("§3.1 one record per run", () => {
+describe("§3.1 both directions are scored if valid", () => {
   beforeAll(async () => {
     await loadDictionary();
   });
 
-  test("FÁR/RÁF scores once, as the forward (ltr) reading", async () => {
+  test("FÁR/RÁF scores twice, yielding two records", async () => {
     const board = emptyBoard();
     board[0][0] = "f";
     board[0][1] = "á";
     board[0][5] = "r";
     const result = await scoreRowSwap(board, 2, 5); // f á _ … r → f á r
 
-    expect(result.playerAWords.map((w) => w.word)).toEqual(["fár"]);
-    expect(result.playerAWords[0].tiles).toEqual([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }]);
-    expect(deriveReadingDirection(result.playerAWords[0].tiles)).toBe("ltr");
+    // Now it should return both 'fár' and 'ráf'
+    const words = result.playerAWords.map((w) => w.word);
+    expect(words).toContain("fár");
+    expect(words).toContain("ráf");
+    expect(result.playerAWords.length).toBe(2);
+    
+    // Sort words for assertions
+    const sortedWords = [...result.playerAWords].sort((a, b) => a.word.localeCompare(b.word));
+    
+    expect(sortedWords[0].word).toBe("fár");
+    expect(sortedWords[0].tiles).toEqual([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }]);
+    expect(deriveReadingDirection(sortedWords[0].tiles)).toBe("ltr");
+
+    expect(sortedWords[1].word).toBe("ráf");
+    expect(sortedWords[1].tiles).toEqual([{ x: 2, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 0 }]);
+    expect(deriveReadingDirection(sortedWords[1].tiles)).toBe("rtl");
   });
 
   test("a word valid only reversed keeps reversed tile order (rtl)", async () => {
