@@ -14,6 +14,9 @@ export interface PlayerBarProps {
   position: "top" | "bottom";
   state: PlayerBarState;
   name?: string;
+  /** Public profile handle; absent for an empty or searching seat. */
+  username?: string;
+  profileNewTab?: boolean;
   subline: string;
   /** Spec 050: this player's move count, in the seat colour while a move is the viewer's to make. */
   sublineSuffix?: string | null;
@@ -60,7 +63,11 @@ export function PlayerBar(props: PlayerBarProps) {
         <span className="player-bar__seat" aria-hidden />
         <div className="player-bar__text">
           <span className={`player-bar__name${writing ? " player-bar__name--writing" : ""}`} data-testid="player-bar-name">
-            {name ?? ""}
+            {props.username ? (
+              <a href={`/profile/${encodeURIComponent(props.username)}`} target={props.profileNewTab || state === "playing" || state === "found" ? "_blank" : undefined} rel="noopener">
+                {name ?? ""}
+              </a>
+            ) : name ?? ""}
           </span>
           <span className="player-bar__subline" data-testid="player-bar-subline">
             {subline}

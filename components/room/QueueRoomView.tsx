@@ -61,6 +61,7 @@ export function QueueRoomView(props: QueueRoomViewProps) {
             position="top"
             state="found"
             name={opponent?.displayName ?? "opponent"}
+            username={opponent?.username}
             subline={`${opponent?.eloRating ?? "unrated"} · ${OPPONENT} · ${startsIn(found.countdown)}`}
             score={0}
             writing
@@ -78,7 +79,7 @@ export function QueueRoomView(props: QueueRoomViewProps) {
       }
       field={children}
       bottomBar={
-        <PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} subline={`${viewer.eloRating ?? "unrated"} · ${YOU}`} />
+        <PlayerBar seat="you" position="bottom" state="idle" name={viewer.displayName} username={viewer.username} profileNewTab subline={`${viewer.eloRating ?? "unrated"} · ${YOU}`} />
       }
       ledger={
         <Ledger

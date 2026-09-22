@@ -116,6 +116,21 @@ describe("MatchRoomController (spec 050)", () => {
     vi.unstubAllGlobals();
   });
 
+  it("opens your profile from the final menu while the result slip is visible", async () => {
+    renderController(state({ state: "completed" }));
+    await screen.findByTestId("slip-rematch");
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    fireEvent.click(screen.getByTestId("ledger-menu-item-profile"));
+    expect(mockPush).toHaveBeenCalledWith("/profile");
+    expect(screen.queryByTestId("slip")).toBeNull();
+  });
+
+  it("links both players to their own profiles", () => {
+    renderController();
+    expect(screen.getByRole("link", { name: "Alice" })).toHaveAttribute("href", "/profile/alice");
+    expect(screen.getByRole("link", { name: "Bob" })).toHaveAttribute("href", "/profile/bob");
+  });
+
   // Spec 049: the report is a warn event in every environment, once per match.
   it("reports a word record the board does not spell once per match as bands.record-mismatch", () => {
     __resetWordIntegrityForTests();
