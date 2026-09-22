@@ -101,7 +101,7 @@ export type LedgerAction =
   | { declineChallenge: string };
 
 export type Notice =
-  | { kind: "pickCleared"; byName: string }
+  | { kind: "pickCleared"; byName: string; expiresAt: number }
   | { kind: "rematchRequest"; requesterName: string }
   | { kind: "challenge"; fromName: string; inviteId: string }
   | { kind: "challengeSent"; toName: string; inviteId: string }

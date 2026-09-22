@@ -397,6 +397,10 @@
 .field__cell--shake {
   animation: field-shake 300ms cubic-bezier(0.2, 0, 0.2, 1);
 }
+/* A tap is hit-tested at pointerup: a letter travelling over another cell must not answer for it. */
+.field__cell > span {
+  pointer-events: none;
+}
 .field__cell--exchange > span:first-child {
   animation: letter-exchange 150ms cubic-bezier(0.2, 0, 0.2, 1) both;
 }

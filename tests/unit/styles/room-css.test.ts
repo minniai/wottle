@@ -329,6 +329,12 @@ describe("room.css motion, spec 045 US5", () => {
     expect(exchange).toMatch(/cubic-bezier\(0\.2, 0, 0\.2, 1\)/);
   });
 
+  // A tap is hit-tested at pointerup; a travelling letter must not answer for
+  // the cell it is passing over.
+  it("a letter never takes the pointer from its cell", () => {
+    expect(block(".field__cell > span")).toMatch(/pointer-events: none/);
+  });
+
   it("writes a found opponent's name in over 200ms", () => {
     expect(block(".player-bar__name--writing")).toMatch(/200ms/);
   });

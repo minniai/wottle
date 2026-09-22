@@ -81,6 +81,8 @@ export function Field(props: FieldProps) {
 
   const onPointerDown = useCallback((x: number, y: number) => {
     dragFrom.current = { x, y };
+    // A drag's click lands on the grid, not a letter, so nothing consumed the flag.
+    swallowClick.current = false;
   }, []);
 
   const onPointerUp = useCallback(
@@ -117,10 +119,16 @@ export function Field(props: FieldProps) {
   // FLIP: each letter starts at the other's offset and animates home. The
   // offset is the distance between the two cells, so it needs no measurement
   // before the swap — the grid is uniform.
+  // Keyed on the pair's cells, not its array: a re-render (every clock tick)
+  // hands a fresh array for the same pair, and the letters must not fly again.
   const [travelling, setTravelling] = useState<Map<string, { dx: number; dy: number }>>(new Map());
+  const exchangeKey = exchange ? exchange.map((c) => `${c.x},${c.y}`).join("|") : null;
   useEffect(() => {
-    if (!exchange) return setTravelling(new Map());
-    const [a, b] = exchange;
+    if (!exchangeKey) return setTravelling(new Map());
+    const [a, b] = exchangeKey.split("|").map((k) => {
+      const [x, y] = k.split(",").map(Number);
+      return { x, y };
+    });
     const cellOf = (c: Coordinate) => ref.current?.querySelector<HTMLElement>(`[data-x="${c.x}"][data-y="${c.y}"]`);
     const boxA = cellOf(a)?.getBoundingClientRect();
     const boxB = cellOf(b)?.getBoundingClientRect();
@@ -131,7 +139,7 @@ export function Field(props: FieldProps) {
         [`${b.x},${b.y}`, { dx: boxA.left - boxB.left, dy: boxA.top - boxB.top }],
       ]),
     );
-  }, [exchange]);
+  }, [exchangeKey]);
 
   const onExchangeEnd = useCallback((x: number, y: number) => {
     setTravelling((current) => {

@@ -17,6 +17,7 @@ import { reportWordIntegrity } from "@/lib/room/wordIntegrity";
 import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
+import { pickClearedNotice } from "@/lib/room/notices";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
@@ -155,7 +156,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   const onNotice = useCallback(
     (kind: "frozen" | "pickCleared", at?: Coordinate) => {
-      if (kind === "pickCleared") return push({ kind: "pickCleared", byName: opp.displayName });
+      if (kind === "pickCleared") return push(pickClearedNotice(opp.displayName, Date.now()));
       const owner = at ? frozenTiles[`${at.x},${at.y}`]?.owner : undefined;
       const ownerName = owner ? ownerNames[owner] : opp.displayName;
       const move = (at && frozenMove(words, at)) ?? youFacts.movesPlayed;

@@ -14,7 +14,7 @@ export interface NoticesApi {
   apply: (next: (prev: Notice[]) => Notice[]) => void;
 }
 
-/** Live-row-styled notices with expiry (resign confirm 5 s). */
+/** Live-row-styled notices; one with `expiresAt` leaves on its own (a cleared pick, 2 s). */
 export function useNotices(): NoticesApi {
   const [notices, setNotices] = useState<Notice[]>([]);
   const push = useCallback((notice: Notice) => setNotices((prev) => addNotice(prev, notice)), []);
