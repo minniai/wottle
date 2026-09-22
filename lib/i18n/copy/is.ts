@@ -114,7 +114,7 @@ export const copyIs = {
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,
 
   rematchRequest: (name: string): string =>
-    `${name} vill aðra viðureign · þiggja ▸ · hafna`,
+    `${name} vill aðra viðureign · samþykkja ▸ · hafna`,
   waitingForRematch: (name: string): string => `bíður eftir ${name}`,
   challengeNotice: (name: string): string => `${name} skorar á þig · þiggja ▸ · hafna`,
   challengeSent: (name: string): string => `áskorun send · bíður eftir ${name}`,
@@ -146,7 +146,7 @@ export const copyIs = {
   REVIEW_FIELD: "skoða borðið ▸",
   RESULT: "úrslit ▸",
   HOW_TO_PLAY: "leiðbeiningar ▸",
-  ACCEPT: "þiggja ▸",
+  ACCEPT: "samþykkja ▸",
   DECLINE: "hafna",
 
   points,
@@ -253,7 +253,7 @@ export const copyIs = {
     queue_failed: "leit hófst ekki · reyndu aftur",
     invite_failed: "áskorun tókst ekki",
     rematch_failed: "ekki tókst að biðja um aðra viðureign",
-    accept_failed: "ekki tókst að þiggja",
+    accept_failed: "ekki tókst að samþykkja",
     resign_failed: "ekki tókst að gefast upp · reyndu aftur",
     move_ended: "viðureigninni er lokið",
     move_not_started: "viðureignin er ekki hafin",
