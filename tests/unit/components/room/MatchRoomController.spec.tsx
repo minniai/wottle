@@ -71,6 +71,7 @@ function state(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchFacts>
     players: { playerA: facts("player-1", a), playerB: facts("player-2", { score: 30, movesPlayed: 5, ...b }) },
     clock: { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: NOW },
     moveLimit: 10,
+    language: "is",
     resolvedSeq: 7,
     scores: { playerA: 45, playerB: 30 },
     frozenTiles: {},

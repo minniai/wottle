@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
 import { handlePlayerReconnect } from "@/app/actions/match/handleDisconnect";
 import { loadMatchState, loadMatchPlayerProfiles } from "@/lib/match/stateLoader";
-import { localePath } from "@/lib/i18n/locales";
+import { getLocale, localeForLanguage, localePath } from "@/lib/i18n/locales";
 import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
@@ -45,6 +45,12 @@ export default async function MatchPage({
   // and a match that fails to load fails to load every time — an endless loop.
   if (!matchState) {
     redirect(localePath(locale, `/lobby?notice=no-match&match=${encodeURIComponent(matchId)}`));
+  }
+
+  // Spec 060 FR-015: the page speaks the match's language, so the words on the
+  // board and the words around it agree.
+  if (matchState.language !== getLocale(locale).language) {
+    redirect(localePath(localeForLanguage(matchState.language), `/match/${matchId}`));
   }
 
   // FR-043a: a signed-in non-participant may view a completed match read-only;

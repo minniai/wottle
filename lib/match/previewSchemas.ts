@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ALL_LETTERS } from "@/lib/game-engine/languagePack";
+
 /**
  * Input contract of the read-only `previewSwap` Server Action
  * (specs/044-field-ledger-redesign/contracts/preview-swap.md). Lives outside
@@ -10,7 +12,8 @@ const coordinateSchema = z.object({
   y: z.number().int().min(0).max(9),
 });
 
-const ICELANDIC_LETTER = /^[A-ZÁÐÉÍÓÚÝÞÆÖ]$/u;
+/** A letter any playable language can put on a board (spec 060). */
+const boardLetter = z.string().refine((letter) => ALL_LETTERS.has(letter), "Not a board letter");
 
 export const previewSwapInputSchema = z
   .discriminatedUnion("kind", [
@@ -22,9 +25,11 @@ export const previewSwapInputSchema = z
     }),
     z.object({
       kind: z.literal("warmup"),
-      board: z.array(z.array(z.string().regex(ICELANDIC_LETTER)).length(10)).length(10),
+      board: z.array(z.array(boardLetter).length(10)).length(10),
       from: coordinateSchema,
       to: coordinateSchema,
+      /** The lobby's game language; Icelandic when omitted. */
+      language: z.enum(["is", "en"]).optional(),
     }),
   ])
   .refine((v) => v.from.x !== v.to.x || v.from.y !== v.to.y, {

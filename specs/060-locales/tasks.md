@@ -16,6 +16,13 @@ Format: `- [ ] T### [P?] [US?] description — path`
 - T027: moves, challenges, rematch and resign map to codes on the client (the server already returned a `reason` or a status); only the login action gained a `code`. Preview errors are never shown, so they have no code.
 - Chromium E2E before/after: the base commit fails 9 specs locally (lobby-presence, match-completion, profile-room ×2, reconnect-flow, room-flow, room-layout ×2, rules-page); the branch fails the same set, none new. The login rate limit (5/min, not disabled locally) causes the sign-in timeouts.
 - Linux baselines for the new `is-*` set come from the CI visual job's artifacts, as for every baseline.
+- T039: `selectOptimalCombination` takes `letterValues` as an optional last argument (Icelandic default, like every scorer); covered end to end by `moveResolver.english.spec.ts` and `tests/integration/db/matchLanguage.test.ts` rather than its own unit test.
+- T044: `toLocaleUpperCase("is")` is left as it is — for every letter of both alphabets it equals the English result (research R11); a future language with different casing takes `pack.upperLocale`.
+- T054/T047: the lobby is split by language end to end — presence row, in-memory presence cache, `/api/lobby/players?language=`, the heartbeat body, the Realtime topic `lobby-presence:{language}`, and the sign-in form's hidden `language`. A challenge to someone present in another language's lobby is refused.
+- T056: the wrong-locale redirect is pinned by `tests/integration/app/match-locale-redirect.test.ts` (both directions) instead of a Playwright step.
+- English copy now says English where the game is English: the tagline (`two players · one field · English words`) and the rules page, whose figures are WORD / GAME / MEN on an English board (`rulesFiguresFor`). English `landing-slip` and `rules` baselines refreshed.
+- The visual tolerance (`maxDiffPixelRatio: 0.002`) lets a one-word change in small mono text pass against a stale baseline; refresh the affected phases on purpose after any copy change.
+- Local E2E hygiene: `matchmaking.spec` ends with a player still searching, and a leftover `matchmaking` row is offered first to the next run's players (oldest first), so reruns can hang in the queue. Reset queued players between runs; run the dev server with `RATE_LIMIT_DISABLED_SCOPES=auth:login` to avoid the 5/min sign-in limit.
 
 ## Phase 1: Setup
 
@@ -117,63 +124,63 @@ Format: `- [ ] T### [P?] [US?] description — path`
 **Goal**: Matches from `/en` use the English dictionary, letter values and frequencies, and the queue and lobby are partitioned by language.
 **Independent test**: Two `/en` players get an English board, `CAT` scores and `HESTUR` does not, and an is player and an en player are never paired.
 
-- [ ] T035 [P] [US2] Write the failing tests for the language pack in `tests/unit/lib/game-engine/languagePack.spec.ts`:
+- [X] T035 [P] [US2] Write the failing tests for the language pack in `tests/unit/lib/game-engine/languagePack.spec.ts`:
   - `is` returns today's weights and values unchanged.
   - `en` returns 26 letters, en values and upperLocale `en`.
   - `dk` throws `UnsupportedLanguageError`.
-- [ ] T036 [P] [US2] Write the failing curation test for the English dictionary in `tests/unit/lib/game-engine/dictionaryEn.spec.ts`: `word_list_en.txt` is lowercase a–z only, has at least 10k entries, and contains `cat` and `house`.
-- [ ] T037 [P] [US2] Write the failing resolver test `tests/unit/match/moveResolver.english.spec.ts`. `resolveOne` on an English board with the en dictionary and pack scores `CAT` with en values and does not score `HESTUR`. Existing Icelandic resolver tests stay unchanged.
-- [ ] T038 [US2] Implement `lib/game-engine/languagePack.ts` and add `ENGLISH_LETTER_WEIGHTS` in `lib/game-engine/boardGenerator.ts` (research R6). T035 must pass.
-- [ ] T039 [US2] Make `letterValues` a required parameter in `lib/game-engine/crossValidator.ts` and pass it from `wordEngine` and `moveResolver`. Keep the IS default only at the outermost test helpers (`tests/helpers/scoreMoves.ts`).
-- [ ] T040 [US2] Write migration `supabase/migrations/20260922001_match_language.sql` per data-model:
+- [X] T036 [P] [US2] Write the failing curation test for the English dictionary in `tests/unit/lib/game-engine/dictionaryEn.spec.ts`: `word_list_en.txt` is lowercase a–z only, has at least 10k entries, and contains `cat` and `house`.
+- [X] T037 [P] [US2] Write the failing resolver test `tests/unit/match/moveResolver.english.spec.ts`. `resolveOne` on an English board with the en dictionary and pack scores `CAT` with en values and does not score `HESTUR`. Existing Icelandic resolver tests stay unchanged.
+- [X] T038 [US2] Implement `lib/game-engine/languagePack.ts` and add `ENGLISH_LETTER_WEIGHTS` in `lib/game-engine/boardGenerator.ts` (research R6). T035 must pass.
+- [X] T039 [US2] Make `letterValues` a required parameter in `lib/game-engine/crossValidator.ts` and pass it from `wordEngine` and `moveResolver`. Keep the IS default only at the outermost test helpers (`tests/helpers/scoreMoves.ts`).
+- [X] T040 [US2] Write migration `supabase/migrations/20260922001_match_language.sql` per data-model:
   - `matches`, `match_invitations` and `lobby_presence` each get `language`.
   - `players` gets `queue_language` plus an index.
   - `claim_next_move` is recreated, including `language` in its match object.
   - Run `pnpm supabase:migrate && pnpm supabase:verify`.
-- [ ] T041 [US2] Add `language` to the types and schemas: `MatchState`, `ClaimMatch`, `LobbyPresence` and `InvitationRecord` in `lib/types/{match,matchmaking}.ts`, `lib/match/schemas.ts` and the Zod schemas. `lib/types/board.ts` and `lib/match/previewSchemas.ts` validate letters against `ALL_LETTERS` from the packs.
-- [ ] T042 [US2] Thread the language through the resolver: `lib/match/moveResolver.ts` `resolveClaim` uses `loadDictionary(match.language)` and `pack.letterValues`, and adds `language` to the resolver logs. T037 must pass.
-- [ ] T043 [US2] Thread the language through preview and state:
+- [X] T041 [US2] Add `language` to the types and schemas: `MatchState`, `ClaimMatch`, `LobbyPresence` and `InvitationRecord` in `lib/types/{match,matchmaking}.ts`, `lib/match/schemas.ts` and the Zod schemas. `lib/types/board.ts` and `lib/match/previewSchemas.ts` validate letters against `ALL_LETTERS` from the packs.
+- [X] T042 [US2] Thread the language through the resolver: `lib/match/moveResolver.ts` `resolveClaim` uses `loadDictionary(match.language)` and `pack.letterValues`, and adds `language` to the resolver logs. T037 must pass.
+- [X] T043 [US2] Thread the language through preview and state:
   - `app/actions/match/previewSwap.ts` and `lib/match/previewScoring.ts` select `language` and use the pack and dictionary.
   - `lib/match/stateLoader.ts` generates the board with the pack weights, warms `match.language`, and puts `language` into `MatchState`.
-- [ ] T044 [US2] Thread the language on the client:
+- [X] T044 [US2] Thread the language on the client:
   - `lib/room/liveState.ts` `letterValue(letter, language)`, with `components/room/Field.tsx` passing the match language.
   - `lib/room/{wordIntegrity,bandGeometry}.ts` and `lib/match/matchIntegrity.ts` use `pack.upperLocale`.
-- [ ] T045 [US2] Write failing unit tests for the queue in `tests/unit/lib/matchmaking/inviteService.language.spec.ts`:
+- [X] T045 [US2] Write failing unit tests for the queue in `tests/unit/lib/matchmaking/inviteService.language.spec.ts`:
   - `startAutoQueue` sets `queue_language`.
   - The candidate and claim queries filter on it.
   - Leaving the queue clears it.
-- [ ] T046 [US2] Implement the queue by language:
+- [X] T046 [US2] Implement the queue by language:
   - `app/actions/matchmaking/startQueue.ts` takes `{ language }` via Zod.
   - `lib/matchmaking/inviteService.ts` `startAutoQueue` / `fetchQueueCandidates` / claim filter on it.
   - `bootstrapMatchRecord` in `lib/matchmaking/service.ts` takes `language`.
   - `app/actions/matchmaking/cancelQueue.ts` and the sweep clear it.
   - `lib/room/useMatchmaking.ts` passes `useLocale().language`.
-- [ ] T047 [US2] Implement lobby presence by language:
+- [X] T047 [US2] Implement lobby presence by language:
   - The login and `app/api/lobby/presence/route.ts` upserts store `language`.
   - `app/api/lobby/players/route.ts` and the presence snapshot filter by `?language=`.
   - `lib/realtime/presenceChannel.ts` uses channel `lobby-presence:${language}`.
   - `lib/matchmaking/presenceStore.ts` passes the locale language.
-- [ ] T048 [US2] Make the warm-up and queue placeholder boards use the locale pack weights in `components/room/LobbyRoomController.tsx` and `QueueRoomController.tsx`.
-- [ ] T049 [US2] Add integration test `tests/integration/db/queueLanguage.spec.ts` against local Supabase: an is queuer and an en queuer never claim each other, and two en queuers produce a match with `language='en'`.
-- [ ] T050 [US2] Add Playwright spec `tests/integration/ui/cross-language-queue.spec.ts` (`@two-player-playtest`): one player queues at `/lobby`, one at `/en/lobby`; after 15s neither has found an opponent.
-- [ ] T051 [US2] Verify that deploy tracing includes `data/wordlists/word_list_en.txt`: run `pnpm build`, then inspect `.next/server/**/*.nft.json`. Add `outputFileTracingIncludes` to `next.config.ts` if it is missing.
-- [ ] T052 [US2] Run the checkpoint: unit, integration, `pnpm perf:move-resolve` (<50ms p95), and the existing scoring regressions unchanged (SC-004, SC-005). Then commit `feat(game): the match's language picks its dictionary and board`.
+- [X] T048 [US2] Make the warm-up and queue placeholder boards use the locale pack weights in `components/room/LobbyRoomController.tsx` and `QueueRoomController.tsx`.
+- [X] T049 [US2] Add integration test `tests/integration/db/queueLanguage.spec.ts` against local Supabase: an is queuer and an en queuer never claim each other, and two en queuers produce a match with `language='en'`.
+- [X] T050 [US2] Add Playwright spec `tests/integration/ui/cross-language-queue.spec.ts` (`@two-player-playtest`): one player queues at `/lobby`, one at `/en/lobby`; after 15s neither has found an opponent.
+- [X] T051 [US2] Verify that deploy tracing includes `data/wordlists/word_list_en.txt`: run `pnpm build`, then inspect `.next/server/**/*.nft.json`. Add `outputFileTracingIncludes` to `next.config.ts` if it is missing.
+- [X] T052 [US2] Run the checkpoint: unit, integration, `pnpm perf:move-resolve` (<50ms p95), and the existing scoring regressions unchanged (SC-004, SC-005). Then commit `feat(game): the match's language picks its dictionary and board`.
 
 ## Phase 5: User Story 3 — a match always speaks its own language (P2)
 
 **Goal**: Invites carry the language, rematches copy it, and a match URL in the wrong locale redirects.
 **Independent test**: Open an English match at `/match/<id>` and land on `/en/match/<id>`.
 
-- [ ] T053 [P] [US3] Write failing tests:
+- [X] T053 [P] [US3] Write failing tests:
   - `tests/unit/lib/matchmaking/invite.language.spec.ts`: an invite stores the sender's lobby language, a recipient in another language is rejected with `invite_failed`, and accepting it creates a match in the invite language.
   - `tests/unit/app/actions/rematch.language.spec.ts`: a rematch copies the original match's language.
-- [ ] T054 [US3] Implement invites and rematches:
+- [X] T054 [US3] Implement invites and rematches:
   - `app/actions/matchmaking/sendInvite.ts` and `app/api/lobby/invite/route.ts` take the language.
   - In `lib/matchmaking/inviteService.ts`, send stores it and accept passes `invite.language`.
   - `app/actions/match/{requestRematch,respondToRematch}.ts` read `matches.language`.
   - `components/room/hooks/useLobbyInvites.ts` passes the locale language.
-- [ ] T055 [US3] Add the redirect to the match's locale in `app/[locale]/(room)/match/[matchId]/page.tsx`: when `match.language !== locale.language`, call `redirect(localePath(localeForLanguage(match.language), …))`. Write the unit test first in `tests/unit/app/matchPageLocale.spec.ts`.
-- [ ] T056 [US3] Extend `tests/integration/ui/locale-is.spec.ts` with a check that an en match opened unprefixed lands on `/en/match/…`. Then commit.
+- [X] T055 [US3] Add the redirect to the match's locale in `app/[locale]/(room)/match/[matchId]/page.tsx`: when `match.language !== locale.language`, call `redirect(localePath(localeForLanguage(match.language), …))`. Write the unit test first in `tests/unit/app/matchPageLocale.spec.ts`.
+- [X] T056 [US3] Extend `tests/integration/ui/locale-is.spec.ts` with a check that an en match opened unprefixed lands on `/en/match/…`. Then commit.
 
 ## Phase 6: User Story 4 — a rating for each language (P3)
 

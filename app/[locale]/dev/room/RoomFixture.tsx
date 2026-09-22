@@ -108,6 +108,7 @@ function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, fro
   const board = marks.previewed ? applyLetterSwaps(FIXTURE_BOARD, [marks.previewed]) : FIXTURE_BOARD;
   return (
     <Field
+          language="is"
       board={board}
       turnFrame={turnFrame}
       disabled={disabled}
@@ -275,7 +276,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
           onAction={NO_OP}
           onSignedIn={NO_OP}
         >
-          <Field board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={viewer ? null : 0} />
+          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={viewer ? null : 0} />
         </LobbyRoomView>
       </RoomShell>
     );
@@ -295,6 +296,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
           onAction={NO_OP}
         >
           <Field
+          language="is"
             board={FIXTURE_BOARD}
             viewerSlot="player_a"
             disabled

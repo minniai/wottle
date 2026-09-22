@@ -4,7 +4,7 @@ import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 
 import { loginAction, type LoginActionState } from "@/app/actions/auth/login";
-import { useCopy } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import type { PlayerIdentity } from "@/lib/types/match";
 
 const INITIAL: LoginActionState = { status: "idle" };
@@ -26,6 +26,7 @@ function SubmitButton() {
 /** The one input in the room (design system §5.7): your name on a 1.5px ink underline, `play ▸` beside it. */
 export function NameInput({ onSignedIn }: NameInputProps) {
   const { YOUR_NAME_PLACEHOLDER, errors } = useCopy();
+  const { language } = useLocale();
   const [state, formAction] = useActionState(loginAction, INITIAL);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function NameInput({ onSignedIn }: NameInputProps) {
         required
         data-testid="player-bar-name-input"
       />
+      <input type="hidden" name="language" value={language} />
       <SubmitButton />
       {state.status === "error" ? (
         <span className="ledger__mono name-input__error" role="alert" data-testid="name-input-error">

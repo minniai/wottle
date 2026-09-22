@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { localePath } from "@/lib/i18n/locales";
+import { getLocale, localePath } from "@/lib/i18n/locales";
 import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 
@@ -12,5 +12,5 @@ export default async function LobbyPage({ params }: { params?: LocaleParams } = 
   if (!session) {
     redirect(localePath(locale, "/"));
   }
-  return <LobbyRoomPage session={session} />;
+  return <LobbyRoomPage session={session} language={getLocale(locale).language} />;
 }

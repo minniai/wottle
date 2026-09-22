@@ -1,3 +1,4 @@
+import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
 import { NextResponse } from "next/server";
 
 import {
@@ -43,10 +44,15 @@ export async function POST(request: Request) {
 
   try {
     const supabase = getServiceRoleClient();
+    const language = playableLanguageSchema.safeParse(payload?.language);
+    if (!language.success) {
+      return NextResponse.json({ error: "Unsupported language." }, { status: 400, headers: NO_CACHE_HEADERS });
+    }
     const result = await sendDirectInvite(supabase, {
       senderId: session.player.id,
       recipientId,
       ttlSeconds: TTL_SECONDS,
+      language: language.data,
     });
     return NextResponse.json(result, { headers: NO_CACHE_HEADERS });
   } catch (error) {

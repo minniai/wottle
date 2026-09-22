@@ -11,7 +11,7 @@ export function RulesEn({ clock, totalMoves, copy }: RulesContentProps) {
         <span className="rules__label">how to play</span>
         <h1 className="rules__title">Two players, one field, ten moves each.</h1>
         <p>
-          Wottle is a word duel on a 10×10 field of Icelandic letters. Both players move whenever they like, on one clock.
+          Wottle is a word duel on a 10×10 field of letters. Both players move whenever they like, on one clock.
           The one who reads the field better, and spends the clock better, wins.
         </p>
       </div>
@@ -39,12 +39,12 @@ export function RulesEn({ clock, totalMoves, copy }: RulesContentProps) {
           <h2>Three letters or more, in a straight line.</h2>
           <p>
             After each swap lands, the field is read across and down from the two letters that moved. Every new run of three
-            or more letters that is an Icelandic word scores for the player whose swap made it. Every inflected form
+            or more letters that is an English word scores for the player whose swap made it. Every form of a word
             counts, and a word scores again if you form it somewhere new.
           </p>
           <p>A word is drawn as a band in the scorer&apos;s ink, with a chevron at the end where reading begins.</p>
         </div>
-        <RulesFigure kind="words" caption="BORÐ read across, GILT read down; the chevron marks where each begins" />
+        <RulesFigure kind="words" caption="WORD read across, GAME read down; the chevron marks where each begins" />
       </section>
 
       <section className="rules__section" id="freezing">
@@ -58,7 +58,7 @@ export function RulesEn({ clock, totalMoves, copy }: RulesContentProps) {
           </p>
           <p>The field always keeps at least 24 free letters.</p>
         </div>
-        <RulesFigure kind="crossing" caption="LEK crosses GILT; the L stays the opponent's" />
+        <RulesFigure kind="crossing" caption="MEN crosses GAME; the M stays the opponent's" />
       </section>
 
       <section className="rules__section" id="scoring">

@@ -13,6 +13,7 @@ import {
 } from "@/lib/matchmaking/profile";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { loginErrorCode } from "@/lib/i18n/errorCodes";
+import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
 import {
   RateLimitExceededError,
   assertWithinRateLimit,
@@ -46,8 +47,10 @@ export async function loginAction(
         "Too many login attempts. Please wait up to one minute and try again.",
     });
 
+    const language = playableLanguageSchema.safeParse(formData.get("language") ?? undefined);
     const { player, sessionToken } = await performUsernameLogin(
-      typeof username === "string" ? username : ""
+      typeof username === "string" ? username : "",
+      language.success ? language.data : "is",
     );
     console.log(`[LOGIN_DEBUG] performUsernameLogin success. Player: ${player.id}, Token: ${sessionToken.slice(0, 10)}...`);
     

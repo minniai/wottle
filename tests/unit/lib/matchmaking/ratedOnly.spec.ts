@@ -22,15 +22,15 @@ function fakeClient(written: Payload[]) {
 describe("rated only", () => {
   test("bootstrapMatchRecord never writes a rated column", async () => {
     const written: Payload[] = [];
-    await bootstrapMatchRecord(fakeClient(written), { boardSeed: "s", playerAId: "a", playerBId: "b", rematchOf: "m0" });
+    await bootstrapMatchRecord(fakeClient(written), { boardSeed: "s", playerAId: "a", playerBId: "b", rematchOf: "m0", language: "is" });
     expect(written[0]).not.toHaveProperty("rated");
   });
 
   test("the bootstrap input has no rated field", () => {
-    const input: MatchBootstrapInput = { boardSeed: "s", playerAId: "a", playerBId: "b" };
+    const input: MatchBootstrapInput = { boardSeed: "s", playerAId: "a", playerBId: "b", language: "is" };
     expect("rated" in input).toBe(false);
     // @ts-expect-error — the field is gone with the unranked branch.
-    const stale: MatchBootstrapInput = { boardSeed: "s", playerAId: "a", playerBId: "b", rated: false };
+    const stale: MatchBootstrapInput = { boardSeed: "s", playerAId: "a", playerBId: "b", language: "is", rated: false };
     expect(stale).toBeTruthy();
   });
 });

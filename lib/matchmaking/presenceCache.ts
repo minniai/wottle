@@ -1,7 +1,10 @@
+import type { Language } from "@/lib/types/game-config";
 import type { PlayerIdentity } from "@/lib/types/match";
 
 interface CachedPresence {
   player: PlayerIdentity;
+  /** The lobby the player is present in (spec 060). */
+  language: Language;
   expiresAt: number;
 }
 
@@ -33,7 +36,7 @@ function pruneExpired(cache: Map<string, CachedPresence>) {
   }
 }
 
-export function rememberPresence(player: PlayerIdentity) {
+export function rememberPresence(player: PlayerIdentity, language: Language = "is") {
   const cache = getCache();
   pruneExpired(cache);
   cache.set(player.id, {
@@ -41,6 +44,7 @@ export function rememberPresence(player: PlayerIdentity) {
       ...player,
       lastSeenAt: new Date().toISOString(),
     },
+    language,
     expiresAt: Date.now() + CACHE_TTL_MS,
   });
 }
@@ -50,9 +54,11 @@ export function forgetPresence(playerId: string) {
   cache.delete(playerId);
 }
 
-export function listCachedPresence(): PlayerIdentity[] {
+export function listCachedPresence(language: Language = "is"): PlayerIdentity[] {
   const cache = getCache();
   pruneExpired(cache);
-  return Array.from(cache.values()).map((entry) => entry.player);
+  return Array.from(cache.values())
+    .filter((entry) => entry.language === language)
+    .map((entry) => entry.player);
 }
 

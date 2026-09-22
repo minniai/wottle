@@ -258,7 +258,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightMove, setHighlightMove] = useState<number | null>(null);
 
-  const letterAt = useMemo(() => letterFactsOn(match.board), [match.board]);
+  const letterAt = useMemo(() => letterFactsOn(match.board, match.language), [match.board, match.language]);
   // The field's own state (pick / preview / illegal); the move's beat is layered on by
   // `moveState` (spec 050), which owns line 1 of the live row.
   const live: LiveState = useMemo(() => {
@@ -485,6 +485,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       >
         <Field
           board={displayBoard}
+          language={match.language}
           frozenTiles={frozenTiles}
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}

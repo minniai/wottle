@@ -1,5 +1,6 @@
 import { getRecentGames } from "@/app/actions/match/getRecentGames";
 import { LobbyRoomController } from "@/components/room/LobbyRoomController";
+import type { Language } from "@/lib/types/game-config";
 import { fetchLobbySnapshot, healStuckInMatchStatus, type LobbySession } from "@/lib/matchmaking/profile";
 
 /**
@@ -9,7 +10,7 @@ import { fetchLobbySnapshot, healStuckInMatchStatus, type LobbySession } from "@
  * instead of swapping page segments and remounting the field. Signed out, the
  * bottom seat is empty; the controller rewrites the URL to `/lobby` once a viewer exists.
  */
-export async function LobbyRoomPage({ session }: { session: LobbySession | null }) {
+export async function LobbyRoomPage({ session, language = "is" }: { session: LobbySession | null; language?: Language }) {
   if (!session) {
     return <LobbyRoomController viewer={null} initialPlayers={[]} recentGames={null} />;
   }
@@ -17,7 +18,7 @@ export async function LobbyRoomPage({ session }: { session: LobbySession | null 
   await healStuckInMatchStatus(session.player.id);
 
   const [initialPlayers, recentGamesResult] = await Promise.all([
-    fetchLobbySnapshot(),
+    fetchLobbySnapshot(language),
     getRecentGames({ playerId: session.player.id, limit: 6 }).catch((error) => {
       console.error(JSON.stringify({ event: "lobby.recent_games.failed", error: error instanceof Error ? error.message : String(error) }));
       return { games: [] };

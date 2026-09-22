@@ -132,7 +132,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     expect(screen.getByTestId("player-bar-action-find")).not.toBeDisabled();
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("lobby · 1 here");
     fireEvent.click(screen.getByTestId("ledger-challenge-k"));
-    expect(sendInviteAction).toHaveBeenCalledWith("k");
+    expect(sendInviteAction).toHaveBeenCalledWith("k", "en");
     fireEvent.click(cell(0, 0));
     fireEvent.click(cell(1, 0));
     expect(previewSwap).toHaveBeenCalledWith(expect.objectContaining({ kind: "warmup" }));

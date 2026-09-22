@@ -25,6 +25,16 @@ vi.mock("@/lib/match/rematchService", () => ({
   detectSimultaneousRematch: vi.fn(),
   validateRematchRequest: vi.fn(),
 }));
+// Spec 060: rematches go through createRematchMatch, which reads the original's
+// language and then bootstraps; its own test covers the language.
+vi.mock("@/lib/match/rematchMatch", async () => {
+  const service = await import("@/lib/matchmaking/service");
+  return {
+    createRematchMatch: vi.fn((client: unknown, i: { matchId: string; playerAId: string; playerBId: string }) =>
+      service.bootstrapMatchRecord(client as never, { boardSeed: "s", playerAId: i.playerAId, playerBId: i.playerBId, rematchOf: i.matchId, language: "is" }),
+    ),
+  };
+});
 vi.mock("@/lib/matchmaking/service", () => ({
   bootstrapMatchRecord: vi.fn(),
   // A rematch inherits the source match's rank (spec 045 decision 1).

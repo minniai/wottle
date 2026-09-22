@@ -7,6 +7,7 @@ import { logoutAction } from "@/app/actions/auth/logout";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { generateBoard } from "@/lib/game-engine/boardGenerator";
+import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { isLandingPath } from "@/lib/i18n/locales";
@@ -49,10 +50,15 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const storeViewer = useRoomStore((s) => s.viewer);
   const setViewer = useRoomStore((s) => s.setViewer);
   const board = useRoomStore((s) => s.board);
-  const letterAt = useMemo(() => letterFactsOn(board), [board]);
+  const { language } = useLocale();
+  const letterAt = useMemo(() => letterFactsOn(board, language), [board, language]);
   const setBoard = useRoomStore((s) => s.setBoard);
   const setPhase = useRoomStore((s) => s.setPhase);
-  const hydrateBoard = useCallback(() => setBoard(generateBoard({ seed: `warmup:${Date.now()}` })), [setBoard]);
+  // The warm-up field is dealt in the lobby's language (spec 060 FR-016).
+  const hydrateBoard = useCallback(
+    () => setBoard(generateBoard({ seed: `warmup:${Date.now()}`, weights: getLanguagePack(language).letterWeights })),
+    [setBoard, language],
+  );
   const me = storeViewer ?? viewer;
   const setSlip = useRoomStore((s) => s.setSlip);
 
@@ -98,9 +104,9 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const disconnect = useLobbyPresenceStore((s) => s.disconnect);
   useEffect(() => {
     if (!me) return;
-    void connect({ self: me, initialPlayers });
+    void connect({ self: me, initialPlayers, language });
     return () => disconnect();
-  }, [me, initialPlayers, connect, disconnect]);
+  }, [me, initialPlayers, connect, disconnect, language]);
 
   const { notices, push, dismiss, apply } = useNotices();
   // The challenge this viewer sent, until the poll reports what became of it.
@@ -176,7 +182,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       }
       else if (typeof action === "object" && "challenge" in action) {
         const target = players.find((p) => p.id === action.challenge);
-        sendInviteAction(action.challenge).then((r) => {
+        sendInviteAction(action.challenge, language).then((r) => {
           if (r.status !== "sent") return push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "invite_failed"] });
           sentChallenge.current = r.inviteId;
           push({ kind: "challengeSent", toName: target?.displayName ?? target?.username ?? "", inviteId: r.inviteId });
@@ -192,7 +198,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
         void respondInviteAction(action.declineChallenge, "declined");
       }
     },
-    [router, push, dismiss, disconnect, setViewer, players, to, copy],
+    [router, push, dismiss, disconnect, setViewer, players, to, copy, language],
   );
 
   // `?` opens the rules, `M` mutes (design system §9, FR-026).

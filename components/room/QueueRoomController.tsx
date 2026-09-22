@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { useLocalePath } from "@/components/i18n/LocaleProvider";
+import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { diffBoards, generateBoard } from "@/lib/game-engine/boardGenerator";
+import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -70,6 +71,7 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
   const { startsIn, searchingSubline, settingField } = useCopy();
   const router = useRouter();
   const to = useLocalePath();
+  const { language } = useLocale();
   const reducedMotion = useReducedMotion();
   const phase = useRoomStore((s) => s.phase);
   const queue = useRoomStore((s) => s.queue);
@@ -85,10 +87,10 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
 
   useEffect(() => {
     startQueue(startedAt);
-    setBoard(generateBoard({ seed: `queue:${viewer.id}:${startedAt}` }));
-  }, [startQueue, setBoard, viewer.id, startedAt]);
+    setBoard(generateBoard({ seed: `queue:${viewer.id}:${startedAt}`, weights: getLanguagePack(language).letterWeights }));
+  }, [startQueue, setBoard, viewer.id, startedAt, language]);
 
-  const { state, cancel } = useMatchmaking(phase === "queue", startedAt);
+  const { state, cancel } = useMatchmaking(phase === "queue", startedAt, language);
 
   // Letters land ~100 ms apart (all at once under reduced motion).
   const landed = queue?.lettersLanded ?? 100;

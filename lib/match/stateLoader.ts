@@ -1,3 +1,5 @@
+import { getLanguagePack } from "@/lib/game-engine/languagePack";
+import type { Language } from "@/lib/types/game-config";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { generateBoard } from "@/lib/game-engine/boardGenerator";
@@ -101,6 +103,7 @@ interface MatchRow {
   player_a_score: number;
   player_b_score: number;
   move_limit: number;
+  language: Language | null;
 }
 
 interface MoveRow {
@@ -125,7 +128,7 @@ interface MoveRow {
 }
 
 const MATCH_COLUMNS =
-  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,completed_at,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit";
+  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,completed_at,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit,language";
 
 const MOVE_COLUMNS =
   "id,player_id,global_seq,seq,status,rejection_reason,from_x,from_y,to_x,to_y,received_at,claimed_at,resolved_at,board_after,frozen_after,delta,score_a_after,score_b_after";
@@ -149,8 +152,17 @@ interface StartAnswer {
   deadlineAt?: string | null;
 }
 
+function languageOf(match: Pick<MatchRow, "language">): Language {
+  return match.language ?? "is";
+}
+
+/** The starting board from the seed, drawn from the match language's letters (spec 060 FR-014). */
+function boardFor(match: Pick<MatchRow, "board_seed" | "id" | "language">): string[][] {
+  return generateBoard({ seed: match.board_seed ?? match.id, weights: getLanguagePack(languageOf(match)).letterWeights });
+}
+
 async function startIfReady(client: AnyClient, match: MatchRow, callerId: string): Promise<void> {
-  const board = parseBoard(match.board) ?? generateBoard({ seed: match.board_seed ?? match.id });
+  const board = parseBoard(match.board) ?? boardFor(match);
   const { data, error } = await client.rpc("start_match_if_ready", {
     p_match_id: match.id,
     p_caller_id: callerId,
@@ -169,7 +181,8 @@ async function startIfReady(client: AnyClient, match: MatchRow, callerId: string
   match.started_at = answer.startedAt ?? match.started_at;
   match.deadline_at = answer.deadlineAt ?? match.deadline_at;
   if (answer.started) {
-    void import("@/lib/game-engine/dictionary").then(({ loadDictionary }) => loadDictionary("is")).catch(() => undefined);
+    const language = languageOf(match);
+    void import("@/lib/game-engine/dictionary").then(({ loadDictionary }) => loadDictionary(language)).catch(() => undefined);
   }
 }
 
@@ -318,7 +331,7 @@ export async function loadMatchState(
 
   return {
     matchId: match.id,
-    board: board ?? generateBoard({ seed: match.board_seed ?? match.id }),
+    board: board ?? boardFor(match),
     state: match.state,
     players: {
       playerA: playerFacts(match, match.player_a_id, facts),
@@ -326,6 +339,7 @@ export async function loadMatchState(
     },
     clock,
     moveLimit: match.move_limit ?? 10,
+    language: languageOf(match),
     resolvedSeq: match.resolved_seq ?? 0,
     scores: { playerA: match.player_a_score ?? 0, playerB: match.player_b_score ?? 0 },
     frozenTiles: coerceFrozenTileMap(match.frozen_tiles),

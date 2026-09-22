@@ -9,6 +9,7 @@ import {
   type RespondInviteResult,
   type SendDirectInviteResult,
 } from "@/lib/matchmaking/inviteService";
+import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const DEFAULT_INVITE_TTL_SECONDS = Number(
@@ -27,8 +28,13 @@ export interface InviteDecisionState {
 }
 
 export async function sendInviteAction(
-  recipientId: string
+  recipientId: string,
+  language?: string,
 ): Promise<InviteActionState> {
+  const parsedLanguage = playableLanguageSchema.safeParse(language);
+  if (!parsedLanguage.success) {
+    return { status: "error", inviteId: "", expiresAt: "", message: "Unsupported language." };
+  }
   if (!recipientId) {
     return { status: "error", inviteId: "", expiresAt: "", message: "Recipient is required." };
   }
@@ -49,6 +55,7 @@ export async function sendInviteAction(
       senderId: session.player.id,
       recipientId,
       ttlSeconds: DEFAULT_INVITE_TTL_SECONDS,
+      language: parsedLanguage.data,
     });
     return {
       status: "sent",

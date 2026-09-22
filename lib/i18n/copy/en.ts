@@ -93,7 +93,8 @@ const challengeUnanswered = (name: string): string => `${name} did not answer`;
 const challengeTaken = (name: string): string => `${name} took another challenge`;
 
 // The slip (spec 048, design system §5.9)
-const TAGLINE = "two players · one field · Icelandic words";
+/** Under /en the game plays English (spec 060); Icelandic says `íslensk orð`. */
+const TAGLINE = "two players · one field · English words";
 const NEW_HERE_HOW_TO_PLAY = "new here · how to play ▸";
 const SIGN_IN_TO_SET_THE_FIELD = "sign in to set the field";
 const RESIGN_QUESTION = "Resign the match?";

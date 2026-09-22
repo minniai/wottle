@@ -21,6 +21,7 @@ function match(you: Partial<PlayerMatchFacts> = {}, opp: Partial<PlayerMatchFact
     players: { playerA: facts(YOU, you), playerB: facts(OPP, { movesPlayed: 6, score: 15, ...opp }) },
     clock: { startedAt: "2026-09-15T09:55:00.000Z", deadlineAt: "2026-09-15T10:00:00.000Z", serverNow: "2026-09-15T09:56:48.000Z" },
     moveLimit: 10,
+    language: "is",
     resolvedSeq: 9,
     scores: { playerA: 46, playerB: 15 },
     frozenTiles: {},

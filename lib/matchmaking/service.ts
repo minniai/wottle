@@ -1,3 +1,4 @@
+import type { Language } from "@/lib/types/game-config";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type {
@@ -21,9 +22,13 @@ interface PresenceInput {
   mode: "auto" | "direct_invite";
   inviteToken?: string | null;
   expiresAt: Date;
+  /** The lobby the player is present in (spec 060); left as it is when omitted. */
+  language?: Language;
 }
 
 export interface MatchBootstrapInput {
+  /** Spec 060: the match's game language, fixed here and never changed. */
+  language: Language;
   id?: string;
   boardSeed: string;
   playerAId: string;
@@ -93,6 +98,7 @@ export async function upsertLobbyPresence(
         invite_token: input.inviteToken ?? null,
         expires_at: input.expiresAt.toISOString(),
         updated_at: new Date().toISOString(),
+        ...(input.language ? { language: input.language } : {}),
       },
       { onConflict: "player_id" }
     )
@@ -151,6 +157,7 @@ export async function bootstrapMatchRecord(
     player_a_id: input.playerAId,
     player_b_id: input.playerBId,
     move_limit: input.moveLimit ?? 10,
+    language: input.language,
     state: "pending",
   };
 

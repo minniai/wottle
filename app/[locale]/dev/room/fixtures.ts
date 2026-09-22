@@ -177,6 +177,7 @@ export const MATCH_STATE: MatchState = {
   players: { playerA: facts(YOU_ID, YOU_MOVES, 46), playerB: facts(OPP_ID, OPP_MOVES, 15) },
   clock: CLOCK,
   moveLimit: 10,
+  language: "is",
   resolvedSeq: 9,
   scores: { playerA: 46, playerB: 15 },
   frozenTiles: FIXTURE_FROZEN,

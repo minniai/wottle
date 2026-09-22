@@ -15,6 +15,7 @@ const match: MatchState = {
   players: { playerA: facts("you", 10, 127), playerB: facts("opp", 10, 170) },
   clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:04:52Z" },
   moveLimit: 10,
+  language: "is",
   resolvedSeq: 20,
   scores: { playerA: 127, playerB: 170 },
   frozenTiles: {},
