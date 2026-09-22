@@ -104,6 +104,13 @@ describe("room.css field paint (spec 045 US2)", () => {
     expect(field).toMatch(/border:\s*1\.5px solid var\(--ink\)/);
   });
 
+  it("keeps the frame above edge-cell hover paint", () => {
+    const frame = block(".field::after");
+    expect(frame).toMatch(/border:\s*1\.5px solid var\(--ink\)/);
+    expect(frame).toMatch(/pointer-events:\s*none/);
+    expect(frame).toMatch(/z-index:\s*1/);
+  });
+
   it("draws the rules as cell borders over a transparent cell", () => {
     const cell = block(".field__cell");
     expect(cell).toMatch(/background:\s*transparent/);
