@@ -36,7 +36,15 @@ export function removeKey(notices: Notice[], key: string): Notice[] {
 }
 
 
-/** No notice kind carries an expiry since the resign confirmation became a slip (spec 048 US7); kept for a future timed line. */
+/** How long `pick cleared · Kári moved that letter` stays: two seconds, like the live row's move notices. */
+export const PICK_CLEARED_HOLD_MS = 2_000;
+
+/** The opponent's move took a letter the viewer had picked (spec 050 FR-014). */
+export function pickClearedNotice(byName: string, now: number): Notice {
+  return { kind: "pickCleared", byName, expiresAt: now + PICK_CLEARED_HOLD_MS };
+}
+
+/** Drops the notices whose `expiresAt` has passed; a notice without one stays. */
 export function expireNotices(notices: Notice[], now: number): Notice[] {
   return notices.filter((n) => {
     const expiresAt = (n as { expiresAt?: number }).expiresAt;
