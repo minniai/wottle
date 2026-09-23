@@ -115,7 +115,7 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | Reactions? | **At the table and after the match only. None while the clock runs.** [phase 2 · S16] | A courtesy must not hide a match fact or sit 8px from the field on a phone. |
 | A challenge arriving over a field? | **Impossible at the table or in a live match** (you show as `in a match`). In Result or Review it is a ledger line with a secondary `accept ▸`. | Fewer slip kinds, and nothing interrupts play. |
 | A rematch arriving while the slip is lifted, or in review? | **The ledger's first line. The slip is never raised again.** | A slip that raises itself under a keyboard player's Space key accepts a rated match. |
-| Rematch in Icelandic: `aftur ▸` or `annan leik? ▸`? | **`annan leik? ▸`**, the owner's choice, flagged in §10 Q2 (*leikur* is our word for a move). | Owner's native choice. It is the one question-form action. |
+| Rematch in Icelandic: `aftur ▸` or `annan leik? ▸`? | **`annan leik? ▸`**, the owner's choice, confirmed in §10 Q2 (*leikur* is our word for a move). | Owner's native choice. It is the one question-form action. |
 | Timings | Challenge **60s**. Rematch **30s**, offered within **2:00** of the end. Table **20s** (a link table waits for its sender until the link expires). | A player on another page needs time to notice. Rematch players are already looking at the result. |
 | Presence states? | **Four in lists: here, searching, in a match, away.** A gone player is dropped. `stepped out` appears only in a match bar. | Each word explains a button. |
 | Language model? | **One lobby language per player.** Challenges are within one lobby. Cross-language challenges are [phase 2 · S19]. | This is what the server enforces today (`inviteService.ts:145-148`). A `· in English` suffix would be a promise the server cannot keep. |
@@ -1621,7 +1621,7 @@ All artboards use the eight tokens and Zilla Slab + Red Hat Mono, with the fixtu
    - `án tengingar í 2:04` and `brá sér frá`: approved. `hvorugt lauk` becomes `hvorugt kláraði`.
    - `ekkert var reiknað til Elo` becomes `hefur ekki áhrif á Elo stig`.
    - Still open: the door headline and lede, `góð viðureign` for good game, and every other string marked (?).
-2. **`annan leik? ▸`.** In this product *leikur* means a move, so `annan leik?` can read as "another move?". Keep it as the one question-form action (it is your wording), or use `önnur viðureign? ▸` or `aftur ▸`?
+2. **`annan leik? ▸`.** Answered 23 September 2026: keep `annan leik? ▸` as the Icelandic rematch action, the one question-form action. The reading "another move?" is accepted.
 3. **Door privacy.** Should signed-out visitors see the real names of players online (social proof), or only the count?
 4. **`confirm moves`.** It ships off by default, respecting the 22 September removal of the move preview. Should it default to on for touch screens, where a slide across a 35px cell border can play a move?
 5. **Identity recovery** [phase 2 · S15]. Until it ships, clearing cookies loses your name. Is a one-time recovery code enough, or do you want an optional email link?
