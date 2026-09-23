@@ -4,7 +4,7 @@
  */
 import { expect, test, type BrowserContext } from "@playwright/test";
 
-import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, sitDownIfAsked } from "./helpers/matchmaking";
 
 test.describe.configure({ mode: "serial", retries: 1 });
 test.skip(({ browserName }) => browserName !== "chromium", "two-context queue flow runs on chromium only");
@@ -43,10 +43,10 @@ test.describe("@matchmaking queue → found → match in the room", () => {
       const [a, b] = await Promise.all([loginAs(ctxA, "q-a"), loginAs(ctxB, "q-b")]);
       await Promise.all([a.page.getByTestId("player-bar-action-find").click(), b.page.getByTestId("player-bar-action-find").click()]);
       for (const p of [a.page, b.page]) {
-        await expect(p.getByTestId("room")).toHaveAttribute("data-phase", /found|match/, { timeout: 60_000 });
+        await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 60_000 });
       }
-      // Found writes the opponent into the top bar; the match then draws them on the scoreboard (spec 068).
-      await expect(a.page.locator('[data-testid="player-bar-top"], [data-testid="scoreboard-row-opp"]').first()).toContainText(b.username.slice(0, 8), { timeout: 20_000, ignoreCase: true });
+      // The table names the opponent on the scoreboard (spec 068, spec 069).
+      await expect(a.page.getByTestId("scoreboard-row-opp")).toContainText(b.username.slice(0, 8), { timeout: 20_000, ignoreCase: true });
       await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(b.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(a.page).toHaveURL(/\/match\/[0-9a-f-]+/);
@@ -54,6 +54,9 @@ test.describe("@matchmaking queue → found → match in the room", () => {
       const idB = await b.page.getByTestId("room").getAttribute("data-match-id");
       expect(idA).toBeTruthy();
       expect(idA).toBe(idB);
+      // Spec 069: the match begins at the table; resigning waits for go.
+      await Promise.all([sitDownIfAsked(a.page), sitDownIfAsked(b.page)]);
+      for (const p of [a.page, b.page]) await expect(p.getByTestId("ledger-live-row")).toContainText("move 1 · your move", { timeout: 20_000 });
 
       // Reported 2026-09-21: a queue-found match that ended fell back to the queue view
       // (`Finding an opponent · ranked · 0:00`) instead of the result. A resigns.

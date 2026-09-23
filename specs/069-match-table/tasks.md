@@ -15,7 +15,7 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Add the table constants in `lib/constants/game-config.ts`:
+- [X] T001 Add the table constants in `lib/constants/game-config.ts`:
   - `TABLE_SEAT_WINDOW_MS = 20_000`
   - `TABLE_LEAD_MS = 4_500`
   - `SLIP_LIFT_BEFORE_GO_MS = 3_300`
@@ -29,14 +29,16 @@
   - `TABLE_CHECK_POLL_MS = 3_000`
 
   Each carries a one-line comment naming its spec FR. Add a unit test pinning the values in `tests/unit/constants/table-config.test.ts`.
-- [ ] T002 [P] Add the types to `lib/types/match.ts`:
+
+- [X] T002 [P] Add the types to `lib/types/match.ts`:
   - `SeatKey`, `TableOrigin`, `VoidReason`, `MatchTable`, `Stakes`;
   - `MatchEndedReason` gains `"void"`;
   - `MatchState` gains `table: MatchTable` and `stakes: Record<string, Stakes> | null`;
   - `board` becomes `BoardGrid | null` (per data-model).
 
   Fix every type error this surfaces with the smallest change, e.g. `board ?? emptyBoard()` in the room readers. Add Zod schemas `matchTableSchema` and `stakesSchema` in `lib/match/schemas.ts`.
-- [ ] T003 [P] Add the copy keys to `lib/i18n/copy/types.ts`, `en.ts` and `is.ts`, with the strings from spec US1–US6. Every key is added in both languages, so the parity test passes.
+
+- [X] T003 [P] Add the copy keys to `lib/i18n/copy/types.ts`, `en.ts` and `is.ts`, with the strings from spec US1–US6. Every key is added in both languages, so the parity test passes.
   - **The table:** `tableLabel(s)`, `tableContext` (`opponent found`), `tableFacts(language)`, `tableStakes(s)`, `seatOnTheWay`, `seatReady`, `seatYou`, `readyAction` (`ready ▸` / `ég er til ▸`), `youAreSeated`, `leaveAction` (`leave` / `fara`).
   - **The scoreboard:** `sbStartsWhenSeated`, `sbNotReady`.
   - **The start:** `pickWhenClockStarts`.
@@ -53,7 +55,7 @@
 
 **Purpose:** the migration, the table service and the loader: the server rules every story reads.
 
-- [ ] T004 Write the failing DB tests in `tests/integration/db/table.test.ts`, using the `harness.ts` and `matchCreation.fixtures.ts` patterns:
+- [X] T004 Write the failing DB tests in `tests/integration/db/table.test.ts`, using the `harness.ts` and `matchCreation.fixtures.ts` patterns:
   - `create_match_between` sets `table_deadline_at` 20s out and seats by `pressed_by` and by fresh attention (fresh, stale, hidden, and input older than 30s);
   - `seat_player` returns each status in `contracts/table-functions.md`;
   - the second seat writes the board, sets `started_at` 4.5s out and the deadline 5:00 later;
@@ -62,11 +64,11 @@
   - `find_due_tables`;
   - `table_leave_cooldown_until`: 0, 1 and 2 leaves, 2 leaves 11 minutes apart, and an expired cooldown;
   - `pair_from_queue` refuses a paused or stale candidate.
-- [ ] T005 Write the failing race test in `tests/integration/db/table.race.test.ts`: 100 rounds of seat A, seat B, leave A, leave B and a deadline sweep in random interleavings. Invariants:
+- [X] T005 Write the failing race test in `tests/integration/db/table.race.test.ts`: 100 rounds of seat A, seat B, leave A, leave B and a deadline sweep in random interleavings. Invariants:
   - never `in_progress` without both seats;
   - never both started and void;
   - `started_at` is set at most once.
-- [ ] T006 Write the migration `supabase/migrations/20260924001_the_table.sql`:
+- [X] T006 Write the migration `supabase/migrations/20260924001_the_table.sql`:
   - the columns on `matches` and `players` (data-model);
   - `ended_reason` check plus `'void'`, and the `void_reason` check;
   - backfill the seat times on non-pending rows, then add the valid `in_progress ⇒ seated` check;
@@ -78,8 +80,9 @@
   - grants to `service_role` only.
 
   Run `pnpm supabase:migrate` and make T004 and T005 pass.
-- [ ] T007 [P] Write the failing unit tests for `stakesFor` in `tests/unit/lib/rating/stakes.spec.ts`: equal ratings under K 32 give +16/0/−16; a 1204-against-1187 case; K 16 after 20 games; the rating floor. Then implement `lib/rating/stakes.ts` on `calculateElo`.
-- [ ] T008 Write the failing unit tests for `lib/match/tableService.ts` (mocked Supabase client, Zod-parsed RPC results) in `tests/unit/lib/match/tableService.spec.ts`:
+
+- [X] T007 [P] Write the failing unit tests for `stakesFor` in `tests/unit/lib/rating/stakes.spec.ts`: equal ratings under K 32 give +16/0/−16; a 1204-against-1187 case; K 16 after 20 games; the rating floor. Then implement `lib/rating/stakes.ts` on `calculateElo`.
+- [X] T008 Write the failing unit tests for `lib/match/tableService.ts` (mocked Supabase client, Zod-parsed RPC results) in `tests/unit/lib/match/tableService.spec.ts`:
   - `seat(matchId, playerId)` passes `boardFor(match)`, `TABLE_LEAD_MS` and `MATCH_CLOCK_MS`, publishes the state on `seated|started`, and turns `late` into `voidDueTable`;
   - `leave(matchId, playerId)`;
   - `voidDueTable(matchId)`;
@@ -87,16 +90,18 @@
   - each emits its structured log (`table.seated`, `table.started`, `table.void`).
 
   Then implement the service.
-- [ ] T009 Change `lib/match/createMatch.ts`: pass `pressed_by` per caller (queue `[]`, challenge `[accepter]`, crossed `[a,b]`, rematch `[accepter]`), and call `tableService.startIfSeated` when the result reports both seats. Update `tests/unit/lib/match/createMatch.spec.ts` first.
-- [ ] T010 Write the failing contract test `tests/contract/no-board-before-seats.contract.test.ts`: `loadMatchState` for a pending match returns `board: null`, `table` and `stakes`; past its deadline it calls `voidDueTable` and returns the void; with both seats it calls `startIfSeated`. Then change `lib/match/stateLoader.ts`:
+
+- [X] T009 Change `lib/match/createMatch.ts`: pass `pressed_by` per caller (queue `[]`, challenge `[accepter]`, crossed `[a,b]`, rematch `[accepter]`), and call `tableService.startIfSeated` when the result reports both seats. Update `tests/unit/lib/match/createMatch.spec.ts` first.
+- [X] T010 Write the failing contract test `tests/contract/no-board-before-seats.contract.test.ts`: `loadMatchState` for a pending match returns `board: null`, `table` and `stakes`; past its deadline it calls `voidDueTable` and returns the void; with both seats it calls `startIfSeated`. Then change `lib/match/stateLoader.ts`:
   - remove `startIfReady`, `START_GRACE_MS` and `START_COUNTDOWN_MS`;
   - make those three changes;
   - read the stakes (`readRatings` plus `stakesFor`) only while `pending` (one query per table poll, none during play); the room keeps the last stakes it received in `roomStore` for the resign slip;
   - return `board` only from `in_progress` on.
 
   Remove every reference to the retired constants (grep).
-- [ ] T011 Change `app/api/cron/sweep-stale-matches/route.ts` to call `find_due_tables()` and then `tableService.voidDueTable` for each. Extend its unit test.
-- [ ] T012 [P] Exclude voids from finished-match readers with `ended_reason <> 'void'`: `app/actions/match/getRecentGames.ts`, `app/actions/player/getBestWords.ts`, `app/actions/match/requestRematch.ts` (refuse with the existing not-eligible code) and `lib/match/rematchRepository.ts`.
+
+- [X] T011 Change `app/api/cron/sweep-stale-matches/route.ts` to call `find_due_tables()` and then `tableService.voidDueTable` for each. Extend its unit test.
+- [X] T012 [P] Exclude voids from finished-match readers with `ended_reason <> 'void'`: `app/actions/match/getRecentGames.ts`, `app/actions/player/getBestWords.ts`, `app/actions/match/requestRematch.ts` (refuse with the existing not-eligible code) and `lib/match/rematchRepository.ts`.
   - Add a grep test, `tests/unit/match/void-excluded-grep.test.ts`, that lists every `.eq("state", "completed")` reader in `app/` and `lib/` and fails when one lacks the void filter or an allow-list entry.
 
 **Checkpoint:** the server holds the table. The room still needs the `table` beat (US1) before this ships.
@@ -111,44 +116,46 @@
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Tests in `tests/unit/lib/room/moveState.table.spec.ts`: `deriveMoveState` gives `table` for pending, and `void` before `table`; `yourMove` never appears for a pending match.
-- [ ] T014 [P] [US1] Tests in `tests/unit/lib/room/tableSlip.spec.ts` for `readySlipModel`:
+- [X] T013 [P] [US1] Tests in `tests/unit/lib/room/moveState.table.spec.ts`: `deriveMoveState` gives `table` for pending, and `void` before `table`; `yourMove` never appears for a pending match.
+- [X] T014 [P] [US1] Tests in `tests/unit/lib/room/tableSlip.spec.ts` for `readySlipModel`:
   - the label counts down from `deadlineAt`;
   - `ready+leave` when unseated, `seated+leave` when seated, `none` once started;
   - the stakes come from `stakes[viewer]`;
   - the facts come from the language;
   - the seat lines are ordered opponent then you.
-- [ ] T015 [P] [US1] Tests in `tests/unit/lib/room/scoreboard.table.spec.ts`: the clock row reads `match clock` over `starts when both sit`, with a full, still track and `5:00`; the rows have no totals; the sub-lines are `on the way|ready` and `you · not ready|ready`. Test both languages.
-- [ ] T016 [P] [US1] Tests in `tests/unit/components/room/Slip.table.spec.tsx` for the ready slip:
+- [X] T015 [P] [US1] Tests in `tests/unit/lib/room/scoreboard.table.spec.ts`: the clock row reads `match clock` over `starts when both sit`, with a full, still track and `5:00`; the rows have no totals; the sub-lines are `on the way|ready` and `you · not ready|ready`. Test both languages.
+- [X] T016 [P] [US1] Tests in `tests/unit/components/room/Slip.table.spec.tsx` for the ready slip:
   - the headline is focused (`tabindex -1`) and announced once;
   - `ready ▸` is not focused and ignores clicks for 500ms;
   - once seated, row 1 is text with no button, and `leave` stays in row 2;
   - the drain bar's width follows `drainMs`;
   - it is a dialog.
-- [ ] T017 [P] [US1] Tests in `tests/unit/hooks/useAttention.spec.ts`: visibility changes, throttled input, and `inputAgoMs`. Tests in `tests/unit/hooks/useTableCheck.spec.ts`: polls every 3s with the attention, `router.push` to `/match/:id` on a match, `onNotice` for `table_missed`, `onCooldown`, and stops on unmount.
-- [ ] T018 [P] [US1] Write the failing contract test `tests/contract/seat-action.contract.test.ts`: `seatAction` covers Zod input, session, rate limit `matchmaking:table`, the status mapping, and a publish on seat.
+- [X] T017 [P] [US1] Tests in `tests/unit/hooks/useAttention.spec.ts`: visibility changes, throttled input, and `inputAgoMs`. Tests in `tests/unit/hooks/useTableCheck.spec.ts`: polls every 3s with the attention, `router.push` to `/match/:id` on a match, `onNotice` for `table_missed`, `onCooldown`, and stops on unmount.
+- [X] T018 [P] [US1] Write the failing contract test `tests/contract/seat-action.contract.test.ts`: `seatAction` covers Zod input, session, rate limit `matchmaking:table`, the status mapping, and a publish on seat.
 
 ### Implementation for User Story 1
 
-- [ ] T019 [US1] Add the `table` and `void` beats in `lib/room/moveState.ts` (make T013 pass).
-- [ ] T020 [P] [US1] Implement `readySlipModel` in `lib/room/tableSlip.ts` (T014), and add the `ready` and `void` kinds with the new ranking in `lib/room/slip.ts`.
-- [ ] T021 [P] [US1] Add the `table` phase and sub-lines to `deriveScoreboard` in `lib/room/scoreboard.ts` (T015), and render them in `components/room/Scoreboard.tsx`: no total at the table.
-- [ ] T022 [US1] Render the ready slip in `components/room/Slip.tsx`:
+- [X] T019 [US1] Add the `table` and `void` beats in `lib/room/moveState.ts` (make T013 pass).
+- [X] T020 [P] [US1] Implement `readySlipModel` in `lib/room/tableSlip.ts` (T014), and add the `ready` and `void` kinds with the new ranking in `lib/room/slip.ts`.
+- [X] T021 [P] [US1] Add the `table` phase and sub-lines to `deriveScoreboard` in `lib/room/scoreboard.ts` (T015), and render them in `components/room/Scoreboard.tsx`: no total at the table.
+- [X] T022 [US1] Render the ready slip in `components/room/Slip.tsx`:
   - label; headline with `initialFocusRef`; facts; stakes (ink); two seat lines with squares; the action rows; a 4px drain bar using the existing drain style;
   - the 500ms guard reuses the end-early guard.
 
   Make T016 pass.
-- [ ] T023 [US1] Add `app/actions/match/seat.ts` (`seatAction`) with the `matchmaking:table` scope in the rate-limit config (T018).
-- [ ] T024 [P] [US1] Implement `components/room/hooks/useAttention.ts` and `lib/matchmaking/attention.ts` (`recordAttention`: clamps `inputAgoMs` to 0–600000 and writes the three columns).
-- [ ] T025 [US1] Change `app/api/match/active/route.ts` and `app/api/match/[matchId]/state/route.ts`: read `visible` and `inputAgoMs` and call `recordAttention`; return `{ match, cooldownUntil: null, notice: null }` (US3 and US5 fill these). Implement `components/room/hooks/useTableCheck.ts` (T017).
-- [ ] T026 [US1] Mount `useTableCheck`:
+
+- [X] T023 [US1] Add `app/actions/match/seat.ts` (`seatAction`) with the `matchmaking:table` scope in the rate-limit config (T018).
+- [X] T024 [P] [US1] Implement `components/room/hooks/useAttention.ts` and `lib/matchmaking/attention.ts` (`recordAttention`: clamps `inputAgoMs` to 0–600000 and writes the three columns).
+- [X] T025 [US1] Change `app/api/match/active/route.ts` and `app/api/match/[matchId]/state/route.ts`: read `visible` and `inputAgoMs` and call `recordAttention`; return `{ match, cooldownUntil: null, notice: null }` (US3 and US5 fill these). Implement `components/room/hooks/useTableCheck.ts` (T017).
+- [X] T026 [US1] Mount `useTableCheck`:
   - in `components/room/LobbyRoomController.tsx`, replacing the active-match half of `useLobbyInvites` (`router.push`);
   - in `components/profile/ProfilePage.tsx`.
 
   Not in the queue: its own poll returns `matched`, and a second check could push the table twice (analysis I1).
 
   Change the challenge-accept and rematch-accept navigation (`LobbyRoomController.tsx`, `MatchRoomController.tsx` `onNewMatch`) from `router.replace` to `router.push`.
-- [ ] T027 [US1] In `components/room/MatchRoomController.tsx` and `MatchRoomView.tsx`, at the `table` beat:
+
+- [X] T027 [US1] In `components/room/MatchRoomController.tsx` and `MatchRoomView.tsx`, at the `table` beat:
   - the empty ruled field at 32% under the ready slip;
   - the ledger caption `opponent found`, with the territory `0 · 100 free · 0` and no live row;
   - `onReady` → `seatAction`, then refresh;
@@ -159,10 +166,11 @@
   - the `pagehide` disconnect beacon is skipped while the beat is `table`.
 
   Test it in `tests/unit/components/room/MatchRoomController.table.spec.tsx`.
-- [ ] T028 [US1] Add the tab title `Kári · opponent found · Wottle` in `lib/room/tabTitle.ts` (test first in `tests/unit/lib/room/tabTitle.spec.ts`). Add the `challenge` cue to `components/room/hooks/useSoundEffects.ts`, played when the table opens while `document.hidden` (respecting the toggle).
-- [ ] T029 [US1] Add `sitDownIfAsked(page)` to `tests/integration/ui/helpers/matchmaking.ts`, and call it for both pages after pairing in `moves-flow`, `disconnect-claim`, `match-completion`, `deadline-flow`, `reconnect-flow`, `room-flow`, `matchmaking`, `cross-language-queue` and `locale-is`.
+
+- [X] T028 [US1] Add the tab title `Kári · opponent found · Wottle` in `lib/room/tabTitle.ts` (test first in `tests/unit/lib/room/tabTitle.spec.ts`). Add the `challenge` cue to `components/room/hooks/useSoundEffects.ts`, played when the table opens while `document.hidden` (respecting the toggle).
+- [X] T029 [US1] Add `sitDownIfAsked(page)` to `tests/integration/ui/helpers/matchmaking.ts`, and call it for both pages after pairing in `moves-flow`, `disconnect-claim`, `match-completion`, `deadline-flow`, `reconnect-flow`, `room-flow`, `matchmaking`, `cross-language-queue` and `locale-is`.
   - Migrate any spec that asserted the old `found` phase.
-- [ ] T030 [US1] Write the Playwright spec `tests/integration/ui/table.spec.ts`:
+- [X] T030 [US1] Write the Playwright spec `tests/integration/ui/table.spec.ts`:
   - two players pair; both land on `/match/:id` at the table with the empty frame;
   - one is auto-seated right after a click;
   - the other presses `ready ▸`;
@@ -180,14 +188,14 @@
 
 **Independent test:** both rooms count 3·2·1 from the same server time, the letters land during `3`, and `move 1 · your move` shows at go.
 
-- [ ] T031 [P] [US2] Tests in `tests/unit/lib/room/tableSlip.spec.ts` (start) and `moveState.table.spec.ts`:
+- [X] T031 [P] [US2] Tests in `tests/unit/lib/room/tableSlip.spec.ts` (start) and `moveState.table.spec.ts`:
   - once `in_progress` with `msToStart > 3300`, the slip's label reads `starts in 3` and the slip stays;
   - at `≤ 3300` the slip lifts (`slipKind` none) and the beat is `starting` with `min(3, ceil(ms/1000))`;
   - line 2 reads `pick when the clock starts`;
   - past go, the live beats.
-- [ ] T032 [US2] Implement the lift and the count in `lib/room/tableSlip.ts` and `lib/room/moveState.ts` (clamp the count to 3; line 2 `pickWhenClockStarts`).
-- [ ] T033 [US2] At go in `components/room/MatchRoomController.tsx`: wire `playMatchStart` (existing `useSoundEffects`), keep the spec 068 focus-to-field, and announce line 1. The letters land when the `in_progress` snapshot brings the board (the existing `letter-land`, row by row; instant under reduced motion). Extend `tests/unit/components/room/MatchRoomController.table.spec.tsx`.
-- [ ] T034 [P] [US2] Add the tab title `3 · Kári · Wottle` during the count in `lib/room/tabTitle.ts` (test first).
+- [X] T032 [US2] Implement the lift and the count in `lib/room/tableSlip.ts` and `lib/room/moveState.ts` (clamp the count to 3; line 2 `pickWhenClockStarts`).
+- [X] T033 [US2] At go in `components/room/MatchRoomController.tsx`: wire `playMatchStart` (existing `useSoundEffects`), keep the spec 068 focus-to-field, and announce line 1. The letters land when the `in_progress` snapshot brings the board (the existing `letter-land`, row by row; instant under reduced motion). Extend `tests/unit/components/room/MatchRoomController.table.spec.tsx`.
+- [X] T034 [P] [US2] Add the tab title `3 · Kári · Wottle` during the count in `lib/room/tabTitle.ts` (test first).
 - [ ] T035 [US2] Extend the Playwright `tests/integration/ui/table.spec.ts`: both pages read `starts in 3` within 250ms of each other (sampled every 50ms), and both show `move 1 · your move` at go.
 
 ---
@@ -198,21 +206,22 @@
 
 **Independent test:** let a table run out with one player unseated. No rating, record or recent-match change; the seated queue player is searching again at the front; the absent player is not searching.
 
-- [ ] T036 [P] [US3] Tests in `tests/unit/lib/room/tableSlip.spec.ts` for `voidSlipModel`: the headline for each reason and viewer (`contracts/room-derivations.md` table), the body lines, and the actions by origin (queue-requeued `cancel`; challenge `challengeAgain` and `lobby`; rematch `result` and `lobby`).
-- [ ] T037 [P] [US3] Write the failing contract test `tests/contract/resign-pending.contract.test.ts`: `resignMatch` refuses `pending`, and `in_progress` before `started_at`, with `not_started`. Write the failing contract test `tests/contract/leave-table.contract.test.ts` for `leaveTableAction`.
-- [ ] T038 [US3] Implement `voidSlipModel` in `lib/room/tableSlip.ts`, and the void phase sub-lines (`did not sit down`, `left`, `you · searching`) in `lib/room/scoreboard.ts`.
-- [ ] T039 [US3] Add `app/actions/match/leaveTable.ts` (`leaveTableAction`, rate-limit scope `matchmaking:table`). Change `app/actions/match/resignMatch.ts` to refuse before go (T037).
-- [ ] T040 [US3] Render the void slip in `components/room/Slip.tsx` (headline focused, no motion) and wire its actions in `components/room/MatchRoomController.tsx`:
+- [X] T036 [P] [US3] Tests in `tests/unit/lib/room/tableSlip.spec.ts` for `voidSlipModel`: the headline for each reason and viewer (`contracts/room-derivations.md` table), the body lines, and the actions by origin (queue-requeued `cancel`; challenge `challengeAgain` and `lobby`; rematch `result` and `lobby`).
+- [X] T037 [P] [US3] Write the failing contract test `tests/contract/resign-pending.contract.test.ts`: `resignMatch` refuses `pending`, and `in_progress` before `started_at`, with `not_started`. Write the failing contract test `tests/contract/leave-table.contract.test.ts` for `leaveTableAction`.
+- [X] T038 [US3] Implement `voidSlipModel` in `lib/room/tableSlip.ts`, and the void phase sub-lines (`did not sit down`, `left`, `you · searching`) in `lib/room/scoreboard.ts`.
+- [X] T039 [US3] Add `app/actions/match/leaveTable.ts` (`leaveTableAction`, rate-limit scope `matchmaking:table`). Change `app/actions/match/resignMatch.ts` to refuse before go (T037).
+- [X] T040 [US3] Render the void slip in `components/room/Slip.tsx` (headline focused, no motion) and wire its actions in `components/room/MatchRoomController.tsx`:
   - `cancel ▸` → `cancelQueueAction`, then the lobby;
   - `challenge again ▸` → `sendInviteAction(opponentId, language)`, then `router.push` to the lobby; a refusal shows its `ErrorCode` line (cooldown, busy, gone);
   - `result ▸` → `/match/:rematchOf`;
   - `lobby`.
 
   - A requeued viewer keeps searching from the void slip: the void-queue slip runs `useMatchmaking` in resume mode (the queue poll with attention, its `searching · 0:03` line under the body, `cancel ▸`). On `matched` it pushes `/match/:new`. Without this poll the requeued player goes stale after 10s and is never paired (analysis G1).
-- [ ] T041 [US3] Test first in `tests/unit/components/room/MatchRoomController.guard.spec.tsx`: a guard entry is pushed at the table; `popstate` calls `leaveTableAction` and routes to the lobby; after go no guard remains and no history is added. Then: Back leaves the table in `components/room/MatchRoomController.tsx`: while the beat is `table` or `starting`, push one `history.state = { kind: "table-guard" }` entry on mount; `popstate` from it calls `leaveTableAction` and routes to the lobby. After go the guard is removed without adding history.
-- [ ] T042 [US3] Test first in `tests/contract/match-active.contract.test.ts`: `notice` is `table_missed` once, then null; the attention is recorded; `cooldownUntil` is passed through. Then fill in `notice` in `app/api/match/active/route.ts`: read and clear `players.table_missed_at` → `table_missed`. `LobbyRoomController` shows `you did not sit down · your search stopped` as a lobby notice.
-- [ ] T043 [US3] Test first in `tests/unit/app/matchPage.void.spec.tsx`: a participant opening a void match gets the room with the void beat; a non-participant is redirected to `/lobby`. Then: a void match's address shows the void slip over the empty frame. Check `app/[locale]/(room)/match/[matchId]/page.tsx`: a void match is not redirected as a non-participant's completed match; participants see the slip; others get the existing read-only redirect to `/lobby`.
-- [ ] T044 [US3] Extend the Playwright `tests/integration/ui/table.spec.ts`:
+
+- [X] T041 [US3] Test first in `tests/unit/components/room/MatchRoomController.guard.spec.tsx`: a guard entry is pushed at the table; `popstate` calls `leaveTableAction` and routes to the lobby; after go no guard remains and no history is added. Then: Back leaves the table in `components/room/MatchRoomController.tsx`: while the beat is `table` or `starting`, push one `history.state = { kind: "table-guard" }` entry on mount; `popstate` from it calls `leaveTableAction` and routes to the lobby. After go the guard is removed without adding history.
+- [X] T042 [US3] Test first in `tests/contract/match-active.contract.test.ts`: `notice` is `table_missed` once, then null; the attention is recorded; `cooldownUntil` is passed through. Then fill in `notice` in `app/api/match/active/route.ts`: read and clear `players.table_missed_at` → `table_missed`. `LobbyRoomController` shows `you did not sit down · your search stopped` as a lobby notice.
+- [X] T043 [US3] Test first in `tests/unit/app/matchPage.void.spec.tsx`: a participant opening a void match gets the room with the void beat; a non-participant is redirected to `/lobby`. Then: a void match's address shows the void slip over the empty frame. Check `app/[locale]/(room)/match/[matchId]/page.tsx`: a void match is not redirected as a non-participant's completed match; participants see the slip; others get the existing read-only redirect to `/lobby`.
+- [X] T044 [US3] Extend the Playwright `tests/integration/ui/table.spec.ts`:
   - leave → both see the void, and the leaver lands on the lobby;
   - the deadline with one unseated player (a hidden page, no input) → the void, and the seated queue player's row reads `you · searching`.
 
@@ -236,6 +245,7 @@
   - `selectQueueOpponent` orders by `queued_at`.
 
   Update `tests/unit/lib/matchmaking/inviteService*.spec.ts` first.
+
 - [ ] T048 [US4] Test first in `tests/contract/queue-actions.contract.test.ts` (`startQueueAction` with attention, `paused`, `cooldown`; `resumeQueueAction` keeps `queued_at`; `cancelQueueAction` clears `queued_at` and `queue_language`) and `tests/contract/pause-beacon.contract.test.ts` (204, pauses only a `matchmaking` player, no session → 401). Then change `app/actions/matchmaking/startQueue.ts` (input `attention`; result `queuedAt` and `paused`), add `app/actions/matchmaking/resumeQueue.ts`, add `app/api/matchmaking/pause/route.ts` (the beacon, 204), and change `app/actions/matchmaking/cancelQueue.ts` to clear `queued_at` and `queue_language` (with a `reason`).
 - [ ] T049 [US4] Implement `lib/room/queueView.ts` (T046).
 - [ ] T050 [US4] Change `lib/room/useMatchmaking.ts`:
@@ -250,6 +260,7 @@
   - remove the inline `found` phase, `FOUND_COUNTDOWN_MS` and the inline `MatchRoomController`.
 
   Remove `found` from `lib/room/roomStore.ts`. Test it in `tests/unit/components/room/QueueRoomController.spec.tsx`.
+
 - [ ] T051 [P] [US4] Add the tab title `searching 0:07 · Wottle` in `lib/room/tabTitle.ts` (test first), and set it from `QueueRoomController`.
 - [ ] T052 [US4] Extend the Playwright `tests/integration/ui/matchmaking.spec.ts`:
   - a hidden searcher (`page.evaluate` dispatching `visibilitychange` with a stubbed `document.visibilityState`) is not paired, and reads `search paused · resume ▸` on return;
@@ -299,11 +310,12 @@
   - the phone view `phone-table` over `table`.
 
   Extend the phase list test.
+
 - [ ] T061 [P] [US7] Rules document `docs/prd_and_requirements/wottle_game_rules.md`:
   - §2a: "every match that starts is rated …" (spec US7 scenario 1);
-  - §12: a new row *The table* (seating, 20s, void);
-  - the *Clock* row names `starting` with the 4.5s lead;
-  - the *Every match is rated* row excludes voids.
+  - §12: a new row _The table_ (seating, 20s, void);
+  - the _Clock_ row names `starting` with the 4.5s lead;
+  - the _Every match is rated_ row excludes voids.
 - [ ] T062 [P] [US7] Design system `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`:
   - §1.1 and §5.9: the ready and void slip kinds and the ranking;
   - §5.3: the table sub-lines;
@@ -318,6 +330,7 @@
   - the Icelandic native-read strings in gap 4.
 
   Add retired phrases to `scripts/docs/consistency-grep.sh` (`START_GRACE_MS`, `start_match_if_ready`, the `found` phase). Run `pnpm docs:check`.
+
 - [ ] T064 [US7] Run `pnpm test:visual --update-snapshots` for the new and changed phases (darwin). Review every changed baseline by eye, and delete any orphaned `found-visual-*` baselines.
 
 ---
@@ -338,6 +351,7 @@
   - the Playwright two-player specs one file at a time (`table`, `moves-flow`, `disconnect-claim`, `match-completion`, `matchmaking`).
 
   Record the results in this file's Notes.
+
 - [ ] T070 Walk through `quickstart.md` in two browsers, and fix anything it finds.
 
 ---
