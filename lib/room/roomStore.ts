@@ -3,6 +3,7 @@
 import { create } from "zustand";
 
 import { outranks, type SlipKind, type SlipState } from "./slip";
+import { latestResolved } from "./lastMoves";
 import type { ReturningPlayer } from "@/lib/types/lobby";
 import type { MatchState, MoveResolution, PlayerIdentity, PlayerSlot } from "@/lib/types/match";
 
@@ -61,6 +62,10 @@ export interface RoomState {
   applySnapshot: (snapshot: MatchState) => void;
   /** One finished move (`move-resolved`); idempotent under the safety poll. */
   applyResolution: (resolution: MoveResolution) => void;
+  /** Each player's latest resolved move by player id: the last-moved tick (spec 068 FR-027). */
+  lastResolved: Record<string, MoveResolution>;
+  /** The latest resolution that arrived live (`move-resolved`), never one read from a snapshot: announced once (spec 068 FR-033). */
+  liveResolution: MoveResolution | null;
   leaveToLobby: () => void;
   /** Show a slip unless a higher-ranked one is already up. */
   setSlip: (next: SlipState) => void;
@@ -112,6 +117,19 @@ function mergeSnapshot(previous: MatchState | null, snapshot: MatchState): Match
   return { ...snapshot, scores };
 }
 
+/** Folds each player's `lastResolution` in; a refusal or an older move never replaces a kept one. */
+function withLastResolved(kept: Record<string, MoveResolution>, incoming: Array<MoveResolution | null | undefined>): Record<string, MoveResolution> {
+  const next = { ...kept };
+  for (const r of incoming) {
+    if (!r) continue;
+    const latest = latestResolved(next[r.playerId] ?? null, r);
+    if (latest) next[r.playerId] = latest;
+  }
+  return next;
+}
+
+const lastOf = (state: MatchState) => [state.players.playerA.lastResolution, state.players.playerB.lastResolution];
+
 function withResolution(current: MatchState, r: MoveResolution): MatchState {
   const slot = r.playerId === current.players.playerA.playerId ? "playerA" : "playerB";
   const other = slot === "playerA" ? "playerB" : "playerA";
@@ -143,6 +161,8 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   returning: null,
   slipDismissed: false,
   holdMove: null,
+  lastResolved: {},
+  liveResolution: null,
 
   // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
   setViewer: (viewer) =>
@@ -172,13 +192,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       phase: phaseForMatch(state),
       queue: null,
       found: null,
+      lastResolved: withLastResolved(s.match?.matchId === state.matchId ? s.lastResolved : {}, lastOf(state)),
       // Another match in the same room (a rematch) starts with no slip and no hold.
-      ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdMove: null }),
+      ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdMove: null, liveResolution: null }),
     })),
 
   applySnapshot: (snapshot) => {
     const merged = mergeSnapshot(get().match, snapshot);
-    set({ match: merged, board: merged.board, phase: phaseForMatch(merged) });
+    set((s) => ({ match: merged, board: merged.board, phase: phaseForMatch(merged), lastResolved: withLastResolved(s.lastResolved, lastOf(snapshot)) }));
   },
 
   applyResolution: (resolution) => {
@@ -186,11 +207,11 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     if (!current || resolution.matchId !== current.matchId) return;
     if (resolution.globalSeq <= current.resolvedSeq) return;
     const next = withResolution(current, resolution);
-    set({ match: next, board: next.board });
+    set((s) => ({ match: next, board: next.board, lastResolved: withLastResolved(s.lastResolved, [resolution]), liveResolution: resolution }));
   },
 
   leaveToLobby: () =>
-    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdMove: null }),
+    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdMove: null, lastResolved: {}, liveResolution: null }),
 
   setReturning: (returning) => set({ returning }),
   setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: s.slip?.kind === next.kind ? s.slipDismissed : false })),

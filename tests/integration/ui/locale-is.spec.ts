@@ -13,8 +13,8 @@ test.describe("@locale Orðusta at the plain address", () => {
   test("the root is Icelandic: lang, title, wordmark and the sign-in slip", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "is");
-    await expect(page).toHaveTitle("orðusta");
-    await expect(page.getByTestId("slip")).toContainText("orðusta");
+    await expect(page).toHaveTitle("Orðusta");
+    await expect(page.getByTestId("slip")).toContainText("Orðusta");
     await expect(page.getByTestId("player-bar-name-input")).toHaveAttribute("placeholder", "nafn");
   });
 
@@ -25,11 +25,11 @@ test.describe("@locale Orðusta at the plain address", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "is");
   });
 
-  test("English lives under /en and is called wottle", async ({ page }) => {
+  test("English lives under /en and is called Wottle", async ({ page }) => {
     await page.goto("/en");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page).toHaveTitle("wottle");
-    await expect(page.getByTestId("slip")).toContainText("wottle");
+    await expect(page).toHaveTitle("Wottle");
+    await expect(page.getByTestId("slip")).toContainText("Wottle");
   });
 
   test("signed in at /, the lobby is Icelandic and shows no English line", async ({ page }) => {

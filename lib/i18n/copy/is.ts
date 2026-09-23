@@ -1,3 +1,4 @@
+import { LOCALES } from "@/lib/i18n/locales";
 import { plural } from "@/lib/i18n/plural";
 import type { Copy } from "@/lib/i18n/copy/types";
 
@@ -45,7 +46,8 @@ const byPoints = (n: number): string =>
   `með ${n} ${plural("is", n, { one: "stigi", other: "stigum" })}`;
 
 export const copyIs = {
-  WORDMARK: "orðusta",
+  /** The game's name, from the locale registry (spec 068: one source, capitalised). */
+  WORDMARK: LOCALES.is.wordmark,
 
   QUEUE_CONTEXT: "10 leikir á 5 mínútum",
   MATCH_CLOCK: "leikklukka",
@@ -86,10 +88,9 @@ export const copyIs = {
   HOVER_ROW_HINT: "færðu bendilinn yfir línu til að sjá orðin",
   frozenNotice: (ownerName: string, move: number): string =>
     `frosinn · ${ownerName} L${move} · veldu annan`,
-  frozenJustNow: (name: string): string =>
-    `frosinn · ${name} var að frysta hann · veldu annan`,
-  movedJustNow: (name: string): string =>
-    `færður · ${name} var að færa hann · veldu annan`,
+  // Line 2 fits one line at 1440 (spec 068 FR-032); the name stays in the nominative.
+  frozenJustNow: (name: string): string => `${name} frysti stafinn · veldu annan`,
+  movedJustNow: (name: string): string => `${name} færði stafinn · veldu annan`,
   pickClearedMoved: (name: string): string => `val fellt niður · ${name} færði stafinn`,
   settingField: (landed: number): string => `raðar á borðið · ${landed} af 100 stöfum`,
 
@@ -99,12 +100,45 @@ export const copyIs = {
   scoredDelta: (delta: number, next: number): string =>
     `þú ${signed(delta)} · leikur ${next} opnast`,
   DONE_PLAYED: "10 af 10 leiknir",
+  // Game flow C4 (spec 068): no name after `eftir` (the name-safe rule, §8 item 13).
   doneFact: (opponentName: string, opponentMoves: number, clockMmSs: string): string =>
-    `bíður eftir ${opponentName} · ${opponentMoves} af 10 · ${clockMmSs} eftir`,
+    `${opponentName} · ${opponentMoves} af 10 · ${clockMmSs} eftir`,
   TIME_SCORING: "tíminn úti · reiknast",
   moveOfSuffix: (move: number): string => `leikur ${move} af 10`,
   moveScoringSuffix: (move: number): string => `leikur ${move} af 10 · reiknast`,
   DONE_SUFFIX: "10 af 10 · búið",
+  SCOREBOARD: "stigatafla",
+  paceLabel: (seconds: number): string => (seconds < 1 ? "<1 sek á leik" : `≈${seconds} sek á leik`),
+  clockOfLength: (elapsedMmSs: string, lengthMmSs: string): string => `${elapsedMmSs} af ${lengthMmSs}`,
+  UNDER_A_MINUTE: "innan við mínúta",
+  READY: "við borðið",
+  moveBehindPace: (move: number): string => `leikur ${move} · á eftir áætlun`,
+  goneFor: (moves: number, mmSs: string): string => `${moves} af 10 · án tengingar í ${mmSs}`,
+  OFFLINE_RECONNECTING: "án tengingar · tengist aftur",
+  profileOpensInNewTab: (name: string): string => `${name}, prófíll opnast í nýjum flipa`,
+  movesOf: (moves: number): string => `${moves} af 10`,
+  compactMove: (move: number): string => `leikur ${move}`,
+  goneForShort: (mmSs: string): string => `án tengingar í ${mmSs}`,
+  BEHIND_PACE: "á eftir áætlun",
+  OFFLINE: "án tengingar",
+  moveNoWord: (move: number): string => `leikur ${move} · ekkert orð`,
+  moveOpens: (move: number): string => `leikur ${move} opnast`,
+  TOTAL_NEVER_BELOW_ZERO: "samtala fer aldrei undir 0",
+  movesLeftShort: (n: number): string => `${n} ${n === 1 ? "leikur" : "leikir"} eftir`,
+  IF_UNPLAYED: "ef óleiknir",
+  NOTHING_TO_LOSE: "engu að tapa",
+  frozenWord: (word: string, owner: string): string => `frosinn · ${word} · ${owner} · veldu annan`,
+  backAway: (mmSs: string): string => `tenging komin · ${mmSs} án tengingar`,
+  // The name stays in the nominative (game flow §8 item 13).
+  oppAnnouncement: (name: string, words: string[], delta: number, moves: number): string =>
+    words.length > 0 ? `${name} ${words.join(" · ")} ${signed(delta)} · ${moves} af 10` : `${name} ekkert orð ${points(delta)} · ${moves} af 10`,
+  clockMarkLeft: (mmSs: string): string => `${mmSs} eftir`,
+  // Without the name: `<nafn> · án tengingar · ljúka viðureigninni ▸` does not fit one line (spec 068 FR-032),
+  // and there is only one opponent to mean.
+  endEarlyOfferLead: (): string => "án tengingar · ",
+  // The name stays in the nominative (game flow §8 item 13): never `leikur Kára`.
+  lastMoveOf: (name: string): string => `síðasti leikur · ${name}`,
+  tabTitle: (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · leikur ${move} · ${name}`,
   oppProgress: (moves: number, state: "playing" | "scoring"): string =>
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,
 
@@ -130,9 +164,8 @@ export const copyIs = {
   KEEP_PLAYING: "halda áfram ▸",
   KEEP_WAITING: "bíða áfram ▸",
   isGone: (name: string): string => `${name} er ekki lengur hér`,
-  isGoneFact: (name: string, moves: number): string =>
-    `${name} ${moves} af 10 · 0:00 eftir til að tengjast aftur`,
   END_THE_MATCH: "ljúka viðureigninni ▸",
+  NORMAL_RULES_DECIDE: "venjulegar reglur ráða úrslitum",
   endEarlyLabel: (clockMmSs: string): string =>
     `10 af 10 leiknir · ${clockMmSs} á klukkunni`,
   MATCH_OVER,
@@ -192,7 +225,6 @@ export const copyIs = {
   rematchDeclined: (name: string): string => `${name} afþakkaði`,
   REMATCH_EXPIRED: "beiðni um aðra viðureign rann út",
   REALTIME_LOST: "rauntenging rofin · spyr reglulega",
-  RECONNECTING: "tengist aftur",
   UNRATED: "ekkert Elo",
   YOUR_MOVES: "leikirnir þínir",
   OPPONENT_MOVES: "leikir andstæðings",
@@ -279,4 +311,5 @@ export const copyIs = {
   SITE_DESCRIPTION:
     "Orðaeinvígi fyrir tvo. Skiptu á tveimur stöfum; orð með þremur stöfum eða fleiri gefa stig og frjósa í þínum lit.",
   LANGUAGE_LINK: "english ▸",
+  LANGUAGE_WORDS: "íslensk orð",
 } satisfies Copy;

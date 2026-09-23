@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { handlePlayerDisconnect } from "@/app/actions/match/handleDisconnect";
+import { handlePlayerDisconnect, handlePlayerReconnect } from "@/app/actions/match/handleDisconnect";
 import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
 import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -24,6 +24,59 @@ export interface TransportState {
   usePolling: boolean;
   isReconnecting: boolean;
   pollError: string | null;
+  /** The viewer's own connection is lost (spec 068 FR-038): two failed polls in a row, or the browser says so. */
+  offline: boolean;
+  /** Set on recovery: how long the viewer was away. */
+  awayMs: number | null;
+}
+
+/** Two failed safety polls in a row (about 4s) are an outage; one is a hiccup. */
+const OUTAGE_AFTER_FAILURES = 2;
+
+/**
+ * The viewer's own outage, noticed and recovered without a page load (spec 068
+ * R8): lost at the first of two failed polls or when the browser goes offline;
+ * back at the first good poll, which clears the viewer's disconnect on the server.
+ */
+function useOutage(matchId: string, currentPlayerId: string) {
+  const [offline, setOffline] = useState(false);
+  const [awayMs, setAwayMs] = useState<number | null>(null);
+  const failures = useRef(0);
+  const lostAt = useRef<number | null>(null);
+  const firstFailureAt = useRef<number | null>(null);
+
+  const markLost = useCallback((at: number) => {
+    if (lostAt.current !== null) return;
+    lostAt.current = at;
+    setOffline(true);
+  }, []);
+
+  const onPoll = useCallback(
+    (ok: boolean) => {
+      if (!ok) {
+        failures.current += 1;
+        firstFailureAt.current ??= Date.now();
+        if (failures.current >= OUTAGE_AFTER_FAILURES) markLost(firstFailureAt.current);
+        return;
+      }
+      failures.current = 0;
+      firstFailureAt.current = null;
+      if (lostAt.current === null) return;
+      setAwayMs(Date.now() - lostAt.current);
+      lostAt.current = null;
+      setOffline(false);
+      void handlePlayerReconnect(matchId, currentPlayerId).catch(() => undefined);
+    },
+    [matchId, currentPlayerId, markLost],
+  );
+
+  useEffect(() => {
+    const goneOffline = () => markLost(Date.now());
+    window.addEventListener("offline", goneOffline);
+    return () => window.removeEventListener("offline", goneOffline);
+  }, [markLost]);
+
+  return { offline, awayMs, onPoll };
 }
 
 /**
@@ -42,6 +95,8 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
   const [usePolling, setUsePolling] = useState(process.env.NEXT_PUBLIC_DISABLE_REALTIME === "true");
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [pollError, setPollError] = useState<string | null>(null);
+  const outage = useOutage(matchId, currentPlayerId);
+  const onPoll = outage.onPoll;
 
   const fallBack = useCallback(() => {
     setIsReconnecting(true);
@@ -109,14 +164,16 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
     let mounted = true;
     const safetyPoll = async () => {
       const snapshot = await fetchMatchSnapshot(matchId);
-      if (mounted && snapshot && latest.current && shouldApplySafetySnapshot(latest.current, snapshot)) applySnapshot(snapshot);
+      if (!mounted) return;
+      onPoll(snapshot !== null);
+      if (snapshot && latest.current && shouldApplySafetySnapshot(latest.current, snapshot)) applySnapshot(snapshot);
     };
     const timer = setInterval(safetyPoll, SAFETY_POLL_INTERVAL_MS);
     return () => {
       mounted = false;
       clearInterval(timer);
     };
-  }, [matchId, applySnapshot]);
+  }, [matchId, applySnapshot, onPoll]);
 
-  return { usePolling, isReconnecting, pollError };
+  return { usePolling, isReconnecting, pollError, offline: outage.offline, awayMs: outage.awayMs };
 }

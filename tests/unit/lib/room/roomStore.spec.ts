@@ -195,3 +195,31 @@ describe("roomStore performance marks (spec 044 T100)", () => {
     mark.mockRestore();
   });
 });
+
+describe("roomStore: each player's last resolved move, for the tick (spec 068 FR-027, decision 1A)", () => {
+  beforeEach(() => useRoomStore.getState().leaveToLobby());
+
+  it("keeps each player's latest resolved move; a refusal never replaces it", () => {
+    const store = useRoomStore.getState();
+    store.hydrateMatch(matchState(), A);
+    store.applyResolution(resolution({ globalSeq: 1 }));
+    store.applyResolution(resolution({ globalSeq: 2, status: "rejected", swap: { from: { x: 9, y: 9 }, to: { x: 8, y: 9 } } }));
+    expect(useRoomStore.getState().lastResolved[A]?.globalSeq).toBe(1);
+  });
+
+  it("takes a snapshot's last move only when it resolved, so a reload onto a refusal draws no tick", () => {
+    const store = useRoomStore.getState();
+    store.hydrateMatch(matchState({ players: { playerA: facts(A), playerB: facts(B, { lastResolution: resolution({ playerId: B, status: "rejected" }) }) } }), A);
+    expect(useRoomStore.getState().lastResolved[B]).toBeUndefined();
+    store.applySnapshot(matchState({ resolvedSeq: 3, players: { playerA: facts(A), playerB: facts(B, { lastResolution: resolution({ playerId: B, globalSeq: 3 }) }) } }));
+    expect(useRoomStore.getState().lastResolved[B]?.globalSeq).toBe(3);
+  });
+
+  it("forgets them with the match", () => {
+    const store = useRoomStore.getState();
+    store.hydrateMatch(matchState(), A);
+    store.applyResolution(resolution({ globalSeq: 1 }));
+    store.leaveToLobby();
+    expect(useRoomStore.getState().lastResolved).toEqual({});
+  });
+});

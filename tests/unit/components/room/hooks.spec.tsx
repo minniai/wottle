@@ -133,3 +133,14 @@ describe("useDeadlineTick (spec 050)", () => {
     expect(result.current).toBe(300_000);
   });
 });
+
+describe("useServerDrift (spec 068 R9)", () => {
+  it("is the server's clock minus the device's, measured when the snapshot lands", async () => {
+    const { useServerDrift } = await import("@/components/room/hooks/useDeadlineTick");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-23T12:00:00.000Z"));
+    const { result } = renderHook(() => useServerDrift({ startedAt: null, deadlineAt: null, serverNow: "2026-09-23T12:00:07.000Z" }));
+    expect(result.current).toBe(7_000);
+    vi.useRealTimers();
+  });
+});

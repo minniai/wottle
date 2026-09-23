@@ -17,7 +17,11 @@ import { reportWordIntegrity } from "@/lib/room/wordIntegrity";
 import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
-import { pickClearedNotice } from "@/lib/room/notices";
+import { tabTitle } from "@/lib/room/tabTitle";
+import { lastMoves } from "@/lib/room/lastMoves";
+import { PICK_CLEARED_HOLD_MS } from "@/lib/room/notices";
+import type { Line2Extras } from "@/lib/room/moveState";
+import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
@@ -31,7 +35,8 @@ import { Field } from "./Field";
 import { MatchRoomView } from "./MatchRoomView";
 import { useAccumulatedMoves } from "./hooks/useAccumulatedMoves";
 import { useWordHistory } from "./hooks/useWordHistory";
-import { useDeadlineTick } from "./hooks/useDeadlineTick";
+import { useDeadlineTick, useServerDrift } from "./hooks/useDeadlineTick";
+import { useAnnouncements } from "./hooks/useAnnouncements";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
@@ -51,6 +56,9 @@ export interface MatchRoomControllerProps {
   pollIntervalMs?: number;
 }
 
+/** How long `back · away 0:34 · the clock ran on` holds line 2 (game flow C8). */
+const BACK_HOLD_MS = 4_000;
+
 /** How long an illegal pick or a refused move holds the live row before it returns (spec 047 P1, spec 050). */
 const NOTICE_HOLD_MS = 2000;
 const END_EARLY_RETRIES = 3;
@@ -66,6 +74,14 @@ function frozenMove(words: AccumulatedWord[], at: Coordinate): number | null {
     .sort((a, b) => a.globalSeq - b.globalSeq)
     .map((w) => w.moveSeq);
   return moves.length > 0 ? moves[0] : null;
+}
+
+/** The word a frozen letter belongs to, the earliest that froze it, as the field shows words (spec 068 FR-030). */
+function frozenWordAt(words: AccumulatedWord[], at: Coordinate): string | undefined {
+  const first = words
+    .filter((w) => w.coordinates.some((c) => c.x === at.x && c.y === at.y))
+    .sort((a, b) => a.globalSeq - b.globalSeq)[0];
+  return first?.word.toLocaleUpperCase();
 }
 
 /** The letters an opponent's resolution touched: its swap and everything it froze. */
@@ -115,6 +131,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const onNewMatch = useCallback((newMatchId: string) => router.replace(to(`/match/${newMatchId}`)), [router, to]);
   const rematch = useRematchNegotiation({ matchId, currentPlayerId, onNewMatch });
   const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
+  // Back after an outage: line 2 says how long you were away, for four seconds (spec 068 FR-038).
+  const [backAwayMs, setBackAwayMs] = useState<number | null>(null);
+  useEffect(() => {
+    if (transport.awayMs === null) return;
+    setBackAwayMs(transport.awayMs);
+    const timer = setTimeout(() => setBackAwayMs(null), BACK_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [transport.awayMs]);
   const history = useWordHistory(matchId, match.resolvedSeq);
   const words = useAccumulatedMoves(match, history);
 
@@ -126,6 +150,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // the clock's length: the excess is the server-anchored 3·2·1 (spec 050
   // FR-008), and the caption holds at the full clock meanwhile.
   const tickMs = useDeadlineTick(match.clock);
+  const serverDrift = useServerDrift(match.clock);
   const clockLengthMs = clockLengthOf(match.clock);
   const msToStart = clockLengthMs === null ? 0 : tickMs - clockLengthMs;
   const clockMs = clockLengthMs === null ? tickMs : Math.min(tickMs, clockLengthMs);
@@ -138,14 +163,42 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const { you: youFacts, opp: oppFacts } = viewerFacts(match, viewerSlot);
   const completed = match.state === "completed";
   const inProgress = match.state === "in_progress";
+
+  // The tab says the clock and your move while you play (spec 068 FR-025); the name once you leave.
+  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1) }, copy);
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+  const wordmark = copy.WORDMARK;
+  useEffect(() => () => void (document.title = wordmark), [wordmark]);
   const frozenTiles = match.frozenTiles;
+  // Each player's last swap, ticked in their colour until its letters freeze (spec 068 FR-027).
+  const lastResolved = useRoomStore((s) => s.lastResolved);
+  const ticks = useMemo(() => {
+    const cells = lastMoves({ you: lastResolved[youFacts.playerId] ?? null, opp: lastResolved[oppFacts.playerId] ?? null }, frozenTiles);
+    return [
+      ...cells.you.map((at) => ({ at, seat: "you" as const, name: you.displayName })),
+      ...cells.opp.map((at) => ({ at, seat: "opp" as const, name: opp.displayName })),
+    ];
+  }, [lastResolved, youFacts.playerId, oppFacts.playerId, frozenTiles, you.displayName, opp.displayName]);
   const frozenKeys = useMemo(() => new Set(Object.keys(frozenTiles)), [frozenTiles]);
   const ownerNames = useMemo(() => ({ player_a: playerProfiles.playerA.displayName, player_b: playerProfiles.playerB.displayName }), [playerProfiles]);
 
   // An illegal pick or a refused move is a live-row state for two seconds, not
   // a notice line (spec 047 amendment P1, spec 050): the beat stays where the
   // player is reading.
-  const [illegal, setIllegal] = useState<{ ownerName: string; round: number } | null>(null);
+  const [illegal, setIllegal] = useState<{ ownerName: string; round: number; word?: string } | null>(null);
+  // Line 2's own holds (spec 068 FR-031): each source keeps its timer; the ledger shows the highest.
+  const [pickClearedBy, setPickClearedBy] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const pickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdFor = useCallback((timer: typeof pickTimer, set: (v: string | null) => void, value: string, ms: number) => {
+    if (timer.current) clearTimeout(timer.current);
+    set(value);
+    timer.current = setTimeout(() => set(null), ms);
+  }, []);
+  useEffect(() => () => [pickTimer, errorTimer].forEach((t) => t.current && clearTimeout(t.current)), []);
   const [rejected, setRejected] = useState<MoveRejectionReason | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdNotice = useCallback((apply: () => void, clear: () => void) => {
@@ -157,15 +210,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   const onNotice = useCallback(
     (kind: "frozen" | "pickCleared", at?: Coordinate) => {
-      if (kind === "pickCleared") return push(pickClearedNotice(opp.displayName, Date.now()));
+      if (kind === "pickCleared") return holdFor(pickTimer, setPickClearedBy, opp.displayName, PICK_CLEARED_HOLD_MS);
       const owner = at ? frozenTiles[`${at.x},${at.y}`]?.owner : undefined;
       const ownerName = owner ? ownerNames[owner] : opp.displayName;
       const move = (at && frozenMove(words, at)) ?? youFacts.movesPlayed;
-      holdNotice(() => setIllegal({ ownerName, round: move }), () => setIllegal(null));
+      const word = at ? frozenWordAt(words, at) : undefined;
+      holdNotice(() => setIllegal({ ownerName, round: move, word }), () => setIllegal(null));
     },
-    [push, holdNotice, frozenTiles, ownerNames, opp.displayName, words, youFacts.movesPlayed],
+    [holdFor, holdNotice, frozenTiles, ownerNames, opp.displayName, words, youFacts.movesPlayed],
   );
-  const onRejected = useCallback((code: ErrorCode) => push({ kind: "text", text: copy.errors[code] }), [push, copy]);
+  const onRejected = useCallback((code: ErrorCode) => holdFor(errorTimer, setSubmitError, copy.errors[code], NOTICE_HOLD_MS), [holdFor, copy]);
   const onCommitted = useCallback(() => {
     sound.playValidSwap();
     haptics.vibrateValidSwap();
@@ -193,6 +247,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   }, [progress.settled, progress.planIds]);
   const revealing = reveal.key !== null && !progress.settled;
   const revealingOwn = revealing && reveal.own;
+  const liveResolution = useRoomStore((st) => st.liveResolution);
+  const announcement = useAnnouncements({ liveResolution, opponentId: oppFacts.playerId, opponentName: opp.displayName, opponentSlot: opponentSlot === "player_a" ? "playerA" : "playerB", revealingOwn, clockMs, copy });
 
   // The viewer's own move resolved while we were watching: a resolution this
   // client had not already seen, so a reload holds nothing. A rejected move
@@ -232,6 +288,15 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     () => deriveMoveState({ match, viewerSlot, opponentName: opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart }),
     [match, viewerSlot, opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart],
   );
+  // At go, focus moves to the field; the live row's polite line announces the first move (spec 068 FR-034).
+  const startingNow = moveState.kind === "starting";
+  const wasStarting = useRef(startingNow);
+  useEffect(() => {
+    if (wasStarting.current && !startingNow && !readOnly) {
+      document.querySelector<HTMLButtonElement>('[data-testid="field"] [data-testid="field-cell"][tabindex="0"]')?.focus();
+    }
+    wasStarting.current = startingNow;
+  }, [startingNow, readOnly]);
   const canPick = !readOnly && inProgress && (moveState.kind === "yourMove" || moveState.kind === "rejected") && !slipUp;
   const field = useFieldInteraction({
     matchId,
@@ -314,25 +379,36 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // elapsed and the viewer has all their moves, ending early is put on a slip.
   const opponentGone = match.disconnectedPlayerId === oppFacts.playerId && inProgress;
   const disconnectedAt = opponentGone ? match.disconnectedAt ?? null : null;
-  const now = useNowTick(Boolean(disconnectedAt));
+  // Measured on the server-corrected clock: a wrong device clock must not move the 90s window (spec 068 R9).
+  const now = useNowTick(Boolean(disconnectedAt)) + serverDrift;
   const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
   const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + windowMs - now) : null;
+  // Past the window the scoreboard counts how long they have been gone, never a frozen 0:00 (spec 068 FR-037).
+  const goneForMs = disconnectedAt && reconnectMsLeft === 0 ? Math.max(0, now - new Date(disconnectedAt).getTime() - windowMs) : null;
   const viewerDone = youFacts.movesPlayed >= match.moveLimit;
   const endable = reconnectMsLeft === 0 && viewerDone;
   const setSlip = useRoomStore((s) => s.setSlip);
   const clearSlip = useRoomStore((s) => s.clearSlip);
-  // `keep waiting ▸` puts the offer away; the next window tick re-arms it (spec 048 US7).
-  const [endDeferred, setEndDeferred] = useState(false);
-  useEffect(() => {
-    if (!endDeferred) return;
-    const timer = setTimeout(() => setEndDeferred(false), 10_000);
-    return () => clearTimeout(timer);
-  }, [endDeferred, matchId]);
+  // `keep waiting ▸` puts the slip away for the rest of the match; the offer moves to
+  // the live row's second line (spec 068 FR-036; the 10s re-raise is gone).
+  const [endDeferredFor, setEndDeferredFor] = useState<string | null>(null);
+  const endDeferred = endDeferredFor === matchId;
   useEffect(() => {
     if (endable && !endDeferred && !completed) setSlip({ kind: "endEarly", opponentName: opp.displayName, opponentMoves: oppFacts.movesPlayed, clockMs });
     else clearSlip("endEarly");
-    if (!endable) setEndDeferred(false);
   }, [endable, endDeferred, completed, opp.displayName, oppFacts.movesPlayed, clockMs, setSlip, clearSlip]);
+
+  // Under 1:00 with a move to make, line 2 prices the moves left at 0:00 (spec 068 FR-029).
+  const youMovesLeft = Math.max(0, match.moveLimit - youFacts.movesPlayed);
+  const stakes = inProgress && clockMs > 0 && clockMs < 60_000 && youMovesLeft > 0 ? { movesLeft: youMovesLeft, penalty: timeoutPenalty(youFacts.score, youMovesLeft) } : null;
+  const line2Extras: Line2Extras = {
+    offline: transport.offline && !completed,
+    backAwayMs,
+    pickClearedBy,
+    submitError,
+    stakes,
+    endEarlyOffer: endable && endDeferred && !completed ? opp.displayName : null,
+  };
   const youScore = match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const oppScore = match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"];
   // The server's winner decides the verdict and the bars, not the totals (spec 048 US1, spec 050).
@@ -433,7 +509,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         clearSlip("resign");
         resignMatch(matchId).catch(() => push({ kind: "text", text: copy.errors.resign_failed }));
       } else if (action === "keepWaiting") {
-        setEndDeferred(true);
+        setEndDeferredFor(matchId);
         clearSlip("endEarly");
       } else if (action === "endEarly") {
         clearSlip("endEarly");
@@ -448,12 +524,13 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   const rematchLine =
     rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.phase === "busy" ? copy.opponentBusy(opp.displayName) : rematch.error ? copy.errors[rematch.error] : null;
+  // Steady transport lines first, pushed notices last: on the desktop grid the state row shows the
+  // latest one, so a fresh error or rematch line is never hidden behind `realtime lost` (spec 068).
   const allNotices: Notice[] = [
-    ...notices,
-    ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
-    ...(transport.isReconnecting && match.disconnectedPlayerId === currentPlayerId ? [{ kind: "text", text: copy.RECONNECTING } as Notice] : []),
     ...(transport.usePolling && !transport.isReconnecting ? [{ kind: "text", text: copy.REALTIME_LOST } as Notice] : []),
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
+    ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
+    ...notices,
   ];
   void dismiss;
 
@@ -462,10 +539,12 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft }}
+        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
+        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
+        msToStart={Math.max(0, msToStart)}
+        elapsedMs={completed ? durationMs : undefined}
         penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}
         moveLimit={match.moveLimit}
         completed={completed}
@@ -496,6 +575,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         frozenTiles={frozenTiles}
         live={live}
         moveState={moveState}
+        line2Extras={line2Extras}
+        announcement={announcement}
         holdMove={holdMove}
         notices={allNotices}
         onRowHover={setHighlightMove}
@@ -507,8 +588,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           frozenTiles={frozenTiles}
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
-          disabled={completed || readOnly || !canPick}
-          turnFrame={completed || readOnly ? null : turnFrameFor(moveState)}
+          ticks={ticks}
+          disabled={completed || readOnly || !canPick || transport.offline}
+          turnFrame={completed || readOnly || transport.offline ? null : turnFrameFor(moveState)}
           bands={bands}
           highlightMove={highlightMove}
           drawnCount={drawnCount}

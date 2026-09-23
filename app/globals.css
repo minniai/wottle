@@ -3,8 +3,9 @@
 
 /*
  * Field & Ledger tokens — docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md §2.
- * Seven colours. Nothing else may appear on screen. Seat colours are relative to
- * the viewer (teal = you, coral = the opponent) and resolved via getSeatColors().
+ * Nine colours (spec 068). Nothing else may appear on screen. Seat colours are
+ * relative to the viewer (teal = you, terracotta = the opponent) and resolved via
+ * getSeatColors(); crimson marks points lost and nothing else.
  */
 :root {
   color-scheme: light;
@@ -15,13 +16,17 @@
   --tint: #F4F1E8;
   --muted: #5A6572;
   --you: #147D7A;
-  /* Coral, calmed 21 September 2026 to weigh the same as teal: same hue
-     (OKLCH H 34), chroma 1.5x teal's (was 2.1x), a shade darker. 3.9:1 on paper. */
-  --opp: #C4634C;
-  /* Coral as *text* below 17px: the ledger's words, the numeral on a scored
-     letter, the profile's vs rows. 5.3:1 on paper (spec 045 decision 2).
-     Never for letters, lanes, totals or seat squares. */
-  --opp-text: #AB4F3B;
+  /* Burnished terracotta (spec 068, 23 September 2026; was coral): OKLCH
+     0.60 0.10 40, quieter than coral, an earth pair with teal. 4.0:1 on paper,
+     so letters, bands, lanes, squares and totals of 24px and up. */
+  --opp: #B56A4F;
+  /* Terracotta as *text* below 17px: the ledger's words, the numeral on a
+     scored letter, the phone's totals. 5.2:1 on paper. Never for letters,
+     lanes, squares or large totals, which stay --opp. */
+  --opp-text: #A1583D;
+  /* Crimson (spec 068): the number of points lost and nothing else — never a
+     seat, a rating change, urgency, a frame, focus or a control. 6.8:1. */
+  --err: #AD1F3D;
 
   /* The only permitted alphas: 14% settled band, 30% live reveal. */
   --you-band: color-mix(in srgb, var(--you) 14%, transparent);

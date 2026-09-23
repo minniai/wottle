@@ -7,11 +7,11 @@ import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeKey, noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
-import type { ClockPhase } from "@/lib/room/clock";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
-import type { RoomMenuVariant } from "./RoomMenu";
+import { PointsLost } from "./PointsLost";
+import { RoomMenu, type RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
 
@@ -50,9 +50,10 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   const total = <span className="ledger__total">{points(cell.total)}</span>;
   const inward = (content: ReactNode) => (seat === "you" ? <>{content}{total}</> : <>{total}{content}</>);
   if (cell.words.length === 0) {
+    // Points lost read inward to the spine: `no word −5` in your column, `−5 not played` in theirs.
     return (
       <div className="ledger__words ledger__words--empty" data-seat={seat} data-miss={cell.miss || undefined} data-unplayed={cell.unplayed || undefined}>
-        {inward(<span className="ledger__miss">{cell.unplayed ? NOT_PLAYED : NO_WORD}</span>)}
+        <PointsLost value={cell.total} label={cell.unplayed ? NOT_PLAYED : NO_WORD} labelFirst={seat === "you"} />
       </div>
     );
   }
@@ -82,61 +83,53 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   );
 }
 
+/** Line 2 in parts: words, a crimson number of points lost, or a secondary action (spec 068). */
+function Line2({ live, onAction }: { live: LiveLines; onAction?: (action: LedgerAction) => void }) {
+  if (!live.line2Parts) return <>{live.line2}</>;
+  // Inside a control (the phone's live row) an action is left out: its button is drawn beside the row.
+  if (!onAction) {
+    const words = live.line2Parts.map((part) => ("text" in part ? part.text : "")).join("").replace(/ · $/, "");
+    const loss = live.line2Parts.find((part) => "pointsLost" in part);
+    if (!loss) return <>{words}</>;
+  }
+  return (
+    <>
+      {live.line2Parts.map((part, i) => {
+        if ("text" in part) return <span key={i}>{part.text}</span>;
+        if ("pointsLost" in part) return <PointsLost key={i} value={part.pointsLost.value} label={part.pointsLost.label} />;
+        if (!onAction) return null;
+        return (
+          <button key={i} type="button" className="action-secondary" onClick={() => onAction(part.action.action)}>
+            {part.action.label}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+/** The action a live row's second line offers, if any (the end-early offer, spec 068 FR-036). */
+function offerOf(live?: LiveLines): { label: string; action: LedgerAction } | null {
+  const part = live?.line2Parts?.find((p) => "action" in p);
+  return part && "action" in part ? part.action : null;
+}
+
 /** The live row's state line and, only while there is one, the instruction beneath it (amendment P1). */
-function LiveText({ live }: { live?: LiveLines }) {
+function LiveText({ live, onAction }: { live?: LiveLines; onAction?: (action: LedgerAction) => void }) {
   if (!live) return null;
   return (
     <>
       <span className="ledger__live-line1">{live.line1}</span>
-      {live.line2 ? <span className="ledger__live-line2">{live.line2}</span> : null}
-    </>
-  );
-}
-
-/** Whole seconds left in a `m:ss` string. */
-const secondsIn = (time: string): number => {
-  const [m, sec] = time.split(":").map(Number);
-  return (m || 0) * 60 + (sec || 0);
-};
-
-function ClockFace({ time, label, fraction }: { time: string; label: string; fraction: number }) {
-  return (
-    <>
-      <div className="ledger__clock-head">
-        <span className="ledger__clock-label">{label}</span>
-        <span className="ledger__clock-time">{time}</span>
-      </div>
-      <span className="ledger__clock-bar">
-        <span className="ledger__clock-fill" style={{ "--clock-fraction": fraction } as CSSProperties} />
-      </span>
-    </>
-  );
-}
-
-/**
- * The one place the match clock is drawn (spec 050 FR-015; the ledger clock,
- * 2026-09-21): a boxed block under the caption, a 32px numeral over a bar that
- * drains. Under 1:00 it takes the tint; in the last 15 seconds an inverted
- * face flashes over it once a second (held under reduced motion); at 0:00 it
- * holds inverted. The live row announces the beats, so the timer is silent to AT.
- */
-function LedgerClock({ time, phase, fraction }: { time: string; phase: ClockPhase; fraction: number }) {
-  const { lastSeconds, MATCH_CLOCK, TIME_SPENT, clockAria } = useCopy();
-  const inverted = phase === "flash" || phase === "spent";
-  const invertedLabel = phase === "spent" ? TIME_SPENT : lastSeconds(secondsIn(time));
-  return (
-    <div className="ledger__clock" data-testid="match-clock" data-phase={phase} role="timer" aria-label={clockAria(MATCH_CLOCK, time)} aria-live="off">
-      <ClockFace time={time} label={MATCH_CLOCK} fraction={fraction} />
-      {inverted ? (
-        <div className="ledger__clock-invert" aria-hidden="true">
-          <ClockFace time={time} label={invertedLabel} fraction={fraction} />
-        </div>
+      {live.line2 ? (
+        <span className="ledger__live-line2">
+          <Line2 live={live} onAction={onAction} />
+        </span>
       ) : null}
-    </div>
+    </>
   );
 }
 
-function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; onRowHover?: (move: number | null) => void }) {
+function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: boolean; onRowHover?: (move: number | null) => void; onAction?: (action: LedgerAction) => void }) {
   const liveOrHeld = row.status === "live" || row.status === "settled";
   return (
     <div
@@ -156,7 +149,7 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
         <>
           {/* One band across the ledger: the beat names the move, so the spine breaks here. */}
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
-            <LiveText live={row.live} />
+            <LiveText live={row.live} onAction={onAction} />
           </div>
           {/* Their total only, top-right on line 1: the rows share one height, so
               the live row must stay two lines. Their words land once it is past. */}
@@ -199,7 +192,7 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
-  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, territoryAria, territoryLine, YOU } = useCopy();
+  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, LANGUAGE_WORDS, territoryAria, territoryLine, YOU } = useCopy();
   const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
   /**
@@ -229,8 +222,7 @@ export function Ledger(props: LedgerProps) {
   };
   const total = Math.max(1, territory.you + territory.opp + territory.free);
 
-  const table = (
-    <>
+  const header = (
       <div className="ledger__header" data-testid="ledger-header">
         <span className="ledger__header-you">
           {viewerName}
@@ -243,31 +235,45 @@ export function Ledger(props: LedgerProps) {
           {opponentName ?? "—"}
         </span>
       </div>
-      <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
-        {rows.map((row) => (
-          <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
-        ))}
+  );
+
+  const rows10 = (
+    <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
+      {rows.map((row) => (
+        <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} onAction={onAction} />
+      ))}
+    </div>
+  );
+
+  const totalsRow =
+    model.completed && model.totals ? (
+      <div className="ledger__totals" data-testid="ledger-totals">
+        <span className="ledger__totals-you">{points(model.totals.you)}</span>
+        <span className="ledger__header-spine">{TOTAL_LABEL}</span>
+        <span className="ledger__totals-opp">{points(model.totals.opp)}</span>
       </div>
-      {model.completed && model.totals ? (
-        <div className="ledger__totals" data-testid="ledger-totals">
-          <span className="ledger__totals-you">{points(model.totals.you)}</span>
-          <span className="ledger__header-spine">{TOTAL_LABEL}</span>
-          <span className="ledger__totals-opp">{points(model.totals.opp)}</span>
-        </div>
-      ) : null}
+    ) : null;
+
+  const table = (
+    <>
+      {header}
+      {rows10}
+      {totalsRow}
     </>
   );
 
+  const territoryBar = (
+    <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={territoryAria(territory.you, territory.opp)}>
+      <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
+      <span style={{ flex: 1 }} />
+      <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
+    </div>
+  );
+  const territoryNumbers = <div className="ledger__mono">{territoryLine(territory.you, territory.free, territory.opp)}</div>;
   const territoryBlock = showsTable ? (
     <>
-      <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={territoryAria(territory.you, territory.opp)}>
-        <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
-        <span style={{ flex: 1 }} />
-        <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
-      </div>
-      <div className="ledger__mono">
-        {territoryLine(territory.you, territory.free, territory.opp)}
-      </div>
+      {territoryBar}
+      {territoryNumbers}
     </>
   ) : null;
 
@@ -279,31 +285,69 @@ export function Ledger(props: LedgerProps) {
 
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
 
-  return (
-    <section className="ledger" data-testid="ledger" data-variant={variant} aria-label={LEDGER}>
-      <div className="ledger__caption" data-testid="ledger-caption">
-        <span className="ledger__wordmark">{WORDMARK}</span>
-        <span className="ledger__caption-right">
+  const latestNotice = noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null;
+
+  // Desktop match and final (spec 068): the ledger sits on the scoreboard's grid.
+  // Its first three rows mirror the scoreboard's, and each move row is one cell tall.
+  const grid = showsTable && !collapsed;
+
+  const verdictBlock = model.verdict ? (
+    <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
+      <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
+      <div className="ledger__mono">{model.verdict.detailLine}</div>
+    </div>
+  ) : null;
+
+  const caption = (
+    <div className="ledger__caption" data-testid="ledger-caption">
+      <span className="ledger__wordmark">{WORDMARK}</span>
+      <span className="ledger__caption-right">
+        {/* On the grid the final state's actions take the context's place: the scoreboard says the match is over (spec 068). */}
+        {grid && variant === "final" && footActions ? (
+          <span className="ledger__actions" data-testid="ledger-caption-actions">
+            {footActions}
+          </span>
+        ) : (
           <span className="ledger__mono" data-testid="ledger-context">
             {model.caption}
           </span>
-        </span>
-      </div>
-      {model.clock !== undefined ? <LedgerClock time={model.clock} phase={model.clockPhase ?? "calm"} fraction={model.clockFraction ?? 1} /> : null}
+        )}
+        {grid ? <RoomMenu variant={menuVariant(variant)} onAction={onAction} /> : null}
+      </span>
+    </div>
+  );
 
-      {model.verdict ? (
-        <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
-          <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
-          <div className="ledger__mono">{model.verdict.detailLine}</div>
+  return (
+    <section className="ledger" data-testid="ledger" data-variant={variant} data-grid={grid || undefined} aria-label={LEDGER}>
+      {grid ? (
+        <div className="ledger__head" data-testid="ledger-head">
+          {caption}
+          {/* The state's line: territory (or the verdict), whose second line a notice takes while it shows. */}
+          <div className="ledger__state-line" data-testid="ledger-state-line">
+            {model.verdict ? (
+              <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
+                <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
+                {latestNotice ?? <div className="ledger__mono">{model.verdict.detailLine}</div>}
+              </div>
+            ) : (
+              <>
+                {territoryBar}
+                {latestNotice ?? territoryNumbers}
+              </>
+            )}
+          </div>
+          {header}
         </div>
-      ) : null}
-
-      {showsTable && !collapsed ? (
+      ) : (
         <>
-          {table}
-          {territoryBlock}
+          {/* On a phone the match's top is the scoreboard and the field; the wordmark stays off it (artboard PhoneMatch). */}
+          {collapsed ? null : caption}
+          {verdictBlock}
         </>
-      ) : null}
+      )}
+
+      {/* On the grid the scoreboard's rows carry the totals, so the rows end level with the field. */}
+      {grid ? rows10 : null}
 
       {collapsed || showsTable ? null : body}
 
@@ -324,12 +368,22 @@ export function Ledger(props: LedgerProps) {
             </span>
             <span className="ledger__live-more">{HISTORY}</span>
           </button>
-          {territoryBlock}
+          {offerOf(collapsedLive) ? (
+            <button type="button" className="action-secondary ledger__live-offer" data-testid="ledger-live-offer" onClick={() => onAction(offerOf(collapsedLive)!.action)}>
+              {offerOf(collapsedLive)!.label}
+            </button>
+          ) : null}
+          <div className="ledger__territory-block">{territoryBlock}</div>
           <LedgerSheet open={sheetOpen} onClose={closeSheet}>
             {showsTable ? table : body}
             {noticeLines}
-            <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />
+            <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} menu={false} />
           </LedgerSheet>
+          {/* Pinned to the bottom edge with the safe area, always visible (spec 068 FR-015). */}
+          <div className="ledger__phone-foot" data-testid="ledger-phone-foot" data-field-safe>
+            <RoomMenu variant={menuVariant(variant)} onAction={onAction} />
+            <span className="ledger__mono">{LANGUAGE_WORDS}</span>
+          </div>
         </>
       ) : (
         <>
@@ -343,9 +397,10 @@ export function Ledger(props: LedgerProps) {
             {model.hint}
           </div>
 
-          {noticeLines}
+          {grid ? null : noticeLines}
 
-          <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />
+          {/* On the grid the ⋯ and the final state's actions live in the caption. */}
+          {grid ? null : <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />}
         </>
       )}
     </section>

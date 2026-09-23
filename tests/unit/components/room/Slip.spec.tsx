@@ -41,12 +41,12 @@ describe("Slip shell (spec 048 contracts/slip.md)", () => {
     expect(status).toHaveTextContent("Kári is gone");
   });
 
-  it("focuses the primary action on mount and restores focus on unmount", () => {
+  it("focuses the primary action on mount (the safe one on resign, spec 068) and restores focus on unmount", () => {
     const outside = document.createElement("button");
     document.body.appendChild(outside);
     outside.focus();
     const { unmount } = render(<Slip slip={RESIGN} onAction={() => {}} />);
-    expect(document.activeElement).toBe(screen.getByTestId("slip-confirm-resign"));
+    expect(document.activeElement).toBe(screen.getByTestId("slip-keep-playing"));
     unmount();
     expect(document.activeElement).toBe(outside);
     outside.remove();

@@ -13,7 +13,7 @@ function wrap(locale: "is" | "en") {
 describe("LocaleProvider", () => {
   test("useLocale returns the provided locale's config", () => {
     const { result } = renderHook(() => useLocale(), { wrapper: wrap("en") });
-    expect(result.current).toMatchObject({ id: "en", wordmark: "wottle", language: "en" });
+    expect(result.current).toMatchObject({ id: "en", wordmark: "Wottle", language: "en" });
   });
 
   test("useLocalePath prefixes for English and not for Icelandic", () => {

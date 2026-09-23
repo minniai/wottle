@@ -6,7 +6,6 @@ import { EMPTY_TERRITORY, emptyRows, type LedgerModel } from "@/lib/room/ledgerT
 
 const model: LedgerModel = {
   caption: "move 4 of 10",
-  clock: "3:12",
   rows: emptyRows().map((r) => (r.move === 4 ? { ...r, status: "live", live: { line1: "picking · T (2)", line2: "tap a second letter" } } : r)),
   territory: { you: 32, opp: 25, free: 43 },
   hint: "",
@@ -44,11 +43,10 @@ describe("Ledger (design system §5.4)", () => {
     expect(live.compareDocumentPosition(screen.getByTestId("ledger-hint")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("caption shows the lowercase wordmark and the match context", () => {
+  it("caption shows the wordmark and the match context", () => {
     render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
-    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("wottle");
+    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("Wottle");
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("move 4 of 10");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("3:12");
   });
 
   it("match variant renders the seat header, ten rows, a live row and territory", () => {
@@ -140,11 +138,15 @@ describe("Ledger (design system §5.4)", () => {
     const collapsed = () =>
       render(<Ledger variant="match" collapsed model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
 
-    it("shows the caption, the live row and territory, and nothing else", () => {
+    it("shows the live row, territory and a pinned foot, and nothing else (spec 068, artboard PhoneMatch)", () => {
       collapsed();
-      expect(screen.getByTestId("ledger-caption")).toBeInTheDocument();
+      // The wordmark is the page's: during a match on a phone the scoreboard and the field fill the top.
+      expect(screen.queryByTestId("ledger-caption")).toBeNull();
       expect(screen.getByTestId("ledger-live-trigger")).toBeInTheDocument();
       expect(screen.getByTestId("ledger-territory")).toBeInTheDocument();
+      const foot = screen.getByTestId("ledger-phone-foot");
+      expect(foot.querySelector('[data-testid="ledger-menu-trigger"]')).not.toBeNull();
+      expect(foot).toHaveTextContent("english words");
 
       expect(screen.queryByTestId("ledger-header")).toBeNull();
       expect(screen.queryByTestId("ledger-rows")).toBeNull();
@@ -163,14 +165,16 @@ describe("Ledger (design system §5.4)", () => {
       expect(trigger.querySelector(".ledger__live-line2")).toHaveTextContent("tap a second letter");
     });
 
-    it("opens the rounds, notices and foot beneath the live row", () => {
+    it("opens the moves beneath the live row, above the pinned foot; one ⋯, in the foot", () => {
       collapsed();
       fireEvent.click(screen.getByTestId("ledger-live-trigger"));
       const sheet = screen.getByTestId("ledger-sheet");
       expect(screen.getByTestId("ledger-live-trigger")).toHaveAttribute("aria-expanded", "true");
       expect(sheet.querySelector('[data-testid="ledger-header"]')).not.toBeNull();
       expect(sheet.querySelector('[data-testid="ledger-rows"]')).not.toBeNull();
-      expect(sheet.querySelector('[data-testid="ledger-foot"]')).not.toBeNull();
+      expect(screen.getAllByTestId("ledger-menu-trigger")).toHaveLength(1);
+      const foot = screen.getByTestId("ledger-phone-foot");
+      expect(sheet.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it("closes on Escape and returns focus to the live row", () => {
@@ -203,40 +207,6 @@ describe("Ledger (design system §5.4)", () => {
       rerender(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
       expect(screen.queryByTestId("ledger-sheet")).toBeNull();
       expect(screen.getByTestId("ledger-rows")).toBeInTheDocument();
-    });
-  });
-
-  describe("the ledger clock (2026-09-21)", () => {
-    const at = (clock: string, clockPhase: "calm" | "low" | "flash" | "spent", clockFraction: number): LedgerModel => ({ ...model, clock, clockPhase, clockFraction });
-
-    it("is a boxed block under the caption: a label, the time and a bar that drains; the caption no longer carries a clock", () => {
-      render(<Ledger variant="match" model={at("3:12", "calm", 0.64)} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
-      const clock = screen.getByTestId("match-clock");
-      expect(clock).toHaveAttribute("role", "timer");
-      expect(clock).toHaveAttribute("aria-live", "off");
-      expect(clock).toHaveAttribute("aria-label", "match clock, 3:12 left");
-      expect(clock).toHaveAttribute("data-phase", "calm");
-      expect(clock).toHaveTextContent("match clock");
-      expect(clock.querySelector(".ledger__clock-time")).toHaveTextContent("3:12");
-      expect((clock.querySelector(".ledger__clock-fill") as HTMLElement).style.getPropertyValue("--clock-fraction")).toBe("0.64");
-      expect(screen.getByTestId("ledger-caption")).not.toHaveTextContent("3:12");
-      expect(clock.querySelector(".ledger__clock-invert")).toBeNull();
-    });
-
-    it("in the last 15 seconds it names the seconds and adds the inverted face that flashes, hidden from AT", () => {
-      render(<Ledger variant="match" model={at("0:12", "flash", 0.04)} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
-      const clock = screen.getByTestId("match-clock");
-      expect(clock).toHaveAttribute("data-phase", "flash");
-      const invert = clock.querySelector(".ledger__clock-invert")!;
-      expect(invert).toHaveAttribute("aria-hidden", "true");
-      expect(invert).toHaveTextContent("last 12s");
-      expect(invert).toHaveTextContent("0:12");
-    });
-
-    it("at 0:00 it holds inverted and reads time", () => {
-      render(<Ledger variant="match" model={at("0:00", "spent", 0)} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
-      const invert = screen.getByTestId("match-clock").querySelector(".ledger__clock-invert")!;
-      expect(invert).toHaveTextContent("time");
     });
   });
 
@@ -297,13 +267,26 @@ describe("Ledger (design system §5.4)", () => {
     it("a miss says no word, a move lost to the clock says not played, each beside its −5", () => {
       render(<Ledger variant="final" model={played} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
       const row = screen.getByTestId("ledger-row-1");
-      expect(row.querySelector('[data-seat="you"]')).toHaveTextContent("no word−5");
-      expect(row.querySelector('[data-seat="opp"]')).toHaveTextContent("−5not played");
+      expect(row.querySelector('[data-seat="you"]')).toHaveTextContent("no word −5");
+      expect(row.querySelector('[data-seat="opp"]')).toHaveTextContent("−5 not played");
       expect(row.querySelector('[data-seat="you"] .ledger__miss')).toBeInTheDocument();
+      // Spec 068 FR-021: only the number is crimson, in either column; the words stay muted.
+      expect(row.querySelector('[data-seat="you"] .points-lost')).toHaveTextContent("−5");
+      expect(row.querySelector('[data-seat="opp"] .points-lost')).toHaveTextContent("−5");
+      expect(row.querySelector('[data-seat="you"] .ledger__miss')).not.toHaveClass("points-lost");
     });
 
-    it("the final ledger closes with a total row in the seat colours", () => {
-      render(<Ledger variant="final" model={{ ...played, completed: true, totals: { you: 99, opp: 105 } }} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    it("a floored miss that cost nothing is drawn 0, not crimson", () => {
+      const floored: LedgerModel = { ...model, rows: model.rows.map((r) => (r.move === 1 ? { ...r, status: "past", you: { words: [], total: 0, miss: true }, opp: null } : r)) };
+      render(<Ledger variant="final" model={floored} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      const cell = screen.getByTestId("ledger-row-1").querySelector('[data-seat="you"]')!;
+      expect(cell.querySelector(".points-lost")).toBeNull();
+      expect(cell.querySelector(".points-none")).toHaveTextContent("0");
+    });
+
+    it("the final ledger's history on a phone closes with a total row in the seat colours", () => {
+      render(<Ledger variant="final" collapsed model={{ ...played, completed: true, totals: { you: 99, opp: 105 } }} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      fireEvent.click(screen.getByTestId("ledger-live-trigger"));
       const totals = screen.getByTestId("ledger-totals");
       expect([...totals.children].map((c) => c.textContent)).toEqual(["99", "total", "105"]);
     });

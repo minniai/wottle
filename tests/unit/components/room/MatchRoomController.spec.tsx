@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MatchPlayerProfiles, MatchState, MoveResolution, PlayerMatchFacts, WordScore } from "@/lib/types/match";
@@ -148,29 +148,33 @@ describe("MatchRoomController (spec 050)", () => {
     log.mockRestore();
   });
 
-  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer, the clock once in the ledger", () => {
+  it("renders the scoreboard (clock, opponent, you) above the field with the ledger, seats relative to the viewer (spec 068)", () => {
     renderController();
     const room = screen.getByTestId("room");
     expect(room).toHaveAttribute("data-phase", "match");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Bob");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent · 5 of 10 · playing");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you · move 3 of 10");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("Bob");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1191 · 5 of 10 · playing");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("Alice");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("1200 · you · move 3 of 10");
     // 2026-09-21: the ledger names no move of the viewer's; the bottom bar's lane counts them.
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("");
-    expect(screen.getByTestId("player-bar-bottom").querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("aria-valuenow", "8");
-    expect(screen.getByTestId("match-clock")).toBeInTheDocument();
-    expect(screen.queryByTestId("player-bar-clock")).toBeNull();
+    expect(screen.getByTestId("scoreboard-row-you").querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("aria-valuenow", "8");
+    expect(screen.getByTestId("scoreboard-clock")).toBeInTheDocument();
+    // Spec 068: no player bars in the match; one box above the field, your row nearest the board.
+    expect(screen.queryByTestId("player-bar-top")).toBeNull();
+    expect(screen.queryByTestId("player-bar-bottom")).toBeNull();
+    expect(room).toHaveAttribute("data-layout", "scoreboard");
     const ids = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
-    expect(ids.indexOf("player-bar-top")).toBeLessThan(ids.indexOf("field"));
-    expect(ids.indexOf("field")).toBeLessThan(ids.indexOf("player-bar-bottom"));
+    expect(ids.indexOf("scoreboard-clock")).toBeLessThan(ids.indexOf("scoreboard-row-opp"));
+    expect(ids.indexOf("scoreboard-row-opp")).toBeLessThan(ids.indexOf("scoreboard-row-you"));
+    expect(ids.indexOf("scoreboard-row-you")).toBeLessThan(ids.indexOf("field"));
   });
 
   it("before started_at the room counts 3·2·1 from the server anchor and takes no pick; the caption holds at 5:00", () => {
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("starts in 2");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("5:00");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("5:00");
     fireEvent.click(cell(0, 0));
     expect(cell(0, 0)).not.toHaveAttribute("data-state", "picked");
   });
@@ -194,7 +198,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("move 3 · scoring");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 3 of 10 · scoring");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("move 3 of 10 · scoring");
   });
 
   it("the opponent's resolution lands live: their letters and band, their count, your pick cleared if touched", () => {
@@ -205,12 +209,15 @@ describe("MatchRoomController (spec 050)", () => {
     const theirs = resolution({ moveId: "mv-9", playerId: "player-2", globalSeq: 8, seq: 6, words: [ORD], delta: 13, totals: { playerA: 45, playerB: 43 }, frozenTiles: { "5,5": { owner: "player_b" }, "6,5": { owner: "player_b" }, "7,5": { owner: "player_b" } }, movesPlayed: { playerA: 2, playerB: 6 }, swap: { from: { x: 9, y: 9 }, to: { x: 8, y: 8 } } });
     act(() => mockCallbacks.onMoveResolved!(theirs));
     act(() => vi.advanceTimersByTime(0));
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("6 of 10 · playing");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · playing");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     expect(cell(5, 5)).toHaveAttribute("data-state", "scored");
-    expect(screen.getByTestId("ledger-notice")).toHaveTextContent("pick cleared · Bob moved that letter");
+    // Spec 068 FR-031: pick cleared is the live row's second line for two seconds, not a notice.
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick cleared · Bob moved that letter");
+    expect(screen.queryByTestId("ledger-notice")).toBeNull();
     act(() => vi.advanceTimersByTime(2_100));
+    expect(screen.getByTestId("ledger-live-row")).not.toHaveTextContent("pick cleared");
     const band = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-word") === "orð");
     expect(band).toHaveAttribute("data-seat", "opp");
     expect(screen.getByTestId("ledger-row-6").querySelector('.ledger__words[data-seat="opp"]')).toHaveTextContent("orð");
@@ -235,9 +242,9 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
     expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "live");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("move 4 of 10");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("60");
     expect(cell(1, 2)).toHaveAttribute("data-state", "scored");
     // Hovering a ledger row dims the other moves' bands.
     const bands = screen.getAllByTestId("field-band");
@@ -252,7 +259,7 @@ describe("MatchRoomController (spec 050)", () => {
     renderController(state({}, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } }));
     act(() => mockCallbacks.onMoveResolved!(resolution({ status: "rejected", rejectionReason: "frozen", seq: null, words: [], delta: 0, totals: { playerA: 45, playerB: 30 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 5 } })));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 3 · your move");
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Bob just froze it · pick another");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Bob froze it · pick another");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     expect(useRoomStore.getState().holdMove).toBeNull();
@@ -283,7 +290,7 @@ describe("MatchRoomController (spec 050)", () => {
     vi.setSystemTime(new Date("2026-01-01T00:06:00.000Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: "2026-01-01T00:06:00.000Z" } }));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("time · scoring");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("0:00");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("0:00");
     expect(settleMatch).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
   });
@@ -291,8 +298,8 @@ describe("MatchRoomController (spec 050)", () => {
   it("with ten moves you watch: the field is locked and the live row waits for the opponent", () => {
     renderController(state({}, { movesPlayed: 10 }, { movesPlayed: 8 }));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("10 of 10 played");
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/waiting for Bob · 8 of 10 · \d:\d\d left/);
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("10 of 10 · done");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/Bob · 8 of 10 · \d:\d\d left/);
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("10 of 10 · done");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
   });
@@ -308,11 +315,14 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("field")).toBeInTheDocument();
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
     expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
-    expect(screen.getByTestId("ledger-context")).toHaveTextContent("final · 4:52");
-    expect(screen.queryByTestId("match-clock")).toBeNull();
-    expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
-    await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1191 → 1203 · +12 · wins"));
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1204 → 1192 · −12");
+    // The scoreboard says the match is over and how long it ran; the caption holds the actions (spec 068).
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:52 of 5:00");
+    expect(screen.getByTestId("ledger-caption-actions")).toHaveTextContent("lobby");
+    // The scoreboard holds the time that was left (spec 068); no clock runs.
+    expect(screen.getByTestId("scoreboard-clock")).toHaveAttribute("data-phase", "over");
+    expect(screen.getByTestId("scoreboard-row-opp")).not.toHaveTextContent("reconnecting");
+    await waitFor(() => expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("1191 → 1203 · +12 · wins"));
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1204 → 1192 · −12");
     const slip = screen.getByTestId("slip");
     expect(slip).toHaveAttribute("data-kind", "matchOver");
     expect(slip).toHaveTextContent("Alice wins");
@@ -334,7 +344,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("verdict")).toHaveTextContent("Bob wins 124–88");
     expect(screen.getByTestId("verdict")).toHaveTextContent("Bob played 8 of 10 · by 36 points");
     expect(screen.getByTestId("ledger-row-9").querySelector('[data-seat="opp"]')).toHaveAttribute("data-unplayed", "true");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("rating pending");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("rating pending");
   });
 
   it("final: both short of ten says neither finished, and the score still decides", () => {
@@ -372,7 +382,7 @@ describe("MatchRoomController (spec 050)", () => {
   it("read-only non-participant: player A is the bottom seat without · you, field disabled, only ◂ lobby", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     render(<MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="stranger" matchId="m1" playerProfiles={profiles} />);
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("Alice");
     expect(screen.getByTestId("ledger-header")).not.toHaveTextContent("· you");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     expect(await screen.findByTestId("slip-lobby")).toBeInTheDocument();
@@ -384,24 +394,25 @@ describe("MatchRoomController (spec 050)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:10Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:10Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
-    const top = screen.getByTestId("player-bar-top");
+    const top = screen.getByTestId("scoreboard-row-opp");
     expect(top).toHaveTextContent("reconnecting · 1:20 left");
-    expect(top.querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("data-mode", "disconnected");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("4:50");
+    expect(top.querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("data-mode", "outlined");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:50");
     expect(screen.queryByRole("dialog")).toBeNull();
     act(() => {
       vi.advanceTimersByTime(2_000);
     });
     expect(top).toHaveTextContent("reconnecting · 1:18 left");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("4:48");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:48");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     vi.useRealTimers();
   });
 
-  it("the end-early slip is offered only once you have ten and the window is spent; it returns after ten seconds and lifts on reconnect", async () => {
+  it("the end-early slip is offered only once you have ten and the window is spent; keep waiting moves the offer to the live row for good (spec 068 FR-036)", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
-    const gone = { disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    // The server's clock agrees with the device's here; the window is measured on the server-corrected clock.
+    const gone = { clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:02:00Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
     const { unmount } = renderController(state(gone));
     expect(screen.queryByTestId("slip")).toBeNull();
     unmount();
@@ -409,15 +420,17 @@ describe("MatchRoomController (spec 050)", () => {
     renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
     expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
     expect(screen.getByTestId("slip")).toHaveTextContent("Bob is gone");
-    expect(screen.getByTestId("slip")).toHaveTextContent("Bob 6 of 10 · 0:00 left to reconnect");
+    expect(screen.getByTestId("slip")).toHaveTextContent("the normal rules decide it");
     fireEvent.click(screen.getByTestId("slip-keep-waiting"));
     expect(screen.queryByTestId("slip")).toBeNull();
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 0:00 left");
-    await act(async () => vi.advanceTimersByTimeAsync(9_999));
+    // Spec 068 FR-037: past the window the row counts how long they have been gone, never a frozen 0:00 left.
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · gone for 0:30");
+    // No re-raise: the slip stays down, and the offer is a secondary action on line 2.
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
     expect(screen.queryByTestId("slip")).toBeNull();
-    await act(async () => vi.advanceTimersByTimeAsync(1));
-    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
-    fireEvent.click(screen.getByTestId("slip-end-early"));
+    const offer = within(screen.getByTestId("ledger-live-row")).getByRole("button", { name: "end the match ▸" });
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("Bob is gone · end the match ▸");
+    fireEvent.click(offer);
     expect(claimWinAction).toHaveBeenCalledWith("m1");
     act(() => mockCallbacks.onState!(state({}, { movesPlayed: 10 }, { movesPlayed: 6 })));
     expect(screen.queryByTestId("slip")).toBeNull();
@@ -430,8 +443,11 @@ describe("MatchRoomController (spec 050)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
     vi.mocked(claimWinAction).mockResolvedValueOnce({ status: "too_early", remainingMs: 51 });
-    const gone = { disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    // The window is measured on the server-corrected clock (spec 068 R9): the server agrees with the device here.
+    const gone = { clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:02:00Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
     renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
+    // end the match ▸ ignores activation for 500ms after it appears (spec 068 FR-036).
+    await act(async () => vi.advanceTimersByTimeAsync(500));
     fireEvent.click(screen.getByTestId("slip-end-early"));
     await act(async () => vi.advanceTimersByTimeAsync(0));
     expect(claimWinAction).toHaveBeenCalledTimes(1);
@@ -465,7 +481,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
   });
 
-  it("the frozen state names the move the letter froze in, not the current one", () => {
+  it("the frozen state names the word the letter froze in, not the current move", () => {
     vi.useFakeTimers();
     // Your third move froze þar; the fourth is open. A reload holds nothing.
     const initial = state({ frozenTiles: { "1,2": { owner: "player_a" } } }, { movesPlayed: 3, lastResolution: resolution() });
@@ -475,7 +491,8 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     fireEvent.click(cell(1, 2));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Alice M3 · pick another");
+    // Spec 068 FR-030: the word it froze in, and its owner.
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · ÞAR · Alice · pick another");
     act(() => vi.advanceTimersByTime(2_000));
   });
 
@@ -564,14 +581,14 @@ describe("MatchRoomController (spec 050)", () => {
 
   it("a player's name opens their profile: in a live match in a new tab, after it in the same tab", () => {
     const live = renderController();
-    const oppLive = screen.getByTestId("player-bar-top").querySelector("a")!;
+    const oppLive = screen.getByTestId("scoreboard-row-opp").querySelector("a")!;
     expect(oppLive).toHaveAttribute("href", "/en/profile/bob");
     expect(oppLive).toHaveAttribute("target", "_blank");
-    expect(screen.getByTestId("player-bar-bottom").querySelector("a")).toHaveAttribute("href", "/en/profile/alice");
+    expect(screen.getByTestId("scoreboard-row-you").querySelector("a")).toHaveAttribute("href", "/en/profile/alice");
     live.unmount();
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
-    const oppFinal = screen.getByTestId("player-bar-top").querySelector("a")!;
+    const oppFinal = screen.getByTestId("scoreboard-row-opp").querySelector("a")!;
     expect(oppFinal).toHaveAttribute("href", "/en/profile/bob");
     expect(oppFinal).not.toHaveAttribute("target");
   });
@@ -586,3 +603,125 @@ describe("MatchRoomController (spec 050)", () => {
   });
 });
 
+
+describe("the reconnect window on the server-corrected clock (spec 068 R9)", () => {
+  it("counts the opponent's window from the server's clock, not a wrong device clock", () => {
+    vi.useFakeTimers();
+    // The device runs 60s fast; the server says 30s have passed since the disconnect.
+    vi.setSystemTime(new Date("2026-01-01T00:01:30Z"));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:30Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("reconnecting · 1:00 left");
+    vi.useRealTimers();
+  });
+});
+
+describe("the tab title (spec 068 FR-025)", () => {
+  it("reads the clock, your move and the name while the match is live, and the name once you leave", () => {
+    const { unmount } = renderController();
+    expect(document.title).toMatch(/^\d:\d\d · move 3 · Wottle$/);
+    unmount();
+    expect(document.title).toBe("Wottle");
+  });
+});
+
+describe("the last-moved tick (spec 068 FR-027)", () => {
+  it("ticks the two cells of the opponent's last swap in their colour when it lands live", () => {
+    renderController();
+    act(() =>
+      mockCallbacks.onMoveResolved!({
+        matchId: "m1", moveId: "mv-9", playerId: "player-2", globalSeq: 20, seq: 6, status: "resolved",
+        swap: { from: { x: 4, y: 4 }, to: { x: 5, y: 4 } }, board: state().board, words: [], delta: -5,
+        totals: { playerA: 46, playerB: 10 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 6 }, resolvedAt: "2026-01-01T00:00:30Z",
+      }),
+    );
+    const ticked = screen.getAllByTestId("field-cell").filter((c) => c.getAttribute("data-last-move") === "opp");
+    expect(ticked.map((c) => `${c.getAttribute("data-x")},${c.getAttribute("data-y")}`)).toEqual(["4,4", "5,4"]);
+    expect(ticked[0].getAttribute("aria-label")).toMatch(/Bob's last move$/);
+  });
+});
+
+describe("the live row's second line in a match (spec 068 FR-029, FR-030)", () => {
+  it("an illegal pick names the frozen word and its owner", async () => {
+    vi.useFakeTimers();
+    const words = { matchId: "m1", words: [{ ...ORD, moveSeq: 5, globalSeq: 7, playerId: "player-2", word: "orð", totalPoints: 13, coordinates: ORD.coordinates }] };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/words") ? words : state({ frozenTiles: { "5,5": { owner: "player_b" } } })) })));
+    renderController(state({ frozenTiles: { "5,5": { owner: "player_b" } } }));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    fireEvent.click(cell(5, 5));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · ORÐ · Bob · pick another");
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("under a minute, with the move yours, line 2 is the stakes with only the number in crimson", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:04:12Z"));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:04:12Z" } }, { movesPlayed: 7, score: 69 }));
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live).toHaveTextContent("3 moves left · −15 if unplayed");
+    expect(live.querySelector(".points-lost")).toHaveTextContent("−15");
+    vi.useRealTimers();
+  });
+});
+
+describe("the room's polite region (spec 068 FR-033)", () => {
+  it("announces the opponent's move as it lands live", () => {
+    useRoomStore.getState().leaveToLobby();
+    vi.useFakeTimers();
+    renderController();
+    act(() =>
+      mockCallbacks.onMoveResolved!(
+        resolution({ moveId: "mv-9", playerId: "player-2", globalSeq: 8, seq: 6, words: [ORD], delta: 13, totals: { playerA: 45, playerB: 43 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 6 }, swap: { from: { x: 9, y: 9 }, to: { x: 8, y: 8 } } }),
+      ),
+    );
+    expect(screen.getByTestId("room-announcer")).toHaveTextContent("Bob ORÐ +13 · 6 of 10");
+    expect(screen.getByTestId("room-announcer")).toHaveAttribute("aria-live", "polite");
+    vi.useRealTimers();
+  });
+});
+
+describe("focus at go (spec 068 FR-034)", () => {
+  it("when the start count ends, focus moves to the field", async () => {
+    useRoomStore.getState().leaveToLobby();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:01Z"));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/starts in/);
+    expect(document.activeElement?.getAttribute("data-testid")).not.toBe("field-cell");
+    await act(async () => vi.advanceTimersByTimeAsync(3_000));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 1 · your move");
+    expect(document.activeElement?.getAttribute("data-testid")).toBe("field-cell");
+    vi.useRealTimers();
+  });
+});
+
+describe("your own outage (spec 068 FR-038)", () => {
+  it("offline: your row and the live row say so, the frame goes to ink and the field takes no pick", () => {
+    useRoomStore.getState().leaveToLobby();
+    renderController();
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("offline · reconnecting");
+    expect(screen.getByTestId("scoreboard-row-you").querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("data-mode", "outlined");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("offline · reconnecting");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
+  });
+});
+
+describe("the state row's notice on the grid (spec 068)", () => {
+  it("a refused end early says why in the state row", async () => {
+    useRoomStore.getState().leaveToLobby();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
+    vi.mocked(claimWinAction).mockResolvedValueOnce({ status: "not_disconnected" });
+    const gone = { clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:02:00Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    fireEvent.click(screen.getByTestId("slip-end-early"));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByTestId("ledger-state-line")).toHaveTextContent("not disconnected");
+    vi.useRealTimers();
+  });
+});

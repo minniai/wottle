@@ -3,11 +3,14 @@
  * `lib/i18n/copy/is.ts` is the Icelandic).
  *
  * Rules: sentence case for sentences, mono labels are uppercased by CSS (not
- * here), the wordmark is always lowercase, no exclamation marks, numerals carry
- * their unit or context. The clock budget is 5:00 (spec 044, decision Q1).
+ * here), the name is capitalised (Wottle, spec 068), no exclamation marks,
+ * numerals carry their unit or context. The clock budget is 5:00 (spec 044, decision Q1).
  */
 
-const WORDMARK = "wottle";
+import { LOCALES } from "@/lib/i18n/locales";
+
+/** The game's name, from the locale registry (spec 068: one source, capitalised). */
+const WORDMARK = LOCALES.en.wordmark;
 
 // Ledger context captions (spec 050: moves, one clock)
 const QUEUE_CONTEXT = "10 moves each · one 5:00 clock";
@@ -59,8 +62,9 @@ const HOVER_ROW_HINT = "hover a row to see its words";
 const frozenNotice = (ownerName: string, move: number): string =>
   `frozen · ${ownerName} M${move} · pick another`;
 /** A move refused at resolution (spec 050 FR-005): the reason, then the next step. */
-const frozenJustNow = (name: string): string => `frozen · ${name} just froze it · pick another`;
-const movedJustNow = (name: string): string => `moved · ${name} just moved it · pick another`;
+// Line 2 fits one line at 1440 (spec 068 FR-032, ≈40 mono characters): these were shortened for it.
+const frozenJustNow = (name: string): string => `frozen · ${name} froze it · pick another`;
+const movedJustNow = (name: string): string => `moved · ${name} moved it · pick another`;
 const pickClearedMoved = (name: string): string => `pick cleared · ${name} moved that letter`;
 const settingField = (landed: number): string =>
   `setting the field · ${landed} of 100 letters`;
@@ -72,13 +76,50 @@ const moveScored = (move: number): string => `move ${move} scored`;
 const signed = (n: number): string => `${n < 0 ? "−" : "+"}${Math.abs(n)}`;
 const scoredDelta = (delta: number, next: number): string => `you ${signed(delta)} · move ${next} opens`;
 const DONE_PLAYED = "10 of 10 played";
+/** Game flow C4's form: the opponent's name, their count and the clock (spec 068 FR-032). */
 const doneFact = (opponentName: string, opponentMoves: number, clockMmSs: string): string =>
-  `waiting for ${opponentName} · ${opponentMoves} of 10 · ${clockMmSs} left`;
+  `${opponentName} · ${opponentMoves} of 10 · ${clockMmSs} left`;
 const TIME_SCORING = "time · scoring";
 const moveOfSuffix = (move: number): string => `move ${move} of 10`;
 const moveScoringSuffix = (move: number): string => `move ${move} of 10 · scoring`;
 const DONE_SUFFIX = "10 of 10 · done";
 const oppProgress = (moves: number, state: "playing" | "scoring"): string => `${moves} of 10 · ${state}`;
+
+// The scoreboard (spec 068): the clock row's label and the player rows' states
+const SCOREBOARD = "scoreboard";
+/** The clock row's label while the move is yours: time left per move left. */
+const paceLabel = (seconds: number): string => (seconds < 1 ? "<1s a move" : `≈${seconds}s a move`);
+const clockOfLength = (elapsedMmSs: string, lengthMmSs: string): string => `${elapsedMmSs} of ${lengthMmSs}`;
+const UNDER_A_MINUTE = "under a minute";
+const READY = "ready";
+const moveBehindPace = (move: number): string => `move ${move} · behind pace`;
+const goneFor = (moves: number, mmSs: string): string => `${moves} of 10 · gone for ${mmSs}`;
+const OFFLINE_RECONNECTING = "offline · reconnecting";
+// The phone's scoreboard rows: the short forms (spec 068 FR-009)
+const movesOf = (moves: number): string => `${moves} of 10`;
+const compactMove = (move: number): string => `move ${move}`;
+const goneForShort = (mmSs: string): string => `gone for ${mmSs}`;
+const BEHIND_PACE = "behind pace";
+const OFFLINE = "offline";
+// The live row's second line (spec 068 FR-028–FR-031, FR-038)
+const moveNoWord = (move: number): string => `move ${move} · no word`;
+const moveOpens = (move: number): string => `move ${move} opens`;
+const TOTAL_NEVER_BELOW_ZERO = "a total never falls below 0";
+const movesLeftShort = (n: number): string => `${n} ${n === 1 ? "move" : "moves"} left`;
+const IF_UNPLAYED = "if unplayed";
+const NOTHING_TO_LOSE = "nothing to lose";
+const frozenWord = (word: string, owner: string): string => `frozen · ${word} · ${owner} · pick another`;
+const backAway = (mmSs: string): string => `back · away ${mmSs} · the clock ran on`;
+/** The room's polite region (spec 068 FR-033, FR-010): the opponent's move, and the clock marks. */
+const oppAnnouncement = (name: string, words: string[], delta: number, moves: number): string =>
+  words.length > 0 ? `${name} ${words.join(" · ")} ${signed(delta)} · ${moves} of 10` : `${name} ${NO_WORD} ${points(delta)} · ${moves} of 10`;
+const clockMarkLeft = (mmSs: string): string => `${mmSs} left`;
+const endEarlyOfferLead = (name: string): string => `${name} is gone · `;
+/** A cell's label ends with it when a player's last move swapped it (spec 068 FR-027). */
+const lastMoveOf = (name: string): string => `${name}'s last move`;
+/** The browser tab during a live match (spec 068 FR-025). */
+const tabTitle = (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · move ${move} · ${name}`;
+const profileOpensInNewTab = (name: string): string => `${name}, profile opens in a new tab`;
 
 // Notices (live-row styled lines)
 const rematchRequest = (name: string): string =>
@@ -107,9 +148,9 @@ const YES_RESIGN = "yes, resign ▸";
 const KEEP_PLAYING = "keep playing ▸";
 const KEEP_WAITING = "keep waiting ▸";
 const isGone = (name: string): string => `${name} is gone`;
-/** The end-early slip's fact (spec 050 FR-012): the absent player's count and the spent window. */
-const isGoneFact = (name: string, moves: number): string => `${name} ${moves} of 10 · 0:00 left to reconnect`;
 const END_THE_MATCH = "end the match ▸";
+/** The end-early slip's body (game flow C8): ending early costs the viewer nothing. */
+const NORMAL_RULES_DECIDE = "the normal rules decide it";
 const endEarlyLabel = (clockMmSs: string): string => `10 of 10 played · ${clockMmSs} on the clock`;
 const MATCH_OVER = "match over";
 /** `match over · 4:52`. Why it ended is the verdict's detail line, said once. */
@@ -175,7 +216,6 @@ const territoryLine = (you: number, free: number, opp: number): string => `${you
 const rematchDeclined = (name: string): string => `${name} declined`;
 const REMATCH_EXPIRED = "rematch request expired";
 const REALTIME_LOST = "realtime lost · polling";
-const RECONNECTING = "reconnecting";
 const UNRATED = "unrated";
 const YOUR_MOVES = "your moves";
 const OPPONENT_MOVES = "opponent's moves";
@@ -248,6 +288,8 @@ const scoringRows = (lengthBonus: number, missPenalty: string): Array<{ rule: st
 const SITE_DESCRIPTION =
   "A two-player word duel. Swap two letters; words of three or more score and freeze in your ink.";
 const LANGUAGE_LINK = "íslenska ▸";
+/** The phone foot says which words the match plays (spec 068, artboard PhoneMatch). */
+const LANGUAGE_WORDS = "english words";
 
 export const copyEn = {
   WORDMARK,
@@ -299,6 +341,33 @@ export const copyEn = {
   moveScoringSuffix,
   DONE_SUFFIX,
   oppProgress,
+  SCOREBOARD,
+  paceLabel,
+  clockOfLength,
+  UNDER_A_MINUTE,
+  READY,
+  moveBehindPace,
+  goneFor,
+  OFFLINE_RECONNECTING,
+  profileOpensInNewTab,
+  movesOf,
+  compactMove,
+  goneForShort,
+  BEHIND_PACE,
+  OFFLINE,
+  moveNoWord,
+  moveOpens,
+  TOTAL_NEVER_BELOW_ZERO,
+  movesLeftShort,
+  IF_UNPLAYED,
+  NOTHING_TO_LOSE,
+  frozenWord,
+  backAway,
+  endEarlyOfferLead,
+  oppAnnouncement,
+  clockMarkLeft,
+  lastMoveOf,
+  tabTitle,
   rematchRequest,
   waitingForRematch,
   challengeNotice,
@@ -317,8 +386,8 @@ export const copyEn = {
   KEEP_PLAYING,
   KEEP_WAITING,
   isGone,
-  isGoneFact,
   END_THE_MATCH,
+  NORMAL_RULES_DECIDE,
   endEarlyLabel,
   MATCH_OVER,
   matchOverLabel,
@@ -365,7 +434,6 @@ export const copyEn = {
   rematchDeclined,
   REMATCH_EXPIRED,
   REALTIME_LOST,
-  RECONNECTING,
   UNRATED,
   YOUR_MOVES,
   OPPONENT_MOVES,
@@ -403,4 +471,5 @@ export const copyEn = {
   scoringRows,
   SITE_DESCRIPTION,
   LANGUAGE_LINK,
+  LANGUAGE_WORDS,
 };

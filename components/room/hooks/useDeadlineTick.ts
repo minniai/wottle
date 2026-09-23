@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { remainingFromDeadline } from "@/lib/room/clock";
+import { remainingFromDeadline, serverCorrectedNow } from "@/lib/room/clock";
 import type { MatchClock } from "@/lib/types/match";
 
 /**
@@ -30,4 +30,18 @@ export function useDeadlineTick(clock: MatchClock | null, intervalMs = 1_000): n
 
   if (!clock) return 0;
   return remainingFromDeadline({ deadlineAt, serverNow: serverNow ?? new Date(anchor).toISOString() }, anchor, now);
+}
+
+/**
+ * How far the device clock is behind the server's, measured when each snapshot
+ * lands (spec 068 R9): server timestamps such as `disconnectedAt` are compared
+ * against `Date.now() + drift`, never the device clock alone.
+ */
+export function useServerDrift(clock: MatchClock | null): number {
+  const [drift, setDrift] = useState(0);
+  const serverNow = clock?.serverNow ?? null;
+  useEffect(() => {
+    if (serverNow) setDrift(serverCorrectedNow(serverNow, Date.now(), 0));
+  }, [serverNow]);
+  return drift;
 }

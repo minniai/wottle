@@ -60,8 +60,8 @@ describe("copy parity (spec 060 FR-011)", () => {
   });
 
   test("the wordmark follows the locale", () => {
-    expect(copyIs.WORDMARK).toBe("orðusta");
-    expect(copyEn.WORDMARK).toBe("wottle");
+    expect(copyIs.WORDMARK).toBe("Orðusta");
+    expect(copyEn.WORDMARK).toBe("Wottle");
   });
 
   test("getCopy picks by locale", () => {

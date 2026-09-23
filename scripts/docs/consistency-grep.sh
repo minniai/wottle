@@ -32,6 +32,9 @@ PHRASES=(
   "play ranked" "ranked · "
 )
 WORD_PHRASES=("Inter")
+# spec 068 (23 September 2026): the clock is the scoreboard's first row, the opponent is
+# terracotta, the palette is nine tokens, the name is capitalised. Matched ignoring case.
+ICASE_PHRASES=("ledger clock" "inverted face" "eight colour tokens" "eight tokens" "lowercase wordmark" "coral")
 
 targets() {
   printf '%s\n' README.md CLAUDE.md
@@ -54,10 +57,12 @@ targets() {
 EXEMPT_MARKER='<!-- retired-name -->'
 
 # Prints every unexempted hit for one phrase in one file; returns 1 if there were any.
-report_hits() { # file phrase mode(fixed|word)
+report_hits() { # file phrase mode(fixed|word|icase)
   local file="$1" p="$2" mode="$3" hits
   if [[ "$mode" == word ]]; then
     hits="$(grep -nwF -- "$p" "$file" || true)"
+  elif [[ "$mode" == icase ]]; then
+    hits="$(grep -niF -- "$p" "$file" || true)"
   else
     hits="$(grep -nF -- "$p" "$file" || true)"
   fi
@@ -85,6 +90,9 @@ while IFS= read -r file; do
   for p in "${BUNDLE_PHRASES[@]}"; do
     report_hits "$file" "$p" fixed || status=1
   done
+  for p in "${ICASE_PHRASES[@]}"; do
+    report_hits "$file" "$p" icase || status=1
+  done
 done < <(bundle_targets)
 
 while IFS= read -r file; do
@@ -93,6 +101,9 @@ while IFS= read -r file; do
   done
   for p in "${WORD_PHRASES[@]}"; do
     report_hits "$file" "$p" word || status=1
+  done
+  for p in "${ICASE_PHRASES[@]}"; do
+    report_hits "$file" "$p" icase || status=1
   done
 done < <(targets)
 

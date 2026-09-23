@@ -93,7 +93,8 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     });
     expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "match");
     expect(screen.getByTestId("room")).toHaveAttribute("data-match-id", "m1");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent");
+    // In the match the scoreboard takes over from the bars (spec 068).
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1191 · ready");
     expect(mockReplace).not.toHaveBeenCalled();
   });
 

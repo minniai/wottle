@@ -45,7 +45,8 @@ test.describe("@matchmaking queue → found → match in the room", () => {
       for (const p of [a.page, b.page]) {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", /found|match/, { timeout: 60_000 });
       }
-      await expect(a.page.getByTestId("player-bar-top")).toContainText(b.username.slice(0, 8), { timeout: 20_000, ignoreCase: true });
+      // Found writes the opponent into the top bar; the match then draws them on the scoreboard (spec 068).
+      await expect(a.page.locator('[data-testid="player-bar-top"], [data-testid="scoreboard-row-opp"]').first()).toContainText(b.username.slice(0, 8), { timeout: 20_000, ignoreCase: true });
       await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(b.page.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
       await expect(a.page).toHaveURL(/\/match\/[0-9a-f-]+/);
@@ -64,7 +65,7 @@ test.describe("@matchmaking queue → found → match in the room", () => {
         await expect(p.getByTestId("room")).toHaveAttribute("data-match-id", idA!);
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });
         await expect(p.getByTestId("verdict")).toContainText(/wins|draw/);
-        await expect(p.getByTestId("player-bar-top")).not.toContainText("Finding an opponent");
+        await expect(p.getByTestId("scoreboard-row-opp")).not.toContainText("Finding an opponent");
       }
 
       // new opponent ▸ from that result goes back to a fresh search.

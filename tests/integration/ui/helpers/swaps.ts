@@ -34,7 +34,7 @@ export async function waitForYourMove(page: Page): Promise<void> {
 
 /** The viewer's moves left, from the bottom bar's lane: `7`, then `0` (2026-09-21). */
 export async function readRail(page: Page): Promise<string | null> {
-  return page.getByTestId("player-bar-bottom").getByTestId("player-bar-lane").getAttribute("aria-valuenow", { timeout: READ_TIMEOUT_MS }).catch(() => null);
+  return page.getByTestId("scoreboard-row-you").getByTestId("scoreboard-track").getAttribute("aria-valuenow", { timeout: READ_TIMEOUT_MS }).catch(() => null);
 }
 
 /** First horizontal pair (n, n+1) from `startIndex` (wrapping) whose cells are both `free`. */

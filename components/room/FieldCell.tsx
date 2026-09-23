@@ -29,6 +29,8 @@ export interface FieldCellProps {
   exchange?: { dx: number; dy: number } | null;
   onExchangeEnd?: (x: number, y: number) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => void;
+  /** This letter was swapped by a player's most recent move: a 2px tick in their colour (spec 068 FR-027). */
+  lastMove?: { seat: Seat; name: string } | null;
 }
 
 const COLUMN_LETTERS = "ABCDEFGHIJ";
@@ -36,7 +38,8 @@ const COLUMN_LETTERS = "ABCDEFGHIJ";
 
 export function FieldCell(props: FieldCellProps) {
   const copy = useCopy();
-  const { x, y, letter, value, state, seat, ownerName, shake, landing, disabled, tabIndex = -1, onActivate, onPointerDown, onPointerUp, onKeyDown, exchange = null, onExchangeEnd } = props;
+  const { x, y, letter, value, state, seat, ownerName, shake, landing, disabled, tabIndex = -1, onActivate, onPointerDown, onPointerUp, onKeyDown, exchange = null, onExchangeEnd, lastMove = null } = props;
+  const label = copy.cellLabel({ row: y + 1, column: COLUMN_LETTERS[x], letter, value, state, ownerName });
   const style = {
     ...(seat ? { "--seat-ink": getSeatColors(seat).ink } : {}),
     ...(exchange ? { "--dx": `${exchange.dx}px`, "--dy": `${exchange.dy}px` } : {}),
@@ -51,7 +54,8 @@ export function FieldCell(props: FieldCellProps) {
       data-y={y}
       data-state={state}
       data-seat={seat ?? undefined}
-      aria-label={copy.cellLabel({ row: y + 1, column: COLUMN_LETTERS[x], letter, value, state, ownerName })}
+      data-last-move={lastMove?.seat}
+      aria-label={lastMove ? `${label}, ${copy.lastMoveOf(lastMove.name)}` : label}
       aria-disabled={disabled || undefined}
       tabIndex={tabIndex}
       style={style}
@@ -66,6 +70,7 @@ export function FieldCell(props: FieldCellProps) {
       <span className="field__value" aria-hidden>
         {letter ? value : ""}
       </span>
+      {lastMove ? <span className="field__tick" aria-hidden style={{ "--tick-ink": getSeatColors(lastMove.seat).ink } as CSSProperties} /> : null}
     </button>
   );
 }

@@ -41,6 +41,8 @@ export interface FieldProps {
   /** The two cells whose letters have just traded places; they travel (FR-027). */
   exchange?: [Coordinate, Coordinate] | null;
   onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>, coord: Coordinate) => void;
+  /** Each player's last swap: a 2px tick on those cells in the mover's colour (spec 068 FR-027). */
+  ticks?: Array<{ at: Coordinate; seat: Seat; name: string }>;
 }
 
 /**
@@ -68,6 +70,7 @@ export function Field(props: FieldProps) {
   // A letter under any band is scored; its colour is its frozen owner's
   // (spec 049 US2). A live band's letters are not frozen yet: they take the
   // band's seat until the freeze lands.
+  const tickAt = new Map((props.ticks ?? []).map((t) => [`${t.at.x},${t.at.y}`, { seat: t.seat, name: t.name }]));
   const covering = useMemo(() => {
     const map = new Map<string, Seat>();
     for (const band of bands) for (const c of band.wordCells) map.set(`${c.x},${c.y}`, band.seat);
@@ -209,6 +212,7 @@ export function Field(props: FieldProps) {
                 exchange={travelling.get(key) ?? null}
                 onExchangeEnd={onExchangeEnd}
                 onKeyDown={(event, cx, cy) => onKeyDown?.(event, { x: cx, y: cy })}
+                lastMove={tickAt.get(key) ?? null}
               />
             );
           })}

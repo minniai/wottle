@@ -1,7 +1,7 @@
 import type { PlayerSlot } from "@/lib/types/match";
 
 /**
- * Seat-relative colour (design system §2). Teal is always the viewer, coral the
+ * Seat-relative colour (design system §2). Teal is always the viewer, terracotta the
  * opponent — never bound to `player_a` / `player_b`. All values are CSS variable
  * references so the seven-token rule is enforced in one place (`app/globals.css`).
  */
@@ -16,7 +16,7 @@ export interface SeatColors {
   live: string;
   /**
    * Seat colour for text below 17px. The same as `ink` for the viewer (teal is
-   * 4.9:1 on paper); a darker coral for the opponent, where `ink` is 3.9:1 and
+   * 4.9:1 on paper); a darker terracotta for the opponent, where `ink` is 4.0:1 and
    * fails AA for small text (spec 045 decision 2). The asymmetry lives here so no caller has
    * to know about it.
    */

@@ -54,8 +54,18 @@ export const ROOM_PHASES = [
   "time-up",
   "end-early",
   "low-clock",
-  // The ledger clock (2026-09-21): the last 15 seconds, flashing.
+  // The last 15 seconds (spec 068: weight only, nothing blinks).
   "last-seconds",
+  // Spec 068: the scoreboard loading over the 3·2·1.
+  "starting",
+  // Spec 068 (Phase B): the missed beat, the stakes, pick cleared on line 2, the last-moved tick.
+  "missed",
+  "stakes",
+  "pick-cleared",
+  "last-moved",
+  // Spec 068 (US8): the opponent gone past the window with the offer on line 2; your own outage.
+  "gone",
+  "offline",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -204,6 +214,13 @@ export const DISCONNECT_STATE: MatchState = {
 
 /** ms left in the reconnection window, shown as `reconnecting · 0:42 left`. */
 export const RECONNECT_MS_LEFT = 42_000;
+/** Spec 068: how long Kári has been gone once the window is spent (artboard Disconnect). */
+export const GONE_FOR_MS = 124_000;
+/** Spec 068: the final state's clock, 0:08 left of 5:00 after 4:52 (artboard MatchRail). */
+export const FINAL_CLOCK_MS = 8_000;
+export const FINAL_ELAPSED_MS = 292_000;
+/** Spec 068: the start count, two seconds before the clock runs. */
+export const MS_TO_START = 2_000;
 
 /** Done: you have all ten (134), Kári is on his ninth (88); 0:48 left. */
 export const DONE_STATE: MatchState = {
@@ -240,6 +257,13 @@ export function finalLines(copy: Copy): { you: string; opp: string } {
 export const YOUR_MOVE: MoveState = { kind: "yourMove", move: 4, opponentName: KARI.displayName };
 export const SCORING_M4: MoveState = { kind: "scoring", move: 4, opponentName: KARI.displayName };
 export const SCORED_M4: MoveState = { kind: "scored", move: 4, delta: 13, next: 5, opponentName: KARI.displayName };
+/** Spec 068: your move 4 found no word; held as the missed beat. */
+export const MISSED_M4: MoveState = { kind: "scored", move: 4, delta: -5, next: 5, missed: true, opponentName: KARI.displayName };
+/** Spec 068 (artboard MatchLastMinute): your move 8 at 0:48, three moves left worth −15 at 0:00. */
+export const YOUR_MOVE_8: MoveState = { kind: "yourMove", move: 8, opponentName: KARI.displayName };
+/** Spec 068: each player's last swap, ticked in their colour (artboard Match). */
+export const OPP_LAST_SWAP: Coordinate[] = [{ x: 4, y: 2 }, { x: 5, y: 2 }];
+export const YOUR_LAST_SWAP: Coordinate[] = [{ x: 8, y: 0 }, { x: 8, y: 1 }];
 export const REJECTED_M5: MoveState = { kind: "rejected", move: 5, opponentName: KARI.displayName, reason: "frozen" };
 export const DONE: MoveState = { kind: "done", opponentName: KARI.displayName, opponentMoves: 8, clockMmSs: "0:48" };
 export const TIME_UP: MoveState = { kind: "timeUp", opponentName: KARI.displayName };

@@ -13,14 +13,15 @@ export interface LocaleConfig<Id extends string = string> {
   htmlLang: string;
   /** Game language of matches started from this locale. */
   language: Language;
+  /** The game's name as written (spec 068): capitalised everywhere, the one source for it. */
   wordmark: string;
   /** Target of the ledger-foot language link. */
   switchTo: Id;
 }
 
 const LOCALE_TABLE = {
-  is: { id: "is", segment: "", htmlLang: "is", language: "is", wordmark: "orðusta", switchTo: "en" },
-  en: { id: "en", segment: "en", htmlLang: "en", language: "en", wordmark: "wottle", switchTo: "is" },
+  is: { id: "is", segment: "", htmlLang: "is", language: "is", wordmark: "Orðusta", switchTo: "en" },
+  en: { id: "en", segment: "en", htmlLang: "en", language: "en", wordmark: "Wottle", switchTo: "is" },
 } as const satisfies Record<string, LocaleConfig<"is" | "en">>;
 
 export type Locale = keyof typeof LOCALE_TABLE;

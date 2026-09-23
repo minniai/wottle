@@ -12,7 +12,7 @@ import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "
 
 const cell = (page: Page, x: number, y: number) => page.locator(`[data-testid="field-cell"][data-x="${x}"][data-y="${y}"]`);
 // The viewer's moves left, on the bottom bar's lane (2026-09-21: the ledger's rail is gone).
-const rail = (page: Page) => page.getByTestId("player-bar-bottom").getByTestId("player-bar-lane");
+const rail = (page: Page) => page.getByTestId("scoreboard-row-you").getByTestId("scoreboard-track");
 
 /** Two free cells in the given row. */
 async function twoFreeCells(page: Page, y: number): Promise<[number, number]> {
@@ -53,7 +53,7 @@ test.describe("@room-flow US2 pick, commit", () => {
       await expect(cell(pageA, ax1, 0)).not.toHaveAttribute("data-state", "picked");
 
       // B sees A's move counted in A's bar; B still has move 1.
-      await expect(pageB.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
+      await expect(pageB.getByTestId("scoreboard-row-opp")).toContainText("1 of 10", { timeout: 15_000 });
       await expect(pageB.getByTestId("ledger-live-row")).toContainText("move 1 · your move");
 
       // B: Esc cancels a pick; picking again and a second tap commits.
@@ -65,7 +65,7 @@ test.describe("@room-flow US2 pick, commit", () => {
       await cell(pageB, bx1, 9).click();
       await cell(pageB, bx2, 9).click();
       await expect(rail(pageB)).toHaveAttribute("aria-valuenow", "9", { timeout: 20_000 });
-      await expect(pageA.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
+      await expect(pageA.getByTestId("scoreboard-row-opp")).toContainText("1 of 10", { timeout: 15_000 });
 
       // US3 — bands: one per word in the ledger's row 1, chevron edge per direction.
       // One <span> per word under each seat's .ledger__word-list; a miss (`no word`) has no list and no band.
@@ -177,7 +177,7 @@ test.describe("@room-flow US2 pick, commit", () => {
       await cell(pageB, bx1, 9).click();
       await cell(pageB, bx2, 9).click();
       for (const p of [pageA, pageB]) await expect(rail(p)).toHaveAttribute("aria-valuenow", "9", { timeout: 45_000 });
-      for (const p of [pageA, pageB]) await expect(p.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
+      for (const p of [pageA, pageB]) await expect(p.getByTestId("scoreboard-row-opp")).toContainText("1 of 10", { timeout: 15_000 });
 
       // Settle: no band is still drawing or live once the reveal completes (≤ 2.5 s for three words).
       await pageA.waitForTimeout(2_600);

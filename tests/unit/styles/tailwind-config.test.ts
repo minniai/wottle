@@ -9,7 +9,7 @@ const theme = config.theme?.extend as {
   boxShadow?: unknown;
 };
 
-const TOKEN_REF = /^var\(--(paper|ink|rule|tint|muted|you|opp|opp-text|you-band|you-live|opp-band|opp-live|future-label)\)$/;
+const TOKEN_REF = /^var\(--(paper|ink|rule|tint|muted|you|opp|opp-text|err|you-band|you-live|opp-band|opp-live|future-label)\)$/;
 
 function flatten(colors: Record<string, string | Record<string, string>>): Array<[string, string]> {
   return Object.entries(colors).flatMap(([k, v]) =>
@@ -18,8 +18,8 @@ function flatten(colors: Record<string, string | Record<string, string>>): Array
 }
 
 describe("tailwind.config.ts — Field & Ledger theme", () => {
-  test("declares the seven tokens as CSS variable references", () => {
-    for (const key of ["paper", "ink", "rule", "tint", "muted", "you", "opp"]) {
+  test("declares the tokens as CSS variable references, --err included (spec 068)", () => {
+    for (const key of ["paper", "ink", "rule", "tint", "muted", "you", "opp", "err"]) {
       const value = theme.colors[key];
       const ref = typeof value === "string" ? value : value.DEFAULT;
       expect(ref).toBe(`var(--${key})`);

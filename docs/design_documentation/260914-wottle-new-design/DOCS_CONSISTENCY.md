@@ -2,7 +2,7 @@
 
 Every document below was read in the attached `wottle` repo. For each: what it says today that the new design contradicts, and the edit that makes it consistent. Apply these in the same PR as the step that makes them true (see `WOTTLE_DESIGN_PLAN.md §11`), except the rule clarifications in §1, which should land first because the engine tests depend on them.
 
-Conventions used in the edits: the company/product name is written `Wottle`; players are `you` and `the opponent`; the two seat colours are teal (you) and coral (opponent); the surfaces are the **field** (board), the **player bars**, and the **ledger**.
+Conventions used in the edits: the company/product name is written `Wottle`; players are `you` and `the opponent`; the two seat colours are teal (you) and coral (opponent); the surfaces are the **field** (board), the **player bars**, and the **ledger**. <!-- retired-name -->
 
 ---
 
@@ -61,7 +61,7 @@ Update **Project Overview → Current State** (it says the Warm Editorial redesi
 ## Design
 - The UI follows docs/design/WOTTLE_DESIGN_SYSTEM.md. Do not add colours, radii, shadows, gradients or fonts outside it.
 - Every visible element is a letter (or a state of a letter) on the field, a fact about one player in that player's bar, or a fact about the match in the ledger. If a new element is none of these, do not add it.
-- Colours are seat-relative: `--you` teal, `--opp` coral, always via getSeatColors(). Never map colour to player_a/player_b.
+- Colours are seat-relative: `--you` teal, `--opp` coral, always via getSeatColors(). Never map colour to player_a/player_b. <!-- retired-name -->
 - Nothing is ever positioned over the field. No modals, banners, toasts or overlays during a match; state changes are written into the bars or the ledger's live row.
 - Copy: sentence case, no exclamation marks, one idea per line, mono uppercase for labels. See design system §8.
 ```

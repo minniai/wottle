@@ -1,10 +1,17 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import postcss from "postcss";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(resolve(__dirname, "../../../app/styles/room.css"), "utf-8");
 /** Rules only: a comment may name the selector it warns against. */
 const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+describe("room.css parses", () => {
+  it("is valid CSS: a stray brace breaks the whole room, and the greps below would not notice", () => {
+    expect(() => postcss.parse(css)).not.toThrow();
+  });
+});
 
 /** Design system §6 — geometry never animates; only transform and opacity do. */
 describe("room.css motion (design system §6)", () => {
@@ -24,11 +31,10 @@ describe("room.css motion (design system §6)", () => {
     }
   });
 
-  it("reduced motion zeroes durations and holds the low clock solid", () => {
+  it("reduced motion zeroes durations; no clock flashes anywhere (spec 068)", () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration: 0ms !important/);
-    // Spec 050: the low clock blinks in the ledger caption; under reduced motion it holds solid.
-    // The ledger clock's flash holds inverted, not blinking, under reduced motion.
-    expect(css).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*\.ledger__clock-invert[\s\S]*animation: none/);
+    // Spec 068 FR-006: the ledger clock and its inverted flash are gone; urgency is weight only.
+    expect(rules).not.toMatch(/clock-flash|\.ledger__clock/);
     expect(css).not.toMatch(/player-bar__lane--low/);
   });
 
@@ -88,7 +94,8 @@ describe("room.css field paint (spec 045 US2)", () => {
   });
 
   it("declares --cell-size from the measured field size, with no fallback anywhere", () => {
-    expect(field).toMatch(/--cell-size:\s*calc\(var\(--field-size\)\s*\/\s*10\)/);
+    // Under a scoreboard the room passes its whole-pixel cell (spec 068); otherwise a tenth of the field.
+    expect(field).toMatch(/--cell-size:\s*var\(--room-cell,\s*calc\(var\(--field-size\)\s*\/\s*10\)\)/);
     expect(css, "a 48px fallback silently produces the wrong size (finding A2)").not.toContain("--cell-size, 48px");
   });
 
@@ -253,12 +260,13 @@ describe("room.css ledger rows (spec 047 US3)", () => {
     expect(block('.ledger__words[data-seat="opp"]')).toMatch(/justify-content:\s*flex-start/);
   });
 
-  it("a miss is words in muted mono and a muted −5 as bold as a score; a score is bold ink", () => {
+  it("a miss is words in muted mono and a crimson −5 as bold as a score; nothing lost stays muted (spec 068)", () => {
     expect(block(".ledger__miss")).toMatch(/color:\s*var\(--muted\)/);
     expect(block(".ledger__miss")).toMatch(/text-transform:\s*uppercase/);
     expect(block(".ledger__total")).toMatch(/font-weight:\s*600/);
-    expect(block(".ledger__words--empty .ledger__total")).toMatch(/color:\s*var\(--muted\)/);
-    expect(block(".ledger__words--empty .ledger__total")).not.toMatch(/font-weight/);
+    expect(block(".points-lost")).toMatch(/color:\s*var\(--err\)/);
+    expect(block(".points-none")).toMatch(/color:\s*var\(--muted\)/);
+    expect(block(".points-lost")).not.toMatch(/font-weight/);
   });
 
   it("the total row closes the table in the seat colours", () => {
@@ -369,24 +377,6 @@ describe("room.css slip (spec 048)", () => {
   });
 });
 
-describe("room.css the ledger clock (2026-09-21)", () => {
-  it("is a boxed block with a 32px tabular numeral and a bar whose fill scales, never resizes", () => {
-    expect(block(".ledger__clock")).toMatch(/border:\s*1\.5px solid var\(--ink\)/);
-    expect(block(".ledger__clock-time")).toMatch(/font-size:\s*32px/);
-    expect(block(".ledger__clock-time")).toMatch(/tabular-nums/);
-    expect(block(".ledger__clock-fill")).toMatch(/transform:\s*scaleX\(var\(--clock-fraction/);
-  });
-  it("under a minute takes the tint; the last 15 seconds flash the inverted face once a second", () => {
-    expect(block('.ledger__clock[data-phase="low"]')).toMatch(/background:\s*var\(--tint\)/);
-    expect(block(".ledger__clock-invert")).toMatch(/background:\s*var\(--ink\)/);
-    expect(block('.ledger__clock[data-phase="flash"] .ledger__clock-invert')).toMatch(/animation:\s*clock-flash 1s/);
-  });
-  it("the caption clock is gone", () => {
-    expect(css).not.toMatch(/ledger__caption-clock/);
-  });
-});
-
-
 // Reported 2026-09-21: in a narrow ledger the queue's context (`10 moves each ·
 // one 5:00 clock`) wrapped into the wordmark (`wottle10 MOVES EACH`).
 describe("room.css the ledger caption", () => {
@@ -472,5 +462,66 @@ describe("room.css interaction states", () => {
 
   it("a free letter takes the tint under the pointer only while the field takes picks", () => {
     expect(rule('.field:not([data-disabled]) .field__cell[data-state="free"]:hover')).toMatch(/background:\s*var\(--tint\)/);
+  });
+});
+
+/** Spec 068 FR-012: the match ledger on the scoreboard's grid. */
+describe("room.css the ledger's grid (spec 068)", () => {
+  it("its first three rows take the scoreboard's row height; the header's ink rule closes the third", () => {
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__caption,\s*\.ledger\[data-grid\] \.ledger__state-line\s*\{[^}]*height:\s*var\(--sb-row\)/);
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__header\s*\{[^}]*height:\s*calc\(var\(--sb-row\) \+ 1\.5px\)[^}]*border-bottom:\s*1\.5px solid var\(--ink\)/);
+  });
+
+  it("the ⋯ menu opens downward from the caption, which does not clip it", () => {
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.room-menu__list\s*\{[^}]*top:\s*calc\(100% \+ 6px\)[^}]*bottom:\s*auto/);
+    expect(rules).not.toMatch(/\.ledger\[data-grid\] \.ledger__caption,\s*\.ledger\[data-grid\] \.ledger__state-line\s*\{[^}]*overflow:\s*hidden/);
+  });
+
+  it("each move row is exactly one cell tall, after the stack's gap and the field's frame", () => {
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__rows\s*\{[^}]*grid-auto-rows:\s*var\(--cell-size\)[^}]*margin-top:\s*calc\(var\(--bar-gap\) \+ 1\.5px\)/);
+  });
+});
+
+/** Spec 068: the scoreboard's geometry (contracts/scoreboard.md) and its stillness (FR-006). */
+describe("room.css scoreboard (spec 068)", () => {
+  const block = (selector: string, source = rules): string => {
+    const at = source.indexOf(`${selector} {`);
+    expect(at, `${selector} is declared`).toBeGreaterThanOrEqual(0);
+    return source.slice(at, source.indexOf("}", at));
+  };
+  const phone = rules.slice(rules.lastIndexOf("@media (max-width: 900px)", rules.indexOf("--sb-row: 34px")));
+
+  it("draws three 40px rows on a 216 · track · 64 grid inside a 1.5px ink frame", () => {
+    expect(block(".scoreboard")).toMatch(/border:\s*1\.5px solid var\(--ink\)/);
+    const row = block(".scoreboard__row");
+    expect(row).toMatch(/height:\s*var\(--sb-row\)/);
+    expect(row).toMatch(/grid-template-columns:\s*216px minmax\(0, 1fr\) 64px/);
+    expect(row).toMatch(/column-gap:\s*16px/);
+    expect(row).toMatch(/padding:\s*0 14px/);
+    expect(rules).toMatch(/--sb-row:\s*40px/);
+  });
+
+  it("on a phone the rows are 34px on a 112 · track · 36 grid", () => {
+    expect(phone).toMatch(/--sb-row:\s*34px/);
+    expect(phone).toMatch(/grid-template-columns:\s*112px minmax\(0, 1fr\) 36px/);
+    expect(phone).toMatch(/column-gap:\s*10px/);
+    expect(phone).toMatch(/padding:\s*0 8px/);
+  });
+
+  it("the clock and move tracks share the ten columns and their 3px gaps", () => {
+    expect(block(".scoreboard__track")).toMatch(/grid-template-columns:\s*repeat\(10, minmax\(0, 1fr\)\)/);
+    expect(block(".scoreboard__track")).toMatch(/column-gap:\s*3px/);
+  });
+
+  it("urgency is weight: under a minute the clock row takes the tint, its ticks ink and a 700 numeral", () => {
+    expect(rules).toMatch(/\.scoreboard__row--clock\[data-phase="underMinute"\],\s*\.scoreboard__row--clock\[data-phase="lastSeconds"\]\s*\{[^}]*background:\s*var\(--tint\)/);
+    expect(rules).toMatch(/\[data-phase="underMinute"\] \.scoreboard__numeral,[^{]*\{[^}]*font-weight:\s*700/);
+  });
+
+  it("nothing on the scoreboard animates", () => {
+    const scoreboardRules = [...rules.matchAll(/(\.scoreboard[^{]*)\{([^}]*)\}/g)];
+    for (const [, selector, body] of scoreboardRules) {
+      expect(body, `${selector.trim()} animates`).not.toMatch(/animation|transition/);
+    }
   });
 });

@@ -26,9 +26,9 @@ test("an absent opponent: after ten moves and the window, end the match early @t
     await contextB.close();
 
     // While the window runs, the opponent's bar carries it and the field is clear.
-    const topBar = pageA.getByTestId("player-bar-top");
-    await expect(topBar.getByTestId("player-bar-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 30_000 });
-    await expect(topBar.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "disconnected");
+    const topBar = pageA.getByTestId("scoreboard-row-opp");
+    await expect(topBar.getByTestId("scoreboard-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 30_000 });
+    await expect(topBar.getByTestId("scoreboard-track")).toHaveAttribute("data-mode", "outlined");
     await expect(pageA.getByTestId("slip")).toHaveCount(0);
 
     for (let n = 1; n <= 10; n += 1) await submitSwap(pageA);
@@ -38,6 +38,8 @@ test("an absent opponent: after ten moves and the window, end the match early @t
     await expect(slip).toHaveAttribute("data-kind", "endEarly", { timeout: 120_000 });
     await expect(slip).toContainText(new RegExp(`${userB} is gone`, "i"));
     await expect(pageA.getByTestId("room-slot-field")).toHaveAttribute("data-slipped", "true");
+    // The primary ignores activation for 500ms after it appears (game flow §5.0 guards, spec 068 FR-036).
+    await pageA.waitForTimeout(600);
     await pageA.getByTestId("slip-end-early").click();
 
     await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });

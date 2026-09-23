@@ -22,7 +22,7 @@ describe("Ledger without the move rail", () => {
   });
 
   it("a match's caption carries no move of the viewer's; the final one keeps the duration", () => {
-    const live = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words: [], playerAId: "a", viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 192_000 }, copyEn);
+    const live = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words: [], playerAId: "a", viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} }, copyEn);
     expect(live.caption).toBe("");
     expect("movesPlayed" in live).toBe(false);
   });

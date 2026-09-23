@@ -33,7 +33,7 @@ The work ships in four phases. P1 does routing, P2 does copy and the Icelandic t
 **Constraints**:
 - Icelandic behaviour must stay bit-identical (FR-017).
 - The English visual baselines must pass unchanged at `/en` (SC-002).
-- The design system's eight tokens and two type families are untouched.
+- The design system's eight tokens and two type families are untouched. <!-- retired-name -->
 - Both dictionaries must fit in one serverless instance; en is 615 KB against is at 55 MB, so this is negligible.
 **Scale/Scope**:
 - About 100 existing copy exports plus about 60 hardcoded strings and about 15 server messages to translate.
