@@ -122,12 +122,13 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           elapsedMs: props.elapsedMs,
           moveLimit,
           readOnly,
+          compact: isPhone,
           you: { name: you.name, rating: you.rating, movesPlayed: you.movesPlayed, inFlight: Boolean(you.scoring), score: you.score, offline: you.offline, finalLine: you.finalLine },
           opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, finalLine: opp.finalLine },
         },
         copy,
       ),
-    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, you, opp, copy],
+    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, isPhone, you, opp, copy],
   );
 
   return (

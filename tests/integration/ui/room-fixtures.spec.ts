@@ -20,7 +20,7 @@ import { ROOM_PHASES } from "../../../app/[locale]/dev/room/fixtures";
  *
  * Spec 047 amendment P2: one phase per asymmetric signal. `phone-sheet` is the
  * picking phase with the sheet open, so it exists only at 390×844; `last-seconds`
- * is also captured under reduced motion, where the ledger clock holds inverted.
+ * is also captured under reduced motion, where time still steps (spec 068).
  */
 test.describe("@visual the room, from fixtures", () => {
   for (const phase of ROOM_PHASES) {
@@ -43,17 +43,16 @@ test.describe("@visual the room, from fixtures", () => {
     });
   }
 
-  test("last-seconds under reduced motion: the ledger clock holds inverted, no flash", async ({ browser }, testInfo) => {
+  test("last-seconds under reduced motion: time is not motion, the clock row still reads the seconds (spec 068)", async ({ browser }, testInfo) => {
     const context = await browser.newContext({ viewport: testInfo.project.use.viewport!, reducedMotion: "reduce" });
     const page = await context.newPage();
     try {
       await page.goto("/en/dev/room?phase=last-seconds");
       await expect(page.getByTestId("field")).toBeVisible();
-      const clock = page.getByTestId("match-clock");
-      await expect(clock).toHaveAttribute("data-phase", "flash");
-      const face = clock.locator(".ledger__clock-invert");
-      expect(await face.evaluate((el) => getComputedStyle(el).animationName), "no flash under prefers-reduced-motion (design system §6)").toBe("none");
-      expect(await face.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+      const clock = page.getByTestId("scoreboard-clock");
+      await expect(clock).toHaveAttribute("data-phase", "lastSeconds");
+      await expect(clock).toContainText("0:12");
+      await expect(clock.locator('[data-tick="on"], [data-block]').first()).toBeVisible();
       await expect(page).toHaveScreenshot("last-seconds-reduced-motion.png");
     } finally {
       await context.close();
@@ -295,6 +294,42 @@ test.describe("@visual the room fits a phone", () => {
     const cell = await page.getByTestId("field-cell").first().boundingBox();
     expect(cell!.width).toBeGreaterThanOrEqual(35);
   });
+
+  // Spec 068 FR-015, FR-016, SC-005 (artboards PhoneMatch, PhoneMatchShort): scoreboard, field,
+  // live row, territory, then the foot pinned to the bottom; territory hides first as the height shrinks.
+  for (const { width, height, name } of [
+    { width: 390, height: 844, name: "phone-match" },
+    { width: 390, height: 664, name: "phone-match-664" },
+    { width: 360, height: 640, name: "phone-match-360" },
+  ]) {
+    test(`${name} (${width}×${height}): nothing scrolls and the foot stays on screen`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("/en/dev/room?phase=idle");
+      await expect(page.getByTestId("field")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const g = await page.evaluate(() => {
+        const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
+        return {
+          scoreboard: rect("scoreboard"),
+          field: rect("field"),
+          foot: rect("ledger-phone-foot"),
+          live: rect("ledger-live-trigger"),
+          scrollHeight: document.scrollingElement!.scrollHeight,
+          scrollWidth: document.scrollingElement!.scrollWidth,
+        };
+      });
+      expect(g.scrollHeight).toBeLessThanOrEqual(height);
+      expect(g.scrollWidth).toBeLessThanOrEqual(width);
+      expect(g.scoreboard.bottom).toBeLessThanOrEqual(g.field.top);
+      expect(Math.abs(g.scoreboard.width - g.field.width)).toBeLessThanOrEqual(1);
+      expect(g.field.bottom).toBeLessThanOrEqual(g.live.top);
+      expect(g.live.bottom).toBeLessThanOrEqual(g.foot.top);
+      expect(g.foot.bottom).toBeLessThanOrEqual(height);
+      expect(g.field.width).toBe(Math.min(358, width - 32));
+      await expect(page.getByTestId("ledger-territory")).toBeVisible({ visible: height >= 700 });
+      await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: false });
+    });
+  }
 
   test("the sheet opens in flow, below the field, and still does not scroll the page", async ({ page }) => {
     await page.goto("/en/dev/room?phase=picking");

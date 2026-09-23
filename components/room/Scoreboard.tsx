@@ -79,7 +79,7 @@ function PlayerLine({ row, total, href, newTab, limit }: { row: PlayerRow; total
             {row.muted}
             {row.suffix ? (
               <span className="scoreboard__suffix" data-testid="scoreboard-turn" data-tone={row.tone}>
-                {" · "}
+                {row.muted ? " · " : null}
                 {row.suffix}
               </span>
             ) : null}

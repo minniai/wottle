@@ -449,6 +449,30 @@
   font-weight: 600;
 }
 
+/* The phone ledger (spec 068 FR-015, FR-016): live row, territory, and the
+   foot pinned to the bottom edge with the safe area. The room is one viewport
+   tall below 900px, so the foot's auto margin pins it without positioning. */
+.ledger__phone-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin-top: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--rule);
+}
+.ledger__phone-foot .room-menu__trigger {
+  min-width: 44px;
+  min-height: 44px;
+}
+/* As the height shrinks, territory hides first (the live row keeps its two lines). */
+@media (max-width: 900px) and (max-height: 700px) {
+  .ledger__territory-block {
+    display: none;
+  }
+}
+
 /* scoreboard: phone */
 @media (max-width: 900px) {
   .room {

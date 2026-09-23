@@ -114,6 +114,11 @@ export const copyIs = {
   goneFor: (moves: number, mmSs: string): string => `${moves} af 10 · án tengingar í ${mmSs}`,
   OFFLINE_RECONNECTING: "án tengingar · tengist aftur",
   profileOpensInNewTab: (name: string): string => `${name}, prófíll opnast í nýjum flipa`,
+  movesOf: (moves: number): string => `${moves} af 10`,
+  compactMove: (move: number): string => `leikur ${move}`,
+  goneForShort: (mmSs: string): string => `án tengingar í ${mmSs}`,
+  BEHIND_PACE: "á eftir áætlun",
+  OFFLINE: "án tengingar",
   oppProgress: (moves: number, state: "playing" | "scoring"): string =>
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,
 
@@ -288,4 +293,5 @@ export const copyIs = {
   SITE_DESCRIPTION:
     "Orðaeinvígi fyrir tvo. Skiptu á tveimur stöfum; orð með þremur stöfum eða fleiri gefa stig og frjósa í þínum lit.",
   LANGUAGE_LINK: "english ▸",
+  LANGUAGE_WORDS: "íslensk orð",
 } satisfies Copy;

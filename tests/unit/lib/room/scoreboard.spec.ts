@@ -127,6 +127,24 @@ describe("deriveScoreboard: the player rows", () => {
   });
 });
 
+describe("deriveScoreboard on a phone (spec 068 FR-009, artboard PhoneMatch)", () => {
+  const phone = (over: Partial<ScoreboardInput> = {}) => deriveScoreboard({ ...input(over), compact: true }, copyEn);
+
+  it("keeps the square and the name, and writes the short count: `6 of 10`, `move 4`", () => {
+    const view = phone();
+    expect(view.opp).toMatchObject({ name: K, muted: "", suffix: "6 of 10" });
+    expect(view.you).toMatchObject({ name: "Birna", muted: "", suffix: "move 4", tone: "seat" });
+  });
+
+  it("the states that matter still read, short", () => {
+    expect(phone({ opp: seat({ name: K, movesPlayed: 8, reconnectMsLeft: 0, goneForMs: 124_000 }) }).opp.suffix).toBe("gone for 2:04");
+    expect(phone({ opp: seat({ name: K, movesPlayed: 8, reconnectMsLeft: 42_000 }) }).opp.suffix).toBe("reconnecting · 0:42 left");
+    expect(phone({ remainingMs: 48_000, moveState: yourMove(8), you: seat({ movesPlayed: 7 }) }).you.suffix).toBe("behind pace");
+    expect(phone({ you: seat({ offline: true }) }).you.suffix).toBe("offline");
+    expect(phone({ moveState: { kind: "done", opponentName: K, opponentMoves: 6, clockMmSs: "1:12" }, you: seat({ movesPlayed: 10 }) }).you.suffix).toBe("10 of 10");
+  });
+});
+
 describe("deriveScoreboard in Icelandic", () => {
   it("writes the same facts in the board's language", () => {
     const view = deriveScoreboard(input({ opp: seat({ name: K, rating: 1265, movesPlayed: 8, reconnectMsLeft: 0, goneForMs: 124_000 }) }), copyIs);

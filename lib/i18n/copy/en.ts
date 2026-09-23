@@ -90,6 +90,12 @@ const READY = "ready";
 const moveBehindPace = (move: number): string => `move ${move} · behind pace`;
 const goneFor = (moves: number, mmSs: string): string => `${moves} of 10 · gone for ${mmSs}`;
 const OFFLINE_RECONNECTING = "offline · reconnecting";
+// The phone's scoreboard rows: the short forms (spec 068 FR-009)
+const movesOf = (moves: number): string => `${moves} of 10`;
+const compactMove = (move: number): string => `move ${move}`;
+const goneForShort = (mmSs: string): string => `gone for ${mmSs}`;
+const BEHIND_PACE = "behind pace";
+const OFFLINE = "offline";
 const profileOpensInNewTab = (name: string): string => `${name}, profile opens in a new tab`;
 
 // Notices (live-row styled lines)
@@ -260,6 +266,8 @@ const scoringRows = (lengthBonus: number, missPenalty: string): Array<{ rule: st
 const SITE_DESCRIPTION =
   "A two-player word duel. Swap two letters; words of three or more score and freeze in your ink.";
 const LANGUAGE_LINK = "íslenska ▸";
+/** The phone foot says which words the match plays (spec 068, artboard PhoneMatch). */
+const LANGUAGE_WORDS = "english words";
 
 export const copyEn = {
   WORDMARK,
@@ -320,6 +328,11 @@ export const copyEn = {
   goneFor,
   OFFLINE_RECONNECTING,
   profileOpensInNewTab,
+  movesOf,
+  compactMove,
+  goneForShort,
+  BEHIND_PACE,
+  OFFLINE,
   rematchRequest,
   waitingForRematch,
   challengeNotice,
@@ -424,4 +437,5 @@ export const copyEn = {
   scoringRows,
   SITE_DESCRIPTION,
   LANGUAGE_LINK,
+  LANGUAGE_WORDS,
 };

@@ -48,6 +48,8 @@ export interface ScoreboardInput {
   /** Over: how long the match ran. */
   elapsedMs?: number;
   readOnly: boolean;
+  /** The phone's rows: the short count only, no rating (spec 068 FR-009). */
+  compact?: boolean;
   you: ScoreboardSeat;
   opp: ScoreboardSeat;
 }
@@ -160,15 +162,32 @@ function youSub(input: ScoreboardInput, behind: boolean, copy: Copy): Sub {
   return plain(copy.moveOfSuffix(move), isYourMove(moveState) ? "seat" : "muted");
 }
 
+/** The phone's rows: one short fact each (`6 of 10`, `move 4`, `gone for 2:04`). */
+function compactSub(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy): Sub {
+  const facts = input[seat];
+  const done = facts.movesPlayed >= input.moveLimit;
+  if (seat === "opp") {
+    if (facts.reconnectMsLeft != null && facts.reconnectMsLeft > 0) return plain(copy.reconnecting(formatClock(facts.reconnectMsLeft)));
+    if (facts.goneForMs != null) return plain(copy.goneForShort(formatClock(facts.goneForMs)));
+    return plain(copy.movesOf(facts.movesPlayed));
+  }
+  if (facts.offline) return plain(copy.OFFLINE);
+  if (done) return plain(copy.movesOf(facts.movesPlayed));
+  if (behind) return plain(copy.BEHIND_PACE, "seat");
+  return plain(copy.compactMove(facts.movesPlayed + 1), isYourMove(input.moveState) ? "seat" : "muted");
+}
+
 function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy): Sub {
   if (input.phase === "over") return plain(null);
   if (input.phase === "starting") return plain(copy.READY);
+  if (input.compact) return compactSub(input, seat, behind, copy);
   return seat === "opp" ? oppSub(input, copy) : youSub(input, behind, copy);
 }
 
 function mutedFor(input: ScoreboardInput, seat: Seat, sub: Sub, copy: Copy): string {
   const facts = input[seat];
   if (input.phase === "over" && facts.finalLine) return facts.finalLine;
+  if (input.compact) return "";
   const rating = String(facts.rating ?? copy.UNRATED);
   // Only your own row names its seat: the opponent's square and place already say
   // who they are, and their count needs the room (canvas Match, MatchLastMinute).

@@ -138,11 +138,15 @@ describe("Ledger (design system §5.4)", () => {
     const collapsed = () =>
       render(<Ledger variant="match" collapsed model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
 
-    it("shows the caption, the live row and territory, and nothing else", () => {
+    it("shows the live row, territory and a pinned foot, and nothing else (spec 068, artboard PhoneMatch)", () => {
       collapsed();
-      expect(screen.getByTestId("ledger-caption")).toBeInTheDocument();
+      // The wordmark is the page's: during a match on a phone the scoreboard and the field fill the top.
+      expect(screen.queryByTestId("ledger-caption")).toBeNull();
       expect(screen.getByTestId("ledger-live-trigger")).toBeInTheDocument();
       expect(screen.getByTestId("ledger-territory")).toBeInTheDocument();
+      const foot = screen.getByTestId("ledger-phone-foot");
+      expect(foot.querySelector('[data-testid="ledger-menu-trigger"]')).not.toBeNull();
+      expect(foot).toHaveTextContent("english words");
 
       expect(screen.queryByTestId("ledger-header")).toBeNull();
       expect(screen.queryByTestId("ledger-rows")).toBeNull();
@@ -161,14 +165,16 @@ describe("Ledger (design system §5.4)", () => {
       expect(trigger.querySelector(".ledger__live-line2")).toHaveTextContent("tap a second letter");
     });
 
-    it("opens the rounds, notices and foot beneath the live row", () => {
+    it("opens the moves beneath the live row, above the pinned foot; one ⋯, in the foot", () => {
       collapsed();
       fireEvent.click(screen.getByTestId("ledger-live-trigger"));
       const sheet = screen.getByTestId("ledger-sheet");
       expect(screen.getByTestId("ledger-live-trigger")).toHaveAttribute("aria-expanded", "true");
       expect(sheet.querySelector('[data-testid="ledger-header"]')).not.toBeNull();
       expect(sheet.querySelector('[data-testid="ledger-rows"]')).not.toBeNull();
-      expect(sheet.querySelector('[data-testid="ledger-foot"]')).not.toBeNull();
+      expect(screen.getAllByTestId("ledger-menu-trigger")).toHaveLength(1);
+      const foot = screen.getByTestId("ledger-phone-foot");
+      expect(sheet.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it("closes on Escape and returns focus to the live row", () => {

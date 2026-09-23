@@ -155,7 +155,7 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
-  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, territoryAria, territoryLine, YOU } = useCopy();
+  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, LANGUAGE_WORDS, territoryAria, territoryLine, YOU } = useCopy();
   const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
   const showsTable = variant === "match" || variant === "final";
   /**
@@ -280,7 +280,8 @@ export function Ledger(props: LedgerProps) {
         </div>
       ) : (
         <>
-          {caption}
+          {/* On a phone the match's top is the scoreboard and the field; the wordmark stays off it (artboard PhoneMatch). */}
+          {collapsed ? null : caption}
           {verdictBlock}
         </>
       )}
@@ -306,12 +307,17 @@ export function Ledger(props: LedgerProps) {
             </span>
             <span className="ledger__live-more">{HISTORY}</span>
           </button>
-          {territoryBlock}
+          <div className="ledger__territory-block">{territoryBlock}</div>
           <LedgerSheet open={sheetOpen} onClose={closeSheet}>
             {showsTable ? table : body}
             {noticeLines}
-            <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />
+            {footActions ? <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} menu={false} /> : null}
           </LedgerSheet>
+          {/* Pinned to the bottom edge with the safe area, always visible (spec 068 FR-015). */}
+          <div className="ledger__phone-foot" data-testid="ledger-phone-foot" data-field-safe>
+            <RoomMenu variant={menuVariant(variant)} onAction={onAction} />
+            <span className="ledger__mono">{LANGUAGE_WORDS}</span>
+          </div>
         </>
       ) : (
         <>

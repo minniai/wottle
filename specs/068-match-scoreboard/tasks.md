@@ -138,17 +138,17 @@
 **Goal:** the scoreboard, then the field, then the ledger block, then the pinned foot, with nothing scrolling.
 **Independent test:** `phone-match`, `phone-match-664` and `phone-match-360` show no scroll and a visible foot.
 
-- [ ] T030 [P] [US4] Write failing tests in `tests/unit/components/room/Scoreboard.spec.tsx` and `tests/unit/lib/room/scoreboard.spec.ts`: the phone short sub-lines (`6 of 10`, `move 4`), with the square and name kept.
-- [ ] T031 [US4] Implement the phone short forms in `lib/room/scoreboard.ts` (a `compact` flag from `useIsPhone`).
-- [ ] T032 [US4] Lay out the phone match in `app/styles/room.css` (≤900px, `data-layout="scoreboard"`):
+- [X] T030 [P] [US4] Write failing tests in `tests/unit/components/room/Scoreboard.spec.tsx` and `tests/unit/lib/room/scoreboard.spec.ts`: the phone short sub-lines (`6 of 10`, `move 4`), with the square and name kept.
+- [X] T031 [US4] Implement the phone short forms in `lib/room/scoreboard.ts` (a `compact` flag from `useIsPhone`).
+- [X] T032 [US4] Lay out the phone match in `app/styles/room.css` (≤900px, `data-layout="scoreboard"`):
   - the scoreboard at the field's width above the field;
   - the ledger block holds the live row (with `history ▸`), then territory;
   - territory hides first as the height shrinks (a height media query or a measured class);
   - the foot is pinned (`position: sticky/fixed; bottom:0; padding-bottom: env(safe-area-inset-bottom)`), holding `⋯` at 44×44 and the language label.
 
   Remove the phone clock block and strip.
-- [ ] T033 [US4] Keep the sheet between the field and the foot, never over the scoreboard or the foot, and return focus to the live row on Esc, in `components/room/LedgerSheet.tsx` and `app/styles/room.css`. Update `tests/unit/components/room/LedgerSheet.spec.tsx`.
-- [ ] T034 [US4] Add the fixture phases `phone-match`, `phone-match-664` and `phone-match-360` to `app/[locale]/dev/room/fixtures.ts` (`ROOM_PHASES`) and `RoomFixture.tsx`, with viewports in `tests/integration/ui/room-fixtures.spec.ts` asserting no scroll (`scrollHeight <= clientHeight`) and a visible foot (SC-005).
+- [X] T033 [US4] Keep the sheet between the field and the foot, never over the scoreboard or the foot, and return focus to the live row on Esc, in `components/room/LedgerSheet.tsx` and `app/styles/room.css`. Update `tests/unit/components/room/LedgerSheet.spec.tsx`.
+- [X] T034 [US4] Add the fixture phases `phone-match`, `phone-match-664` and `phone-match-360` to `app/[locale]/dev/room/fixtures.ts` (`ROOM_PHASES`) and `RoomFixture.tsx`, with viewports in `tests/integration/ui/room-fixtures.spec.ts` asserting no scroll (`scrollHeight <= clientHeight`) and a visible foot (SC-005).
 
 ---
 
@@ -315,4 +315,5 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - T002 folded into each task: `Copy` is derived from the English object and guarded by the parity test, so each key is added with the test that needs it.
 - US1: the opponent row names no seat word (`1265 · 6 of 10 · playing`), as the canvas draws it; the full sub-line does not fit 216px. The phone total takes `--opp-text` (20px is under the large-text size; axe). The clock row has two lines, the phase label (`match clock`, `under a minute`, …) over the pace or detail, as the canvas draws it. `gone for` shipped in Phase A with the scoreboard (analysis I2).
 - US2/US3: tests were written before the CSS they check (analysis D1). A `postcss.parse` check was added to `room-css.test.ts` after a stray brace broke the stylesheet while every grep still passed. The ledger reads the room's whole-pixel cell through `--cell-size` on `.room[data-layout="scoreboard"]`.
+- US4: the phone phases `phone-match`, `phone-match-664` and `phone-match-360` are viewport tests over the `idle` fixture with their own baselines, not new `ROOM_PHASES` (each phase is already captured at every project viewport). The phone foot is pinned by the one-viewport room's auto margin, not by positioning, so only the slip is ever positioned.
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.
