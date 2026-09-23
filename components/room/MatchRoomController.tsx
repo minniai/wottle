@@ -8,6 +8,8 @@ import { claimWinAction } from "@/app/actions/match/claimWin";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
 import { resignMatch } from "@/app/actions/match/resignMatch";
 import { settleMatch } from "@/app/actions/match/settleMatch";
+import { leaveTableAction } from "@/app/actions/match/leaveTable";
+import { seatAction } from "@/app/actions/match/seat";
 import { useLocalePath } from "@/components/i18n/LocaleProvider";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
@@ -18,6 +20,7 @@ import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { tabTitle } from "@/lib/room/tabTitle";
+import { tableSlipFor } from "@/lib/room/tableSlip";
 import { lastMoves } from "@/lib/room/lastMoves";
 import { PICK_CLEARED_HOLD_MS } from "@/lib/room/notices";
 import type { Line2Extras } from "@/lib/room/moveState";
@@ -42,6 +45,7 @@ import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
+import { tableFacts, useSeatAnnouncement, useTableDeadlineRead } from "./hooks/useTable";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
@@ -165,14 +169,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const you = playerProfiles[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const opp = playerProfiles[opponentSlot === "player_a" ? "playerA" : "playerB"];
   const { you: youFacts, opp: oppFacts } = viewerFacts(match, viewerSlot);
-  const completed = match.state === "completed";
+  // A void table was never a match (spec 069): it has no result, no ratings and no match-over slip.
+  const voided = match.state === "completed" && match.endedReason === "void";
+  const completed = match.state === "completed" && !voided;
   const inProgress = match.state === "in_progress";
-
-  // The tab says the clock and your move while you play (spec 068 FR-025); the name once you leave.
-  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1) }, copy);
-  useEffect(() => {
-    document.title = title;
-  }, [title]);
   const wordmark = copy.WORDMARK;
   useEffect(() => () => void (document.title = wordmark), [wordmark]);
   const frozenTiles = match.frozenTiles;
@@ -292,15 +292,37 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     () => deriveMoveState({ match, viewerSlot, opponentName: opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart }),
     [match, viewerSlot, opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart],
   );
+  // The tab says the table, the count, or the clock and your move (spec 068 FR-025, spec 069 FR-026).
+  const tableTitle = moveState.kind === "table" ? { opponentName: opp.displayName } : moveState.kind === "starting" ? { opponentName: opp.displayName, startsIn: moveState.seconds } : undefined;
+  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1), table: readOnly ? undefined : tableTitle }, copy);
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+
+  // The table (spec 069): its slip is derived from the match and the server-corrected second.
+  const atTable = !readOnly && (match.state === "pending" || voided || msToStart > 0);
+  const tableNow = useNowTick(atTable) + serverDrift;
+  const tableSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
+  const tableAnnouncement = useSeatAnnouncement(match, viewerSlot, opp.displayName, copy);
+  const refreshMatch = transport.refresh;
+  useTableDeadlineRead(match, serverDrift, refreshMatch);
+
   // At go, focus moves to the field; the live row's polite line announces the first move (spec 068 FR-034).
   const startingNow = moveState.kind === "starting";
   const wasStarting = useRef(startingNow);
   useEffect(() => {
     if (wasStarting.current && !startingNow && !readOnly) {
       document.querySelector<HTMLButtonElement>('[data-testid="field"] [data-testid="field-cell"][tabindex="0"]')?.focus();
+      // Go (spec 069 FR-011): the clock runs and `match-start` sounds.
+      feedbackRef.current.sound.playMatchStart();
     }
     wasStarting.current = startingNow;
   }, [startingNow, readOnly]);
+  // A table that opens while the tab is hidden calls the player with the `challenge` cue (spec 069 FR-027).
+  const atTableNow = moveState.kind === "table";
+  useEffect(() => {
+    if (atTableNow && !readOnly && document.hidden) feedbackRef.current.sound.playChallenge();
+  }, [atTableNow, readOnly]);
   const canPick = !readOnly && inProgress && (moveState.kind === "yourMove" || moveState.kind === "rejected") && !slipUp;
   const field = useFieldInteraction({
     matchId,
@@ -507,6 +529,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         // Signing out is refused while a match is live (spec 067); it never resigns.
         void logoutAction().then((r) => (r.status === "refused" ? push({ kind: "text", text: copy.errors[r.code] }) : leave()), leave);
       }
+      else if (action === "sitDown") void seatAction(matchId).then(refreshMatch);
+      else if (action === "leaveTable") {
+        void leaveTableAction(matchId).then(() => router.push(to("/lobby")));
+      }
       else if (action === "resign" || action === "leave") setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName });
       else if (action === "keepPlaying") clearSlip("resign");
       else if (action === "confirmResign") {
@@ -520,7 +546,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName, refreshMatch],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
@@ -552,7 +578,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}
         moveLimit={match.moveLimit}
         completed={completed}
-        caption={completed ? finalCaption(durationMs, copy) : undefined}
+        caption={completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
         verdict={verdict ?? undefined}
         readOnly={readOnly}
         footActions={
@@ -580,7 +606,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         live={live}
         moveState={moveState}
         line2Extras={line2Extras}
-        announcement={announcement}
+        announcement={tableAnnouncement ?? announcement}
+        table={tableFacts(match, viewerSlot)}
+        tableSlip={tableSlip}
         holdMove={holdMove}
         notices={allNotices}
         onRowHover={setHighlightMove}

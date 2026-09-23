@@ -62,7 +62,7 @@ describe("useSoundEffects", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns 6 named play functions", () => {
+  it("returns 7 named play functions", () => {
     const { result } = renderHook(() => useSoundEffects(true));
     expect(typeof result.current.playTileSelect).toBe("function");
     expect(typeof result.current.playValidSwap).toBe("function");
@@ -70,6 +70,17 @@ describe("useSoundEffects", () => {
     expect(typeof result.current.playWordDiscovery).toBe("function");
     expect(typeof result.current.playMatchStart).toBe("function");
     expect(typeof result.current.playMatchEnd).toBe("function");
+    expect(typeof result.current.playChallenge).toBe("function");
+  });
+
+  it("playChallenge sounds two notes (spec 069: a table waiting in a hidden tab)", () => {
+    const createOscillator = vi.fn(() => ({ ...mockOscillator }));
+    vi.mocked(AudioContext).mockImplementation(
+      () => ({ ...mockAudioContext, createOscillator, createGain: vi.fn(() => ({ ...mockGainNode })) } as unknown as AudioContext),
+    );
+    const { result } = renderHook(() => useSoundEffects(true));
+    act(() => result.current.playChallenge());
+    expect(createOscillator).toHaveBeenCalledTimes(2);
   });
 
   it("when enabled=true, playTileSelect creates an oscillator and calls start()", () => {

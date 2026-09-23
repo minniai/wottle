@@ -32,6 +32,8 @@ export interface TransportState {
   offline: boolean;
   /** Set on recovery: how long the viewer was away. */
   awayMs: number | null;
+  /** Read the match now, outside the poll (spec 069: after a seat, and when the table's time runs out). */
+  refresh: () => void;
 }
 
 /** Two failed safety polls in a row (about 4s) are an outage; one is a hiccup. */
@@ -181,5 +183,8 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
     };
   }, [matchId, applySnapshot, onPoll, attention]);
 
-  return { usePolling, isReconnecting, pollError, offline: outage.offline, awayMs: outage.awayMs };
+  const refresh = useCallback(() => {
+    void fetchMatchSnapshot(matchId, attention()).then((snapshot) => snapshot && applySnapshot(snapshot));
+  }, [matchId, attention, applySnapshot]);
+  return { usePolling, isReconnecting, pollError, offline: outage.offline, awayMs: outage.awayMs, refresh };
 }

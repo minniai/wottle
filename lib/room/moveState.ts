@@ -42,6 +42,9 @@ export interface DeriveMoveStateInput {
   msToStart?: number;
 }
 
+/** The count the room shows before go (game flow C2). */
+const START_COUNT = 3;
+
 export function viewerFacts(match: MatchState, viewerSlot: PlayerSlot): { you: PlayerMatchFacts; opp: PlayerMatchFacts } {
   const you = match.players[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const opp = match.players[viewerSlot === "player_a" ? "playerB" : "playerA"];
@@ -55,7 +58,8 @@ export function deriveMoveState(input: DeriveMoveStateInput): MoveState {
   const msToStart = input.msToStart ?? 0;
   if (match.state === "completed" && match.endedReason === "void") return { kind: "void", opponentName };
   if (match.state === "pending") return { kind: "table", opponentName };
-  if (msToStart > 0 && match.state === "in_progress") return { kind: "starting", seconds: Math.ceil(msToStart / 1000), opponentName };
+  // The start is set 4.5s ahead (spec 069); the count shows 3·2·1 of it.
+  if (msToStart > 0 && match.state === "in_progress") return { kind: "starting", seconds: Math.min(START_COUNT, Math.ceil(msToStart / 1000)), opponentName };
   if (clockMs <= 0 && match.state === "in_progress") return { kind: "timeUp", opponentName };
   if (holdMove !== null) {
     const last = you.lastResolution;

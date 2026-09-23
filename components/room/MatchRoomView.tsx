@@ -6,7 +6,8 @@ import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
 import type { Line2Extras, MoveState } from "@/lib/room/moveState";
-import { deriveScoreboard, type ScoreboardPhase } from "@/lib/room/scoreboard";
+import { deriveScoreboard, type ScoreboardPhase, type ScoreboardTable } from "@/lib/room/scoreboard";
+import type { SlipState } from "@/lib/room/slip";
 import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
@@ -71,6 +72,10 @@ export interface MatchRoomViewProps {
   verdict?: Verdict;
   /** Non-participant viewing a completed match: no `· you`, no actions. */
   readOnly?: boolean;
+  /** Spec 069: who has sat down, and why a void was void. */
+  table?: ScoreboardTable;
+  /** Spec 069: the table's slip, derived from the match (ready or void). */
+  tableSlip?: SlipState | null;
   notices?: Notice[];
   footActions?: ReactNode;
   onRowHover?: (move: number | null) => void;
@@ -80,6 +85,7 @@ export interface MatchRoomViewProps {
 }
 
 function scoreboardPhase(completed: boolean, moveState: MoveState | undefined): ScoreboardPhase {
+  if (moveState?.kind === "table" || moveState?.kind === "void") return moveState.kind;
   if (completed) return "over";
   return moveState?.kind === "starting" ? "starting" : "live";
 }
@@ -130,16 +136,18 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           compact: isPhone,
           you: { name: you.name, rating: you.rating, movesPlayed: you.movesPlayed, inFlight: Boolean(you.scoring), score: you.score, offline: you.offline, finalLine: you.finalLine },
           opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, finalLine: opp.finalLine },
+          table: props.table,
         },
         copy,
       ),
-    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, isPhone, you, opp, copy],
+    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, isPhone, you, opp, props.table, copy],
   );
 
   return (
     <Room
       matchId={matchId}
       onSlipAction={onAction}
+      slip={props.tableSlip ?? null}
       layout="scoreboard"
       topBar={
         <Scoreboard
