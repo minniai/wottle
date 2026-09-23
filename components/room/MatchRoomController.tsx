@@ -10,6 +10,7 @@ import { resignMatch } from "@/app/actions/match/resignMatch";
 import { settleMatch } from "@/app/actions/match/settleMatch";
 import { leaveTableAction } from "@/app/actions/match/leaveTable";
 import { seatAction } from "@/app/actions/match/seat";
+import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { useLocalePath } from "@/components/i18n/LocaleProvider";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
@@ -28,6 +29,7 @@ import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
+import { useMatchmaking } from "@/lib/room/useMatchmaking";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -108,6 +110,11 @@ function latestResolution(match: MatchState): MoveResolution | null {
  * hydrates the room store, runs transport, and wires the field interaction into
  * bars, field and ledger.
  */
+/** When a void table ended; the requeued search counts from it. */
+function voidedAtOf(match: MatchState): number {
+  return match.completedAt ? Date.parse(match.completedAt) : Date.now();
+}
+
 /** The clock's length for this match (5:00 unless the playtest env shortens it); null before it is set. */
 function clockLengthOf(clock: MatchState["clock"]): number | null {
   if (!clock?.startedAt || !clock.deadlineAt) return null;
@@ -302,7 +309,17 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // The table (spec 069): its slip is derived from the match and the server-corrected second.
   const atTable = !readOnly && (match.state === "pending" || voided || msToStart > 0);
   const tableNow = useNowTick(atTable) + serverDrift;
-  const tableSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
+  const table = tableFacts(match, viewerSlot);
+  // A seated searcher whose table voided is back in the queue, and keeps searching from the void slip (FR-017).
+  const requeue = useMatchmaking(!readOnly && voided && Boolean(table.youRequeued), voidedAtOf(match), match.language);
+  const derivedSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
+  const tableSlip = derivedSlip?.kind === "void" && requeue.state.kind === "searching" && table.youRequeued
+    ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeue.state.elapsedSeconds * 1000)}` } }
+    : derivedSlip;
+  const foundMatchId = requeue.state.kind === "found" ? requeue.state.matchId : null;
+  useEffect(() => {
+    if (foundMatchId) router.push(to(`/match/${foundMatchId}`));
+  }, [foundMatchId, router, to]);
   const tableAnnouncement = useSeatAnnouncement(match, viewerSlot, opp.displayName, copy);
   const refreshMatch = transport.refresh;
   useTableDeadlineRead(match, serverDrift, refreshMatch);
@@ -503,7 +520,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
       else if (action === "reviewField") dismissSlip();
-      else if (action === "result") restoreSlip();
+      else if (action === "result" && !voided) restoreSlip();
       else if (action === "newOpponent") {
         // A queue-found match runs under /matchmaking, so the route alone would
         // not remount the queue; the store's search counter does.
@@ -533,6 +550,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "leaveTable") {
         void leaveTableAction(matchId).then(() => router.push(to("/lobby")));
       }
+      else if (action === "cancelQueue") void requeue.cancel().then(() => router.push(to("/lobby")));
+      else if (action === "challengeAgain") {
+        // The same player, through the ordinary send (spec 069 clarification Q2); a refusal stays here and says why.
+        void sendInviteAction(oppFacts.playerId, match.language).then((r) => {
+          if (r.status === "accepted" && "matchId" in r && r.matchId) router.push(to(`/match/${r.matchId}`));
+          else if (r.status === "sent") router.push(to("/lobby"));
+          else push({ kind: "text", text: copy.errors.invite_failed });
+        });
+      }
+      else if (action === "result" && voided && match.table.rematchOf) router.push(to(`/match/${match.table.rematchOf}`));
       else if (action === "resign" || action === "leave") setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName });
       else if (action === "keepPlaying") clearSlip("resign");
       else if (action === "confirmResign") {
@@ -546,7 +573,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName, refreshMatch],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName, refreshMatch, requeue, oppFacts.playerId, match.language, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
@@ -607,7 +634,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         moveState={moveState}
         line2Extras={line2Extras}
         announcement={tableAnnouncement ?? announcement}
-        table={tableFacts(match, viewerSlot)}
+        table={table}
         tableSlip={tableSlip}
         holdMove={holdMove}
         notices={allNotices}

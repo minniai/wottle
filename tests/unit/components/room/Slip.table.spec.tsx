@@ -93,3 +93,45 @@ describe("the ready slip (spec 069)", () => {
     expect(screen.queryByTestId("slip-stakes")).toBeNull();
   });
 });
+
+/** Spec 069 T040: the void slip (game flow C3, canvas Void). */
+describe("the void slip (spec 069)", () => {
+  const VOID: SlipState = {
+    kind: "void",
+    model: { label: "no match", headline: "Kári did not sit down", body: ["nothing was rated", "you are back in the queue"], actions: ["cancelQueue"], requeued: true },
+  };
+
+  it("focuses its headline and says nothing was rated", () => {
+    render(<Slip slip={VOID} onAction={() => {}} />);
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "void");
+    const headline = screen.getByRole("heading");
+    expect(headline).toHaveTextContent("Kári did not sit down");
+    expect(document.activeElement).toBe(headline);
+    expect(screen.getByTestId("slip")).toHaveTextContent("nothing was rated");
+    expect(screen.getByTestId("slip")).toHaveTextContent("you are back in the queue");
+  });
+
+  it("a requeued viewer's search runs under the body; its only action is `cancel ▸`, a secondary", () => {
+    const onAction = vi.fn();
+    render(<Slip slip={{ kind: "void", model: { ...(VOID as Extract<SlipState, { kind: "void" }>).model, searching: "searching · 0:03" } }} onAction={onAction} />);
+    expect(screen.getByTestId("slip-void-searching")).toHaveTextContent("searching · 0:03");
+    const cancel = screen.getByTestId("slip-void-cancelQueue");
+    expect(cancel).toHaveClass("action-secondary");
+    expect(screen.queryByRole("button", { name: /lobby/ })).toBeNull();
+    fireEvent.click(cancel);
+    expect(onAction).toHaveBeenCalledWith("cancelQueue");
+  });
+
+  it("after a challenge offers `challenge again ▸` and `lobby`; after a rematch the result", () => {
+    const onAction = vi.fn();
+    const { rerender } = render(<Slip slip={{ kind: "void", model: { ...(VOID as Extract<SlipState, { kind: "void" }>).model, body: ["nothing was rated"], actions: ["challengeAgain", "lobby"], requeued: false } }} onAction={onAction} />);
+    fireEvent.click(screen.getByTestId("slip-void-challengeAgain"));
+    expect(onAction).toHaveBeenCalledWith("challengeAgain");
+    expect(screen.getByTestId("slip-void-challengeAgain")).toHaveTextContent("challenge again ▸");
+    rerender(<Slip slip={{ kind: "void", model: { ...(VOID as Extract<SlipState, { kind: "void" }>).model, actions: ["result", "lobby"], requeued: false } }} onAction={onAction} />);
+    fireEvent.click(screen.getByTestId("slip-void-result"));
+    expect(onAction).toHaveBeenCalledWith("result");
+    fireEvent.click(screen.getByTestId("slip-void-lobby"));
+    expect(onAction).toHaveBeenCalledWith("lobby");
+  });
+});

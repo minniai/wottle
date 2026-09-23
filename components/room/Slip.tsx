@@ -11,6 +11,7 @@ import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { SlipState } from "@/lib/room/slip";
+import type { VoidAction } from "@/lib/room/tableSlip";
 import type { ReturningPlayer } from "@/lib/types/lobby";
 import type { PlayerIdentity } from "@/lib/types/match";
 import { NameInput } from "./NameInput";
@@ -210,6 +211,37 @@ function TableActions({ model, onAction }: { model: Extract<SlipState, { kind: "
   );
 }
 
+/** Nothing was rated (spec 069, game flow C3); a seated searcher keeps searching from here. */
+function VoidBody({ slip, onAction, headlineId, headlineRef }: { slip: Extract<SlipState, { kind: "void" }>; onAction: (a: LedgerAction) => void; headlineId: string; headlineRef: RefObject<HTMLHeadingElement | null> }) {
+  const labels = useVoidLabels();
+  const label: Record<VoidAction, string> = { cancelQueue: labels.CANCEL, challengeAgain: labels.CHALLENGE_AGAIN, result: labels.RESULT, lobby: labels.LOBBY };
+  const { model } = slip;
+  return (
+    <>
+      <div role="status" aria-live="assertive" className="slip__head">
+        <span className="slip__label">{model.label}</span>
+        <h2 id={headlineId} ref={headlineRef} tabIndex={-1} className="slip__headline">{model.headline}</h2>
+        {model.body.map((line) => (
+          <span key={line} className="slip__label">{line}</span>
+        ))}
+      </div>
+      {model.searching ? <span className="slip__mono" data-testid="slip-void-searching">{model.searching}</span> : null}
+      <div className="slip__rule" />
+      {/* A void raises no primary: a wait (the requeue) or a way on, each a secondary (game flow C3). */}
+      <div className="slip__actions">
+        {model.actions.map((action) => (
+          <Secondary key={action} label={label[action]} action={action} testId={`slip-void-${action}`} onAction={onAction} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function useVoidLabels() {
+  const { CANCEL, LOBBY, RESULT, table } = useCopy();
+  return { CANCEL, CHALLENGE_AGAIN: table.CHALLENGE_AGAIN, LOBBY, RESULT };
+}
+
 function MatchOverActions({ slip, onAction }: { slip: Extract<SlipState, { kind: "matchOver" }>; onAction: (a: LedgerAction) => void }) {
   const { ACCEPT, DECLINE, LOBBY, NEW_OPPONENT, REMATCH, rematchRequest, REVIEW_FIELD, waitingForRematch } = useCopy();
   if (slip.readOnly) return <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} />;
@@ -275,6 +307,8 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedI
       return <SignInBody onSignedIn={onSignedIn} />;
     case "ready":
       return <ReadyBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
+    case "void":
+      return <VoidBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
     case "resign":
       return <ResignBody slip={slip} onAction={onAction} headlineId={headlineId} />;
     case "endEarly":

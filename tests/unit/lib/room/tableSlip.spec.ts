@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { copyEn } from "@/lib/i18n/copy/en";
 import { copyIs } from "@/lib/i18n/copy/is";
 import { SEATED_TABLE } from "@/lib/match/table";
-import { readySlipModel, tableSlipFor, type TableSlipInput } from "@/lib/room/tableSlip";
+import { readySlipModel, tableSlipFor, voidSlipModel, type TableSlipInput } from "@/lib/room/tableSlip";
 import type { MatchState, PlayerMatchFacts } from "@/lib/types/match";
 
 /** Spec 069 T014: the ready slip (C1), from the match state alone. */
@@ -89,5 +89,53 @@ describe("tableSlipFor (spec 069 FR-010)", () => {
 
   it("raises nothing for a live or finished match", () => {
     expect(tableSlipFor(input(match({ state: "completed", endedReason: "moves_complete" })))).toBeNull();
+  });
+});
+
+/** Spec 069 T036: the void slip (C3). */
+describe("voidSlipModel (spec 069 C3)", () => {
+  const voided = (reason: "not_seated" | "left", voidedBy: string | null, origin: "queue" | "challenge" | "rematch", seats = { a: "x" as string | null, b: null as string | null }) =>
+    match({ state: "completed", endedReason: "void", table: { ...SEATED_TABLE, seats, origin, voidReason: reason, voidedBy, rematchOf: origin === "rematch" ? "m0" : null } });
+
+  it("names the opponent who did not sit down; a seated searcher is back in the queue", () => {
+    const model = voidSlipModel(input(voided("not_seated", "kari", "queue")));
+    expect(model).toEqual({
+      label: "no match",
+      headline: "Kári did not sit down",
+      body: ["nothing was rated", "you are back in the queue"],
+      actions: ["cancelQueue"],
+      requeued: true,
+    });
+  });
+
+  it("names the opponent who left", () => {
+    expect(voidSlipModel(input(voided("left", "kari", "queue", { a: "x", b: "y" }))).headline).toBe("Kári left the table");
+  });
+
+  it("tells the viewer who did not sit down, who is not requeued", () => {
+    const model = voidSlipModel(input(voided("not_seated", "birna", "queue", { a: null, b: "y" })));
+    expect(model).toMatchObject({ headline: "You did not sit down in time", body: ["nothing was rated"], actions: ["lobby"], requeued: false });
+  });
+
+  it("when neither sat down, speaks to the viewer", () => {
+    expect(voidSlipModel(input(voided("not_seated", null, "queue", { a: null, b: null }))).headline).toBe("You did not sit down in time");
+  });
+
+  it("offers `challenge again ▸` after a challenge, and the previous result after a rematch", () => {
+    expect(voidSlipModel(input(voided("not_seated", "kari", "challenge"))).actions).toEqual(["challengeAgain", "lobby"]);
+    expect(voidSlipModel(input(voided("not_seated", "kari", "rematch"))).actions).toEqual(["result", "lobby"]);
+  });
+
+  it("the viewer who left is told so", () => {
+    expect(voidSlipModel(input(voided("left", "birna", "challenge"))).headline).toBe("You left the table");
+  });
+
+  it("speaks Icelandic", () => {
+    const model = voidSlipModel(input(voided("not_seated", "kari", "queue"), { copy: copyIs }));
+    expect(model).toMatchObject({ label: "engin viðureign", headline: "Kári settist ekki", body: ["hefur ekki áhrif á Elo stig", "þú ert aftur í leitinni"] });
+  });
+
+  it("tableSlipFor raises it for a void match", () => {
+    expect(tableSlipFor(input(voided("left", "kari", "challenge")))?.kind).toBe("void");
   });
 });

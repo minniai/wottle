@@ -39,6 +39,19 @@ export interface ReadySlipModel {
   drain: number | null;
 }
 
+export type VoidAction = "cancelQueue" | "challengeAgain" | "result" | "lobby";
+
+export interface VoidSlipModel {
+  label: string;
+  headline: string;
+  body: string[];
+  actions: VoidAction[];
+  /** The viewer is back in the queue, at the front: the slip keeps searching (FR-017). */
+  requeued: boolean;
+  /** The requeued search as it runs (`searching · 0:03`); the controller fills it in. */
+  searching?: string | null;
+}
+
 /** The match clock's length before the server has set it: 5:00 (spec 050). */
 const DEFAULT_CLOCK_MS = 300_000;
 /** The count the slip shows once the start is set; the scoreboard carries it on (C2). */
@@ -99,10 +112,40 @@ export function readySlipModel(input: TableSlipInput): ReadySlipModel {
   };
 }
 
+function voidHeadline(input: TableSlipInput, viewerId: string): string {
+  const { table } = input.match;
+  const { copy } = input;
+  if (table.voidReason === "left") return table.voidedBy === viewerId ? copy.table.YOU_LEFT : copy.table.voidOppLeft(input.opp.name);
+  // Not seated: the one who did not sit down is named; when neither did, it is the viewer too.
+  return table.voidedBy && table.voidedBy !== viewerId ? copy.table.voidOppNotSeated(input.opp.name) : copy.table.VOID_YOU_NOT_SEATED;
+}
+
+function voidActions(origin: string | null, requeued: boolean): VoidAction[] {
+  if (requeued) return ["cancelQueue"];
+  if (origin === "challenge" || origin === "crossed_challenge") return ["challengeAgain", "lobby"];
+  if (origin === "rematch" || origin === "crossed_rematch") return ["result", "lobby"];
+  return ["lobby"];
+}
+
+/** Nothing was rated, and why (spec 069 C3); a seated searcher is back in the queue. */
+export function voidSlipModel(input: TableSlipInput): VoidSlipModel {
+  const { match, copy } = input;
+  const viewerId = viewerIdOf(input);
+  const seated = match.table.seats[seatKeys(input.viewerSlot).you] !== null;
+  const requeued = match.table.origin === "queue" && seated && match.table.voidedBy !== viewerId;
+  return {
+    label: copy.table.VOID_LABEL,
+    headline: voidHeadline(input, viewerId),
+    body: requeued ? [copy.table.NOTHING_RATED, copy.table.BACK_IN_QUEUE] : [copy.table.NOTHING_RATED],
+    actions: voidActions(match.table.origin, requeued),
+    requeued,
+  };
+}
+
 /** The ready slip while the table stands, until 3.3s before go (FR-010); the void slip after a void. */
 export function tableSlipFor(input: TableSlipInput): SlipState | null {
   const { match } = input;
-  if (match.state === "completed" && match.endedReason === "void") return null;
+  if (match.state === "completed" && match.endedReason === "void") return { kind: "void", model: voidSlipModel(input) };
   if (match.state === "pending") return { kind: "ready", model: readySlipModel(input) };
   if (match.state === "in_progress" && msUntil(match.clock.startedAt, input.nowMs) > SLIP_LIFT_BEFORE_GO_MS) {
     return { kind: "ready", model: readySlipModel(input) };

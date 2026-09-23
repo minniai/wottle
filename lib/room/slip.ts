@@ -1,11 +1,11 @@
 import type { Verdict } from "./ledgerTypes";
 import type { RatingRow } from "./ledgerRows";
 import type { RematchPhase } from "./useRematchNegotiation";
-import type { ReadySlipModel } from "./tableSlip";
+import type { ReadySlipModel, VoidSlipModel } from "./tableSlip";
 
 /**
  * The slip (spec 048, design system §5.9): the one element ever laid over the
- * field. Exactly four kinds, one at a time, ranked so a higher-stakes slip
+ * field. One at a time, ranked so a higher-stakes slip
  * always replaces a lower one and is never replaced by it. Spec 050 turned
  * `claim the win` into `end early`: offered only to a player with all their
  * moves whose opponent has been gone for the window.
@@ -17,6 +17,8 @@ export type SlipState =
   | { kind: "signIn" }
   /** Spec 069: the table (C1). Derived from the match, never stored. */
   | { kind: "ready"; model: ReadySlipModel }
+  /** Spec 069: the table did not fill, or someone left it (C3). */
+  | { kind: "void"; model: VoidSlipModel }
   | { kind: "resign"; move: number; clockMs: number; opponentName: string }
   | { kind: "endEarly"; opponentName: string; opponentMoves: number; clockMs: number }
   | {
@@ -43,7 +45,7 @@ export interface SlipRatingRow {
 }
 
 // Spec 069 (design system §5.9): match over > end early > resign > ready or void.
-const RANK: Record<SlipKind, number> = { signIn: 0, ready: 1, resign: 2, endEarly: 3, matchOver: 4 };
+const RANK: Record<SlipKind, number> = { signIn: 0, ready: 1, void: 1, resign: 2, endEarly: 3, matchOver: 4 };
 
 export function slipPrecedence(kind: SlipKind): number {
   return RANK[kind];
