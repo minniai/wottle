@@ -82,7 +82,9 @@ export interface RoomState {
 
 const EMPTY_BOARD: string[][] = [];
 
+/** A void table never became a match, so it has no final state (spec 069): the room stays at the table. */
 function phaseForMatch(state: MatchState): RoomPhase {
+  if (state.endedReason === "void") return "match";
   return state.state === "completed" || state.state === "abandoned" ? "final" : "match";
 }
 

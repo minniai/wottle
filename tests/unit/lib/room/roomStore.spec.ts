@@ -225,4 +225,10 @@ describe("roomStore: each player's last resolved move, for the tick (spec 068 FR
     store.leaveToLobby();
     expect(useRoomStore.getState().lastResolved).toEqual({});
   });
+
+  it("a void table stays in the match phase: it has no final state (spec 069)", () => {
+    const s = useRoomStore.getState;
+    s().hydrateMatch(matchState({ state: "completed", endedReason: "void" }), A);
+    expect(s().phase).toBe("match");
+  });
 });

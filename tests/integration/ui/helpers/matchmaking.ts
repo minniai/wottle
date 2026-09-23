@@ -167,6 +167,22 @@ async function waitForPlayersVisible(
   throw new Error(`Timeout waiting for players to be visible after ${timeoutMs}ms`);
 }
 
+/** How long `ready ▸` ignores a press after it appears (game flow §5.0 guards). */
+const READY_GUARD_MS = 600;
+
+/**
+ * Spec 069: at the table, press `ready ▸` if the slip offers it. A player who is
+ * already seated (their own press, or a visible tab with recent input) has
+ * nothing to do. Safe to call on a page that is past the table.
+ */
+export async function sitDownIfAsked(page: Page, timeoutMs = 3_000): Promise<void> {
+  const ready = page.getByTestId("slip-ready");
+  const shown = await ready.waitFor({ state: "visible", timeout: timeoutMs }).then(() => true, () => false);
+  if (!shown) return;
+  await safeWait(page, READY_GUARD_MS);
+  await ready.click().catch(() => undefined);
+}
+
 /**
  * Waits for both players to be matched and navigated to the match shell.
  * Handles race conditions by polling until both pages show the match shell.
@@ -201,6 +217,9 @@ export async function waitForBothPlayersMatched(
     const shellB = await pageB.getByTestId("room").isVisible().catch(() => false);
 
     if (shellA && shellB && matchIdA && matchIdB && matchIdA === matchIdB) {
+      // Spec 069: every match begins at the table; a player not seated by their own
+      // press or a recent input presses `ready ▸`.
+      await Promise.all([sitDownIfAsked(pageA), sitDownIfAsked(pageB)]);
       return [matchIdA, matchIdB];
     }
 
