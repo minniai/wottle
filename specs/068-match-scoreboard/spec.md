@@ -3,7 +3,7 @@
 **Feature Branch**: `068-match-scoreboard`
 **Created**: 2026-09-23
 **Status**: Draft
-**Input**: Stage 2 of the game flow redesign. Source of truth: `docs/design_documentation/260922-game-flow/GAME_FLOW_SPEC.md`: C4 (match), C6 (resign slip), C8 (disconnect and end early), F3 (phone match), F8 (phone slips), §8 design-system amendments 5, 6, 8, 9, 11, 12 and 14, and the two current amendments at the end of the file, "the scoreboard" and "the opponent's colour and the penalty red". The earlier clock amendments (the ledger clock, the match rail, the boxed clock) are superseded and are not built. Owner decisions in §10 are settled and are not re-asked here. Design canvas https://claude.ai/artifact/W1emDuJCT6zNAH4h79N3yo, artboards MatchRail (the scoreboard sheet), Match, MatchLastMinute, ResignSlip, Disconnect, PhoneMatch and PhoneMatchShort.
+**Input**: Stage 2 of the game flow redesign. Source of truth: `docs/design_documentation/260922-game-flow/GAME_FLOW_SPEC.md`: C4 (match), C6 (resign slip), C8 (disconnect and end early), F3 (phone match), F8 (phone slips), §8 design-system amendments 5, 6, 8, 9, 11, 12 and 14, and the two current amendments at the end of the file, "the scoreboard" and "the opponent's colour and the penalty red". The earlier clock amendments (the ledger clock, the match rail, the boxed clock) are superseded and are not built. Owner decisions in §10 are settled and are not re-asked here. Design canvas https://claude.ai/artifact/W1emDuJCT6zNAH4h79N3yo, artboards MatchRail (the scoreboard sheet), Match, MatchLastMinute, ResignSlip, Disconnect, PhoneMatch and PhoneMatchShort. <!-- retired-name -->
 
 ## Context
 
@@ -12,7 +12,7 @@ During a match the player reads three things while looking at the letters: how m
 This stage puts the clock and both players into one **scoreboard** above the board. Its three rows share one ten-column track, so time left and moves left can be compared straight down a column. The player bars around the field go away. The ledger is laid on the same grid, so every horizontal edge on the right is level with one on the left.
 
 The stage also:
-- changes the opponent's colour from coral to burnished terracotta;
+- changes the opponent's colour from coral to burnished terracotta; <!-- retired-name -->
 - adds one crimson that marks points lost and nothing else;
 - capitalises the brand everywhere (Orðusta, Wottle);
 - brings in the match-room details from C4, C6 and C8 that the scoreboard needs to be read correctly: the pace, the missed beat, the stakes line, the last-moved tick, and the gone and offline states.
@@ -38,7 +38,7 @@ A player in a live match looks above the board and sees one box:
 
 Reading down any column compares time left with moves left.
 
-**Why this priority**: This is the stage's reason to exist. It replaces the bars and the ledger clock. Every other story sits on this layout.
+**Why this priority**: This is the stage's reason to exist. It replaces the bars and the ledger clock. Every other story sits on this layout. <!-- retired-name -->
 
 **Independent Test**: Render the `idle` fixture (Birna 3:12, move 4 of 10, total 44; Kári 6 of 10, total 34) at 1440×900. Check that one box holds exactly three rows in the order clock, opponent, you. Check that no player bar is drawn above or below the field, and that the ledger caption holds no clock.
 
@@ -58,7 +58,7 @@ Reading down any column compares time left with moves left.
 
 As time runs out, the scoreboard gets heavier. Nothing ever flashes. A player who has fallen a full block behind is told so in words.
 
-**Why this priority**: Spec 050's last-15-seconds inverted flash is retired, because blinking fails WCAG 2.2.2 and pulls the eye off the field. This must ship in the same stage that retires the ledger clock.
+**Why this priority**: Spec 050's last-15-seconds inverted flash is retired, because blinking fails WCAG 2.2.2 and pulls the eye off the field. This must ship in the same stage that retires the ledger clock. <!-- retired-name -->
 
 **Independent Test**: Render `low-clock` (0:48) and `last-seconds` (0:12) and compare them with the MatchLastMinute artboard. With the page recorded for 3 seconds, check that no element changes colour or background other than the numeral stepping and ticks emptying.
 
@@ -124,7 +124,7 @@ On a phone the scoreboard sits across the top at the field's width. The field si
 
 ### User Story 5 - The opponent's colour, and red only for points lost (Priority: P1)
 
-The opponent is burnished terracotta, not coral. A crimson marks points lost and nothing else, and it colours only the number.
+The opponent is burnished terracotta, not coral. A crimson marks points lost and nothing else, and it colours only the number. <!-- retired-name -->
 
 **Why this priority**: The colour change touches every seat-coloured element. A penalty colour that could be mistaken for the opponent would confuse the ledger.
 
@@ -229,7 +229,7 @@ The resign slip, the opponent's absence and your own lost connection are written
 
 ### User Story 9 - The design system, the docs and the fixtures say what is built (Priority: P2)
 
-The design system, CLAUDE.md and the visual baselines describe the scoreboard, nine tokens and the capitalised brand. None of them still describes bars, a ledger clock, coral or a lowercase wordmark.
+The design system, CLAUDE.md and the visual baselines describe the scoreboard, nine tokens and the capitalised brand. None of them still describes bars, a ledger clock, coral or a lowercase wordmark. <!-- retired-name -->
 
 **Why this priority**: The project treats these documents as the contract for every later UI change, and the visual suite is its guard.
 
@@ -243,10 +243,10 @@ The design system, CLAUDE.md and the visual baselines describe the scoreboard, n
 1. **Given** WOTTLE_DESIGN_SYSTEM.md, **When** it is read, **Then**:
    - §2 lists nine tokens with the new `--opp`, `--opp-text` and `--err` values and their uses;
    - §3 has the display tier ladder and the capitalised wordmark;
-   - §5 describes the scoreboard in place of the bars and the ledger clock;
+   - §5 describes the scoreboard in place of the bars and the ledger clock; <!-- retired-name -->
    - §5.1 adds the last-moved letter state;
    - §6 says time is not motion, and nothing blinks.
-2. **Given** CLAUDE.md's Design section, **When** it is read, **Then** it describes the scoreboard (no bar lanes, no ledger clock, no inverted flash), nine tokens including `--err` and its only use, terracotta for the opponent, and the capitalised wordmark.
+2. **Given** CLAUDE.md's Design section, **When** it is read, **Then** it describes the scoreboard (no bar lanes, no ledger clock, no inverted flash), nine tokens including `--err` and its only use, terracotta for the opponent, and the capitalised wordmark. <!-- retired-name -->
 3. **Given** `/dev/room`, **When** the new phases are requested, **Then** each renders from static fixtures with no database: `missed`, `stakes`, `pick-cleared`, `last-moved`, `gone`, `offline`, `starting`, and the phone `phone-match`, `phone-match-664`, `phone-match-360`. Every existing match phase is re-baselined.
 
 ---
@@ -293,7 +293,7 @@ The design system, CLAUDE.md and the visual baselines describe the scoreboard, n
   - at 0:00, `time`;
   - while starting, `starts in 3`;
   - at match over, `match over · 4:52 of 5:00`.
-- **FR-006**: Urgency MUST be weight only, as in User Story 2's scenarios 1–4. No element of the scoreboard or ledger may blink, flash or invert. Spec 050's last-15-seconds inverted face is retired.
+- **FR-006**: Urgency MUST be weight only, as in User Story 2's scenarios 1–4. No element of the scoreboard or ledger may blink, flash or invert. Spec 050's last-15-seconds inverted face is retired. <!-- retired-name -->
 - **FR-007**: The viewer's sub-line MUST add `behind pace` / `á eftir áætlun` when moves left − (seconds left ÷ 30) ≥ 1 and the viewer has a move left. The pace carets proposed in the match-rail amendment are not built.
 - **FR-008**: Desktop geometry:
   - rows 40px;
@@ -386,14 +386,14 @@ The design system, CLAUDE.md and the visual baselines describe the scoreboard, n
 - **FR-039**: WOTTLE_DESIGN_SYSTEM.md MUST be updated:
   - §2: nine tokens and values;
   - §3: the display tier and the capitalised wordmark;
-  - §5: the scoreboard replaces the bars (§5.3) and the ledger clock;
+  - §5: the scoreboard replaces the bars (§5.3) and the ledger clock; <!-- retired-name -->
   - §5.1: the last-moved state;
   - §5.4 and §8: the live row strings above;
   - §6: time is not motion, nothing blinks;
   - §9: timer role, lane value text, announcements.
-- **FR-040**: CLAUDE.md's Design section MUST describe the scoreboard, the one grid, nine tokens, `--err`'s only use and the capitalised brand. Its references to bar lanes, the ledger clock and its inverted flash, coral, eight tokens and the lowercase wordmark are removed.
+- **FR-040**: CLAUDE.md's Design section MUST describe the scoreboard, the one grid, nine tokens, `--err`'s only use and the capitalised brand. Its references to bar lanes, the ledger clock and its inverted flash, coral, eight tokens and the lowercase wordmark are removed. <!-- retired-name -->
 - **FR-041**: The rules document's §12 rows for the clock, scoring, frozen tile, reconnection window and resigning MUST be updated to match.
-- **FR-042**: `/dev/room` MUST gain the phases listed in User Story 9. Every match-room baseline MUST be refreshed (darwin locally, Linux from CI), and `pnpm docs:check` MUST list the retired phrases (`coral`, the lowercase wordmark rule, `ledger clock`, `BarLane` as a match element).
+- **FR-042**: `/dev/room` MUST gain the phases listed in User Story 9. Every match-room baseline MUST be refreshed (darwin locally, Linux from CI), and `pnpm docs:check` MUST list the retired phrases (`coral`, the lowercase wordmark rule, `ledger clock`, `BarLane` as a match element). <!-- retired-name -->
 
 ### Key Entities
 

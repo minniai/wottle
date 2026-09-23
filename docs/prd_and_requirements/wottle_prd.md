@@ -37,7 +37,7 @@ Wottle is a competitive **2-player real-time word duel** merging word-search gam
 - **One in flight:** A player has at most one unresolved move; the field takes no pick until their own reveal has drawn and held 600ms.
 - **Time Control:** **One clock of 5:00 for the match**, shared by both players, starting at match start and **never pausing** (`matches.started_at`, `matches.deadline_at`). No increments.
 - **Visibility:** The opponent's resolved swap exchanges its letters on your field at once and its bands draw while you pick; nothing is pinned. A pick on a letter the opponent exchanged or froze clears with a notice.
-- **Visual Timer Indication:** The clock is drawn once, in the ledger caption (`move 4 of 10 · 3:12`); under 1:00 the numeral is heavier and blinks in colour only. Each player bar's lane counts that player's moves 0–10 in their seat colour, and its sub-line carries the count. There is no green / amber / red.
+- **Visual Timer Indication:** The clock is drawn once, as the scoreboard's first row above the field: ten 30s blocks of six 5s ticks and the numeral; under 1:00 the row takes the tint and the numeral is heavier. Nothing blinks. Each player's row draws their ten moves on the same track in their seat colour, and its sub-line carries the count. There is no green / amber / red.
 - **Deadline:** A move received at or before the deadline is resolved and counted even if its reveal completes after 0:00; a move received after it is refused.
 - **Fair Play Safeguards:** Receipt, ordering, scoring, the deadline and the result are enforced server-side.
 
@@ -131,7 +131,7 @@ Move Score = Σ(Base Word Scores) + Σ(Length Bonuses) + Multi-Word Combo Bonus
 
 ### 3.2 Game Setup
 
-1. Assign seats: the server's `player_a` / `player_b` slots are internal; each client sees itself as `you` (teal, bottom bar) and the other as `opponent` (coral, top bar).
+1. Assign seats: the server's `player_a` / `player_b` slots are internal; each client sees itself as `you` (teal, the scoreboard's row nearest the board) and the other as `opponent` (terracotta, the row above it).
 2. Generate board using weighted letter distribution + seed words.
 3. Start the match clock (rules §2a).
 4. On a player's first match, the ledger's live row shows the three-sentence rules; afterwards rules are behind `? rules` in the ledger foot.
@@ -204,7 +204,7 @@ All UI follows the **Field & Ledger** design system — `docs/design_documentati
 `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`. It is binding for every screen
 and component; when it and the code disagree, the code is wrong. The implementing feature is
 `specs/044-field-ledger-redesign/`. The one rule: every visible element is a letter (or a state of a letter)
-on the **field**, a fact about one player in that player's **bar**, or a fact about the match in the **ledger**.
+on the **field**, a fact about one player on that player's row of the **scoreboard** (in a match; their **bar** in the lobby and queue), or a fact about the match on the scoreboard's clock row or in the **ledger**. The match layout was amended by spec 068 (`specs/068-match-scoreboard/`).
 
 ### 7.1 Layout — the room
 
@@ -212,32 +212,33 @@ on the **field**, a fact about one player in that player's **bar**, or a fact ab
 
 ```txt
 ┌──────────────────────────────────┬──────────────────────┐
-│ ■ Kári          06:45      170   │ wottle  ranked·R4/10 │  ← opponent bar (coral), lane on its lower edge
-│──────────────────────────────────│ ■ Birna · you  ■ Kári│
-│                                  │ R1 BORÐA 24 | ÞOKA 14│
-│           THE FIELD              │ R2 …                 │
-│     100 letters, ruled grid,     │ R3 …                 │
-│     word bands + chevrons        │ R4 picking · T (2)   │  ← live row (tinted)
-│                                  │ R5 … R10 (labels)    │
-│──────────────────────────────────│ territory ▬▬▬▬░░▬▬   │
-│ ■ Birna · you   04:47      127   │ tap a second letter  │
-└──────────────────────────────────┴ ? rules          ⋯  ─┘  ← your bar (teal), lane on its upper edge
+│ MATCH CLOCK  ▮▮▮▮▮▮▮▯▯▯     3:12 │ Wottle            ⋯  │  ← scoreboard: the clock
+│ ■ Kári       ▮▮▮▮▯▯▯▯▯▯     170  │ territory ▬▬░░░▬▬    │  ← the opponent (terracotta)
+│ ■ Birna      ▮▮▮▮▮▮▯▯▯▯     127  │ Birna · you│move│Kári│  ← you (teal), nearest the board
+├──────────────────────────────────┼──────────────────────┤
+│                                  │ BORÐA 24 │ 1 │ 14 ÞOKA│
+│           THE FIELD              │ …        │ 2 │ …     │
+│     100 letters, ruled grid,     │ move 4 · your move   │  ← live row (tinted)
+│     word bands + chevrons        │ pick a letter        │
+│                                  │          │ 5 │ …     │  ← each row one cell tall
+└──────────────────────────────────┴──────────────────────┘
 ```
 
-**Phone (< 900px):** one column `bar / field / bar / live row`, no scrolling at 390×844; the rest of the ledger
-opens as a sheet from the live row.
+**Phone (< 900px):** one column: scoreboard, field, the live row (`history ▸`), territory, and a foot pinned
+to the bottom edge (`⋯`, the language); no scrolling at 390×844. The rest of the ledger opens as a sheet
+between the field and the foot.
 
 **Layout Elements:**
 
-- **Player bars (60px, 56px on phones):** seat square + name + one-line sub-line (`1204 · you · move 4 of 10`, `1191 · opponent · 6 of 10 · playing`) left; total right. The bar's edge nearest the field is the **moves lane** (§1.4), that player's moves 0–10 in their seat colour. The opponent is always on top, you always at the bottom.
-- **Field:** the largest square that fits between the bars (≤ 720px), flat paper cells, 1px rules, 1.5px ink frame, letter value in the top-right gutter of each cell. No coordinate labels (coordinates live in the accessible label only). The whole cell is the hit target.
-- **Ledger:** caption (`wottle` · `move 4 of 10 · 3:12`, the one clock), the move rail, seat header, ten rows by move number (your Nth move in your column, theirs in theirs; words in the scorer's colour, the move's points), territory bar and counts, hint line, notices, foot (actions, `⋯` menu). It never scrolls.
-- **No top bar, no cards.** The clock appears once, in the ledger caption; each player's move count in their bar and, for the viewer, on the rail.
+- **Scoreboard (match states):** one box above the field, three rows on one track column: the match clock (label, ten 30s blocks of six 5s ticks, numeral), the opponent, you (square, name, sub-line such as `1310 · you · move 4 of 10`, ten moves emptying from the right, total). Time left and moves left compare straight down a column. The lobby and queue keep a **player bar** per seat.
+- **Field:** cells are whole pixels (≤ 71px; 713px field at 1440×900), flat paper cells, 1px rules, 1.5px ink frame, letter value in the top-right gutter of each cell. No coordinate labels (coordinates live in the accessible label only). The whole cell is the hit target.
+- **Ledger:** a head of three rows level with the scoreboard's (wordmark + context + `⋯` menu; territory, or the verdict at match over; the face-off header), then ten rows by move number, each one cell tall (your Nth move in your column, theirs in theirs; words in the scorer's colour, the move's points), hint line, notices; a foot outside a live match. It never scrolls.
+- **No top bar, no cards.** The clock appears once, on the scoreboard; each player's move count on their row.
 
 ### 7.2 Visual Feedback
 
-- **Colour:** seven tokens only — paper, ink, rule, tint, muted, **you (teal)**, **opp (coral)**. Colour is seat-relative: teal is always the viewer. No gradients, shadows, radii, third accent.
-- **Clock:** one numeral in the ledger caption; under 1:00 it is weight 600 and blinks at 1Hz (colour only, solid under reduced motion). The bars' lanes fill with moves played. No green / amber / red.
+- **Colour:** nine tokens only — paper, ink, rule, tint, muted, **you (teal)**, **opp (terracotta)**, opp-text (terracotta text below 17px) and **err (crimson)**, which marks a number of points lost and nothing else. Colour is seat-relative: teal is always the viewer. No gradients, shadows, radii.
+- **Clock:** the scoreboard's first row; under 1:00 it takes the tint, ink ticks and a heavier numeral. Nothing blinks. Each player's moves empty from the right on the same track. No green / amber / red.
 - **Scored words:** drawn as **bands** (14% tint of the scorer's colour along the word, chevron at the reading start). During the reveal each band draws along its word in 400ms, staggered 120ms, at 30% tint, then settles to 14%. A run valid both ways carries one chevron; a crossing letter keeps the colour of the player who froze it first.
 - **Pick / commit:** picked letter in your colour with an ink ring and slight scale; a committed pair exchanges in place and the field's frame returns to ink until your reveal has held. Nothing is pinned; the opponent's letters exchange on your field when their move resolves.
 - **Score reveal:** words and points are written into the ledger's live row as each band lands; totals count up over 400ms. There is no popup.
@@ -271,7 +272,7 @@ opens as a sheet from the live row.
 
 - **During Game:**
   - If a player disconnects mid-match, nothing pauses: the match clock keeps running and the opponent keeps playing.
-  - The opponent's bar shows `reconnecting · 0:42 left` with a dashed lane for the 90-second window.
+  - The opponent's scoreboard row shows `reconnecting · 0:42 left` with their moves outlined for the 90-second window, then `8 of 10 · gone for 2:04`.
   - A player who reconnects resumes from the exact state (board, scores, counts, the clock).
   - A player who does not come back simply fails to finish ten moves and loses at 0:00. If the opponent already has ten moves, after the window they may end the match early (`end the match ▸`); the ordinary rules decide it.
 - **Before Game Starts:** If a player disconnects during lobby/matchmaking, invitation is cancelled or matchmaking returns to queue.

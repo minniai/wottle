@@ -158,7 +158,7 @@
 **Independent test:** sampled colours in `idle`, `low-clock` and `final` match; every `−5` number is crimson with its label muted.
 
 - [X] T035 [P] [US5] Write failing tests in `tests/unit/styles/tokens.test.ts`: `--opp #B56A4F`, `--opp-text #A1583D`, `--err #AD1F3D`, nine tokens in total. Update `tests/unit/styles/tailwind-config.test.ts` for the `err` token.
-- [X] T036 [US5] Change `--opp` and `--opp-text`, add `--err`, and rewrite the coral comments as terracotta in `app/globals.css`. Add `err: "var(--err)"` to `tailwind.config.ts`.
+- [X] T036 [US5] Change `--opp` and `--opp-text`, add `--err`, and rewrite the coral comments as terracotta in `app/globals.css`. Add `err: "var(--err)"` to `tailwind.config.ts`. <!-- retired-name -->
 - [X] T037 [P] [US5] Write failing tests in `tests/unit/components/room/PointsLost.spec.tsx` for `renderPointsLost(value, label, order)`: a negative value renders the number in a `.points-lost` span with the label muted; `0` renders muted with no `.points-lost`; both orders work (`no word −5`, `−5 not played`, `−15 if unplayed`).
 - [X] T038 [US5] Implement `components/room/PointsLost.tsx` (`renderPointsLost`) and add `.points-lost { color: var(--err) }` to `app/styles/room.css` as the only `--err` rule.
 - [X] T039 [US5] Render every ledger penalty cell (`no word −5`, `−5 not played`, floored values) through `renderPointsLost` in `components/room/Ledger.tsx` and `lib/room/ledgerRows.ts` (both seats' columns). Update `tests/unit/components/room/Ledger.rows.spec.tsx`.
@@ -181,17 +181,17 @@
 
 ## Phase 9: User Story 9 (Phase A part): documents, fixtures, baselines
 
-- [ ] T046 [US9] Update `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`:
+- [X] T046 [US9] Update `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`:
   - §2: nine tokens, terracotta and `--err` with its only use;
   - §3: the display tier and the capitalised wordmark;
   - §5.3: the scoreboard replaces the bars in the match states (the lobby and queue keep them);
-  - §5.4: no ledger clock, and the ledger grid;
+  - §5.4: no ledger clock, and the ledger grid; <!-- retired-name -->
   - §6: time is not motion, and nothing blinks;
   - §9: `role=timer` and the lane value text.
-- [ ] T047 [US9] Update the Design section of `CLAUDE.md`: the scoreboard, one grid, nine tokens, `--err`'s only use, terracotta, the capitalised wordmark, and the fixture phase list. Remove the bar-lane, ledger-clock, inverted-flash, coral, eight-token and lowercase-wordmark sentences.
-- [ ] T048 [US9] Add the retired phrases to `scripts/docs/consistency-grep.sh`: `ledger clock` (as the current design), `inverted face`, `eight colour tokens`, `lowercase wordmark`, `coral`. Run `pnpm docs:check`.
-- [ ] T049 [US9] Update `docs/prd_and_requirements/wottle_game_rules.md` §12 rows for the clock (the scoreboard, weight only) and for scoring (a crimson penalty number).
-- [ ] T050 [US9] Re-baseline the visual suite on darwin (`pnpm test:visual --update-snapshots`) for every phase. Delete orphaned baselines. Record in the Notes that the Linux baselines come from the CI artifact.
+- [X] T047 [US9] Update the Design section of `CLAUDE.md`: the scoreboard, one grid, nine tokens, `--err`'s only use, terracotta, the capitalised wordmark, and the fixture phase list. Remove the bar-lane, ledger-clock, inverted-flash, coral, eight-token and lowercase-wordmark sentences. <!-- retired-name -->
+- [X] T048 [US9] Add the retired phrases to `scripts/docs/consistency-grep.sh`: `ledger clock` (as the current design), `inverted face`, `eight colour tokens`, `lowercase wordmark`, `coral`. Run `pnpm docs:check`. <!-- retired-name -->
+- [X] T049 [US9] Update `docs/prd_and_requirements/wottle_game_rules.md` §12 rows for the clock (the scoreboard, weight only) and for scoring (a crimson penalty number).
+- [X] T050 [US9] Re-baseline the visual suite on darwin (`pnpm test:visual --update-snapshots`) for every phase. Delete orphaned baselines. Record in the Notes that the Linux baselines come from the CI artifact.
 - [ ] T051 [US9] **Phase A gate:** run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`, and the chromium E2E room specs, plus `moves-flow` and `disconnect-claim` on `playtest-firefox --workers=1`. All must be green before Phase B.
 
 **Checkpoint:** Phase A is shippable.
@@ -203,14 +203,14 @@
 **Goal:** the tick, the missed beat, stakes, the illegal word, pick cleared, line 2 precedence, announcements and focus at go.
 **Independent test:** the fixtures `missed`, `stakes`, `pick-cleared` and `last-moved` show their strings and ticks.
 
-- [ ] T052 [P] [US7] Write failing tests in `tests/unit/lib/room/lastMoves.spec.ts` (contract `contracts/last-moves.md`):
+- [X] T052 [P] [US7] Write failing tests in `tests/unit/lib/room/lastMoves.spec.ts` (contract `contracts/last-moves.md`):
   - two cells per seat from the resolved swap;
   - frozen cells are dropped;
   - `latestResolved` keeps the previous move when the next is rejected;
   - a snapshot `lastResolution` that is rejected gives no cells (review 1A).
-- [ ] T053 [US7] Implement `lib/room/lastMoves.ts`, and keep `latestResolved` per seat in `lib/room/roomStore.ts` (fed by `applyResolution`, and by `applySnapshot` only for `status === "resolved"`). Test the store in `tests/unit/lib/room/roomStore.spec.ts`.
-- [ ] T054 [P] [US7] Write failing tests in `tests/unit/components/room/FieldCell.tick.spec.tsx`: a ticked cell renders `.field-cell__tick` in its seat colour on the bottom inner edge, above any band; its aria-label ends with `Kári's last move` / `síðasti leikur · Kári`.
-- [ ] T055 [US7] Draw the tick in `components/room/FieldCell.tsx` and `components/room/Field.tsx` (a `lastMoves` prop from `MatchRoomController`), with its CSS in `app/styles/room.css`.
+- [X] T053 [US7] Implement `lib/room/lastMoves.ts`, and keep `latestResolved` per seat in `lib/room/roomStore.ts` (fed by `applyResolution`, and by `applySnapshot` only for `status === "resolved"`). Test the store in `tests/unit/lib/room/roomStore.spec.ts`.
+- [X] T054 [P] [US7] Write failing tests in `tests/unit/components/room/FieldCell.tick.spec.tsx`: a ticked cell renders `.field-cell__tick` in its seat colour on the bottom inner edge, above any band; its aria-label ends with `Kári's last move` / `síðasti leikur · Kári`.
+- [X] T055 [US7] Draw the tick in `components/room/FieldCell.tsx` and `components/room/Field.tsx` (a `lastMoves` prop from `MatchRoomController`), with its CSS in `app/styles/room.css`.
 - [ ] T056 [P] [US7] Write failing tests in `tests/unit/lib/room/liveLine2.spec.ts` (contract `contracts/live-line2.md`): the `LINE2_ORDER` precedence for every adjacent pair, and a held lower source returning after the higher one clears.
 - [ ] T057 [US7] Implement `lib/room/liveLine2.ts` (`selectLine2`, `LINE2_ORDER`) and route live row line 2 through it in `lib/room/moveState.ts` (`liveLinesFor`) and `components/room/Ledger.tsx`. Line 2 numbers of points lost use `renderPointsLost`.
 - [ ] T058 [P] [US7] Write failing tests in `tests/unit/lib/room/moveState.spec.ts`:
@@ -317,4 +317,7 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - US2/US3: tests were written before the CSS they check (analysis D1). A `postcss.parse` check was added to `room-css.test.ts` after a stray brace broke the stylesheet while every grep still passed. The ledger reads the room's whole-pixel cell through `--cell-size` on `.room[data-layout="scoreboard"]`.
 - US4: the phone phases `phone-match`, `phone-match-664` and `phone-match-360` are viewport tests over the `idle` fixture with their own baselines, not new `ROOM_PHASES` (each phase is already captured at every project viewport). The phone foot is pinned by the one-viewport room's auto margin, not by positioning, so only the slip is ever positioned.
 - US5: `PointsLost` takes `labelFirst` rather than an order enum. The muted rule for a floored 0 is `.points-none`, the same specificity as `.points-lost`. A fixture test samples the rendered colours (analysis C2).
+- Phase A, final state on the desktop grid (interim until the result stage, D1): the ledger drops its totals row (the scoreboard rows carry the totals), and the final foot's actions (`result ▸`, `lobby`) take the caption's context beside `⋯`, so nothing runs past the field. The final `⋯` menu gains `how to play`. On a phone the sheet keeps the totals row and the foot.
+- T048: the retired phrases (`ledger clock`, `inverted face`, `eight colour tokens`, `eight tokens`, `lowercase wordmark`, `coral`) are matched case-insensitively. Historical lines in specs 044, 050, 060 and 068 carry the `<!-- retired-name -->` marker.
+- T050: 89 darwin baselines regenerated (final and over-slip deleted and regenerated, because the tolerance hid the removed totals row). The Linux baselines come from the CI visual job's artifact.
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.

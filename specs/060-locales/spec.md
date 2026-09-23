@@ -135,7 +135,7 @@ From the lobby or a finished match, a player can move to the same page in the ot
 - **FR-007**: The wordmark MUST read `orðusta` in Icelandic and `wottle` in every other language.
 - **FR-008**: Each language MUST own its word order and plural forms; Icelandic strings MUST be grammatical for every number shown.
 - **FR-009**: Dates and numbers MUST be formatted for the page's language.
-- **FR-010**: The Icelandic strings MUST follow the design system's copy rules (sentence case, no exclamation marks, one idea per line, lowercase wordmark).
+- **FR-010**: The Icelandic strings MUST follow the design system's copy rules (sentence case, no exclamation marks, one idea per line, lowercase wordmark). <!-- retired-name -->
 - **FR-011**: A missing string in any language MUST fail the build rather than fall back silently.
 
 **Game language**

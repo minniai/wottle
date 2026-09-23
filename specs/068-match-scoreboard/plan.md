@@ -5,7 +5,7 @@
 
 ## Summary
 
-During a match, one scoreboard box above the field replaces the two player bars and the ledger clock:
+During a match, one scoreboard box above the field replaces the two player bars and the ledger clock: <!-- retired-name -->
 - **Row 1:** the clock, as ten 30s blocks of six 5s ticks, plus the label and the numeral.
 - **Row 2:** the opponent.
 - **Row 3:** the viewer.
@@ -22,7 +22,7 @@ All three rows share one ten-column track. The ledger is laid on the same grid, 
   - `tabTitle.ts`.
 - **New component:** `components/room/Scoreboard.tsx`, placed in `Room`'s top slot for the match states.
 - **Sizing:** `computeFieldSize` gains a `scoreboard` layout with whole-pixel cells and a width budget.
-- **Stylesheet:** `room.css` gains the scoreboard and the gridded ledger, and loses the ledger clock.
+- **Stylesheet:** `room.css` gains the scoreboard and the gridded ledger, and loses the ledger clock. <!-- retired-name -->
 
 ## Technical Context
 

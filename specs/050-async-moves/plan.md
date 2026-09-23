@@ -16,7 +16,7 @@ Replace the ten synchronous rounds with ten independent moves per player on one 
 **Target Platform**: Vercel serverless (`after()` for post-response work); Chrome/Firefox/Safari, phone first
 **Project Type**: web app
 **Performance Goals**: receipt RTT <200ms p95; resolution latency <200ms p95 warm; broadcast <100ms p95
-**Constraints**: server-authoritative; strictly receipt-ordered resolution across racing lambdas; no clock pause; eight colour tokens, two faces, the slip is the only overlay
+**Constraints**: server-authoritative; strictly receipt-ordered resolution across racing lambdas; no clock pause; eight colour tokens, two faces, the slip is the only overlay <!-- retired-name -->
 **Scale/Scope**: two players per match, ~20 concurrent matches
 
 ## Constitution Check
