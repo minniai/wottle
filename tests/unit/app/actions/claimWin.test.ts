@@ -184,6 +184,18 @@ describe("claimWinAction", () => {
     expect(completeMatchInternal).not.toHaveBeenCalled();
   });
 
+  test("a refusal does not spend the one claim a minute: too_early, then ok once the window passes", async () => {
+    vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 89_950);
+    const early = await claimWinAction(MATCH_ID);
+    expect(early.status).toBe("too_early");
+
+    vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 90_100);
+    const retry = await claimWinAction(MATCH_ID);
+
+    expect(retry.status).toBe("ok");
+    expect(completeMatchInternal).toHaveBeenCalledTimes(1);
+  });
+
   test("returns rate_limited on the second call within the same minute", async () => {
     vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 95_000);
 
