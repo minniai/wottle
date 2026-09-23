@@ -140,7 +140,7 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | B7 | Lobby · searching | `/` (no URL change); line slot | Search while the lobby stays live | none (a wait); exit `cancel ▸` / `hætta við ▸` in the line slot | table (C1) on pairing, B1 |
 | B8 | Lobby · your match is running or over | `/`; line slot | Return to a match you stepped out of, or see that it ended | `back to the match ▸` / `aftur í viðureignina ▸`, or `result ▸` / `úrslit ▸` | match (C4), result (D1) |
 | B9 | Lobby · invite link out | `/`; line slot [must-have · S11] | Bring a friend | none (a wait); `copy again ▸`, `cancel link ▸` | table (C1) when the link is opened |
-| C1 | Table / Mótspilari fundinn | `/match/:id` · `/en/match/:id` (pending) [must-have · S3] | Who, what, stakes; both sit down | `ready ▸` / `ég er til ▸ (?)` when not seated; none when seated (a wait, exit `leave`) | starting (C2), void (C3), lobby |
+| C1 | Table / Mótspilari fundinn | `/match/:id` · `/en/match/:id` (pending) [must-have · S3] | Who, what, stakes; both sit down | `ready ▸` / `ég er til ▸` when not seated; none when seated (a wait, exit `leave`) | starting (C2), void (C3), lobby |
 | C2 | Starting / Hefst | `/match/:id` | Server 3·2·1 in the clock, letters land | none (a count) | match (C4) |
 | C3 | Table · void / Engin viðureign | `/match/:id` [must-have · S3] | Someone did not sit down, or left; nothing rated | set by origin (§5 C3) | B7, B2, D1 of the previous match, B1 |
 | C4 | Match / Viðureign | `/match/:id` (in progress) | The duel: today's beats plus the changes in §5 | the field (pick a letter) | C6, C7, C8, D1 |
@@ -150,7 +150,7 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | C8 | Disconnect and end early | same | Opponent gone; your own connection lost | `end the match ▸` / `ljúka viðureigninni ▸` (only at 10 of 10 after the window) | D1 |
 | D1 | Result / Viðureign lokið | `/match/:id` (completed) | Verdict, why it ended, ratings, next step | `rematch ▸` / `annan leik? ▸` while offered, else `new opponent ▸` / `nýr mótspilari ▸` | D2, D3, B7, B1 |
 | D2 | Rematch negotiation | same, on the slip or as a ledger line [must-have · S8] | Sent, incoming, declined, expired, opponent left | incoming: `accept ▸`; sent: none (a wait) | C1 of the new match, D1 |
-| D3 | Review / Yfirferð (?) | `/match/:id?review=n` · `/en/match/:id?review=n` [must-have · S9] | Step through every move in receipt order | `rematch ▸` while offered, else `challenge again ▸` if they are here, else `new opponent ▸` | D1, B1 |
+| D3 | Review / Yfirferð | `/match/:id?review=n` · `/en/match/:id?review=n` [must-have · S9] | Step through every move in receipt order | `rematch ▸` while offered, else `challenge again ▸` if they are here, else `new opponent ▸` | D1, B1 |
 | E1 | Profile (own) / Prófíll | `/profile` · `/en/profile` | Your record, best words, history | `find an opponent ▸` | review, lobby, other-language profile, sign out |
 | E2 | Profile (public) | `/profile/:handle` · `/en/profile/:handle` (handle percent-encoded, e.g. `/profile/k%C3%A1ri`) | Decide to play someone | `challenge ▸` / `skora á ▸` when they are here in this lobby | composer (in place), review |
 | E3 | Rules / Leiðbeiningar | `/rules` · `/en/rules` | Teach | signed in and free: `find an opponent ▸`; opened from a match: `close this tab ▸`; signed out: `enter the lobby ▸` | B7, C4, A1 |
@@ -158,7 +158,7 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | F2 | Phone lobby | `/` at 390 | B1, B5, B7 on a phone | pinned `finna mótspilara ▸`, or `samþykkja ▸` in the pinned call line | as B1 |
 | F3 | Phone match | `/match/:id` at 390 | C4 on a phone | the field | as C4 |
 | F4 | Phone result | `/match/:id` at 390 | D1 and D2 on a phone | `annan leik? ▸` | as D1 |
-| F5 | Phone table | `/match/:id` at 390 (pending) | C1 and C2 on a phone | `ég er til ▸ (?)` | as C1 |
+| F5 | Phone table | `/match/:id` at 390 (pending) | C1 and C2 on a phone | `ég er til ▸` | as C1 |
 | F6 | Phone composer and sent | `/` at 390 | B2 and B3 on a phone | `senda áskorun ▸` | as B2/B3 |
 | F7 | Phone review | `/match/:id?review=n` at 390 | D3 on a phone | none; `◂ úrslit` leads to the result's primary | D1 |
 | F8 | Phone slips | `/match/:id` at 390 | C6, C7, C8 on a phone | as each slip | as each slip |
@@ -674,10 +674,10 @@ A1 with these changes in column B:
 
 - **Top bar.**
   - Kári's name writes in (200ms), with a 12px `--opp` square.
-  - Sub-line: `1187 · MÓTSPILARI · Á LEIÐINNI` / `1187 · OPPONENT · ON THE WAY`, which becomes `· VIÐ BORÐIÐ (?)` / `· READY`.
+  - Sub-line: `1187 · MÓTSPILARI · Á LEIÐINNI` / `1187 · OPPONENT · ON THE WAY`, which becomes `· VIÐ BORÐIÐ` / `· READY`.
   - Lane: ten `--opp` segments. No total.
 - **Bottom bar.**
-  - `Birna`, sub-line `1204 · ÞÚ · VIÐ BORÐIÐ (?)` / `1204 · YOU · READY`, or `· Á LEIÐINNI` / `· NOT READY`.
+  - `Birna`, sub-line `1204 · ÞÚ · VIÐ BORÐIÐ` / `1204 · YOU · READY`, or `· Á LEIÐINNI` / `· NOT READY`.
   - Ten `--you` segments.
 - **Field:** the empty ruled frame (1.5px ink frame, 1px rules, no letters), at 32% under the slip. The server has not sent the letters: it holds the board until both are seated.
 - **Ledger.**
@@ -693,11 +693,11 @@ A1 with these changes in column B:
   - Stakes, mono 11: `SIGUR +8 · JAFNTEFLI 0 · TAP −8` / `WIN +8 · DRAW 0 · LOSS −8`.
   - Rematches only, a series line: `viðureign 2 · Birna 1–0` / `match 2 · Birna 1–0`.
   - Rule.
-  - Two seat lines, each 28px with its square: `■ Kári  á leiðinni` / `on the way`, and `■ Birna · þú  við borðið (?)` / `you  ready`.
+  - Two seat lines, each 28px with its square: `■ Kári  á leiðinni` / `on the way`, and `■ Birna · þú  við borðið` / `you  ready`.
   - Rule.
   - Actions, by state:
-    - **Not seated:** row 1 has primary `ÉG ER TIL ▸ (?)` / `READY ▸` (not focused; guarded 500ms); row 2 has secondary `fara` / `leave`.
-    - **Seated and waiting (a wait, no primary):** row 1 reads, in mono 11 `--ink`, `ÞÚ ERT VIÐ BORÐIÐ (?)` / `YOU ARE SEATED`; row 2 keeps `fara` / `leave`. The exit is never where `ready` was.
+    - **Not seated:** row 1 has primary `ÉG ER TIL ▸` / `READY ▸` (not focused; guarded 500ms); row 2 has secondary `fara` / `leave`.
+    - **Seated and waiting (a wait, no primary):** row 1 reads, in mono 11 `--ink`, `ÞÚ ERT VIÐ BORÐIÐ` / `YOU ARE SEATED`; row 2 keeps `fara` / `leave`. The exit is never where `ready` was.
   - Reactions [phase 2 · S16], once you are seated, in their own row of up to three 32px buttons (1px `--rule` frame, Zilla 500 15, no `▸`): `hæ` · `gangi þér vel` / `hi` · `good luck`.
   - A 4px drain bar on the slip's inner bottom edge, 20s.
 - **Signals.**
@@ -736,7 +736,7 @@ A1 with these changes in column B:
   - The opponent did not sit down: `Kári settist ekki` / `Kári did not sit down`.
   - The opponent left: `Kári fór frá borðinu` / `Kári left the table`.
   - You did not sit down: `Þú settist ekki í tæka tíð` / `You did not sit down in time`.
-- Body: `ekkert var reiknað til Elo (?)` / `nothing was rated`.
+- Body: `hefur ekki áhrif á Elo stig` / `nothing was rated`.
 
 **Actions by the table's origin.**
 
@@ -864,7 +864,7 @@ The sets, placement and limits are in §7.6.
     |---|---|---|
     | both played ten | `MEÐ 46 STIGUM · 10 ORÐ GEGN 8 · SVÆÐI 27–21` | `BY 46 POINTS · 10 WORDS TO 8 · TERRITORY 27–21` |
     | incomplete | `KÁRI LÉK 8 AF 10 · MEÐ 12 STIGUM` | `KÁRI PLAYED 8 OF 10 · BY 12 POINTS` |
-    | both incomplete | `HVORUGT LAUK · MEÐ 12 STIGUM (?)` | `NEITHER FINISHED · BY 12 POINTS` |
+    | both incomplete | `HVORUGT KLÁRAÐI · MEÐ 12 STIGUM` | `NEITHER FINISHED · BY 12 POINTS` |
     | forfeit | `KÁRI GAFST UPP · 3:12` | `KÁRI RESIGNED · 3:12` |
     | ended early | `LOKIÐ SNEMMA · KÁRI VAR FARINN (?)` | `ENDED EARLY · KÁRI WAS GONE` |
 
@@ -873,7 +873,7 @@ The sets, placement and limits are in §7.6.
   - Rating lines: `■ Birna · þú  1204 → 1212 · +8` and `■ Kári  1187 → 1179 · −8` (or `rating pending` / `reikna Elo-stig`).
   - Rule.
   - Action row 1: primary `ANNAN LEIK? ▸` / `REMATCH ▸` (not focused), then `nýr mótspilari ▸` / `new opponent ▸`.
-  - Action row 2: `fara yfir viðureignina ▸ (?)` / `review the match ▸`, then `lobbí` / `lobby`.
+  - Action row 2: `yfirfara viðureignina ▸` / `review the match ▸`, then `lobbí` / `lobby`.
   - Reactions [phase 2 · S16]: one row of three 32px buttons, always in this order: `góð viðureign (?)` · `vel spilað` · `bless` / `good game` · `well played` · `bye`.
 - **When rematch is not offered** (the opponent has left, more than 2:00 has passed, the match was opened later, or a request was declined or expired):
   - The primary is `nýr mótspilari ▸`.
@@ -913,7 +913,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 **Bars:** names, the score at step k (counting as you step) and the lanes at step k.
 
 **Ledger.**
-- Caption: `yfirferð · 4:52 (?)` / `review · 4:52`.
+- Caption: `yfirferð · 4:52` / `review · 4:52`.
 - **Scrubber block,** in the clock-block frame (y=68–168). It is one `role="slider"` that takes focus; its value text is `step 7 of 20, Birna, LEK ÆSKU plus 33`.
   - Label: `SKREF 7 AF 20 (?)` / `STEP 7 OF 20`.
   - The time `3:31`: the clock as it read when the move was received.
@@ -1061,7 +1061,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 | Rating lines | 230–266 | two lines, mono 11 |
 | Rule | 274 | |
 | Action row 1 | 282–326 | `ANNAN LEIK? ▸` (primary, about 148px) and `nýr mótspilari ▸` |
-| Action row 2 | 334–378 | `fara yfir viðureignina ▸ (?)` and `lobbí` |
+| Action row 2 | 334–378 | `yfirfara viðureignina ▸` and `lobbí` |
 | Negotiation | 386–418 | reserved: when D2 is active its line (e.g. `beiðni send · 0:24 · hætta við ▸` with a drain) replaces action row 2, and this band holds the drain |
 
 **Ledger below.**
@@ -1084,7 +1084,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 | Rule | 196 | |
 | Seat lines | 204–260 | two lines of 28px |
 | Rule | 268 | |
-| Actions | 276–320 | `ÉG ER TIL ▸ (?)` primary + `fara`; once seated, `ÞÚ ERT VIÐ BORÐIÐ` + `fara` |
+| Actions | 276–320 | `ÉG ER TIL ▸` primary + `fara`; once seated, `ÞÚ ERT VIÐ BORÐIÐ` + `fara` |
 | Drain | 414–418 | 4px |
 
 **The ledger block below** carries what the slip drops:
@@ -1509,7 +1509,7 @@ Presets only, sent as a code and shown in the reader's language.
     - Field states never scroll; pages may.
     - Visual fixtures at 390×844, 390×664 and 360×640.
 11. **§5.3 bars.** Add these sub-line states:
-    - at the table: `on the way` / `ready` (`á leiðinni` / `við borðið (?)`)
+    - at the table: `on the way` / `ready` (`á leiðinni` / `við borðið`)
     - your own `offline · reconnecting`, with an outlined lane
     - `stepped out`
     - an opponent's `gone for 2:04`, which replaces the frozen `0:00 left`
@@ -1525,7 +1525,7 @@ Presets only, sent as a code and shown in the reader's language.
     - Sounds: `challenge` is added and `match-start` is wired at go.
     - The previous proposal to skip reveals under 0:15 is withdrawn.
 13. **§8 copy.**
-    - **An Icelandic glossary** using the owner's words: mótspilari, lobbí, leiðbeiningar, samþykkja / hafna, vann (final state), `annan leik? ▸` (the one question-form action, §10 Q2), skráning óþörf, nafn, viðureign = match, leikur = move, `ég er til ▸ (?)`, `við borðið (?)`, `brá sér frá`, `án tengingar`.
+    - **An Icelandic glossary** using the owner's words: mótspilari, lobbí, leiðbeiningar, samþykkja / hafna, vann (final state), `annan leik? ▸` (the one question-form action, §10 Q2), skráning óþörf, nafn, viðureign = match, leikur = move, yfirferð = review, `ég er til ▸`, `við borðið`, `brá sér frá`, `án tengingar`.
     - **The name-safe rule:**
       - In Icelandic a name appears only in the nominative, never after eftir, gegn, til, frá, á, við or handa.
       - A player never takes a gendered adjective, participle or pronoun. No `klár`, `farinn`, `tengd`, `laus`.
@@ -1614,13 +1614,13 @@ All artboards use the eight tokens and Zilla Slab + Red Hat Mono, with the fixtu
 
 ## 10. Open questions for the product owner
 
-1. **Native review.** These strings need a native reader, together with every string marked (?):
-   - the door headline, lede and gloss (`orð + orusta` or `orrusta`)
-   - `ég er til ▸` for ready, and `við borðið` for the seat line
-   - `yfirferð` for review, and `fara yfir viðureignina ▸`
-   - `góð viðureign` for good game
-   - `án tengingar í 2:04`, `brá sér frá`, `hvorugt lauk`
-   - `ekkert var reiknað til Elo`
+1. **Native review.** Answered 23 September 2026 by the product owner:
+   - The gloss is `orð + orusta`, the spelling inside Orðusta.
+   - `ég er til ▸` (ready) and `við borðið` (seated): approved.
+   - `yfirferð` = review: approved. The action is `yfirfara viðureignina ▸` (was `fara yfir viðureignina ▸`).
+   - `án tengingar í 2:04` and `brá sér frá`: approved. `hvorugt lauk` becomes `hvorugt kláraði`.
+   - `ekkert var reiknað til Elo` becomes `hefur ekki áhrif á Elo stig`.
+   - Still open: the door headline and lede, `góð viðureign` for good game, and every other string marked (?).
 2. **`annan leik? ▸`.** In this product *leikur* means a move, so `annan leik?` can read as "another move?". Keep it as the one question-form action (it is your wording), or use `önnur viðureign? ▸` or `aftur ▸`?
 3. **Door privacy.** Should signed-out visitors see the real names of players online (social proof), or only the count?
 4. **`confirm moves`.** It ships off by default, respecting the 22 September removal of the move preview. Should it default to on for touch screens, where a slide across a 35px cell border can play a move?
