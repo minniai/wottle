@@ -27,20 +27,20 @@ All functions are `language plpgsql security definer set search_path = ''`. They
    - `not_recipient` unless `recipient_id = p_actor`;
    - `not_pending` unless `status = 'pending'`;
    - `expired` if `created_at + p_ttl_seconds` has passed (and set its status to `expired`).
-3. Inside `begin … exception when others` (a sub-transaction):
-   - Set `status = 'accepted'`, `responded_at = now()`.
-   - `r := create_match_between(sender, recipient, coalesce(language,'is'), p_origin, p_invite)`.
-   - If `r.status <> 'created'`, raise to roll back the sub-block.
-   - Otherwise set `match_id` and return `r`.
-4. On the raised path, if the busy player is the sender, mark the invite `superseded`. Return `r` (`busy`).
+3. `r := create_match_between(sender, recipient, coalesce(language,'is'), p_origin, p_invite)`. It leaves `p_invite` alone, so the invite is still pending.
+4. If `r` is `created`, set the invite to `accepted` with `responded_at = now()` and `match_id`. This is the compare-and-set, under the invite's row lock.
+5. If `r` is `busy` because of the sender, mark the invite `superseded`, since it can never be accepted. If the accepter is busy, the invite stays pending.
+6. Return `r`.
 
-## accept_rematch(p_request, p_actor, p_origin = 'rematch')
+A refusal never leaves the invite accepted (FR-018), and no sub-transaction is needed.
+
+## accept_rematch(p_request, p_actor, p_origin = 'rematch', p_ttl_seconds = 30)
 
 Same shape as `accept_invite`, over `public.rematch_requests`:
 - The responder must be `p_actor`.
 - The request must be pending.
 - The age check (30s) is skipped when `p_origin = 'crossed_rematch'`.
-- The original match must be `completed`.
+- The original match must be `completed`; otherwise `{status:'not_completed'}`.
 - The language is taken from the original match.
 - On `created`, write `new_match_id`.
 

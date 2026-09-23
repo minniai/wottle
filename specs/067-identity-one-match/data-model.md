@@ -57,8 +57,8 @@ The `status` check widens the same way. `accept_rematch` does pending → accept
   `{status:'created', match_id}` | `{status:'busy', player_id}` | `{status:'invalid', reason}` (same player twice, unknown player, bad language or origin)
 - `accept_invite(p_invite uuid, p_actor uuid, p_ttl_seconds int, p_origin text default 'challenge') → jsonb`
   `created` | `busy` | `{status:'not_pending'}` | `{status:'not_recipient'}` | `{status:'expired'}`
-- `accept_rematch(p_request uuid, p_actor uuid, p_origin text default 'rematch') → jsonb`
-  as `accept_invite`
+- `accept_rematch(p_request uuid, p_actor uuid, p_origin text default 'rematch', p_ttl_seconds int default 30) → jsonb`
+  as `accept_invite`, plus `{status:'not_completed'}`
 - `pair_from_queue(p_self uuid, p_opponent uuid, p_language text) → jsonb`
   `created` | `busy` | `{status:'not_searching'}`
 - `sign_out_player(p_player uuid) → jsonb`
