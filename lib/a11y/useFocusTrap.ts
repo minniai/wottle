@@ -56,10 +56,10 @@ export function useFocusTrap({
 
     const focusFirstElement = () => {
       const focusables = getFocusableElements();
-      const preferred =
-        initialFocusRef?.current && focusables.includes(initialFocusRef.current)
-          ? initialFocusRef.current
-          : focusables[0];
+      // A game-raised slip focuses its headline, which is `tabindex="-1"`: honour
+      // the initial focus inside the container even when it is not tabbable (spec 068).
+      const initial = initialFocusRef?.current;
+      const preferred = initial && (focusables.includes(initial) || container.contains(initial)) ? initial : focusables[0];
       (preferred ?? container).focus();
     };
 

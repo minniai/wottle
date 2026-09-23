@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useTransition, type ReactNode } from "react";
+import { useId, useRef, useState, useTransition, type ReactNode, type RefObject } from "react";
 
 import { enterAsReturningAction } from "@/app/actions/auth/enterAsReturning";
 
@@ -35,9 +35,17 @@ function cancelActionFor(slip: SlipState): LedgerAction | null {
   }
 }
 
-function Primary({ label, action, testId, onAction }: { label: string; action: LedgerAction; testId: string; onAction: (a: LedgerAction) => void }) {
+/** A control that has just appeared ignores activation for 500ms (game flow §5.0 guards). */
+const GUARD_MS = 500;
+
+function Primary({ label, action, testId, onAction, guarded = false }: { label: string; action: LedgerAction; testId: string; onAction: (a: LedgerAction) => void; guarded?: boolean }) {
+  const shownAt = useRef(Date.now());
+  const activate = () => {
+    if (guarded && Date.now() - shownAt.current < GUARD_MS) return;
+    onAction(action);
+  };
   return (
-    <button type="button" className="action-primary" data-testid={testId} data-slip-primary onClick={() => onAction(action)}>
+    <button type="button" className="action-primary" data-testid={testId} data-slip-primary onClick={activate}>
       {label}
     </button>
   );
@@ -123,27 +131,29 @@ function ResignBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, {
         <span className="slip__label">{resignConsequence(slip.opponentName)}</span>
       </div>
       <div className="slip__rule" />
-      <div className="slip__actions">
-        <Primary label={YES_RESIGN} action="confirmResign" testId="slip-confirm-resign" onAction={onAction} />
-        <Secondary label={KEEP_PLAYING} action="keepPlaying" testId="slip-keep-playing" onAction={onAction} />
+      {/* Resigning forfeits the viewer's match: the safe action leads and is focused (game flow C6, §8 item 3). */}
+      <div className="slip__actions" data-stacked="true">
+        <Primary label={KEEP_PLAYING} action="keepPlaying" testId="slip-keep-playing" onAction={onAction} />
+        <Secondary label={YES_RESIGN} action="confirmResign" testId="slip-confirm-resign" onAction={onAction} />
       </div>
     </>
   );
 }
 
 /** Spec 050 FR-012: offered only to a player with all their moves whose opponent has been gone for the window. */
-function EndEarlyBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "endEarly" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
-  const { END_THE_MATCH, endEarlyLabel, KEEP_WAITING, isGone, isGoneFact } = useCopy();
+function EndEarlyBody({ slip, onAction, headlineId, headlineRef }: { slip: Extract<SlipState, { kind: "endEarly" }>; onAction: (a: LedgerAction) => void; headlineId: string; headlineRef: RefObject<HTMLHeadingElement | null> }) {
+  const { END_THE_MATCH, endEarlyLabel, KEEP_WAITING, isGone, NORMAL_RULES_DECIDE } = useCopy();
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
         <span className="slip__label">{endEarlyLabel(formatClock(slip.clockMs))}</span>
-        <h2 id={headlineId} className="slip__headline">{isGone(slip.opponentName)}</h2>
-        <span className="slip__label">{isGoneFact(slip.opponentName, slip.opponentMoves)}</span>
+        {/* Raised by the game, so its headline takes focus, not an action (game flow C8, §8 item 3). */}
+        <h2 id={headlineId} ref={headlineRef} tabIndex={-1} className="slip__headline">{isGone(slip.opponentName)}</h2>
+        <span className="slip__label">{NORMAL_RULES_DECIDE}</span>
       </div>
       <div className="slip__rule" />
       <div className="slip__actions">
-        <Primary label={END_THE_MATCH} action="endEarly" testId="slip-end-early" onAction={onAction} />
+        <Primary label={END_THE_MATCH} action="endEarly" testId="slip-end-early" onAction={onAction} guarded />
         <Secondary label={KEEP_WAITING} action="keepWaiting" testId="slip-keep-waiting" onAction={onAction} />
       </div>
     </>
@@ -209,14 +219,14 @@ function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState
   );
 }
 
-function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedIn: SlipProps["onSignedIn"], headlineId: string): ReactNode {
+function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedIn: SlipProps["onSignedIn"], headlineId: string, headlineRef: RefObject<HTMLHeadingElement | null>): ReactNode {
   switch (slip.kind) {
     case "signIn":
       return <SignInBody onSignedIn={onSignedIn} />;
     case "resign":
       return <ResignBody slip={slip} onAction={onAction} headlineId={headlineId} />;
     case "endEarly":
-      return <EndEarlyBody slip={slip} onAction={onAction} headlineId={headlineId} />;
+      return <EndEarlyBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
     case "matchOver":
       return <MatchOverBody slip={slip} onAction={onAction} headlineId={headlineId} />;
   }
@@ -231,8 +241,9 @@ export function Slip({ slip, onAction, onSignedIn }: SlipProps) {
   const { WORDMARK } = useCopy();
   const ref = useRef<HTMLDivElement | null>(null);
   const headlineId = useId();
+  const headlineRef = useRef<HTMLHeadingElement | null>(null);
   const cancel = cancelActionFor(slip);
-  useFocusTrap({ isActive: true, containerRef: ref, onEscape: cancel ? () => onAction(cancel) : undefined });
+  useFocusTrap({ isActive: true, containerRef: ref, initialFocusRef: headlineRef, onEscape: cancel ? () => onAction(cancel) : undefined });
 
   return (
     <div
@@ -246,7 +257,7 @@ export function Slip({ slip, onAction, onSignedIn }: SlipProps) {
       data-kind={slip.kind}
       data-field-safe
     >
-      {bodyFor(slip, onAction, onSignedIn, headlineId)}
+      {bodyFor(slip, onAction, onSignedIn, headlineId, headlineRef)}
     </div>
   );
 }

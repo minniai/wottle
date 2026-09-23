@@ -239,10 +239,10 @@
 **Goal:** the C6 and C8 states in scoreboard terms, with your own outage handled in place.
 **Independent test:** the `resign`, `disconnect`, `gone`, `end-early` and `offline` fixtures match the ResignSlip and Disconnect artboards.
 
-- [ ] T068 [P] [US8] Write failing tests in `tests/unit/components/room/Slip.decisions.spec.tsx`:
+- [X] T068 [P] [US8] Write failing tests in `tests/unit/components/room/Slip.decisions.spec.tsx`:
   - resign: label `move 4 of 10 · 3:12 left`, headline `Resign the match?`, body with no number, `keep playing ▸` focused, `yes, resign ▸` on the second line, Esc keeps playing;
   - end early: label `10 of 10 played · 1:12 on the clock`, headline focused, `end the match ▸` ignoring activation for 500ms, `keep waiting ▸`.
-- [ ] T069 [US8] Update the resign and end-early slips in `components/room/Slip.tsx` and their copy in `lib/i18n/copy/{en,is}.ts`. The phone slips fill exactly the field's square, following F8's rows in `app/styles/room.css`.
+- [X] T069 [US8] Update the resign and end-early slips in `components/room/Slip.tsx` and their copy in `lib/i18n/copy/{en,is}.ts`. The phone slips fill exactly the field's square, following F8's rows in `app/styles/room.css`.
 - [X] T070 [US8] Remove the 10s end-early re-raise (`endDeferred` timer) in `components/room/MatchRoomController.tsx`. `keep waiting` sets a per-match flag, the slip is never raised again, and the offer becomes the `endEarlyOffer` line 2 source (`Kári is gone · end the match ▸`, a secondary action). Update `tests/unit/components/room/MatchRoomController.spec.tsx`.
 - [ ] T071 [P] [US8] Add failing tests to `tests/unit/lib/room/scoreboard.spec.ts`: the opp `gone for 2:04` counts up from the server-corrected `disconnectedAt` and never reads `0:00 left`; the lane is outlined while reconnecting or gone; you at `10 of 10 · done`.
 - [ ] T072 [US8] Compute `goneForMs` with `serverCorrectedNow` in `components/room/MatchRoomController.tsx`, and pass it into `deriveScoreboard`.

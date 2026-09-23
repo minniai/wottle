@@ -406,6 +406,20 @@ test.describe("@visual the room fits a phone", () => {
     });
   }
 
+  // Spec 068 FR-018 (game flow F8): a phone slip is exactly the field's square and never crosses the scoreboard.
+  for (const phase of ["resign", "end-early"]) {
+    test(`the ${phase} slip fills the field's square`, async ({ page }) => {
+      await page.goto(`/en/dev/room?phase=${phase}`);
+      await expect(page.getByTestId("slip")).toBeVisible();
+      const g = await page.evaluate(() => {
+        const rect = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+        return { slip: rect('[data-testid="slip"]'), field: rect('[data-testid="room-slot-field"]'), board: rect('[data-testid="scoreboard"]') };
+      });
+      for (const edge of ["top", "left", "width", "height"] as const) expect(Math.abs(g.slip[edge] - g.field[edge]), edge).toBeLessThanOrEqual(1);
+      expect(g.slip.top).toBeGreaterThanOrEqual(g.board.bottom);
+    });
+  }
+
   test("the sheet opens in flow, below the field, and still does not scroll the page", async ({ page }) => {
     await page.goto("/en/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();

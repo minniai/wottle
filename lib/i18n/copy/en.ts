@@ -148,9 +148,9 @@ const YES_RESIGN = "yes, resign ▸";
 const KEEP_PLAYING = "keep playing ▸";
 const KEEP_WAITING = "keep waiting ▸";
 const isGone = (name: string): string => `${name} is gone`;
-/** The end-early slip's fact (spec 050 FR-012): the absent player's count and the spent window. */
-const isGoneFact = (name: string, moves: number): string => `${name} ${moves} of 10 · 0:00 left to reconnect`;
 const END_THE_MATCH = "end the match ▸";
+/** The end-early slip's body (game flow C8): ending early costs the viewer nothing. */
+const NORMAL_RULES_DECIDE = "the normal rules decide it";
 const endEarlyLabel = (clockMmSs: string): string => `10 of 10 played · ${clockMmSs} on the clock`;
 const MATCH_OVER = "match over";
 /** `match over · 4:52`. Why it ended is the verdict's detail line, said once. */
@@ -387,8 +387,8 @@ export const copyEn = {
   KEEP_PLAYING,
   KEEP_WAITING,
   isGone,
-  isGoneFact,
   END_THE_MATCH,
+  NORMAL_RULES_DECIDE,
   endEarlyLabel,
   MATCH_OVER,
   matchOverLabel,

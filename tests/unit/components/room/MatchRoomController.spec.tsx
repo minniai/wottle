@@ -420,7 +420,7 @@ describe("MatchRoomController (spec 050)", () => {
     renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
     expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
     expect(screen.getByTestId("slip")).toHaveTextContent("Bob is gone");
-    expect(screen.getByTestId("slip")).toHaveTextContent("Bob 6 of 10 · 0:00 left to reconnect");
+    expect(screen.getByTestId("slip")).toHaveTextContent("the normal rules decide it");
     fireEvent.click(screen.getByTestId("slip-keep-waiting"));
     expect(screen.queryByTestId("slip")).toBeNull();
     // Spec 068 FR-037: past the window the row counts how long they have been gone, never a frozen 0:00 left.

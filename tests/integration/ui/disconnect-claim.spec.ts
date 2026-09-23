@@ -38,6 +38,8 @@ test("an absent opponent: after ten moves and the window, end the match early @t
     await expect(slip).toHaveAttribute("data-kind", "endEarly", { timeout: 120_000 });
     await expect(slip).toContainText(new RegExp(`${userB} is gone`, "i"));
     await expect(pageA.getByTestId("room-slot-field")).toHaveAttribute("data-slipped", "true");
+    // The primary ignores activation for 500ms after it appears (game flow §5.0 guards, spec 068 FR-036).
+    await pageA.waitForTimeout(600);
     await pageA.getByTestId("slip-end-early").click();
 
     await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });

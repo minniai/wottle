@@ -164,9 +164,8 @@ export const copyIs = {
   KEEP_PLAYING: "halda áfram ▸",
   KEEP_WAITING: "bíða áfram ▸",
   isGone: (name: string): string => `${name} er ekki lengur hér`,
-  isGoneFact: (name: string, moves: number): string =>
-    `${name} ${moves} af 10 · 0:00 eftir til að tengjast aftur`,
   END_THE_MATCH: "ljúka viðureigninni ▸",
+  NORMAL_RULES_DECIDE: "venjulegar reglur ráða úrslitum",
   endEarlyLabel: (clockMmSs: string): string =>
     `10 af 10 leiknir · ${clockMmSs} á klukkunni`,
   MATCH_OVER,
