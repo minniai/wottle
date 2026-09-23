@@ -198,7 +198,7 @@
   - build the response with `NextResponse.next({ request })` / rewrite / redirect as today, carrying the renewed cookies;
   - widen `config.matcher` to include `/api/:path*` while excluding `_next` and static files, and bypass locale routing for `/api`.
   Add `tests/unit/proxy.test.ts` cases: an API request with a lapsed session and a device key comes out with a `Set-Cookie`; locale redirects are unchanged.
-- [ ] T046 [US2] Write `tests/integration/ui/identity.spec.ts`, tagged `@identity`. Scenario "name taken": context A enters `id-<rand>`; context B enters the same name, and `name-input-error` reads `that name is taken · pick another`. Scenario "silent renewal": in A, clear only `wottle-playtest-session` and reload → the lobby shows the same name.
+- [X] T046 [US2] Write `tests/integration/ui/identity.spec.ts`, tagged `@identity`. Scenario "name taken": context A enters `id-<rand>`; context B enters the same name, and `name-input-error` reads `that name is taken · pick another`. Scenario "silent renewal": in A, clear only `wottle-playtest-session` and reload → the lobby shows the same name.
 - [X] T047 [US2] Audit the 37 `loginViaSlip(` calls under `tests/integration/ui/`. Any test that re-enters a fixed name from a fresh browser context must generate a unique name (the pattern in `tests/integration/ui/helpers/matchmaking.ts`) or reuse its context. Run the affected specs one file at a time and confirm they pass.
 
 **Checkpoint**: names are claimed, `name_taken` works, sessions renew. SC-002 and SC-003 green.
@@ -227,7 +227,7 @@
   - `components/room/LobbyRoomController.tsx:178` and `components/room/MatchRoomController.tsx:408` show the error through the existing notice line instead of navigating;
   - `components/profile/ProfilePage.tsx` hides `sign out` and `change name` while the viewer has a live match (from `/api/match/active` or the room store's match phase), and handles the refusal the same way.
   Add a case to `tests/unit/components/room/MatchRoomController.spec.tsx` and the ProfilePage spec.
-- [ ] T054 [US4] Extend `tests/integration/ui/identity.spec.ts`: "sign-out refused in match". Two contexts are paired; the match menu has no sign-out; `/profile` shows no sign-out.
+- [X] T054 [US4] Extend `tests/integration/ui/identity.spec.ts`: "sign-out refused in match". Two contexts are paired; the match menu has no sign-out; `/profile` shows no sign-out.
 
 **Checkpoint**: SC-005 green. Sign-out cannot touch a match.
 
@@ -238,33 +238,33 @@
 **Goal**: after sign-out, the door greets the browser's most recent name, which enters with one press or gives way to `use another name`.
 **Independent test**: sign out → `WELCOME BACK · Birna · 1310 · english`; `enter the lobby ▸` → the lobby as Birna; `not Birna? · use another name` → the input; entering `embla` works, and the browser can still enter as Birna.
 
-- [ ] T055 [US3] Write the failing `tests/unit/auth/returningPlayer.test.ts` for `readReturningPlayer(locale)` in `lib/auth/returningPlayer.ts`:
+- [X] T055 [US3] Write the failing `tests/unit/auth/returningPlayer.test.ts` for `readReturningPlayer(locale)` in `lib/auth/returningPlayer.ts`:
   - null when a session is valid, when there is no device key, or when the signed-out mark is absent;
   - otherwise `{displayName, rating}` from the player that `resolve_claim` picks, with a read-only variant that does not stamp `last_entered_at`, and `player_ratings` for the locale's language;
   - `rating: null` when there is no rating row.
   Use a read-only select, not the stamping RPC.
-- [ ] T056 [US3] Implement `lib/auth/returningPlayer.ts`. T055 turns green.
-- [ ] T057 [US3] Write the failing `tests/unit/app/actions/auth/enterAsReturning.test.ts`:
+- [X] T056 [US3] Implement `lib/auth/returningPlayer.ts`. T055 turns green.
+- [X] T057 [US3] Write the failing `tests/unit/app/actions/auth/enterAsReturning.test.ts`:
   - no device key or an unknown one → `{status:"error", code:"login_failed"}` and the device cookie cleared;
   - known → the session set, `wottle-signed-out` deleted, presence created in `language`, `{status:"success", player}`;
   - rate-limited under `auth:login`.
-- [ ] T058 [US3] Implement `app/actions/auth/enterAsReturning.ts` (`"use server"`, explicit return type, zod `language`), reusing `resolveClaim` and `persistLobbySession`. T057 turns green.
-- [ ] T059 [P] [US3] Add the returning-slip copy to `lib/i18n/copy/en.ts` and `lib/i18n/copy/is.ts` (keys under the sign-in group, sentence or label case per design system §8):
+- [X] T058 [US3] Implement `app/actions/auth/enterAsReturning.ts` (`"use server"`, explicit return type, zod `language`), reusing `resolveClaim` and `persistLobbySession`. T057 turns green.
+- [X] T059 [P] [US3] Add the returning-slip copy to `lib/i18n/copy/en.ts` and `lib/i18n/copy/is.ts` (keys under the sign-in group, sentence or label case per design system §8):
   - `WELCOME BACK` / `GAMAN AÐ SJÁ ÞIG AFTUR`
   - `not {name}? · use another name` / `ekki {name}? · annað nafn`
   - `NO ACCOUNT NEEDED` / `SKRÁNING ÓÞÖRF`
   - `THIS BROWSER KEEPS YOUR NAME` / `ÞESSI VAFRI GEYMIR NAFNIÐ ÞITT`
   - the rating sub-line template `{rating} · {language}` and `{language}`
-- [ ] T060 [US3] Write the failing component tests `tests/unit/components/room/Slip.returning.spec.tsx`:
+- [X] T060 [US3] Write the failing component tests `tests/unit/components/room/Slip.returning.spec.tsx`:
   - given `returning`, the slip renders the label, the name (not an input) with a 12px `--you` square (`getSeatColors`), the sub-line, and the primary and secondary buttons;
   - the secondary swaps to the `NameInput` empty state, which shows the two new lines under the primary;
   - the primary calls `enterAsReturningAction`;
   - no colours outside the tokens;
   - axe is clean.
-- [ ] T061 [US3] Implement the component. In `components/room/Slip.tsx`, split `SignInBody` into `ReturningBody` and the existing name-input body, chosen by a `returning: ReturningPlayer | null` prop with local `useState` for "use another name". Add the two lines under the primary in `components/room/NameInput.tsx`. Styles go in `app/styles/room.css`, using existing classes and tokens only. T060 turns green.
-- [ ] T062 [US3] Thread the data: `app/[locale]/(room)/layout.tsx` calls `readReturningPlayer(locale)` when there is no session and passes it through `RoomShell` to the sign-in slip. Update `components/room/RoomShell.tsx` props and the room store only if the slip reads from it.
+- [X] T061 [US3] Implement the component. In `components/room/Slip.tsx`, split `SignInBody` into `ReturningBody` and the existing name-input body, chosen by a `returning: ReturningPlayer | null` prop with local `useState` for "use another name". Add the two lines under the primary in `components/room/NameInput.tsx`. Styles go in `app/styles/room.css`, using existing classes and tokens only. T060 turns green.
+- [X] T062 [US3] Thread the data: `app/[locale]/(room)/layout.tsx` calls `readReturningPlayer(locale)` when there is no session and passes it through `RoomShell` to the sign-in slip. Update `components/room/RoomShell.tsx` props and the room store only if the slip reads from it.
 - [ ] T063 [US3] Add the fixture phase `returning-slip` to `app/[locale]/dev/room/fixtures.ts` (`ROOM_PHASES`) and `app/[locale]/dev/room/RoomFixture.tsx` (EN-L Birna 1310; IS-T1 Birna 1212). Add it to `tests/integration/ui/room-fixtures.spec.ts` for the visual and a11y runs. Update the CLAUDE.md fixture count (24 → 25). Generate the darwin baselines with `pnpm test:visual --update-snapshots` for this phase only, en and is.
-- [ ] T064 [US3] Extend `tests/integration/ui/identity.spec.ts` with "returning door":
+- [X] T064 [US3] Extend `tests/integration/ui/identity.spec.ts` with "returning door":
   - sign out, and the slip shows `WELCOME BACK` and the name;
   - `enter the lobby ▸` → the lobby as the same name;
   - sign out again, `use another name`, enter a second fresh name → the lobby;
@@ -277,14 +277,14 @@
 
 ## Phase 8: Polish & cross-cutting
 
-- [ ] T065 [P] Add a `tests/perf/` or integration timing assertion that `create_match_between`, `enter_player` and `resolve_claim` (renewal) are under 50ms p95 across 200 calls on local Supabase (SC-007). Model it on `pnpm perf:move-resolve`.
-- [ ] T066 [P] Docs (FR-022):
+- [X] T065 [P] Add a `tests/perf/` or integration timing assertion that `create_match_between`, `enter_player` and `resolve_claim` (renewal) are under 50ms p95 across 200 calls on local Supabase (SC-007). Model it on `pnpm perf:move-resolve`.
+- [X] T066 [P] Docs (FR-022):
   - CLAUDE.md "Session & Authentication" (signed cookie, device key, claim, renewal in `proxy.ts`, signed-out mark);
   - "Key Architectural Patterns" (a new "Match creation" item: the four functions, lock order);
   - Remaining Gaps (the Icelandic `sign_out_in_match` string needs review);
   - the fixture list.
   Remove the "forgeable session cookie" blocker wording wherever docs list it.
-- [ ] T067 [P] Update `docs/prd_and_requirements/wottle_game_rules.md` wherever it describes signing in, signing out or starting a match (sign-out never resigns; one match at a time). Update design system §8 fixed strings with the new strings from T034/T042/T052/T059.
+- [X] T067 [P] Update `docs/prd_and_requirements/wottle_game_rules.md` wherever it describes signing in, signing out or starting a match (sign-out never resigns; one match at a time). Update design system §8 fixed strings with the new strings from T034/T042/T052/T059.
 - [ ] T068 Run `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:integration` (local Supabase), `pnpm docs:check`, `pnpm guard:no-service-role`, `pnpm test:visual`, and `pnpm exec playwright test --grep "@identity|@two-player-playtest"` (one file at a time). Fix anything red.
 - [ ] T069 Walk through `specs/067-identity-one-match/quickstart.md` "Verify by hand" steps 1–6 on `pnpm dev` and record the results in the PR description.
 
