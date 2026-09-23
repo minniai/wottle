@@ -4,6 +4,7 @@ import { copyIs } from "@/lib/i18n/copy/is";
 
 import { deriveMoveState, liveLinesFor, turnFrameFor, type MoveState } from "@/lib/room/moveState";
 import type { MatchState, MoveResolution, PlayerMatchFacts } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 /** Spec 050 contracts/move-state.md. */
 const K = "Kári";
@@ -26,6 +27,8 @@ function match(you: Partial<PlayerMatchFacts> = {}, opp: Partial<PlayerMatchFact
     resolvedSeq: 9,
     scores: { playerA: 46, playerB: 15 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
     ...over,
   };
 }

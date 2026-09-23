@@ -13,7 +13,7 @@ Every match begins at a **table**. The server holds the letters until both playe
   - a hidden tab pauses its search;
   - the 3:00 check;
   - a requeue at the front after a void.
-- **A 5-minute cooldown** follows two table leaves in 10 minutes.
+- **A cooldown of 5 minutes** follows two table leaves in 10 minutes.
 
 **Technical approach:**
 - **The server:** one migration adds the table columns and five functions (`seat_player`, `start_table_if_seated`, `void_table`, `find_due_tables`, `table_leave_cooldown_until`), changes `create_match_between` and `pair_from_queue`, and drops `start_match_if_ready`.
@@ -22,7 +22,7 @@ Every match begins at a **table**. The server holds the letters until both playe
   - The cron sweep adds due tables.
 - **The client:**
   - The match controller renders the `table` and `void` beats with two new slip kinds.
-  - A `useTableCheck` hook on the lobby, queue and profile takes a player to a table from anywhere.
+  - A `useTableCheck` hook on the lobby and profile (the queue has its own poll) takes a player to a table from anywhere.
   - A `useAttention` hook reports visibility and input.
   - The queue drops its inline `found` phase for a push to `/match/:id`.
 

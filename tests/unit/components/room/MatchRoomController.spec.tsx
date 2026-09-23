@@ -45,6 +45,7 @@ import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const profiles: MatchPlayerProfiles = {
   playerA: { playerId: "player-1", displayName: "Alice", username: "alice", avatarUrl: null, eloRating: 1200 },
@@ -74,6 +75,8 @@ function state(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchFacts>
     resolvedSeq: 7,
     scores: { playerA: 45, playerB: 30 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
     ...overrides,
   };
 }
@@ -630,7 +633,7 @@ describe("the last-moved tick (spec 068 FR-027)", () => {
     act(() =>
       mockCallbacks.onMoveResolved!({
         matchId: "m1", moveId: "mv-9", playerId: "player-2", globalSeq: 20, seq: 6, status: "resolved",
-        swap: { from: { x: 4, y: 4 }, to: { x: 5, y: 4 } }, board: state().board, words: [], delta: -5,
+        swap: { from: { x: 4, y: 4 }, to: { x: 5, y: 4 } }, board: board(), words: [], delta: -5,
         totals: { playerA: 46, playerB: 10 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 6 }, resolvedAt: "2026-01-01T00:00:30Z",
       }),
     );

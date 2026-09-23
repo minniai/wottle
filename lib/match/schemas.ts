@@ -78,3 +78,16 @@ export const moveResolutionSchema = z.object({
 });
 
 export type MoveResolutionPayload = z.infer<typeof moveResolutionSchema>;
+
+// ─── The table (spec 069) ────────────────────────────────────────────
+
+export const stakesSchema = z.object({ win: z.number().int(), draw: z.number().int(), loss: z.number().int() });
+
+export const matchTableSchema = z.object({
+  seats: z.object({ a: z.string().nullable(), b: z.string().nullable() }),
+  deadlineAt: z.string().nullable(),
+  origin: z.enum(["queue", "challenge", "crossed_challenge", "rematch", "crossed_rematch", "link"]).nullable(),
+  rematchOf: z.string().nullable(),
+  voidReason: z.enum(["not_seated", "left"]).nullable(),
+  voidedBy: z.string().nullable(),
+});

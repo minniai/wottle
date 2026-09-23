@@ -31,6 +31,7 @@ import { useRoomStore } from "@/lib/room/roomStore";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import type { Coordinate } from "@/lib/types/board";
 import type { MatchPlayerProfiles, MatchState, MoveRejectionReason, MoveResolution, PlayerSlot } from "@/lib/types/match";
+import { boardOrBlank } from "@/lib/constants/board";
 import { Field } from "./Field";
 import { MatchRoomView } from "./MatchRoomView";
 import { useAccumulatedMoves } from "./hooks/useAccumulatedMoves";
@@ -118,6 +119,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const showDebug = process.env.NODE_ENV !== "production" && searchParams.get("debug") === "1";
   const hydrateMatch = useRoomStore((s) => s.hydrateMatch);
   const match = useRoomStore((s) => s.match) ?? initialState;
+  // Spec 069: at the table the server holds the letters; the field is the empty ruled frame.
+  const board = useMemo(() => boardOrBlank(match.board), [match.board]);
   const participantSlot: PlayerSlot | null =
     initialState.players.playerA.playerId === currentPlayerId ? "player_a" : initialState.players.playerB.playerId === currentPlayerId ? "player_b" : null;
   /** Read-only non-participants (completed matches only, FR-043a) see player A as the bottom seat. */
@@ -144,7 +147,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   // Spec 047 FR-002 / spec 049: a record the board does not spell is reported
   // once per match, in every environment.
-  useEffect(() => reportWordIntegrity(matchId, match.board, words), [matchId, match.board, words]);
+  useEffect(() => reportWordIntegrity(matchId, board, words), [matchId, board, words]);
   const { notices, push, dismiss } = useNotices();
   // The tick runs from the deadline, so before started_at it reads more than
   // the clock's length: the excess is the server-anchored 3·2·1 (spec 050
@@ -300,7 +303,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const canPick = !readOnly && inProgress && (moveState.kind === "yourMove" || moveState.kind === "rejected") && !slipUp;
   const field = useFieldInteraction({
     matchId,
-    board: match.board,
+    board,
     frozenKeys,
     canPick,
     onPick: sound.playTileSelect,
@@ -312,19 +315,19 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     fieldDispatch.current = field.dispatch;
   }, [field.dispatch]);
 
-  const displayBoard = useMemo(() => applyLetterSwaps(match.board, [field.ownPins]), [match.board, field.ownPins]);
+  const displayBoard = useMemo(() => applyLetterSwaps(board, [field.ownPins]), [board, field.ownPins]);
 
   const bands = useMemo(() => {
-    const all = bandsFromWords({ words, board: match.board, frozenTiles, viewerSlot, playerAId: match.players.playerA.playerId, liveMoveKey: revealing ? reveal.moveKey : null, trustMoveKey: reveal.moveKey });
+    const all = bandsFromWords({ words, board, frozenTiles, viewerSlot, playerAId: match.players.playerA.playerId, liveMoveKey: revealing ? reveal.moveKey : null, trustMoveKey: reveal.moveKey });
     // New bands of the running reveal go last so `drawnCount` can gate them.
     const fresh = new Set(newIds);
     return [...all.filter((b) => !fresh.has(b.id)), ...all.filter((b) => fresh.has(b.id))];
-  }, [words, match.board, frozenTiles, viewerSlot, match.players.playerA.playerId, revealing, reveal.moveKey, newIds]);
+  }, [words, board, frozenTiles, viewerSlot, match.players.playerA.playerId, revealing, reveal.moveKey, newIds]);
   const drawnCount = revealing ? bands.length - newIds.length + Math.min(progress.bandsDrawn, newIds.length) : null;
   const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightMove, setHighlightMove] = useState<number | null>(null);
 
-  const letterAt = useMemo(() => letterFactsOn(match.board, match.language), [match.board, match.language]);
+  const letterAt = useMemo(() => letterFactsOn(board, match.language), [board, match.language]);
   // The field's own state (pick / illegal); the move's beat is layered on by
   // `moveState` (spec 050), which owns line 1 of the live row.
   const live: LiveState = useMemo(() => {

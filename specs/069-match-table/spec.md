@@ -3,7 +3,7 @@
 **Feature Branch**: `069-match-table`
 **Created**: 2026-09-23
 **Status**: Draft
-**Input**: Stage 3 of the game flow redesign: the table. Nobody is rated for a match they did not sit down at. Source of truth: `docs/design_documentation/260922-game-flow/GAME_FLOW_SPEC.md`: §1 verdict problems 1 and 5, C1 (table), C2 (starting), C3 (void), F5 (phone table), the §4 flow rows for the table (T9, T25–T30, T59–T61), §7.3 seating and the table, §7.5 invariants 8 and 9, §7.9 rows S3, S7 and S12, §8 item 2 (the ready and void slips) and §8b's rows for the rules document (S13). Owner decisions in §10 are settled and are not re-asked; the timings are confirmed (20s to sit down; a 5-minute cooldown after two table leaves in 10 minutes). Design canvas https://claude.ai/artifact/W1emDuJCT6zNAH4h79N3yo, artboards Table, Starting, Void and PhoneTable.
+**Input**: Stage 3 of the game flow redesign: the table. Nobody is rated for a match they did not sit down at. Source of truth: `docs/design_documentation/260922-game-flow/GAME_FLOW_SPEC.md`: §1 verdict problems 1 and 5, C1 (table), C2 (starting), C3 (void), F5 (phone table), the §4 flow rows for the table (T9, T25–T30, T59–T61), §7.3 seating and the table, §7.5 invariants 8 and 9, §7.9 rows S3, S7 and S12, §8 item 2 (the ready and void slips) and §8b's rows for the rules document (S13). Owner decisions in §10 are settled and are not re-asked; the timings are confirmed (20s to sit down; a cooldown of 5 minutes after two table leaves in 10 minutes). Design canvas https://claude.ai/artifact/W1emDuJCT6zNAH4h79N3yo, artboards Table, Starting, Void and PhoneTable.
 
 ## Context
 

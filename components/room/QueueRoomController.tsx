@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useCopy } from "@/components/i18n/LocaleProvider";
-import { diffBoards, generateBoard } from "@/lib/game-engine/boardGenerator";
+import { generateBoard } from "@/lib/game-engine/boardGenerator";
+import { boardOrBlank } from "@/lib/constants/board";
 import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
@@ -115,7 +116,7 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
         return;
       }
       setLettersLanded(100);
-      setBoard(board.length === 10 && diffBoards(board, match.board).length > 0 ? match.board : match.board);
+      setBoard(boardOrBlank(match.board));
       setFound(state.opponent, 3);
       setReady({ matchId: state.matchId, state: match, profiles: profilesFor(match, viewer, state.opponent) });
       window.history.replaceState(null, "", to(`/match/${state.matchId}`));

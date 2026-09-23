@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { outranks, slipPrecedence, type SlipState } from "@/lib/room/slip";
 import type { MatchState, PlayerIdentity } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const BIRNA: PlayerIdentity = { id: "you", username: "birna", displayName: "Birna" } as PlayerIdentity;
 const RESIGN: SlipState = { kind: "resign", move: 4, clockMs: 192_000, opponentName: "Kári" };
@@ -32,6 +33,8 @@ function matchState(matchId: string): MatchState {
     resolvedSeq: 0,
     scores: { playerA: 0, playerB: 0 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
   };
 }
 

@@ -2,6 +2,8 @@
 
 import { create } from "zustand";
 
+import { boardOrBlank } from "@/lib/constants/board";
+
 import { outranks, type SlipKind, type SlipState } from "./slip";
 import { latestResolved } from "./lastMoves";
 import type { ReturningPlayer } from "@/lib/types/lobby";
@@ -187,7 +189,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   hydrateMatch: (state, viewerId) =>
     set((s) => ({
       match: state,
-      board: state.board,
+      board: boardOrBlank(state.board),
       viewerSlot: deriveViewerSlot(state, viewerId),
       phase: phaseForMatch(state),
       queue: null,
@@ -199,7 +201,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   applySnapshot: (snapshot) => {
     const merged = mergeSnapshot(get().match, snapshot);
-    set((s) => ({ match: merged, board: merged.board, phase: phaseForMatch(merged), lastResolved: withLastResolved(s.lastResolved, lastOf(snapshot)) }));
+    set((s) => ({ match: merged, board: boardOrBlank(merged.board), phase: phaseForMatch(merged), lastResolved: withLastResolved(s.lastResolved, lastOf(snapshot)) }));
   },
 
   applyResolution: (resolution) => {
@@ -207,7 +209,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     if (!current || resolution.matchId !== current.matchId) return;
     if (resolution.globalSeq <= current.resolvedSeq) return;
     const next = withResolution(current, resolution);
-    set((s) => ({ match: next, board: next.board, lastResolved: withLastResolved(s.lastResolved, [resolution]), liveResolution: resolution }));
+    set((s) => ({ match: next, board: boardOrBlank(next.board), lastResolved: withLastResolved(s.lastResolved, [resolution]), liveResolution: resolution }));
   },
 
   leaveToLobby: () =>

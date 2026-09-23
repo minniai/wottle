@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { MatchState, MoveResolution, PlayerMatchFacts } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const A = "player-a";
 const B = "player-b";
@@ -24,6 +25,8 @@ function matchState(overrides: Partial<MatchState> = {}): MatchState {
     resolvedSeq: 0,
     scores: { playerA: 0, playerB: 0 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
     ...overrides,
   };
 }

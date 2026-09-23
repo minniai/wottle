@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
 import type { MatchState, PlayerMatchFacts } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 /** Spec 050 contracts/match-state.md § safety poll. */
 const facts = (playerId: string, over: Partial<PlayerMatchFacts> = {}): PlayerMatchFacts => ({ playerId, movesPlayed: 3, score: 10, inFlight: null, lastResolution: null, ...over });
@@ -18,6 +19,8 @@ function buildState(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchF
     resolvedSeq: 6,
     scores: { playerA: 10, playerB: 10 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
     disconnectedPlayerId: null,
     ...overrides,
   };

@@ -26,6 +26,7 @@ import type { Coordinate } from "@/lib/types/board";
 import type { Territory, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, MatchState, MoveResolution, PlayerIdentity } from "@/lib/types/match";
 import type { RecentGameRow } from "@/lib/types/lobby";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 export const ROOM_PHASES = [
   "landing-slip",
@@ -191,6 +192,8 @@ export const MATCH_STATE: MatchState = {
   resolvedSeq: 9,
   scores: { playerA: 46, playerB: 15 },
   frozenTiles: FIXTURE_FROZEN,
+  table: SEATED_TABLE,
+  stakes: null,
 };
 
 /** The picked letter in the picking phase: T at x 0, y 9, worth one point. */

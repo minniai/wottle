@@ -1,3 +1,4 @@
+import { TABLE_COLUMNS, tableOf, type TableRow } from "@/lib/match/table";
 import { readRatings } from "@/lib/rating/playerRatings";
 import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import type { Language } from "@/lib/types/game-config";
@@ -84,7 +85,7 @@ export function __resetSelfHealTrackerForTests(): void {
 
 // ─── Rows ────────────────────────────────────────────────────────────
 
-interface MatchRow {
+interface MatchRow extends TableRow {
   id: string;
   state: MatchPhase;
   board_seed: string | null;
@@ -129,7 +130,7 @@ interface MoveRow {
 }
 
 const MATCH_COLUMNS =
-  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,completed_at,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit,language";
+  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,completed_at,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit,language," + TABLE_COLUMNS;
 
 const MOVE_COLUMNS =
   "id,player_id,global_seq,seq,status,rejection_reason,from_x,from_y,to_x,to_y,received_at,claimed_at,resolved_at,board_after,frozen_after,delta,score_a_after,score_b_after";
@@ -348,6 +349,8 @@ export async function loadMatchState(
     winnerId: match.winner_id ?? null,
     endedReason: (match.ended_reason as MatchEndedReason | null) ?? null,
     completedAt: match.completed_at ?? null,
+    table: tableOf(match),
+    stakes: null,
   };
 }
 

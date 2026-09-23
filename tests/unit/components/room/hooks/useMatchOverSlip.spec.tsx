@@ -6,6 +6,7 @@ import { buildMatchOverSlip, endReasonFor, useMatchOverSlip, type MatchOverSlipI
 import { MATCH_OVER_DELAY_MS } from "@/lib/room/revealSequence";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { MatchState, PlayerMatchFacts } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const facts = (playerId: string, movesPlayed: number, score: number): PlayerMatchFacts => ({ playerId, movesPlayed, score, inFlight: null, lastResolution: null });
 const match: MatchState = {
@@ -19,6 +20,8 @@ const match: MatchState = {
   resolvedSeq: 20,
   scores: { playerA: 127, playerB: 170 },
   frozenTiles: {},
+  table: SEATED_TABLE,
+  stakes: null,
   endedReason: "moves_complete",
 };
 const input: MatchOverSlipInput = {

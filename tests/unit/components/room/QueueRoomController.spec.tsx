@@ -15,6 +15,7 @@ import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
 import { QueueRoom, QueueRoomController } from "@/components/room/QueueRoomController";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { MatchState, PlayerIdentity } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const me: PlayerIdentity = { id: "me", username: "birna", displayName: "Birna", status: "matchmaking", lastSeenAt: "", eloRating: 1204 };
 const kari: PlayerIdentity = { id: "k", username: "kari", displayName: "Kári", status: "in_match", lastSeenAt: "", eloRating: 1191 };
@@ -32,6 +33,8 @@ const match: MatchState = {
   resolvedSeq: 0,
   scores: { playerA: 0, playerB: 0 },
   frozenTiles: {},
+  table: SEATED_TABLE,
+  stakes: null,
 };
 
 describe("QueueRoomController (spec 044 US8, Q3)", () => {
