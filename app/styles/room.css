@@ -286,7 +286,8 @@
   gap: 0;
   /* The rules are cell borders, not grid gaps, so they cross the word bands
      drawn beneath the cells (design system §5.1, fixture B). */
-  --cell-size: calc(var(--field-size) / 10);
+  /* Under a scoreboard the room passes the whole-pixel cell (spec 068); otherwise a tenth of the field. */
+  --cell-size: var(--room-cell, calc(var(--field-size) / 10));
   /* The field owns its pointer gestures: no pan or pinch while dragging a letter. */
   touch-action: none;
   font-family: var(--font-board);

@@ -2,6 +2,7 @@
 
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { TOTAL_MOVES } from "@/lib/room/ledgerRows";
+import { segmentStates } from "@/lib/room/segments";
 
 export type LaneMode = "moves" | "searching" | "disconnected" | "empty";
 
@@ -13,17 +14,6 @@ interface BarLaneProps {
   /** A move of this player's is received and not yet resolved. */
   moveInFlight?: boolean;
   mode?: LaneMode;
-}
-
-type SegmentState = "left" | "scoring" | "spent";
-
-/** The segments in reading order: the moves left first, the spent ones after. */
-function segmentStates(movesPlayed: number, moveLimit: number, moveInFlight: boolean): SegmentState[] {
-  const left = Math.max(0, moveLimit - movesPlayed);
-  return Array.from({ length: moveLimit }, (_, i) => {
-    if (i >= left) return "spent";
-    return moveInFlight && i === left - 1 ? "scoring" : "left";
-  });
 }
 
 /**

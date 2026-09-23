@@ -18,6 +18,38 @@ describe("Room", () => {
     expect(screen.getByTestId("room-slot-field")).toHaveTextContent("FIELD");
   });
 
+  it("under a scoreboard sizes the field in whole cells and says so for the stylesheet (spec 068)", () => {
+    class RO {
+      static instances: RO[] = [];
+      cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+        RO.instances.push(this);
+      }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal("ResizeObserver", RO);
+    render(<Room layout="scoreboard" topBar={<span>BOARD</span>} field={null} bottomBar={null} ledger={null} />);
+    const room = screen.getByTestId("room");
+    Object.defineProperty(room, "clientWidth", { value: 1440, configurable: true });
+    Object.defineProperty(room, "clientHeight", { value: 900, configurable: true });
+    act(() => RO.instances[0].cb([], RO.instances[0] as unknown as ResizeObserver));
+    expect(room).toHaveAttribute("data-layout", "scoreboard");
+    expect(room.style.getPropertyValue("--field-size")).toBe("713px");
+    expect(room.style.getPropertyValue("--room-cell")).toBe("71px");
+    // No bottom bar under a scoreboard: the slot is not drawn at all.
+    expect(screen.queryByTestId("room-slot-bottom")).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps the bars layout by default, with no whole-cell override", () => {
+    render(<Room topBar={null} field={null} bottomBar={<span>B</span>} ledger={null} />);
+    expect(screen.getByTestId("room")).toHaveAttribute("data-layout", "bars");
+    expect(screen.getByTestId("room").style.getPropertyValue("--room-cell")).toBe("");
+  });
+
   it("flags a small cell so the value numeral can hide (spec 045 decision 3)", () => {
     // A 310px field is a 31px cell, where the design's 18% numeral is 5.6px.
     class RO {

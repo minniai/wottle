@@ -401,7 +401,8 @@ describe("MatchRoomController (spec 050)", () => {
   it("the end-early slip is offered only once you have ten and the window is spent; it returns after ten seconds and lifts on reconnect", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
-    const gone = { disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    // The server's clock agrees with the device's here; the window is measured on the server-corrected clock.
+    const gone = { clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:02:00Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
     const { unmount } = renderController(state(gone));
     expect(screen.queryByTestId("slip")).toBeNull();
     unmount();
@@ -568,3 +569,14 @@ describe("MatchRoomController (spec 050)", () => {
   });
 });
 
+
+describe("the reconnect window on the server-corrected clock (spec 068 R9)", () => {
+  it("counts the opponent's window from the server's clock, not a wrong device clock", () => {
+    vi.useFakeTimers();
+    // The device runs 60s fast; the server says 30s have passed since the disconnect.
+    vi.setSystemTime(new Date("2026-01-01T00:01:30Z"));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:30Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 1:00 left");
+    vi.useRealTimers();
+  });
+});

@@ -31,7 +31,7 @@ import { Field } from "./Field";
 import { MatchRoomView } from "./MatchRoomView";
 import { useAccumulatedMoves } from "./hooks/useAccumulatedMoves";
 import { useWordHistory } from "./hooks/useWordHistory";
-import { useDeadlineTick } from "./hooks/useDeadlineTick";
+import { useDeadlineTick, useServerDrift } from "./hooks/useDeadlineTick";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
@@ -124,6 +124,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // the clock's length: the excess is the server-anchored 3·2·1 (spec 050
   // FR-008), and the caption holds at the full clock meanwhile.
   const tickMs = useDeadlineTick(match.clock);
+  const serverDrift = useServerDrift(match.clock);
   const clockLengthMs = clockLengthOf(match.clock);
   const msToStart = clockLengthMs === null ? 0 : tickMs - clockLengthMs;
   const clockMs = clockLengthMs === null ? tickMs : Math.min(tickMs, clockLengthMs);
@@ -312,7 +313,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // elapsed and the viewer has all their moves, ending early is put on a slip.
   const opponentGone = match.disconnectedPlayerId === oppFacts.playerId && inProgress;
   const disconnectedAt = opponentGone ? match.disconnectedAt ?? null : null;
-  const now = useNowTick(Boolean(disconnectedAt));
+  // Measured on the server-corrected clock: a wrong device clock must not move the 90s window (spec 068 R9).
+  const now = useNowTick(Boolean(disconnectedAt)) + serverDrift;
   const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
   const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + windowMs - now) : null;
   const viewerDone = youFacts.movesPlayed >= match.moveLimit;

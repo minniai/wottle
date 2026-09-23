@@ -11,32 +11,32 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirm the baseline: run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` and `pnpm test:visual` on `068-match-scoreboard` and record the pass counts in `specs/068-match-scoreboard/tasks.md` (Notes)
+- [X] T001 Confirm the baseline: run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` and `pnpm test:visual` on `068-match-scoreboard` and record the pass counts in `specs/068-match-scoreboard/tasks.md` (Notes)
 - [ ] T002 [P] Add the copy keys this feature needs to the `Copy` type, with placeholders in both languages (`SCOREBOARD`, `MATCH_CLOCK_LABEL`, `pace`, `LAST_SECONDS`, `TIME_LABEL`, `matchOverClock`, `READY`, `BEHIND_PACE`, `goneFor`, `OFFLINE_RECONNECTING`, `moveNoWord`, `missedLine`, `missedFloorLine`, `stakesLine`, `NOTHING_TO_LOSE`, `frozenWord`, `backAway`, `endEarlyOffer`, `lastMoveOf`, `oppAnnouncement`, `tabTitle`, `NO_WORD`, `NOT_PLAYED`, `IF_UNPLAYED`) in `lib/i18n/copy/types.ts`, `lib/i18n/copy/en.ts` and `lib/i18n/copy/is.ts`, with the strings from spec FR-004/005/028–038 and `contracts/live-line2.md`
 
 ---
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T003 [P] Write failing tests in `tests/unit/lib/room/segments.spec.ts`: `segmentStates(movesPlayed, limit, inFlight)` returns 10 entries (left first, spent after, the in-flight one as `scoring`), matching the current BarLane behaviour
-- [ ] T004 Move `segmentStates` from `components/room/BarLane.tsx` to the new `lib/room/segments.ts`, and import it back into `BarLane.tsx` (the lobby and queue still use `BarLane`)
-- [ ] T005 [P] Write failing tests in `tests/unit/components/room/hooks/useFieldSize.spec.ts`, following `contracts/field-size.md`:
+- [X] T003 [P] Write failing tests in `tests/unit/lib/room/segments.spec.ts`: `segmentStates(movesPlayed, limit, inFlight)` returns 10 entries (left first, spent after, the in-flight one as `scoring`), matching the current BarLane behaviour
+- [X] T004 Move `segmentStates` from `components/room/BarLane.tsx` to the new `lib/room/segments.ts`, and import it back into `BarLane.tsx` (the lobby and queue still use `BarLane`)
+- [X] T005 [P] Write failing tests in `tests/unit/components/room/hooks/useFieldSize.spec.ts`, following `contracts/field-size.md`:
   - scoreboard 1440×900 (ledger 340, gutter 56) → `{cell:71, field:713}`;
   - 1280×800 → whole cell, and `field = cell×10+3`;
   - scoreboard 1000×800 (ledger 260, gutter 40) is width-bound;
   - bars 1000×800 is width-bound (the 901–1100 overflow fix);
   - phone 390×844 → `field = 358`, fractional `cell`;
   - never negative.
-- [ ] T006 Implement `computeFieldSize(width, height, { layout, paddingX, ledgerWidth, gutter, scoreboardHeight })` returning `{ cell, field }`, and update `useFieldSize` to take the layout and read the ledger width and gutter from computed style, in `components/room/hooks/useFieldSize.ts`
-- [ ] T007 Add a `layout: "bars" | "scoreboard"` prop to `Room`: pass it to `useFieldSize`, set `data-layout`, and set `--cell-size` from `cell` (not `field/10`) and `--field-size` from `field`, in `components/room/Room.tsx`. Update `tests/unit/components/room/Room.spec.tsx` for both layouts.
-- [ ] T008 [P] Write failing tests in `tests/unit/lib/room/clock.spec.ts`:
+- [X] T006 Implement `computeFieldSize(width, height, { layout, paddingX, ledgerWidth, gutter, scoreboardHeight })` returning `{ cell, field }`, and update `useFieldSize` to take the layout and read the ledger width and gutter from computed style, in `components/room/hooks/useFieldSize.ts`
+- [X] T007 Add a `layout: "bars" | "scoreboard"` prop to `Room`: pass it to `useFieldSize`, set `data-layout`, and set `--cell-size` from `cell` (not `field/10`) and `--field-size` from `field`, in `components/room/Room.tsx`. Update `tests/unit/components/room/Room.spec.tsx` for both layouts.
+- [X] T008 [P] Write failing tests in `tests/unit/lib/room/clock.spec.ts`:
   - `ticksLeft(ms) = ceil(ms/5000)`, with 192000 → 39;
   - `blocks(39)` → `[6,6,6,6,6,6,3,0,0,0]`;
   - `clockRowPhase` for each of `starting | running | underMinute | lastSeconds | time | over`;
   - `pace(192000, 7)` → 27 and `pace(800, 3)` → `<1`;
   - `behindPace(3, 48000)` true, `behindPace(7, 192000)` false, `behindPace(0, …)` false.
-- [ ] T009 Implement `ticksLeft`, `blocks`, `clockRowPhase`, `pace`, `behindPace` and `LAST_SECONDS_MS`; remove `FLASH_CLOCK_MS` and the `flash` phase; keep `formatClock` and `remainingFromDeadline`. All in `lib/room/clock.ts`.
-- [ ] T010 [P] Add `serverCorrectedNow(serverNow, localNowAtSnapshot, now)` to `lib/room/clock.ts`, test it in `tests/unit/lib/room/clock.spec.ts`, and use it for `reconnectMsLeft` in `components/room/MatchRoomController.tsx` (research R9)
+- [X] T009 Implement `ticksLeft`, `blocks`, `clockRowPhase`, `pace`, `behindPace` and `LAST_SECONDS_MS`; remove `FLASH_CLOCK_MS` and the `flash` phase; keep `formatClock` and `remainingFromDeadline`. All in `lib/room/clock.ts`.
+- [X] T010 [P] Add `serverCorrectedNow(serverNow, localNowAtSnapshot, now)` to `lib/room/clock.ts`, test it in `tests/unit/lib/room/clock.spec.ts`, and use it for `reconnectMsLeft` in `components/room/MatchRoomController.tsx` (research R9)
 
 **Checkpoint:** the foundation is ready. No visible change yet.
 
@@ -311,4 +311,6 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 
 ## Notes
 
-- (T001 and T082 results go here.)
+- T001 baseline (2026-09-23): 175 unit files, 1721 tests passing (2 skipped); lint, typecheck and docs:check clean.
+- T002 folded into each task: `Copy` is derived from the English object and guarded by the parity test, so each key is added with the test that needs it.
+- T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.
