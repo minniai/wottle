@@ -1415,7 +1415,7 @@ Presets only, sent as a code and shown in the reader's language.
 | S4 | **Challenges.** Statuses `withdrawn`, `superseded`, `left`. No sender status write. Recipients `available` or searching. `withdrawInvite` plus a beacon POST route. A reverse pending challenge → create. `PLAYTEST_INVITE_EXPIRY_SECONDS=60`. Cooldown and limits counted from rows. `getOutgoingInvite` returns `match_id` when accepted. |
 | S5 | **Presence.** Per-tab heartbeat (`tabId`, `visibilityState`, `lastInputAt`, `lobbyLanguage`). `lobby_presence.hidden_since`, `leaving_at`. The constants module. Derived states. Presence, inbox and search providers moved to `app/[locale]/layout.tsx`. The match heartbeat from any app page. `/api/match/active` extended with the opponent, move count, deadline and completed-while-away. |
 | S6 | **Push.** A `player:{id}` Realtime channel with payload-free pokes; the socket heartbeat in a worker; the rematch broadcast becomes a poke; polls slow to 10–15s once live; invite expiry in cron. |
-| S7 | **Queue.** `players.queued_at`; the 10s freshness filter; queued_at order; phone pause on hidden; the 3:00 check; requeue at the front after a void. |
+| S7 | **Queue.** `players.queued_at`; the 10s freshness filter; queued_at order; pause on hidden on every device; the 3:00 check; requeue at the front after a void. |
 | S8 | **Rematch.** `MatchState.rematch {status, requesterId, createdAt, newMatchId}` for completed matches; the 2:00 window; the heartbeat check; accept via S2; cooldown after decline or expiry; void and abandoned matches refused. |
 | S9 | **Review.** `GET /api/match/:id/moves` (one select by `global_seq`, joined to the word entries; public for completed matches); read-only render without a session; the synthetic time step; `?review=` on the match page; `/summary` → `?review`. |
 | S10 | **Lobby overview.** `GET /api/lobby/overview?language=` (here, searching and playing counts for this and the other lobby; the viewer's last match for the band map; the last ten for the form strip); a language filter on the stats route; `getRecentGames` excludes void and abandoned. |
@@ -1433,7 +1433,7 @@ Presets only, sent as a code and shown in the reader's language.
 | S17 | Best-here hints (cost accepted; review waits for them, owner 23 September 2026): a background job after completion fills `match_move_hints(move_id, best_swap, best_points)` under a per-step time budget, pruned to swaps that touch cells able to finish a word. |
 | S18 | Web Push: service worker, subscription table, VAPID keys. |
 | S19 | Withdrawn (owner, 23 September 2026): challenges stay within each language's lobby. |
-| S20 | Provisional ratings for a player's first five matches (`1200?`): yes. Newcomer pairing in the queue: open. Practice field: deferred, not built for now (owner, 23 September 2026). |
+| S20 | Provisional ratings for a player's first five matches (`1200?`): yes. Newcomer pairing: no separate pool; wherever rating enters pairing, a provisional player counts as 1200, the default newcomer Elo. Practice field: deferred, not built for now (owner, 23 September 2026). |
 
 **Deferred, out of scope for this beta (owner, 23 September 2026):** watching live matches, following players.
 
@@ -1627,7 +1627,7 @@ All artboards use the eight tokens and Zilla Slab + Red Hat Mono, with the fixtu
 5. **Identity recovery.** Answered: deferred. Proper authentication with Supabase Auth comes in the next phase and brings recovery with it; no recovery code is built before then.
 6. **Watching live matches.** Answered: deferred, not in scope for this beta.
 7. **Following players.** Answered: deferred.
-8. **Newcomers** [phase 2 · S20]. Answered: provisional ratings for the first five matches, yes. Practice field: deferred, no for now. Still open: pairing newcomers with each other in the queue.
+8. **Newcomers** [phase 2 · S20]. Answered: provisional ratings for the first five matches, yes. Practice field: deferred, no for now. Pairing: newcomers are not pooled with each other; they are paired as if their Elo is 1200, the default newcomer Elo. (The S7 queue pairs in `queued_at` order, so rating does not enter queue pairing today; the rule holds wherever it does.)
 9. **Best here in review** [phase 2 · S17]. Answered: the cost is acceptable, and review waits for the hints (D3).
 10. **Timings.** Confirmed: challenge 60s; table 20s; rematch 30s within a 2:00 window; 60s decline cooldown; 3:00 search check; a 5-minute cooldown after two table leaves.
 11. **Cross-language challenges.** Answered: no. Challenges stay within each language's lobby; S19 is withdrawn.
