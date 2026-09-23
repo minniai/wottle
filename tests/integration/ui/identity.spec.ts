@@ -1,0 +1,63 @@
+/**
+ * Spec 067 — this browser keeps your name. A claimed name typed in another
+ * browser reads `that name is taken · pick another`; a lapsed session renews
+ * without the door. Each browser context is its own browser (its own device key).
+ */
+import { expect, test } from "@playwright/test";
+
+import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
+
+test.describe("@identity this browser keeps your name", () => {
+  test("a name another browser claimed is taken", async ({ browser }) => {
+    const name = generateTestUsername("id-taken");
+    const first = await browser.newContext();
+    const second = await browser.newContext();
+    try {
+      await loginViaSlip(await first.newPage(), name);
+
+      const page = await second.newPage();
+      await page.goto("/en");
+      await page.getByTestId("player-bar-name-input").fill(name.toUpperCase());
+      await page.getByTestId("player-bar-action-play").click();
+      await expect(page.getByTestId("name-input-error")).toHaveText("that name is taken · pick another", { timeout: 15_000 });
+      await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn");
+    } finally {
+      await first.close();
+      await second.close();
+    }
+  });
+
+  test("a lapsed session renews from the device key, with no door", async ({ browser }) => {
+    const name = generateTestUsername("id-renew");
+    const context = await browser.newContext();
+    try {
+      const page = await context.newPage();
+      await loginViaSlip(page, name);
+      await context.clearCookies({ name: "wottle-playtest-session" });
+
+      await page.goto("/en/lobby");
+      await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 15_000 });
+      await expect(page.getByTestId("player-bar-bottom")).toContainText(name, { ignoreCase: true });
+      const cookies = await context.cookies();
+      expect(cookies.find((c) => c.name === "wottle-playtest-session")?.value).toMatch(/^v1\./);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("an edited session cookie is no session", async ({ browser }) => {
+    const context = await browser.newContext();
+    try {
+      const page = await context.newPage();
+      await loginViaSlip(page, generateTestUsername("id-forge"));
+      const session = (await context.cookies()).find((c) => c.name === "wottle-playtest-session")!;
+      await context.clearCookies();
+      await context.addCookies([{ ...session, value: session.value.slice(0, 8) + (session.value[8] === "A" ? "B" : "A") + session.value.slice(9) }]);
+
+      await page.goto("/en");
+      await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn", { timeout: 15_000 });
+    } finally {
+      await context.close();
+    }
+  });
+});

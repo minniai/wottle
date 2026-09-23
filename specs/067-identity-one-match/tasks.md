@@ -166,7 +166,7 @@
 **Goal**: the device key claims names, `name_taken` refuses other browsers, and a lapsed session renews silently.
 **Independent test**: enter a new name in context A; the same name in context B gives `that name is taken · pick another`; delete only the session cookie in A and reload → still signed in.
 
-- [ ] T036 [P] [US2] Write the failing `tests/integration/db/enter-player.test.ts`:
+- [X] T036 [P] [US2] Write the failing `tests/integration/db/enter-player.test.ts`:
   - a new name → `entered` with `claim_hash` set;
   - the same hash again → `entered`;
   - a different hash → `name_taken`;
@@ -175,31 +175,31 @@
   - two concurrent calls with different hashes → exactly one `entered`;
   - `status` is unchanged for an `in_match` player;
   - `resolve_claim` returns the player with the latest `last_entered_at` among those sharing a hash, and `unknown` for an unused hash.
-- [ ] T037 [US2] Write `supabase/migrations/20260923003_claim.sql` with `enter_player` and `resolve_claim` per `contracts/sql-functions.md`. T036 turns green.
-- [ ] T038 [P] [US2] Write the failing `tests/unit/auth/claim.test.ts` for `lib/auth/claim.ts`: `enterPlayer(client, {username, displayName, claimHash})` returns the player or throws `NameTakenError`; `resolveClaim(client, claimHash)` returns the player or null; the jsonb is parsed with zod; `auth.claim.name_taken` and `auth.claim.created` are logged.
-- [ ] T039 [US2] Implement `lib/auth/claim.ts`. T038 turns green.
-- [ ] T040 [US2] Write the failing tests in `tests/unit/app/actions/auth/login.test.ts`:
+- [X] T037 [US2] Write `supabase/migrations/20260923003_claim.sql` with `enter_player` and `resolve_claim` per `contracts/sql-functions.md`. T036 turns green.
+- [X] T038 [P] [US2] Write the failing `tests/unit/auth/claim.test.ts` for `lib/auth/claim.ts`: `enterPlayer(client, {username, displayName, claimHash})` returns the player or throws `NameTakenError`; `resolveClaim(client, claimHash)` returns the player or null; the jsonb is parsed with zod; `auth.claim.name_taken` and `auth.claim.created` are logged.
+- [X] T039 [US2] Implement `lib/auth/claim.ts`. T038 turns green.
+- [X] T040 [US2] Write the failing tests in `tests/unit/app/actions/auth/login.test.ts`:
   - no device cookie → one is created and set with `deviceCookieOptions`;
   - an existing device cookie is reused;
   - `NameTakenError` → `{status:"error", code:"name_taken"}` and no cookie set;
   - the rate limit is checked before the claim;
   - success deletes `wottle-signed-out`.
-- [ ] T041 [US2] Change `performUsernameLogin` in `lib/matchmaking/profile.ts` to take `claimHash`, call `enterPlayer` instead of `upsertPlayerIdentity`, and keep the presence creation. Delete `upsertPlayerIdentity` from `lib/matchmaking/service.ts` if nothing else uses it. Update `app/actions/auth/login.ts` and `app/api/auth/login/route.ts` to read or create the device key, pass its hash, and set the device cookie only on success. The route returns `409 {code:"name_taken"}`. T040 turns green, and `tests/contract/post-login.contract.test.ts` is updated.
-- [ ] T042 [P] [US2] Map `NameTakenError` → `name_taken` in `lib/i18n/errorCodes.ts` `loginErrorCode`. Add `errors.name_taken`: `that name is taken · pick another` in `lib/i18n/copy/en.ts` and `þetta nafn er frátekið · veldu annað` in `lib/i18n/copy/is.ts`. Add a unit test for the mapping.
-- [ ] T043 [US2] Write the failing `tests/unit/auth/renewal.test.ts` for the pure `decideRenewal({sessionValid, deviceKey, signedOut})` in `lib/auth/renewal.ts`:
+- [X] T041 [US2] Change `performUsernameLogin` in `lib/matchmaking/profile.ts` to take `claimHash`, call `enterPlayer` instead of `upsertPlayerIdentity`, and keep the presence creation. Delete `upsertPlayerIdentity` from `lib/matchmaking/service.ts` if nothing else uses it. Update `app/actions/auth/login.ts` and `app/api/auth/login/route.ts` to read or create the device key, pass its hash, and set the device cookie only on success. The route returns `409 {code:"name_taken"}`. T040 turns green, and `tests/contract/post-login.contract.test.ts` is updated.
+- [X] T042 [P] [US2] Map `NameTakenError` → `name_taken` in `lib/i18n/errorCodes.ts` `loginErrorCode`. Add `errors.name_taken`: `that name is taken · pick another` in `lib/i18n/copy/en.ts` and `þetta nafn er frátekið · veldu annað` in `lib/i18n/copy/is.ts`. Add a unit test for the mapping.
+- [X] T043 [US2] Write the failing `tests/unit/auth/renewal.test.ts` for the pure `decideRenewal({sessionValid, deviceKey, signedOut})` in `lib/auth/renewal.ts`:
   - a valid session → `pass`;
   - no session, a device key, not signed out → `resolve`;
   - signed out → `pass`;
   - no device key → `pass`.
   Also test `applyRenewal(request, response, player)`: it sets the signed session on both `request.cookies` and the response, and re-sets the device cookie's max-age.
-- [ ] T044 [US2] Implement `lib/auth/renewal.ts`: `decideRenewal`, `applyRenewal`, and `renewSession(request)`, which runs `resolveClaim` through the service-role client. When the result is unknown it deletes the device cookie and logs `auth.device.unknown`. T043 turns green.
-- [ ] T045 [US2] Change `proxy.ts`:
+- [X] T044 [US2] Implement `lib/auth/renewal.ts`: `decideRenewal`, `applyRenewal`, and `renewSession(request)`, which runs `resolveClaim` through the service-role client. When the result is unknown it deletes the device cookie and logs `auth.device.unknown`. T043 turns green.
+- [X] T045 [US2] Change `proxy.ts`:
   - run `renewSession(request)` before `decideLocaleRoute`;
   - build the response with `NextResponse.next({ request })` / rewrite / redirect as today, carrying the renewed cookies;
   - widen `config.matcher` to include `/api/:path*` while excluding `_next` and static files, and bypass locale routing for `/api`.
   Add `tests/unit/proxy.test.ts` cases: an API request with a lapsed session and a device key comes out with a `Set-Cookie`; locale redirects are unchanged.
 - [ ] T046 [US2] Write `tests/integration/ui/identity.spec.ts`, tagged `@identity`. Scenario "name taken": context A enters `id-<rand>`; context B enters the same name, and `name-input-error` reads `that name is taken · pick another`. Scenario "silent renewal": in A, clear only `wottle-playtest-session` and reload → the lobby shows the same name.
-- [ ] T047 [US2] Audit the 37 `loginViaSlip(` calls under `tests/integration/ui/`. Any test that re-enters a fixed name from a fresh browser context must generate a unique name (the pattern in `tests/integration/ui/helpers/matchmaking.ts`) or reuse its context. Run the affected specs one file at a time and confirm they pass.
+- [X] T047 [US2] Audit the 37 `loginViaSlip(` calls under `tests/integration/ui/`. Any test that re-enters a fixed name from a fresh browser context must generate a unique name (the pattern in `tests/integration/ui/helpers/matchmaking.ts`) or reuse its context. Run the affected specs one file at a time and confirm they pass.
 
 **Checkpoint**: names are claimed, `name_taken` works, sessions renew. SC-002 and SC-003 green.
 
