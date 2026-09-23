@@ -10,6 +10,7 @@ import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
+import { PointsLost } from "./PointsLost";
 import { RoomMenu, type RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
@@ -49,9 +50,10 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   const total = <span className="ledger__total">{points(cell.total)}</span>;
   const inward = (content: ReactNode) => (seat === "you" ? <>{content}{total}</> : <>{total}{content}</>);
   if (cell.words.length === 0) {
+    // Points lost read inward to the spine: `no word −5` in your column, `−5 not played` in theirs.
     return (
       <div className="ledger__words ledger__words--empty" data-seat={seat} data-miss={cell.miss || undefined} data-unplayed={cell.unplayed || undefined}>
-        {inward(<span className="ledger__miss">{cell.unplayed ? NOT_PLAYED : NO_WORD}</span>)}
+        <PointsLost value={cell.total} label={cell.unplayed ? NOT_PLAYED : NO_WORD} labelFirst={seat === "you"} />
       </div>
     );
   }

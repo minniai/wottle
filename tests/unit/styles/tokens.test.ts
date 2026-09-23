@@ -5,8 +5,8 @@ import { describe, expect, test } from "vitest";
 const css = readFileSync(resolve(__dirname, "../../../app/globals.css"), "utf-8");
 const rootBlock = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
 
-/** Design system §2 — the only colours that may appear on screen. */
-const SEVEN: Record<string, string> = {
+/** Design system §2 — the only colours that may appear on screen: nine since spec 068. */
+const NINE: Record<string, string> = {
   "--paper": "#FFFDF7",
   "--ink": "#0F1A24",
   "--rule": "#E6E2D6",
@@ -14,16 +14,14 @@ const SEVEN: Record<string, string> = {
   "--muted": "#5A6572",
   "--you": "#147D7A",
   /**
-   * 21 September 2026: coral calmed to balance teal. Same hue (OKLCH H 34);
-   * chroma 0.181 → 0.129 (1.5× teal's, was 2.1×), lightness 0.64 → 0.61.
+   * Spec 068 (23 September 2026): burnished terracotta, OKLCH 0.60 0.10 40 —
+   * quieter than coral, an earth pair with teal, never mistaken for an error.
    */
-  "--opp": "#C4634C",
-  /**
-   * Decision 2 of 15 September: coral as text only at 17px and above; this is
-   * the text-only variant for coral text below that — never for letters,
-   * lanes, totals or seat squares, which stay --opp.
-   */
-  "--opp-text": "#AB4F3B",
+  "--opp": "#B56A4F",
+  /** The opponent's text below 17px: same hue, darker (5.2:1 on paper). */
+  "--opp-text": "#A1583D",
+  /** Spec 068: crimson, points lost and nothing else (OKLCH 0.49 0.18 16). */
+  "--err": "#AD1F3D",
 };
 
 const DERIVED = ["--you-band", "--you-live", "--opp-band", "--opp-live", "--future-label", "--font-board", "--font-mono"];
@@ -37,7 +35,7 @@ function declarations(block: string): Map<string, string> {
 describe("globals.css — Field & Ledger tokens (design system §2)", () => {
   const decls = declarations(rootBlock);
 
-  test.each(Object.entries(SEVEN))("declares %s as %s", (token, hex) => {
+  test.each(Object.entries(NINE))("declares %s as %s", (token, hex) => {
     expect(decls.get(token)?.toUpperCase()).toBe(hex);
   });
 
@@ -56,8 +54,8 @@ describe("globals.css — Field & Ledger tokens (design system §2)", () => {
     expect(decls.get("--future-label")?.toUpperCase()).toBe("#B9B4A6");
   });
 
-  test("no raw colour outside the seven tokens: every other declaration resolves to a token", () => {
-    const allowed = new Set([...Object.keys(SEVEN), ...DERIVED]);
+  test("no raw colour outside the nine tokens: every other declaration resolves to a token", () => {
+    const allowed = new Set([...Object.keys(NINE), ...DERIVED]);
     for (const [name, value] of decls) {
       if (allowed.has(name)) continue;
       expect(value, `${name} must alias a token, not declare a colour`).toMatch(
@@ -77,7 +75,7 @@ describe("globals.css — Field & Ledger tokens (design system §2)", () => {
 
   test("the :root set is exactly the palette — no alias may be kept alive here", () => {
     const declared = [...decls.keys()].sort();
-    const expected = [...Object.keys(SEVEN), ...DERIVED].sort();
+    const expected = [...Object.keys(NINE), ...DERIVED].sort();
     expect(declared).toEqual(expected);
   });
 
@@ -100,11 +98,16 @@ function contrast(a: string, b: string): number {
 
 describe("seat colour contrast on paper (design system §2)", () => {
   test("each seat colour clears 3:1 for fills, lanes and large totals", () => {
-    expect(contrast(SEVEN["--you"], SEVEN["--paper"])).toBeGreaterThanOrEqual(3);
-    expect(contrast(SEVEN["--opp"], SEVEN["--paper"])).toBeGreaterThanOrEqual(3);
+    expect(contrast(NINE["--you"], NINE["--paper"])).toBeGreaterThanOrEqual(3);
+    expect(contrast(NINE["--opp"], NINE["--paper"])).toBeGreaterThanOrEqual(3);
+  });
+  test("points lost, crimson, clears 4.5:1 as small text and stays apart from the opponent's colour", () => {
+    expect(contrast(NINE["--err"], NINE["--paper"])).toBeGreaterThanOrEqual(4.5);
+    expect(NINE["--err"]).not.toBe(NINE["--opp"]);
+    expect(NINE["--err"]).not.toBe(NINE["--opp-text"]);
   });
   test("seat colour as small text clears 4.5:1", () => {
-    expect(contrast(SEVEN["--you"], SEVEN["--paper"])).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(SEVEN["--opp-text"], SEVEN["--paper"])).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(NINE["--you"], NINE["--paper"])).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(NINE["--opp-text"], NINE["--paper"])).toBeGreaterThanOrEqual(4.5);
   });
 });

@@ -270,6 +270,18 @@ describe("Ledger (design system §5.4)", () => {
       expect(row.querySelector('[data-seat="you"]')).toHaveTextContent("no word−5");
       expect(row.querySelector('[data-seat="opp"]')).toHaveTextContent("−5not played");
       expect(row.querySelector('[data-seat="you"] .ledger__miss')).toBeInTheDocument();
+      // Spec 068 FR-021: only the number is crimson, in either column; the words stay muted.
+      expect(row.querySelector('[data-seat="you"] .points-lost')).toHaveTextContent("−5");
+      expect(row.querySelector('[data-seat="opp"] .points-lost')).toHaveTextContent("−5");
+      expect(row.querySelector('[data-seat="you"] .ledger__miss')).not.toHaveClass("points-lost");
+    });
+
+    it("a floored miss that cost nothing is drawn 0, not crimson", () => {
+      const floored: LedgerModel = { ...model, rows: model.rows.map((r) => (r.move === 1 ? { ...r, status: "past", you: { words: [], total: 0, miss: true }, opp: null } : r)) };
+      render(<Ledger variant="final" model={floored} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      const cell = screen.getByTestId("ledger-row-1").querySelector('[data-seat="you"]')!;
+      expect(cell.querySelector(".points-lost")).toBeNull();
+      expect(cell.querySelector(".points-none")).toHaveTextContent("0");
     });
 
     it("the final ledger closes with a total row in the seat colours", () => {

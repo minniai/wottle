@@ -157,13 +157,13 @@
 **Goal:** new opponent colours and `--err` behind one helper.
 **Independent test:** sampled colours in `idle`, `low-clock` and `final` match; every `−5` number is crimson with its label muted.
 
-- [ ] T035 [P] [US5] Write failing tests in `tests/unit/styles/tokens.test.ts`: `--opp #B56A4F`, `--opp-text #A1583D`, `--err #AD1F3D`, nine tokens in total. Update `tests/unit/styles/tailwind-config.test.ts` for the `err` token.
-- [ ] T036 [US5] Change `--opp` and `--opp-text`, add `--err`, and rewrite the coral comments as terracotta in `app/globals.css`. Add `err: "var(--err)"` to `tailwind.config.ts`.
-- [ ] T037 [P] [US5] Write failing tests in `tests/unit/components/room/PointsLost.spec.tsx` for `renderPointsLost(value, label, order)`: a negative value renders the number in a `.points-lost` span with the label muted; `0` renders muted with no `.points-lost`; both orders work (`no word −5`, `−5 not played`, `−15 if unplayed`).
-- [ ] T038 [US5] Implement `components/room/PointsLost.tsx` (`renderPointsLost`) and add `.points-lost { color: var(--err) }` to `app/styles/room.css` as the only `--err` rule.
-- [ ] T039 [US5] Render every ledger penalty cell (`no word −5`, `−5 not played`, floored values) through `renderPointsLost` in `components/room/Ledger.tsx` and `lib/room/ledgerRows.ts` (both seats' columns). Update `tests/unit/components/room/Ledger.rows.spec.tsx`.
-- [ ] T040 [P] [US5] Write the guard `tests/unit/styles/err-token-grep.test.ts`: `var(--err)` appears only in the `.points-lost` rule, `points-lost` only in `PointsLost.tsx` and room.css, and `renderPointsLost` never takes a rating value (a grep for rating-line builders) (FR-022).
-- [ ] T041 [US5] Confirm that rating lines stay ink and the clock never uses `--err`, with assertions in `tests/unit/lib/room/scoreboard.spec.ts` (the final rating line has no points-lost markup).
+- [X] T035 [P] [US5] Write failing tests in `tests/unit/styles/tokens.test.ts`: `--opp #B56A4F`, `--opp-text #A1583D`, `--err #AD1F3D`, nine tokens in total. Update `tests/unit/styles/tailwind-config.test.ts` for the `err` token.
+- [X] T036 [US5] Change `--opp` and `--opp-text`, add `--err`, and rewrite the coral comments as terracotta in `app/globals.css`. Add `err: "var(--err)"` to `tailwind.config.ts`.
+- [X] T037 [P] [US5] Write failing tests in `tests/unit/components/room/PointsLost.spec.tsx` for `renderPointsLost(value, label, order)`: a negative value renders the number in a `.points-lost` span with the label muted; `0` renders muted with no `.points-lost`; both orders work (`no word −5`, `−5 not played`, `−15 if unplayed`).
+- [X] T038 [US5] Implement `components/room/PointsLost.tsx` (`renderPointsLost`) and add `.points-lost { color: var(--err) }` to `app/styles/room.css` as the only `--err` rule.
+- [X] T039 [US5] Render every ledger penalty cell (`no word −5`, `−5 not played`, floored values) through `renderPointsLost` in `components/room/Ledger.tsx` and `lib/room/ledgerRows.ts` (both seats' columns). Update `tests/unit/components/room/Ledger.rows.spec.tsx`.
+- [X] T040 [P] [US5] Write the guard `tests/unit/styles/err-token-grep.test.ts`: `var(--err)` appears only in the `.points-lost` rule, `points-lost` only in `PointsLost.tsx` and room.css, and `renderPointsLost` never takes a rating value (a grep for rating-line builders) (FR-022).
+- [X] T041 [US5] Confirm that rating lines stay ink and the clock never uses `--err`, with assertions in `tests/unit/lib/room/scoreboard.spec.ts` (the final rating line has no points-lost markup).
 
 ---
 
@@ -316,4 +316,5 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - US1: the opponent row names no seat word (`1265 · 6 of 10 · playing`), as the canvas draws it; the full sub-line does not fit 216px. The phone total takes `--opp-text` (20px is under the large-text size; axe). The clock row has two lines, the phase label (`match clock`, `under a minute`, …) over the pace or detail, as the canvas draws it. `gone for` shipped in Phase A with the scoreboard (analysis I2).
 - US2/US3: tests were written before the CSS they check (analysis D1). A `postcss.parse` check was added to `room-css.test.ts` after a stray brace broke the stylesheet while every grep still passed. The ledger reads the room's whole-pixel cell through `--cell-size` on `.room[data-layout="scoreboard"]`.
 - US4: the phone phases `phone-match`, `phone-match-664` and `phone-match-360` are viewport tests over the `idle` fixture with their own baselines, not new `ROOM_PHASES` (each phase is already captured at every project viewport). The phone foot is pinned by the one-viewport room's auto margin, not by positioning, so only the slip is ever positioned.
+- US5: `PointsLost` takes `labelFirst` rather than an order enum. The muted rule for a floored 0 is `.points-none`, the same specificity as `.points-lost`. A fixture test samples the rendered colours (analysis C2).
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.

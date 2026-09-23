@@ -24,6 +24,7 @@ const config: Config = {
         muted: "var(--muted)",
         you: { DEFAULT: "var(--you)", band: "var(--you-band)", live: "var(--you-live)" },
         opp: { DEFAULT: "var(--opp)", band: "var(--opp-band)", live: "var(--opp-live)", text: "var(--opp-text)" },
+        err: "var(--err)",
         "future-label": "var(--future-label)",
 
       },

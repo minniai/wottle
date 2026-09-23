@@ -209,6 +209,36 @@ test.describe("@visual one grid for the board and the ledger", () => {
   });
 });
 
+/** Spec 068 FR-019–FR-021, SC-003: terracotta for the opponent, crimson for the number of points lost only. */
+test.describe("@visual the opponent's colour and the penalty red", () => {
+  test("sampled colours: terracotta seat, crimson loss, muted label", async ({ page }, testInfo) => {
+    for (const phase of ["idle", "low-clock"]) {
+      await page.goto(`/en/dev/room?phase=${phase}`);
+      await expect(page.getByTestId("field")).toBeVisible();
+      const colours = await page.evaluate(() => {
+        const style = (el: Element | null) => (el ? getComputedStyle(el) : null);
+        const opp = document.querySelector('[data-testid="scoreboard-row-opp"]')!;
+        const loss = document.querySelector(".points-lost");
+        return {
+          square: style(opp.querySelector(".scoreboard__seat"))!.backgroundColor,
+          total: style(opp.querySelector('[data-testid="scoreboard-total"]'))!.color,
+          loss: style(loss)?.color ?? null,
+          label: style(loss?.parentElement?.querySelector(".ledger__miss") ?? null)?.color ?? null,
+          crimson: Array.from(document.querySelectorAll("body *")).filter((el) => getComputedStyle(el).color === "rgb(173, 31, 61)").every((el) => el.classList.contains("points-lost")),
+        };
+      });
+      expect(colours.square).toBe("rgb(181, 106, 79)");
+      // Desktop totals are large text in --opp; the phone's 20px total takes --opp-text.
+      expect(colours.total).toBe(testInfo.project.name === "visual-390x844" ? "rgb(161, 88, 61)" : "rgb(181, 106, 79)");
+      expect(colours.crimson, "crimson only on a points-lost number").toBe(true);
+      if (testInfo.project.name !== "visual-390x844") {
+        expect(colours.loss).toBe("rgb(173, 31, 61)");
+        expect(colours.label).toBe("rgb(90, 101, 114)");
+      }
+    }
+  });
+});
+
 /** Spec 068 FR-006, SC-002: urgency is weight only; nothing on the scoreboard or the ledger blinks. */
 test.describe("@visual nothing blinks", () => {
   test("in the last seconds no scoreboard or ledger element animates, and a second later nothing has changed", async ({ page }) => {

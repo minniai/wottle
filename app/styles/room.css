@@ -916,8 +916,8 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
-/* A miss (rules §5.6) says so in words, and its −5 is muted, so it never reads
-   as a score. No colour: coral and teal already mean the players. */
+/* A miss (rules §5.6) says so in words; only its number is crimson (spec 068),
+   so it never reads as a score or as either player's colour. */
 .ledger__miss {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -926,8 +926,13 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.ledger__words--empty .ledger__total {
+.points-none {
   color: var(--muted);
+}
+/* The one use of crimson (spec 068 FR-021, FR-022): the number of points lost.
+   Its label stays muted; nothing lost (a floored 0) stays muted too. */
+.points-lost {
+  color: var(--err);
 }
 /* The final ledger closes with the totals, facing off across the spine. */
 .ledger__totals {

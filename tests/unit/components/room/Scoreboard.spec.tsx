@@ -100,4 +100,11 @@ describe("Scoreboard (spec 068)", () => {
       window.matchMedia = matchMedia;
     }
   });
+
+  it("a rating loss stays ink: crimson is for points lost only (spec 068 FR-022)", () => {
+    const over = deriveScoreboard({ ...INPUT, phase: "over", moveState: null, opp: { ...INPUT.opp, finalLine: "1187 → 1179 · −8" } }, copyEn);
+    render(<Scoreboard view={over} />);
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1187 → 1179 · −8");
+    expect(document.querySelector(".points-lost")).toBeNull();
+  });
 });
