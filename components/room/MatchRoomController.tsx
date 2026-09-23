@@ -524,11 +524,13 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   const rematchLine =
     rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.phase === "busy" ? copy.opponentBusy(opp.displayName) : rematch.error ? copy.errors[rematch.error] : null;
+  // Steady transport lines first, pushed notices last: on the desktop grid the state row shows the
+  // latest one, so a fresh error or rematch line is never hidden behind `realtime lost` (spec 068).
   const allNotices: Notice[] = [
-    ...notices,
-    ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
     ...(transport.usePolling && !transport.isReconnecting ? [{ kind: "text", text: copy.REALTIME_LOST } as Notice] : []),
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
+    ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
+    ...notices,
   ];
   void dismiss;
 

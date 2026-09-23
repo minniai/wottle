@@ -709,3 +709,19 @@ describe("your own outage (spec 068 FR-038)", () => {
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
   });
 });
+
+describe("the state row's notice on the grid (spec 068)", () => {
+  it("a refused end early says why in the state row", async () => {
+    useRoomStore.getState().leaveToLobby();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
+    vi.mocked(claimWinAction).mockResolvedValueOnce({ status: "not_disconnected" });
+    const gone = { clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:02:00Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    fireEvent.click(screen.getByTestId("slip-end-early"));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByTestId("ledger-state-line")).toHaveTextContent("not disconnected");
+    vi.useRealTimers();
+  });
+});
