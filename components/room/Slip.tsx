@@ -129,7 +129,7 @@ function ResignBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, {
       <div role="status" aria-live="assertive" className="slip__head">
         <span className="slip__label">{resignLabel(slip.move, formatClock(slip.clockMs))}</span>
         <h2 id={headlineId} className="slip__headline">{RESIGN_QUESTION}</h2>
-        <span className="slip__label">{resignConsequence(slip.opponentName)}</span>
+        <span className="slip__label">{resignConsequence(slip.opponentName, slip.loss)}</span>
       </div>
       <div className="slip__rule" />
       {/* Resigning forfeits the viewer's match: the safe action leads and is focused (game flow C6, §8 item 3). */}

@@ -159,8 +159,8 @@ export const copyIs = {
   NEW_HERE_HOW_TO_PLAY: "nýr hér · leiðbeiningar ▸",
   SIGN_IN_TO_SET_THE_FIELD: "skráðu þig inn til að raða á borðið",
   RESIGN_QUESTION: "Gefast upp?",
-  resignConsequence: (opponentName: string): string =>
-    `${opponentName} vinnur · Elo-stigin þín reiknast sem tap`,
+  resignConsequence: (opponentName: string, loss?: number): string =>
+    `${opponentName} vinnur · Elo-stigin þín reiknast sem tap${loss === undefined ? "" : ` · ${stakeIs(loss)}`}`,
   resignLabel: (move: number, clockMmSs: string): string =>
     `leikur ${move} af 10 · ${clockMmSs} eftir`,
   YES_RESIGN: "já, gefast upp ▸",

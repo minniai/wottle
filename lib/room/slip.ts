@@ -19,7 +19,8 @@ export type SlipState =
   | { kind: "ready"; model: ReadySlipModel }
   /** Spec 069: the table did not fill, or someone left it (C3). */
   | { kind: "void"; model: VoidSlipModel }
-  | { kind: "resign"; move: number; clockMs: number; opponentName: string }
+  /** `loss`: the viewer's loss stake, kept from the table (spec 069 US8); absent after a mid-match reload. */
+  | { kind: "resign"; move: number; clockMs: number; opponentName: string; loss?: number }
   | { kind: "endEarly"; opponentName: string; opponentMoves: number; clockMs: number }
   | {
       kind: "matchOver";

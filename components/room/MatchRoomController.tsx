@@ -563,7 +563,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         });
       }
       else if (action === "result" && voided && match.table.rematchOf) router.push(to(`/match/${match.table.rematchOf}`));
-      else if (action === "resign" || action === "leave") setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName });
+      else if (action === "resign" || action === "leave") {
+        // The loss stake the table showed (spec 069 US8); none after a mid-match reload.
+        const loss = useRoomStore.getState().stakes?.[youFacts.playerId]?.loss;
+        setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName, ...(loss === undefined ? {} : { loss }) });
+      }
       else if (action === "keepPlaying") clearSlip("resign");
       else if (action === "confirmResign") {
         clearSlip("resign");
@@ -576,7 +580,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, requeue, oppFacts.playerId, match.language, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, requeue, oppFacts.playerId, match.language, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).

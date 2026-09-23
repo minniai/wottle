@@ -7,7 +7,7 @@ import { boardOrBlank } from "@/lib/constants/board";
 import { outranks, type SlipKind, type SlipState } from "./slip";
 import { latestResolved } from "./lastMoves";
 import type { ReturningPlayer } from "@/lib/types/lobby";
-import type { MatchState, MoveResolution, PlayerIdentity, PlayerSlot } from "@/lib/types/match";
+import type { MatchState, MoveResolution, PlayerIdentity, PlayerSlot, Stakes } from "@/lib/types/match";
 
 /**
  * Client model of the one room (spec 044 data-model §3.1). Lobby, queue,
@@ -64,6 +64,8 @@ export interface RoomState {
   applyResolution: (resolution: MoveResolution) => void;
   /** Each player's latest resolved move by player id: the last-moved tick (spec 068 FR-027). */
   lastResolved: Record<string, MoveResolution>;
+  /** The table's stakes (spec 069), kept after go when snapshots stop carrying them: the resign slip names the loss. */
+  stakes: Record<string, Stakes> | null;
   /** The latest resolution that arrived live (`move-resolved`), never one read from a snapshot: announced once (spec 068 FR-033). */
   liveResolution: MoveResolution | null;
   leaveToLobby: () => void;
@@ -163,6 +165,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   slipDismissed: false,
   holdMove: null,
   lastResolved: {},
+  stakes: null,
   liveResolution: null,
 
   // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
@@ -192,13 +195,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       phase: phaseForMatch(state),
       queue: null,
       lastResolved: withLastResolved(s.match?.matchId === state.matchId ? s.lastResolved : {}, lastOf(state)),
+      stakes: state.stakes ?? (s.match?.matchId === state.matchId ? s.stakes : null),
       // Another match in the same room (a rematch) starts with no slip and no hold.
       ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdMove: null, liveResolution: null }),
     })),
 
   applySnapshot: (snapshot) => {
     const merged = mergeSnapshot(get().match, snapshot);
-    set((s) => ({ match: merged, board: boardOrBlank(merged.board), phase: phaseForMatch(merged), lastResolved: withLastResolved(s.lastResolved, lastOf(snapshot)) }));
+    set((s) => ({ match: merged, board: boardOrBlank(merged.board), phase: phaseForMatch(merged), lastResolved: withLastResolved(s.lastResolved, lastOf(snapshot)), stakes: snapshot.stakes ?? s.stakes }));
   },
 
   applyResolution: (resolution) => {
@@ -210,7 +214,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   },
 
   leaveToLobby: () =>
-    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, slip: null, slipDismissed: false, holdMove: null, lastResolved: {}, liveResolution: null }),
+    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, slip: null, slipDismissed: false, holdMove: null, lastResolved: {}, liveResolution: null, stakes: null }),
 
   setReturning: (returning) => set({ returning }),
   setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: s.slip?.kind === next.kind ? s.slipDismissed : false })),

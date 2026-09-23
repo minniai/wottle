@@ -140,8 +140,9 @@ const TAGLINE = "two players · one field · English words";
 const NEW_HERE_HOW_TO_PLAY = "new here · how to play ▸";
 const SIGN_IN_TO_SET_THE_FIELD = "sign in to set the field";
 const RESIGN_QUESTION = "Resign the match?";
-const resignConsequence = (opponentName: string): string =>
-  `${opponentName} wins · your rating moves as a loss`;
+/** Spec 069 US8: with the table's loss stake when the room has it, in ink (a rating change is never `--err`). */
+const resignConsequence = (opponentName: string, loss?: number): string =>
+  `${opponentName} wins · your rating moves as a loss${loss === undefined ? "" : ` · ${stake(loss)}`}`;
 const resignLabel = (move: number, clockMmSs: string): string =>
   `move ${move} of 10 · ${clockMmSs} left`;
 const YES_RESIGN = "yes, resign ▸";

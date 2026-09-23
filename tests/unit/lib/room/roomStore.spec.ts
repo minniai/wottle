@@ -222,4 +222,14 @@ describe("roomStore: each player's last resolved move, for the tick (spec 068 FR
     s().hydrateMatch(matchState({ state: "completed", endedReason: "void" }), A);
     expect(s().phase).toBe("match");
   });
+
+  it("keeps the table's stakes after go, when snapshots no longer carry them (spec 069 US8)", () => {
+    const s = useRoomStore.getState;
+    const stakes = { [A]: { win: 8, draw: 0, loss: -9 } };
+    s().hydrateMatch(matchState({ state: "pending", stakes }), A);
+    s().applySnapshot(matchState({ stakes: null }));
+    expect(s().stakes).toEqual(stakes);
+    s().hydrateMatch(matchState({ matchId: "m2", stakes: null }), A);
+    expect(s().stakes).toBeNull();
+  });
 });

@@ -135,3 +135,11 @@ describe("the void slip (spec 069)", () => {
     expect(onAction).toHaveBeenCalledWith("lobby");
   });
 });
+
+describe("the resign slip's stake (spec 069 US8)", () => {
+  it("draws the loss in ink, never as a points-lost number", () => {
+    render(<Slip slip={{ kind: "resign", move: 4, clockMs: 192_000, opponentName: "Kári", loss: -9 }} onAction={() => {}} />);
+    expect(screen.getByTestId("slip")).toHaveTextContent("your rating moves as a loss · −9");
+    expect(document.querySelector(".points-lost")).toBeNull();
+  });
+});
