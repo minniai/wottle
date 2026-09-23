@@ -210,20 +210,20 @@
 **Goal**: sign-out never resigns and is refused during a live match; otherwise it clears the player's commitments and marks the browser signed out. (US4 comes before US3 because the returning door is reached by signing out.)
 **Independent test**: in a match, no sign-out anywhere, and the action returns `sign_out_in_match`; outside a match with a pending challenge and a search, sign-out withdraws the challenge and leaves the queue.
 
-- [ ] T048 [P] [US4] Write the failing `tests/integration/db/sign-out.test.ts`:
+- [X] T048 [P] [US4] Write the failing `tests/integration/db/sign-out.test.ts`:
   - a player in a `pending` or `in_progress` match → `in_match` and nothing changes;
   - otherwise the pending outgoing invites and rematch requests become `withdrawn`;
   - `matchmaking` → `available` with `queue_language` null;
   - an `available` player keeps their status.
-- [ ] T049 [US4] Write `supabase/migrations/20260923004_sign_out.sql` with `sign_out_player` per `contracts/sql-functions.md`. T048 turns green.
-- [ ] T050 [US4] Rewrite `tests/unit/app/actions/auth/logout.test.ts` to fail first:
+- [X] T049 [US4] Write `supabase/migrations/20260923004_sign_out.sql` with `sign_out_player` per `contracts/sql-functions.md`. T048 turns green.
+- [X] T050 [US4] Rewrite `tests/unit/app/actions/auth/logout.test.ts` to fail first:
   - no `resignActiveMatch` input, and `resignMatch` is never imported (assert with a module mock that throws if loaded);
   - a live match → `{status:"refused", code:"sign_out_in_match"}` with the session cookie kept;
   - success → `sign_out_player` called, presence expired, the session deleted, `wottle-signed-out=1` set, the device cookie untouched;
   - the result has no `resignedMatchId`.
-- [ ] T051 [US4] Rewrite `app/actions/auth/logout.ts` per `contracts/actions.md`: drop `LogoutInput`, `resignMatch` and `findActiveMatchForPlayer`; call `sign_out_player`; log `auth.sign_out.refused`. T050 turns green.
-- [ ] T052 [P] [US4] Add `errors.sign_out_in_match`: `finish your match first` in `lib/i18n/copy/en.ts` and `kláraðu viðureignina fyrst (?)` in `lib/i18n/copy/is.ts`.
-- [ ] T053 [US4] Handle the refused result in the three callers:
+- [X] T051 [US4] Rewrite `app/actions/auth/logout.ts` per `contracts/actions.md`: drop `LogoutInput`, `resignMatch` and `findActiveMatchForPlayer`; call `sign_out_player`; log `auth.sign_out.refused`. T050 turns green.
+- [X] T052 [P] [US4] Add `errors.sign_out_in_match`: `finish your match first` in `lib/i18n/copy/en.ts` and `kláraðu viðureignina fyrst (?)` in `lib/i18n/copy/is.ts`.
+- [X] T053 [US4] Handle the refused result in the three callers:
   - `components/room/LobbyRoomController.tsx:178` and `components/room/MatchRoomController.tsx:408` show the error through the existing notice line instead of navigating;
   - `components/profile/ProfilePage.tsx` hides `sign out` and `change name` while the viewer has a live match (from `/api/match/active` or the room store's match phase), and handles the refusal the same way.
   Add a case to `tests/unit/components/room/MatchRoomController.spec.tsx` and the ProfilePage spec.

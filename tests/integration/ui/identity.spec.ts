@@ -5,7 +5,7 @@
  */
 import { expect, test } from "@playwright/test";
 
-import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
+import { generateTestUsername, loginViaSlip, startMatchWithDirectInvite } from "./helpers/matchmaking";
 
 test.describe("@identity this browser keeps your name", () => {
   test("a name another browser claimed is taken", async ({ browser }) => {
@@ -58,6 +58,31 @@ test.describe("@identity this browser keeps your name", () => {
       await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn", { timeout: 15_000 });
     } finally {
       await context.close();
+    }
+  });
+
+  test("signing out is not offered during a match, not even on the profile", async ({ browser }) => {
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    try {
+      const pageA = await contextA.newPage();
+      const pageB = await contextB.newPage();
+      const userB = generateTestUsername("id-out-b");
+      await loginViaSlip(pageA, generateTestUsername("id-out-a"));
+      await loginViaSlip(pageB, userB);
+      await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
+
+      await pageA.getByTestId("ledger-menu-trigger").click();
+      await expect(pageA.getByTestId("ledger-menu-item-signout")).toHaveCount(0);
+      await pageA.keyboard.press("Escape");
+
+      await pageA.goto("/en/profile");
+      await expect(pageA.getByTestId("profile-page")).toBeVisible({ timeout: 15_000 });
+      await expect(pageA.getByTestId("profile-sign-out")).toHaveCount(0);
+      await expect(pageA.getByTestId("profile-change-name")).toHaveCount(0);
+    } finally {
+      await contextA.close();
+      await contextB.close();
     }
   });
 });
