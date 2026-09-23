@@ -6,6 +6,7 @@ vi.mock("@/lib/match/createMatch", () => ({ pairFromQueue: vi.fn(), acceptInvite
 vi.mock("@/lib/observability/log", () => ({ logPlaytestInfo: vi.fn(), logPlaytestError: vi.fn(), trackInviteAccepted: vi.fn() }));
 
 import { acceptInvite } from "@/lib/match/createMatch";
+import { logPlaytestInfo } from "@/lib/observability/log";
 import { respondToInvite, sendDirectInvite, startAutoQueue } from "@/lib/matchmaking/inviteService";
 
 /** Spec 069 US5 (T053): two table leaves in 10 minutes refuse searching and sending; accepting stays open (Q1). */
@@ -33,6 +34,13 @@ describe("the table-leave cooldown (spec 069 US5)", () => {
   it("refuses a search with the time it ends", async () => {
     const client = clientWith(UNTIL, { players: { data: { status: "available", queued_at: null, last_seen_at: null }, error: null } });
     await expect(startAutoQueue(client as never, { playerId: "p1", language: "is" })).resolves.toEqual({ status: "cooldown", until: UNTIL });
+    expect(logPlaytestInfo).toHaveBeenCalledWith("table.cooldown", { playerId: "p1", metadata: { until: UNTIL } });
+  });
+
+  it("logs a paused search (spec 069 T067)", async () => {
+    const client = clientWith(null, { players: { data: { status: "matchmaking", queued_at: null, last_seen_at: null }, error: null } });
+    await expect(startAutoQueue(client as never, { playerId: "p1", language: "is", attention: { visible: false, inputAgoMs: 0 } })).resolves.toEqual({ status: "paused" });
+    expect(logPlaytestInfo).toHaveBeenCalledWith("queue.paused", { playerId: "p1" });
   });
 
   it("refuses sending a challenge with the time it ends", async () => {
