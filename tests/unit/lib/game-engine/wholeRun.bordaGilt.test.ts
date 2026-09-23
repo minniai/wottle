@@ -33,20 +33,24 @@ describe("§3.5a BORÐA + GILT", () => {
     expect(result).toEqual([]);
   });
 
-  test("accepts GILT when the whole combined run BORÐAGILT is itself a word", () => {
+  test("I7a (2026-09-23): when BORÐAGILT is a word, it scores as one word and GILT alone is still refused", () => {
     const dictionary = new Set(["borða", "gilt", "borðagilt"]);
-    const result = selectOptimalCombination([hWord("gilt", 6, 2)], board(), FROZEN_BORDA, dictionary, "player_b");
-    expect(result.map((w) => w.text)).toEqual(["gilt"]);
+    const gilt = hWord("gilt", 6, 2);
+    expect(selectOptimalCombination([gilt], board(), FROZEN_BORDA, dictionary, "player_b")).toEqual([]);
+    const result = selectOptimalCombination([gilt, hWord("borðagilt", 1, 2)], board(), FROZEN_BORDA, dictionary, "player_b");
+    expect(result.map((w) => w.text)).toEqual(["borðagilt"]);
   });
 
   test("accepts GILT when a free tile separates it from BORÐA", () => {
-    const grid = board();
-    grid[2][6] = "z";
-    "gilt".split("").forEach((ch, i) => {
-      grid[2][7 + i] = ch;
+    const grid = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "z")) as BoardGrid;
+    "borðazgilt".split("").forEach((ch, x) => {
+      grid[3][x] = ch;
     });
+    const frozen: FrozenTileMap = Object.fromEntries(
+      [0, 1, 2, 3, 4].map((x) => [`${x},3`, { owner: "player_a" as const }]),
+    );
     const dictionary = new Set(["borða", "gilt"]);
-    const result = selectOptimalCombination([hWord("gilt", 7, 2)], grid, FROZEN_BORDA, dictionary, "player_b");
+    const result = selectOptimalCombination([hWord("gilt", 6, 3)], grid, frozen, dictionary, "player_b");
     expect(result.map((w) => w.text)).toEqual(["gilt"]);
   });
 });

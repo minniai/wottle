@@ -670,7 +670,7 @@ describe("selectOptimalCombination", () => {
   });
 
   // T041: Allows word adjacent to frozen tiles on same axis when combined IS valid
-  test("T041: allows word adjacent to frozen tiles on same axis when combined sequence is valid", () => {
+  test("T041 (I7a, 2026-09-23): a word ending against frozen tiles on its axis is refused; the whole run scores instead", () => {
     const localDict = new Set(["ab", "cd", "abcd"]);
     const board = emptyBoard();
     placeH(board, "abcd", 0, 0);
@@ -681,19 +681,18 @@ describe("selectOptimalCombination", () => {
       "3,0": { owner: "player_b" },
     };
 
-    // "ab" at (0,0)-(1,0) is adjacent to frozen "cd" at (2,0)
-    // Combined: "ab" + "cd" = "abcd" ∈ dict → accept "ab"
-    const candidates = [hWord("ab", 0, 0)];
+    // "ab" ends against frozen "cd": the scored run would be "abcd", not "ab"
+    expect(
+      selectOptimalCombination([hWord("ab", 0, 0)], board, frozenTiles, localDict, "player_a"),
+    ).toEqual([]);
     const result = selectOptimalCombination(
-      candidates,
+      [hWord("ab", 0, 0), hWord("abcd", 0, 0)],
       board,
       frozenTiles,
       localDict,
       "player_a",
     );
-
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("ab");
+    expect(result.map((w) => w.text)).toEqual(["abcd"]);
   });
 
   // T042: Word with frozen tiles before it on same axis — combined not in dict
@@ -836,7 +835,7 @@ describe("selectOptimalCombination", () => {
   });
 
   // T048: Sandwich — full combined sequence IS valid → word accepted
-  test("T048: allows sandwiched word when full combined sequence is valid", () => {
+  test("T048 (I7a, 2026-09-23): a sandwiched word is refused; the whole run between the edges scores instead", () => {
     const localDict = new Set(["ab", "cd", "ef", "abcd", "cdef", "bcd", "abcdef"]);
     const board = emptyBoard();
     placeH(board, "abcdef", 0, 0);
@@ -848,18 +847,13 @@ describe("selectOptimalCombination", () => {
       "5,0": { owner: "player_b" },
     };
 
-    const candidates = [hWord("cd", 2, 0)];
-    const result = selectOptimalCombination(
-      candidates,
-      board,
-      frozenTiles,
-      localDict,
-      "player_a",
-    );
-
-    // Full sequence "abcdef" ∈ dict → sandwich OK → "cd" accepted
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("cd");
+    // "abcd" and "cdef" still end against frozen tiles; only "abcdef" is a whole run
+    const candidates = [hWord("cd", 2, 0), hWord("abcd", 0, 0), hWord("cdef", 2, 0), hWord("abcdef", 0, 0)];
+    expect(
+      selectOptimalCombination(candidates.slice(0, 3), board, frozenTiles, localDict, "player_a"),
+    ).toEqual([]);
+    const result = selectOptimalCombination(candidates, board, frozenTiles, localDict, "player_a");
+    expect(result.map((w) => w.text)).toEqual(["abcdef"]);
   });
 
   // T046: Interior word with non-frozen adjacent tiles — accepted (invariant only
@@ -1028,9 +1022,9 @@ describe("selectOptimalCombination", () => {
   });
 
   // T051: NÖS regression — same scenario but combined run IS a valid word → accept
-  test("T051: accepts vertical word when frozen letter above it makes a valid combined run", () => {
+  test("T051 (I7a, 2026-09-23): a vertical word under a frozen letter is refused; the whole run scores instead", () => {
     // Column x=3: R(frozen, row 1), N(row 2), Ö(row 3), S(row 4)
-    // "rnös" is in this test's dictionary → nös should be accepted
+    // "rnös" is in this test's dictionary → it is the word, not "nös"
     const localDict = new Set(["nös", "rnös"]);
     const board = emptyBoard();
     board[1][3] = "R";
@@ -1042,18 +1036,17 @@ describe("selectOptimalCombination", () => {
       "3,1": { owner: "player_b" },
     };
 
-    const candidates = [vWord("nös", 3, 2)];
+    expect(
+      selectOptimalCombination([vWord("nös", 3, 2)], board, frozenTiles, localDict, "player_a"),
+    ).toEqual([]);
     const result = selectOptimalCombination(
-      candidates,
+      [vWord("nös", 3, 2), vWord("rnös", 3, 1)],
       board,
       frozenTiles,
       localDict,
       "player_a",
     );
-
-    // R(frozen) + NÖS = "rnös" ∈ dict → nös accepted
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("nös");
+    expect(result.map((w) => w.text)).toEqual(["rnös"]);
   });
 
   // T052 (#200): same structure as the NMÚL / SMÁD reports — a single
@@ -1168,7 +1161,7 @@ describe("selectOptimalCombination", () => {
     expect(result).toHaveLength(0);
   });
 
-  test("T056 (#200): accepts vertical word when combined run with prior-scored same-axis dict word IS a dict word", () => {
+  test("T056 (I7a, 2026-09-23): ÞEMA against frozen NEF is refused even though NEFÞEMA is a word; NEFÞEMA scores instead", () => {
     const localDict = new Set(["nef", "þema", "nefþema"]);
     const board = emptyBoard();
     placeH(board, "nef", 1, 9);
@@ -1180,18 +1173,17 @@ describe("selectOptimalCombination", () => {
       "3,9": { owner: "player_a", scoredAxes: ["horizontal"] },
     };
 
-    const candidates = [hWord("þema", 4, 9)];
+    expect(
+      selectOptimalCombination([hWord("þema", 4, 9)], board, frozenTiles, localDict, "player_b"),
+    ).toEqual([]);
     const result = selectOptimalCombination(
-      candidates,
+      [hWord("þema", 4, 9), hWord("nefþema", 1, 9)],
       board,
       frozenTiles,
       localDict,
       "player_b",
     );
-
-    // Combined "nefþema" is in the dict → accept.
-    expect(result).toHaveLength(1);
-    expect(result[0].text).toBe("þema");
+    expect(result.map((w) => w.text)).toEqual(["nefþema"]);
   });
 
   test("T057 (#200): rejects vertical word MÚL when a frozen N above it forms the non-dict combined run NMÚL (exact bug from #200)", () => {
