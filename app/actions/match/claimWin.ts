@@ -37,24 +37,6 @@ export async function claimWinAction(
     return { status: "unauthenticated" };
   }
 
-  try {
-    assertWithinRateLimit({
-      identifier: session.player.id,
-      scope: "match:claim-win",
-      limit: 1,
-      windowMs: 60_000,
-      errorMessage: "Slow down — you can only claim one win per minute.",
-    });
-  } catch (error) {
-    if (error instanceof RateLimitExceededError) {
-      return {
-        status: "rate_limited",
-        retryAfterSeconds: error.retryAfterSeconds,
-      };
-    }
-    throw error;
-  }
-
   const parsed = inputSchema.safeParse({ matchId });
   if (!parsed.success) {
     return { status: "error", message: "Invalid matchId." };
@@ -103,6 +85,12 @@ export async function claimWinAction(
       };
     }
 
+    // Only the claim that ends the match counts against the limit: a refusal
+    // changes nothing, and the client retries `too_early` once the server's
+    // window has passed (its own count can run a few ms ahead).
+    const limited = checkClaimRate(selfId);
+    if (limited) return limited;
+
     // The ordinary rules decide (spec 050 FR-012): the caller has all their
     // moves and the absent opponent does not, so the caller wins `incomplete`.
     await completeMatchInternal(parsed.data.matchId, "natural");
@@ -112,5 +100,23 @@ export async function claimWinAction(
       status: "error",
       message: error instanceof Error ? error.message : "Claim win failed.",
     };
+  }
+}
+
+function checkClaimRate(playerId: string): ClaimWinResult | null {
+  try {
+    assertWithinRateLimit({
+      identifier: playerId,
+      scope: "match:claim-win",
+      limit: 1,
+      windowMs: 60_000,
+      errorMessage: "Slow down — you can only claim one win per minute.",
+    });
+    return null;
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return { status: "rate_limited", retryAfterSeconds: error.retryAfterSeconds };
+    }
+    throw error;
   }
 }

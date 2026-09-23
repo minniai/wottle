@@ -61,6 +61,8 @@ const BACK_HOLD_MS = 4_000;
 
 /** How long an illegal pick or a refused move holds the live row before it returns (spec 047 P1, spec 050). */
 const NOTICE_HOLD_MS = 2000;
+const END_EARLY_RETRIES = 3;
+const END_EARLY_RETRY_MARGIN_MS = 250;
 
 /**
  * The move a frozen letter was scored in. A letter covered by two scored words
@@ -457,6 +459,18 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     revealed: revealedOnce,
   });
 
+  // The slip counts the window on this device's clock; the server's record can
+  // be a few ms younger, so `too_early` is retried once its remaining time passes.
+  const endEarly = useCallback(
+    function claim(attempt: number): void {
+      void claimWinAction(matchId).then((r) => {
+        if (r.status === "too_early" && attempt < END_EARLY_RETRIES) setTimeout(() => claim(attempt + 1), r.remainingMs + END_EARLY_RETRY_MARGIN_MS);
+        else if (r.status !== "ok" && r.status !== "already_completed") push({ kind: "text", text: r.status.replace("_", " ") });
+      });
+    },
+    [matchId, push],
+  );
+
   const handleAction = useCallback(
     (action: LedgerAction) => {
       if (action === "rematch") void rematch.request();
@@ -499,10 +513,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         clearSlip("endEarly");
       } else if (action === "endEarly") {
         clearSlip("endEarly");
-        claimWinAction(matchId).then((r) => r.status !== "ok" && r.status !== "already_completed" && push({ kind: "text", text: r.status.replace("_", " ") }));
+        endEarly(0);
       }
     },
-    [copy, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
