@@ -427,7 +427,7 @@ test.describe("@visual the room fits a phone", () => {
       expect(g.scrollWidth).toBeLessThanOrEqual(width);
       for (const id of ["slip-ready", "slip-leave-table", "ledger-phone-foot"]) await expect(page.getByTestId(id)).toBeInViewport();
       await expect(page.getByTestId("ledger-live-trigger")).toContainText("íslensk orð · 10 leikir hvor");
-      await expect(page.getByTestId("slip")).not.toContainText("íslensk orð");
+      await expect(page.getByTestId("slip").locator("[data-slip-facts]")).toBeHidden();
       await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: false });
     });
   }
