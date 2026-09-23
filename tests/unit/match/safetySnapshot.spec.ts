@@ -53,4 +53,11 @@ describe("shouldApplySafetySnapshot", () => {
     expect(shouldApplySafetySnapshot(buildState(), buildState({ disconnectedPlayerId: "player-b" }))).toBe(true);
     expect(shouldApplySafetySnapshot(buildState({ disconnectedPlayerId: "player-b" }), buildState())).toBe(true);
   });
+
+  it("applies a seat taken at the table (spec 069)", () => {
+    const current = buildState();
+    const seated = { ...current, table: { ...current.table, seats: { a: current.table.seats.a, b: null } } };
+    expect(shouldApplySafetySnapshot(seated, current)).toBe(true);
+    expect(shouldApplySafetySnapshot(current, current)).toBe(false);
+  });
 });

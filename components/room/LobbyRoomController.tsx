@@ -23,7 +23,9 @@ import type { PlayerIdentity } from "@/lib/types/match";
 import { Field } from "./Field";
 import { LobbyRoomView } from "./LobbyRoomView";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
+import { useAttention } from "./hooks/useAttention";
 import { useLobbyInvites, type PendingInvite } from "./hooks/useLobbyInvites";
+import { useTableCheck, type TableStatusAnswer } from "./hooks/useTableCheck";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { LETTER_LAND_MS } from "./QueueRoomController";
@@ -164,11 +166,22 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       // Never return to a match we were just bounced out of: it would fail to
       // load again and bounce again, forever.
       if (activeMatchId === unreachableMatch.current) return;
-      router.replace(to(`/match/${activeMatchId}`));
+      // A table is a new page: Back from it leaves it (spec 069 T28).
+      router.push(to(`/match/${activeMatchId}`));
     },
     [router, to],
   );
-  useLobbyInvites({ enabled: Boolean(me), onInvites, onOutgoing, onActiveMatch });
+  useLobbyInvites({ enabled: Boolean(me), onInvites, onOutgoing });
+  const attention = useAttention();
+  const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
+  const onTableStatus = useCallback(
+    (status: TableStatusAnswer) => {
+      setCooldownUntil(status.cooldownUntil);
+      if (status.notice === "table_missed") push({ kind: "text", text: copy.table.MISSED_NOTICE });
+    },
+    [push, copy],
+  );
+  useTableCheck({ enabled: Boolean(me), attention, onTable: onActiveMatch, onStatus: onTableStatus });
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
@@ -188,7 +201,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
         const target = players.find((p) => p.id === action.challenge);
         sendInviteAction(action.challenge, language).then((r) => {
           // They had already challenged us: our challenge was the answer (spec 067).
-          if (r.status === "accepted") return router.replace(to(`/match/${r.matchId}`));
+          if (r.status === "accepted") return router.push(to(`/match/${r.matchId}`));
           if (r.status !== "sent") return push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "invite_failed"] });
           sentChallenge.current = r.inviteId;
           push({ kind: "challengeSent", toName: target?.displayName ?? target?.username ?? "", inviteId: r.inviteId });
@@ -196,7 +209,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       } else if (typeof action === "object" && "acceptChallenge" in action) {
         dismiss(`challenge:${action.acceptChallenge}`);
         respondInviteAction(action.acceptChallenge, "accepted").then((r) => {
-          if (r.status === "accepted") router.replace(to(`/match/${r.matchId}`));
+          if (r.status === "accepted") router.push(to(`/match/${r.matchId}`));
           else if (r.status === "busy") push({ kind: "text", text: copy.opponentBusy(r.name) });
           else if (r.status !== "declined") push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "accept_failed"] });
         });

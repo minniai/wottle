@@ -368,7 +368,7 @@ describe("MatchRoomController (spec 050)", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("slip-accept-rematch"));
     });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m2"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/match/m2"));
   });
 
   it("final: rematch ▸ sends the request and shows waiting for the opponent", async () => {

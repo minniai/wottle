@@ -131,7 +131,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     hydrateMatch(initialState, currentPlayerId);
   }, [initialState, currentPlayerId, hydrateMatch]);
 
-  const onNewMatch = useCallback((newMatchId: string) => router.replace(to(`/match/${newMatchId}`)), [router, to]);
+  // A rematch's table is a new page (spec 069): Back from it leaves it.
+  const onNewMatch = useCallback((newMatchId: string) => router.push(to(`/match/${newMatchId}`)), [router, to]);
   const rematch = useRematchNegotiation({ matchId, currentPlayerId, onNewMatch });
   const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
   // Back after an outage: line 2 says how long you were away, for four seconds (spec 068 FR-038).

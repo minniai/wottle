@@ -44,6 +44,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ pending: [], match: null }) });
     vi.stubGlobal("fetch", fetchMock);
     mockReplace.mockClear();
+    mockPush.mockClear();
     (useLobbyPresenceStore as unknown as { setState: (s: object) => void }).setState({ players: [] });
   });
   afterEach(() => {
@@ -143,7 +144,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("notice-accept-challenge"));
     });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m9"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/match/m9"));
   });
 
   it("challenging someone who had already challenged you goes straight into the match (spec 067)", async () => {
@@ -153,7 +154,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("ledger-challenge-k"));
     });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m-crossed"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/match/m-crossed"));
   });
 
   it("accepting a challenge from someone now in another match says so and stays (spec 067)", async () => {
@@ -169,7 +170,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
       fireEvent.click(screen.getByTestId("notice-accept-challenge"));
     });
     await waitFor(() => expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("Kári can't play right now"))).toBe(true));
-    expect(mockReplace).not.toHaveBeenCalledWith(expect.stringContaining("/match/"));
+    expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining("/match/"));
   });
 
   it("two challengers each get a line; an answered or expired challenge leaves the ledger", async () => {
@@ -262,7 +263,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     await waitFor(() => expect(screen.getByTestId("ledger-notice")).toHaveTextContent("that match does not exist"));
 
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(mockReplace).not.toHaveBeenCalledWith("/en/match/m-broken");
+    expect(mockPush).not.toHaveBeenCalledWith("/en/match/m-broken");
   });
 
   it("still follows the poll to a different active match", async () => {
@@ -270,7 +271,7 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ pending: [], match: { id: "m-other" } }) });
 
     render(<LobbyRoomController viewer={me} initialPlayers={[]} recentGames={null} />);
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m-other"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/match/m-other"));
   });
 
   it("shows a notice when redirected from a match that does not exist", async () => {
