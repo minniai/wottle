@@ -744,7 +744,6 @@
   flex: none;
   font-weight: 700;
   font-size: 16px;
-  text-transform: lowercase;
 }
 .ledger__mono {
   font-family: var(--font-mono);

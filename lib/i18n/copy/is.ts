@@ -1,3 +1,4 @@
+import { LOCALES } from "@/lib/i18n/locales";
 import { plural } from "@/lib/i18n/plural";
 import type { Copy } from "@/lib/i18n/copy/types";
 
@@ -45,7 +46,8 @@ const byPoints = (n: number): string =>
   `með ${n} ${plural("is", n, { one: "stigi", other: "stigum" })}`;
 
 export const copyIs = {
-  WORDMARK: "orðusta",
+  /** The game's name, from the locale registry (spec 068: one source, capitalised). */
+  WORDMARK: LOCALES.is.wordmark,
 
   QUEUE_CONTEXT: "10 leikir á 5 mínútum",
   MATCH_CLOCK: "leikklukka",
@@ -119,6 +121,7 @@ export const copyIs = {
   goneForShort: (mmSs: string): string => `án tengingar í ${mmSs}`,
   BEHIND_PACE: "á eftir áætlun",
   OFFLINE: "án tengingar",
+  tabTitle: (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · leikur ${move} · ${name}`,
   oppProgress: (moves: number, state: "playing" | "scoring"): string =>
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,
 

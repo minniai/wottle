@@ -45,7 +45,7 @@ describe("Ledger (design system §5.4)", () => {
 
   it("caption shows the wordmark and the match context", () => {
     render(<Ledger variant="match" model={model} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
-    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("wottle");
+    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("Wottle");
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("move 4 of 10");
   });
 

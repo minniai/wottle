@@ -172,10 +172,10 @@
 **Goal:** Orðusta and Wottle everywhere, from one source.
 **Independent test:** the tab title reads `3:12 · move 4 · Wottle`, the ledger wordmark reads `Wottle`, and the grep test passes.
 
-- [ ] T042 [P] [US6] Write the failing guard `tests/unit/styles/brand-casing-grep.test.ts`: there is no `"wottle"` or `"orðusta"` string literal used as displayed text in `lib/i18n/copy/`, `lib/i18n/locales.ts`, `app/[locale]/**/layout.tsx`, `app/[locale]/**/page.tsx` metadata or `components/rules/content/`. Identifiers, paths, cookie names (`wottle-*`) and URLs are exempt by pattern (FR-026).
-- [ ] T043 [US6] Set `wordmark: "Orðusta"` / `"Wottle"` in `lib/i18n/locales.ts`, make `WORDMARK` in `lib/i18n/copy/en.ts` and `is.ts` read `getLocale(id).wordmark`, and fix every prose occurrence (the `rulesMetaTitle` users, `SITE_DESCRIPTION`, `components/rules/content/{en,is}.tsx`). Update `tests/unit/lib/i18n/locales.spec.ts` and `copyEn.spec.ts`.
-- [ ] T044 [P] [US6] Write failing tests in `tests/unit/lib/room/tabTitle.spec.ts`: `tabTitle({clockMs:192000, move:4, live:true}, copy)` → `3:12 · move 4 · Wottle` (and IS `3:12 · leikur 4 · Orðusta`); outside a live match → the wordmark alone.
-- [ ] T045 [US6] Implement `lib/room/tabTitle.ts`, and set `document.title` once a second from `components/room/MatchRoomController.tsx`, restoring the wordmark on unmount.
+- [X] T042 [P] [US6] Write the failing guard `tests/unit/styles/brand-casing-grep.test.ts`: there is no `"wottle"` or `"orðusta"` string literal used as displayed text in `lib/i18n/copy/`, `lib/i18n/locales.ts`, `app/[locale]/**/layout.tsx`, `app/[locale]/**/page.tsx` metadata or `components/rules/content/`. Identifiers, paths, cookie names (`wottle-*`) and URLs are exempt by pattern (FR-026).
+- [X] T043 [US6] Set `wordmark: "Orðusta"` / `"Wottle"` in `lib/i18n/locales.ts`, make `WORDMARK` in `lib/i18n/copy/en.ts` and `is.ts` read `getLocale(id).wordmark`, and fix every prose occurrence (the `rulesMetaTitle` users, `SITE_DESCRIPTION`, `components/rules/content/{en,is}.tsx`). Update `tests/unit/lib/i18n/locales.spec.ts` and `copyEn.spec.ts`.
+- [X] T044 [P] [US6] Write failing tests in `tests/unit/lib/room/tabTitle.spec.ts`: `tabTitle({clockMs:192000, move:4, live:true}, copy)` → `3:12 · move 4 · Wottle` (and IS `3:12 · leikur 4 · Orðusta`); outside a live match → the wordmark alone.
+- [X] T045 [US6] Implement `lib/room/tabTitle.ts`, and set `document.title` once a second from `components/room/MatchRoomController.tsx`, restoring the wordmark on unmount.
 
 ---
 

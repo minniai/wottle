@@ -14,11 +14,11 @@ import {
 describe("locale registry", () => {
   test("Icelandic is the default and has no path segment", () => {
     expect(DEFAULT_LOCALE).toBe("is");
-    expect(LOCALES.is).toMatchObject({ segment: "", htmlLang: "is", language: "is", wordmark: "orðusta" });
+    expect(LOCALES.is).toMatchObject({ segment: "", htmlLang: "is", language: "is", wordmark: "Orðusta" });
   });
 
-  test("English lives under /en and is called wottle", () => {
-    expect(LOCALES.en).toMatchObject({ segment: "en", htmlLang: "en", language: "en", wordmark: "wottle" });
+  test("English lives under /en and is called Wottle", () => {
+    expect(LOCALES.en).toMatchObject({ segment: "en", htmlLang: "en", language: "en", wordmark: "Wottle" });
   });
 
   test("isLocale accepts registered ids only", () => {

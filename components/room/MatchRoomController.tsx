@@ -17,6 +17,7 @@ import { reportWordIntegrity } from "@/lib/room/wordIntegrity";
 import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
+import { tabTitle } from "@/lib/room/tabTitle";
 import { pickClearedNotice } from "@/lib/room/notices";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
@@ -137,6 +138,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const { you: youFacts, opp: oppFacts } = viewerFacts(match, viewerSlot);
   const completed = match.state === "completed";
   const inProgress = match.state === "in_progress";
+
+  // The tab says the clock and your move while you play (spec 068 FR-025); the name once you leave.
+  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1) }, copy);
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+  const wordmark = copy.WORDMARK;
+  useEffect(() => () => void (document.title = wordmark), [wordmark]);
   const frozenTiles = match.frozenTiles;
   const frozenKeys = useMemo(() => new Set(Object.keys(frozenTiles)), [frozenTiles]);
   const ownerNames = useMemo(() => ({ player_a: playerProfiles.playerA.displayName, player_b: playerProfiles.playerB.displayName }), [playerProfiles]);

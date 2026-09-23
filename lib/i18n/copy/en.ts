@@ -3,11 +3,14 @@
  * `lib/i18n/copy/is.ts` is the Icelandic).
  *
  * Rules: sentence case for sentences, mono labels are uppercased by CSS (not
- * here), the wordmark is always lowercase, no exclamation marks, numerals carry
- * their unit or context. The clock budget is 5:00 (spec 044, decision Q1).
+ * here), the name is capitalised (Wottle, spec 068), no exclamation marks,
+ * numerals carry their unit or context. The clock budget is 5:00 (spec 044, decision Q1).
  */
 
-const WORDMARK = "wottle";
+import { LOCALES } from "@/lib/i18n/locales";
+
+/** The game's name, from the locale registry (spec 068: one source, capitalised). */
+const WORDMARK = LOCALES.en.wordmark;
 
 // Ledger context captions (spec 050: moves, one clock)
 const QUEUE_CONTEXT = "10 moves each · one 5:00 clock";
@@ -96,6 +99,8 @@ const compactMove = (move: number): string => `move ${move}`;
 const goneForShort = (mmSs: string): string => `gone for ${mmSs}`;
 const BEHIND_PACE = "behind pace";
 const OFFLINE = "offline";
+/** The browser tab during a live match (spec 068 FR-025). */
+const tabTitle = (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · move ${move} · ${name}`;
 const profileOpensInNewTab = (name: string): string => `${name}, profile opens in a new tab`;
 
 // Notices (live-row styled lines)
@@ -333,6 +338,7 @@ export const copyEn = {
   goneForShort,
   BEHIND_PACE,
   OFFLINE,
+  tabTitle,
   rematchRequest,
   waitingForRematch,
   challengeNotice,

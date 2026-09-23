@@ -586,3 +586,12 @@ describe("the reconnect window on the server-corrected clock (spec 068 R9)", () 
     vi.useRealTimers();
   });
 });
+
+describe("the tab title (spec 068 FR-025)", () => {
+  it("reads the clock, your move and the name while the match is live, and the name once you leave", () => {
+    const { unmount } = renderController();
+    expect(document.title).toMatch(/^\d:\d\d · move 3 · Wottle$/);
+    unmount();
+    expect(document.title).toBe("Wottle");
+  });
+});

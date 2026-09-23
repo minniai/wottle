@@ -26,8 +26,8 @@ describe("copy (design system §8)", () => {
     for (const s of strings) expect(s, s).not.toContain("!");
   });
 
-  test("wordmark is lowercase wottle", () => {
-    expect(copy.WORDMARK).toBe("wottle");
+  test("the name is capitalised: Wottle (spec 068)", () => {
+    expect(copy.WORDMARK).toBe("Wottle");
   });
 
   test("clock budget copy reads 5:00", () => {
