@@ -22,7 +22,7 @@ async function fetchMatch(matchId: string) {
   const supabase = getServiceRoleClient();
   const { data, error } = await supabase
     .from("matches")
-    .select("id,state,player_a_id,player_b_id")
+    .select("id,state,ended_reason,player_a_id,player_b_id")
     .eq("id", matchId)
     .single();
 
@@ -33,6 +33,7 @@ async function fetchMatch(matchId: string) {
   return data as {
     id: string;
     state: string;
+    ended_reason: string | null;
     player_a_id: string;
     player_b_id: string;
   };
@@ -76,6 +77,10 @@ export async function requestRematchAction(
   });
 
   const match = await fetchMatch(matchId);
+  // Spec 069 FR-016: a void table was never a match, so there is nothing to play again.
+  if (match.ended_reason === "void") {
+    throw new Error("A void match has no rematch.");
+  }
 
   const opponentId =
     playerId === match.player_a_id
