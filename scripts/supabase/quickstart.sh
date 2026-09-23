@@ -59,8 +59,19 @@ fs.writeFileSync(path, lines.join('\n') + '\n', 'utf8');
 NODE
 }
 
+# The session cookie's signing key (spec 067). Generated once; never overwritten, because
+# replacing it signs every player out.
+function ensure_session_secret() {
+  local target="$1"
+  if [[ -f "$target" ]] && grep -q '^WOTTLE_SESSION_SECRET=' "$target"; then
+    return
+  fi
+  update_env_var "$target" "WOTTLE_SESSION_SECRET" "$(openssl rand -base64 48)"
+}
+
 function sync_env_values() {
   local target="$1"
+  ensure_session_secret "$target"
   update_env_var "$target" "NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL"
   update_env_var "$target" "SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_SERVICE_ROLE_KEY"
   update_env_var "$target" "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY"

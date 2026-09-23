@@ -13,6 +13,8 @@ env:
   HUSKY: 0
   CI: true
   PNPM_VERSION: 11.7.0
+  # Test-only signing key for the session cookie (spec 067); production sets its own in Vercel.
+  WOTTLE_SESSION_SECRET: Y2ktb25seS13b3R0bGUtc2Vzc2lvbi1zZWNyZXQtbm90LWZvci1wcm9kdWN0aW9uLXVzZQ==
 
 jobs:
   lint:
@@ -489,6 +491,7 @@ jobs:
           # ROOM_FIXTURES opens /dev/room in this production build: ledger-scroll.spec.ts reads it.
           setsid bash -c "export CI=${CI}; \
             export PLAYTEST_SESSION_SECURE=${PLAYTEST_SESSION_SECURE}; \
+            export WOTTLE_SESSION_SECRET='${WOTTLE_SESSION_SECRET}'; \
             export NEXT_PUBLIC_SUPABASE_URL='${NEXT_PUBLIC_SUPABASE_URL}'; \
             export NEXT_PUBLIC_SUPABASE_ANON_KEY='${NEXT_PUBLIC_SUPABASE_ANON_KEY}'; \
             export SUPABASE_ANON_KEY='${SUPABASE_ANON_KEY}'; \
