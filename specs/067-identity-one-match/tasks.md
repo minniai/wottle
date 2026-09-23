@@ -92,12 +92,12 @@
 
 ### Tests (write first, Red)
 
-- [ ] T020 [P] [US5] Write the failing `tests/integration/db/create-match-between.test.ts` (local Supabase, with `tests/integration/db/harness.ts`):
+- [X] T020 [P] [US5] Write the failing `tests/integration/db/create-match-between.test.ts` (local Supabase, with `tests/integration/db/harness.ts`):
   - `created` sets both players `in_match` with `queue_language` null, sets presence mode `auto`, withdraws each player's other pending outgoing invites and rematch requests, and supersedes the incoming ones, all except `p_ref`;
   - `busy` names the busy player and writes nothing;
   - `invalid` for the same player twice, an unknown player, a bad language or a bad origin;
   - `origin` and `origin_ref` are stored.
-- [ ] T021 [P] [US5] Write the failing `tests/integration/db/accept-invite.test.ts`:
+- [X] T021 [P] [US5] Write the failing `tests/integration/db/accept-invite.test.ts`:
   - pending → `created` with `match_id` set;
   - a second accept → `not_pending`;
   - a stranger → `not_recipient`;
@@ -105,57 +105,57 @@
   - sender busy → `busy`, the invite `superseded`, no match;
   - accepter busy → `busy`, the invite still `pending`;
   - `crossed_challenge` origin stored.
-- [ ] T022 [P] [US5] Write the failing `tests/integration/db/accept-rematch.test.ts`:
+- [X] T022 [P] [US5] Write the failing `tests/integration/db/accept-rematch.test.ts`:
   - pending → `created` with `new_match_id` and `rematch_of` set;
   - older than 30s → `expired`, but not when crossed;
   - the old match not `completed` → refused;
   - either player busy → `busy`, the request still pending.
-- [ ] T023 [P] [US5] Write the failing `tests/integration/db/pair-from-queue.test.ts`:
+- [X] T023 [P] [US5] Write the failing `tests/integration/db/pair-from-queue.test.ts`:
   - both `matchmaking` in the language → `created`;
   - the opponent has cancelled, or is in another language → `not_searching`;
   - the opponent was just booked → `busy`.
-- [ ] T024 [US5] Write the failing race test `tests/integration/db/match-creation.race.test.ts` (SC-004). Over at least 100 rounds, seed players A, B, C, D and fire concurrently, mixing in random order:
+- [X] T024 [US5] Write the failing race test `tests/integration/db/match-creation.race.test.ts` (SC-004). Over at least 100 rounds, seed players A, B, C, D and fire concurrently, mixing in random order:
   - `accept_invite` (B accepts A's challenge);
   - `accept_invite` (C accepts A's other challenge, made before it was withdrawn);
   - `pair_from_queue(A, D)`;
   - `accept_rematch` (A/B);
   - crossed `accept_invite` between A and C.
   Assert that no player ever has more than one match in (`pending`, `in_progress`), and that there were no deadlock errors. Model it on `tests/integration/db/receiveMove.race.test.ts`.
-- [ ] T025 [P] [US5] Write the failing grep test `tests/unit/match/one-way-to-make-a-match.test.ts` (SC-006). It fails if `from("matches")` followed by `.insert(` or `.upsert(` appears in any file under `app/` or `lib/`, and it lists the offenders.
+- [X] T025 [P] [US5] Write the failing grep test `tests/unit/match/one-way-to-make-a-match.test.ts` (SC-006). It fails if `from("matches")` followed by `.insert(` or `.upsert(` appears in any file under `app/` or `lib/`, and it lists the offenders.
 
 ### Implementation
 
-- [ ] T026 [US5] Write `supabase/migrations/20260923002_match_creation.sql` with `create_match_between`, `accept_invite`, `accept_rematch` and `pair_from_queue`, exactly per `contracts/sql-functions.md`:
+- [X] T026 [US5] Write `supabase/migrations/20260923002_match_creation.sql` with `create_match_between`, `accept_invite`, `accept_rematch` and `pair_from_queue`, exactly per `contracts/sql-functions.md`:
   - lock order: players by id, then the invite or request;
   - the accept's compare-and-set runs inside `begin … exception` so it rolls back on `busy`;
   - `security definer set search_path = ''`, fully qualified names, `revoke … grant execute to service_role`.
   T020–T024 turn green.
-- [ ] T027 [US5] Write the failing `tests/unit/lib/match/createMatch.test.ts`: each wrapper calls the right RPC with the right argument names, parses the jsonb with zod into `CreateMatchResult`, and throws on an RPC error; `acceptInvite` passes `PLAYTEST_INVITE_EXPIRY_SECONDS` (default 30) as `p_ttl_seconds`.
-- [ ] T028 [US5] Implement `lib/match/createMatch.ts`: `MatchOrigin`, `CreateMatchResult`, and `acceptInvite(client, {inviteId, actorId, origin?})`, `acceptRematch(client, {requestId, actorId, origin?})`, `pairFromQueue(client, {selfId, opponentId, language})`. Log `match.create` / `match.create.refused` with the origin and ms, and wrap each call in `performance.mark`. T027 turns green.
-- [ ] T029 [US5] Rewire the challenge accept in `lib/matchmaking/inviteService.ts` `respondToInvite`:
+- [X] T027 [US5] Write the failing `tests/unit/lib/match/createMatch.test.ts`: each wrapper calls the right RPC with the right argument names, parses the jsonb with zod into `CreateMatchResult`, and throws on an RPC error; `acceptInvite` passes `PLAYTEST_INVITE_EXPIRY_SECONDS` (default 30) as `p_ttl_seconds`.
+- [X] T028 [US5] Implement `lib/match/createMatch.ts`: `MatchOrigin`, `CreateMatchResult`, and `acceptInvite(client, {inviteId, actorId, origin?})`, `acceptRematch(client, {requestId, actorId, origin?})`, `pairFromQueue(client, {selfId, opponentId, language})`. Log `match.create` / `match.create.refused` with the origin and ms, and wrap each call in `performance.mark`. T027 turns green.
+- [X] T029 [US5] Rewire the challenge accept in `lib/matchmaking/inviteService.ts` `respondToInvite`:
   - accept calls `acceptInvite`;
   - map `busy` to `{status:"error", code:"opponent_busy", name}`, looking up the busy player's display name;
   - `not_pending`/`expired` → `invite_expired`;
   - `not_recipient` → the existing forbidden path;
   - decline is unchanged.
   Delete `releaseOtherChallengers`. Update `tests/unit/lib/matchmaking/inviteService.test.ts` and `inviteContention.test.ts`.
-- [ ] T030 [US5] Rewire `sendDirectInvite` in `lib/matchmaking/inviteService.ts`:
+- [X] T030 [US5] Rewire `sendDirectInvite` in `lib/matchmaking/inviteService.ts`:
   - remove the sender status write (`matchmaking`);
   - before inserting, look for a pending invite from the recipient to the sender, and if one exists call `acceptInvite(reverse, sender, "crossed_challenge")` and return `{status:"accepted", matchId}`;
   - delete `releaseSenders` and its use in `expireStaleInvites`.
   Update `tests/unit/lib/matchmaking/inviteService.test.ts`, `inviteService.language.spec.ts` and `tests/contract/post-invite.contract.test.ts`. Add a crossed-challenge case to `tests/integration/db/challenges.test.ts`.
-- [ ] T031 [US5] Rewire `startAutoQueue` in `lib/matchmaking/inviteService.ts`: replace the conditional opponent update plus `bootstrapMatchRecord` with `pairFromQueue`. On `busy`/`not_searching`, try the next candidate, else return `queued`. Delete `setPlayerStatus(self, in_match)` and the presence resets now done in SQL. Update `tests/integration/db/queueLanguage.test.ts` and `tests/contract/post-match-start.contract.test.ts`.
-- [ ] T032 [US5] Rewire the rematch accept:
+- [X] T031 [US5] Rewire `startAutoQueue` in `lib/matchmaking/inviteService.ts`: replace the conditional opponent update plus `bootstrapMatchRecord` with `pairFromQueue`. On `busy`/`not_searching`, try the next candidate, else return `queued`. Delete `setPlayerStatus(self, in_match)` and the presence resets now done in SQL. Update `tests/integration/db/queueLanguage.test.ts` and `tests/contract/post-match-start.contract.test.ts`.
+- [X] T032 [US5] Rewire the rematch accept:
   - `app/actions/match/respondToRematch.ts` `acceptRematchAction` calls `acceptRematch`, and `busy` maps to `{status:"error", code:"opponent_busy", name}`;
   - `lib/match/rematchService.ts` `acceptRematchInternal` (crossed) calls `acceptRematch(..., "crossed_rematch")`;
   - keep the `rematch-accepted` broadcast and the match log after `created`;
   - delete `lib/match/rematchMatch.ts` (`createRematchMatch`) and `setPlayersInMatch`.
   Update `tests/unit/app/actions/respondToRematch.test.ts`, `requestRematch.test.ts` and `rematch.language.spec.ts`.
-- [ ] T032a [US5] Widen the status unions to include `withdrawn` and `superseded`: `InviteRow["status"]` and `OutgoingInvite` in `lib/matchmaking/inviteService.ts`, the payload check in `app/api/lobby/invite/[inviteId]/respond/route.ts`, the rematch status type in `lib/types/match.ts`. In `lib/match/rematchService.ts` count both as "already processed".
-- [ ] T032b [US5] In `lib/room/notices.ts` `challengeOutcome`, `superseded` returns `copy.challengeTaken(recipientName)` and `withdrawn` returns `null`. In `lib/room/useRematchNegotiation.ts` both close the negotiation as `expired` does. Tests first in the notices and rematch-negotiation specs.
-- [ ] T033 [US5] Delete `bootstrapMatchRecord` from `lib/matchmaking/service.ts` and any remaining import. T025 turns green. Leave `scripts/supabase/seed.ts` and `tests/integration/db/harness.ts` alone (they are outside `app/`/`lib/`).
-- [ ] T034 [P] [US5] Add the `opponent_busy` error copy: `{name} can't play right now` in `lib/i18n/copy/en.ts` and `{name} getur ekki spilað núna` in `lib/i18n/copy/is.ts`. Update `lib/i18n/copy/types.ts` if the errors object is typed there. The parity test must stay green.
-- [ ] T035 [US5] Show `opponent_busy` in the lobby through the existing notice channel (`lib/room/notices.ts`, `components/room/LobbyRoomController.tsx` accept handler). Handle a `sendInvite` result of `accepted` (crossed) the same way an accepted outgoing invite routes today. Add a unit test in `tests/unit/lib/room/notices.test.ts` (or the existing notices spec).
+- [X] T032a [US5] Widen the status unions to include `withdrawn` and `superseded`: `InviteRow["status"]` and `OutgoingInvite` in `lib/matchmaking/inviteService.ts`, the payload check in `app/api/lobby/invite/[inviteId]/respond/route.ts`, the rematch status type in `lib/types/match.ts`. In `lib/match/rematchService.ts` count both as "already processed".
+- [X] T032b [US5] In `lib/room/notices.ts` `challengeOutcome`, `superseded` returns `copy.challengeTaken(recipientName)` and `withdrawn` returns `null`. In `lib/room/useRematchNegotiation.ts` both close the negotiation as `expired` does. Tests first in the notices and rematch-negotiation specs.
+- [X] T033 [US5] Delete `bootstrapMatchRecord` from `lib/matchmaking/service.ts` and any remaining import. T025 turns green. Leave `scripts/supabase/seed.ts` and `tests/integration/db/harness.ts` alone (they are outside `app/`/`lib/`).
+- [X] T034 [P] [US5] Add the `opponent_busy` error copy: `{name} can't play right now` in `lib/i18n/copy/en.ts` and `{name} getur ekki spilað núna` in `lib/i18n/copy/is.ts`. Update `lib/i18n/copy/types.ts` if the errors object is typed there. The parity test must stay green.
+- [X] T035 [US5] Show `opponent_busy` in the lobby through the existing notice channel (`lib/room/notices.ts`, `components/room/LobbyRoomController.tsx` accept handler). Handle a `sendInvite` result of `accepted` (crossed) the same way an accepted outgoing invite routes today. Add a unit test in `tests/unit/lib/room/notices.test.ts` (or the existing notices spec).
 
 **Checkpoint**: SC-004 and SC-006 green. All five creation paths use one function.
 
