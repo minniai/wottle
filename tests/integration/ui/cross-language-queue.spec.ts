@@ -17,11 +17,19 @@ async function signIn(page: import("@playwright/test").Page, home: "/" | "/en", 
   await expect(page.getByTestId("player-bar-action-find")).toBeEnabled({ timeout: 10_000 });
 }
 
+/** Leave the queue: a player left searching is paired with the next spec's player (CI 2026-09-23). */
+async function cancelSearch(page: import("@playwright/test").Page) {
+  const cancel = page.getByTestId("ledger-cancel-queue");
+  if (!(await cancel.isVisible().catch(() => false))) return;
+  await cancel.click();
+  await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+}
+
 test.describe("@locale the queue by language", () => {
   test("an Icelandic and an English player searching together are not paired", async ({ browser }) => {
     const [isCtx, enCtx] = await Promise.all([browser.newContext(), browser.newContext()]);
+    const [isPage, enPage] = await Promise.all([isCtx.newPage(), enCtx.newPage()]);
     try {
-      const [isPage, enPage] = await Promise.all([isCtx.newPage(), enCtx.newPage()]);
       await signIn(isPage, "/", "xl-is");
       await signIn(enPage, "/en", "xl-en");
 
@@ -41,6 +49,7 @@ test.describe("@locale the queue by language", () => {
       expect(new URL(isPage.url()).pathname).toBe("/matchmaking");
       expect(new URL(enPage.url()).pathname).toBe("/en/matchmaking");
     } finally {
+      await Promise.all([cancelSearch(isPage), cancelSearch(enPage)]);
       await Promise.all([isCtx.close(), enCtx.close()]);
     }
   });

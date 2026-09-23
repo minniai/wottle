@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth/logout";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
@@ -100,11 +100,17 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const presenceStatus = useLobbyPresenceStore((s) => s.status);
   const connect = useLobbyPresenceStore((s) => s.connect);
   const disconnect = useLobbyPresenceStore((s) => s.disconnect);
+  // Keyed on the player, not the object: a cleanup between two renders of the same player
+  // sends a DELETE that can land after the reconnect's upsert and drop them from the lobby.
+  const connectPresence = useEffectEvent(() => {
+    if (me) void connect({ self: me, initialPlayers, language });
+  });
+  const meId = me?.id;
   useEffect(() => {
-    if (!me) return;
-    void connect({ self: me, initialPlayers, language });
+    if (!meId) return;
+    connectPresence();
     return () => disconnect();
-  }, [me, initialPlayers, connect, disconnect, language]);
+  }, [meId, language, disconnect]);
 
   const { notices, push, dismiss, apply } = useNotices();
   // The challenge this viewer sent, until the poll reports what became of it.

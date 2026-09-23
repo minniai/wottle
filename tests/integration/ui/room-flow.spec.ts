@@ -68,9 +68,9 @@ test.describe("@room-flow US2 pick, commit", () => {
       await expect(pageA.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 15_000 });
 
       // US3 — bands: one per word in the ledger's row 1, chevron edge per direction.
-      // One <span> per word directly under .ledger__words; the total is `.ledger__total`.
+      // One <span> per word under each seat's .ledger__word-list; a miss (`no word`) has no list and no band.
       // Row 1 holds both players' first moves; it fills as each reveal lands, so wait for both to agree.
-      const words = pageA.getByTestId("ledger-row-1").locator(".ledger__words > span:not(.ledger__total)");
+      const words = pageA.getByTestId("ledger-row-1").locator(".ledger__word-list > span");
       const bands = pageA.getByTestId("field-band");
       await expect.poll(async () => (await bands.count()) - (await words.count()), { timeout: 15_000 }).toBe(0);
       for (let i = 0; i < (await bands.count()); i += 1) {
