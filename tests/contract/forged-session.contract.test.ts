@@ -73,7 +73,7 @@ const CALLERS: Array<[string, () => Promise<unknown>]> = [
   ["GET /api/match/[id]/state", async () => (await import("@/app/api/match/[matchId]/state/route")).GET(new Request("http://localhost/"), params({ matchId: MATCH_ID }))],
   ["GET /api/match/[id]/words", async () => (await import("@/app/api/match/[matchId]/words/route")).GET(new Request("http://localhost/"), params({ matchId: MATCH_ID }))],
   ["POST /api/match/[id]/disconnect", async () => (await import("@/app/api/match/[matchId]/disconnect/route")).POST(json({}), params({ matchId: MATCH_ID }))],
-  ["GET /api/match/active", async () => (await import("@/app/api/match/active/route")).GET()],
+  ["GET /api/match/active", async () => (await import("@/app/api/match/active/route")).GET(new Request("http://localhost/"))],
   ["POST /api/match/start", async () => (await import("@/app/api/match/start/route")).POST()],
   ["GET /api/lobby/invite", async () => (await import("@/app/api/lobby/invite/route")).GET()],
   ["POST /api/lobby/invite", async () => (await import("@/app/api/lobby/invite/route")).POST(json({ recipientId: MATCH_ID }))],

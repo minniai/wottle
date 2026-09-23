@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { attentionFromQuery, recordAttention } from "@/lib/matchmaking/attention";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { loadMatchState } from "@/lib/match/stateLoader";
 import { recordHeartbeat } from "@/lib/match/heartbeatRepository";
@@ -10,7 +11,7 @@ const NO_CACHE_HEADERS = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ matchId: string }> },
 ) {
   const { matchId } = await params;
@@ -49,6 +50,10 @@ export async function GET(
   // Fire-and-forget so the state response doesn't wait on the upsert;
   // recordHeartbeat swallows errors and logs them.
   void recordHeartbeat(supabase, matchId, playerId);
+  // Spec 069 R5: the match room reports its tab's attention too, so a player on
+  // the result screen can be seated by attention at a rematch's table.
+  const attention = attentionFromQuery(new URL(request.url).searchParams);
+  if (attention) void recordAttention(supabase, playerId, attention);
 
   return NextResponse.json(state, { status: 200, headers: NO_CACHE_HEADERS });
 }
