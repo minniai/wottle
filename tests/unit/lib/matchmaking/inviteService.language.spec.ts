@@ -17,13 +17,13 @@ function recordingClient() {
   const answers = [
     { data: { status: "idle" }, error: null }, // status check
     { error: null }, // join the queue
-    { data: [{ id: "a-opponent", username: "opp", last_seen_at: "2026-09-22T12:00:00Z" }], error: null }, // candidates
+    { data: [{ id: "a-opponent", username: "opp", queued_at: "2026-09-22T12:00:00Z" }], error: null }, // candidates
   ];
   const chainFor = (calls: Call[], value: unknown) => {
     const chain: Record<string, unknown> = {
       then: (ok?: (v: unknown) => unknown, fail?: (e: unknown) => unknown) => Promise.resolve(value).then(ok, fail),
     };
-    for (const m of ["select", "update", "eq", "neq", "order", "limit", "in", "upsert", "is"]) {
+    for (const m of ["select", "update", "eq", "neq", "gt", "order", "limit", "in", "upsert", "is"]) {
       chain[m] = (...args: unknown[]) => {
         calls.push({ method: m, args });
         return chain;
@@ -34,6 +34,8 @@ function recordingClient() {
     return chain;
   };
   const client = {
+    // No table-leave cooldown (spec 069).
+    rpc: vi.fn(async () => ({ data: null, error: null })),
     from: vi.fn((table: string) => {
       if (table !== "players") return chainFor([], { error: null });
       const calls: Call[] = [];

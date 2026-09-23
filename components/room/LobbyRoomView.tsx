@@ -24,6 +24,8 @@ export interface LobbyRoomViewProps {
   notices?: Notice[];
   onAction: (action: LedgerAction) => void;
   onSignedIn: (player: PlayerIdentity) => void;
+  /** Spec 069 FR-025: the table-leave cooldown's time left (`4:12`); the find action waits until then. */
+  findAgainIn?: string | null;
   /** The field slot — the warm-up field, wired by the controller. */
   children: ReactNode;
 }
@@ -37,7 +39,7 @@ export interface LobbyRoomViewProps {
  * fixture route can mount it without a database (spec 045 FR-003).
  */
 export function LobbyRoomView(props: LobbyRoomViewProps) {
-  const { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU, UNRATED } = useCopy();
+  const { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU, UNRATED, table } = useCopy();
   const { viewer, players, recentGames, loadingPlayers, hint, notices, onAction, onSignedIn, children } = props;
   const isPhone = useIsPhone();
 
@@ -63,11 +65,13 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
           name={NO_OPPONENT}
           subline={NO_OPPONENT_SUBLINE}
           action={
-            viewer ? (
+            !viewer ? undefined : props.findAgainIn ? (
+              <span className="ledger__mono" data-testid="player-bar-find-again">{table.findAgainIn(props.findAgainIn)}</span>
+            ) : (
               <button type="button" className="action-primary" data-testid="player-bar-action-find" onClick={() => onAction("findOpponent")}>
                 {FIND_OPPONENT}
               </button>
-            ) : undefined
+            )
           }
         />
       }

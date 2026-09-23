@@ -556,7 +556,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         void sendInviteAction(oppFacts.playerId, match.language).then((r) => {
           if (r.status === "accepted" && "matchId" in r && r.matchId) router.push(to(`/match/${r.matchId}`));
           else if (r.status === "sent") router.push(to("/lobby"));
-          else push({ kind: "text", text: copy.errors.invite_failed });
+          else push({ kind: "text", text: copy.errors[r.status === "cooldown" ? "table_cooldown" : "invite_failed"] });
         });
       }
       else if (action === "result" && voided && match.table.rematchOf) router.push(to(`/match/${match.table.rematchOf}`));

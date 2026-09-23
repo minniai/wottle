@@ -26,6 +26,8 @@ import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useAttention } from "./hooks/useAttention";
 import { useLobbyInvites, type PendingInvite } from "./hooks/useLobbyInvites";
 import { useTableCheck, type TableStatusAnswer } from "./hooks/useTableCheck";
+import { useNowTick } from "./hooks/useNowTick";
+import { formatClock } from "@/lib/room/clock";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { LETTER_LAND_MS } from "./QueueRoomController";
@@ -182,6 +184,10 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
     [push, copy],
   );
   useTableCheck({ enabled: Boolean(me), attention, onTable: onActiveMatch, onStatus: onTableStatus });
+  // The table-leave cooldown counts down in the find slot (spec 069 FR-025).
+  const cooldownNow = useNowTick(Boolean(cooldownUntil));
+  const cooldownLeftMs = cooldownUntil ? Date.parse(cooldownUntil) - cooldownNow : 0;
+  const findAgainIn = cooldownLeftMs > 0 ? formatClock(cooldownLeftMs) : null;
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
@@ -202,6 +208,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
         sendInviteAction(action.challenge, language).then((r) => {
           // They had already challenged us: our challenge was the answer (spec 067).
           if (r.status === "accepted") return router.push(to(`/match/${r.matchId}`));
+          if (r.status === "cooldown") return push({ kind: "text", text: copy.errors.table_cooldown });
           if (r.status !== "sent") return push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "invite_failed"] });
           sentChallenge.current = r.inviteId;
           push({ kind: "challengeSent", toName: target?.displayName ?? target?.username ?? "", inviteId: r.inviteId });
@@ -234,6 +241,7 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       loadingPlayers={Boolean(me) && presenceStatus === "connecting" && players.length === 0}
       hint={me ? TAP_SECOND_LETTER : EMPTY_LOBBY_HINT}
       notices={notices}
+      findAgainIn={findAgainIn}
       onAction={handleAction}
       onSignedIn={onSignedIn}
     >
