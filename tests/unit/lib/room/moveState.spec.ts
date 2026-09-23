@@ -104,10 +104,12 @@ describe("bar suffixes and the turn frame", () => {
 });
 
 describe("the start countdown (spec 050 FR-008, contracts/match-state.md)", () => {
-  it("before started_at the beat is `starts in N`, counted up from the server anchor", () => {
+  it("before started_at the beat is `starts in N`; the live row says the first move and to wait (spec 069 C2)", () => {
     const state = derive(match({ movesPlayed: 0 }, { movesPlayed: 0 }), { msToStart: 2_100 });
     expect(state).toEqual({ kind: "starting", seconds: 3, opponentName: K });
-    expect(liveLinesFor(state, { kind: "idle" }, copyEn)).toEqual({ line1: "starts in 3", line2: "" });
+    // The count itself is the scoreboard's clock row.
+    expect(liveLinesFor(state, { kind: "idle" }, copyEn)).toEqual({ line1: "move 1", line2: "pick when the clock starts" });
+    expect(liveLinesFor(state, { kind: "idle" }, copyIs)).toEqual({ line1: "leikur 1", line2: "veldu þegar klukkan fer af stað" });
   });
 
   it("nothing is the viewer's to make while it counts: no frame, a muted suffix", () => {

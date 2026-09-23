@@ -148,6 +148,8 @@ function stateSources(state: MoveState, field: LiveState, extras: Line2Extras, c
       return state.missed ? { missedOrStakes: missedSource(state, copy) } : { instruction: text("instruction", copy.scoredDelta(state.delta, state.next)) };
     case "done":
       return { instruction: text("instruction", copy.doneFact(state.opponentName, state.opponentMoves, state.clockMmSs)) };
+    case "starting":
+      return { instruction: text("instruction", copy.table.PICK_WHEN_CLOCK_STARTS) };
     default:
       return {};
   }
@@ -159,7 +161,8 @@ function line1For(state: MoveState, copy: Copy): string {
     case "void":
       return "";
     case "starting":
-      return copy.startsIn(state.seconds);
+      // The count is the scoreboard's; the live row names the first move (spec 069 C2).
+      return copy.compactMove(1);
     case "yourMove":
     case "rejected":
       return copy.moveYourMove(state.move);

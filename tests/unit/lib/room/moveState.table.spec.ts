@@ -38,4 +38,11 @@ describe("the table's beats (spec 069)", () => {
       expect(liveLinesFor(state, { kind: "idle" }, copyEn)).toEqual({ line1: "", line2: "" });
     }
   });
+
+  it("the count before go shows 3·2·1 of the 4.5s lead (spec 069 C2)", () => {
+    const started = match({ state: "in_progress", table: SEATED_TABLE });
+    expect(derive(started, 4_400)).toMatchObject({ kind: "starting", seconds: 3 });
+    expect(derive(started, 1_500)).toMatchObject({ kind: "starting", seconds: 2 });
+    expect(derive(started, 0).kind).toBe("yourMove");
+  });
 });

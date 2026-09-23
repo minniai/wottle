@@ -179,7 +179,10 @@ describe("MatchRoomController (spec 050)", () => {
 
   it("before started_at the room counts 3·2·1 from the server anchor and takes no pick; the caption holds at 5:00", () => {
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("starts in 2");
+    // The count is the scoreboard's clock row; the live row names the first move and to wait (spec 069 C2).
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("starts in 2");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 1");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick when the clock starts");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
     expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("5:00");
     fireEvent.click(cell(0, 0));
@@ -693,7 +696,7 @@ describe("focus at go (spec 068 FR-034)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:01Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/starts in/);
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick when the clock starts");
     expect(document.activeElement?.getAttribute("data-testid")).not.toBe("field-cell");
     await act(async () => vi.advanceTimersByTimeAsync(3_000));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 1 · your move");
