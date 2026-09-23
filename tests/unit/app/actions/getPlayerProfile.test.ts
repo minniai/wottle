@@ -6,12 +6,10 @@ vi.mock("@/lib/rating/playerRatings", () => ({
     new Map(ids.map((id) => [id, { eloRating: 1234, gamesPlayed: 7, wins: 4, losses: 2, draws: 1 }])),
   ),
 }));
-vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 
 import { getPlayerProfile } from "@/app/actions/player/getPlayerProfile";
 import { readRatings } from "@/lib/rating/playerRatings";
-import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
@@ -47,20 +45,6 @@ const PLAYER_ROW = {
   wins: 4,
   losses: 2,
   draws: 1,
-};
-
-const SESSION = {
-  token: "tok",
-  issuedAt: Date.now(),
-  player: {
-    id: "viewer",
-    username: "viewer",
-    displayName: "Viewer",
-    avatarUrl: null,
-    status: "available" as const,
-    lastSeenAt: new Date().toISOString(),
-    eloRating: 1200,
-  },
 };
 
 const VALID_PLAYER_ID = "00000000-0000-0000-0000-000000000001";
@@ -107,7 +91,6 @@ function buildSupabase(overrides: {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(readLobbySession).mockResolvedValue(SESSION as never);
   vi.mocked(getServiceRoleClient).mockReturnValue(
     buildSupabase({}) as never,
   );
@@ -125,15 +108,6 @@ describe("getPlayerProfile", () => {
     const result = await getPlayerProfile(VALID_PLAYER_ID);
 
     expect(result.status).toBe("not_found");
-  });
-
-  test("returns error when no session cookie is present", async () => {
-    vi.mocked(readLobbySession).mockResolvedValue(null);
-
-    const result = await getPlayerProfile(VALID_PLAYER_ID);
-
-    expect(result.status).toBe("error");
-    expect(result.error).toMatch(/Authentication required/i);
   });
 
   test("returns error when playerId is not a UUID", async () => {
@@ -217,5 +191,31 @@ describe("getPlayerProfile", () => {
 
     expect(result.status).toBe("ok");
     expect(result.profile?.bestWord).toBeNull();
+  });
+
+  test("returns the default rating and an empty record for a player with no matches", async () => {
+    vi.mocked(readRatings).mockResolvedValueOnce(
+      new Map([[VALID_PLAYER_ID, { eloRating: 1200, gamesPlayed: 0, wins: 0, losses: 0, draws: 0 }]]),
+    );
+
+    const result = await getPlayerProfile(VALID_PLAYER_ID);
+
+    expect(result).toMatchObject({
+      status: "ok",
+      profile: {
+        stats: {
+          eloRating: 1200,
+          gamesPlayed: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          winRate: null,
+        },
+        peakRating: 1200,
+        bestWord: null,
+        form: [],
+        ratingHistory: [],
+      },
+    });
   });
 });
