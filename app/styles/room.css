@@ -1028,7 +1028,16 @@
   /* Not baseline: the total is positioned, so a baseline would drop it onto line 2. */
   align-self: start;
 }
-/* Amendment P1: the instruction beneath the state, muted, only while there is one. */
+/* Amendment P1: the instruction beneath the state, muted, only while there is one.
+   Spec 068 FR-032: one line, never wrapped; it runs under the opponent's total,
+   which sits on line 1 only, and a long name ends in an ellipsis. */
+.ledger__row--live .ledger__live-line2,
+.ledger__row--settled .ledger__live-line2 {
+  margin-right: -30px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .ledger__live-line2 {
   display: block;
   color: var(--muted);

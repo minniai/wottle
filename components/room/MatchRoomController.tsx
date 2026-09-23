@@ -36,6 +36,7 @@ import { MatchRoomView } from "./MatchRoomView";
 import { useAccumulatedMoves } from "./hooks/useAccumulatedMoves";
 import { useWordHistory } from "./hooks/useWordHistory";
 import { useDeadlineTick, useServerDrift } from "./hooks/useDeadlineTick";
+import { useAnnouncements } from "./hooks/useAnnouncements";
 import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
@@ -233,6 +234,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   }, [progress.settled, progress.planIds]);
   const revealing = reveal.key !== null && !progress.settled;
   const revealingOwn = revealing && reveal.own;
+  const liveResolution = useRoomStore((st) => st.liveResolution);
+  const announcement = useAnnouncements({ liveResolution, opponentId: oppFacts.playerId, opponentName: opp.displayName, opponentSlot: opponentSlot === "player_a" ? "playerA" : "playerB", revealingOwn, clockMs, copy });
 
   // The viewer's own move resolved while we were watching: a resolution this
   // client had not already seen, so a reload holds nothing. A rejected move
@@ -272,6 +275,15 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     () => deriveMoveState({ match, viewerSlot, opponentName: opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart }),
     [match, viewerSlot, opp.displayName, holdMove, revealingOwn, rejected, clockMs, msToStart],
   );
+  // At go, focus moves to the field; the live row's polite line announces the first move (spec 068 FR-034).
+  const startingNow = moveState.kind === "starting";
+  const wasStarting = useRef(startingNow);
+  useEffect(() => {
+    if (wasStarting.current && !startingNow && !readOnly) {
+      document.querySelector<HTMLButtonElement>('[data-testid="field"] [data-testid="field-cell"][tabindex="0"]')?.focus();
+    }
+    wasStarting.current = startingNow;
+  }, [startingNow, readOnly]);
   const canPick = !readOnly && inProgress && (moveState.kind === "yourMove" || moveState.kind === "rejected") && !slipUp;
   const field = useFieldInteraction({
     matchId,
@@ -531,6 +543,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         live={live}
         moveState={moveState}
         line2Extras={line2Extras}
+        announcement={announcement}
         holdMove={holdMove}
         notices={allNotices}
         onRowHover={setHighlightMove}

@@ -58,6 +58,11 @@ export const ROOM_PHASES = [
   "last-seconds",
   // Spec 068: the scoreboard loading over the 3·2·1.
   "starting",
+  // Spec 068 (Phase B): the missed beat, the stakes, pick cleared on line 2, the last-moved tick.
+  "missed",
+  "stakes",
+  "pick-cleared",
+  "last-moved",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -249,6 +254,13 @@ export function finalLines(copy: Copy): { you: string; opp: string } {
 export const YOUR_MOVE: MoveState = { kind: "yourMove", move: 4, opponentName: KARI.displayName };
 export const SCORING_M4: MoveState = { kind: "scoring", move: 4, opponentName: KARI.displayName };
 export const SCORED_M4: MoveState = { kind: "scored", move: 4, delta: 13, next: 5, opponentName: KARI.displayName };
+/** Spec 068: your move 4 found no word; held as the missed beat. */
+export const MISSED_M4: MoveState = { kind: "scored", move: 4, delta: -5, next: 5, missed: true, opponentName: KARI.displayName };
+/** Spec 068 (artboard MatchLastMinute): your move 8 at 0:48, three moves left worth −15 at 0:00. */
+export const YOUR_MOVE_8: MoveState = { kind: "yourMove", move: 8, opponentName: KARI.displayName };
+/** Spec 068: each player's last swap, ticked in their colour (artboard Match). */
+export const OPP_LAST_SWAP: Coordinate[] = [{ x: 4, y: 2 }, { x: 5, y: 2 }];
+export const YOUR_LAST_SWAP: Coordinate[] = [{ x: 8, y: 0 }, { x: 8, y: 1 }];
 export const REJECTED_M5: MoveState = { kind: "rejected", move: 5, opponentName: KARI.displayName, reason: "frozen" };
 export const DONE: MoveState = { kind: "done", opponentName: KARI.displayName, opponentMoves: 8, clockMmSs: "0:48" };
 export const TIME_UP: MoveState = { kind: "timeUp", opponentName: KARI.displayName };

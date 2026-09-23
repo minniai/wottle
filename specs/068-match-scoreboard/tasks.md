@@ -221,16 +221,16 @@
 - [X] T060 [P] [US7] Write failing tests in `tests/unit/lib/room/stakes.spec.ts`: under 1:00, with the move yours and nothing picked → `3 moves left · −15 if unplayed` from `timeoutPenalty(total, 3)`; with a total of 0 → `3 moves left · nothing to lose`; not shown above 1:00 or while a letter is picked.
 - [X] T061 [US7] Implement `lib/room/stakes.ts` and feed it as the `missedOrStakes` source.
 - [X] T062 [US7] Move pick cleared from a ledger notice to the line 2 `pickCleared` source, held for 2s, flashing the opponent's tick once on that cell (held under reduced motion). Retire `pickClearedNotice` from the match in `lib/room/notices.ts`, and update `components/room/MatchRoomController.tsx`, `components/room/Field.tsx`, `tests/unit/lib/room/notices.spec.ts` and `tests/unit/components/room/useNotices.spec.tsx`.
-- [ ] T063 [P] [US7] Write failing tests in `tests/unit/components/room/hooks/useOpponentAnnouncements.spec.tsx`:
+- [X] T063 [P] [US7] Write failing tests in `tests/unit/components/room/hooks/useOpponentAnnouncements.spec.tsx`:
   - a live `move-resolved` opponent move → one polite line `Kári SKÓ +11 · 5 of 10`, after the viewer's own reveal is idle;
   - the same `globalSeq` twice → announced once;
   - a snapshot or catch-up poll → nothing;
   - two moves within 1.5s → only the newest;
   - the 1:00 and 0:15 marks are each announced once, and never after a reload past them.
-- [ ] T064 [US7] Implement `components/room/hooks/useOpponentAnnouncements.ts` with its polite region in `components/room/MatchRoomView.tsx`.
-- [ ] T065 [US7] Focus at go: when `starting` ends, move focus to the field and announce line 1, in `components/room/MatchRoomController.tsx`. Test it in `tests/unit/components/room/MatchRoomController.spec.tsx`.
-- [ ] T066 [US7] Add the line 2 fit test in `tests/integration/ui/room-fixtures.spec.ts`: render the longest line 2 string of each source in both languages at 1440 in the 340px ledger and assert a single line (SC-006). Shorten any string that wraps in `lib/i18n/copy/{en,is}.ts` and note it for design system §8.
-- [ ] T067 [US7] Add the fixture phases `missed`, `stakes`, `pick-cleared` and `last-moved` (EN-M values where the canvas draws them) to `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`.
+- [X] T064 [US7] Implement `components/room/hooks/useOpponentAnnouncements.ts` with its polite region in `components/room/MatchRoomView.tsx`.
+- [X] T065 [US7] Focus at go: when `starting` ends, move focus to the field and announce line 1, in `components/room/MatchRoomController.tsx`. Test it in `tests/unit/components/room/MatchRoomController.spec.tsx`.
+- [X] T066 [US7] Add the line 2 fit test in `tests/integration/ui/room-fixtures.spec.ts`: render the longest line 2 string of each source in both languages at 1440 in the 340px ledger and assert a single line (SC-006). Shorten any string that wraps in `lib/i18n/copy/{en,is}.ts` and note it for design system §8.
+- [X] T067 [US7] Add the fixture phases `missed`, `stakes`, `pick-cleared` and `last-moved` (EN-M values where the canvas draws them) to `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`.
 
 ---
 
@@ -321,4 +321,5 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - T048: the retired phrases (`ledger clock`, `inverted face`, `eight colour tokens`, `eight tokens`, `lowercase wordmark`, `coral`) are matched case-insensitively. Historical lines in specs 044, 050, 060 and 068 carry the `<!-- retired-name -->` marker.
 - T050: 89 darwin baselines regenerated (final and over-slip deleted and regenerated, because the tolerance hid the removed totals row). The Linux baselines come from the CI visual job's artifact.
 - Phase B, line 2: the stakes live in `moveState.ts` (`Line2Extras.stakes`, priced by `timeoutPenalty`) rather than a separate `stakes.ts`. `LiveLines.line2Parts` carries the crimson number and the end-early action. Pick cleared and submit errors hold on line 2 with their own timers. The `pickCleared` notice kind is no longer raised in a match, but it stays in `notices.ts` with the generic timed-notice machinery; removing it is a follow-up. The pick-cleared tick flash is not built, because the opponent's tick already marks the swapped cells.
+- T063–T066: the announcement hook is `useAnnouncements`, which also says 1:00 and 0:15. Line 2 runs under the opponent's total (it sits on line 1 only), about 40 mono characters, and never wraps. Shortened for it: `frozen · Kári froze it · pick another`, `moved · Kári moved it · pick another`, the waiting fact in C4's form `Kári · 8 of 10 · 1:12 left` (the Icelandic `bíður eftir Kári` also broke the name-safe rule), `back · away 0:34 · the clock ran on`, and the Icelandic end-early offer without the name (`án tengingar · ljúka viðureigninni ▸`). All are to be recorded in design system §8 (T077).
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.

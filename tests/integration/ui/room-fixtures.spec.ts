@@ -2,6 +2,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 import { ROOM_PHASES } from "../../../app/[locale]/dev/room/fixtures";
+import { copyEn } from "../../../lib/i18n/copy/en";
+import { copyIs } from "../../../lib/i18n/copy/is";
+import type { Copy } from "../../../lib/i18n/copy/types";
 
 /**
  * The visual suite (spec 045 US1, FR-004). Every room state, from static
@@ -237,6 +240,48 @@ test.describe("@visual the opponent's colour and the penalty red", () => {
       }
     }
   });
+});
+
+/** Every string that can be the live row's second line, at its longest, in one language (spec 068 FR-032, SC-006). */
+function line2Strings(copy: Copy): string[] {
+  const name = "Kári";
+  return [
+    `${copy.picking("Þ", 10)} · ${copy.TAP_SECOND_LETTER}`,
+    copy.frozenWord("HESTAR", name),
+    copy.frozenJustNow(name),
+    copy.movedJustNow(name),
+    copy.pickClearedMoved(name),
+    copy.OFFLINE_RECONNECTING,
+    copy.backAway("1:34"),
+    `${copy.endEarlyOfferLead(name)}${copy.END_THE_MATCH}`,
+    `−5 · ${copy.moveOpens(10)}`,
+    `−3 · ${copy.TOTAL_NEVER_BELOW_ZERO}`,
+    `${copy.movesLeftShort(10)} · −50 ${copy.IF_UNPLAYED}`,
+    `${copy.movesLeftShort(10)} · ${copy.NOTHING_TO_LOSE}`,
+    copy.doneFact(name, 8, "1:12"),
+    copy.scoredDelta(113, 10),
+    ...Object.values(copy.errors),
+  ];
+}
+
+test.describe("@visual the live row's second line fits one line at 1440", () => {
+  for (const [lang, path, copy] of [["en", "/en/dev/room?phase=idle", copyEn], ["is", "/dev/room?phase=idle", copyIs]] as const) {
+    test(`every line 2 string (${lang})`, async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== "visual-1440x900", "the fit is specified at 1440");
+      await page.goto(path);
+      await expect(page.getByTestId("ledger-live-row")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const wrapped = await page.evaluate((strings) => {
+        const line = document.querySelector('[data-testid="ledger-live-row"] .ledger__live-line2') as HTMLElement;
+        const lineHeight = Number.parseFloat(getComputedStyle(line).lineHeight) || 16;
+        return strings.filter((text) => {
+          line.textContent = text;
+          return line.getBoundingClientRect().height > lineHeight * 1.5;
+        });
+      }, line2Strings(copy));
+      expect(wrapped, "these wrap: shorten them in the copy (spec 068 FR-032)").toEqual([]);
+    });
+  }
 });
 
 /** Spec 068 FR-006, SC-002: urgency is weight only; nothing on the scoreboard or the ledger blinks. */

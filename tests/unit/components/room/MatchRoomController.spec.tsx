@@ -259,7 +259,7 @@ describe("MatchRoomController (spec 050)", () => {
     renderController(state({}, { inFlight: { moveId: "mv-8", globalSeq: 8, receivedAt: NOW } }));
     act(() => mockCallbacks.onMoveResolved!(resolution({ status: "rejected", rejectionReason: "frozen", seq: null, words: [], delta: 0, totals: { playerA: 45, playerB: 30 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 5 } })));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 3 · your move");
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Bob just froze it · pick another");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Bob froze it · pick another");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     expect(useRoomStore.getState().holdMove).toBeNull();
@@ -298,7 +298,7 @@ describe("MatchRoomController (spec 050)", () => {
   it("with ten moves you watch: the field is locked and the live row waits for the opponent", () => {
     renderController(state({}, { movesPlayed: 10 }, { movesPlayed: 8 }));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("10 of 10 played");
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/waiting for Bob · 8 of 10 · \d:\d\d left/);
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/Bob · 8 of 10 · \d:\d\d left/);
     expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("10 of 10 · done");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
@@ -639,6 +639,37 @@ describe("the live row's second line in a match (spec 068 FR-029, FR-030)", () =
     const live = screen.getByTestId("ledger-live-row");
     expect(live).toHaveTextContent("3 moves left · −15if unplayed");
     expect(live.querySelector(".points-lost")).toHaveTextContent("−15");
+    vi.useRealTimers();
+  });
+});
+
+describe("the room's polite region (spec 068 FR-033)", () => {
+  it("announces the opponent's move as it lands live", () => {
+    useRoomStore.getState().leaveToLobby();
+    vi.useFakeTimers();
+    renderController();
+    act(() =>
+      mockCallbacks.onMoveResolved!(
+        resolution({ moveId: "mv-9", playerId: "player-2", globalSeq: 8, seq: 6, words: [ORD], delta: 13, totals: { playerA: 45, playerB: 43 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 6 }, swap: { from: { x: 9, y: 9 }, to: { x: 8, y: 8 } } }),
+      ),
+    );
+    expect(screen.getByTestId("room-announcer")).toHaveTextContent("Bob ORÐ +13 · 6 of 10");
+    expect(screen.getByTestId("room-announcer")).toHaveAttribute("aria-live", "polite");
+    vi.useRealTimers();
+  });
+});
+
+describe("focus at go (spec 068 FR-034)", () => {
+  it("when the start count ends, focus moves to the field", async () => {
+    useRoomStore.getState().leaveToLobby();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:01Z"));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/starts in/);
+    expect(document.activeElement?.getAttribute("data-testid")).not.toBe("field-cell");
+    await act(async () => vi.advanceTimersByTimeAsync(3_000));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 1 · your move");
+    expect(document.activeElement?.getAttribute("data-testid")).toBe("field-cell");
     vi.useRealTimers();
   });
 });

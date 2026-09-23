@@ -62,8 +62,9 @@ const HOVER_ROW_HINT = "hover a row to see its words";
 const frozenNotice = (ownerName: string, move: number): string =>
   `frozen · ${ownerName} M${move} · pick another`;
 /** A move refused at resolution (spec 050 FR-005): the reason, then the next step. */
-const frozenJustNow = (name: string): string => `frozen · ${name} just froze it · pick another`;
-const movedJustNow = (name: string): string => `moved · ${name} just moved it · pick another`;
+// Line 2 fits one line at 1440 (spec 068 FR-032, ≈40 mono characters): these were shortened for it.
+const frozenJustNow = (name: string): string => `frozen · ${name} froze it · pick another`;
+const movedJustNow = (name: string): string => `moved · ${name} moved it · pick another`;
 const pickClearedMoved = (name: string): string => `pick cleared · ${name} moved that letter`;
 const settingField = (landed: number): string =>
   `setting the field · ${landed} of 100 letters`;
@@ -75,8 +76,9 @@ const moveScored = (move: number): string => `move ${move} scored`;
 const signed = (n: number): string => `${n < 0 ? "−" : "+"}${Math.abs(n)}`;
 const scoredDelta = (delta: number, next: number): string => `you ${signed(delta)} · move ${next} opens`;
 const DONE_PLAYED = "10 of 10 played";
+/** Game flow C4's form: the opponent's name, their count and the clock (spec 068 FR-032). */
 const doneFact = (opponentName: string, opponentMoves: number, clockMmSs: string): string =>
-  `waiting for ${opponentName} · ${opponentMoves} of 10 · ${clockMmSs} left`;
+  `${opponentName} · ${opponentMoves} of 10 · ${clockMmSs} left`;
 const TIME_SCORING = "time · scoring";
 const moveOfSuffix = (move: number): string => `move ${move} of 10`;
 const moveScoringSuffix = (move: number): string => `move ${move} of 10 · scoring`;
@@ -107,7 +109,11 @@ const movesLeftShort = (n: number): string => `${n} ${n === 1 ? "move" : "moves"
 const IF_UNPLAYED = "if unplayed";
 const NOTHING_TO_LOSE = "nothing to lose";
 const frozenWord = (word: string, owner: string): string => `frozen · ${word} · ${owner} · pick another`;
-const backAway = (mmSs: string): string => `back · you were away ${mmSs} · the clock kept running`;
+const backAway = (mmSs: string): string => `back · away ${mmSs} · the clock ran on`;
+/** The room's polite region (spec 068 FR-033, FR-010): the opponent's move, and the clock marks. */
+const oppAnnouncement = (name: string, words: string[], delta: number, moves: number): string =>
+  words.length > 0 ? `${name} ${words.join(" · ")} ${signed(delta)} · ${moves} of 10` : `${name} ${NO_WORD} ${points(delta)} · ${moves} of 10`;
+const clockMarkLeft = (mmSs: string): string => `${mmSs} left`;
 const endEarlyOfferLead = (name: string): string => `${name} is gone · `;
 /** A cell's label ends with it when a player's last move swapped it (spec 068 FR-027). */
 const lastMoveOf = (name: string): string => `${name}'s last move`;
@@ -359,6 +365,8 @@ export const copyEn = {
   frozenWord,
   backAway,
   endEarlyOfferLead,
+  oppAnnouncement,
+  clockMarkLeft,
   lastMoveOf,
   tabTitle,
   rematchRequest,

@@ -63,8 +63,8 @@ describe("RoomFixture", () => {
     expect(lineOf("illegal")).toBe("move 4 · your movefrozen · Kári M1 · pick another");
     expect(lineOf("scoring")).toBe("move 4 · scoring");
     expect(lineOf("scored")).toBe("move 4 scoredyou +13 · move 5 opens");
-    expect(lineOf("rejected")).toBe("move 5 · your movefrozen · Kári just froze it · pick another");
-    expect(lineOf("done-waiting")).toBe("10 of 10 playedwaiting for Kári · 8 of 10 · 0:48 left");
+    expect(lineOf("rejected")).toBe("move 5 · your movefrozen · Kári froze it · pick another");
+    expect(lineOf("done-waiting")).toBe("10 of 10 playedKári · 8 of 10 · 0:48 left");
     expect(lineOf("time-up")).toBe("time · scoring");
   });
 
@@ -154,5 +154,31 @@ describe("RoomFixture: the scoreboard's states (spec 068)", () => {
     render(<RoomFixture phase="end-early" />);
     expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("8 of 10 · gone for 2:04");
     expect(screen.getByTestId("scoreboard-row-opp")).not.toHaveTextContent("0:00 left");
+  });
+});
+
+describe("RoomFixture: the whole move (spec 068 Phase B)", () => {
+  it("missed: the held beat says no word, and only the number is crimson", () => {
+    render(<RoomFixture phase="missed" />);
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live).toHaveTextContent("move 4 · no word");
+    expect(live.querySelector(".points-lost")).toHaveTextContent("−5");
+  });
+
+  it("stakes: under a minute your move prices the moves left", () => {
+    render(<RoomFixture phase="stakes" />);
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 8 · your move");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("3 moves left · −15if unplayed");
+  });
+
+  it("pick-cleared: the notice is the live row's second line", () => {
+    render(<RoomFixture phase="pick-cleared" />);
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick cleared · Kári moved that letter");
+  });
+
+  it("last-moved: each player's last swap carries a tick in their colour", () => {
+    render(<RoomFixture phase="last-moved" />);
+    const ticked = screen.getAllByTestId("field-cell").filter((c) => c.hasAttribute("data-last-move"));
+    expect(ticked.map((c) => c.getAttribute("data-last-move"))).toEqual(["you", "you", "opp", "opp"]);
   });
 });

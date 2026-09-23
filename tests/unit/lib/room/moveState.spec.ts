@@ -78,15 +78,15 @@ describe("liveLinesFor", () => {
     expect(liveLinesFor(yourMove, { kind: "picking", letter: "T", value: 2 }, copyEn)).toEqual({ line1: "move 4 · your move", line2: "picking · T (2) · tap a second letter" });
   });
   it("rejected: the beat over the reason and the next step", () => {
-    expect(liveLinesFor({ kind: "rejected", move: 5, opponentName: K, reason: "frozen" }, { kind: "idle" }, copyEn)).toEqual({ line1: "move 5 · your move", line2: "frozen · Kári just froze it · pick another" });
-    expect(liveLinesFor({ kind: "rejected", move: 5, opponentName: K, reason: "moved" }, { kind: "idle" }, copyEn).line2).toBe("moved · Kári just moved it · pick another");
+    expect(liveLinesFor({ kind: "rejected", move: 5, opponentName: K, reason: "frozen" }, { kind: "idle" }, copyEn)).toEqual({ line1: "move 5 · your move", line2: "frozen · Kári froze it · pick another" });
+    expect(liveLinesFor({ kind: "rejected", move: 5, opponentName: K, reason: "moved" }, { kind: "idle" }, copyEn).line2).toBe("moved · Kári moved it · pick another");
   });
   it("scoring collapses to one line; scored says the delta and the next move", () => {
     expect(liveLinesFor({ kind: "scoring", move: 4, opponentName: K }, { kind: "played" }, copyEn)).toEqual({ line1: "move 4 · scoring", line2: "" });
     expect(liveLinesFor({ kind: "scored", move: 4, opponentName: K, delta: 13, next: 5 }, { kind: "idle" }, copyEn)).toEqual({ line1: "move 4 scored", line2: "you +13 · move 5 opens" });
   });
   it("done and time up", () => {
-    expect(liveLinesFor({ kind: "done", opponentName: K, opponentMoves: 8, clockMmSs: "1:12" }, { kind: "idle" }, copyEn)).toEqual({ line1: "10 of 10 played", line2: "waiting for Kári · 8 of 10 · 1:12 left" });
+    expect(liveLinesFor({ kind: "done", opponentName: K, opponentMoves: 8, clockMmSs: "1:12" }, { kind: "idle" }, copyEn)).toEqual({ line1: "10 of 10 played", line2: "Kári · 8 of 10 · 1:12 left" });
     expect(liveLinesFor({ kind: "timeUp", opponentName: K }, { kind: "idle" }, copyEn)).toEqual({ line1: "time · scoring", line2: "" });
   });
 });
@@ -156,7 +156,7 @@ describe("the live row's second line (spec 068 FR-028–FR-031)", () => {
     expect(liveLinesFor(yourMove, idle, copyEn, { pickClearedBy: K }).line2).toBe("pick cleared · Kári moved that letter");
     expect(liveLinesFor(yourMove, idle, copyEn, { submitError: "swap rejected", pickClearedBy: K }).line2).toBe("swap rejected");
     expect(liveLinesFor(yourMove, idle, copyEn, { offline: true, submitError: "swap rejected" }).line2).toBe("offline · reconnecting");
-    expect(liveLinesFor(yourMove, idle, copyEn, { backAwayMs: 34_000 }).line2).toBe("back · you were away 0:34 · the clock kept running");
+    expect(liveLinesFor(yourMove, idle, copyEn, { backAwayMs: 34_000 }).line2).toBe("back · away 0:34 · the clock ran on");
     const done: MoveState = { kind: "done", opponentName: K, opponentMoves: 8, clockMmSs: "1:12" };
     const offer = liveLinesFor(done, idle, copyEn, { endEarlyOffer: K });
     expect(offer.line1).toBe("10 of 10 played");

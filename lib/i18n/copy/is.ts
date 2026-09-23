@@ -88,10 +88,9 @@ export const copyIs = {
   HOVER_ROW_HINT: "færðu bendilinn yfir línu til að sjá orðin",
   frozenNotice: (ownerName: string, move: number): string =>
     `frosinn · ${ownerName} L${move} · veldu annan`,
-  frozenJustNow: (name: string): string =>
-    `frosinn · ${name} var að frysta hann · veldu annan`,
-  movedJustNow: (name: string): string =>
-    `færður · ${name} var að færa hann · veldu annan`,
+  // Line 2 fits one line at 1440 (spec 068 FR-032); the name stays in the nominative.
+  frozenJustNow: (name: string): string => `${name} frysti stafinn · veldu annan`,
+  movedJustNow: (name: string): string => `${name} færði stafinn · veldu annan`,
   pickClearedMoved: (name: string): string => `val fellt niður · ${name} færði stafinn`,
   settingField: (landed: number): string => `raðar á borðið · ${landed} af 100 stöfum`,
 
@@ -101,8 +100,9 @@ export const copyIs = {
   scoredDelta: (delta: number, next: number): string =>
     `þú ${signed(delta)} · leikur ${next} opnast`,
   DONE_PLAYED: "10 af 10 leiknir",
+  // Game flow C4 (spec 068): no name after `eftir` (the name-safe rule, §8 item 13).
   doneFact: (opponentName: string, opponentMoves: number, clockMmSs: string): string =>
-    `bíður eftir ${opponentName} · ${opponentMoves} af 10 · ${clockMmSs} eftir`,
+    `${opponentName} · ${opponentMoves} af 10 · ${clockMmSs} eftir`,
   TIME_SCORING: "tíminn úti · reiknast",
   moveOfSuffix: (move: number): string => `leikur ${move} af 10`,
   moveScoringSuffix: (move: number): string => `leikur ${move} af 10 · reiknast`,
@@ -128,9 +128,14 @@ export const copyIs = {
   IF_UNPLAYED: "ef óleiknir",
   NOTHING_TO_LOSE: "engu að tapa",
   frozenWord: (word: string, owner: string): string => `frosinn · ${word} · ${owner} · veldu annan`,
-  backAway: (mmSs: string): string => `tenging komin aftur · ${mmSs} án tengingar`,
-  // The name stays in the nominative and takes no adjective (game flow §8 item 13).
-  endEarlyOfferLead: (name: string): string => `${name} · án tengingar · `,
+  backAway: (mmSs: string): string => `tenging komin · ${mmSs} án tengingar`,
+  // The name stays in the nominative (game flow §8 item 13).
+  oppAnnouncement: (name: string, words: string[], delta: number, moves: number): string =>
+    words.length > 0 ? `${name} ${words.join(" · ")} ${signed(delta)} · ${moves} af 10` : `${name} ekkert orð ${points(delta)} · ${moves} af 10`,
+  clockMarkLeft: (mmSs: string): string => `${mmSs} eftir`,
+  // Without the name: `<nafn> · án tengingar · ljúka viðureigninni ▸` does not fit one line (spec 068 FR-032),
+  // and there is only one opponent to mean.
+  endEarlyOfferLead: (): string => "án tengingar · ",
   // The name stays in the nominative (game flow §8 item 13): never `leikur Kára`.
   lastMoveOf: (name: string): string => `síðasti leikur · ${name}`,
   tabTitle: (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · leikur ${move} · ${name}`,

@@ -17,7 +17,7 @@ import { same } from "@/lib/room/fieldInteraction";
 import { useRoomStore, type RoomPhase as StorePhase } from "@/lib/room/roomStore";
 import type { AccumulatedWord, LiveState } from "@/lib/room/ledgerRows";
 import type { SlipState } from "@/lib/room/slip";
-import { turnFrameFor, type MoveState } from "@/lib/room/moveState";
+import { turnFrameFor, type Line2Extras, type MoveState } from "@/lib/room/moveState";
 import type { Coordinate } from "@/lib/types/board";
 import type { MatchResult, MatchState } from "@/lib/types/match";
 import {
@@ -56,6 +56,10 @@ import {
   FINAL_ELAPSED_MS,
   MS_TO_START,
   REJECTED_M5,
+  MISSED_M4,
+  YOUR_MOVE_8,
+  OPP_LAST_SWAP,
+  YOUR_LAST_SWAP,
   RESIGN_SLIP,
   SCORED_M4,
   SCORED_WORD,
@@ -101,7 +105,7 @@ function markedSeat(marks: FieldMarks, at: Coordinate): Seat | null {
 }
 
 /** The match field with the played moves drawn as bands and one phase's marks on it. */
-function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, frozenTiles = FIXTURE_FROZEN }: { drawnCount: number | null; marks: FieldMarks; turnFrame: Seat | null; disabled: boolean; bands?: typeof BANDS; frozenTiles?: typeof FIXTURE_FROZEN }) {
+function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, frozenTiles = FIXTURE_FROZEN, ticks }: { drawnCount: number | null; marks: FieldMarks; turnFrame: Seat | null; disabled: boolean; bands?: typeof BANDS; frozenTiles?: typeof FIXTURE_FROZEN; ticks?: MatchPhaseSpec["ticks"] }) {
   return (
     <Field
           language="is"
@@ -117,6 +121,7 @@ function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, fro
       seatFor={(at) => markedSeat(marks, at)}
       shakeAt={marks.shakeAt ?? null}
       onActivate={NO_OP}
+      ticks={ticks}
     />
   );
 }
@@ -170,6 +175,10 @@ interface MatchPhaseSpec {
   msToStart?: number;
   /** Over: how long the match ran. */
   elapsedMs?: number;
+  /** Spec 068: what else claims the live row's second line. */
+  extras?: Line2Extras;
+  /** Spec 068: the last-moved ticks on the field. */
+  ticks?: Array<{ at: Coordinate; seat: Seat; name: string }>;
 }
 
 const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE };
@@ -200,6 +209,14 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   resign: IDLE,
   "end-early": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: 72_000, state: { ...DISCONNECT_STATE, ...DONE_STATE, disconnectedPlayerId: OPP_ID }, seats: DONE_SEATS },
   "over-slip": { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
+  // Spec 068 (Phase B): the missed beat held, the stakes under a minute, pick cleared on line 2, the ticks.
+  missed: { live: { kind: "idle" }, marks: {}, moveState: MISSED_M4, holdMove: HOLD_MOVE, seats: { you: { moves: 4, score: 41 } } },
+  stakes: { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE_8, clockMs: LOW_CLOCK_MS, seats: { you: { moves: 7, score: 69 }, opp: { moves: 9, score: 41 } }, extras: { stakes: { movesLeft: 3, penalty: -15 } } },
+  "pick-cleared": { ...IDLE, extras: { pickClearedBy: KARI.displayName } },
+  "last-moved": {
+    ...IDLE,
+    ticks: [...OPP_LAST_SWAP.map((at) => ({ at, seat: "opp" as const, name: KARI.displayName })), ...YOUR_LAST_SWAP.map((at) => ({ at, seat: "you" as const, name: BIRNA.displayName }))],
+  },
   // Spec 068: before started_at the clock row loads and both rows read `ready`; no pick is taken.
   starting: { live: { kind: "idle" }, marks: {}, moveState: { kind: "starting", seconds: 2, opponentName: KARI.displayName }, msToStart: MS_TO_START, clockMs: 300_000, seats: { you: { moves: 0, score: 0 }, opp: { moves: 0, score: 0 } } },
 };
@@ -344,6 +361,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
         frozenTiles={FIXTURE_FROZEN}
         live={spec.live}
         moveState={spec.moveState}
+        line2Extras={spec.extras}
         holdMove={spec.holdMove ?? null}
         verdict={completed ? finalVerdict(copy) : undefined}
         caption={completed ? copy.finalContext("4:52") : undefined}
@@ -351,7 +369,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
         hint={disconnected ? `${KARI.displayName} · ${OPPONENT}` : undefined}
         onAction={NO_OP}
       >
-        <MatchField drawnCount={drawnCount} marks={spec.marks} turnFrame={spec.moveState ? turnFrameFor(spec.moveState) : null} disabled={completed || locked} bands={bands} />
+        <MatchField drawnCount={drawnCount} marks={spec.marks} turnFrame={spec.moveState ? turnFrameFor(spec.moveState) : null} disabled={completed || locked} bands={bands} ticks={spec.ticks} />
       </MatchRoomView>
     </RoomShell>
   );

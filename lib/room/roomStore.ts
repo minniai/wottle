@@ -64,6 +64,8 @@ export interface RoomState {
   applyResolution: (resolution: MoveResolution) => void;
   /** Each player's latest resolved move by player id: the last-moved tick (spec 068 FR-027). */
   lastResolved: Record<string, MoveResolution>;
+  /** The latest resolution that arrived live (`move-resolved`), never one read from a snapshot: announced once (spec 068 FR-033). */
+  liveResolution: MoveResolution | null;
   leaveToLobby: () => void;
   /** Show a slip unless a higher-ranked one is already up. */
   setSlip: (next: SlipState) => void;
@@ -160,6 +162,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   slipDismissed: false,
   holdMove: null,
   lastResolved: {},
+  liveResolution: null,
 
   // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
   setViewer: (viewer) =>
@@ -191,7 +194,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       found: null,
       lastResolved: withLastResolved(s.match?.matchId === state.matchId ? s.lastResolved : {}, lastOf(state)),
       // Another match in the same room (a rematch) starts with no slip and no hold.
-      ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdMove: null }),
+      ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdMove: null, liveResolution: null }),
     })),
 
   applySnapshot: (snapshot) => {
@@ -204,11 +207,11 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     if (!current || resolution.matchId !== current.matchId) return;
     if (resolution.globalSeq <= current.resolvedSeq) return;
     const next = withResolution(current, resolution);
-    set((s) => ({ match: next, board: next.board, lastResolved: withLastResolved(s.lastResolved, [resolution]) }));
+    set((s) => ({ match: next, board: next.board, lastResolved: withLastResolved(s.lastResolved, [resolution]), liveResolution: resolution }));
   },
 
   leaveToLobby: () =>
-    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdMove: null, lastResolved: {} }),
+    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdMove: null, lastResolved: {}, liveResolution: null }),
 
   setReturning: (returning) => set({ returning }),
   setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: s.slip?.kind === next.kind ? s.slipDismissed : false })),

@@ -62,6 +62,8 @@ export interface MatchRoomViewProps {
   moveState?: MoveState;
   /** What else claims the live row's second line (spec 068 FR-031). */
   line2Extras?: Line2Extras;
+  /** The room's polite region: the opponent's moves and the clock marks (spec 068 FR-033, FR-010). */
+  announcement?: string;
   holdMove?: number | null;
   hiddenWordIds?: Set<string>;
   hint?: string;
@@ -148,7 +150,14 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           compact={isPhone}
         />
       }
-      field={children}
+      field={
+        <>
+          {children}
+          <div className="sr-only" aria-live="polite" data-testid="room-announcer">
+            {props.announcement ?? ""}
+          </div>
+        </>
+      }
       bottomBar={null}
       ledger={
         <Ledger
