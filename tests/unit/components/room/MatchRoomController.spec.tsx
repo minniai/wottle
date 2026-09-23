@@ -616,7 +616,7 @@ describe("MatchRoomController (spec 050)", () => {
     await screen.findByTestId("slip", {}, { timeout: 3_000 });
     fireEvent.click(screen.getByTestId("slip-lobby"));
     expect(screen.queryByTestId("slip")).toBeNull();
-    expect(mockReplace).toHaveBeenCalledWith("/en/lobby");
+    expect(mockReplace).toHaveBeenCalledWith("/en");
   });
 });
 
@@ -792,7 +792,7 @@ describe("MatchRoomController at the table (spec 069)", () => {
     expect(seatAction).toHaveBeenCalledWith("m1");
     fireEvent.click(screen.getByTestId("slip-leave-table"));
     await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
   });
 
   it("says politely when the opponent sits down", async () => {
@@ -835,14 +835,14 @@ describe("MatchRoomController at the table (spec 069)", () => {
     expect(screen.getByTestId("slip-void-searching")).toHaveTextContent("searching · 0:0");
     fireEvent.click(screen.getByTestId("slip-void-cancelQueue"));
     await waitFor(() => expect(cancelQueueAction).toHaveBeenCalled());
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
   });
 
   it("`challenge again ▸` sends a new challenge to the same player and goes to the lobby", async () => {
     renderController(voidOf("challenge", "player-2"));
     fireEvent.click(await screen.findByTestId("slip-void-challengeAgain"));
     await waitFor(() => expect(sendInviteAction).toHaveBeenCalledWith("player-2", "is"));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
   });
 
   it("after a rematch table, `result ▸` opens the previous match", async () => {
@@ -858,7 +858,7 @@ describe("MatchRoomController at the table (spec 069)", () => {
     expect(pushState).toHaveBeenCalledWith({ kind: "table-guard" }, "");
     act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
     await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
     pushState.mockRestore();
   });
 

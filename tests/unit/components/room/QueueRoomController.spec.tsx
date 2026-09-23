@@ -73,7 +73,7 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent(/searching · \d+:\d\d · cancel ▸/);
     fireEvent.click(screen.getByTestId("ledger-cancel-queue"));
     expect(useRoomStore.getState().phase).toBe("lobby");
-    expect(mockReplace).toHaveBeenCalledWith("/en/lobby");
+    expect(mockReplace).toHaveBeenCalledWith("/en");
   });
 
   it("a pairing goes to the table at the match's own address, as a new page (spec 069 FR-023)", async () => {

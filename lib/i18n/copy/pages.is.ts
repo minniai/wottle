@@ -62,6 +62,8 @@ export const pagesIs: Widen<typeof pagesEn> = {
 
   blockSub: (rating: number, languageName: string, matches: number, record: string): string =>
     `${rating} · elo · ${languageName} · ${count(matches, "viðureign", "viðureignir")} · ${record}`,
+  blockSubLines: (rating: number, languageName: string, matches: number, record: string): [string, string] =>
+    [`${rating} · elo · ${languageName}`, `${count(matches, "viðureign", "viðureignir")} · ${record}`],
   blockSubNew: (rating: number, languageName: string): string => `${rating} · elo · ${languageName} · engin viðureign enn`,
   searchingNow: (n: number): string => (n === 0 ? "enginn leitar núna" : `${n} ${plural("is", n, { one: "leitar", other: "leita" })} núna`),
   LAST_TEN: "síðustu tíu",

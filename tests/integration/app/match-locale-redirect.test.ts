@@ -57,6 +57,6 @@ describe("the match page follows the match's language", () => {
     vi.mocked(loadMatchState).mockResolvedValue(voided as never);
     await expect(MatchPage({ params: { matchId: "m1", locale: "is" } })).resolves.toBeTruthy();
     vi.mocked(readLobbySession).mockResolvedValue({ player: { id: "p9" } } as never);
-    await expect(MatchPage({ params: { matchId: "m1", locale: "is" } })).rejects.toThrow("NEXT_REDIRECT:/lobby");
+    await expect(MatchPage({ params: { matchId: "m1", locale: "is" } })).rejects.toThrow(/^NEXT_REDIRECT:\/$/);
   });
 });

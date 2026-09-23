@@ -4,11 +4,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { useIsPhone } from "@/components/room/hooks/useIsPhone";
 
 import { LanguageSwitch, PreferOtherLine } from "./LanguageSwitch";
 import { Strip } from "./Strip";
 
 const STRIP_CELL_PX = 22;
+const PHONE_STRIP_CELL_PX = 18;
 
 export interface MastheadViewer {
   displayName: string;
@@ -50,11 +52,12 @@ export function SignedInMasthead({ viewer, otherLobbyHere, menu }: SignedInMasth
   const copy = useCopy();
   const locale = useLocale();
   const to = useLocalePath();
+  const isPhone = useIsPhone();
   return (
     <div className="page-masthead">
       <div className="page-masthead__left">
         <Link href={to("/")} className="page-strip-link" aria-label={copy.WORDMARK}>
-          <Strip locale={locale.id} cellPx={STRIP_CELL_PX} />
+          <Strip locale={locale.id} cellPx={isPhone ? PHONE_STRIP_CELL_PX : STRIP_CELL_PX} />
         </Link>
       </div>
       <nav className="page-masthead__nav" data-testid="masthead-nav">

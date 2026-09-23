@@ -198,15 +198,15 @@
 
 ### Tests first
 
-- [ ] T047 [P] [US2] Write a failing test in `tests/unit/lib/pages/lobbyRows.spec.ts`:
+- [X] T047 [P] [US2] Write a failing test in `tests/unit/lib/pages/lobbyRows.spec.ts`:
   - rows are ordered by state, then by rating distance, then by name;
   - the order freezes, and new ids are appended at the end;
   - status words: `in a match · 6 of 10` and `away` are muted with no action;
   - the record reads `3–1`, `3–1–1` or `—`;
   - eight rows are shown, then `+ 6 more ▸`.
-- [ ] T048 [P] [US2] Write a failing test in `tests/unit/lib/pages/formStrip.spec.ts`: ten cells, oldest first, padded; W, L and D map to their letters in both languages; the `aria-label` names draws only when there are any.
-- [ ] T049 [P] [US2] Write a failing test in `tests/unit/lib/pages/bandMap.spec.ts`: the rectangles and chevrons follow the `bandGeometry` inset at 34px cells, the seat colour is relative to the viewer, and there are no letters.
-- [ ] T050 [P] [US2] Write failing component tests in `tests/unit/components/page/lobby/Lobby.spec.tsx`:
+- [X] T048 [P] [US2] Write a failing test in `tests/unit/lib/pages/formStrip.spec.ts`: ten cells, oldest first, padded; W, L and D map to their letters in both languages; the `aria-label` names draws only when there are any.
+- [X] T049 [P] [US2] Write a failing test in `tests/unit/lib/pages/bandMap.spec.ts`: the rectangles and chevrons follow the `bandGeometry` inset at 34px cells, the seat colour is relative to the viewer, and there are no letters.
+- [X] T050 [P] [US2] Write failing component tests in `tests/unit/components/page/lobby/Lobby.spec.tsx`:
   - the `h1` is the name;
   - the block's sub-line, per language;
   - the primary `find an opponent ▸` and the searching count;
@@ -216,7 +216,7 @@
   - the new-player state;
   - the empty state, with find as the primary and `tell me when someone is here ▸`;
   - the `⋯` menu: sound, and sign-out with its consequence line or disabled state (the notifications item comes in T080 and T085).
-- [ ] T051 [P] [US2] Write a failing unit test in `tests/unit/components/standing/useLobbyList.spec.ts`:
+- [X] T051 [P] [US2] Write a failing unit test in `tests/unit/components/standing/useLobbyList.spec.ts`:
   - it reads `/api/lobby/players` on mount and on a `presence` poke;
   - on a leaving poke it reads again after `recheckInMs`;
   - the fallback poll is 3s without a socket and 12s with one;
@@ -224,19 +224,19 @@
 
 ### Implementation
 
-- [ ] T052 [US2] Rewrite `app/api/lobby/players/route.ts` and `lib/matchmaking/profile.ts` `fetchLobbySnapshot` over `player_presence` joined with ratings and `head_to_head`. Update the unit tests that mocked the old snapshot.
-- [ ] T053 [P] [US2] Implement `lib/pages/lobbyRows.ts`, `formStrip.ts` and `bandMap.ts` (T047–T049).
+- [X] T052 [US2] Rewrite `app/api/lobby/players/route.ts` and `lib/matchmaking/profile.ts` `fetchLobbySnapshot` over `player_presence` joined with ratings and `head_to_head`. Update the unit tests that mocked the old snapshot.
+- [X] T053 [P] [US2] Implement `lib/pages/lobbyRows.ts`, `formStrip.ts` and `bandMap.ts` (T047–T049).
 - [ ] T054 [US2] Implement `components/standing/hooks/useLobbyList.ts` (T051). Remove the Supabase Presence half of `lib/matchmaking/presenceStore.ts`, and delete `lib/realtime/presenceChannel.ts` and `presenceChannel.polling.ts` with their tests.
-- [ ] T055 [US2] Implement `components/page/lobby/Lobby.tsx`, `YourBlock.tsx`, `FormStrip.tsx`, `HereNowTable.tsx` (hover and focus states, the 8-row cap, frozen order), `BandMap.tsx`, `LastMatch.tsx` and `RecentMatches.tsx`, with the desktop and phone (F2) layouts in `pages.css`. Make T050 pass.
-- [ ] T056 [US2] Add the lobby strings to `lib/i18n/copy/{en,is}.ts`:
+- [X] T055 [US2] Implement `components/page/lobby/Lobby.tsx`, `YourBlock.tsx`, `FormStrip.tsx`, `HereNowTable.tsx` (hover and focus states, the 8-row cap, frozen order), `BandMap.tsx`, `LastMatch.tsx` and `RecentMatches.tsx`, with the desktop and phone (F2) layouts in `pages.css`. Make T050 pass.
+- [X] T056 [US2] Add the lobby strings to `lib/i18n/copy/{en,is}.ts`:
   - the block's sub-lines, the form strip, the table caption and columns;
   - the statuses `hér`, `leitar`, `í viðureign · 6 af 10` and `fjarverandi`;
   - the last match, `review ▸`, the recent result words, the new-player and empty states, the `⋯` menu, and the lobby title.
 
   Retire the lobby strings §5 lists as replaced (`Enginn andstæðingur enn`, `No runs yet…`, raw `WIN`/`LOSS`, and so on).
-- [ ] T057 [US2] Render the lobby from `app/[locale]/(pages)/page.tsx` when signed in. On the server, read the players, the overview and the viewer for the first paint (SC-008). Call `enterLobbyAction` as a placeholder that always returns `same` until US7.
+- [X] T057 [US2] Render the lobby from `app/[locale]/(pages)/page.tsx` when signed in. On the server, read the players, the overview and the viewer for the first paint (SC-008). Call `enterLobbyAction` as a placeholder that always returns `same` until US7.
 - [ ] T058 [US2] Add the 308 redirects for `/lobby`, `/matchmaking`, `/en/lobby` and `/en/matchmaking` to `next.config.ts`, and delete `app/[locale]/(room)/lobby/page.tsx`. Keep `app/[locale]/(room)/matchmaking/page.tsx` until US5 (the redirect wins), then delete it in T088. Add a test `tests/unit/config/redirects.spec.ts`.
-- [ ] T059 [US2] Add the page phases `lobby-signed-in`, `is-lobby`, `lobby-new` and `lobby-empty` (LobbyEmpty EN-L) to `app/[locale]/dev/page/fixtures.ts`, generate the baselines, and review them against the Lobby, LobbyEmpty and PhoneLobby artboards.
+- [X] T059 [US2] Add the page phases `lobby-signed-in`, `is-lobby`, `lobby-new` and `lobby-empty` (LobbyEmpty EN-L) to `app/[locale]/dev/page/fixtures.ts`, generate the baselines, and review them against the Lobby, LobbyEmpty and PhoneLobby artboards.
 
 **Checkpoint**: The lobby page renders from real data. Challenges still go through the old invite action until US3; the old `LobbyRoomController` is no longer mounted.
 

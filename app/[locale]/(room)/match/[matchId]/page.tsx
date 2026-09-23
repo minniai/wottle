@@ -60,7 +60,7 @@ export default async function MatchPage({
   const participants = [matchState.players.playerA.playerId, matchState.players.playerB.playerId];
   const readable = (matchState.state === "completed" || matchState.state === "abandoned") && matchState.endedReason !== "void";
   if (!participants.includes(session.player.id) && !readable) {
-    redirect(localePath(locale, "/lobby"));
+    redirect(localePath(locale, "/"));
   }
 
   const playerProfiles = await loadMatchPlayerProfiles(

@@ -7,6 +7,8 @@ import { logoutAction } from "@/app/actions/auth/logout";
 import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 
+import { LanguageSwitch } from "./LanguageSwitch";
+
 export interface SignOutState {
   /** A live match: signing out is refused, with this reason (spec 067). */
   disabledReason?: string | null;
@@ -73,6 +75,10 @@ export function PageMenu({ signOut, extra }: PageMenuProps) {
               {copy.soundToggle(sound)}
             </button>
             {soundHinted ? <span className="page-menu__note">{copy.pages.SOUND_AFTER_CLICK}</span> : null}
+          </li>
+          {/* On a phone the masthead has no room for the switch; it lives here (F2). */}
+          <li role="none" className="page-only-phone">
+            <LanguageSwitch variant="signedIn" />
           </li>
           {extra}
           <li role="none">

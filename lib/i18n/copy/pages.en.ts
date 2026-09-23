@@ -55,6 +55,8 @@ export const pagesEn = {
   // Lobby (B1, F2)
   blockSub: (rating: number, languageName: string, matches: number, record: string): string =>
     `${rating} · rating · ${languageName} · ${s(matches, "match", "matches")} · ${record}`,
+  blockSubLines: (rating: number, languageName: string, matches: number, record: string): [string, string] =>
+    [`${rating} · rating · ${languageName}`, `${s(matches, "match", "matches")} · ${record}`],
   blockSubNew: (rating: number, languageName: string): string => `${rating} · rating · ${languageName} · no matches yet`,
   searchingNow: (n: number): string => (n === 0 ? "nobody searching now" : `${n} searching now`),
   LAST_TEN: "last ten",

@@ -214,7 +214,7 @@ export function ProfilePage({ profile, words, matches, isSelf, inLiveMatch = fal
 
         <div className="ledger__foot" data-testid="profile-foot">
           <Link
-            href={to("/lobby")}
+            href={to("/")}
             className="action-secondary"
             data-testid="profile-back-lobby"
           >

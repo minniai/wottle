@@ -119,7 +119,7 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
       if (action === "cancelQueue") {
         void cancel();
         cancelQueue();
-        router.replace(to("/lobby"));
+        router.replace(to("/"));
       }
     },
     [cancel, cancelQueue, router, to],

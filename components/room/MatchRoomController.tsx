@@ -319,7 +319,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const tableSlip = derivedSlip?.kind === "void" && requeue.state.kind === "searching" && table.youRequeued
     ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeue.state.elapsedSeconds * 1000)}` } }
     : derivedSlip;
-  const leaveTheTable = useCallback(() => void leaveTableAction(matchId).then(() => router.push(to("/lobby"))), [matchId, router, to]);
+  const leaveTheTable = useCallback(() => void leaveTableAction(matchId).then(() => router.push(to("/"))), [matchId, router, to]);
   useTableBackGuard(!readOnly && (match.state === "pending" || msToStart > 0), leaveTheTable);
   const foundMatchId = requeue.state.kind === "found" ? requeue.state.matchId : null;
   useEffect(() => {
@@ -535,7 +535,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "lobby") {
         // The slip belongs to the match: take it down before the lobby draws.
         dismissSlip();
-        router.replace(to("/lobby"));
+        router.replace(to("/"));
       }
       // The final ⋯ menu offers profile and sign out (reported 2026-09-21: they did nothing here).
       else if (action === "profile") {
@@ -553,12 +553,12 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       }
       else if (action === "sitDown") void seatAction(matchId).then(refreshMatch);
       else if (action === "leaveTable") leaveTheTable();
-      else if (action === "cancelQueue") void requeue.cancel().then(() => router.push(to("/lobby")));
+      else if (action === "cancelQueue") void requeue.cancel().then(() => router.push(to("/")));
       else if (action === "challengeAgain") {
         // The same player, through the ordinary send (spec 069 clarification Q2); a refusal stays here and says why.
         void sendInviteAction(oppFacts.playerId, match.language).then((r) => {
           if (r.status === "accepted" && "matchId" in r && r.matchId) router.push(to(`/match/${r.matchId}`));
-          else if (r.status === "sent") router.push(to("/lobby"));
+          else if (r.status === "sent") router.push(to("/"));
           else push({ kind: "text", text: copy.errors[r.status === "cooldown" ? "table_cooldown" : "invite_failed"] });
         });
       }

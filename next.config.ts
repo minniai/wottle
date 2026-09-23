@@ -57,6 +57,14 @@ const nextConfig: NextConfig = {
       "data/wordlists/word_list_*_exclusions.txt",
     ],
   },
+  // Spec 070 FR-001: the door and the lobby are one URL per locale. The queue's
+  // own page joins them once the search runs in the line slot (T092).
+  async redirects() {
+    return [
+      { source: "/lobby", destination: "/", permanent: true },
+      { source: "/en/lobby", destination: "/en", permanent: true },
+    ];
+  },
   async headers() {
     const headers = [...COMMON_SECURITY_HEADERS];
     if (process.env.NODE_ENV === "production") {
