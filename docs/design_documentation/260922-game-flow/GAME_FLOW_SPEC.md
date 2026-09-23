@@ -115,10 +115,10 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | Reactions? | **At the table and after the match only. None while the clock runs.** [phase 2 · S16] | A courtesy must not hide a match fact or sit 8px from the field on a phone. |
 | A challenge arriving over a field? | **Impossible at the table or in a live match** (you show as `in a match`). In Result or Review it is a ledger line with a secondary `accept ▸`. | Fewer slip kinds, and nothing interrupts play. |
 | A rematch arriving while the slip is lifted, or in review? | **The ledger's first line. The slip is never raised again.** | A slip that raises itself under a keyboard player's Space key accepts a rated match. |
-| Rematch in Icelandic: `aftur ▸` or `annan leik? ▸`? | **`annan leik? ▸`**, the owner's choice, flagged in §10 Q2 (*leikur* is our word for a move). | Owner's native choice. It is the one question-form action. |
+| Rematch in Icelandic: `aftur ▸` or `annan leik? ▸`? | **`annan leik? ▸`**, the owner's choice, confirmed in §10 Q2 (*leikur* is our word for a move). | Owner's native choice. It is the one question-form action. |
 | Timings | Challenge **60s**. Rematch **30s**, offered within **2:00** of the end. Table **20s** (a link table waits for its sender until the link expires). | A player on another page needs time to notice. Rematch players are already looking at the result. |
 | Presence states? | **Four in lists: here, searching, in a match, away.** A gone player is dropped. `stepped out` appears only in a match bar. | Each word explains a button. |
-| Language model? | **One lobby language per player.** Challenges are within one lobby. Cross-language challenges are [phase 2 · S19]. | This is what the server enforces today (`inviteService.ts:145-148`). A `· in English` suffix would be a promise the server cannot keep. |
+| Language model? | **One lobby language per player.** Challenges are within one lobby. Cross-language challenges are not planned (owner, 23 September 2026). | This is what the server enforces today (`inviteService.ts:145-148`). A `· in English` suffix would be a promise the server cannot keep. |
 | Invite link: now or later? | **Now.** [must-have · S11] | It is the only way to fill an empty Icelandic beta lobby. The scope is one table and two routes. |
 | Identity? | **This browser claims your name.** [must-have · S1] | Ratings mean nothing if anyone can type your name. |
 | Is end early destructive? | **No.** It is the conclusion the viewer is waiting for, decided by the normal rules. It stays primary, with focus on the headline. | It forfeits nothing of the viewer's. The headline focus and the 500ms guard handle the irreversibility. |
@@ -140,7 +140,7 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | B7 | Lobby · searching | `/` (no URL change); line slot | Search while the lobby stays live | none (a wait); exit `cancel ▸` / `hætta við ▸` in the line slot | table (C1) on pairing, B1 |
 | B8 | Lobby · your match is running or over | `/`; line slot | Return to a match you stepped out of, or see that it ended | `back to the match ▸` / `aftur í viðureignina ▸`, or `result ▸` / `úrslit ▸` | match (C4), result (D1) |
 | B9 | Lobby · invite link out | `/`; line slot [must-have · S11] | Bring a friend | none (a wait); `copy again ▸`, `cancel link ▸` | table (C1) when the link is opened |
-| C1 | Table / Mótspilari fundinn | `/match/:id` · `/en/match/:id` (pending) [must-have · S3] | Who, what, stakes; both sit down | `ready ▸` / `ég er til ▸ (?)` when not seated; none when seated (a wait, exit `leave`) | starting (C2), void (C3), lobby |
+| C1 | Table / Mótspilari fundinn | `/match/:id` · `/en/match/:id` (pending) [must-have · S3] | Who, what, stakes; both sit down | `ready ▸` / `ég er til ▸` when not seated; none when seated (a wait, exit `leave`) | starting (C2), void (C3), lobby |
 | C2 | Starting / Hefst | `/match/:id` | Server 3·2·1 in the clock, letters land | none (a count) | match (C4) |
 | C3 | Table · void / Engin viðureign | `/match/:id` [must-have · S3] | Someone did not sit down, or left; nothing rated | set by origin (§5 C3) | B7, B2, D1 of the previous match, B1 |
 | C4 | Match / Viðureign | `/match/:id` (in progress) | The duel: today's beats plus the changes in §5 | the field (pick a letter) | C6, C7, C8, D1 |
@@ -150,7 +150,7 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | C8 | Disconnect and end early | same | Opponent gone; your own connection lost | `end the match ▸` / `ljúka viðureigninni ▸` (only at 10 of 10 after the window) | D1 |
 | D1 | Result / Viðureign lokið | `/match/:id` (completed) | Verdict, why it ended, ratings, next step | `rematch ▸` / `annan leik? ▸` while offered, else `new opponent ▸` / `nýr mótspilari ▸` | D2, D3, B7, B1 |
 | D2 | Rematch negotiation | same, on the slip or as a ledger line [must-have · S8] | Sent, incoming, declined, expired, opponent left | incoming: `accept ▸`; sent: none (a wait) | C1 of the new match, D1 |
-| D3 | Review / Yfirferð (?) | `/match/:id?review=n` · `/en/match/:id?review=n` [must-have · S9] | Step through every move in receipt order | `rematch ▸` while offered, else `challenge again ▸` if they are here, else `new opponent ▸` | D1, B1 |
+| D3 | Review / Yfirferð | `/match/:id?review=n` · `/en/match/:id?review=n` [must-have · S9] | Step through every move in receipt order | `rematch ▸` while offered, else `challenge again ▸` if they are here, else `new opponent ▸` | D1, B1 |
 | E1 | Profile (own) / Prófíll | `/profile` · `/en/profile` | Your record, best words, history | `find an opponent ▸` | review, lobby, other-language profile, sign out |
 | E2 | Profile (public) | `/profile/:handle` · `/en/profile/:handle` (handle percent-encoded, e.g. `/profile/k%C3%A1ri`) | Decide to play someone | `challenge ▸` / `skora á ▸` when they are here in this lobby | composer (in place), review |
 | E3 | Rules / Leiðbeiningar | `/rules` · `/en/rules` | Teach | signed in and free: `find an opponent ▸`; opened from a match: `close this tab ▸`; signed out: `enter the lobby ▸` | B7, C4, A1 |
@@ -158,7 +158,7 @@ Ranked by how much damage each does to trust and play. Claims marked *verified* 
 | F2 | Phone lobby | `/` at 390 | B1, B5, B7 on a phone | pinned `finna mótspilara ▸`, or `samþykkja ▸` in the pinned call line | as B1 |
 | F3 | Phone match | `/match/:id` at 390 | C4 on a phone | the field | as C4 |
 | F4 | Phone result | `/match/:id` at 390 | D1 and D2 on a phone | `annan leik? ▸` | as D1 |
-| F5 | Phone table | `/match/:id` at 390 (pending) | C1 and C2 on a phone | `ég er til ▸ (?)` | as C1 |
+| F5 | Phone table | `/match/:id` at 390 (pending) | C1 and C2 on a phone | `ég er til ▸` | as C1 |
 | F6 | Phone composer and sent | `/` at 390 | B2 and B3 on a phone | `senda áskorun ▸` | as B2/B3 |
 | F7 | Phone review | `/match/:id?review=n` at 390 | D3 on a phone | none; `◂ úrslit` leads to the result's primary | D1 |
 | F8 | Phone slips | `/match/:id` at 390 | C6, C7, C8 on a phone | as each slip | as each slip |
@@ -245,7 +245,7 @@ Redirects: `/lobby` and `/matchmaking` → 308 `/`. `/match/:id/summary` → 308
 | T57 | A1 returning | `enter the lobby ▸` / `use another name` | B1 with no typing / A1 with an empty name field | in place (R) | M1 / none |
 | T58 | any page | the session expired but the device key is valid | the same page, silently renewed (no door) [must-have · S1] | none | none |
 | T59 | B7 | 3:00 of searching | the slot reads `still searching? · keep searching ▸` (30s drain). No answer → `search stopped · find again ▸`. | in place | M6 |
-| T60 | B7 on a phone | the tab goes hidden | search paused; on return, `search paused · resume ▸` | in place | none |
+| T60 | B7 (any device) | the tab goes hidden | search paused; on return, `search paused · resume ▸` | in place | none |
 | T61 | C3 (you did not sit down) | void | you become `away` and your search is cancelled. On return, the lobby line reads `you did not sit down · your search stopped`. | in place | none |
 | T62 | B8 | your match ends while you are away from it | the slot reads `your match is over · Kári wins 88–46 · result ▸` until opened or the session ends | in place | M7 |
 | T63 | B9 | a friend opens your link and presses `accept ▸` | C1. You are seated by the input rule, and the table waits for you until the link expires. | nav (P) | M2; cue and title if hidden |
@@ -298,7 +298,7 @@ Redirects: `/lobby` and `/matchmaking` → 308 `/`. `/match/:id/summary` → 308
 **Desktop room frame (field states), unchanged.**
 - Column A: top bar y=24–84, field y=96–804 (708²), bottom bar y=816–876.
 - Column B: the ledger from y=24 to y=876.
-- The ledger caption keeps the **text wordmark** (`orðusta` / `wottle`). The strip is used on pages only, because in the caption it would read as a scored word.
+- The ledger caption keeps the **text wordmark** (`Orðusta` / `Wottle`). The strip is used on pages only, because in the caption it would read as a scored word.
 
 **Phone page frame (390×844 reference; anchored to edges, not to y).**
 - 16px gutters, 358px content.
@@ -438,10 +438,10 @@ Redirects: `/lobby` and `/matchmaking` → 308 `/`. `/match/:id/summary` → 308
 - **`?next=` present:** after entering, you land on the validated target.
 
 **Accessibility.**
-- The lockup is `role="img"`, labelled `Orðusta, wottle á ensku` / `wottle, Orðusta in Icelandic`.
+- The lockup is `role="img"`, labelled `Orðusta, Wottle á ensku` / `Wottle, Orðusta in Icelandic`.
 - The headline is the `h1`.
 
-**Tab title and alternates.** `orðusta · orðaeinvígi fyrir tvo` / `wottle · a word duel for two`. hreflang alternates between `/` and `/en`, with x-default `/`.
+**Tab title and alternates.** `Orðusta · orðaeinvígi fyrir tvo` / `Wottle · a word duel for two`. hreflang alternates between `/` and `/en`, with x-default `/`.
 
 ### A2 · Door · invite (artboard DoorInvite, EN) [must-have · S11]
 
@@ -540,7 +540,7 @@ A1 with these changes in column B:
 
 **Hint:** none. There is no field and no warm-up.
 
-**Tab title:** `lobbí · orðusta` / `lobby · wottle`.
+**Tab title:** `lobbí · Orðusta` / `lobby · Wottle`.
 
 **Accessibility.**
 - The table is `role="table"` with column headers.
@@ -608,7 +608,7 @@ A1 with these changes in column B:
 - **In Kári's row:** the status reads `skorar á þig` / `challenges you`, with no action.
 - **Signals:**
   - The `challenge` cue (two notes; respects sound; plays only after the page's first user gesture).
-  - Tab title `(1) Kári skorar á þig · orðusta`.
+  - Tab title `(1) Kári skorar á þig · Orðusta`.
   - The favicon letter turns full-strength `--opp`.
   - An OS notification only if the player opted in and the tab is hidden (in-page Notification API while the page runs; Web Push is [phase 2 · S18]).
 - **Accessibility.**
@@ -641,7 +641,7 @@ A1 with these changes in column B:
   - a 30s drain
   - no answer → `search stopped · find again ▸` / `leit stöðvuð · leita aftur ▸`
 - **On other pages** the search continues in the same slot.
-- **Tab title:** `searching 0:07 · wottle` / `leitar 0:07 · orðusta`.
+- **Tab title:** `searching 0:07 · Wottle` / `leitar 0:07 · Orðusta`.
 - **Paired:** T9. Seating and ghost-proofing are in §7.3.
 
 ### B8 · Lobby · your match is running, or ended while you were away [must-have · S5]
@@ -674,10 +674,10 @@ A1 with these changes in column B:
 
 - **Top bar.**
   - Kári's name writes in (200ms), with a 12px `--opp` square.
-  - Sub-line: `1187 · MÓTSPILARI · Á LEIÐINNI` / `1187 · OPPONENT · ON THE WAY`, which becomes `· VIÐ BORÐIÐ (?)` / `· READY`.
+  - Sub-line: `1187 · MÓTSPILARI · Á LEIÐINNI` / `1187 · OPPONENT · ON THE WAY`, which becomes `· VIÐ BORÐIÐ` / `· READY`.
   - Lane: ten `--opp` segments. No total.
 - **Bottom bar.**
-  - `Birna`, sub-line `1204 · ÞÚ · VIÐ BORÐIÐ (?)` / `1204 · YOU · READY`, or `· Á LEIÐINNI` / `· NOT READY`.
+  - `Birna`, sub-line `1204 · ÞÚ · VIÐ BORÐIÐ` / `1204 · YOU · READY`, or `· Á LEIÐINNI` / `· NOT READY`.
   - Ten `--you` segments.
 - **Field:** the empty ruled frame (1.5px ink frame, 1px rules, no letters), at 32% under the slip. The server has not sent the letters: it holds the board until both are seated.
 - **Ledger.**
@@ -693,15 +693,15 @@ A1 with these changes in column B:
   - Stakes, mono 11: `SIGUR +8 · JAFNTEFLI 0 · TAP −8` / `WIN +8 · DRAW 0 · LOSS −8`.
   - Rematches only, a series line: `viðureign 2 · Birna 1–0` / `match 2 · Birna 1–0`.
   - Rule.
-  - Two seat lines, each 28px with its square: `■ Kári  á leiðinni` / `on the way`, and `■ Birna · þú  við borðið (?)` / `you  ready`.
+  - Two seat lines, each 28px with its square: `■ Kári  á leiðinni` / `on the way`, and `■ Birna · þú  við borðið` / `you  ready`.
   - Rule.
   - Actions, by state:
-    - **Not seated:** row 1 has primary `ÉG ER TIL ▸ (?)` / `READY ▸` (not focused; guarded 500ms); row 2 has secondary `fara` / `leave`.
-    - **Seated and waiting (a wait, no primary):** row 1 reads, in mono 11 `--ink`, `ÞÚ ERT VIÐ BORÐIÐ (?)` / `YOU ARE SEATED`; row 2 keeps `fara` / `leave`. The exit is never where `ready` was.
+    - **Not seated:** row 1 has primary `ÉG ER TIL ▸` / `READY ▸` (not focused; guarded 500ms); row 2 has secondary `fara` / `leave`.
+    - **Seated and waiting (a wait, no primary):** row 1 reads, in mono 11 `--ink`, `ÞÚ ERT VIÐ BORÐIÐ` / `YOU ARE SEATED`; row 2 keeps `fara` / `leave`. The exit is never where `ready` was.
   - Reactions [phase 2 · S16], once you are seated, in their own row of up to three 32px buttons (1px `--rule` frame, Zilla 500 15, no `▸`): `hæ` · `gangi þér vel` / `hi` · `good luck`.
   - A 4px drain bar on the slip's inner bottom edge, 20s.
 - **Signals.**
-  - Tab title `Kári · mótspilari fundinn · orðusta`.
+  - Tab title `Kári · mótspilari fundinn · Orðusta`.
   - If the tab is hidden: the `challenge` cue and an OS notification (opted in).
   - On phones, a Screen Wake Lock is held at the table.
 - **Accessibility.**
@@ -726,7 +726,7 @@ A1 with these changes in column B:
 - **Focus at go** moves to the field: the last focused cell, else the centre cell. Line 1 is announced.
 - **A reaction received at the table** is a suffix on the sender's sub-line that never replaces its facts: `1265 · opponent · ready · says „good luck“` [phase 2 · S16]. No reactions are offered after the slip lifts.
 - **Source:** the server's `started_at` only. A client that learns late (the polling fallback) joins the count where it is.
-- **Tab title:** `3 · Kári · wottle`.
+- **Tab title:** `3 · Kári · Wottle`.
 
 ### C3 · Table · void [must-have · S3, S7, S12]
 
@@ -736,7 +736,7 @@ A1 with these changes in column B:
   - The opponent did not sit down: `Kári settist ekki` / `Kári did not sit down`.
   - The opponent left: `Kári fór frá borðinu` / `Kári left the table`.
   - You did not sit down: `Þú settist ekki í tæka tíð` / `You did not sit down in time`.
-- Body: `ekkert var reiknað til Elo (?)` / `nothing was rated`.
+- Body: `hefur ekki áhrif á Elo stig` / `nothing was rated`.
 
 **Actions by the table's origin.**
 
@@ -790,7 +790,7 @@ The layout is unchanged from `idle-visual-1440x900-darwin.png`. The changes:
 - **Drag** needs at least 0.6 cells of travel. The picked letter follows under the finger. Releasing on the starting cell or outside the field cancels.
 - **No reactions while the clock runs.**
 - **Opponent announcements:** a polite, rate-limited region announces `Kári SKÓ +11 · 5 of 10` / `Kári SKÓ +11 · 5 af 10`, after your own beat.
-- **Tab title:** `3:12 · move 4 · wottle` / `3:12 · leikur 4 · orðusta`. While the move is yours and the tab is hidden, the favicon letter is full-strength `--you`.
+- **Tab title:** `3:12 · move 4 · Wottle` / `3:12 · leikur 4 · Orðusta`. While the move is yours and the tab is hidden, the favicon letter is full-strength `--you`.
 - **Match (IS) fixtures, IS-M after step 9:**
   - Kári: `1187 · mótspilari · 6 af 10 · að leika`, total 24. Rows: GILT 18, −5, TAK 10, −5, SKÓ 11, −5.
   - Birna: `leikur 4 af 10`, total 51. Rows: BORÐ 23, −5, LEK·ÆSKU 33.
@@ -864,7 +864,7 @@ The sets, placement and limits are in §7.6.
     |---|---|---|
     | both played ten | `MEÐ 46 STIGUM · 10 ORÐ GEGN 8 · SVÆÐI 27–21` | `BY 46 POINTS · 10 WORDS TO 8 · TERRITORY 27–21` |
     | incomplete | `KÁRI LÉK 8 AF 10 · MEÐ 12 STIGUM` | `KÁRI PLAYED 8 OF 10 · BY 12 POINTS` |
-    | both incomplete | `HVORUGT LAUK · MEÐ 12 STIGUM (?)` | `NEITHER FINISHED · BY 12 POINTS` |
+    | both incomplete | `HVORUGT KLÁRAÐI · MEÐ 12 STIGUM` | `NEITHER FINISHED · BY 12 POINTS` |
     | forfeit | `KÁRI GAFST UPP · 3:12` | `KÁRI RESIGNED · 3:12` |
     | ended early | `LOKIÐ SNEMMA · KÁRI VAR FARINN (?)` | `ENDED EARLY · KÁRI WAS GONE` |
 
@@ -873,13 +873,13 @@ The sets, placement and limits are in §7.6.
   - Rating lines: `■ Birna · þú  1204 → 1212 · +8` and `■ Kári  1187 → 1179 · −8` (or `rating pending` / `reikna Elo-stig`).
   - Rule.
   - Action row 1: primary `ANNAN LEIK? ▸` / `REMATCH ▸` (not focused), then `nýr mótspilari ▸` / `new opponent ▸`.
-  - Action row 2: `fara yfir viðureignina ▸ (?)` / `review the match ▸`, then `lobbí` / `lobby`.
+  - Action row 2: `yfirfara viðureignina ▸` / `review the match ▸`, then `lobbí` / `lobby`.
   - Reactions [phase 2 · S16]: one row of three 32px buttons, always in this order: `góð viðureign (?)` · `vel spilað` · `bless` / `good game` · `well played` · `bye`.
 - **When rematch is not offered** (the opponent has left, more than 2:00 has passed, the match was opened later, or a request was declined or expired):
   - The primary is `nýr mótspilari ▸`.
   - If they are here, a secondary `skora aftur á ▸ (?)` / `challenge again ▸`, which reads `again in 0:52` during a cooldown.
 - **Esc or `review the match ▸` lifts the slip.** `result ▸` in the foot restores it.
-- **Tab title:** `Birna vann · orðusta` / `Birna wins · wottle`.
+- **Tab title:** `Birna vann · Orðusta` / `Birna wins · Wottle`.
 
 ### D2 · Rematch negotiation (artboard RematchIncoming, EN, fixture EN-M final, shown in review) [must-have · S8]
 
@@ -897,7 +897,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 - **Incoming while the slip is lifted, or during review:**
   - The slip is **not** raised again (T41).
   - The request is the ledger's first line, in call style: `Kári asks for a rematch · 0:24`, drain, secondary `accept ▸` and `decline`.
-  - Announced politely, with the `challenge` cue, the title `(1) Kári asks for a rematch · wottle` and the favicon letter in `--opp`.
+  - Announced politely, with the `challenge` cue, the title `(1) Kári asks for a rematch · Wottle` and the favicon letter in `--opp`.
 - **Artboard fixture:** the review field at step 7 of Match E. The ledger's first line carries the incoming request at 0:24. No slip.
 
 ### D3 · Review, 1440×900 (artboard Review, IS, fixture IS-M at step 7) [must-have · S9]
@@ -913,7 +913,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 **Bars:** names, the score at step k (counting as you step) and the lanes at step k.
 
 **Ledger.**
-- Caption: `yfirferð · 4:52 (?)` / `review · 4:52`.
+- Caption: `yfirferð · 4:52` / `review · 4:52`.
 - **Scrubber block,** in the clock-block frame (y=68–168). It is one `role="slider"` that takes focus; its value text is `step 7 of 20, Birna, LEK ÆSKU plus 33`.
   - Label: `SKREF 7 AF 20 (?)` / `STEP 7 OF 20`.
   - The time `3:31`: the clock as it read when the move was received.
@@ -928,6 +928,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
   - Line 1: `leikur 3 · Birna · LEK · ÆSKU +33` / `move 3 · Birna · LEK · ÆSKU +33`.
   - Line 2: `6 frosnir · Birna leiðir 51–18 (?)` / `froze 6 · Birna leads 51–18`.
   - [phase 2 · S17] Line 2 adds `best here 34 · show ▸`. `show ▸` draws the best swap as a 1.5px dashed band outline, in review only. Until S17 ships this clause is absent.
+  - Once S17 ships, **review waits for the hints** (owner, 23 September 2026): until the job finishes, the result's review action reads `preparing review` / `undirbý yfirferð (?)`, drawn as a secondary that is not yet a link, with a drain for the job's time budget. It becomes `review the match ▸` / `yfirfara viðureignina ▸` when the hints land.
 - **Lead chart** (y=720–800, 340 wide), §5.8 grammar: a 1.5px polyline of the lead, the zero line in `--rule`, and a cursor rule at k. Tap to jump.
 - **Filter:** `sýna ekkert orð ▸ (?)` / `jump to misses ▸`.
 - **Foot:** `◂ úrslit` / `◂ result` on the left. On the right, the one primary (`REMATCH ▸` while offered, else `CHALLENGE AGAIN ▸` if they are here, else `NEW OPPONENT ▸`), then `⋯` holding `lobby`, `copy link ▸` and `report name` [phase 2 · S15].
@@ -960,7 +961,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 - `NÝLEGAR VIÐUREIGNIR` / `RECENT MATCHES`: eight 44px rows. Each: the opponent in their own cell, the score, `sigur`/`tap`/`jafnt`, `SKOÐA ▸`. No `gegn`.
 - Rule. `ENSKA · 1310 ▸` / `ICELANDIC · 1212 ▸`, linking to the other-language profile, or `engar viðureignir á ensku enn` / `no Icelandic matches yet`.
 - `breyta nafni ▸` / `change name ▸` [phase 2 · S15]. An inline input (the one amended second input, §8.13); rating and history are kept; one change per 30 days; the old name is reserved for 30 days; the blocklist applies.
-- `⋯` holds `endurheimtarkóði (?)` / `recovery code` [phase 2 · S15], a one-time code that moves your name to another browser.
+- Identity recovery is deferred to Supabase Auth, planned for the next phase (owner, 23 September 2026). No recovery code is drawn.
 - `skrá út` / `sign out`, with the same consequence line and disabling as B1.
 
 **Folio:** `ORÐUSTA · PRÓFÍLL · BIRNA`.
@@ -980,7 +981,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 - **Other presence states**, each with no action:
   - `in a match · 6 of 10` in `--muted`
   - `away` / `fjarverandi`
-  - `in the Icelandic lobby` / `í enska lobbíinu`. Cross-language challenges are [phase 2 · S19].
+  - `in the Icelandic lobby` / `í enska lobbíinu`. Cross-language challenges are not planned (owner, 23 September 2026).
   - `not here` / `ekki hér`
 - **Head-to-head** [phase 2 · S14; omitted until then]: `YOU AND KÁRI` / `ÞÚ OG KÁRI`, then `2–1` in mono 40, then `last · win 128–117 · review ▸`.
 - **`YOUR MATCHES`** rows, each with `review ▸`.
@@ -1061,7 +1062,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 | Rating lines | 230–266 | two lines, mono 11 |
 | Rule | 274 | |
 | Action row 1 | 282–326 | `ANNAN LEIK? ▸` (primary, about 148px) and `nýr mótspilari ▸` |
-| Action row 2 | 334–378 | `fara yfir viðureignina ▸ (?)` and `lobbí` |
+| Action row 2 | 334–378 | `yfirfara viðureignina ▸` and `lobbí` |
 | Negotiation | 386–418 | reserved: when D2 is active its line (e.g. `beiðni send · 0:24 · hætta við ▸` with a drain) replaces action row 2, and this band holds the drain |
 
 **Ledger below.**
@@ -1084,7 +1085,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 | Rule | 196 | |
 | Seat lines | 204–260 | two lines of 28px |
 | Rule | 268 | |
-| Actions | 276–320 | `ÉG ER TIL ▸ (?)` primary + `fara`; once seated, `ÞÚ ERT VIÐ BORÐIÐ` + `fara` |
+| Actions | 276–320 | `ÉG ER TIL ▸` primary + `fara`; once seated, `ÞÚ ERT VIÐ BORÐIÐ` + `fara` |
 | Drain | 414–418 | 4px |
 
 **The ledger block below** carries what the slip drops:
@@ -1255,7 +1256,7 @@ The secondary sits on a second line (266–310) when the two do not fit in 318px
 
 - **Each player has one lobby language:** the last lobby they entered (`/` or `/en` while signed in), kept in the session and the client store. It is never the locale of the page being read. Reading `/en/rules` does not move an Icelandic player into the English lobby.
 - **Lists** show players whose lobby language is this one. The masthead switch on the lobby carries the other lobby's count (`ENGLISH · 7 HERE ▸`).
-- **Challenges** are made within one lobby. A player in the other lobby shows on their profile as `in the Icelandic lobby`, with no action. Cross-language challenges are [phase 2 · S19].
+- **Challenges** are made within one lobby. A player in the other lobby shows on their profile as `in the Icelandic lobby`, with no action. Cross-language challenges are not planned (owner, 23 September 2026).
 - **The Elo shown** is always the rating for the language of the page or lobby, and the language is named beside it.
 - **Switching lobby** cancels your search, withdraws your outgoing challenge or link, and answers your incoming challenges `left the lobby`. The consequence line comes first (T3).
 
@@ -1283,10 +1284,9 @@ The loader never returns a board before both are seated.
 
 **Phones** (coarse pointer):
 - A Screen Wake Lock is held while searching, while a challenge or link is out, and at the table.
-- Going hidden pauses a search (the queue skips the player). On return it reads `search paused · resume ▸`.
 - OS notifications are promised on iOS only when the app is installed to the Home Screen [phase 2 · S18].
 
-**Desktop:** a hidden tab keeps searching while its queue heartbeat stays fresh. It is paired only by rule 2's input test at the table, and otherwise gets `ready ▸` with the cue, title and in-page notification.
+**Every device** (owner, 23 September 2026): going hidden pauses a search, and the queue skips the player. On return it reads `search paused · resume ▸` / `leit í bið · halda áfram ▸`. A desktop tab behaves like a phone.
 
 ### 7.4 Challenge lifecycle [must-have · S4]
 
@@ -1348,7 +1348,7 @@ Presets only, sent as a code and shown in the reader's language.
 ### 7.7 Notification rules
 
 - **Tab title** follows the beat:
-  - `(1) Kári challenges you · wottle` / `(1) Kári skorar á þig · orðusta`
+  - `(1) Kári challenges you · Wottle` / `(1) Kári skorar á þig · Orðusta`
   - `searching 0:07`
   - `challenge sent · 0:41`
   - `Kári · opponent found`
@@ -1376,7 +1376,7 @@ Presets only, sent as a code and shown in the reader's language.
 - A claimed name typed in another browser reads `that name is taken · pick another`.
 - An expired session renews silently from the device key.
 - Existing players are claimed by the first browser that enters after the migration.
-- A recovery code, and a 30-day reservation of an old name after a rename, are [phase 2 · S15]. Until then the door says `this browser keeps your name`.
+- A 30-day reservation of an old name after a rename is [phase 2 · S15]. Identity recovery waits for Supabase Auth in the next phase. Until then the door says `this browser keeps your name`.
 
 **Block, mute, report and names** [phase 2 · S15].
 - **Block** (public profile foot): mutual invisibility in lists; neither can challenge the other; the queue never pairs them; any pending rematch is disabled.
@@ -1428,14 +1428,14 @@ Presets only, sent as a code and shown in the reader's language.
 | # | Work |
 |---|---|
 | S14 | Head-to-head aggregate RPC per pair and language (record column, C1 record line, E2 head-to-head). |
-| S15 | `player_blocks`, `name_reports` (eligibility, manual review), name blocklist, session mute, rename (`renamed_at`, 30-day reservation), recovery code. |
+| S15 | `player_blocks`, `name_reports` (eligibility, manual review), name blocklist, session mute, rename (`renamed_at`, 30-day reservation). Recovery moves to Supabase Auth (next phase). |
 | S16 | Reactions: a `sendReaction(matchId, code)` action that checks the phase window and count in `match_logs`, then pokes. |
-| S17 | Best-here hints: a background job after completion fills `match_move_hints(move_id, best_swap, best_points)` under a per-step time budget, pruned to swaps that touch cells able to finish a word. |
+| S17 | Best-here hints (cost accepted; review waits for them, owner 23 September 2026): a background job after completion fills `match_move_hints(move_id, best_swap, best_points)` under a per-step time budget, pruned to swaps that touch cells able to finish a word. |
 | S18 | Web Push: service worker, subscription table, VAPID keys. |
-| S19 | Cross-language challenges: the match takes the invite's language, and the spec 060 redirect sends the player to its locale. |
-| S20 | Newcomer features (practice field, provisional ratings, newcomer pairing), pending §10 Q8. |
+| S19 | Withdrawn (owner, 23 September 2026): challenges stay within each language's lobby. |
+| S20 | Provisional ratings for a player's first five matches (`1200?`): yes. Newcomer pairing in the queue: open. Practice field: deferred, not built for now (owner, 23 September 2026). |
 
-**Deferred (no phase yet):** watching live matches, following players.
+**Deferred, out of scope for this beta (owner, 23 September 2026):** watching live matches, following players.
 
 ---
 
@@ -1468,7 +1468,7 @@ Presets only, sent as a code and shown in the reader's language.
 5. **§3 type: a display tier.**
    - The ladder: 11 label · 13 table numeral · 15 body and names · 17 live row and bar names · 22 title · 28 headline · 40 display-2 · 56 display-1 (32 on phones; the phone door uses 30).
    - Zilla 600, −0.01em, at 40px and above. Sentences are Zilla 500 at 15/17 in sentence case. Mono capitals are for labels and actions only. All-caps Icelandic needs a line-height of at least 1.15.
-   - The name is set in field capitals when it is a word on cells (lockup, strip, cell), and lowercase otherwise.
+   - The name is set in field capitals when it is a word on cells (lockup, strip, cell), and capitalised otherwise: Orðusta, Wottle, in every place (the ledger caption's wordmark, tab titles, prose). This supersedes the lowercase wordmark in design system §3 and CLAUDE.md.
    - *Rationale:* the non-match screens have no hierarchy today.
 6. **§2 colour: no new values; seat colour on pages.**
    - `--you` marks only the viewer's own data.
@@ -1509,7 +1509,7 @@ Presets only, sent as a code and shown in the reader's language.
     - Field states never scroll; pages may.
     - Visual fixtures at 390×844, 390×664 and 360×640.
 11. **§5.3 bars.** Add these sub-line states:
-    - at the table: `on the way` / `ready` (`á leiðinni` / `við borðið (?)`)
+    - at the table: `on the way` / `ready` (`á leiðinni` / `við borðið`)
     - your own `offline · reconnecting`, with an outlined lane
     - `stepped out`
     - an opponent's `gone for 2:04`, which replaces the frozen `0:00 left`
@@ -1525,7 +1525,7 @@ Presets only, sent as a code and shown in the reader's language.
     - Sounds: `challenge` is added and `match-start` is wired at go.
     - The previous proposal to skip reveals under 0:15 is withdrawn.
 13. **§8 copy.**
-    - **An Icelandic glossary** using the owner's words: mótspilari, lobbí, leiðbeiningar, samþykkja / hafna, vann (final state), `annan leik? ▸` (the one question-form action, §10 Q2), skráning óþörf, nafn, viðureign = match, leikur = move, `ég er til ▸ (?)`, `við borðið (?)`, `brá sér frá`, `án tengingar`.
+    - **An Icelandic glossary** using the owner's words: mótspilari, lobbí, leiðbeiningar, samþykkja / hafna, vann (final state), `annan leik? ▸` (the one question-form action, §10 Q2), skráning óþörf, nafn, viðureign = match, leikur = move, yfirferð = review, `ég er til ▸`, `við borðið`, `brá sér frá`, `án tengingar`.
     - **The name-safe rule:**
       - In Icelandic a name appears only in the nominative, never after eftir, gegn, til, frá, á, við or handa.
       - A player never takes a gendered adjective, participle or pronoun. No `klár`, `farinn`, `tengd`, `laus`.
@@ -1579,7 +1579,7 @@ All artboards use the eight tokens and Zilla Slab + Red Hat Mono, with the fixtu
 |---|---|---|---|---|---|---|
 | 1 | `FlowMap.dc.html` | New flow | 1440×900 | en | Pages row (Door/Lobby, Profile, Rules) above the field row (Table → Starting → Match → Result → Review), with T-numbered arrows, nav vs in place, the void, leave and requeue branches, and the line slot as the thread between pages | Overview |
 | 2 | `DoorIs.dc.html` | Door · Orðusta | 1440×900 | is · IS-T1 | A1: ORÐUSTA × WOTTLE lockup (72px), headline, name, `inn í lobbíið ▸`, `þessi vafri geymir nafnið þitt`, here now | A · Entry |
-| 3 | `DoorEn.dc.html` | Door · wottle | 1440×900 | en · EN-L | A1: WOTTLE × ORÐUSTA crossing at O (64px) | A · Entry |
+| 3 | `DoorEn.dc.html` | Door · Wottle | 1440×900 | en · EN-L | A1: WOTTLE × ORÐUSTA crossing at O (64px) | A · Entry |
 | 4 | `DoorReturning.dc.html` | Door · returning | 1440×900 | en | A1 returning: `WELCOME BACK · Birna`, `enter the lobby ▸`, `not Birna? · use another name` | A · Entry |
 | 5 | `DoorInvite.dc.html` | Door · invite | 1440×900 | en · EN-L | A2: `Kári challenges you` band, `accept ▸` | A · Entry |
 | 6 | `Lobby.dc.html` | Lobby | 1440×900 | is · IS-T1 | B1: Birna block, form strip, here-now table (6 rows), band map, recent matches, terms in the empty line slot | B · Lobby |
@@ -1614,25 +1614,25 @@ All artboards use the eight tokens and Zilla Slab + Red Hat Mono, with the fixtu
 
 ## 10. Open questions for the product owner
 
-1. **Native review.** These strings need a native reader, together with every string marked (?):
-   - the door headline, lede and gloss (`orð + orusta` or `orrusta`)
-   - `ég er til ▸` for ready, and `við borðið` for the seat line
-   - `yfirferð` for review, and `fara yfir viðureignina ▸`
-   - `góð viðureign` for good game
-   - `án tengingar í 2:04`, `brá sér frá`, `hvorugt lauk`
-   - `ekkert var reiknað til Elo`
-2. **`annan leik? ▸`.** In this product *leikur* means a move, so `annan leik?` can read as "another move?". Keep it as the one question-form action (it is your wording), or use `önnur viðureign? ▸` or `aftur ▸`?
-3. **Door privacy.** Should signed-out visitors see the real names of players online (social proof), or only the count?
-4. **`confirm moves`.** It ships off by default, respecting the 22 September removal of the move preview. Should it default to on for touch screens, where a slide across a 35px cell border can play a move?
-5. **Identity recovery** [phase 2 · S15]. Until it ships, clearing cookies loses your name. Is a one-time recovery code enough, or do you want an optional email link?
-6. **Watching live matches.** Deferred. It needs a read-only view from one player's seat and an `allow watchers` switch. In scope for the public beta?
-7. **Following players.** Deferred. Wanted, given it must stay silent and have no direct messages for minors?
-8. **Newcomers** [phase 2 · S20]: provisional ratings for the first five matches (`1200?`), newcomers paired with each other in the queue, and a practice field. The practice field would be its own unrated field state, not part of the lobby. Yes or no for each?
-9. **Best here in review** [phase 2 · S17]. A background job with a time budget per step. Acceptable cost, and should review wait for it?
-10. **Timings.** Please confirm: challenge 60s; table 20s; rematch 30s within a 2:00 window; 60s decline cooldown; 3:00 search check; a 5-minute cooldown after two table leaves.
-11. **Cross-language challenges** [phase 2 · S19]. Should an Icelandic player be able to challenge someone in the English lobby, with the match played in the challenger's language?
-12. **Background search on desktop.** Should a hidden desktop tab keep searching (the current spec, with `ready ▸` at the table unless there was recent input), or pause like phones do?
-13. **Brand casing in prose.** Write "Orðusta" and "Wottle" capitalised at the start of a sentence, or keep lowercase `wottle` everywhere and say so in design system §3?
+1. **Native review.** Answered 23 September 2026 by the product owner:
+   - The gloss is `orð + orusta`, the spelling inside Orðusta.
+   - `ég er til ▸` (ready) and `við borðið` (seated): approved.
+   - `yfirferð` = review: approved. The action is `yfirfara viðureignina ▸` (was `fara yfir viðureignina ▸`).
+   - `án tengingar í 2:04` and `brá sér frá`: approved. `hvorugt lauk` becomes `hvorugt kláraði`.
+   - `ekkert var reiknað til Elo` becomes `hefur ekki áhrif á Elo stig`.
+   - Still open: the door headline and lede, `góð viðureign` for good game, and every other string marked (?).
+2. **`annan leik? ▸`.** Answered 23 September 2026: keep `annan leik? ▸` as the Icelandic rematch action, the one question-form action. The reading "another move?" is accepted.
+3. **Door privacy.** Answered 23 September 2026: signed-out visitors see the names of players here now, as drawn on A1 (still not links).
+4. **`confirm moves`.** Answered: off by default everywhere, touch screens included.
+5. **Identity recovery.** Answered: deferred. Proper authentication with Supabase Auth comes in the next phase and brings recovery with it; no recovery code is built before then.
+6. **Watching live matches.** Answered: deferred, not in scope for this beta.
+7. **Following players.** Answered: deferred.
+8. **Newcomers** [phase 2 · S20]. Answered: provisional ratings for the first five matches, yes. Practice field: deferred, no for now. Still open: pairing newcomers with each other in the queue.
+9. **Best here in review** [phase 2 · S17]. Answered: the cost is acceptable, and review waits for the hints (D3).
+10. **Timings.** Confirmed: challenge 60s; table 20s; rematch 30s within a 2:00 window; 60s decline cooldown; 3:00 search check; a 5-minute cooldown after two table leaves.
+11. **Cross-language challenges.** Answered: no. Challenges stay within each language's lobby; S19 is withdrawn.
+12. **Background search on desktop.** Answered: a hidden tab pauses its search on every device, like phones (§7.3).
+13. **Brand casing.** Answered: Orðusta and Wottle are capitalised everywhere, the wordmark included (§8, item 5).
 
 ---
 
