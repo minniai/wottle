@@ -48,11 +48,11 @@ export async function POST(request: Request) {
         "Too many login attempts. Please wait up to one minute and try again.",
     });
 
-    const { player, sessionToken } = await performUsernameLogin(username);
-    await persistLobbySession({ player, sessionToken });
+    const { player } = await performUsernameLogin(username);
+    await persistLobbySession({ player });
 
     return NextResponse.json(
-      { player, sessionToken },
+      { player },
       { status: 200, headers: NO_CACHE_HEADERS }
     );
   } catch (error) {

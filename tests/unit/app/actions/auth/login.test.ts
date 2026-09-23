@@ -22,7 +22,7 @@ const player = { id: "p1", username: "birna", displayName: "Birna", status: "ava
 
 describe("loginAction (spec 044 US7 — the room converts in place)", () => {
   beforeEach(() => {
-    vi.mocked(performUsernameLogin).mockResolvedValue({ player, sessionToken: "tok" } as never);
+    vi.mocked(performUsernameLogin).mockResolvedValue({ player } as never);
     vi.mocked(revalidatePath).mockClear();
   });
 
@@ -33,5 +33,12 @@ describe("loginAction (spec 044 US7 — the room converts in place)", () => {
     expect(result.status).toBe("success");
     expect(result.player).toEqual(player);
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("never hands the session to the page: it lives only in the signed httpOnly cookie (spec 067)", async () => {
+    const form = new FormData();
+    form.set("username", "birna");
+    const result = await loginAction({ status: "idle" }, form);
+    expect(result).not.toHaveProperty("sessionToken");
   });
 });

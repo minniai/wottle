@@ -27,7 +27,6 @@ export interface LoginActionState {
   code?: ErrorCode;
   message?: string;
   player?: PlayerIdentity;
-  sessionToken?: string;
 }
 
 export async function loginAction(
@@ -49,22 +48,19 @@ export async function loginAction(
     });
 
     const language = playableLanguageSchema.safeParse(formData.get("language") ?? undefined);
-    const { player, sessionToken } = await performUsernameLogin(
+    const { player } = await performUsernameLogin(
       typeof username === "string" ? username : "",
       language.success ? language.data : "is",
     );
-    console.log(`[LOGIN_DEBUG] performUsernameLogin success. Player: ${player.id}, Token: ${sessionToken.slice(0, 10)}...`);
-    
-    await persistLobbySession({ player, sessionToken });
-    console.log(`[LOGIN_DEBUG] persistLobbySession complete. Returning success.`);
+    await persistLobbySession({ player });
 
     // No revalidatePath("/"): the room converts the bar in place and rewrites the URL to /lobby
     // (spec 044 US7). A server re-render of / here would hit its signed-in redirect and remount the field.
     // The bar shows the rating of the lobby the player signed in to (spec 060 US4).
     const shown = await viewerInLanguage(player, language.success ? language.data : "is");
-    return { status: "success", player: shown, sessionToken };
+    return { status: "success", player: shown };
   } catch (error) {
-    console.error(`[LOGIN_DEBUG] Error during login:`, error);
+    console.error("[loginAction] sign-in failed", error);
 
     const code = loginErrorCode(error);
     if (error instanceof RateLimitExceededError || error instanceof LoginValidationError || error instanceof Error) {
