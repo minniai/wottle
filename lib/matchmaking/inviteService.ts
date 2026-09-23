@@ -66,6 +66,11 @@ export interface StartQueueParams {
   language?: Language;
   /** Spec 069: the searching tab's visibility and last input; a hidden tab pauses the search. */
   attention?: Attention;
+  /**
+   * Spec 069: the first poll of a search, or `resume ▸`: clears a pause. Any other
+   * poll leaves it, so one already in flight when the tab went hidden cannot undo it.
+   */
+  resume?: boolean;
 }
 
 export interface QueueResult {
@@ -373,7 +378,7 @@ export async function startAutoQueue(
   if (params.attention && !params.attention.visible) return pauseSearch(client, params.playerId, language);
 
   // 3. Join the queue for this language (spec 060 FR-018), keeping the join time of a search still running.
-  const queuedAt = await joinQueue(client, params.playerId, language, player as JoinFacts | null);
+  const queuedAt = await joinQueue(client, params.playerId, language, player as JoinFacts | null, Boolean(params.resume));
   await updatePresenceMode(client, params.playerId, {
     mode: "auto",
     inviteToken: null,
@@ -514,12 +519,13 @@ function joinTimeFor(facts: JoinFacts | null, now: Date): string {
   return running ? facts!.queued_at! : now.toISOString();
 }
 
-async function joinQueue(client: AnyClient, playerId: string, language: Language, facts: JoinFacts | null): Promise<string> {
+async function joinQueue(client: AnyClient, playerId: string, language: Language, facts: JoinFacts | null, resume: boolean): Promise<string> {
   const now = new Date();
   const queuedAt = joinTimeFor(facts, now);
+  const fresh = queuedAt === now.toISOString();
   const { error } = await client
     .from("players")
-    .update({ status: "matchmaking", queue_language: language, last_seen_at: now.toISOString(), queued_at: queuedAt, search_paused: false })
+    .update({ status: "matchmaking", queue_language: language, last_seen_at: now.toISOString(), queued_at: queuedAt, ...(fresh || resume ? { search_paused: false } : {}) })
     .eq("id", playerId);
   if (error) logPlaytestError("matchmaking.player_status_failed", { playerId, metadata: { status: "matchmaking", language }, error });
   return queuedAt;

@@ -70,7 +70,7 @@ describe("useMatchmaking (spec 044 US8)", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(startQueueAction).toHaveBeenCalledWith({ language: "en", attention: { visible: true, inputAgoMs: expect.any(Number) } });
+    expect(startQueueAction).toHaveBeenCalledWith({ language: "en", attention: { visible: true, inputAgoMs: expect.any(Number) }, resume: true });
   });
 });
 
@@ -132,5 +132,19 @@ describe("useMatchmaking: the fair queue (spec 069 US4)", () => {
     await settle(1_000);
     expect(result.current.state).toMatchObject({ kind: "cooldown" });
     expect((result.current.state as { leftMs: number }).leftMs).toBeGreaterThan(55_000);
+  });
+
+  it("a poll that lands after the tab went hidden sends the pause again", async () => {
+    let answer: (v: { status: "queued" }) => void = () => undefined;
+    vi.mocked(startQueueAction).mockImplementationOnce(() => new Promise((r) => (answer = r)));
+    renderHook(() => useMatchmaking(true, Date.now()));
+    hidden = true;
+    act(() => void document.dispatchEvent(new Event("visibilitychange")));
+    expect(beacon).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      answer({ status: "queued" });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(beacon).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Language } from "@/lib/types/game-config";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cancelQueueAction } from "@/app/actions/matchmaking/cancelQueue";
 import { getMatchOverviewAction } from "@/app/actions/matchmaking/getMatchOverview";
@@ -13,6 +13,7 @@ import { queueView } from "./queueView";
 
 export const QUEUE_POLL_MS = 3_000;
 const TICK_MS = 1_000;
+const PAUSE_BEACON = "/api/matchmaking/pause";
 
 export type MatchmakingState =
   | { kind: "searching"; elapsedSeconds: number }
@@ -63,7 +64,7 @@ function usePauseWhenHidden(active: boolean, pause: () => void): void {
     if (!active) return;
     const onChange = () => {
       if (document.visibilityState !== "hidden") return;
-      navigator.sendBeacon?.("/api/matchmaking/pause");
+      navigator.sendBeacon?.(PAUSE_BEACON);
       pause();
     };
     document.addEventListener("visibilitychange", onChange);
@@ -120,11 +121,17 @@ export function useMatchmaking(enabled: boolean, startedAt = Date.now(), languag
     [pause],
   );
 
+  // The first ask of a search, and the first after `resume ▸`, clears a pause on the server (FR-021).
+  const resumeNext = useRef(true);
   useEffect(() => {
     if (!asking) return;
     let active = true;
     const ask = async () => {
-      const result = await startQueueAction({ language, attention: attention() }).catch((e: Error) => ({ status: "error" as const, message: e.message }));
+      const resume = resumeNext.current;
+      resumeNext.current = false;
+      const result = await startQueueAction({ language, attention: attention(), ...(resume ? { resume } : {}) }).catch((e: Error) => ({ status: "error" as const, message: e.message }));
+      // A poll sent before the tab went hidden may land after the pause beacon and clear it: pause again.
+      if (document.visibilityState === "hidden") navigator.sendBeacon?.(PAUSE_BEACON);
       if (active) await handleResult(result);
     };
     void ask();
@@ -145,7 +152,10 @@ export function useMatchmaking(enabled: boolean, startedAt = Date.now(), languag
     setOutcome({ kind: "cancelled" });
     await cancelQueueAction().catch(() => undefined);
   }, []);
-  const resume = useCallback(() => setFacts((f) => ({ ...f, paused: false })), []);
+  const resume = useCallback(() => {
+    resumeNext.current = true;
+    setFacts((f) => ({ ...f, paused: false }));
+  }, []);
   const keepSearching = useCallback(() => setFacts((f) => ({ ...f, checkAnsweredAtMs: Date.now() })), []);
 
   return { state, cancel, resume, keepSearching };

@@ -82,4 +82,36 @@ test.describe("@matchmaking queue → found → match in the room", () => {
       await ctxB.close();
     }
   });
+
+  test("a hidden searcher is never paired; resume ▸ puts them back (spec 069 FR-021, T052)", async ({ browser }) => {
+    const ctxA = await browser.newContext();
+    const ctxB = await browser.newContext();
+    try {
+      const [a, b] = await Promise.all([loginAs(ctxA, "hid-a"), loginAs(ctxB, "hid-b")]);
+      await a.page.getByTestId("player-bar-action-find").click();
+      await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
+      await a.page.waitForTimeout(1_500);
+      await a.page.evaluate(() => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      await expect(a.page.getByTestId("player-bar-top")).toContainText("search paused");
+
+      await b.page.getByTestId("player-bar-action-find").click();
+      await expect(b.page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
+      // Several of B's polls: A is paused, so B keeps searching.
+      await b.page.waitForTimeout(8_000);
+      await expect(b.page).toHaveURL(/\/matchmaking$/);
+
+      await a.page.evaluate(() => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      await a.page.getByTestId("queue-resume").click();
+      for (const p of [a.page, b.page]) await expect(p).toHaveURL(/\/match\/[0-9a-f-]{36}/, { timeout: 20_000 });
+    } finally {
+      await ctxA.close();
+      await ctxB.close();
+    }
+  });
 });

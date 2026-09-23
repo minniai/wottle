@@ -28,7 +28,7 @@ const attentionSchema = z.object({ visible: z.boolean(), inputAgoMs: z.number().
  * Spec 060: the queue is the lobby's language; a player is paired only within it.
  * Spec 069: each poll carries the tab's attention; a hidden tab pauses the search.
  */
-export async function startQueueAction(input: { language?: string; attention?: Attention } = {}): Promise<QueueActionState> {
+export async function startQueueAction(input: { language?: string; attention?: Attention; resume?: boolean } = {}): Promise<QueueActionState> {
   const parsed = playableLanguageSchema.safeParse(input.language);
   if (!parsed.success) return { status: "error", message: "Unsupported language." };
   const session = await readLobbySession();
@@ -46,6 +46,7 @@ export async function startQueueAction(input: { language?: string; attention?: A
       playerId: session.player.id,
       language: parsed.data,
       ...(attention.success ? { attention: attention.data } : {}),
+      ...(input.resume === true ? { resume: true } : {}),
     });
     return result;
   } catch (error) {

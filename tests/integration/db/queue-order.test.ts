@@ -74,14 +74,17 @@ describe.skipIf(!db)("the queue (spec 069)", () => {
     expect(Date.now() - Date.parse((await row(a)).queued_at!)).toBeLessThan(5_000);
   });
 
-  it("a hidden tab pauses the search and keeps its place; the next visible poll resumes it", async () => {
+  it("a hidden tab pauses the search and keeps its place; only resume ▸ clears it", async () => {
     const [a] = await createPlayers(["A"]);
     await searching(a, 40_000);
     const place = (await row(a)).queued_at;
     const hidden = await startAutoQueue(client(), { playerId: a, language: "is", attention: { visible: false, inputAgoMs: 5_000 } });
     expect(hidden.status).toBe("paused");
     expect(await row(a)).toMatchObject({ status: "matchmaking", search_paused: true, queued_at: place });
-    const back = await startAutoQueue(client(), { playerId: a, language: "is", attention: { visible: true, inputAgoMs: 0 } });
+    // A poll already in flight when the tab went hidden does not undo the pause.
+    await startAutoQueue(client(), { playerId: a, language: "is", attention: { visible: true, inputAgoMs: 0 } });
+    expect((await row(a)).search_paused).toBe(true);
+    const back = await startAutoQueue(client(), { playerId: a, language: "is", attention: { visible: true, inputAgoMs: 0 }, resume: true });
     expect(back.status).toBe("queued");
     expect(await row(a)).toMatchObject({ search_paused: false, queued_at: place });
   });
