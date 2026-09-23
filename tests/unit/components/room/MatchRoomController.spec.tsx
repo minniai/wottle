@@ -423,6 +423,24 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.queryByTestId("slip")).toBeNull();
   });
 
+  // The client counts the window from its own clock and the snapshot's
+  // disconnectedAt; the server's record can be a few ms younger. A `too_early`
+  // answer is retried once the server's remaining time has passed.
+  it("end the match ▸ answered too_early is retried after the server's remaining time", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
+    vi.mocked(claimWinAction).mockResolvedValueOnce({ status: "too_early", remainingMs: 51 });
+    const gone = { disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
+    fireEvent.click(screen.getByTestId("slip-end-early"));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(claimWinAction).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    expect(claimWinAction).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("too early")).toBeNull();
+    vi.useRealTimers();
+  });
+
   // Spec 047 amendment P1: an illegal pick is a live-row state for two seconds,
   // not a notice line — the beat stays in the one place the player is reading.
   it("frozen letters carry the scorer's seat; a tap writes the frozen state into the live row, then it clears", () => {
