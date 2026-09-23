@@ -144,6 +144,8 @@ async function seedPlaytestFixtures(
       state: "pending",
       board: grid,
       move_limit: 10,
+      // Spec 069: a seeded table nobody sits at is void on its first read or sweep.
+      table_deadline_at: new Date().toISOString(),
     },
     { onConflict: "id" }
   );
