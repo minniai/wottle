@@ -443,8 +443,11 @@ describe("MatchRoomController (spec 050)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
     vi.mocked(claimWinAction).mockResolvedValueOnce({ status: "too_early", remainingMs: 51 });
-    const gone = { disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
+    // The window is measured on the server-corrected clock (spec 068 R9): the server agrees with the device here.
+    const gone = { clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:02:00Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 };
     renderController(state(gone, { movesPlayed: 10 }, { movesPlayed: 6 }));
+    // end the match ▸ ignores activation for 500ms after it appears (spec 068 FR-036).
+    await act(async () => vi.advanceTimersByTimeAsync(500));
     fireEvent.click(screen.getByTestId("slip-end-early"));
     await act(async () => vi.advanceTimersByTimeAsync(0));
     expect(claimWinAction).toHaveBeenCalledTimes(1);
