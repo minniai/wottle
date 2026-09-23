@@ -5,7 +5,7 @@ import { useMemo, type ReactNode } from "react";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
-import type { MoveState } from "@/lib/room/moveState";
+import type { Line2Extras, MoveState } from "@/lib/room/moveState";
 import { deriveScoreboard, type ScoreboardPhase } from "@/lib/room/scoreboard";
 import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
@@ -60,6 +60,8 @@ export interface MatchRoomViewProps {
   live: LiveState;
   /** The viewer's beat (spec 050): line 1 of the live row, the bar suffixes, the field frame. */
   moveState?: MoveState;
+  /** What else claims the live row's second line (spec 068 FR-031). */
+  line2Extras?: Line2Extras;
   holdMove?: number | null;
   hiddenWordIds?: Set<string>;
   hint?: string;
@@ -104,12 +106,13 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       frozenTiles,
       hint,
       moveState,
+      line2Extras: props.line2Extras,
       holdMove,
       penalizeUnplayed,
     }, copy);
     const totals = completed ? { you: you.score, opp: opp.score } : undefined;
     return { ...base, caption: caption ?? base.caption, verdict, totals };
-  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, penalizeUnplayed, copy]);
+  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, props.line2Extras, holdMove, penalizeUnplayed, copy]);
   const scoreboard = useMemo(
     () =>
       deriveScoreboard(

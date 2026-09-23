@@ -1,6 +1,6 @@
 import type { Copy } from "@/lib/i18n/copy/types";
 import { liveText, type LiveState } from "./liveLines";
-import { liveLinesFor, type MoveState } from "./moveState";
+import { liveLinesFor, type Line2Extras, type MoveState } from "./moveState";
 
 export { liveText, type LiveState } from "./liveLines";
 import { formatClock } from "./clock";
@@ -50,6 +50,8 @@ export interface BuildRowsInput {
   moveState?: MoveState;
   /** The viewer's move held after its reveal before the next opens (spec 050 FR-013). */
   holdMove?: number | null;
+  /** What else claims the live row's second line (spec 068 FR-031). */
+  line2Extras?: Line2Extras;
   /** The match ended on the clock: unplayed moves are penalised in their rows (rules §5.6). */
   penalizeUnplayed?: boolean;
 }
@@ -102,7 +104,7 @@ export function buildLedgerRows(input: BuildRowsInput, copy: Copy): LedgerRow[] 
   };
   const holding = input.holdMove != null;
   const liveMove = holding ? null : Math.min(input.movesPlayed.you + 1, limit);
-  const lines = input.moveState ? liveLinesFor(input.moveState, input.live, copy) : liveText(input.live, copy);
+  const lines = input.moveState ? liveLinesFor(input.moveState, input.live, copy, input.line2Extras) : liveText(input.live, copy);
   return emptyRows(limit).map((row) => {
     const cells = { you: cellFor("you", row.move), opp: cellFor("opp", row.move) };
     if (!input.completed && holding && row.move === input.holdMove) return { ...row, ...cells, status: "settled", live: lines };

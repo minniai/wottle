@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { copyEn } from "@/lib/i18n/copy/en";
+import { copyIs } from "@/lib/i18n/copy/is";
 
 import { deriveMoveState, liveLinesFor, turnFrameFor, type MoveState } from "@/lib/room/moveState";
 import type { MatchState, MoveResolution, PlayerMatchFacts } from "@/lib/types/match";
@@ -116,3 +117,64 @@ describe("the start countdown (spec 050 FR-008, contracts/match-state.md)", () =
   });
 });
 
+
+describe("the live row's second line (spec 068 FR-028–FR-031)", () => {
+  const idle = { kind: "idle" } as const;
+  const yourMove: MoveState = { kind: "yourMove", move: 4, opponentName: K };
+
+  it("a move with no word is the missed beat: `move 4 · no word`, then the loss and the next move", () => {
+    const lines = liveLinesFor({ kind: "scored", move: 4, opponentName: K, delta: -5, next: 5, missed: true }, idle, copyEn);
+    expect(lines.line1).toBe("move 4 · no word");
+    expect(lines.line2).toBe("−5 · move 5 opens");
+    expect(lines.line2Parts).toEqual([{ pointsLost: { value: -5 } }, { text: " · move 5 opens" }]);
+  });
+
+  it("a floored miss says why it cost less", () => {
+    const lines = liveLinesFor({ kind: "scored", move: 4, opponentName: K, delta: -3, next: 5, missed: true }, idle, copyEn);
+    expect(lines.line2).toBe("−3 · a total never falls below 0");
+  });
+
+  it("a scored move keeps its beat", () => {
+    expect(liveLinesFor({ kind: "scored", move: 4, opponentName: K, delta: 13, next: 5, missed: false }, idle, copyEn)).toMatchObject({ line1: "move 4 scored", line2: "you +13 · move 5 opens" });
+  });
+
+  it("under a minute, with the move yours and nothing picked, line 2 is the stakes", () => {
+    const lines = liveLinesFor(yourMove, idle, copyEn, { stakes: { movesLeft: 3, penalty: -15 } });
+    expect(lines.line2).toBe("3 moves left · −15 if unplayed");
+    expect(lines.line2Parts).toEqual([{ text: "3 moves left · " }, { pointsLost: { value: -15, label: "if unplayed" } }]);
+    expect(liveLinesFor(yourMove, idle, copyEn, { stakes: { movesLeft: 3, penalty: 0 } }).line2).toBe("3 moves left · nothing to lose");
+    expect(liveLinesFor(yourMove, idle, copyEn, { stakes: { movesLeft: 1, penalty: -5 } }).line2).toBe("1 move left · −5 if unplayed");
+    // A pick in hand is the instruction's moment, not the stakes'.
+    expect(liveLinesFor(yourMove, { kind: "picking", letter: "T", value: 2 }, copyEn, { stakes: { movesLeft: 3, penalty: -15 } }).line2).toBe("picking · T (2) · tap a second letter");
+  });
+
+  it("an illegal pick names the word and its owner", () => {
+    expect(liveLinesFor(yourMove, { kind: "illegal", ownerName: K, round: 2, word: "GILT" }, copyEn).line2).toBe("frozen · GILT · Kári · pick another");
+  });
+
+  it("pick cleared, a submit error, the end-early offer, offline and back are all line 2, by precedence", () => {
+    expect(liveLinesFor(yourMove, idle, copyEn, { pickClearedBy: K }).line2).toBe("pick cleared · Kári moved that letter");
+    expect(liveLinesFor(yourMove, idle, copyEn, { submitError: "swap rejected", pickClearedBy: K }).line2).toBe("swap rejected");
+    expect(liveLinesFor(yourMove, idle, copyEn, { offline: true, submitError: "swap rejected" }).line2).toBe("offline · reconnecting");
+    expect(liveLinesFor(yourMove, idle, copyEn, { backAwayMs: 34_000 }).line2).toBe("back · you were away 0:34 · the clock kept running");
+    const done: MoveState = { kind: "done", opponentName: K, opponentMoves: 8, clockMmSs: "1:12" };
+    const offer = liveLinesFor(done, idle, copyEn, { endEarlyOffer: K });
+    expect(offer.line1).toBe("10 of 10 played");
+    expect(offer.line2).toBe("Kári is gone · end the match ▸");
+    expect(offer.line2Parts).toEqual([{ text: "Kári is gone · " }, { action: { label: "end the match ▸", action: "endEarly" } }]);
+  });
+
+  it("in Icelandic", () => {
+    expect(liveLinesFor({ kind: "scored", move: 4, opponentName: K, delta: -5, next: 5, missed: true }, idle, copyIs)).toMatchObject({ line1: "leikur 4 · ekkert orð", line2: "−5 · leikur 5 opnast" });
+    expect(liveLinesFor(yourMove, idle, copyIs, { stakes: { movesLeft: 3, penalty: -15 } }).line2).toBe("3 leikir eftir · −15 ef óleiknir");
+    expect(liveLinesFor(yourMove, { kind: "illegal", ownerName: K, round: 2, word: "GILT" }, copyIs).line2).toBe("frosinn · GILT · Kári · veldu annan");
+  });
+});
+
+describe("deriveMoveState: a resolution with no words is a miss (spec 068 FR-028)", () => {
+  it("the held beat knows whether the move scored", () => {
+    const res = { words: [], delta: -5 } as unknown as MoveResolution;
+    const state = derive(match({ movesPlayed: 4, lastResolution: res }), { holdMove: 4 });
+    expect(state).toMatchObject({ kind: "scored", move: 4, delta: -5, missed: true });
+  });
+});

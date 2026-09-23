@@ -19,7 +19,9 @@ import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { tabTitle } from "@/lib/room/tabTitle";
 import { lastMoves } from "@/lib/room/lastMoves";
-import { pickClearedNotice } from "@/lib/room/notices";
+import { PICK_CLEARED_HOLD_MS } from "@/lib/room/notices";
+import type { Line2Extras } from "@/lib/room/moveState";
+import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
@@ -66,6 +68,14 @@ function frozenMove(words: AccumulatedWord[], at: Coordinate): number | null {
     .sort((a, b) => a.globalSeq - b.globalSeq)
     .map((w) => w.moveSeq);
   return moves.length > 0 ? moves[0] : null;
+}
+
+/** The word a frozen letter belongs to, the earliest that froze it, as the field shows words (spec 068 FR-030). */
+function frozenWordAt(words: AccumulatedWord[], at: Coordinate): string | undefined {
+  const first = words
+    .filter((w) => w.coordinates.some((c) => c.x === at.x && c.y === at.y))
+    .sort((a, b) => a.globalSeq - b.globalSeq)[0];
+  return first?.word.toLocaleUpperCase();
 }
 
 /** The letters an opponent's resolution touched: its swap and everything it froze. */
@@ -163,7 +173,18 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // An illegal pick or a refused move is a live-row state for two seconds, not
   // a notice line (spec 047 amendment P1, spec 050): the beat stays where the
   // player is reading.
-  const [illegal, setIllegal] = useState<{ ownerName: string; round: number } | null>(null);
+  const [illegal, setIllegal] = useState<{ ownerName: string; round: number; word?: string } | null>(null);
+  // Line 2's own holds (spec 068 FR-031): each source keeps its timer; the ledger shows the highest.
+  const [pickClearedBy, setPickClearedBy] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const pickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdFor = useCallback((timer: typeof pickTimer, set: (v: string | null) => void, value: string, ms: number) => {
+    if (timer.current) clearTimeout(timer.current);
+    set(value);
+    timer.current = setTimeout(() => set(null), ms);
+  }, []);
+  useEffect(() => () => [pickTimer, errorTimer].forEach((t) => t.current && clearTimeout(t.current)), []);
   const [rejected, setRejected] = useState<MoveRejectionReason | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdNotice = useCallback((apply: () => void, clear: () => void) => {
@@ -175,15 +196,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   const onNotice = useCallback(
     (kind: "frozen" | "pickCleared", at?: Coordinate) => {
-      if (kind === "pickCleared") return push(pickClearedNotice(opp.displayName, Date.now()));
+      if (kind === "pickCleared") return holdFor(pickTimer, setPickClearedBy, opp.displayName, PICK_CLEARED_HOLD_MS);
       const owner = at ? frozenTiles[`${at.x},${at.y}`]?.owner : undefined;
       const ownerName = owner ? ownerNames[owner] : opp.displayName;
       const move = (at && frozenMove(words, at)) ?? youFacts.movesPlayed;
-      holdNotice(() => setIllegal({ ownerName, round: move }), () => setIllegal(null));
+      const word = at ? frozenWordAt(words, at) : undefined;
+      holdNotice(() => setIllegal({ ownerName, round: move, word }), () => setIllegal(null));
     },
-    [push, holdNotice, frozenTiles, ownerNames, opp.displayName, words, youFacts.movesPlayed],
+    [holdFor, holdNotice, frozenTiles, ownerNames, opp.displayName, words, youFacts.movesPlayed],
   );
-  const onRejected = useCallback((code: ErrorCode) => push({ kind: "text", text: copy.errors[code] }), [push, copy]);
+  const onRejected = useCallback((code: ErrorCode) => holdFor(errorTimer, setSubmitError, copy.errors[code], NOTICE_HOLD_MS), [holdFor, copy]);
   const onCommitted = useCallback(() => {
     sound.playValidSwap();
     haptics.vibrateValidSwap();
@@ -342,18 +364,19 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const endable = reconnectMsLeft === 0 && viewerDone;
   const setSlip = useRoomStore((s) => s.setSlip);
   const clearSlip = useRoomStore((s) => s.clearSlip);
-  // `keep waiting ▸` puts the offer away; the next window tick re-arms it (spec 048 US7).
-  const [endDeferred, setEndDeferred] = useState(false);
-  useEffect(() => {
-    if (!endDeferred) return;
-    const timer = setTimeout(() => setEndDeferred(false), 10_000);
-    return () => clearTimeout(timer);
-  }, [endDeferred, matchId]);
+  // `keep waiting ▸` puts the slip away for the rest of the match; the offer moves to
+  // the live row's second line (spec 068 FR-036; the 10s re-raise is gone).
+  const [endDeferredFor, setEndDeferredFor] = useState<string | null>(null);
+  const endDeferred = endDeferredFor === matchId;
   useEffect(() => {
     if (endable && !endDeferred && !completed) setSlip({ kind: "endEarly", opponentName: opp.displayName, opponentMoves: oppFacts.movesPlayed, clockMs });
     else clearSlip("endEarly");
-    if (!endable) setEndDeferred(false);
   }, [endable, endDeferred, completed, opp.displayName, oppFacts.movesPlayed, clockMs, setSlip, clearSlip]);
+
+  // Under 1:00 with a move to make, line 2 prices the moves left at 0:00 (spec 068 FR-029).
+  const youMovesLeft = Math.max(0, match.moveLimit - youFacts.movesPlayed);
+  const stakes = inProgress && clockMs > 0 && clockMs < 60_000 && youMovesLeft > 0 ? { movesLeft: youMovesLeft, penalty: timeoutPenalty(youFacts.score, youMovesLeft) } : null;
+  const line2Extras: Line2Extras = { pickClearedBy, submitError, stakes, endEarlyOffer: endable && endDeferred && !completed ? opp.displayName : null };
   const youScore = match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const oppScore = match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"];
   // The server's winner decides the verdict and the bars, not the totals (spec 048 US1, spec 050).
@@ -442,7 +465,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         clearSlip("resign");
         resignMatch(matchId).catch(() => push({ kind: "text", text: copy.errors.resign_failed }));
       } else if (action === "keepWaiting") {
-        setEndDeferred(true);
+        setEndDeferredFor(matchId);
         clearSlip("endEarly");
       } else if (action === "endEarly") {
         clearSlip("endEarly");
@@ -507,6 +530,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         frozenTiles={frozenTiles}
         live={live}
         moveState={moveState}
+        line2Extras={line2Extras}
         holdMove={holdMove}
         notices={allNotices}
         onRowHover={setHighlightMove}

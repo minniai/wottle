@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { Ledger } from "@/components/room/Ledger";
 import { EMPTY_TERRITORY, emptyRows, type LedgerModel } from "@/lib/room/ledgerTypes";
@@ -46,5 +46,28 @@ describe("Ledger on one grid (spec 068)", () => {
     expect(screen.getByTestId("ledger-caption")).toHaveTextContent("rematch ▸");
     expect(screen.queryByTestId("ledger-foot")).toBeNull();
     expect(screen.queryByTestId("ledger-totals")).toBeNull();
+  });
+});
+
+describe("the live row's second line in parts (spec 068 FR-028, FR-029, FR-036)", () => {
+  const withLine2 = (line2: string, line2Parts: NonNullable<LedgerModel["rows"][number]["live"]>["line2Parts"]): LedgerModel => ({
+    ...model,
+    rows: model.rows.map((r) => (r.move === 4 ? { ...r, live: { line1: "move 4 · your move", line2, line2Parts } } : r)),
+  });
+
+  it("draws a crimson number and a muted label for the stakes", () => {
+    render(<Ledger variant="match" model={withLine2("3 moves left · −15 if unplayed", [{ text: "3 moves left · " }, { pointsLost: { value: -15, label: "if unplayed" } }])} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live).toHaveTextContent("3 moves left · −15if unplayed");
+    expect(live.querySelector(".points-lost")).toHaveTextContent("−15");
+  });
+
+  it("draws the end-early offer as a secondary action", () => {
+    const onAction = vi.fn();
+    render(<Ledger variant="match" model={withLine2("Kári is gone · end the match ▸", [{ text: "Kári is gone · " }, { action: { label: "end the match ▸", action: "endEarly" } }])} viewerName="Birna" opponentName="Kári" onAction={onAction} />);
+    const button = within(screen.getByTestId("ledger-live-row")).getByRole("button", { name: "end the match ▸" });
+    expect(button).toHaveClass("action-secondary");
+    fireEvent.click(button);
+    expect(onAction).toHaveBeenCalledWith("endEarly");
   });
 });

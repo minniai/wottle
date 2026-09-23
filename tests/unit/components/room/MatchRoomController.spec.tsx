@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MatchPlayerProfiles, MatchState, MoveResolution, PlayerMatchFacts, WordScore } from "@/lib/types/match";
@@ -213,8 +213,11 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     expect(cell(5, 5)).toHaveAttribute("data-state", "scored");
-    expect(screen.getByTestId("ledger-notice")).toHaveTextContent("pick cleared · Bob moved that letter");
+    // Spec 068 FR-031: pick cleared is the live row's second line for two seconds, not a notice.
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick cleared · Bob moved that letter");
+    expect(screen.queryByTestId("ledger-notice")).toBeNull();
     act(() => vi.advanceTimersByTime(2_100));
+    expect(screen.getByTestId("ledger-live-row")).not.toHaveTextContent("pick cleared");
     const band = screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-word") === "orð");
     expect(band).toHaveAttribute("data-seat", "opp");
     expect(screen.getByTestId("ledger-row-6").querySelector('.ledger__words[data-seat="opp"]')).toHaveTextContent("orð");
@@ -405,7 +408,7 @@ describe("MatchRoomController (spec 050)", () => {
     vi.useRealTimers();
   });
 
-  it("the end-early slip is offered only once you have ten and the window is spent; it returns after ten seconds and lifts on reconnect", async () => {
+  it("the end-early slip is offered only once you have ten and the window is spent; keep waiting moves the offer to the live row for good (spec 068 FR-036)", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:02:00Z"));
     // The server's clock agrees with the device's here; the window is measured on the server-corrected clock.
@@ -422,11 +425,12 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.queryByTestId("slip")).toBeNull();
     // Spec 068 FR-037: past the window the row counts how long they have been gone, never a frozen 0:00 left.
     expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · gone for 0:30");
-    await act(async () => vi.advanceTimersByTimeAsync(9_999));
+    // No re-raise: the slip stays down, and the offer is a secondary action on line 2.
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
     expect(screen.queryByTestId("slip")).toBeNull();
-    await act(async () => vi.advanceTimersByTimeAsync(1));
-    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "endEarly");
-    fireEvent.click(screen.getByTestId("slip-end-early"));
+    const offer = within(screen.getByTestId("ledger-live-row")).getByRole("button", { name: "end the match ▸" });
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("Bob is gone · end the match ▸");
+    fireEvent.click(offer);
     expect(claimWinAction).toHaveBeenCalledWith("m1");
     act(() => mockCallbacks.onState!(state({}, { movesPlayed: 10 }, { movesPlayed: 6 })));
     expect(screen.queryByTestId("slip")).toBeNull();
@@ -456,7 +460,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(`picking · A (${LETTER_SCORING_VALUES_IS.A})`);
   });
 
-  it("the frozen state names the move the letter froze in, not the current one", () => {
+  it("the frozen state names the word the letter froze in, not the current move", () => {
     vi.useFakeTimers();
     // Your third move froze þar; the fourth is open. A reload holds nothing.
     const initial = state({ frozenTiles: { "1,2": { owner: "player_a" } } }, { movesPlayed: 3, lastResolution: resolution() });
@@ -466,7 +470,8 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     fireEvent.click(cell(1, 2));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · Alice M3 · pick another");
+    // Spec 068 FR-030: the word it froze in, and its owner.
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · ÞAR · Alice · pick another");
     act(() => vi.advanceTimersByTime(2_000));
   });
 
@@ -611,5 +616,29 @@ describe("the last-moved tick (spec 068 FR-027)", () => {
     const ticked = screen.getAllByTestId("field-cell").filter((c) => c.getAttribute("data-last-move") === "opp");
     expect(ticked.map((c) => `${c.getAttribute("data-x")},${c.getAttribute("data-y")}`)).toEqual(["4,4", "5,4"]);
     expect(ticked[0].getAttribute("aria-label")).toMatch(/Bob's last move$/);
+  });
+});
+
+describe("the live row's second line in a match (spec 068 FR-029, FR-030)", () => {
+  it("an illegal pick names the frozen word and its owner", async () => {
+    vi.useFakeTimers();
+    const words = { matchId: "m1", words: [{ ...ORD, moveSeq: 5, globalSeq: 7, playerId: "player-2", word: "orð", totalPoints: 13, coordinates: ORD.coordinates }] };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/words") ? words : state({ frozenTiles: { "5,5": { owner: "player_b" } } })) })));
+    renderController(state({ frozenTiles: { "5,5": { owner: "player_b" } } }));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    fireEvent.click(cell(5, 5));
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("frozen · ORÐ · Bob · pick another");
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("under a minute, with the move yours, line 2 is the stakes with only the number in crimson", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:04:12Z"));
+    renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:04:12Z" } }, { movesPlayed: 7, score: 69 }));
+    const live = screen.getByTestId("ledger-live-row");
+    expect(live).toHaveTextContent("3 moves left · −15if unplayed");
+    expect(live.querySelector(".points-lost")).toHaveTextContent("−15");
+    vi.useRealTimers();
   });
 });

@@ -83,18 +83,40 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
   );
 }
 
-/** The live row's state line and, only while there is one, the instruction beneath it (amendment P1). */
-function LiveText({ live }: { live?: LiveLines }) {
-  if (!live) return null;
+/** Line 2 in parts: words, a crimson number of points lost, or a secondary action (spec 068). */
+function Line2({ live, onAction }: { live: LiveLines; onAction?: (action: LedgerAction) => void }) {
+  if (!live.line2Parts) return <>{live.line2}</>;
   return (
     <>
-      <span className="ledger__live-line1">{live.line1}</span>
-      {live.line2 ? <span className="ledger__live-line2">{live.line2}</span> : null}
+      {live.line2Parts.map((part, i) => {
+        if ("text" in part) return <span key={i}>{part.text}</span>;
+        if ("pointsLost" in part) return <PointsLost key={i} value={part.pointsLost.value} label={part.pointsLost.label} />;
+        return (
+          <button key={i} type="button" className="action-secondary" onClick={() => onAction?.(part.action.action)}>
+            {part.action.label}
+          </button>
+        );
+      })}
     </>
   );
 }
 
-function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; onRowHover?: (move: number | null) => void }) {
+/** The live row's state line and, only while there is one, the instruction beneath it (amendment P1). */
+function LiveText({ live, onAction }: { live?: LiveLines; onAction?: (action: LedgerAction) => void }) {
+  if (!live) return null;
+  return (
+    <>
+      <span className="ledger__live-line1">{live.line1}</span>
+      {live.line2 ? (
+        <span className="ledger__live-line2">
+          <Line2 live={live} onAction={onAction} />
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: boolean; onRowHover?: (move: number | null) => void; onAction?: (action: LedgerAction) => void }) {
   const liveOrHeld = row.status === "live" || row.status === "settled";
   return (
     <div
@@ -114,7 +136,7 @@ function Row({ row, hovered, onRowHover }: { row: LedgerRow; hovered: boolean; o
         <>
           {/* One band across the ledger: the beat names the move, so the spine breaks here. */}
           <div className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
-            <LiveText live={row.live} />
+            <LiveText live={row.live} onAction={onAction} />
           </div>
           {/* Their total only, top-right on line 1: the rows share one height, so
               the live row must stay two lines. Their words land once it is past. */}
@@ -205,7 +227,7 @@ export function Ledger(props: LedgerProps) {
   const rows10 = (
     <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
       {rows.map((row) => (
-        <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
+        <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} onAction={onAction} />
       ))}
     </div>
   );
@@ -314,7 +336,7 @@ export function Ledger(props: LedgerProps) {
             onClick={() => (sheetOpen ? closeSheet() : setSheetOpen(true))}
           >
             <span className="ledger__live-text" aria-live="polite">
-              <LiveText live={collapsedLive} />
+              <LiveText live={collapsedLive} onAction={onAction} />
             </span>
             <span className="ledger__live-more">{HISTORY}</span>
           </button>

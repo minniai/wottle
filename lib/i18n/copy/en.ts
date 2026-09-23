@@ -99,6 +99,16 @@ const compactMove = (move: number): string => `move ${move}`;
 const goneForShort = (mmSs: string): string => `gone for ${mmSs}`;
 const BEHIND_PACE = "behind pace";
 const OFFLINE = "offline";
+// The live row's second line (spec 068 FR-028–FR-031, FR-038)
+const moveNoWord = (move: number): string => `move ${move} · no word`;
+const moveOpens = (move: number): string => `move ${move} opens`;
+const TOTAL_NEVER_BELOW_ZERO = "a total never falls below 0";
+const movesLeftShort = (n: number): string => `${n} ${n === 1 ? "move" : "moves"} left`;
+const IF_UNPLAYED = "if unplayed";
+const NOTHING_TO_LOSE = "nothing to lose";
+const frozenWord = (word: string, owner: string): string => `frozen · ${word} · ${owner} · pick another`;
+const backAway = (mmSs: string): string => `back · you were away ${mmSs} · the clock kept running`;
+const endEarlyOfferLead = (name: string): string => `${name} is gone · `;
 /** A cell's label ends with it when a player's last move swapped it (spec 068 FR-027). */
 const lastMoveOf = (name: string): string => `${name}'s last move`;
 /** The browser tab during a live match (spec 068 FR-025). */
@@ -340,6 +350,15 @@ export const copyEn = {
   goneForShort,
   BEHIND_PACE,
   OFFLINE,
+  moveNoWord,
+  moveOpens,
+  TOTAL_NEVER_BELOW_ZERO,
+  movesLeftShort,
+  IF_UNPLAYED,
+  NOTHING_TO_LOSE,
+  frozenWord,
+  backAway,
+  endEarlyOfferLead,
   lastMoveOf,
   tabTitle,
   rematchRequest,

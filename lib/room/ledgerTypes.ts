@@ -24,7 +24,11 @@ export interface SeatCell {
 export interface LiveLines {
   line1: string;
   line2: string;
+  /** Line 2 drawn in parts when it holds a crimson number or an action (spec 068); `line2` is its words. */
+  line2Parts?: Line2Part[];
 }
+
+import type { Line2Part } from "./liveLine2";
 
 export interface LedgerRow {
   /** The move number both columns share. */

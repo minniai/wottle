@@ -7,7 +7,7 @@ export type LiveState =
   | { kind: "picking"; letter: string; value: number }
   | { kind: "played" }
   /** A frozen letter was tapped; held for two seconds, then back to idle. `move` is the mover's Nth move that froze it. */
-  | { kind: "illegal"; ownerName: string; round: number }
+  | { kind: "illegal"; ownerName: string; round: number; word?: string }
   | { kind: "resolving" };
 
 /**

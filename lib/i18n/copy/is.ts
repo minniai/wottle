@@ -121,6 +121,16 @@ export const copyIs = {
   goneForShort: (mmSs: string): string => `án tengingar í ${mmSs}`,
   BEHIND_PACE: "á eftir áætlun",
   OFFLINE: "án tengingar",
+  moveNoWord: (move: number): string => `leikur ${move} · ekkert orð`,
+  moveOpens: (move: number): string => `leikur ${move} opnast`,
+  TOTAL_NEVER_BELOW_ZERO: "samtala fer aldrei undir 0",
+  movesLeftShort: (n: number): string => `${n} ${n === 1 ? "leikur" : "leikir"} eftir`,
+  IF_UNPLAYED: "ef óleiknir",
+  NOTHING_TO_LOSE: "engu að tapa",
+  frozenWord: (word: string, owner: string): string => `frosinn · ${word} · ${owner} · veldu annan`,
+  backAway: (mmSs: string): string => `tenging komin aftur · ${mmSs} án tengingar`,
+  // The name stays in the nominative and takes no adjective (game flow §8 item 13).
+  endEarlyOfferLead: (name: string): string => `${name} · án tengingar · `,
   // The name stays in the nominative (game flow §8 item 13): never `leikur Kára`.
   lastMoveOf: (name: string): string => `síðasti leikur · ${name}`,
   tabTitle: (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · leikur ${move} · ${name}`,
