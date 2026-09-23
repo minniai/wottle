@@ -602,6 +602,8 @@ Key files:
 - Supabase PostgreSQL. Two additive migrations. `claim_next_move` is recreated to return `language`. (060-locales)
 - TypeScript 5.x, Node.js 22, React 19, Next.js 16.2 (App Router, `proxy.ts` on the Node runtime) + Supabase JS v2 (RPC), Zod, zustand, Node `crypto` (HMAC, SHA-256, `timingSafeEqual`, `randomBytes`). No new dependency. (067-identity-one-match)
 - Supabase PostgreSQL. One additive migration, `20260923001_identity_one_match.sql`: three columns on `players`, two on `matches`, widened status checks, and seven security-definer functions. (067-identity-one-match)
+- TypeScript 5.x, Node.js 22, React 19, Next.js 16.2 (App Router) + Tailwind CSS 4.x (tokens in `app/globals.css`, `tailwind.config.ts`), zustand (`roomStore`), Supabase JS v2 (Realtime transport, unchanged). No new dependency. (068-match-scoreboard)
+- N/A. No schema, migration or API change. (068-match-scoreboard)
 
 - **Runtime (current)**: Node.js 22 (`.nvmrc`, `engines.node >=22`), pnpm 11.7 (`packageManager`; settings live in `pnpm-workspace.yaml`). Per-spec lines below that say "Node.js 20" are historical.
 - TypeScript 5.x, Node.js 20 + Next.js 16 (App Router), Supabase JS v2, Zod (007-server-authoritative-timer)
