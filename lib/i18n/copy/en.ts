@@ -99,6 +99,8 @@ const compactMove = (move: number): string => `move ${move}`;
 const goneForShort = (mmSs: string): string => `gone for ${mmSs}`;
 const BEHIND_PACE = "behind pace";
 const OFFLINE = "offline";
+/** A cell's label ends with it when a player's last move swapped it (spec 068 FR-027). */
+const lastMoveOf = (name: string): string => `${name}'s last move`;
 /** The browser tab during a live match (spec 068 FR-025). */
 const tabTitle = (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · move ${move} · ${name}`;
 const profileOpensInNewTab = (name: string): string => `${name}, profile opens in a new tab`;
@@ -338,6 +340,7 @@ export const copyEn = {
   goneForShort,
   BEHIND_PACE,
   OFFLINE,
+  lastMoveOf,
   tabTitle,
   rematchRequest,
   waitingForRematch,

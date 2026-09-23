@@ -18,6 +18,7 @@ import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { tabTitle } from "@/lib/room/tabTitle";
+import { lastMoves } from "@/lib/room/lastMoves";
 import { pickClearedNotice } from "@/lib/room/notices";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
@@ -147,6 +148,15 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const wordmark = copy.WORDMARK;
   useEffect(() => () => void (document.title = wordmark), [wordmark]);
   const frozenTiles = match.frozenTiles;
+  // Each player's last swap, ticked in their colour until its letters freeze (spec 068 FR-027).
+  const lastResolved = useRoomStore((s) => s.lastResolved);
+  const ticks = useMemo(() => {
+    const cells = lastMoves({ you: lastResolved[youFacts.playerId] ?? null, opp: lastResolved[oppFacts.playerId] ?? null }, frozenTiles);
+    return [
+      ...cells.you.map((at) => ({ at, seat: "you" as const, name: you.displayName })),
+      ...cells.opp.map((at) => ({ at, seat: "opp" as const, name: opp.displayName })),
+    ];
+  }, [lastResolved, youFacts.playerId, oppFacts.playerId, frozenTiles, you.displayName, opp.displayName]);
   const frozenKeys = useMemo(() => new Set(Object.keys(frozenTiles)), [frozenTiles]);
   const ownerNames = useMemo(() => ({ player_a: playerProfiles.playerA.displayName, player_b: playerProfiles.playerB.displayName }), [playerProfiles]);
 
@@ -508,6 +518,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           frozenTiles={frozenTiles}
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
+          ticks={ticks}
           disabled={completed || readOnly || !canPick}
           turnFrame={completed || readOnly ? null : turnFrameFor(moveState)}
           bands={bands}

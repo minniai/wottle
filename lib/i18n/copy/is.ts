@@ -121,6 +121,8 @@ export const copyIs = {
   goneForShort: (mmSs: string): string => `án tengingar í ${mmSs}`,
   BEHIND_PACE: "á eftir áætlun",
   OFFLINE: "án tengingar",
+  // The name stays in the nominative (game flow §8 item 13): never `leikur Kára`.
+  lastMoveOf: (name: string): string => `síðasti leikur · ${name}`,
   tabTitle: (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · leikur ${move} · ${name}`,
   oppProgress: (moves: number, state: "playing" | "scoring"): string =>
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,

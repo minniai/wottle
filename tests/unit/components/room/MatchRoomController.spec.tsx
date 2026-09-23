@@ -598,3 +598,18 @@ describe("the tab title (spec 068 FR-025)", () => {
   });
 });
 
+describe("the last-moved tick (spec 068 FR-027)", () => {
+  it("ticks the two cells of the opponent's last swap in their colour when it lands live", () => {
+    renderController();
+    act(() =>
+      mockCallbacks.onMoveResolved!({
+        matchId: "m1", moveId: "mv-9", playerId: "player-2", globalSeq: 20, seq: 6, status: "resolved",
+        swap: { from: { x: 4, y: 4 }, to: { x: 5, y: 4 } }, board: state().board, words: [], delta: -5,
+        totals: { playerA: 46, playerB: 10 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 6 }, resolvedAt: "2026-01-01T00:00:30Z",
+      }),
+    );
+    const ticked = screen.getAllByTestId("field-cell").filter((c) => c.getAttribute("data-last-move") === "opp");
+    expect(ticked.map((c) => `${c.getAttribute("data-x")},${c.getAttribute("data-y")}`)).toEqual(["4,4", "5,4"]);
+    expect(ticked[0].getAttribute("aria-label")).toMatch(/Bob's last move$/);
+  });
+});
