@@ -8,6 +8,7 @@ import { LobbyRoomView } from "@/components/room/LobbyRoomView";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
+import { PageFrame } from "@/components/page/PageFrame";
 import { ProfilePage } from "@/components/profile/ProfilePage";
 import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
@@ -296,7 +297,10 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     };
     return (
       <RoomShell viewer={BIRNA}>
-        <ProfilePage profile={profile} words={[...PROFILE_FIXTURE.bestWords]} matches={RECENT_GAMES} isSelf />
+        {/* A page since spec 070: the frame gives it the masthead and the one main. */}
+        <PageFrame variant="signedIn" place="profile" viewer={{ displayName: BIRNA.displayName, handle: BIRNA.username }} otherLobbyHere={null}>
+          <ProfilePage profile={profile} words={[...PROFILE_FIXTURE.bestWords]} matches={RECENT_GAMES} isSelf />
+        </PageFrame>
       </RoomShell>
     );
   }

@@ -32,6 +32,8 @@
     "perf:move-receipt": "SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 artillery run --output artillery-move-receipt.json tests/perf/move-receipt.yml && SWAP_LATENCY_THRESHOLD_MS=200 SWAP_LATENCY_MIN_SAMPLE=20 tsx scripts/perf/assert-artillery-thresholds.ts artillery-move-receipt.json",
     "perf:move-resolve": "vitest run --config vitest.perf.config.ts tests/perf/moveResolve.bench.ts",
     "perf:seat": "vitest run --config vitest.perf.config.ts tests/perf/seat.bench.ts",
+    "perf:heartbeat": "vitest run --config vitest.perf.config.ts tests/perf/heartbeat.bench.ts",
+    "perf:standing": "vitest run --config vitest.perf.config.ts tests/perf/standing.bench.ts",
     "test:visual": "playwright test room-fixtures --project=visual-1440x900 --project=visual-1280x800 --project=visual-390x844"
   },
   "dependencies": {

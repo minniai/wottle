@@ -33,8 +33,8 @@ vi.mock("@/app/actions/match/getRecentGames", () => ({
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getPlayerProfile } from "@/app/actions/player/getPlayerProfile";
 import { getPlayerProfileByHandle } from "@/app/actions/player/getPlayerProfileByHandle";
-import OwnProfilePage from "@/app/[locale]/profile/page";
-import PublicProfilePage from "@/app/[locale]/profile/[handle]/page";
+import OwnProfilePage from "@/app/[locale]/(pages)/(framed)/profile/page";
+import PublicProfilePage from "@/app/[locale]/(pages)/(framed)/profile/[handle]/page";
 
 const FAKE_PROFILE = {
   identity: {

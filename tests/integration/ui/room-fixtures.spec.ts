@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { PAGE_PHASES } from "../../../app/[locale]/dev/page/fixtures";
 import { ROOM_PHASES } from "../../../app/[locale]/dev/room/fixtures";
 import { copyEn } from "../../../lib/i18n/copy/en";
 import { copyIs } from "../../../lib/i18n/copy/is";
@@ -581,6 +582,24 @@ test.describe("@visual @is the room in Icelandic", () => {
       else if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
       else await expect(page.getByTestId("field")).toBeVisible();
       await expect(page).toHaveScreenshot(`is-${phase}.png`, { fullPage: phase === "rules" });
+    });
+  }
+});
+
+/**
+ * The pages (spec 070 T017): the door and the lobby from `/dev/page`, at the
+ * three project viewports, plus the two short phones every page must fit.
+ */
+test.describe("@visual the pages, from fixtures", () => {
+  for (const phase of PAGE_PHASES as readonly string[]) {
+    test(`page ${phase} matches its baseline`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on("console", (message) => message.type() === "error" && errors.push(message.text().slice(0, 200)));
+      const localePrefix = phase.startsWith("is-") ? "" : "/en";
+      await page.goto(`${localePrefix}/dev/page?phase=${phase}`);
+      await expect(page.getByRole("main")).toBeVisible();
+      await expect(page).toHaveScreenshot(`page-${phase}.png`, { fullPage: true });
+      expect(errors, `${phase} logs no errors`).toEqual([]);
     });
   }
 });

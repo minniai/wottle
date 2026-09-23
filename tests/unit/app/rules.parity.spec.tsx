@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import RulesPage from "@/app/[locale]/rules/page";
+import RulesPage from "@/app/[locale]/(pages)/(framed)/rules/page";
 import { scoringRowsFor } from "@/components/rules/ScoringTable";
 import { copyEn } from "@/lib/i18n/copy/en";
 
@@ -40,8 +40,8 @@ describe("/rules parity", () => {
     expect(screen.getByTestId("rules-figure-words").querySelector(".field")).toHaveAttribute("aria-label", "the field");
     expect(screen.getByTestId("rules-figure-words").querySelector('[aria-hidden="true"]')).toBeTruthy();
     expect(screen.getByTestId("rules-figure-words").querySelector(".rules__field")).toHaveAttribute("inert");
-    expect(screen.getByTestId("rules-play")).toHaveAttribute("href", "/en/lobby");
-    expect(screen.getByTestId("rules-back-top")).toHaveAttribute("href", "/en/lobby");
+    expect(screen.getByTestId("rules-play")).toHaveAttribute("href", "/en");
+    expect(screen.getByTestId("rules-back-top")).toHaveAttribute("href", "/en");
   });
 
   it("minimum word length is three, as the page says", () => {

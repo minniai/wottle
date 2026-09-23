@@ -2,6 +2,8 @@ import { LOCALES } from "@/lib/i18n/locales";
 import { plural } from "@/lib/i18n/plural";
 import type { Copy } from "@/lib/i18n/copy/types";
 
+import { pagesIs } from "./pages.is";
+
 /**
  * Icelandic strings for the room: Orðusta (design system §8; spec 060). Same keys
  * as `en.ts`; each function owns its own word order and number agreement.
@@ -314,6 +316,8 @@ export const copyIs = {
     titleStarting: (n: number, name: string): string => `${n} · ${name}`,
     titleSearching: (mmSs: string): string => `leitar ${mmSs}`,
   },
+
+  pages: pagesIs,
 
   errors: {
     rate_limited: "of margar tilraunir · bíddu í mínútu",

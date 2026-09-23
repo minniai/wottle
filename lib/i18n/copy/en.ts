@@ -9,6 +9,8 @@
 
 import { LOCALES } from "@/lib/i18n/locales";
 
+import { pagesEn as pages } from "./pages.en";
+
 /** The game's name, from the locale registry (spec 068: one source, capitalised). */
 const WORDMARK = LOCALES.en.wordmark;
 
@@ -509,6 +511,7 @@ export const copyEn = {
   profileUnavailable,
   noSuchPlayer,
   table,
+  pages,
   errors,
   RULES_TITLE,
   rulesMetaTitle,

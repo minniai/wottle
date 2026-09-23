@@ -78,7 +78,7 @@ export function ProfilePage({ profile, words, matches, isSelf, inLiveMatch = fal
   };
 
   return (
-    <main className="room profile" data-testid="profile-page" data-seat={seat}>
+    <div className="room profile" data-testid="profile-page" data-seat={seat}>
       <div className="room__stack profile__left">
         <header className="profile__identity" data-testid="profile-identity">
           <div className="profile__who">
@@ -247,6 +247,6 @@ export function ProfilePage({ profile, words, matches, isSelf, inLiveMatch = fal
           ) : null}
         </div>
       </aside>
-    </main>
+    </div>
   );
 }
