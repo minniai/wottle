@@ -29,7 +29,6 @@ import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
-import { useMatchmaking } from "@/lib/room/useMatchmaking";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -38,6 +37,7 @@ import type { Coordinate } from "@/lib/types/board";
 import type { MatchPlayerProfiles, MatchState, MoveRejectionReason, MoveResolution, PlayerSlot } from "@/lib/types/match";
 import { boardOrBlank } from "@/lib/constants/board";
 import { Field } from "./Field";
+import { useStandingSlot } from "@/components/standing/StandingProvider";
 import { MatchRoomView } from "./MatchRoomView";
 import { useAccumulatedMoves } from "./hooks/useAccumulatedMoves";
 import { useWordHistory } from "./hooks/useWordHistory";
@@ -106,22 +106,17 @@ function latestResolution(match: MatchState): MoveResolution | null {
   return a.globalSeq >= b.globalSeq ? a : b;
 }
 
-/**
- * The match phase of the room (spec 044, spec 050). Owns nothing visual: it
- * hydrates the room store, runs transport, and wires the field interaction into
- * bars, field and ledger.
- */
-/** When a void table ended; the requeued search counts from it. */
-function voidedAtOf(match: MatchState): number {
-  return match.completedAt ? Date.parse(match.completedAt) : Date.now();
-}
-
 /** The clock's length for this match (5:00 unless the playtest env shortens it); null before it is set. */
 function clockLengthOf(clock: MatchState["clock"]): number | null {
   if (!clock?.startedAt || !clock.deadlineAt) return null;
   return new Date(clock.deadlineAt).getTime() - new Date(clock.startedAt).getTime();
 }
 
+/**
+ * The match phase of the room (spec 044, spec 050). Owns nothing visual: it
+ * hydrates the room store, runs transport, and wires the field interaction into
+ * bars, field and ledger.
+ */
 export function MatchRoomController({ initialState, currentPlayerId, matchId, playerProfiles, pollIntervalMs }: MatchRoomControllerProps) {
   const copy = useCopy();
   const { LOBBY, RESULT } = copy;
@@ -313,18 +308,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // A phone stays awake at the table (FR-029).
   useWakeLock(atTable && !voided);
   const table = tableFacts(match, viewerSlot);
-  // A seated searcher whose table voided is back in the queue, and keeps searching from the void slip (FR-017).
-  const requeue = useMatchmaking(!readOnly && voided && Boolean(table.youRequeued), voidedAtOf(match), match.language);
+  // A seated searcher whose table voided is back in the queue (FR-017); spec 070: the search is the
+  // standing provider's, one poll for the whole app, and the void slip reads it.
+  const standing = useStandingSlot().machine;
+  const requeued = standing?.slot.kind === "search" ? standing.slot.search : null;
   const derivedSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
-  const tableSlip = derivedSlip?.kind === "void" && requeue.state.kind === "searching" && table.youRequeued
-    ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeue.state.elapsedSeconds * 1000)}` } }
+  const tableSlip = derivedSlip?.kind === "void" && requeued?.kind === "searching" && table.youRequeued
+    ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeued.elapsedSeconds * 1000)}` } }
     : derivedSlip;
   const leaveTheTable = useCallback(() => void leaveTableAction(matchId).then(() => router.push(to("/"))), [matchId, router, to]);
   useTableBackGuard(!readOnly && (match.state === "pending" || msToStart > 0), leaveTheTable);
-  const foundMatchId = requeue.state.kind === "found" ? requeue.state.matchId : null;
-  useEffect(() => {
-    if (foundMatchId) router.push(to(`/match/${foundMatchId}`));
-  }, [foundMatchId, router, to]);
   const tableAnnouncement = useSeatAnnouncement(match, viewerSlot, opp.displayName, copy);
   const refreshMatch = transport.refresh;
   useTableDeadlineRead(match, serverDrift, refreshMatch);
@@ -527,10 +520,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "reviewField") dismissSlip();
       else if (action === "result" && !voided) restoreSlip();
       else if (action === "newOpponent") {
-        // A queue-found match runs under /matchmaking, so the route alone would
-        // not remount the queue; the store's search counter does.
-        useRoomStore.getState().requestNewSearch();
-        router.replace(to("/matchmaking"));
+        // Spec 070: a search runs in the line slot, from the lobby.
+        standing?.search.start();
+        router.replace(to("/"));
       }
       else if (action === "lobby") {
         // The slip belongs to the match: take it down before the lobby draws.
@@ -553,7 +545,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       }
       else if (action === "sitDown") void seatAction(matchId).then(refreshMatch);
       else if (action === "leaveTable") leaveTheTable();
-      else if (action === "cancelQueue") void requeue.cancel().then(() => router.push(to("/")));
+      else if (action === "cancelQueue") {
+        standing?.onAction("cancelSearch");
+        router.push(to("/"));
+      }
       else if (action === "challengeAgain") {
         // The same player, through the ordinary send (spec 069 clarification Q2); a refusal stays here and says why.
         void sendChallengeAction({ recipientId: oppFacts.playerId }).then((r) => {
@@ -580,7 +575,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, requeue, oppFacts.playerId, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, oppFacts.playerId, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).

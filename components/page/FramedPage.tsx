@@ -25,6 +25,9 @@ export function FramedPage({ viewer, children }: { viewer: MastheadViewer | null
       slot={standing.slot}
       signOut={standing.signOut}
       menuExtra={standing.menuExtra}
+      bottomSlot={standing.bottomSlot}
+      bottomHeight={standing.bottomHeight}
+      skipLabel={standing.skipLabel}
     >
       {children}
     </PageFrame>

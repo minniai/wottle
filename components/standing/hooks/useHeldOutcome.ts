@@ -3,14 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ACCEPTED_HOLD_MS, OUTCOME_HOLD_MS } from "@/lib/presence/constants";
-import { outcomeOf, type OutgoingChallenge, type Outcome } from "@/lib/types/standing";
+import type { HeldOutcome } from "@/lib/pages/heldOutcome";
+import { outcomeOf, type OutgoingChallenge } from "@/lib/types/standing";
 
-export interface HeldOutcome {
-  inviteId: string;
-  playerId: string;
-  name: string;
-  outcome: Outcome;
-}
+export type { HeldOutcome };
 
 /**
  * What became of the viewer's challenge (spec 070 US3.4, US3.6): held 4s from

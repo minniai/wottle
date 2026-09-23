@@ -80,8 +80,6 @@ const CALLERS: Array<[string, () => Promise<unknown>]> = [
   ["POST /api/presence/leave", async () => (await import("@/app/api/presence/leave/route")).POST(json({ tabId: MATCH_ID }))],
   ["POST /api/lobby/invite/withdraw", async () => (await import("@/app/api/lobby/invite/withdraw/route")).POST(json({ inviteId: INVITE_ID }))],
   ["POST /api/lobby/invite/[id]/respond", async () => (await import("@/app/api/lobby/invite/[inviteId]/respond/route")).POST(json({ decision: "accepted" }), params({ inviteId: INVITE_ID }))],
-  ["POST /api/lobby/presence", async () => (await import("@/app/api/lobby/presence/route")).POST(json({ language: "en" }))],
-  ["DELETE /api/lobby/presence", async () => (await import("@/app/api/lobby/presence/route")).DELETE()],
   ["submitMove", async () => (await import("@/app/actions/match/submitMove")).submitMove(MATCH_ID, { fromX: 0, fromY: 0, toX: 1, toY: 0 })],
   ["sendChallengeAction", async () => (await import("@/app/actions/challenge/send")).sendChallengeAction({ recipientId: MATCH_ID })],
   ["withdrawChallengeAction", async () => (await import("@/app/actions/challenge/withdraw")).withdrawChallengeAction({ inviteId: INVITE_ID })],

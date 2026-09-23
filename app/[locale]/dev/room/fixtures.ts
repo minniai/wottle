@@ -29,13 +29,11 @@ import type { RecentGameRow } from "@/lib/types/lobby";
 import { SEATED_TABLE } from "@/lib/match/table";
 
 export const ROOM_PHASES = [
-  "queue",
   // Spec 069: the table replaces the queue's own `found` moment; the void; a paused search.
   "table",
   "table-seated",
   "void",
   "void-queue",
-  "searching-paused",
   "idle",
   "picking",
   "illegal",

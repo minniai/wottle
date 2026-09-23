@@ -7,6 +7,7 @@ import { useCopy } from "@/components/i18n/LocaleProvider";
 import { Folio, type PagePlace } from "./Folio";
 import { DoorMasthead, DoorPreferLine, SignedInMasthead, type MastheadViewer } from "./Masthead";
 import { PageMenu, type SignOutState } from "./PageMenu";
+import { SkipToCall } from "./LineSlot";
 import { SlotTerms } from "./SlotTerms";
 
 type PageFrameProps =
@@ -29,6 +30,11 @@ type PageFrameProps =
       slot?: ReactNode;
       signOut?: SignOutState;
       menuExtra?: ReactNode;
+      /** The standing state pinned to a phone's bottom edge, and its height (§5.0 phone frame). */
+      bottomSlot?: ReactNode;
+      bottomHeight?: number;
+      /** While a call is up, a skip link to it is the page's first focusable element. */
+      skipLabel?: string | null;
       children: ReactNode;
     };
 
@@ -53,14 +59,17 @@ export function PageFrame(props: PageFrameProps) {
     );
   }
   const menu = <PageMenu signOut={props.signOut ?? {}} extra={props.menuExtra} />;
+  const bottom = props.bottomHeight ?? 0;
   return (
-    <div className="page page--signed-in">
+    <div className="page page--signed-in" style={{ ["--bottom-slot-h" as string]: `${bottom}px` }} data-bottom-slot={bottom > 0}>
+      {props.skipLabel ? <SkipToCall label={props.skipLabel} /> : null}
       <header className="page-head page-head--sticky" role="banner">
         <SignedInMasthead viewer={props.viewer} otherLobbyHere={props.otherLobbyHere} menu={menu} />
         {props.viewer ? <div className="page-slot" data-testid="line-slot">{props.slot ?? <SlotTerms counts={null} />}</div> : null}
       </header>
       <main className="page-main" aria-label={copy.pages.MAIN}>{props.children}</main>
       <Folio place={props.place} />
+      {props.bottomSlot ? <div className="page-bottom">{props.bottomSlot}</div> : null}
     </div>
   );
 }

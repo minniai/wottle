@@ -11,7 +11,6 @@ import {
 } from "@/components/profile/deriveProfileChartData";
 import { ProfileRatingChart } from "@/components/profile/ProfileRatingChart";
 import { useAttention } from "@/components/room/hooks/useAttention";
-import { useTableCheck } from "@/components/room/hooks/useTableCheck";
 import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
@@ -54,10 +53,6 @@ export function ProfilePage({ profile, words, matches, isSelf, inLiveMatch = fal
   const copy = useCopy();
   const { wordmark } = useLocale();
   const setViewer = useRoomStore((s) => s.setViewer);
-  // A table found while the player reads a profile takes them to it (spec 069 FR-025a).
-  const attention = useAttention();
-  const onTable = useCallback((matchId: string) => router.push(to(`/match/${matchId}`)), [router, to]);
-  useTableCheck({ enabled: true, attention, onTable });
   const seat: Seat = isSelf ? "you" : "opp";
   const seatInk = getSeatColors(seat).ink;
   /** 14px best-word names: the text variant passes AA where --opp does not. */

@@ -303,29 +303,29 @@
 
 ### Tests first
 
-- [ ] T075 [P] [US4] Write failing tests in `tests/unit/lib/pages/standingSlot.spec.ts`:
+- [X] T075 [P] [US4] Write failing tests in `tests/unit/lib/pages/standingSlot.spec.ts`:
   - every precedence pair;
   - `more` for a second call;
   - `searching` on a call;
   - the table and running match both give `match`;
   - `over` shows until opened;
   - a held outcome keeps `sent` for 4s.
-- [ ] T076 [P] [US4] Write failing tests in `tests/unit/lib/pages/slotLines.spec.ts`. The exact strings in both languages, for:
+- [X] T076 [P] [US4] Write failing tests in `tests/unit/lib/pages/slotLines.spec.ts`. The exact strings in both languages, for:
   - the call: with and without a record, `· +1`, and the searching suffix;
   - sent, search (0:30 alone, still searching, paused, stopped, cooldown);
   - match running, match over, switch, and the empty terms.
   
   It also checks the drains and sweeps, and that a wait's secondary is never marked focusable-first.
-- [ ] T077 [P] [US4] Write failing tests in `tests/unit/lib/pages/pagePrimary.spec.ts` for every row of the precedence table in contracts/page-derivations.md.
-- [ ] T078 [P] [US4] Write a failing test in `tests/unit/lib/room/tabTitle.pages.spec.ts` for every page beat (door, lobby, call `(1)`/`(2)`, sent, search, arrival, match running, over). While the match controller is mounted, the match titles win.
-- [ ] T079 [P] [US4] Write a failing contract test in `tests/contract/standing-auth.contract.test.ts`. `GET /api/standing` returns 401 without a session, and otherwise a `StandingFacts` object that parses with the Zod schema, whose `topic` equals `topicFor(viewer)`.
-- [ ] T080 [P] [US4] Write failing hook tests in `tests/unit/components/standing/`:
+- [X] T077 [P] [US4] Write failing tests in `tests/unit/lib/pages/pagePrimary.spec.ts` for every row of the precedence table in contracts/page-derivations.md.
+- [X] T078 [P] [US4] Write a failing test in `tests/unit/lib/room/tabTitle.pages.spec.ts` for every page beat (door, lobby, call `(1)`/`(2)`, sent, search, arrival, match running, over). While the match controller is mounted, the match titles win.
+- [X] T079 [P] [US4] Write a failing contract test in `tests/contract/standing-auth.contract.test.ts`. `GET /api/standing` returns 401 without a session, and otherwise a `StandingFacts` object that parses with the Zod schema, whose `topic` equals `topicFor(viewer)`.
+- [X] T080 [P] [US4] Write failing hook tests in `tests/unit/components/standing/`:
   - `usePlayerChannel.spec.ts`: it subscribes to the topic; a poke re-reads; the poll cadence is 3s while the socket is down and 12s while it is up; it never navigates on broadcast data;
   - `useStandingFacts.spec.ts`: it sends attention with each read and handles server time drift;
   - `useTabTitle.spec.ts`;
   - `useFavicon.spec.ts`: the call swaps the link's href and restores it;
   - `useNotifications.spec.ts`: feature-detected; permission requested only from an explicit opt-in; shown only while hidden; the opt-in kept in localStorage behind try/catch. `⋯ notifications · on/off` toggles the opt-in, and the item is hidden when the API is unsupported or permission is denied.
-- [ ] T081 [P] [US4] Write failing component tests in `tests/unit/components/page/LineSlot.spec.tsx`:
+- [X] T081 [P] [US4] Write failing component tests in `tests/unit/components/page/LineSlot.spec.tsx`:
   - call style and status style;
   - the reserved height is kept on a content change (layout shift is measured in T082);
   - `role="region"` with its label;
@@ -346,32 +346,32 @@
 
 ### Implementation
 
-- [ ] T083 [US4] Implement `app/api/standing/route.ts` per the contract: attention, the lazy expiry for the viewer's own invites, incoming invites with their records, outgoing, cooldowns, search, the table cooldown, the match (table, running, or `over` from `unseen_result_match_id`), `switchPending` (null until US7) and `topic`. Make T079 pass. Add `tests/perf/standing.bench.ts` for p95 under 150ms.
-- [ ] T084 [P] [US4] Implement `lib/pages/standingSlot.ts`, `slotLines.ts` and `pagePrimary.ts` (T075–T077), and extend `lib/room/tabTitle.ts` (T078).
-- [ ] T085 [US4] Implement `components/standing/hooks/usePlayerChannel.ts`, `useStandingFacts.ts`, `useTabTitle.ts`, `useFavicon.ts` and `useNotifications.ts` (T080). Wire them into `StandingProvider` with the `challenge` cue: `playChallenge` plays once per new incoming id and when a table waits in a hidden tab, respecting the toggle and the first gesture. Add the `⋯` notifications item in `components/page/PageMenu.tsx`.
-- [ ] T085a [P] [US4] Write a failing test in `tests/unit/components/standing/useArrivalWatch.spec.ts`:
+- [X] T083 [US4] Implement `app/api/standing/route.ts` per the contract: attention, the lazy expiry for the viewer's own invites, incoming invites with their records, outgoing, cooldowns, search, the table cooldown, the match (table, running, or `over` from `unseen_result_match_id`), `switchPending` (null until US7) and `topic`. Make T079 pass. Add `tests/perf/standing.bench.ts` for p95 under 150ms.
+- [X] T084 [P] [US4] Implement `lib/pages/standingSlot.ts`, `slotLines.ts` and `pagePrimary.ts` (T075–T077), and extend `lib/room/tabTitle.ts` (T078).
+- [X] T085 [US4] Implement `components/standing/hooks/usePlayerChannel.ts`, `useStandingFacts.ts`, `useTabTitle.ts`, `useFavicon.ts` and `useNotifications.ts` (T080). Wire them into `StandingProvider` with the `challenge` cue: `playChallenge` plays once per new incoming id and when a table waits in a hidden tab, respecting the toggle and the first gesture. Add the `⋯` notifications item in `components/page/PageMenu.tsx`.
+- [X] T085a [P] [US4] Write a failing test in `tests/unit/components/standing/useArrivalWatch.spec.ts`:
   - opt in from an empty lobby;
   - the first poke in which another player appears plays the cue, sets the title `Embla is here · Wottle`, and shows the notification if the tab is hidden and permission is granted;
   - the opt-in then ends, and a second arrival does nothing;
   - the control reads `we will tell you · cancel` while on, and `cancel` ends it;
   - opting in again later arms it again.
-- [ ] T085b [US4] Implement `components/standing/hooks/useArrivalWatch.ts`, reading `useLobbyList`. Wire it into `StandingProvider` and into the empty lobby's control in `components/page/lobby/Lobby.tsx`. Add the strings `Embla is here` / `Embla er hér` and `we will tell you · cancel` / `við látum þig vita · hætta við`. Make T085a pass.
-- [ ] T086 [US4] Implement `components/page/LineSlot.tsx` and `components/page/BottomSlot.tsx` (T081), and mount them in `PageFrame`. Accept goes through `respond`, then `router.push(/match/:id)`. Decline goes through `respond`. `back to the match ▸` and `result ▸` push the match.
-- [ ] T087 [US4] Make the rest of the page follow the slot:
+- [X] T085b [US4] Implement `components/standing/hooks/useArrivalWatch.ts`, reading `useLobbyList`. Wire it into `StandingProvider` and into the empty lobby's control in `components/page/lobby/Lobby.tsx`. Add the strings `Embla is here` / `Embla er hér` and `we will tell you · cancel` / `við látum þig vita · hætta við`. Make T085a pass.
+- [X] T086 [US4] Implement `components/page/LineSlot.tsx` and `components/page/BottomSlot.tsx` (T081), and mount them in `PageFrame`. Accept goes through `respond`, then `router.push(/match/:id)`. Decline goes through `respond`. `back to the match ▸` and `result ▸` push the match.
+- [X] T087 [US4] Make the rest of the page follow the slot:
   - `pagePrimary` drives the lobby block's primary slot and the phone's pinned primary;
   - the challenged player's row reads `challenges you` with no action;
   - B8 removes every row's `challenge ▸` while your match runs;
   - sign-out is disabled with `finish your match first`.
-- [ ] T091 [P] [US4] Write a failing unit test `tests/unit/components/standing/searchInProvider.spec.ts`:
+- [X] T091 [P] [US4] Write a failing unit test `tests/unit/components/standing/searchInProvider.spec.ts`:
   - starting a search from the lobby runs `useMatchmaking` inside the provider;
   - it survives a page change;
   - `cancel ▸` stops it;
   - the 0:30-alone line reads correctly;
   - a pairing pushes `/match/:id`;
   - a hidden tab pauses it with the beacon (spec 069's behaviour, kept).
-- [ ] T092 [US4] Move `lib/room/useMatchmaking.ts`'s owner from the deleted queue controller into `StandingProvider`, exposing `startSearch` and `cancelSearch`. The lobby's primary calls `startSearch`, which withdraws the outgoing challenge through the server. Wire the Wake Lock (`useWakeLock`) while searching or while a challenge is out on a coarse pointer. Make T091 pass.
-- [ ] T093 [US4] Add the search strings in the slot (`Searching for an opponent · 0:07`, `2 SEARCHING NOW · ENGLISH WORDS`, `NO ONE ELSE IS SEARCHING · CHALLENGE SOMEONE BELOW`, and on a phone `LEITAR · 0:07` over `haltu skjánum opnum`), and retire the queue page's strings.
-- [ ] T088 [US4] After T092 (search runs in the provider), delete, together with their tests and fixtures:
+- [X] T092 [US4] Move `lib/room/useMatchmaking.ts`'s owner from the deleted queue controller into `StandingProvider`, exposing `startSearch` and `cancelSearch`. The lobby's primary calls `startSearch`, which withdraws the outgoing challenge through the server. Wire the Wake Lock (`useWakeLock`) while searching or while a challenge is out on a coarse pointer. Make T091 pass.
+- [X] T093 [US4] Add the search strings in the slot (`Searching for an opponent · 0:07`, `2 SEARCHING NOW · ENGLISH WORDS`, `NO ONE ELSE IS SEARCHING · CHALLENGE SOMEONE BELOW`, and on a phone `LEITAR · 0:07` over `haltu skjánum opnum`), and retire the queue page's strings.
+- [X] T088 [US4] After T092 (search runs in the provider), delete, together with their tests and fixtures:
   - `components/room/LobbyRoomController.tsx`, `LobbyRoomView.tsx`, `LobbyLedger.tsx`, `QueueRoomController.tsx`, `QueueRoomView.tsx` and `NameInput.tsx`;
   - `components/room/hooks/useLobbyInvites.ts` and `useTableCheck.ts`;
   - `app/[locale]/(room)/LobbyRoomPage.tsx` and `app/[locale]/(room)/matchmaking/page.tsx`;

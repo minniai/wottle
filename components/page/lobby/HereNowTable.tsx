@@ -9,16 +9,13 @@ import { useNowTick } from "@/components/room/hooks/useNowTick";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { ComposerFacts } from "@/lib/pages/composer";
 import { rowModel, visibleRows, type RowModel } from "@/lib/pages/lobbyRows";
+import type { RowOverlay } from "@/lib/pages/rowOverlays";
 import { formatClock } from "@/lib/room/clock";
 import type { LobbyRow } from "@/lib/types/standing";
 
 import { ComposerRow } from "./ComposerRow";
 
-/** What the viewer's standing writes on a row (B3–B5): sent, an outcome, a cooldown, a call, or a refusal. */
-export interface RowOverlay {
-  status?: string;
-  action?: "none" | { againUntilMs: number } | { error: string };
-}
+export type { RowOverlay };
 
 interface HereNowTableProps {
   rows: LobbyRow[];

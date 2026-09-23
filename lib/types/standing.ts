@@ -121,6 +121,12 @@ export const standingFactsSchema = z.object({
   tableCooldownUntil: z.string().nullable(),
   match: matchFactSchema.nullable(),
   switchPending: switchPendingSchema.nullable(),
+  /** Spec 069: said once after a table the viewer did not sit down at. */
+  notice: z.enum(["table_missed"]).nullable(),
+  /** The viewer's lobby's numbers and the other lobby's here count (S10): the slot, the search line and the masthead switch. */
+  counts: z.object({ here: z.number().int(), searching: z.number().int(), playing: z.number().int(), otherHere: z.number().int() }),
+  /** The viewer's rating and matches in their lobby's language: the stakes on a sent challenge. */
+  viewer: z.object({ rating: z.number(), gamesPlayed: z.number().int() }),
 });
 export type StandingFacts = z.infer<typeof standingFactsSchema>;
 export type IncomingCall = StandingFacts["incoming"][number];

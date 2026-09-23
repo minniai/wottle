@@ -1,37 +1,85 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
+import { useCopy } from "@/components/i18n/LocaleProvider";
+import { LineSlot } from "@/components/page/LineSlot";
 import type { SignOutState } from "@/components/page/PageMenu";
 
-import { pageOf, useTabPresence } from "./hooks/useTabPresence";
+import { SearchRunner } from "./SearchRunner";
+import { useStandingMachine, type StandingMachine } from "./useStandingMachine";
 
 /**
  * The viewer's standing machinery (spec 070 R11), mounted once in the locale
  * layout when a session exists, so it runs on every page and on the match
- * page: the tab's heartbeat, the player channel, the standing read, the
- * search, the tab title, the favicon, the cue and notifications. Pages read
- * what the masthead and the line slot need through `useStandingSlot`.
+ * page. Pages read what the masthead, the line slot and the lobby need
+ * through `useStandingSlot`.
  */
 export interface StandingSlotApi {
   /** How many are in the other lobby, for the masthead switch (S10). */
   otherLobbyHere: number | null;
-  /** The line slot's content. */
+  /** The line slot's content (desktop, under the masthead). */
   slot: ReactNode;
+  /** The same standing state pinned to a phone's bottom edge (§5.0). */
+  bottomSlot: ReactNode;
+  /** Pixels the bottom slot takes on a phone: the page pads by them. */
+  bottomHeight: number;
   signOut: SignOutState;
-  /** Extra `⋯` items (notifications). */
   menuExtra: ReactNode;
+  /** While a call is up, the page's first focusable element leads to it. */
+  skipLabel: string | null;
+  machine: StandingMachine | null;
 }
 
-const EMPTY: StandingSlotApi = { otherLobbyHere: null, slot: null, signOut: {}, menuExtra: null };
+const EMPTY: StandingSlotApi = { otherLobbyHere: null, slot: null, bottomSlot: null, bottomHeight: 0, signOut: {}, menuExtra: null, skipLabel: null, machine: null };
 
 const StandingContext = createContext<StandingSlotApi>(EMPTY);
 
+const BOTTOM_HEIGHT = { call: 104, status: 64, terms: 0 } as const;
+
+function signOutState(machine: StandingMachine, copy: ReturnType<typeof useCopy>): SignOutState {
+  const { facts, slot } = machine;
+  if (facts?.match && facts.match.kind !== "over") return { disabledReason: copy.pages.FINISH_FIRST };
+  if (slot.kind === "search") return { consequence: copy.pages.SIGN_OUT_CANCELS_SEARCH };
+  if (facts?.outgoing?.status === "pending") return { consequence: copy.pages.SIGN_OUT_WITHDRAWS };
+  return {};
+}
+
+function NotificationsItem({ machine }: { machine: StandingMachine }) {
+  const copy = useCopy();
+  const n = machine.notifications;
+  if (!n.available) return null;
+  return (
+    <li role="none">
+      <button type="button" role="menuitem" className="page-link" onClick={() => (n.enabled ? n.disable() : void n.enable())}>
+        {copy.pages.notificationsToggle(n.enabled)}
+      </button>
+    </li>
+  );
+}
+
 export function StandingProvider({ children }: { children: ReactNode }) {
-  useTabPresence(pageOf(usePathname() ?? "/"));
-  const value = useMemo<StandingSlotApi>(() => EMPTY, []);
-  return <StandingContext.Provider value={value}>{children}</StandingContext.Provider>;
+  const copy = useCopy();
+  const machine = useStandingMachine();
+  const { facts, model, slot } = machine;
+  const counts = facts ? { here: facts.counts.here, playing: facts.counts.playing } : null;
+  const value: StandingSlotApi = {
+    otherLobbyHere: facts?.counts.otherHere ?? null,
+    slot: <LineSlot model={model} onAction={machine.onAction} announcement={machine.announcement} counts={counts} variant="desktop" />,
+    bottomSlot: model.style === "terms" ? null : <LineSlot model={model} onAction={machine.onAction} announcement="" variant="phone" />,
+    bottomHeight: BOTTOM_HEIGHT[model.style],
+    signOut: signOutState(machine, copy),
+    menuExtra: <NotificationsItem machine={machine} />,
+    skipLabel: slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : null,
+    machine,
+  };
+  const run = machine.search.run;
+  return (
+    <StandingContext.Provider value={value}>
+      {run ? <SearchRunner key={run.id} startedAt={run.startedAt} language={machine.search.language} onState={machine.search.onState} /> : null}
+      {children}
+    </StandingContext.Provider>
+  );
 }
 
 /** Outside a provider (signed out, a fixture, a unit test) the slot is empty. */

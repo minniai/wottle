@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { Field } from "@/components/room/Field";
 import type { CellState } from "@/components/room/FieldCell";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
-import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { PageFrame } from "@/components/page/PageFrame";
 import { ProfilePage } from "@/components/profile/ProfilePage";
@@ -196,7 +195,7 @@ const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CEL
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
 type TablePhase = "table" | "table-seated" | "void" | "void-queue";
-type MatchPhase = Exclude<RoomPhase, "queue" | "searching-paused" | "profile" | "rules" | TablePhase>;
+type MatchPhase = Exclude<RoomPhase, "profile" | "rules" | TablePhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -246,7 +245,7 @@ function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
 }
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { profile: "lobby", queue: "queue", "searching-paused": "queue", final: "final", "over-slip": "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { profile: "lobby", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
@@ -299,30 +298,6 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   }
 
 
-  if (phase === "queue" || phase === "searching-paused") {
-    // Spec 069 FR-021: a hidden tab's search waits for `resume ▸`.
-    const paused = phase === "searching-paused";
-    const resume = (
-      <button type="button" className="action-primary" data-testid="queue-resume" onClick={NO_OP}>
-        {copy.table.RESUME}
-      </button>
-    );
-    return (
-      <RoomShell viewer={BIRNA}>
-        <QueueRoomView
-          viewer={BIRNA}
-          opponent={null}
-          elapsed={QUEUE_ELAPSED}
-          live={settingField(QUEUE_LETTERS_LANDED)}
-          hint={searchingSubline(QUEUE_ELAPSED)}
-          search={paused ? { name: copy.FINDING_OPPONENT, subline: copy.table.SEARCH_PAUSED, action: resume } : null}
-          onAction={NO_OP}
-        >
-          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" disabled landedCount={QUEUE_LETTERS_LANDED} />
-        </QueueRoomView>
-      </RoomShell>
-    );
-  }
 
   if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue") {
     return <TableFixture phase={phase} copy={copy} />;

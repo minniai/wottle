@@ -63,7 +63,7 @@ describe("Lobby", () => {
     renderLobby("en");
     const table = screen.getByRole("table");
     expect(within(table).getByRole("columnheader", { name: "your record" })).toBeTruthy();
-    expect(screen.getByText("here now · 5 · 1 playing")).toBeTruthy();
+    expect(screen.getByText("here now · 2 · 1 playing")).toBeTruthy();
     expect(within(table).getByText("3–1")).toBeTruthy();
     expect(within(table).getByRole("button", { name: "Kári · challenge" })).toBeTruthy();
     expect(within(table).getByText("in a match · 6 of 10")).toBeTruthy();

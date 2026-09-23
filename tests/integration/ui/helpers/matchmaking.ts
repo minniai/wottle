@@ -12,8 +12,7 @@ export async function loginViaSlip(page: Page, username: string): Promise<void> 
   await page.getByTestId("door-name").fill(username);
   await page.getByTestId("door-enter").click();
   await expect(page.getByTestId("door-form")).toHaveCount(0, { timeout: 20_000 });
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId("player-bar-action-find")).toBeEnabled({ timeout: 10_000 });
+  await expect(page.getByTestId("lobby-find")).toBeVisible({ timeout: 20_000 });
 }
 
 /**
@@ -86,16 +85,19 @@ export async function startMatchWithDirectInvite(
   // Stabilisation wait: presence store churns while realtime sync settles.
   await safeWait(pageA, 1500);
 
-  // Player A: `challenge ▸` on Player B's here-now row (no dialog — design system §5.5).
+  // Player A: `challenge ▸` on Player B's row opens the composer (spec 070 B2); send.
   const remainingForChallenge = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const targetRow = pageA.getByTestId("ledger-here-now-row").filter({ hasText: `@${playerBUsername}` });
+  const targetRow = pageA.getByTestId("lobby-row").filter({ hasText: `@${playerBUsername}` });
   await targetRow.waitFor({ state: "visible", timeout: remainingForChallenge });
   await targetRow.getByRole("button", { name: /challenge/i }).click();
+  await safeWait(pageA, GUARD_MS);
+  await pageA.getByTestId("composer-send").click();
 
-  // Player B: the challenge arrives as a ledger line; accept ▸.
+  // Player B: the challenge arrives in the line slot as a call; accept ▸ (after its 500ms guard).
   const remainingForNotice = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const accept = pageB.getByTestId("notice-accept-challenge");
+  const accept = pageB.getByTestId("slot-accept").first();
   await accept.waitFor({ state: "visible", timeout: remainingForNotice });
+  await safeWait(pageB, GUARD_MS);
   await accept.click();
 
   // Both players: wait for the match shell.
@@ -127,8 +129,8 @@ async function waitForPlayersVisible(
       throw new Error("Page was closed while waiting for players to be visible");
     }
 
-    const lobbyListA = pageA.getByTestId("ledger-here-now");
-    const lobbyListB = pageB.getByTestId("ledger-here-now");
+    const lobbyListA = pageA.getByRole("main");
+    const lobbyListB = pageB.getByRole("main");
 
     const lobbyReadyA = await lobbyListA.isVisible().catch(() => false);
     const lobbyReadyB = await lobbyListB.isVisible().catch(() => false);
@@ -163,6 +165,15 @@ async function waitForPlayersVisible(
   }
 
   throw new Error(`Timeout waiting for players to be visible after ${timeoutMs}ms`);
+}
+
+/** How long a control that appears ignores a press (game flow §5.0 guards), plus a margin. */
+const GUARD_MS = 600;
+
+/** Spec 070: `find an opponent ▸` from the lobby, when it is there to press. */
+export async function findOpponent(page: Page): Promise<void> {
+  const find = page.getByTestId("lobby-find");
+  if (await find.isVisible().catch(() => false)) await find.click();
 }
 
 /** How long `ready ▸` ignores a press after it appears (game flow §5.0 guards). */
@@ -276,21 +287,8 @@ export async function startMatchWithRetry(
         throw new Error("Page was closed before starting match (likely due to test timeout)");
       }
 
-      // Click both start buttons simultaneously
-      await Promise.all([
-        pageA.getByTestId("player-bar-action-find").click().catch((e) => {
-          if (!isPageOpen(pageA)) {
-            throw new Error("Page A was closed during button click");
-          }
-          throw e;
-        }),
-        pageB.getByTestId("player-bar-action-find").click().catch((e) => {
-          if (!isPageOpen(pageB)) {
-            throw new Error("Page B was closed during button click");
-          }
-          throw e;
-        }),
-      ]);
+      // Both press find (spec 070: the search runs in the line slot); a page already searching shows none.
+      await Promise.all([findOpponent(pageA), findOpponent(pageB)]);
 
       // Wait a moment for queue processing
       await safeWait(pageA, 500);
