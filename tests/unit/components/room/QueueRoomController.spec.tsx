@@ -89,5 +89,38 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(screen.queryByText("starts in 3")).toBeNull();
   });
 
-});
 
+  it("a hidden tab's search reads `search paused · resume ▸`; resume ▸ asks again (spec 069 FR-021)", async () => {
+    vi.mocked(startQueueAction).mockResolvedValue({ status: "queued" });
+    render(<QueueRoomController viewer={me} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    act(() => void document.dispatchEvent(new Event("visibilitychange")));
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("search paused");
+    const asked = vi.mocked(startQueueAction).mock.calls.length;
+    fireEvent.click(screen.getByTestId("queue-resume"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    expect(startQueueAction).toHaveBeenCalledTimes(asked + 1);
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
+    expect(document.title).toMatch(/^searching 0:\d\d · Wottle$/);
+  });
+
+  it("3:00 in, asks `still searching?`; keep searching ▸ carries on (spec 069 FR-022)", async () => {
+    vi.mocked(startQueueAction).mockResolvedValue({ status: "queued" });
+    render(<QueueRoomController viewer={me} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(180_500);
+    });
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Still searching? · 3:00");
+    fireEvent.click(screen.getByTestId("queue-keep-searching"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
+  });
+});

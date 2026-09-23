@@ -70,8 +70,9 @@ describe("cancelQueueAction", () => {
     const result = await cancelQueueAction();
 
     expect(result.status).toBe("cancelled");
+    // Spec 069: a cancelled search leaves the queue entirely: no join time, language or pause kept.
     expect(playersTable.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "available" }),
+      expect.objectContaining({ status: "available", queued_at: null, queue_language: null, search_paused: false }),
     );
     const inSpy = playersTable.update().eq().in as ReturnType<typeof vi.fn>;
     expect(inSpy).toHaveBeenCalledWith("status", ["matchmaking", "available"]);

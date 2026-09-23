@@ -21,6 +21,11 @@ export interface QueueRoomViewProps {
   elapsed: string;
   /** The live line: `setting the field · n of 100 letters`, then `round 1 in 3`. */
   live: string;
+  /**
+   * Spec 069: what the search says when it is not simply searching (paused, the
+   * 3:00 check, stopped, the cooldown): the top bar's name and sub-line, and its action.
+   */
+  search?: { name: string; subline: string; action?: ReactNode } | null;
   hint: string;
   onAction: (action: LedgerAction) => void;
   /** The field slot — the placeholder field, wired by the controller. */
@@ -71,9 +76,9 @@ export function QueueRoomView(props: QueueRoomViewProps) {
             seat="opp"
             position="top"
             state="searching"
-            name={FINDING_OPPONENT}
-            subline={searchingSubline(elapsed)}
-            action={cancelButton("player-bar-action-cancel", "action-secondary")}
+            name={props.search?.name ?? FINDING_OPPONENT}
+            subline={props.search?.subline ?? searchingSubline(elapsed)}
+            action={props.search ? props.search.action : cancelButton("player-bar-action-cancel", "action-secondary")}
           />
         )
       }

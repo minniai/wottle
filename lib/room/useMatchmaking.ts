@@ -1,17 +1,29 @@
 "use client";
 
 import type { Language } from "@/lib/types/game-config";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { cancelQueueAction } from "@/app/actions/matchmaking/cancelQueue";
 import { getMatchOverviewAction } from "@/app/actions/matchmaking/getMatchOverview";
 import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
+import { useAttention } from "@/components/room/hooks/useAttention";
 import type { PlayerIdentity } from "@/lib/types/match";
 
+import { queueView } from "./queueView";
+
 export const QUEUE_POLL_MS = 3_000;
+const TICK_MS = 1_000;
 
 export type MatchmakingState =
   | { kind: "searching"; elapsedSeconds: number }
+  /** Spec 069 FR-021: the tab went hidden; the search waits for `resume ▸`. */
+  | { kind: "paused" }
+  /** Spec 069 FR-022: 3:00 in, with a 30s drain. */
+  | { kind: "stillSearching"; elapsedSeconds: number; drain: number }
+  /** The check went unanswered: the search was left. */
+  | { kind: "stopped" }
+  /** Spec 069 FR-024: two table leaves in 10 minutes. */
+  | { kind: "cooldown"; leftMs: number }
   | { kind: "found"; matchId: string; opponent: PlayerIdentity | null }
   | { kind: "cancelled" }
   | { kind: "error"; message: string };
@@ -19,56 +31,122 @@ export type MatchmakingState =
 export interface MatchmakingApi {
   state: MatchmakingState;
   cancel: () => Promise<void>;
+  /** `resume ▸` after a pause. */
+  resume: () => void;
+  /** `keep searching ▸` at the 3:00 check. */
+  keepSearching: () => void;
+}
+
+type Outcome = Extract<MatchmakingState, { kind: "found" | "cancelled" | "error" }>;
+
+interface Facts {
+  queuedAtMs: number;
+  paused: boolean;
+  checkAnsweredAtMs: number | null;
+  cooldownUntilMs: number | null;
+}
+
+/** Ticks once a second while `active`: the queue's lines count, the check drains. */
+function useSecond(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => setNow(Date.now()), TICK_MS);
+    return () => clearInterval(id);
+  }, [active]);
+  return now;
+}
+
+/** A hidden tab pauses the search on every device (spec 069 FR-021): a beacon, then no more asking. */
+function usePauseWhenHidden(active: boolean, pause: () => void): void {
+  useEffect(() => {
+    if (!active) return;
+    const onChange = () => {
+      if (document.visibilityState !== "hidden") return;
+      navigator.sendBeacon?.("/api/matchmaking/pause");
+      pause();
+    };
+    document.addEventListener("visibilitychange", onChange);
+    return () => document.removeEventListener("visibilitychange", onChange);
+  }, [active, pause]);
+}
+
+function toState(facts: Facts, nowMs: number, outcome: Outcome | null): MatchmakingState {
+  if (outcome) return outcome;
+  const view = queueView({ ...facts, nowMs });
+  switch (view.kind) {
+    case "searching":
+      return { kind: "searching", elapsedSeconds: Math.floor(view.elapsedMs / 1000) };
+    case "stillSearching":
+      return { kind: "stillSearching", elapsedSeconds: Math.floor(view.elapsedMs / 1000), drain: view.drain };
+    default:
+      return view;
+  }
 }
 
 /**
- * Ranked queue (ported from MatchmakingClient): `startQueueAction` is polled
- * every 3 s until `matched`; the opponent's identity comes from
- * `getMatchOverviewAction`. Pure state — rendering is the room's job.
+ * The queue (spec 044 US8, spec 069 US4): `startQueueAction` is asked every 3s,
+ * with the tab's attention, until `matched`. A hidden tab pauses the search;
+ * 3:00 in it asks whether to keep searching and leaves the queue if nobody
+ * answers; the table-leave cooldown stops it. Pure state: rendering is the room's.
  */
 /** `language` is the lobby's game language (spec 060): the queue pairs only within it. */
 export function useMatchmaking(enabled: boolean, startedAt = Date.now(), language: Language = "is"): MatchmakingApi {
-  const [state, setState] = useState<MatchmakingState>({ kind: "searching", elapsedSeconds: 0 });
-  const stopped = useRef(false);
+  const [facts, setFacts] = useState<Facts>({ queuedAtMs: startedAt, paused: false, checkAnsweredAtMs: null, cooldownUntilMs: null });
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const attention = useAttention();
+  const now = useSecond(enabled && outcome === null);
+  const state = toState(facts, now, outcome);
+  const asking = enabled && (state.kind === "searching" || state.kind === "stillSearching");
 
-  useEffect(() => {
-    if (!enabled) return;
-    stopped.current = false;
-    const tick = setInterval(() => {
-      setState((prev) => (prev.kind === "searching" ? { kind: "searching", elapsedSeconds: Math.floor((Date.now() - startedAt) / 1000) } : prev));
-    }, 1_000);
-    return () => clearInterval(tick);
-  }, [enabled, startedAt]);
+  const pause = useCallback(() => setFacts((f) => ({ ...f, paused: true })), []);
+  usePauseWhenHidden(enabled && outcome === null, pause);
 
-  useEffect(() => {
-    if (!enabled) return;
-    let active = true;
-    const poll = async () => {
-      if (stopped.current) return;
-      const result = await startQueueAction({ language }).catch((e: Error) => ({ status: "error" as const, message: e.message }));
-      if (!active || stopped.current) return;
+  const handleResult = useCallback(
+    async (result: Awaited<ReturnType<typeof startQueueAction>>) => {
       if (result.status === "matched" && result.matchId) {
-        stopped.current = true;
         const overview = await getMatchOverviewAction({ matchId: result.matchId }).catch(() => null);
-        if (!active) return;
-        setState({ kind: "found", matchId: result.matchId, opponent: overview && overview.status === "ok" ? overview.opponent : null });
+        setOutcome({ kind: "found", matchId: result.matchId, opponent: overview && overview.status === "ok" ? overview.opponent : null });
+      } else if (result.status === "cooldown" && result.until) {
+        setFacts((f) => ({ ...f, cooldownUntilMs: Date.parse(result.until!) }));
+      } else if (result.status === "paused") {
+        pause();
+      } else if (result.status === "queued" && result.queuedAt) {
+        setFacts((f) => ({ ...f, queuedAtMs: Date.parse(result.queuedAt!) }));
       } else if (result.status === "error" || result.status === "unauthenticated") {
-        setState({ kind: "error", message: "message" in result && result.message ? result.message : result.status });
+        setOutcome({ kind: "error", message: result.message ?? result.status });
       }
+    },
+    [pause],
+  );
+
+  useEffect(() => {
+    if (!asking) return;
+    let active = true;
+    const ask = async () => {
+      const result = await startQueueAction({ language, attention: attention() }).catch((e: Error) => ({ status: "error" as const, message: e.message }));
+      if (active) await handleResult(result);
     };
-    void poll();
-    const id = setInterval(poll, QUEUE_POLL_MS);
+    void ask();
+    const id = setInterval(ask, QUEUE_POLL_MS);
     return () => {
       active = false;
       clearInterval(id);
     };
-  }, [enabled, language]);
+  }, [asking, language, attention, handleResult]);
+
+  // An unanswered check leaves the queue, once (FR-022).
+  const stopped = enabled && state.kind === "stopped";
+  useEffect(() => {
+    if (stopped) void cancelQueueAction().catch(() => undefined);
+  }, [stopped]);
 
   const cancel = useCallback(async () => {
-    stopped.current = true;
-    setState({ kind: "cancelled" });
+    setOutcome({ kind: "cancelled" });
     await cancelQueueAction().catch(() => undefined);
   }, []);
+  const resume = useCallback(() => setFacts((f) => ({ ...f, paused: false })), []);
+  const keepSearching = useCallback(() => setFacts((f) => ({ ...f, checkAnsweredAtMs: Date.now() })), []);
 
-  return { state, cancel };
+  return { state, cancel, resume, keepSearching };
 }

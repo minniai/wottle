@@ -30,8 +30,12 @@ export async function cancelQueueAction(): Promise<CancelQueueActionState> {
 
     await supabase
       .from("players")
+      // Spec 069: a cancelled search leaves the queue entirely; the next search starts at the back.
       .update({
         status: "available",
+        queued_at: null,
+        queue_language: null,
+        search_paused: false,
         last_seen_at: new Date().toISOString(),
       })
       .eq("id", session.player.id)
