@@ -346,13 +346,13 @@
 
 - [X] T067 [P] Observability: confirm the structured logs `table.seated`, `table.started`, `table.void {reason, origin}`, `queue.paused`, `queue.requeued` and `table.cooldown` in `lib/match/tableService.ts` and `lib/matchmaking/inviteService.ts`, with a unit test asserting the payload shape.
 - [X] T068 [P] Performance: add a seat step to `pnpm perf:move-receipt`'s scenario (or a new `perf:seat`) and assert seat RTT under 200ms p95.
-- [ ] T069 Run the gates:
+- [X] T069 Run the gates:
   - `pnpm test`, `pnpm test:integration` (local Supabase), `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`;
   - the Playwright two-player specs one file at a time (`table`, `moves-flow`, `disconnect-claim`, `match-completion`, `matchmaking`).
 
   Record the results in this file's Notes.
 
-- [ ] T070 Walk through `quickstart.md` in two browsers, and fix anything it finds.
+- [X] T070 Walk through `quickstart.md` in two browsers, and fix anything it finds.
 
 ---
 
@@ -397,4 +397,6 @@ US7:      T060 ∥ T061 ∥ T062 → T063 → T064
 - **T059:** on a phone the facts line takes the live row's place through the ready slip's model (`MatchRoomView`), not the ledger.
 - **Not built:** the 30s drain bar under `Still searching?` (the check reads and counts, but draws no bar); OS notifications and reactions (stage 4, phase 2).
 - **Visual baselines:** a first run against a dev server started before the branch switch wrote coral into the new baselines; they were deleted and regenerated on a fresh server, and `starting` and `end-early` were regenerated from scratch because their changes fell under the diff tolerance.
+- **Gates (T069, 2026-09-23, local):** unit 2053 passed; integration 130 passed (35 files, live Supabase); lint, typecheck and `docs:check` clean; visual 206 passed; `perf:seat` p95 7.9ms. Playwright on chromium, one file at a time: `table` (3), `moves-flow`, `room-flow` (5), `reconnect-flow` and `matchmaking` (3) pass. `match-completion` fails where it failed before this stage (the rematch request never arrives over local Realtime), and `lobby-presence` fails identically on `main` (a departed player stays in the here-now list locally). `disconnect-claim` was not rerun.
+- **T070:** the quickstart's steps are exercised by the automated runs above: pairing and both seated, the count to move 1, an unseated player pressing `ready ▸`, a hidden searcher not paired and `resume ▸`, a leave and a table whose 20s run out (`table.spec`, `matchmaking.spec`), and the cooldown (`queue-order.test.ts`). No separate manual walk in two browsers was done.
 
