@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import type { Language } from "@/lib/types/game-config";
 
+import { startTableIfSeated, type TableDeps } from "./tableService";
+
 /**
  * The only TypeScript door to making a match (spec 067 FR-016). Each wrapper
  * calls one of the database functions that end in create_match_between.
@@ -16,10 +18,10 @@ export type CreateMatchResult =
   | { status: "not_pending" | "not_recipient" | "expired" | "not_completed" | "not_searching" }
   | { status: "invalid"; reason: string };
 
-type RpcClient = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }> };
+type RpcClient = TableDeps["client"];
 
 const replySchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("created"), match_id: z.string() }),
+  z.object({ status: z.literal("created"), match_id: z.string(), seats: z.object({ a: z.boolean(), b: z.boolean() }).optional() }),
   z.object({ status: z.literal("busy"), player_id: z.string() }),
   z.object({ status: z.enum(["not_pending", "not_recipient", "expired", "not_completed", "not_searching"]) }),
   z.object({ status: z.literal("invalid"), reason: z.string() }),
@@ -67,6 +69,10 @@ async function callCreation(client: RpcClient, fn: string, origin: MatchOrigin, 
   if (!parsed.success) throw new Error(`${fn}: unexpected reply ${JSON.stringify(data)}`);
   const result = toResult(parsed.data);
   logCreation(origin, result, Math.round(performance.now() - startedAt));
+  // Spec 069: a table both players sat at on creation (crossed presses, or both present) starts now.
+  if (result.status === "created" && parsed.data.status === "created" && parsed.data.seats?.a && parsed.data.seats.b) {
+    await startTableIfSeated({ client }, result.matchId);
+  }
   return result;
 }
 
