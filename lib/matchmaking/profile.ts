@@ -79,38 +79,23 @@ export async function performUsernameLogin(usernameInput: string, language: Lang
   const supabase = getServiceRoleClient();
 
   const entered = await enterPlayer(supabase, { username: normalizedUsername, displayName, claimHash });
+  return { player: await enterClaimedPlayer(entered, language) };
+}
+
+/**
+ * A player this browser may be (by name and key, or by key alone) arrives in a
+ * lobby: present there, remembered by the cache, with that lobby's rating.
+ */
+export async function enterClaimedPlayer(entered: SessionPlayer, language: Language): Promise<PlayerIdentity> {
+  const supabase = getServiceRoleClient();
   const player = await viewerInLanguage(entered, language);
-
-  console.log("[performUsernameLogin] Creating presence record...");
-  const presence = await createPresenceRecord(supabase, player.id, language);
-  console.log("[performUsernameLogin] Presence created:", {
-    playerId: presence.playerId,
-    expiresAt: presence.expiresAt,
-    mode: presence.mode,
-  });
-
-  // Verify presence record was actually persisted
-  const { data: verification, error: verifyError } = await supabase
-    .from("lobby_presence")
-    .select("*")
-    .eq("player_id", player.id)
-    .single();
-  
+  await createPresenceRecord(supabase, player.id, language);
+  const { error: verifyError } = await supabase.from("lobby_presence").select("player_id").eq("player_id", player.id).single();
   if (verifyError) {
-    console.error("[performUsernameLogin] Failed to verify presence record:", verifyError);
     throw new Error(`Presence verification failed: ${verifyError.message}`);
   }
-  
-  console.log("[performUsernameLogin] Presence verified in database:", {
-    playerId: verification.player_id,
-    expiresAt: verification.expires_at,
-    isExpired: new Date(verification.expires_at) <= new Date(),
-  });
-
   rememberPresence(player, language);
-  console.log("[performUsernameLogin] Player added to server cache");
-
-  return { player };
+  return player;
 }
 
 export async function persistLobbySession(
