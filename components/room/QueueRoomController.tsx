@@ -140,7 +140,6 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
     <QueueRoomView
       viewer={viewer}
       opponent={opponent}
-      found={null}
       elapsed={elapsed}
       live={settingField(Math.min(landed, 100))}
       search={search}

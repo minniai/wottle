@@ -119,8 +119,11 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       penalizeUnplayed,
     }, copy);
     const totals = completed ? { you: you.score, opp: opp.score } : undefined;
-    return { ...base, caption: caption ?? base.caption, verdict, totals };
-  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, props.line2Extras, holdMove, penalizeUnplayed, copy]);
+    // Game flow F5: on a phone the table's facts line leaves the slip for the live row's place.
+    const readySlip = props.tableSlip?.kind === "ready" ? props.tableSlip : null;
+    const phoneFacts = isPhone && readySlip ? { live: readySlip.model.facts } : {};
+    return { ...base, caption: caption ?? base.caption, verdict, totals, ...phoneFacts };
+  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, props.line2Extras, holdMove, penalizeUnplayed, copy, isPhone, props.tableSlip]);
   const scoreboard = useMemo(
     () =>
       deriveScoreboard(

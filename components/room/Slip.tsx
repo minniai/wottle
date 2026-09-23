@@ -174,7 +174,7 @@ function ReadyBody({ slip, onAction, headlineId, headlineRef }: { slip: Extract<
         </h2>
       </div>
       <div className="slip__rule" />
-      <span className="slip__label">{model.facts}</span>
+      <span className="slip__label" data-slip-facts>{model.facts}</span>
       {model.stakes ? <span className="slip__label" data-testid="slip-stakes">{model.stakes}</span> : null}
       <div className="slip__rule" />
       <div className="slip__seats">

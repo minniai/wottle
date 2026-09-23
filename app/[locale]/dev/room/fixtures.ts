@@ -33,7 +33,12 @@ export const ROOM_PHASES = [
   "returning-slip",
   "lobby",
   "queue",
-  "found",
+  // Spec 069: the table replaces the queue's own `found` moment; the void; a paused search.
+  "table",
+  "table-seated",
+  "void",
+  "void-queue",
+  "searching-paused",
   "idle",
   "picking",
   "illegal",
@@ -260,6 +265,33 @@ export function finalLines(copy: Copy): { you: string; opp: string } {
 export const YOUR_MOVE: MoveState = { kind: "yourMove", move: 4, opponentName: KARI.displayName };
 export const SCORING_M4: MoveState = { kind: "scoring", move: 4, opponentName: KARI.displayName };
 export const SCORED_M4: MoveState = { kind: "scored", move: 4, delta: 13, next: 5, opponentName: KARI.displayName };
+/**
+ * Spec 069 (canvas Table, Void): the table 14s before its 20s run out. Birna
+ * has not sat down (table), or has (table-seated); Kári is on the way.
+ */
+export const TABLE_NOW_MS = Date.parse("2026-09-23T12:00:06.000Z");
+export function tableState(seats: { a: string | null; b: string | null }, over: Partial<MatchState> = {}): MatchState {
+  return {
+    ...MATCH_STATE,
+    board: null,
+    state: "pending",
+    players: { playerA: facts(YOU_ID, 0, 0), playerB: facts(OPP_ID, 0, 0) },
+    clock: { startedAt: null, deadlineAt: null, serverNow: "2026-09-23T12:00:06.000Z" },
+    resolvedSeq: 0,
+    scores: { playerA: 0, playerB: 0 },
+    frozenTiles: {},
+    table: { ...SEATED_TABLE, seats, deadlineAt: "2026-09-23T12:00:20.000Z", origin: "queue" },
+    stakes: { [YOU_ID]: { win: 8, draw: 0, loss: -8 }, [OPP_ID]: { win: 8, draw: 0, loss: -8 } },
+    ...over,
+  };
+}
+/** Spec 069 C3: Kári did not sit down; from a challenge (void) or the queue, Birna requeued (void-queue). */
+export function voidState(origin: "queue" | "challenge"): MatchState {
+  const seats = { a: "2026-09-23T12:00:01.000Z", b: null };
+  return tableState(seats, { state: "completed", endedReason: "void", completedAt: "2026-09-23T12:00:20.000Z", table: { ...SEATED_TABLE, seats, deadlineAt: "2026-09-23T12:00:20.000Z", origin, voidReason: "not_seated", voidedBy: OPP_ID }, stakes: null });
+}
+export const VOID_SEARCHING_ELAPSED = "0:03";
+
 /** Spec 068: your move 4 found no word; held as the missed beat. */
 export const MISSED_M4: MoveState = { kind: "scored", move: 4, delta: -5, next: 5, missed: true, opponentName: KARI.displayName };
 /** Spec 068 (artboard MatchLastMinute): your move 8 at 0:48, three moves left worth −15 at 0:00. */

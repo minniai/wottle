@@ -1320,6 +1320,72 @@
     align-items: center;
   }
 }
+/* The table (spec 069, game flow C1, C3): who you play, the stakes, the seats, a 20s drain. */
+.slip[data-kind="ready"],
+.slip[data-kind="void"] {
+  width: 440px;
+  overflow: hidden;
+}
+/* A headline the game focuses (tabindex -1) is read, not operated: no ring (§5.9). */
+.slip__headline[tabindex="-1"]:focus {
+  outline: none;
+}
+.slip[data-kind="ready"] .slip__headline {
+  font-weight: 600;
+}
+.slip[data-kind="ready"] .slip__headline .slip__mono {
+  font-size: 13px;
+  margin-left: 6px;
+}
+.slip[data-kind="void"] .slip__headline {
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.15;
+}
+.slip__seats {
+  display: flex;
+  flex-direction: column;
+}
+.slip__seat {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 28px;
+}
+.slip__seat .slip__mono {
+  color: var(--muted);
+}
+.slip__seat[data-seated="true"] .slip__mono {
+  color: var(--ink);
+}
+.slip__drain {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--ink);
+  transform-origin: left center;
+}
+@media (max-width: 900px) {
+  /* Game flow F5: on a phone the table's slip is exactly the field's square; the facts move to the ledger. */
+  .room[data-layout="scoreboard"] .slip[data-kind="ready"],
+  .room[data-layout="scoreboard"] .slip[data-kind="void"] {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 20px;
+    gap: 10px;
+  }
+  .slip[data-kind="ready"] .slip__headline,
+  .slip[data-kind="void"] .slip__headline {
+    font-size: 28px;
+  }
+  .slip [data-slip-facts] {
+    display: none;
+  }
+}
 /* Resign's secondary always sits on its own line (game flow C6). */
 .slip__actions[data-stacked] {
   flex-direction: column;

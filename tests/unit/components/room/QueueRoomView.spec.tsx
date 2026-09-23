@@ -19,7 +19,6 @@ function view(overrides: Partial<Parameters<typeof QueueRoomView>[0]> = {}) {
     <QueueRoomView
       viewer={me}
       opponent={null}
-      found={null}
       elapsed="0:07"
       live="setting the field · 58 of 100 letters"
       hint="searching · 0:07 · cancel ▸"
@@ -33,7 +32,7 @@ function view(overrides: Partial<Parameters<typeof QueueRoomView>[0]> = {}) {
 
 /**
  * The queue view is presentational, as `MatchRoomView` is: the fixture route
- * (spec 045 US1) mounts it for the `queue` and `found` phases from static data.
+ * (spec 045 US1) mounts it for the `queue` and `searching-paused` phases from static data.
  * Polling, timers and the board swap stay in the controller.
  */
 describe("QueueRoomView (spec 045 US1, FR-003)", () => {
@@ -51,20 +50,16 @@ describe("QueueRoomView (spec 045 US1, FR-003)", () => {
     expect(screen.getByTestId("ledger-hint")).toHaveTextContent("searching · 0:07 · cancel ▸");
   });
 
-  it("found: the live row counts round 1 in", () => {
-    render(view({ opponent: kari, found: { countdown: 3 }, live: "round 1 in 3" }));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("round 1 in 3");
-  });
-
   it("searching: the top bar hunts and offers cancel", () => {
     render(view());
     expect(screen.getByText(FINDING_OPPONENT)).toBeTruthy();
     expect(screen.getByTestId("player-bar-action-cancel").textContent).toContain(CANCEL);
   });
 
-  it("found: the opponent is written into the top bar and cancel is gone", () => {
-    render(view({ opponent: kari, found: { countdown: 3 } }));
-    expect(screen.getByText("Kári")).toBeTruthy();
+  it("a paused search says so in the top bar with its own action (spec 069 FR-021)", () => {
+    render(view({ search: { name: FINDING_OPPONENT, subline: "search paused", action: <button type="button" data-testid="queue-resume">resume ▸</button> } }));
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("search paused");
+    expect(screen.getByTestId("queue-resume")).toBeTruthy();
     expect(screen.queryByTestId("player-bar-action-cancel")).toBeNull();
   });
 
