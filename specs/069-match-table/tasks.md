@@ -196,7 +196,7 @@
 - [X] T032 [US2] Implement the lift and the count in `lib/room/tableSlip.ts` and `lib/room/moveState.ts` (clamp the count to 3; line 2 `pickWhenClockStarts`).
 - [X] T033 [US2] At go in `components/room/MatchRoomController.tsx`: wire `playMatchStart` (existing `useSoundEffects`), keep the spec 068 focus-to-field, and announce line 1. The letters land when the `in_progress` snapshot brings the board (the existing `letter-land`, row by row; instant under reduced motion). Extend `tests/unit/components/room/MatchRoomController.table.spec.tsx`.
 - [X] T034 [P] [US2] Add the tab title `3 · Kári · Wottle` during the count in `lib/room/tabTitle.ts` (test first).
-- [ ] T035 [US2] Extend the Playwright `tests/integration/ui/table.spec.ts`: both pages read `starts in 3` within 250ms of each other (sampled every 50ms), and both show `move 1 · your move` at go.
+- [X] T035 [US2] Extend the Playwright `tests/integration/ui/table.spec.ts`: both pages read `starts in 3` within 250ms of each other (sampled every 50ms), and both show `move 1 · your move` at go.
 
 ---
 
@@ -236,9 +236,9 @@
 
 **Independent test:** with one searcher stale by 12s and two fresh ones, a new searcher pairs with the one who joined first.
 
-- [ ] T045 [P] [US4] Write the failing DB test in `tests/integration/db/queue-order.test.ts` (the `pair-from-queue.test.ts` patterns): candidates in `queued_at` order; stale (>10s) and paused players skipped; `queued_at` unchanged by polls and kept through a requeue.
-- [ ] T046 [P] [US4] Tests in `tests/unit/lib/room/queueView.spec.ts`: `searching` with the elapsed time, `paused`, `stillSearching` at 180s with a 30s drain, `stopped` at 210s, `cooldown` first, and an answered check resetting the 180s.
-- [ ] T047 [US4] Change `lib/matchmaking/inviteService.ts`:
+- [X] T045 [P] [US4] Write the failing DB test in `tests/integration/db/queue-order.test.ts` (the `pair-from-queue.test.ts` patterns): candidates in `queued_at` order; stale (>10s) and paused players skipped; `queued_at` unchanged by polls and kept through a requeue.
+- [X] T046 [P] [US4] Tests in `tests/unit/lib/room/queueView.spec.ts`: `searching` with the elapsed time, `paused`, `stillSearching` at 180s with a 30s drain, `stopped` at 210s, `cooldown` first, and an answered check resetting the 180s.
+- [X] T047 [US4] Change `lib/matchmaking/inviteService.ts`:
   - `joinQueue` sets `queued_at` only when it is null and `search_paused=false` on a visible poll, and records the attention;
   - a hidden poll sets `search_paused=true` and returns `paused`;
   - `fetchQueueCandidates` filters freshness and not paused, and orders by `queued_at`;
@@ -246,9 +246,9 @@
 
   Update `tests/unit/lib/matchmaking/inviteService*.spec.ts` first.
 
-- [ ] T048 [US4] Test first in `tests/contract/queue-actions.contract.test.ts` (`startQueueAction` with attention, `paused`, `cooldown`; `resumeQueueAction` keeps `queued_at`; `cancelQueueAction` clears `queued_at` and `queue_language`) and `tests/contract/pause-beacon.contract.test.ts` (204, pauses only a `matchmaking` player, no session → 401). Then change `app/actions/matchmaking/startQueue.ts` (input `attention`; result `queuedAt` and `paused`), add `app/actions/matchmaking/resumeQueue.ts`, add `app/api/matchmaking/pause/route.ts` (the beacon, 204), and change `app/actions/matchmaking/cancelQueue.ts` to clear `queued_at` and `queue_language` (with a `reason`).
-- [ ] T049 [US4] Implement `lib/room/queueView.ts` (T046).
-- [ ] T050 [US4] Change `lib/room/useMatchmaking.ts`:
+- [X] T048 [US4] Test first in `tests/contract/queue-actions.contract.test.ts` (`startQueueAction` with attention, `paused`, `cooldown`; `resumeQueueAction` keeps `queued_at`; `cancelQueueAction` clears `queued_at` and `queue_language`) and `tests/contract/pause-beacon.contract.test.ts` (204, pauses only a `matchmaking` player, no session → 401). Then change `app/actions/matchmaking/startQueue.ts` (input `attention`; result `queuedAt` and `paused`), add `app/actions/matchmaking/resumeQueue.ts`, add `app/api/matchmaking/pause/route.ts` (the beacon, 204), and change `app/actions/matchmaking/cancelQueue.ts` to clear `queued_at` and `queue_language` (with a `reason`).
+- [X] T049 [US4] Implement `lib/room/queueView.ts` (T046).
+- [X] T050 [US4] Change `lib/room/useMatchmaking.ts`:
   - send the attention on each poll;
   - send a `sendBeacon` to the pause route on `visibilitychange` to hidden;
   - expose `resume()` and `answerCheck()`;
@@ -261,8 +261,8 @@
 
   Remove `found` from `lib/room/roomStore.ts`. Test it in `tests/unit/components/room/QueueRoomController.spec.tsx`.
 
-- [ ] T051 [P] [US4] Add the tab title `searching 0:07 · Wottle` in `lib/room/tabTitle.ts` (test first), and set it from `QueueRoomController`.
-- [ ] T052 [US4] Extend the Playwright `tests/integration/ui/matchmaking.spec.ts`:
+- [X] T051 [P] [US4] Add the tab title `searching 0:07 · Wottle` in `lib/room/tabTitle.ts` (test first), and set it from `QueueRoomController`.
+- [X] T052 [US4] Extend the Playwright `tests/integration/ui/matchmaking.spec.ts`:
   - a hidden searcher (`page.evaluate` dispatching `visibilitychange` with a stubbed `document.visibilityState`) is not paired, and reads `search paused · resume ▸` on return;
   - a closed searcher is not paired after 10s.
 
@@ -274,11 +274,11 @@
 
 **Independent test:** after two recorded leaves, a search and a challenge are refused with the time remaining, and the lobby counts it down.
 
-- [ ] T053 [P] [US5] Write the failing tests:
+- [X] T053 [P] [US5] Write the failing tests:
   - `tests/unit/lib/matchmaking/cooldown.spec.ts`: `startAutoQueue` returns `cooldown` with `until`; `sendDirectInvite` throws `table_cooldown`; `respondToInvite` accept is not gated.
   - A test in `tests/unit/components/room/LobbyRoomController.cooldown.spec.tsx`: the find slot reads `find again in 4:12`, counts down, and is not a button.
-- [ ] T054 [US5] Call `table_leave_cooldown_until` from `lib/matchmaking/inviteService.ts` (`startAutoQueue`, `sendDirectInvite`). Return `cooldownUntil` from `app/api/match/active/route.ts`.
-- [ ] T055 [US5] Draw the cooldown in the lobby's find slot in `components/room/LobbyRoomController.tsx` / `LobbyRoomView.tsx`. The void slip's `challenge again ▸` shows the same refusal line.
+- [X] T054 [US5] Call `table_leave_cooldown_until` from `lib/matchmaking/inviteService.ts` (`startAutoQueue`, `sendDirectInvite`). Return `cooldownUntil` from `app/api/match/active/route.ts`.
+- [X] T055 [US5] Draw the cooldown in the lobby's find slot in `components/room/LobbyRoomController.tsx` / `LobbyRoomView.tsx`. The void slip's `challenge again ▸` shows the same refusal line.
 
 ---
 
@@ -288,10 +288,10 @@
 
 **Independent test:** at 390×844, 390×664 and 360×640 the table fits with `ég er til ▸` and `fara` visible and nothing scrolling.
 
-- [ ] T056 [P] [US6] Tests in `tests/unit/hooks/useWakeLock.spec.ts`: requests the lock when active on a coarse pointer, re-acquires on visible, releases on inactive or unmount, and is a no-op without `navigator.wakeLock`.
-- [ ] T057 [US6] Implement `components/room/hooks/useWakeLock.ts`. Use it in `MatchRoomController` (the `table` beat) and in `QueueRoomController` (searching).
-- [ ] T058 [US6] Test first: extend `tests/integration/ui/room-fixtures.spec.ts`: `phone-table` at 390×844, 390×664 and 360×640 with no scroll and both actions in view; axe clean. These fail until T059.
-- [ ] T059 [US6] Phone layout:
+- [X] T056 [P] [US6] Tests in `tests/unit/hooks/useWakeLock.spec.ts`: requests the lock when active on a coarse pointer, re-acquires on visible, releases on inactive or unmount, and is a no-op without `navigator.wakeLock`.
+- [X] T057 [US6] Implement `components/room/hooks/useWakeLock.ts`. Use it in `MatchRoomController` (the `table` beat) and in `QueueRoomController` (searching).
+- [X] T058 [US6] Test first: extend `tests/integration/ui/room-fixtures.spec.ts`: `phone-table` at 390×844, 390×664 and 360×640 with no scroll and both actions in view; axe clean. These fail until T059.
+- [X] T059 [US6] Phone layout:
   - `components/room/Slip.tsx` phone budget for ready and void (F5 table: label, headline 28px, stakes, seats, actions, drain), with the facts line dropped;
   - `components/room/Ledger.tsx` collapsed live-row position carries the facts line at the table;
   - styles in `app/styles/room.css`. Make T058 pass.
@@ -304,24 +304,24 @@
 
 **Independent test:** `pnpm docs:check` passes; the six phases and the phone table render with no database; the visual suite passes.
 
-- [ ] T060 [P] [US7] Fixtures in `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`:
+- [X] T060 [P] [US7] Fixtures in `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`:
   - the phases `table`, `table-seated`, `void` (challenge origin), `void-queue` and `searching-paused`;
   - `starting` updated to follow the table (4.5s lead, slip lifted);
   - the phone view `phone-table` over `table`.
 
   Extend the phase list test.
 
-- [ ] T061 [P] [US7] Rules document `docs/prd_and_requirements/wottle_game_rules.md`:
+- [X] T061 [P] [US7] Rules document `docs/prd_and_requirements/wottle_game_rules.md`:
   - §2a: "every match that starts is rated …" (spec US7 scenario 1);
   - §12: a new row _The table_ (seating, 20s, void);
   - the _Clock_ row names `starting` with the 4.5s lead;
   - the _Every match is rated_ row excludes voids.
-- [ ] T062 [P] [US7] Design system `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`:
+- [X] T062 [P] [US7] Design system `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`:
   - §1.1 and §5.9: the ready and void slip kinds and the ranking;
   - §5.3: the table sub-lines;
   - §8: the table, void and queue strings;
   - §6: "time is not motion" names the table drain.
-- [ ] T063 [US7] Update `CLAUDE.md`:
+- [X] T063 [US7] Update `CLAUDE.md`:
   - a spec 069 paragraph in Current State;
   - Design: the slip kinds;
   - Architecture: §4 match states with the table, §4a `pressed_by`, §5 "the start", §7 the room flow (queue → table at `/match/:id`);
@@ -331,21 +331,21 @@
 
   Add retired phrases to `scripts/docs/consistency-grep.sh` (`START_GRACE_MS`, `start_match_if_ready`, the `found` phase). Run `pnpm docs:check`.
 
-- [ ] T064 [US7] Run `pnpm test:visual --update-snapshots` for the new and changed phases (darwin). Review every changed baseline by eye, and delete any orphaned `found-visual-*` baselines.
+- [X] T064 [US7] Run `pnpm test:visual --update-snapshots` for the new and changed phases (darwin). Review every changed baseline by eye, and delete any orphaned `found-visual-*` baselines.
 
 ---
 
 ## Phase 10: User Story 8 - The resign slip names the loss (P3)
 
-- [ ] T065 [P] [US8] Test in `tests/unit/lib/i18n/resignConsequence.spec.ts`: `resignConsequence(name, loss)` ends `· −9` in both languages, and the slip draws it in ink (no `.points-lost`).
-- [ ] T066 [US8] Pass the stored `stakes[viewer].loss` (kept in `roomStore` from the table, T010) from `MatchRoomController` to the resign slip; with no stored stakes (a reload mid-match) the body omits the number. Update `lib/i18n/copy/{en,is}.ts`, and remove the item from `TODOS.md`.
+- [X] T065 [P] [US8] Test in `tests/unit/lib/i18n/resignConsequence.spec.ts`: `resignConsequence(name, loss)` ends `· −9` in both languages, and the slip draws it in ink (no `.points-lost`).
+- [X] T066 [US8] Pass the stored `stakes[viewer].loss` (kept in `roomStore` from the table, T010) from `MatchRoomController` to the resign slip; with no stored stakes (a reload mid-match) the body omits the number. Update `lib/i18n/copy/{en,is}.ts`, and remove the item from `TODOS.md`.
 
 ---
 
 ## Phase 11: Polish & cross-cutting
 
-- [ ] T067 [P] Observability: confirm the structured logs `table.seated`, `table.started`, `table.void {reason, origin}`, `queue.paused`, `queue.requeued` and `table.cooldown` in `lib/match/tableService.ts` and `lib/matchmaking/inviteService.ts`, with a unit test asserting the payload shape.
-- [ ] T068 [P] Performance: add a seat step to `pnpm perf:move-receipt`'s scenario (or a new `perf:seat`) and assert seat RTT under 200ms p95.
+- [X] T067 [P] Observability: confirm the structured logs `table.seated`, `table.started`, `table.void {reason, origin}`, `queue.paused`, `queue.requeued` and `table.cooldown` in `lib/match/tableService.ts` and `lib/matchmaking/inviteService.ts`, with a unit test asserting the payload shape.
+- [X] T068 [P] Performance: add a seat step to `pnpm perf:move-receipt`'s scenario (or a new `perf:seat`) and assert seat RTT under 200ms p95.
 - [ ] T069 Run the gates:
   - `pnpm test`, `pnpm test:integration` (local Supabase), `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`;
   - the Playwright two-player specs one file at a time (`table`, `moves-flow`, `disconnect-claim`, `match-completion`, `matchmaking`).
@@ -385,3 +385,16 @@ US7:      T060 ∥ T061 ∥ T062 → T063 → T064
 
 - The Linux baselines come from the CI visual job's artifacts.
 - Run the two-player Playwright specs locally one file at a time (CLAUDE.md, Test Health).
+
+### Implementation notes (2026-09-23)
+
+- **T001:** the constants live in `lib/constants/table.ts`, not `game-config.ts`, which is a rules file (CLAUDE.md, Game Rules Spec).
+- **T009:** `pressed_by` is decided in SQL (`accept_invite` and `accept_rematch` pass the accepter, or both for a crossed press); `createMatch.ts` only starts a table full at creation.
+- **T006:** every table function takes the players' locks before the match. `seat_player` updates the match row twice in one transaction, the second update re-checks its player foreign keys, and taking the match first deadlocked against a leave in the race test.
+- **T047:** the "higher id claims" tie-break is gone. With `queued_at` order it would have kept the oldest searcher waiting on a newer one; `pair_from_queue`'s locks already keep one match per pair.
+- **T048:** there is no `resumeQueueAction`. The first poll of a search, and the first after `resume ▸`, carry `resume: true`; no other poll clears a pause. The browser test found a poll in flight when the tab went hidden landing after the pause beacon and clearing it, so a poll that returns to a hidden tab sends the beacon again.
+- **T050:** the queue's `found` phase is gone from the store, the view and the fixtures, with its baselines.
+- **T059:** on a phone the facts line takes the live row's place through the ready slip's model (`MatchRoomView`), not the ledger.
+- **Not built:** the 30s drain bar under `Still searching?` (the check reads and counts, but draws no bar); OS notifications and reactions (stage 4, phase 2).
+- **Visual baselines:** a first run against a dev server started before the branch switch wrote coral into the new baselines; they were deleted and regenerated on a fresh server, and `starting` and `end-early` were regenerated from scratch because their changes fell under the diff tolerance.
+
