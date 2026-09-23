@@ -244,4 +244,16 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     // Cleared from the URL so a reload does not repeat it.
     await waitFor(() => expect(window.location.search).toBe(""));
   });
+
+  // CI 2026-09-23: a re-render with a new viewer object ran the presence cleanup, whose
+  // DELETE could land after the reconnect's upsert and drop the player from the lobby.
+  it("keeps presence connected when the viewer object changes but the player does not", () => {
+    const { connect, disconnect } = useLobbyPresenceStore.getState() as unknown as { connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> };
+    connect.mockClear();
+    disconnect.mockClear();
+    const { rerender } = render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={null} />);
+    rerender(<LobbyRoomController viewer={{ ...me }} initialPlayers={[{ ...me }]} recentGames={null} />);
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(disconnect).not.toHaveBeenCalled();
+  });
 });
