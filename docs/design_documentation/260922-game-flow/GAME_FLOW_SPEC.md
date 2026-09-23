@@ -1786,15 +1786,17 @@ One box above the board holds the match's clock and both players; there are no p
 
 ## Amendment · the opponent's colour and the penalty red (23 September 2026, supersedes every coral value above)
 
-Red reads as an error, so it no longer marks a player. The opponent is indigo, and red marks points lost and nothing else.
+Red reads as an error, so the colour that marks points lost must never be mistaken for a player. The opponent is burnished terracotta, and crimson marks points lost and nothing else.
 
 | Token | Was | Now | On `--paper` | Use |
 |---|---|---|---|---|
-| `--opp` | `#C4634C` coral | `#4C5CA7` indigo (OKLCH 0.50 0.12 272) | 6.1:1 | the opponent's letters, bands, lane, squares, totals |
-| `--opp-text` | `#AB4F3B` | retired | | indigo passes 4.5:1 at every size, so no darker text variant is needed |
-| `--err` | | `#B63230` brick red (OKLCH 0.52 0.17 26) | 5.9:1 | points lost only |
+| `--opp` | `#C4634C` coral | `#B56A4F` burnished terracotta (OKLCH 0.60 0.10 40) | 4.0:1 | the opponent's letters (17px and up), bands, lane, squares, totals |
+| `--opp-text` | `#AB4F3B` | `#A1583D` (same hue, darker) | 5.2:1 (4.7:1 on `--tint`) | the opponent's text under 17px: ledger words, numerals, lobby scores |
+| `--err` | | `#AD1F3D` crimson (OKLCH 0.49 0.18 16) | 6.8:1 | points lost only |
 
-- **Why indigo.** It sits about 80° of hue from teal at nearly the same lightness (0.50 against teal's 0.54), so neither seat outweighs the other. It is also much easier to tell apart from teal for colour-blind players: the OKLab distance after deuteranopia simulation is 0.11, against 0.07 for coral. Bands stay 14% (settled) and 30% (live), `rgba(76,92,167,…)`.
-- **Where red appears:** the `−5` of a move with no word, `−5` for each move not played at 0:00, and the `−15` in the live row's `3 moves left · −15 if unplayed`. Only the number is red; its label (`no word`, `not played`, `if unplayed`) stays `--muted`, so red is never the only carrier.
-- **Where red never appears:** seats, rating losses (`1187 → 1179 · −8` stays ink), urgency (the clock stays weight-only), frames, focus or any control.
-- The palette stays at eight tokens: `--err` takes the place of `--opp-text`. Every `--opp-text` and "coral" mention above (the result slip, the lobby strips, the lockup at small cells) now reads `--opp`.
+- **Terracotta against coral.** It is quieter than coral: lower chroma (0.10 against 0.13) and a browner hue (40° against 35°). It sits beside teal as an earth pair instead of reading as an alarm. Bands stay 14% (settled) and 30% (live), `rgba(181,106,79,…)`.
+- **Why the error colour is crimson, not brick red.** A brick red (`#B63230`) sits too close to terracotta text (OKLab distance 0.08), and a `−5` in the opponent's column would read as their colour. Crimson is cooler and deeper (distance 0.11 to `--opp-text`, 0.15 to `--opp`), so a loss reads as a loss.
+- **Colour-blind note.** Teal against terracotta keeps coral's weakest pair under protanopia (OKLab distance 0.06). Seats are therefore never told apart by colour alone: the square and name on each scoreboard row, the ledger's column (yours left of the spine, theirs right) carry the same fact, and every scored cell names who froze it to a screen reader.
+- **Where crimson appears:** the `−5` of a move with no word, `−5` for each move not played at 0:00, and the `−15` in the live row's `3 moves left · −15 if unplayed`. Only the number is crimson; its label (`no word`, `not played`, `if unplayed`) stays `--muted`, so colour is never the only carrier.
+- **Where crimson never appears:** seats, rating losses (`1187 → 1179 · −8` stays ink), urgency (the clock stays weight-only), frames, focus or any control.
+- The palette grows to nine tokens with `--err`. Every "coral" above now reads "terracotta"; the `--opp` and `--opp-text` roles are unchanged.
