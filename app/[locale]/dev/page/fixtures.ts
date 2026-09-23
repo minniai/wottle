@@ -8,7 +8,7 @@ import type { Band, LobbyRow, Overview } from "@/lib/types/standing";
  * page twin of `/dev/room`. Each phase names the artboard it reproduces; an
  * `is-` phase renders at the unprefixed (Icelandic) path.
  */
-export const PAGE_PHASES = ["door", "is-door", "door-returning", "lobby", "is-lobby", "lobby-new", "lobby-empty"] as const;
+export const PAGE_PHASES = ["door", "is-door", "door-returning", "lobby", "is-lobby", "lobby-new", "lobby-empty", "composer", "is-composer"] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
 

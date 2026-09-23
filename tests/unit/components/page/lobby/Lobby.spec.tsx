@@ -27,7 +27,7 @@ const BASE: LobbyProps = {
   },
   recent: [{ matchId: "m1", result: "win", opponentId: "k", opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 134, opponentScore: 88, wordsFound: 10, completedAt: new Date().toISOString() }],
   onFind: vi.fn(),
-  onChallenge: vi.fn(),
+  onSend: vi.fn(async () => ({ status: "sent" as const, inviteId: "i" })),
 };
 
 function renderLobby(locale: "is" | "en", props: Partial<LobbyProps> = {}) {

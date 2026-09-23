@@ -261,11 +261,11 @@
   - `accept_invite` refuses `gone` (the invite becomes `left`) and past-expiry invites;
   - `create_match_between` supersedes the other pending incoming invites and clears `unseen_result_match_id`.
 - [X] T062 [P] [US3] Write a failing race test `tests/integration/db/challenges.race.test.ts`: 100 rounds of send, accept, withdraw, crossed send and queue pairing at once. It holds that a player never has two pending outgoing challenges, that no match is created with a busy or gone player, and that every invite ends in exactly one terminal status.
-- [ ] T063 [P] [US3] Write a failing test in `tests/unit/lib/pages/composer.spec.ts`:
+- [X] T063 [P] [US3] Write a failing test in `tests/unit/lib/pages/composer.spec.ts`:
   - line 2 carries the stakes from `stakesFor` and the terms from config, in both languages (one line on desktop, two on a phone);
   - line 3 appears for a running search or a pending outgoing challenge;
   - `sendDrawnAs` is secondary while a call is up.
-- [ ] T064 [P] [US3] Write failing component tests in `tests/unit/components/page/lobby/ComposerRow.spec.tsx`:
+- [X] T064 [P] [US3] Write failing component tests in `tests/unit/components/page/lobby/ComposerRow.spec.tsx`:
   - the row opens in place at 120px, and the order freezes;
   - focus moves to send;
   - Esc and `not now` close the row and return focus to its `challenge ▸`;
@@ -273,7 +273,7 @@
   - send ignores activation for 500ms after changing meaning;
   - the send errors are written on the row;
   - `again in 0:52` counts down to `challenge ▸`.
-- [ ] T065 [P] [US3] Write a failing unit test in `tests/unit/components/standing/useHeldOutcome.spec.ts`: a terminal status is held for 4s (400ms for `accepted`, followed by the navigation callback); a newer outcome replaces an older one; it is idempotent under repeated reads.
+- [X] T065 [P] [US3] Write a failing unit test in `tests/unit/components/standing/useHeldOutcome.spec.ts`: a terminal status is held for 4s (400ms for `accepted`, followed by the navigation callback); a newer outcome replaces an older one; it is idempotent under repeated reads.
 - [ ] T066 [US3] Write a failing Playwright spec `tests/integration/ui/lobby-challenge.spec.ts` (two players):
   - A composes and sees the stakes;
   - A sends: the slot shows the sent state with a drain, and B's row reads `sent`;
@@ -288,9 +288,9 @@
 - [X] T068 [US3] Implement `lib/matchmaking/challengeService.ts`: `send`, `withdraw`, `respond`, `expire` and `settleGone`. Each is an RPC parsed by Zod, pokes per the contract, and logs `challenge.*`. Remove `sendDirectInvite`, `getOutgoingInvite` and the `mode='direct_invite'` write from `lib/matchmaking/inviteService.ts`. Add `tests/unit/lib/matchmaking/one-challenge-writer.test.ts`, which fails on any `from("match_invitations").insert/update` outside `challengeService` and the SQL.
 - [X] T069 [US3] Implement the server actions `app/actions/challenge/send.ts`, `withdraw.ts` and `respond.ts` (Zod input, explicit return, session). Add `POST /api/lobby/invite/withdraw` (the beacon) in `app/api/lobby/invite/withdraw/route.ts`. Make `app/api/lobby/invite/[inviteId]/respond/route.ts` a wrapper around `respond`. Delete `app/actions/matchmaking/sendInvite.ts` (which holds both `sendInviteAction` and `respondInviteAction`) and the GET in `app/api/lobby/invite/route.ts`, together with their tests. Make T034 pass for withdraw.
 - [X] T070 [US3] Set `expire_challenges` in the cron sweep (replacing T041's placeholder), and change the `PLAYTEST_INVITE_EXPIRY_SECONDS` default to 60 in `lib/match/createMatch.ts` and the env docs.
-- [ ] T071 [P] [US3] Implement `lib/pages/composer.ts` (T063) and `components/standing/hooks/useHeldOutcome.ts` (T065).
-- [ ] T072 [US3] Implement `components/page/lobby/ComposerRow.tsx` and wire it into `HereNowTable.tsx`: send, `not now`, the row's status cell (`sent · 0:52`, the outcomes, `challenges you`) and the action cell (`again in`, errors). Add the phone 176px variant (F6). Make T064 pass.
-- [ ] T073 [US3] Add the challenge strings to `lib/i18n/copy/{en,is}.ts`: the composer lines, the send and withdraw labels, the outcomes table, the errors, `again in`, `withdraws your challenge`, `accepted`, `Kári can't play right now`, `Kári has left · challenge withdrawn`, and the name-safe Icelandic forms.
+- [X] T071 [P] [US3] Implement `lib/pages/composer.ts` (T063) and `components/standing/hooks/useHeldOutcome.ts` (T065).
+- [X] T072 [US3] Implement `components/page/lobby/ComposerRow.tsx` and wire it into `HereNowTable.tsx`: send, `not now`, the row's status cell (`sent · 0:52`, the outcomes, `challenges you`) and the action cell (`again in`, errors). Add the phone 176px variant (F6). Make T064 pass.
+- [X] T073 [US3] Add the challenge strings to `lib/i18n/copy/{en,is}.ts`: the composer lines, the send and withdraw labels, the outcomes table, the errors, `again in`, `withdraws your challenge`, `accepted`, `Kári can't play right now`, `Kári has left · challenge withdrawn`, and the name-safe Icelandic forms.
 - [ ] T074 [US3] Add the page phases `composer` (LobbyComposer EN-L) and `challenge-sent` (LobbySent: Kári sent at 0:52, Hekla `declined · again in 0:41`, no filled primary) to the fixtures, with their phone variants (PhoneComposer), and generate the baselines.
 
 ---

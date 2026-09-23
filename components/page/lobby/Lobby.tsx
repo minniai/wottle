@@ -12,7 +12,9 @@ import type { RecentGameRow } from "@/lib/types/lobby";
 import type { LobbyRow, Overview } from "@/lib/types/standing";
 
 import { FormStrip } from "./FormStrip";
-import { HereNowTable } from "./HereNowTable";
+import type { SendChallengeActionResult } from "@/app/actions/challenge/send";
+
+import { HereNowTable, type RowOverlay } from "./HereNowTable";
 import { LastMatch } from "./LastMatch";
 import { RecentMatches } from "./RecentMatches";
 import { YourBlock, type LobbyViewer } from "./YourBlock";
@@ -23,8 +25,14 @@ export interface LobbyProps {
   overview: Overview;
   recent: RecentGameRow[];
   onFind: () => void;
-  onChallenge: (playerId: string) => void;
+  onSend: (playerId: string) => Promise<SendChallengeActionResult>;
+  /** The viewer's standing as the rows and the composer need it (US3, US4). */
+  standing?: { searching: boolean; outgoing: boolean; callUp: boolean; overlays: Map<string, RowOverlay> };
+  /** Fixtures only: a row whose composer is open on first paint (LobbyComposer). */
+  initialOpenId?: string | null;
 }
+
+const NO_STANDING = { searching: false, outgoing: false, callUp: false, overlays: new Map<string, RowOverlay>() };
 
 /** A new player's last-match slot (B1): the rules' swap figure, the line, and the rules. */
 function FirstMatch() {
@@ -44,25 +52,36 @@ function FirstMatch() {
  * The lobby (spec 070 US2, game flow B1): your block and form, who is here,
  * your last match and your last matches. No field and no hint.
  */
-export function Lobby({ viewer, rows, overview, recent, onFind, onChallenge }: LobbyProps) {
+export function Lobby({ viewer, rows, overview, recent, onFind, onSend, standing = NO_STANDING, initialOpenId = null }: LobbyProps) {
   const copy = useCopy();
   const [frozen, setFrozen] = useState<string[] | null>(null);
   const [nowMs] = useState(() => Date.now());
+  const [composing, setComposing] = useState(initialOpenId !== null);
   const ordered = orderRows(rows, viewer.rating, frozen);
   const freeze = (on: boolean) => setFrozen(on ? ordered.map((r) => r.playerId) : null);
   const empty = rows.length === 0;
   const primary = (
-    <button type="button" className="action-primary page-primary" onClick={onFind} data-testid="lobby-find">
+    <button type="button" className={composing ? "page-link page-link--ink" : "action-primary page-primary"} onClick={onFind} data-testid="lobby-find">
       {copy.FIND_OPPONENT}
     </button>
   );
   const below = <p className="page-label lobby-block__note">{empty ? copy.pages.PAIRED_ON_ARRIVAL : copy.pages.searchingNow(overview.counts.searching)}</p>;
   return (
-    <div className="page-columns lobby">
+    <div className="page-columns lobby" data-composing={composing}>
       <div className="page-col-a">
         <YourBlock viewer={viewer} primary={primary} below={below} />
         <FormStrip results={overview.form ?? []} />
-        <HereNowTable rows={ordered} here={overview.counts.here} playing={overview.counts.playersInMatch} onChallenge={onChallenge} onFreeze={freeze} />
+        <HereNowTable
+          rows={ordered}
+          here={overview.counts.here}
+          playing={overview.counts.playersInMatch}
+          onFreeze={freeze}
+          composer={{ viewer: { rating: viewer.rating, gamesPlayed: viewer.gamesPlayed }, searching: standing.searching, outgoing: standing.outgoing, callUp: standing.callUp }}
+          overlays={standing.overlays}
+          onSend={onSend}
+          onComposing={setComposing}
+          initialOpenId={initialOpenId}
+        />
       </div>
       <div className="page-col-b">
         {overview.lastMatch ? <LastMatch last={overview.lastMatch} viewerName={viewer.displayName} nowMs={nowMs} /> : <FirstMatch />}

@@ -30,9 +30,11 @@ export function LobbyPage({ viewer, rows: initialRows, overview, recent }: Lobby
   const standing = useStandingSlot();
   const rows = useLobbyList(language, initialRows);
   const onFind = useCallback(() => router.push(to("/matchmaking")), [router, to]);
-  const onChallenge = useCallback(
-    (playerId: string) => {
-      void sendChallengeAction({ recipientId: playerId }).then((r) => r.status === "crossed" && router.push(to(`/match/${r.matchId}`)));
+  const onSend = useCallback(
+    async (playerId: string) => {
+      const result = await sendChallengeAction({ recipientId: playerId });
+      if (result.status === "crossed") router.push(to(`/match/${result.matchId}`));
+      return result;
     },
     [router, to],
   );
@@ -46,7 +48,7 @@ export function LobbyPage({ viewer, rows: initialRows, overview, recent }: Lobby
       signOut={standing.signOut}
       menuExtra={standing.menuExtra}
     >
-      <Lobby viewer={viewer} rows={rows} overview={overview} recent={recent} onFind={onFind} onChallenge={onChallenge} />
+      <Lobby viewer={viewer} rows={rows} overview={overview} recent={recent} onFind={onFind} onSend={onSend} />
     </PageFrame>
   );
 }
