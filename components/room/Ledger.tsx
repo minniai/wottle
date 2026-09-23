@@ -202,27 +202,28 @@ export function Ledger(props: LedgerProps) {
       </div>
   );
 
-  const rowsAndTotals = (
-    <>
-      <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
-        {rows.map((row) => (
-          <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
-        ))}
-      </div>
-      {model.completed && model.totals ? (
-        <div className="ledger__totals" data-testid="ledger-totals">
-          <span className="ledger__totals-you">{points(model.totals.you)}</span>
-          <span className="ledger__header-spine">{TOTAL_LABEL}</span>
-          <span className="ledger__totals-opp">{points(model.totals.opp)}</span>
-        </div>
-      ) : null}
-    </>
+  const rows10 = (
+    <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
+      {rows.map((row) => (
+        <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
+      ))}
+    </div>
   );
+
+  const totalsRow =
+    model.completed && model.totals ? (
+      <div className="ledger__totals" data-testid="ledger-totals">
+        <span className="ledger__totals-you">{points(model.totals.you)}</span>
+        <span className="ledger__header-spine">{TOTAL_LABEL}</span>
+        <span className="ledger__totals-opp">{points(model.totals.opp)}</span>
+      </div>
+    ) : null;
 
   const table = (
     <>
       {header}
-      {rowsAndTotals}
+      {rows10}
+      {totalsRow}
     </>
   );
 
@@ -262,9 +263,16 @@ export function Ledger(props: LedgerProps) {
     <div className="ledger__caption" data-testid="ledger-caption">
       <span className="ledger__wordmark">{WORDMARK}</span>
       <span className="ledger__caption-right">
-        <span className="ledger__mono" data-testid="ledger-context">
-          {model.caption}
-        </span>
+        {/* On the grid the final state's actions take the context's place: the scoreboard says the match is over (spec 068). */}
+        {grid && variant === "final" && footActions ? (
+          <span className="ledger__actions" data-testid="ledger-caption-actions">
+            {footActions}
+          </span>
+        ) : (
+          <span className="ledger__mono" data-testid="ledger-context">
+            {model.caption}
+          </span>
+        )}
         {grid ? <RoomMenu variant={menuVariant(variant)} onAction={onAction} /> : null}
       </span>
     </div>
@@ -288,7 +296,8 @@ export function Ledger(props: LedgerProps) {
         </>
       )}
 
-      {grid ? rowsAndTotals : null}
+      {/* On the grid the scoreboard's rows carry the totals, so the rows end level with the field. */}
+      {grid ? rows10 : null}
 
       {collapsed || showsTable ? null : body}
 
@@ -313,7 +322,7 @@ export function Ledger(props: LedgerProps) {
           <LedgerSheet open={sheetOpen} onClose={closeSheet}>
             {showsTable ? table : body}
             {noticeLines}
-            {footActions ? <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} menu={false} /> : null}
+            <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} menu={false} />
           </LedgerSheet>
           {/* Pinned to the bottom edge with the safe area, always visible (spec 068 FR-015). */}
           <div className="ledger__phone-foot" data-testid="ledger-phone-foot" data-field-safe>
@@ -335,8 +344,8 @@ export function Ledger(props: LedgerProps) {
 
           {noticeLines}
 
-          {/* On the grid the ⋯ lives in the caption; the final state keeps its actions in the foot. */}
-          {grid && variant === "match" ? null : <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} menu={!grid} />}
+          {/* On the grid the ⋯ and the final state's actions live in the caption. */}
+          {grid ? null : <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />}
         </>
       )}
     </section>

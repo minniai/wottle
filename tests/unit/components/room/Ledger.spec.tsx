@@ -284,8 +284,9 @@ describe("Ledger (design system §5.4)", () => {
       expect(cell.querySelector(".points-none")).toHaveTextContent("0");
     });
 
-    it("the final ledger closes with a total row in the seat colours", () => {
-      render(<Ledger variant="final" model={{ ...played, completed: true, totals: { you: 99, opp: 105 } }} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    it("the final ledger's history on a phone closes with a total row in the seat colours", () => {
+      render(<Ledger variant="final" collapsed model={{ ...played, completed: true, totals: { you: 99, opp: 105 } }} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+      fireEvent.click(screen.getByTestId("ledger-live-trigger"));
       const totals = screen.getByTestId("ledger-totals");
       expect([...totals.children].map((c) => c.textContent)).toEqual(["99", "total", "105"]);
     });

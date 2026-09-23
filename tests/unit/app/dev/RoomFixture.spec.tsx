@@ -119,11 +119,11 @@ describe("RoomFixture", () => {
     expect(screen.getByTestId("slip-end-early")).toBeInTheDocument();
   });
 
-  it("final: the ledger closes on a totals row across the spine; a live match has none", () => {
+  it("final: on the grid the scoreboard carries the totals, so the ledger ends level with the field (spec 068)", () => {
     const final = render(<RoomFixture phase="final" />);
-    const totals = screen.getByTestId("ledger-totals");
-    expect(totals.children).toHaveLength(3);
-    expect(totals.children[1]).toHaveTextContent("total");
+    expect(screen.queryByTestId("ledger-totals")).toBeNull();
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("134");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("88");
     final.unmount();
 
     render(<RoomFixture phase="idle" />);

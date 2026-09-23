@@ -38,7 +38,9 @@ function itemsFor(variant: RoomMenuVariant, { sound, rulesHref, copy }: MenuStat
       { key: "leave", label: copy.MENU_LEAVE, action: "leave" },
     ];
   }
-  return [...shared, { key: "profile", label: copy.MENU_PROFILE, action: "profile" }, { key: "signout", label: copy.SIGN_OUT, action: "signOut" }];
+  // After a match the rules stay one step away (the desktop final ledger has no foot, spec 068).
+  const rules: Item[] = variant === "final" ? [{ key: "howToPlay", label: copy.MENU_HOW_TO_PLAY, href: rulesHref }] : [];
+  return [...shared, ...rules, { key: "profile", label: copy.MENU_PROFILE, action: "profile" }, { key: "signout", label: copy.SIGN_OUT, action: "signOut" }];
 }
 
 /** The `⋯` menu in the ledger foot (design system §5.4). No dialog: a plain list. */

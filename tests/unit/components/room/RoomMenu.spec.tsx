@@ -16,13 +16,15 @@ describe("RoomMenu (spec 048 US5)", () => {
     expect(link).toHaveAttribute("rel", "noopener");
   });
 
-  it("lobby and final menus do not: their feet carry the link", () => {
-    const onAction = vi.fn();
-    for (const variant of ["lobby", "final"] as const) {
-      const { unmount } = render(<RoomMenu variant={variant} onAction={onAction} />);
-      fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
-      expect(screen.queryByTestId("ledger-menu-item-howToPlay")).toBeNull();
-      unmount();
-    }
+  it("the lobby menu does not: its foot carries the link", () => {
+    render(<RoomMenu variant="lobby" onAction={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    expect(screen.queryByTestId("ledger-menu-item-howToPlay")).toBeNull();
+  });
+
+  it("the final menu does: on the grid the final ledger has no foot (spec 068)", () => {
+    render(<RoomMenu variant="final" onAction={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    expect(screen.getByTestId("ledger-menu-item-howToPlay")).toBeInTheDocument();
   });
 });

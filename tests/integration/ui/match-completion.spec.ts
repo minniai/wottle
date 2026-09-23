@@ -78,7 +78,7 @@ test.describe("@match-completion final room state", () => {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
         await expect(p.getByTestId("field")).toBeVisible();
         await expect(p.getByTestId("verdict")).toContainText(/(wins|draw) (\d+–\d+|−?\d+ to −?\d+)/);
-        await expect(p.getByTestId("ledger-context")).toContainText(/final · \d+:\d\d/);
+        await expect(p.getByTestId("scoreboard-clock")).toContainText(/match over/i);
         await expect(p).toHaveURL(/\/match\/[0-9a-f-]+$/);
         // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });

@@ -38,11 +38,13 @@ describe("Ledger on one grid (spec 068)", () => {
     expect(screen.getAllByTestId("ledger-menu-trigger")).toHaveLength(1);
   });
 
-  it("in the final state the state's line is the verdict, and the foot keeps the state's actions", () => {
+  it("in the final state the state's line is the verdict; the actions sit in the caption and the totals on the scoreboard", () => {
     const final: LedgerModel = { ...model, completed: true, totals: { you: 134, opp: 88 }, verdict: { scoreLine: "Birna wins 134–88", detailLine: "by 46 points", winnerSeat: "you" }, territory: EMPTY_TERRITORY };
     render(<Ledger variant="final" model={final} viewerName="Birna" opponentName="Kári" footActions={<button type="button">rematch ▸</button>} onAction={() => {}} />);
     expect(within(screen.getByTestId("ledger-state-line")).getByTestId("verdict")).toHaveTextContent("Birna wins 134–88");
-    expect(screen.getByTestId("ledger-foot")).toHaveTextContent("rematch ▸");
-    expect(screen.getByTestId("ledger-totals")).toBeInTheDocument();
+    // Nothing runs past the field (spec 068 FR-013): the scoreboard's rows carry the final totals.
+    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("rematch ▸");
+    expect(screen.queryByTestId("ledger-foot")).toBeNull();
+    expect(screen.queryByTestId("ledger-totals")).toBeNull();
   });
 });

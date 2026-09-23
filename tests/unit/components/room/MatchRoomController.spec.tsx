@@ -312,7 +312,9 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("field")).toBeInTheDocument();
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
     expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
-    expect(screen.getByTestId("ledger-context")).toHaveTextContent("final · 4:52");
+    // The scoreboard says the match is over and how long it ran; the caption holds the actions (spec 068).
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:52 of 5:00");
+    expect(screen.getByTestId("ledger-caption-actions")).toHaveTextContent("lobby");
     // The scoreboard holds the time that was left (spec 068); no clock runs.
     expect(screen.getByTestId("scoreboard-clock")).toHaveAttribute("data-phase", "over");
     expect(screen.getByTestId("scoreboard-row-opp")).not.toHaveTextContent("reconnecting");
@@ -595,3 +597,4 @@ describe("the tab title (spec 068 FR-025)", () => {
     expect(document.title).toBe("Wottle");
   });
 });
+
