@@ -263,7 +263,7 @@
   - axe is clean.
 - [X] T061 [US3] Implement the component. In `components/room/Slip.tsx`, split `SignInBody` into `ReturningBody` and the existing name-input body, chosen by a `returning: ReturningPlayer | null` prop with local `useState` for "use another name". Add the two lines under the primary in `components/room/NameInput.tsx`. Styles go in `app/styles/room.css`, using existing classes and tokens only. T060 turns green.
 - [X] T062 [US3] Thread the data: `app/[locale]/(room)/layout.tsx` calls `readReturningPlayer(locale)` when there is no session and passes it through `RoomShell` to the sign-in slip. Update `components/room/RoomShell.tsx` props and the room store only if the slip reads from it.
-- [ ] T063 [US3] Add the fixture phase `returning-slip` to `app/[locale]/dev/room/fixtures.ts` (`ROOM_PHASES`) and `app/[locale]/dev/room/RoomFixture.tsx` (EN-L Birna 1310; IS-T1 Birna 1212). Add it to `tests/integration/ui/room-fixtures.spec.ts` for the visual and a11y runs. Update the CLAUDE.md fixture count (24 → 25). Generate the darwin baselines with `pnpm test:visual --update-snapshots` for this phase only, en and is.
+- [X] T063 [US3] Add the fixture phase `returning-slip` to `app/[locale]/dev/room/fixtures.ts` (`ROOM_PHASES`) and `app/[locale]/dev/room/RoomFixture.tsx` (EN-L Birna 1310; IS-T1 Birna 1212). Add it to `tests/integration/ui/room-fixtures.spec.ts` for the visual and a11y runs. Update the CLAUDE.md fixture count (24 → 25). Generate the darwin baselines with `pnpm test:visual --update-snapshots` for this phase only, en and is.
 - [X] T064 [US3] Extend `tests/integration/ui/identity.spec.ts` with "returning door":
   - sign out, and the slip shows `WELCOME BACK` and the name;
   - `enter the lobby ▸` → the lobby as the same name;
@@ -285,10 +285,14 @@
   - the fixture list.
   Remove the "forgeable session cookie" blocker wording wherever docs list it.
 - [X] T067 [P] Update `docs/prd_and_requirements/wottle_game_rules.md` wherever it describes signing in, signing out or starting a match (sign-out never resigns; one match at a time). Update design system §8 fixed strings with the new strings from T034/T042/T052/T059.
-- [ ] T068 Run `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:integration` (local Supabase), `pnpm docs:check`, `pnpm guard:no-service-role`, `pnpm test:visual`, and `pnpm exec playwright test --grep "@identity|@two-player-playtest"` (one file at a time). Fix anything red.
+- [X] T068 Run `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:integration` (local Supabase), `pnpm docs:check`, `pnpm guard:no-service-role`, `pnpm test:visual`, and `pnpm exec playwright test --grep "@identity|@two-player-playtest"` (one file at a time). Fix anything red.
 - [ ] T069 Walk through `specs/067-identity-one-match/quickstart.md` "Verify by hand" steps 1–6 on `pnpm dev` and record the results in the PR description.
 
 ---
+
+**Run 2026-09-23:** lint, typecheck, 1721 unit/contract tests, every integration suite, `docs:check` and `guard:no-service-role` are all green, and `@identity` passes 5/5.
+- **Chromium E2E:** 40 passed, 3 failed. The 3 (`disconnect-claim`, `lobby-presence`, `match-completion`) fail identically on `main` locally, since each waits on a Realtime push.
+- **Visual:** the darwin baselines for every other phase were already stale on `main` (last refreshed 2026-09-21), so only `landing-slip` and `returning-slip` were regenerated. Their Linux baselines come from the CI visual job's artifacts.
 
 ## Dependencies & execution order
 
