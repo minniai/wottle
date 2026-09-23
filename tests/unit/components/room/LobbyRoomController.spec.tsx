@@ -24,7 +24,7 @@ vi.mock("@/lib/matchmaking/presenceStore", async () => {
 });
 
 import { LobbyRoomController } from "@/components/room/LobbyRoomController";
-import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { OVER_SLIP } from "@/app/[locale]/dev/room/fixtures";
@@ -143,6 +143,32 @@ describe("LobbyRoomController (spec 044 US7)", () => {
       fireEvent.click(screen.getByTestId("notice-accept-challenge"));
     });
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m9"));
+  });
+
+  it("challenging someone who had already challenged you goes straight into the match (spec 067)", async () => {
+    vi.mocked(sendInviteAction).mockResolvedValueOnce({ status: "accepted", matchId: "m-crossed" });
+    (useLobbyPresenceStore as unknown as { setState: (s: object) => void }).setState({ players: [me, kari] });
+    render(<LobbyRoomController viewer={me} initialPlayers={[me, kari]} recentGames={[]} />);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ledger-challenge-k"));
+    });
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m-crossed"));
+  });
+
+  it("accepting a challenge from someone now in another match says so and stays (spec 067)", async () => {
+    vi.mocked(respondInviteAction).mockResolvedValueOnce({ status: "busy", name: "Kári" });
+    fetchMock.mockImplementation(async (url: string) =>
+      url.startsWith("/api/lobby/invite")
+        ? { ok: true, json: async () => ({ pending: [{ id: "i1", sender: { id: "k", username: "kari", displayName: "Kári" }, expiresAt: "" }] }) }
+        : { ok: true, json: async () => ({ match: null }) },
+    );
+    render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
+    await waitFor(() => expect(screen.getByTestId("notice-accept-challenge")).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("notice-accept-challenge"));
+    });
+    await waitFor(() => expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("Kári can't play right now"))).toBe(true));
+    expect(mockReplace).not.toHaveBeenCalledWith(expect.stringContaining("/match/"));
   });
 
   it("two challengers each get a line; an answered or expired challenge leaves the ledger", async () => {

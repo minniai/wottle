@@ -84,6 +84,8 @@ const challengeSent = (name: string): string => `challenge sent · waiting for $
 const challengeDeclined = (name: string): string => `${name} declined your challenge`;
 const challengeUnanswered = (name: string): string => `${name} did not answer`;
 const challengeTaken = (name: string): string => `${name} took another challenge`;
+// Accepting a challenge from someone who is now in another match (spec 067 FR-019)
+const opponentBusy = (name: string): string => `${name} can't play right now`;
 
 // The slip (spec 048, design system §5.9)
 /** Under /en the game plays English (spec 060); Icelandic says `íslensk orð`. */
@@ -291,6 +293,7 @@ export const copyEn = {
   challengeDeclined,
   challengeUnanswered,
   challengeTaken,
+  opponentBusy,
   TAGLINE,
   NEW_HERE_HOW_TO_PLAY,
   SIGN_IN_TO_SET_THE_FIELD,

@@ -185,6 +185,8 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       else if (typeof action === "object" && "challenge" in action) {
         const target = players.find((p) => p.id === action.challenge);
         sendInviteAction(action.challenge, language).then((r) => {
+          // They had already challenged us: our challenge was the answer (spec 067).
+          if (r.status === "accepted") return router.replace(to(`/match/${r.matchId}`));
           if (r.status !== "sent") return push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "invite_failed"] });
           sentChallenge.current = r.inviteId;
           push({ kind: "challengeSent", toName: target?.displayName ?? target?.username ?? "", inviteId: r.inviteId });
@@ -192,7 +194,8 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       } else if (typeof action === "object" && "acceptChallenge" in action) {
         dismiss(`challenge:${action.acceptChallenge}`);
         respondInviteAction(action.acceptChallenge, "accepted").then((r) => {
-          if (r.status === "accepted" && r.matchId) router.replace(to(`/match/${r.matchId}`));
+          if (r.status === "accepted") router.replace(to(`/match/${r.matchId}`));
+          else if (r.status === "busy") push({ kind: "text", text: copy.opponentBusy(r.name) });
           else if (r.status !== "declined") push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "accept_failed"] });
         });
       } else if (typeof action === "object" && "declineChallenge" in action) {

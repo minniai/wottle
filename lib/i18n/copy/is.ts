@@ -111,6 +111,7 @@ export const copyIs = {
   challengeDeclined: (name: string): string => `${name} hafnaði áskoruninni`,
   challengeUnanswered: (name: string): string => `${name} svaraði ekki`,
   challengeTaken: (name: string): string => `${name} þáði aðra áskorun`,
+  opponentBusy: (name: string): string => `${name} getur ekki spilað núna`,
 
   TAGLINE: "tveir leikmenn · eitt borð · íslensk orð",
   NEW_HERE_HOW_TO_PLAY: "nýr hér · leiðbeiningar ▸",
