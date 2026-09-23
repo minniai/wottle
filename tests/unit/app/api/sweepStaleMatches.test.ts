@@ -9,12 +9,18 @@ vi.mock("@/app/actions/match/completeMatch", () => ({
 }));
 vi.mock("@/lib/match/findDueMatches", () => ({ findDueMatches: vi.fn() }));
 vi.mock("@/lib/match/matchSettlement", () => ({ settleMatchIfDue: vi.fn() }));
+vi.mock("@/lib/match/findDueTables", () => ({ findDueTables: vi.fn() }));
+vi.mock("@/lib/match/tableService", () => ({ voidDueTable: vi.fn() }));
+vi.mock("@/lib/match/statePublisher", () => ({ publishMatchState: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn(() => ({})) }));
 
 import { POST } from "@/app/api/cron/sweep-stale-matches/route";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 import { findDueMatches } from "@/lib/match/findDueMatches";
 import { findOrphanedMatches } from "@/lib/match/findOrphanedMatches";
 import { settleMatchIfDue } from "@/lib/match/matchSettlement";
+import { findDueTables } from "@/lib/match/findDueTables";
+import { voidDueTable } from "@/lib/match/tableService";
 
 const ORIGINAL_SECRET = process.env.CRON_SECRET;
 
@@ -35,6 +41,8 @@ beforeEach(() => {
   process.env.CRON_SECRET = "test-secret";
   vi.mocked(findDueMatches).mockResolvedValue([]);
   vi.mocked(settleMatchIfDue).mockResolvedValue("completed");
+  vi.mocked(findDueTables).mockResolvedValue([]);
+  vi.mocked(voidDueTable).mockResolvedValue({ status: "void" });
 });
 
 afterEach(() => {
@@ -76,7 +84,7 @@ describe("POST /api/cron/sweep-stale-matches", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [] });
+    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [], voided: [], voidFailed: [] });
     expect(completeMatchInternal).not.toHaveBeenCalled();
   });
 
@@ -138,5 +146,18 @@ describe("POST /api/cron/sweep-stale-matches", () => {
 
     expect(res.status).toBe(500);
     expect(body.error).toMatch(/rpc down/);
+  });
+
+  test("voids every table whose time to sit down has run out (spec 069 T011)", async () => {
+    vi.mocked(findOrphanedMatches).mockResolvedValue([]);
+    vi.mocked(findDueTables).mockResolvedValue(["t1", "t2"]);
+    vi.mocked(voidDueTable).mockResolvedValueOnce({ status: "void" }).mockRejectedValueOnce(new Error("boom"));
+
+    const res = await POST(buildRequest("Bearer test-secret"));
+    const body = await res.json();
+
+    expect(voidDueTable).toHaveBeenCalledWith(expect.objectContaining({ publish: expect.any(Function) }), "t1");
+    expect(body.voided).toEqual(["t1"]);
+    expect(body.voidFailed).toEqual([{ matchId: "t2", error: "boom" }]);
   });
 });
