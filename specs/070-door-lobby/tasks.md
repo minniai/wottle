@@ -87,11 +87,11 @@
 
 ### Tests first
 
-- [ ] T018 [P] [US1] Write a failing test for the door's copy models in `tests/unit/lib/pages/doorCopy.spec.ts`:
+- [X] T018 [P] [US1] Write a failing test for the door's copy models in `tests/unit/lib/pages/doorCopy.spec.ts`:
   - the headline and lede are built from `moveLimit` and `MATCH_CLOCK_MS` through the per-language number-word table, with digits as the fallback;
   - the kicker;
   - the count line, which is hidden when nobody is here.
-- [ ] T019 [P] [US1] Write a failing component test in `tests/unit/components/page/door/Door.spec.tsx`:
+- [X] T019 [P] [US1] Write a failing component test in `tests/unit/components/page/door/Door.spec.tsx`:
   - the one `h1` is the headline;
   - the lockup is `role="img"` with its label, and contains no link;
   - the input has no autofocus, and `aria-describedby` points at the format rule;
@@ -100,13 +100,13 @@
   - the primary ignores repeat presses while submitting;
   - the returning state and `not Birna? · use another name`;
   - the preference line when the browser language differs, which removes the masthead switch.
-- [ ] T020 [P] [US1] Write a failing test for the door's here-now list in `tests/unit/components/page/door/HereNowList.spec.tsx`:
+- [X] T020 [P] [US1] Write a failing test for the door's here-now list in `tests/unit/components/page/door/HereNowList.spec.tsx`:
   - at most 8 rows (here before searching, then by rating distance from 1200);
   - `+ 22 more`, which is not a link;
   - the empty state;
   - the rows are not links.
-- [ ] T021 [P] [US1] Write a failing contract test in `tests/contract/overview-public.contract.test.ts`. A signed-out `GET /api/lobby/overview` returns `counts`, `here` (at most 8) and `more`, and never `lastMatch`, `form` or any player id.
-- [ ] T022 [US1] Write a failing Playwright spec `tests/integration/ui/door.spec.ts`:
+- [X] T021 [P] [US1] Write a failing contract test in `tests/contract/overview-public.contract.test.ts`. A signed-out `GET /api/lobby/overview` returns `counts`, `here` (at most 8) and `more`, and never `lastMatch`, `form` or any player id.
+- [X] T022 [US1] Write a failing Playwright spec `tests/integration/ui/door.spec.ts`:
   - `/` and `/en` render the door with no field;
   - a too-short name shows the format error;
   - a valid name lands in the lobby at `/`, with the door's history entry replaced;
@@ -116,14 +116,14 @@
 
 ### Implementation
 
-- [ ] T023 [P] [US1] Implement `lib/pages/doorCopy.ts` (T018), and add the door strings to `lib/i18n/copy/{en,is}.ts` and `types.ts`: the kicker, headline, lede, labels, errors, `SKRÁNING ÓÞÖRF`, `ÞESSI VAFRI GEYMIR NAFNIÐ ÞITT`, how it plays, the preference line and the door title. Mark the (?) Icelandic strings `// native-read`.
-- [ ] T024 [US1] Implement `lib/lobby/overview.ts` (`lobbyCounts` with `here`, `searching`, `playersInMatch` and `matchesOn`, signed-out `here` capped at 8, `more`), and add `lobby_counts(p_language)` to the migration. A minimal version of `player_presence` is needed here, reading `lobby_presence` until US6 replaces it; mark it `-- replaced in US6`. Implement `app/api/lobby/overview/route.ts` (T021).
-- [ ] T025 [P] [US1] Implement `components/page/Lockup.tsx` from `lib/brand/lockup.ts`, including the once-per-session arrival: a `sessionStorage` flag in try/catch, the `letter-land` then `band-draw` sequence, and only the end state under reduced motion.
-- [ ] T026 [US1] Implement `components/page/door/Door.tsx`, `DoorForm.tsx` (moving the name validation and `enter_player` call from `components/room/NameInput.tsx`), `HereNowList.tsx` and `HowItPlays.tsx`, with the desktop and phone (F1) layouts in `pages.css`. Make T019 and T020 pass.
-- [ ] T027 [US1] Create `app/[locale]/(pages)/page.tsx`: signed out it renders the door, reading the overview on the server for the first paint; signed in it renders the lobby placeholder until US2. Apply `nextParam` after entry. Emit the door's title and the hreflang alternates (`/`, `/en`, x-default `/`) in `generateMetadata`.
-- [ ] T028 [US1] Delete `app/[locale]/(room)/page.tsx`. Delete the `signIn` slip kind in `lib/room/slip.ts` and `components/room/Slip.tsx`, the slip's name form, and any fixture phases that used it (`landing-slip`, `returning-slip`) with their baselines and the orphan `landing-visual-*` files. Update `tests/integration/ui/helpers/matchmaking.ts` so `loginViaSlip` becomes `enterViaDoor`, and switch every spec to it.
-- [ ] T029 [P] [US1] Replace `app/icon.png` with `public/brand/cell-{is,en}.svg` and `cell-{is,en}-call.svg`, generated from `lib/brand/lockup.ts` `cell()` by `scripts/brand/renderCells.ts`. Render `app/[locale]/apple-icon.png` per locale with the same script. Set the icons per locale in `generateMetadata`.
-- [ ] T030 [US1] Add the page phases `door`, `is-door` and `door-returning` to `app/[locale]/dev/page/fixtures.ts`. Generate baselines with `pnpm test:visual --update-snapshots` and review them. Make T022 pass.
+- [X] T023 [P] [US1] Implement `lib/pages/doorCopy.ts` (T018), and add the door strings to `lib/i18n/copy/{en,is}.ts` and `types.ts`: the kicker, headline, lede, labels, errors, `SKRÁNING ÓÞÖRF`, `ÞESSI VAFRI GEYMIR NAFNIÐ ÞITT`, how it plays, the preference line and the door title. Mark the (?) Icelandic strings `// native-read`.
+- [X] T024 [US1] Implement `lib/lobby/overview.ts` (`lobbyCounts` with `here`, `searching`, `playersInMatch` and `matchesOn`, signed-out `here` capped at 8, `more`), and add `lobby_counts(p_language)` to the migration. A minimal version of `player_presence` is needed here, reading `lobby_presence` until US6 replaces it; mark it `-- replaced in US6`. Implement `app/api/lobby/overview/route.ts` (T021).
+- [X] T025 [P] [US1] Implement `components/page/Lockup.tsx` from `lib/brand/lockup.ts`, including the once-per-session arrival: a `sessionStorage` flag in try/catch, the `letter-land` then `band-draw` sequence, and only the end state under reduced motion.
+- [X] T026 [US1] Implement `components/page/door/Door.tsx`, `DoorForm.tsx` (moving the name validation and `enter_player` call from `components/room/NameInput.tsx`), `HereNowList.tsx` and `HowItPlays.tsx`, with the desktop and phone (F1) layouts in `pages.css`. Make T019 and T020 pass.
+- [X] T027 [US1] Create `app/[locale]/(pages)/page.tsx`: signed out it renders the door, reading the overview on the server for the first paint; signed in it renders the lobby placeholder until US2. Apply `nextParam` after entry. Emit the door's title and the hreflang alternates (`/`, `/en`, x-default `/`) in `generateMetadata`.
+- [X] T028 [US1] Delete `app/[locale]/(room)/page.tsx`. Delete the `signIn` slip kind in `lib/room/slip.ts` and `components/room/Slip.tsx`, the slip's name form, and any fixture phases that used it (`landing-slip`, `returning-slip`) with their baselines and the orphan `landing-visual-*` files. Update `tests/integration/ui/helpers/matchmaking.ts` so `loginViaSlip` becomes `enterViaDoor`, and switch every spec to it.
+- [X] T029 [P] [US1] Replace `app/icon.png` with `public/brand/cell-{is,en}.svg` and `cell-{is,en}-call.svg`, generated from `lib/brand/lockup.ts` `cell()` by `scripts/brand/renderCells.ts`. Render `app/[locale]/apple-icon.png` per locale with the same script. Set the icons per locale in `generateMetadata`.
+- [X] T030 [US1] Add the page phases `door`, `is-door` and `door-returning` to `app/[locale]/dev/page/fixtures.ts`. Generate baselines with `pnpm test:visual --update-snapshots` and review them. Make T022 pass.
 
 **Checkpoint**: The door ships alone. A signed-in player still reaches the old lobby, through `/lobby`, until US2.
 
@@ -137,7 +137,7 @@
 
 ### Tests first
 
-- [ ] T031 [P] [US6] Write failing integration tests in `tests/integration/db/presence.test.ts`:
+- [X] T031 [P] [US6] Write failing integration tests in `tests/integration/db/presence.test.ts`:
   - `beat_tab` upserts the tab and refreshes `lobby_presence.expires_at` and the attention columns;
   - `transition` is true on a player's first fresh tab and on a visibility change, and false on repeat beats;
   - `player_presence` returns here, searching, in_match (with the move count, from `matches`) and away (all tabs hidden 2:00);
@@ -145,14 +145,14 @@
   - the best state across tabs wins;
   - a reload (a leaving mark followed by a new beat within 8s) keeps the player;
   - `presence_tabs.language` comes from `players.lobby_language`, not from the page.
-- [ ] T032 [P] [US6] Write failing integration tests for `settle_gone_players()` in `tests/integration/db/presence.gone.test.ts`. A gone player with a search has it cancelled; their pending challenges, sent and received, become `left` with `responded_at`; and the function returns the affected ids.
-- [ ] T033 [P] [US6] Write a failing unit test for the heartbeat hook in `tests/unit/components/standing/useTabPresence.spec.ts`:
+- [X] T032 [P] [US6] Write failing integration tests for `settle_gone_players()` in `tests/integration/db/presence.gone.test.ts`. A gone player with a search has it cancelled; their pending challenges, sent and received, become `left` with `responded_at`; and the function returns the affected ids.
+- [X] T033 [P] [US6] Write a failing unit test for the heartbeat hook in `tests/unit/components/standing/useTabPresence.spec.ts`:
   - the tab id is kept in `sessionStorage`, with an in-memory fallback when storage throws;
   - the cadence is 10s while visible and 30s while hidden, switching on `visibilitychange`;
   - the last input time is taken from `useAttention`;
   - a `pagehide` sends the beacon to `/api/presence/leave` with text/plain JSON;
   - the page kind is sent with each beat.
-- [ ] T034 [P] [US6] Write a failing contract test in `tests/contract/beacons.contract.test.ts`. `POST /api/presence/leave` and `POST /api/lobby/invite/withdraw` accept a text/plain JSON body and return 204, or 401 with no session.
+- [X] T034 [P] [US6] Write a failing contract test in `tests/contract/beacons.contract.test.ts`. `POST /api/presence/leave` and `POST /api/lobby/invite/withdraw` accept a text/plain JSON body and return 204, or 401 with no session.
 - [ ] T035 [US6] Write a failing Playwright spec `tests/integration/ui/presence.spec.ts`:
   - B enters and appears in A's list;
   - B reloads and never disappears;
@@ -161,7 +161,7 @@
 
 ### Implementation
 
-- [ ] T036 [US6] Add `beat_tab`, `leave_tab`, `player_presence` (replacing US1's minimal version) and `settle_gone_players` to the migration. Make T031 and T032 pass.
+- [X] T036 [US6] Add `beat_tab`, `leave_tab`, `player_presence` (replacing US1's minimal version) and `settle_gone_players` to the migration. Make T031 and T032 pass.
 - [ ] T037 [US6] Implement `lib/presence/presenceService.ts`: `beat`, `leave`, `playerPresence` and `lobbyCounts`, with RPCs parsed by Zod and structured logs `presence.transition` and `presence.gone`.
 - [ ] T038 [US6] Implement `app/api/presence/beat/route.ts` and `app/api/presence/leave/route.ts` per the contract. Beat pokes `lobby:{language}` on a transition. Leave pokes with `recheckInMs: 8500`. Make T034 pass for presence.
 - [ ] T039 [US6] Implement `components/standing/hooks/useTabPresence.ts` (T033) and wire it into `StandingProvider`. Retire the 60s heartbeat in `lib/matchmaking/presenceStore.ts`, and delete `app/api/lobby/presence/route.ts` and its unit test `tests/unit/lib/matchmaking/presenceHeartbeat.test.ts`, replacing them with the new tests.

@@ -38,13 +38,13 @@ export const pagesIs: Widen<typeof pagesEn> = {
 
   doorCount: (here: number, matches: number): string =>
     `${here} hér núna · ${count(matches, "viðureign í gangi", "viðureignir í gangi")}`,
+  doorCountPhone: (here: number): string => `${here} hér núna`,
   KICKER: "orð + orusta · orðaeinvígi fyrir tvo",
   headline: (moves: number): [string, string] => ["Tveir leikmenn, eitt borð,", `${word(MOVE_WORDS, moves)} leikir hvor.`],
   headlinePhone: (moves: number): [string, string, string] => ["Tveir leikmenn,", "eitt borð,", `${word(MOVE_WORDS, moves)} leikir hvor.`],
   lede: (minutes: number): string =>
     `Skiptu á tveimur stöfum og myndaðu orð. Orð sem gefa stig frjósa í þínum lit. Flest stig á ${word(MINUTE_WORDS, minutes)} mínútum vinnur.`, // native-read
   NAME_LABEL: "nafn",
-  ENTER: "inn í lobbíið ▸",
   hereNow: (n: number): string => `hér núna · ${n}`,
   more: (n: number): string => `+ ${n} fleiri`,
   ENTER_TO_CHALLENGE: "farðu inn í lobbíið til að skora á einhvern", // native-read

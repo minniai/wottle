@@ -23,7 +23,6 @@ export interface LobbyRoomViewProps {
   hint: string;
   notices?: Notice[];
   onAction: (action: LedgerAction) => void;
-  onSignedIn: (player: PlayerIdentity) => void;
   /** Spec 069 FR-025: the table-leave cooldown's time left (`4:12`); the find action waits until then. */
   findAgainIn?: string | null;
   /** The field slot — the warm-up field, wired by the controller. */
@@ -40,7 +39,7 @@ export interface LobbyRoomViewProps {
  */
 export function LobbyRoomView(props: LobbyRoomViewProps) {
   const { EMPTY_LOBBY_HINT, lobbyContext, NO_OPPONENT, NO_OPPONENT_SUBLINE, FIND_OPPONENT, SIGN_IN_TO_SET_THE_FIELD, YOU, UNRATED, table } = useCopy();
-  const { viewer, players, recentGames, loadingPlayers, hint, notices, onAction, onSignedIn, children } = props;
+  const { viewer, players, recentGames, loadingPlayers, hint, notices, onAction, children } = props;
   const isPhone = useIsPhone();
 
   const model: LedgerModel = useMemo(
@@ -56,7 +55,6 @@ export function LobbyRoomView(props: LobbyRoomViewProps) {
   return (
     <Room
       onSlipAction={onAction}
-      onSignedIn={onSignedIn}
       topBar={
         <PlayerBar
           seat="opp"

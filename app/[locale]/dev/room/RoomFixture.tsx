@@ -197,7 +197,7 @@ const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CEL
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
 type TablePhase = "table" | "table-seated" | "void" | "void-queue";
-type MatchPhase = Exclude<RoomPhase, "landing-slip" | "returning-slip" | "lobby" | "queue" | "searching-paused" | "profile" | "rules" | TablePhase>;
+type MatchPhase = Exclude<RoomPhase, "lobby" | "queue" | "searching-paused" | "profile" | "rules" | TablePhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -239,9 +239,6 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
 /** The slip each phase seeds (spec 048 contracts/fixture-phases.md). */
 function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
   const slips: Partial<Record<RoomPhase, SlipState>> = {
-    "landing-slip": { kind: "signIn" },
-    // Spec 067: the same slip, greeting the browser's player after a sign-out.
-    "returning-slip": { kind: "signIn" },
     resign: RESIGN_SLIP,
     "end-early": END_EARLY_SLIP,
     "over-slip": overSlip(copy),
@@ -250,7 +247,7 @@ function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
 }
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", "returning-slip": "lobby", profile: "lobby", queue: "queue", "searching-paused": "queue", final: "final", "over-slip": "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { profile: "lobby", queue: "queue", "searching-paused": "queue", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
@@ -263,10 +260,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     // Seed the store so components reading it (Room's data-phase, seat colours)
     // agree with the props. No transport, no timers.
     const store = useRoomStore.getState();
-    const signedOut = phase === "landing-slip" || phase === "returning-slip";
-    store.setViewer(signedOut ? null : BIRNA);
-    // EN-L Birna 1310 in English; IS-T1 Birna 1212 in Icelandic (game-flow spec §5.0).
-    store.setReturning(phase === "returning-slip" ? { displayName: BIRNA.displayName, rating: language === "en" ? 1310 : 1212 } : null);
+    store.setViewer(BIRNA);
     store.setBoard(FIXTURE_BOARD);
     store.setPhase(STORE_PHASE[phase] ?? "match");
     const slip = slipFor(phase, copy);
@@ -305,8 +299,8 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     );
   }
 
-  if (phase === "landing-slip" || phase === "returning-slip" || phase === "lobby") {
-    const viewer = phase === "lobby" ? BIRNA : null;
+  if (phase === "lobby") {
+    const viewer = BIRNA;
     return (
       <RoomShell viewer={viewer}>
         <LobbyRoomView
@@ -317,9 +311,8 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
           hint={TAP_SECOND_LETTER}
           notices={[]}
           onAction={NO_OP}
-          onSignedIn={NO_OP}
         >
-          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={viewer ? null : 0} />
+          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={null} />
         </LobbyRoomView>
       </RoomShell>
     );

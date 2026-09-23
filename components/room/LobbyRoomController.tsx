@@ -80,9 +80,6 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   const reducedMotion = useReducedMotion();
   const [landed, setLanded] = useState<number | null>(() => (me ? null : 0));
   useEffect(() => {
-    if (!me) setSlip({ kind: "signIn" });
-  }, [me, setSlip]);
-  useEffect(() => {
     if (!me || landed === null) return;
     if (reducedMotion || landed >= 100) {
       setLanded(null);
@@ -231,7 +228,6 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
   // `?` opens the rules, `M` mutes (design system §9, FR-026).
   useRoomHotkeys(handleAction);
 
-  const onSignedIn = useCallback((player: PlayerIdentity) => setViewer(player), [setViewer]);
 
   return (
     <LobbyRoomView
@@ -243,7 +239,6 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       notices={notices}
       findAgainIn={findAgainIn}
       onAction={handleAction}
-      onSignedIn={onSignedIn}
     >
       <Field
         landedCount={landed}

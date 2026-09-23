@@ -1,8 +1,11 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 import type { SignOutState } from "@/components/page/PageMenu";
+
+import { pageOf, useTabPresence } from "./hooks/useTabPresence";
 
 /**
  * The viewer's standing machinery (spec 070 R11), mounted once in the locale
@@ -26,6 +29,7 @@ const EMPTY: StandingSlotApi = { otherLobbyHere: null, slot: null, signOut: {}, 
 const StandingContext = createContext<StandingSlotApi>(EMPTY);
 
 export function StandingProvider({ children }: { children: ReactNode }) {
+  useTabPresence(pageOf(usePathname() ?? "/"));
   const value = useMemo<StandingSlotApi>(() => EMPTY, []);
   return <StandingContext.Provider value={value}>{children}</StandingContext.Provider>;
 }

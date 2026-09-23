@@ -63,10 +63,4 @@ describe("Slip shell (spec 048 contracts/slip.md)", () => {
     expect(onAction).toHaveBeenCalledWith(expected);
   });
 
-  it("the sign-in slip has no cancel", () => {
-    const onAction = vi.fn();
-    render(<Slip slip={{ kind: "signIn" }} onAction={onAction} />);
-    fireEvent.keyDown(screen.getByTestId("slip"), { key: "Escape" });
-    expect(onAction).not.toHaveBeenCalled();
-  });
 });

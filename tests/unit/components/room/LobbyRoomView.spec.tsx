@@ -24,7 +24,6 @@ function view(overrides: Partial<Parameters<typeof LobbyRoomView>[0]> = {}) {
       hint="tap a second letter"
       notices={[]}
       onAction={vi.fn()}
-      onSignedIn={vi.fn()}
       {...overrides}
     >
       {FIELD}

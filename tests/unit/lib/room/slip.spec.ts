@@ -39,10 +39,10 @@ function matchState(matchId: string): MatchState {
 }
 
 describe("slip precedence (spec 048 contracts/slip.md)", () => {
-  it("ranks matchOver > endEarly > resign > signIn", () => {
+  it("ranks matchOver > endEarly > resign > ready (the sign-in slip is retired, spec 070)", () => {
     expect(slipPrecedence("matchOver")).toBeGreaterThan(slipPrecedence("endEarly"));
     expect(slipPrecedence("endEarly")).toBeGreaterThan(slipPrecedence("resign"));
-    expect(slipPrecedence("resign")).toBeGreaterThan(slipPrecedence("signIn"));
+    expect(slipPrecedence("resign")).toBeGreaterThan(slipPrecedence("ready"));
   });
 
   it("outranks only when the current slip is strictly higher", () => {
@@ -76,13 +76,6 @@ describe("roomStore slip", () => {
     s().clearSlip("resign");
     expect(s().slip?.kind).toBe("endEarly");
     s().clearSlip("endEarly");
-    expect(s().slip).toBeNull();
-  });
-
-  it("setViewer clears the sign-in slip", () => {
-    const s = useRoomStore.getState;
-    s().setSlip({ kind: "signIn" });
-    s().setViewer(BIRNA);
     expect(s().slip).toBeNull();
   });
 

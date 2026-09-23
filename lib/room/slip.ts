@@ -14,7 +14,6 @@ import type { ReadySlipModel, VoidSlipModel } from "./tableSlip";
 export type EndReason = "moves" | "incomplete" | "resigned" | "abandoned";
 
 export type SlipState =
-  | { kind: "signIn" }
   /** Spec 069: the table (C1). Derived from the match, never stored. */
   | { kind: "ready"; model: ReadySlipModel }
   /** Spec 069: the table did not fill, or someone left it (C3). */
@@ -46,7 +45,7 @@ export interface SlipRatingRow {
 }
 
 // Spec 069 (design system §5.9): match over > end early > resign > ready or void.
-const RANK: Record<SlipKind, number> = { signIn: 0, ready: 1, void: 1, resign: 2, endEarly: 3, matchOver: 4 };
+const RANK: Record<SlipKind, number> = { ready: 1, void: 1, resign: 2, endEarly: 3, matchOver: 4 };
 
 export function slipPrecedence(kind: SlipKind): number {
   return RANK[kind];

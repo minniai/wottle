@@ -13,6 +13,8 @@ type PageFrameProps =
       variant: "door";
       place: null;
       doorCount: string | null;
+      /** F1: the phone masthead's shorter count. */
+      doorCountPhone?: string | null;
       preferOther?: boolean;
       children: ReactNode;
     }
@@ -41,7 +43,7 @@ export function PageFrame(props: PageFrameProps) {
     return (
       <div className="page page--door">
         <header className="page-head" role="banner">
-          <DoorMasthead doorCount={props.doorCount} preferOther={preferOther} />
+          <DoorMasthead doorCount={props.doorCount} doorCountPhone={props.doorCountPhone ?? null} preferOther={preferOther} />
           <DoorPreferLine preferOther={preferOther} />
         </header>
         <main className="page-main" aria-label={copy.pages.MAIN}>{props.children}</main>

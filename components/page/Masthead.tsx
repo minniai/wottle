@@ -16,10 +16,13 @@ export interface MastheadViewer {
 }
 
 /** The door's masthead (A1): the here-now count left; the language switch, or none when the preference line is shown, right. */
-export function DoorMasthead({ doorCount, preferOther }: { doorCount: string | null; preferOther: boolean }) {
+export function DoorMasthead({ doorCount, doorCountPhone, preferOther }: { doorCount: string | null; doorCountPhone: string | null; preferOther: boolean }) {
   return (
     <div className="page-masthead">
-      <div className="page-masthead__left">{doorCount ? <span className="page-label">{doorCount}</span> : null}</div>
+      <div className="page-masthead__left">
+        {doorCount ? <span className="page-label page-only-desktop">{doorCount}</span> : null}
+        {doorCountPhone ? <span className="page-label page-only-phone" aria-hidden="true">{doorCountPhone}</span> : null}
+      </div>
       <nav className="page-masthead__nav" data-testid="masthead-nav">
         {preferOther ? null : <LanguageSwitch variant="door" />}
       </nav>

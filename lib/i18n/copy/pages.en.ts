@@ -29,13 +29,13 @@ export const pagesEn = {
 
   // Door (A1, F1)
   doorCount: (here: number, matches: number): string => `${here} here now · ${s(matches, "match on", "matches on")}`,
+  doorCountPhone: (here: number): string => `${here} here now`,
   KICKER: "word + battle · a word duel for two",
   headline: (moves: number): [string, string] => ["Two players, one field,", `${numberWord(moves)} moves each.`],
   headlinePhone: (moves: number): [string, string, string] => ["Two players,", "one field,", `${numberWord(moves)} moves each.`],
   lede: (minutes: number): string =>
     `Swap two letters to make words. Every word you score freezes in your colour. Most points in ${numberWord(minutes)} minutes wins.`,
   NAME_LABEL: "your name",
-  ENTER: "enter the lobby ▸",
   hereNow: (n: number): string => `here now · ${n}`,
   more: (n: number): string => `+ ${n} more`,
   ENTER_TO_CHALLENGE: "enter the lobby to challenge someone",

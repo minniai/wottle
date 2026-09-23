@@ -35,7 +35,12 @@ export function generateStaticParams(): Array<{ locale: string }> {
 
 export async function generateMetadata({ params }: { params: LocaleParams }): Promise<Metadata> {
   const locale = await readLocaleParam(params);
-  return { title: getLocale(locale).wordmark, description: getCopy(locale).SITE_DESCRIPTION };
+  // The cell mark per locale (game flow §6); a pending call swaps the icon's letter (useFavicon).
+  return {
+    title: getLocale(locale).wordmark,
+    description: getCopy(locale).SITE_DESCRIPTION,
+    icons: { icon: [{ url: `/brand/cell-${locale}.svg`, type: "image/svg+xml" }], apple: `/brand/apple-cell-${locale}.png` },
+  };
 }
 
 export default async function RootLayout({

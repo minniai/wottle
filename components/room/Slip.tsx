@@ -1,25 +1,17 @@
 "use client";
 
-import { useId, useRef, useState, useTransition, type ReactNode, type RefObject } from "react";
+import { useId, useRef, type ReactNode, type RefObject } from "react";
 
-import { enterAsReturningAction } from "@/app/actions/auth/enterAsReturning";
-
-import { useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
-import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
+import { useCopy } from "@/components/i18n/LocaleProvider";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
-import { useRoomStore } from "@/lib/room/roomStore";
 import type { SlipState } from "@/lib/room/slip";
 import type { VoidAction } from "@/lib/room/tableSlip";
-import type { ReturningPlayer } from "@/lib/types/lobby";
-import type { PlayerIdentity } from "@/lib/types/match";
-import { NameInput } from "./NameInput";
 
 export interface SlipProps {
   slip: SlipState;
   onAction: (action: LedgerAction) => void;
-  onSignedIn?: (player: PlayerIdentity) => void;
 }
 
 /** Escape maps to each kind's cancel; the sign-in slip has none (contracts/slip.md). */
@@ -57,68 +49,6 @@ function Secondary({ label, action, testId, onAction }: { label: string; action:
     <button type="button" className="action-secondary" data-testid={testId} onClick={() => onAction(action)}>
       {label}
     </button>
-  );
-}
-
-/** After a sign-out the door greets this browser's player by name (spec 067 US3, DoorReturning). */
-function ReturningBody({ returning, onSignedIn, onAnotherName }: { returning: ReturningPlayer; onSignedIn: (player: PlayerIdentity) => void; onAnotherName: () => void }) {
-  const { ENTER_LOBBY, errors, notYou, returningLine, WELCOME_BACK } = useCopy();
-  const { language } = useLocale();
-  const [failed, setFailed] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const enter = () =>
-    startTransition(async () => {
-      const result = await enterAsReturningAction(language);
-      if (result.status === "success" && result.player) onSignedIn(result.player);
-      else setFailed(true);
-    });
-  return (
-    <>
-      <span className="slip__label">{WELCOME_BACK}</span>
-      <div className="slip__rating" data-seat="you">
-        <span className="slip__square" data-seat="you" />
-        <span className="slip__name" data-testid="slip-returning-name">{returning.displayName}</span>
-        <span className="slip__mono" data-testid="slip-returning-line">{returningLine(returning.rating)}</span>
-      </div>
-      <button type="button" className="action-primary" data-testid="slip-enter-returning" data-slip-primary disabled={pending} onClick={enter}>
-        {ENTER_LOBBY}
-      </button>
-      {failed ? (
-        <span className="ledger__mono name-input__error" role="alert">
-          {errors.login_failed}
-        </span>
-      ) : null}
-      <button type="button" className="action-secondary" data-testid="slip-use-another-name" onClick={onAnotherName}>
-        {notYou(returning.displayName)}
-      </button>
-    </>
-  );
-}
-
-function SignInBody({ onSignedIn }: { onSignedIn?: (player: PlayerIdentity) => void }) {
-  const { NEW_HERE_HOW_TO_PLAY, NO_ACCOUNT_NEEDED, TAGLINE, THIS_BROWSER_KEEPS_YOUR_NAME, WORDMARK } = useCopy();
-  const to = useLocalePath();
-  const returning = useRoomStore((s) => s.returning);
-  const [anotherName, setAnotherName] = useState(false);
-  const signedIn = onSignedIn ?? (() => undefined);
-  return (
-    <>
-      <span className="slip__wordmark">{WORDMARK}</span>
-      <span className="slip__label">{TAGLINE}</span>
-      <div className="slip__rule" />
-      {returning && !anotherName ? (
-        <ReturningBody returning={returning} onSignedIn={signedIn} onAnotherName={() => setAnotherName(true)} />
-      ) : (
-        <>
-          <NameInput onSignedIn={signedIn} />
-          <span className="slip__label">{NO_ACCOUNT_NEEDED}</span>
-          <span className="slip__label">{THIS_BROWSER_KEEPS_YOUR_NAME}</span>
-        </>
-      )}
-      <a className="action-secondary" href={to("/rules")} data-testid="slip-how-to-play">
-        {NEW_HERE_HOW_TO_PLAY}
-      </a>
-    </>
   );
 }
 
@@ -301,10 +231,8 @@ function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState
   );
 }
 
-function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedIn: SlipProps["onSignedIn"], headlineId: string, headlineRef: RefObject<HTMLHeadingElement | null>): ReactNode {
+function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, headlineId: string, headlineRef: RefObject<HTMLHeadingElement | null>): ReactNode {
   switch (slip.kind) {
-    case "signIn":
-      return <SignInBody onSignedIn={onSignedIn} />;
     case "ready":
       return <ReadyBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
     case "void":
@@ -323,8 +251,7 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedI
  * the field, the one overlay the room permits. Focus is trapped inside it, the
  * headline is announced once, and Escape is the kind's cancel.
  */
-export function Slip({ slip, onAction, onSignedIn }: SlipProps) {
-  const { WORDMARK } = useCopy();
+export function Slip({ slip, onAction }: SlipProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const headlineId = useId();
   const headlineRef = useRef<HTMLHeadingElement | null>(null);
@@ -336,14 +263,13 @@ export function Slip({ slip, onAction, onSignedIn }: SlipProps) {
       ref={ref}
       role="dialog"
       aria-modal="true"
-      aria-labelledby={slip.kind === "signIn" ? undefined : headlineId}
-      aria-label={slip.kind === "signIn" ? WORDMARK : undefined}
+      aria-labelledby={headlineId}
       className="slip"
       data-testid="slip"
       data-kind={slip.kind}
       data-field-safe
     >
-      {bodyFor(slip, onAction, onSignedIn, headlineId, headlineRef)}
+      {bodyFor(slip, onAction, headlineId, headlineRef)}
     </div>
   );
 }

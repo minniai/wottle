@@ -168,9 +168,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   stakes: null,
   liveResolution: null,
 
-  // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
-  setViewer: (viewer) =>
-    set((s) => ({ viewer, slip: viewer && s.slip?.kind === "signIn" ? null : s.slip })),
+  setViewer: (viewer) => set({ viewer }),
   setOpponent: (opponent) => set({ opponent }),
   setBoard: (board) => set({ board }),
   setConnection: (connection) => set({ connection }),

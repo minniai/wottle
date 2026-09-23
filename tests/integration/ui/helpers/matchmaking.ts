@@ -8,12 +8,10 @@ import { expect, type Page } from "@playwright/test";
  */
 export async function loginViaSlip(page: Page, username: string): Promise<void> {
   await page.goto("/en");
-  // Spec 048 US4: the name input is on the sign-in slip over the empty field.
-  await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 20_000 });
-  await expect(page).toHaveURL(/\/lobby$/, { timeout: 20_000 });
+  // Spec 070: the door. One name field, one primary; the lobby renders at the same URL.
+  await page.getByTestId("door-name").fill(username);
+  await page.getByTestId("door-enter").click();
+  await expect(page.getByTestId("door-form")).toHaveCount(0, { timeout: 20_000 });
   await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("player-bar-action-find")).toBeEnabled({ timeout: 10_000 });
 }
