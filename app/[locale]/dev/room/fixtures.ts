@@ -54,8 +54,10 @@ export const ROOM_PHASES = [
   "time-up",
   "end-early",
   "low-clock",
-  // The ledger clock (2026-09-21): the last 15 seconds, flashing.
+  // The last 15 seconds (spec 068: weight only, nothing blinks).
   "last-seconds",
+  // Spec 068: the scoreboard loading over the 3·2·1.
+  "starting",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -204,6 +206,13 @@ export const DISCONNECT_STATE: MatchState = {
 
 /** ms left in the reconnection window, shown as `reconnecting · 0:42 left`. */
 export const RECONNECT_MS_LEFT = 42_000;
+/** Spec 068: how long Kári has been gone once the window is spent (artboard Disconnect). */
+export const GONE_FOR_MS = 124_000;
+/** Spec 068: the final state's clock, 0:08 left of 5:00 after 4:52 (artboard MatchRail). */
+export const FINAL_CLOCK_MS = 8_000;
+export const FINAL_ELAPSED_MS = 292_000;
+/** Spec 068: the start count, two seconds before the clock runs. */
+export const MS_TO_START = 2_000;
 
 /** Done: you have all ten (134), Kári is on his ninth (88); 0:48 left. */
 export const DONE_STATE: MatchState = {

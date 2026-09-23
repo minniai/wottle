@@ -129,3 +129,29 @@ describe("RoomFixture", () => {
     expect(screen.queryByTestId("ledger-totals")).toBeNull();
   });
 });
+
+describe("RoomFixture: the scoreboard's states (spec 068)", () => {
+  it("starting: the clock row loads over the count and both rows read `ready`", () => {
+    render(<RoomFixture phase="starting" />);
+    expect(screen.getByTestId("scoreboard-clock")).toHaveAttribute("data-phase", "starting");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("starts in 2");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("5:00");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("ready");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("ready");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+  });
+
+  it("final: the clock holds what was left and the rows carry the rating lines", () => {
+    render(<RoomFixture phase="final" />);
+    expect(screen.getByTestId("scoreboard-clock")).toHaveAttribute("data-phase", "over");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("match over");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:52 of 5:00");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("0:08");
+  });
+
+  it("end-early: past the window the opponent's row counts how long they have been gone", () => {
+    render(<RoomFixture phase="end-early" />);
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("8 of 10 · gone for 2:04");
+    expect(screen.getByTestId("scoreboard-row-opp")).not.toHaveTextContent("0:00 left");
+  });
+});

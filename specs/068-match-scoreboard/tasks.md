@@ -84,8 +84,8 @@
   - `tests/integration/ui/helpers/matchmaking.ts`
 
   Also migrate the match-state unit tests `tests/unit/components/room/MatchRoomController.spec.tsx` and `MatchRoomView` tests. Leave the lobby and queue selectors (`landing`, `lobby-logout`, `identity`, `matchmaking` lobby steps, `cross-language-queue`) unchanged.
-- [ ] T018 [US1] Render the `starting` state: the clock row fills left to right over the 3·2·1 (end state under reduced motion), both rows read `ready`. Implement in `lib/room/scoreboard.ts` and `components/room/Scoreboard.tsx`, with a test in `tests/unit/lib/room/scoreboard.spec.ts`.
-- [ ] T019 [US1] Render the match-over state: the clock holds `match over · 4:52 of 5:00` with numeral `0:08`, and the rows carry the rating lines or `rating pending`. Wire the final `finalLine` from `components/room/MatchRoomController.tsx`, with a test in `tests/unit/lib/room/scoreboard.spec.ts`.
+- [X] T018 [US1] Render the `starting` state: the clock row fills left to right over the 3·2·1 (end state under reduced motion), both rows read `ready`. Implement in `lib/room/scoreboard.ts` and `components/room/Scoreboard.tsx`, with a test in `tests/unit/lib/room/scoreboard.spec.ts`.
+- [X] T019 [US1] Render the match-over state: the clock holds `match over · 4:52 of 5:00` with numeral `0:08`, and the rows carry the rating lines or `rating pending`. Wire the final `finalLine` from `components/room/MatchRoomController.tsx`, with a test in `tests/unit/lib/room/scoreboard.spec.ts`.
 
 **Checkpoint:** US1 works. The match specs pass on the scoreboard (run `moves-flow` locally on `playtest-firefox --workers=1`).
 
@@ -96,7 +96,7 @@
 **Goal:** weight-only urgency and `behind pace` in words.
 **Independent test:** `low-clock` and `last-seconds` show the tinted row, ink ticks and a heavy numeral; in 3 seconds only the numeral and ticks change.
 
-- [ ] T020 [P] [US2] Add failing tests to `tests/unit/lib/room/scoreboard.spec.ts`:
+- [X] T020 [P] [US2] Add failing tests to `tests/unit/lib/room/scoreboard.spec.ts`:
   - phases → `data-phase` and the label (`last 12s`, `time`);
   - `behind pace` suffix in the seat tone for 3 moves at 0:48;
   - none for 7 moves at 3:12;
@@ -109,7 +109,7 @@
   - `time`: empty track.
 
   Delete `@keyframes clock-flash` and every `[data-phase="flash"]` rule.
-- [ ] T022 [US2] Implement the `behindPace` suffix in `lib/room/scoreboard.ts`, which replaces `move N of 10` with `move N · behind pace`.
+- [X] T022 [US2] Implement the `behindPace` suffix in `lib/room/scoreboard.ts`, which replaces `move N of 10` with `move N · behind pace`.
 - [ ] T023 [US2] Add a no-blink fixture test to `tests/integration/ui/room-fixtures.spec.ts`: on `last-seconds`, take two screenshots 1s apart with the clock frozen by the fixture and assert pixel identity outside the numeral and track boxes (SC-002). Also assert that `room.css` holds no `clock-flash` or `animation` on `.scoreboard`, in `tests/unit/styles/room-css.test.ts`.
 - [ ] T024 [US2] Assert that time still steps under reduced motion: the numeral and ticks update each second with `prefers-reduced-motion`, in `tests/unit/components/room/Scoreboard.spec.tsx`.
 

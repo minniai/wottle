@@ -51,6 +51,10 @@ import {
   QUEUE_LETTERS_LANDED,
   RECENT_GAMES,
   RECONNECT_MS_LEFT,
+  GONE_FOR_MS,
+  FINAL_CLOCK_MS,
+  FINAL_ELAPSED_MS,
+  MS_TO_START,
   REJECTED_M5,
   RESIGN_SLIP,
   SCORED_M4,
@@ -120,13 +124,14 @@ function MatchField({ drawnCount, marks, turnFrame, disabled, bands = BANDS, fro
 interface SeatOptions {
   completed: boolean;
   reconnectMsLeft: number | null;
+  goneForMs?: number | null;
   /** Both players' moves and totals in this phase. */
   you?: { moves: number; score: number; scoring?: boolean };
   opp?: { moves: number; score: number; scoring?: boolean };
   lines: { you: string; opp: string };
 }
 
-function matchSeats({ completed, reconnectMsLeft, you = { moves: 3, score: 46 }, opp = { moves: 6, score: 15 }, lines }: SeatOptions) {
+function matchSeats({ completed, reconnectMsLeft, goneForMs = null, you = { moves: 3, score: 46 }, opp = { moves: 6, score: 15 }, lines }: SeatOptions) {
   return {
     you: {
       name: BIRNA.displayName,
@@ -143,6 +148,7 @@ function matchSeats({ completed, reconnectMsLeft, you = { moves: 3, score: 46 },
       scoring: opp.scoring,
       score: opp.score,
       reconnectMsLeft,
+      goneForMs,
       finalLine: completed ? lines.opp : undefined,
     },
   };
@@ -160,6 +166,10 @@ interface MatchPhaseSpec {
   /** The match snapshot the phase shows; the base match state when omitted. */
   state?: MatchState;
   seats?: Pick<SeatOptions, "you" | "opp">;
+  /** Starting: ms until the clock runs. */
+  msToStart?: number;
+  /** Over: how long the match ran. */
+  elapsedMs?: number;
 }
 
 const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE };
@@ -185,11 +195,13 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   "last-seconds": { ...PICKING, clockMs: LAST_SECONDS_MS },
   "done-waiting": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: LOW_CLOCK_MS, state: DONE_STATE, seats: DONE_SEATS },
   "time-up": { live: { kind: "idle" }, marks: {}, moveState: TIME_UP, clockMs: 0, state: DONE_STATE, seats: { ...DONE_SEATS, opp: { ...DONE_SEATS.opp, scoring: true } } },
-  final: { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS },
+  final: { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
   disconnect: { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE, state: DISCONNECT_STATE },
   resign: IDLE,
   "end-early": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: 72_000, state: { ...DISCONNECT_STATE, ...DONE_STATE, disconnectedPlayerId: OPP_ID }, seats: DONE_SEATS },
-  "over-slip": { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS },
+  "over-slip": { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
+  // Spec 068: before started_at the clock row loads and both rows read `ready`; no pick is taken.
+  starting: { live: { kind: "idle" }, marks: {}, moveState: { kind: "starting", seconds: 2, opponentName: KARI.displayName }, msToStart: MS_TO_START, clockMs: 300_000, seats: { you: { moves: 0, score: 0 }, opp: { moves: 0, score: 0 } } },
 };
 
 /** The slip each phase seeds (spec 048 contracts/fixture-phases.md). */
@@ -307,11 +319,12 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   const disconnected = phase === "disconnect" || phase === "end-early";
   const spec = MATCH_PHASES[phase];
   const state = spec.state ?? MATCH_STATE;
-  const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? (phase === "end-early" ? 0 : RECONNECT_MS_LEFT) : null, ...spec.seats, lines: finalLines(copy) });
+  const gone = phase === "end-early";
+  const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? (gone ? 0 : RECONNECT_MS_LEFT) : null, goneForMs: gone ? GONE_FOR_MS : null, ...spec.seats, lines: finalLines(copy) });
   const words = spec.liveWord ? [...FIXTURE_WORDS, spec.liveWord] : FIXTURE_WORDS;
   const bands = spec.liveWord === SCORED_WORD ? SCORING_BANDS : spec.liveWord === OPP_REVEAL_WORD ? OPP_REVEAL_BANDS : BANDS;
   const drawnCount = phase === "reveal" ? revealed : null;
-  const locked = spec.holdMove !== undefined || spec.moveState?.kind === "scoring" || spec.moveState?.kind === "done" || spec.moveState?.kind === "timeUp";
+  const locked = spec.holdMove !== undefined || ["scoring", "done", "timeUp", "starting"].includes(spec.moveState?.kind ?? "");
 
   return (
     <RoomShell viewer={BIRNA}>
@@ -321,6 +334,9 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
         you={seats.you}
         opp={seats.opp}
         clockMs={spec.clockMs ?? CLOCK_MS}
+        clockLengthMs={300_000}
+        msToStart={spec.msToStart}
+        elapsedMs={spec.elapsedMs}
         moveLimit={10}
         completed={completed}
         words={words}
