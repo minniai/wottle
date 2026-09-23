@@ -61,20 +61,24 @@ describe("I3: every affected scored run must be a whole dictionary word", () => 
   );
 
   test.each([0, 1, 2, 3])(
-    "accepts a complete cross-run in either reading direction (rotation %i)",
+    "a complete cross-run in either reading direction scores with SÓL, in that reading (rotation %i)",
     (turns) => {
-      const { board, sol, frozen } = fixture(turns);
+      const { board, haus, sol, frozen } = fixture(turns);
+      const lTile = sol.tiles[2];
       // Synthetic dictionary entries isolate forward/reverse lookup behavior.
-      for (const wholeRun of ["hausl", "lsuah"]) {
+      for (const [wholeRun, tiles] of [
+        ["hausl", [...haus.tiles, lTile]],
+        ["lsuah", [lTile, ...[...haus.tiles].reverse()]],
+      ] as const) {
         const dictionary = new Set(["haus", "usl", "sól", wholeRun]);
-        expect(
-          selectOptimalCombination([sol], board, frozen, dictionary, "player_b"),
-        ).toEqual([sol]);
+        const result = selectOptimalCombination([sol], board, frozen, dictionary, "player_b");
+        expect(result.map((w) => w.text)).toEqual(["sól", wholeRun]);
+        expect(result[1].tiles).toEqual(tiles);
       }
     },
   );
 
-  test("rejects the invalid combination when HAUS is another candidate in the same scoring event", () => {
+  test("HAUS and SÓL in the same scoring event never touch end to end; HAUSL is the word when it is one", () => {
     const { board, haus, sol } = fixture();
     const dictionary = new Set(["haus", "usl", "sól"]);
     expect(
@@ -83,7 +87,17 @@ describe("I3: every affected scored run must be a whole dictionary word", () => 
     dictionary.add("hausl");
     expect(
       selectOptimalCombination([haus, sol], board, {}, dictionary, "player_b"),
-    ).toEqual([haus, sol]);
+    ).toEqual([haus]);
+    const hausl: BoardWord = {
+      ...haus,
+      text: "hausl",
+      displayText: "HAUSL",
+      length: 5,
+      tiles: [...haus.tiles, sol.tiles[2]],
+    };
+    expect(
+      selectOptimalCombination([haus, sol, hausl], board, {}, dictionary, "player_b"),
+    ).toEqual([sol, hausl]);
   });
 
   test("does not score or freeze the L next to frozen HAUS with the real Icelandic dictionary", async () => {
