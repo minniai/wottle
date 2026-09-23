@@ -55,8 +55,10 @@ export default async function MatchPage({
 
   // FR-043a: a signed-in non-participant may view a completed match read-only;
   // a live match sends them back to the lobby.
+  // Spec 069: a void table was never a match, so there is nothing for anyone else to read.
   const participants = [matchState.players.playerA.playerId, matchState.players.playerB.playerId];
-  if (!participants.includes(session.player.id) && matchState.state !== "completed" && matchState.state !== "abandoned") {
+  const readable = (matchState.state === "completed" || matchState.state === "abandoned") && matchState.endedReason !== "void";
+  if (!participants.includes(session.player.id) && !readable) {
     redirect(localePath(locale, "/lobby"));
   }
 

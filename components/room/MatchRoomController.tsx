@@ -47,7 +47,7 @@ import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
-import { tableFacts, useSeatAnnouncement, useTableDeadlineRead } from "./hooks/useTable";
+import { tableFacts, useSeatAnnouncement, useTableBackGuard, useTableDeadlineRead } from "./hooks/useTable";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
@@ -316,6 +316,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const tableSlip = derivedSlip?.kind === "void" && requeue.state.kind === "searching" && table.youRequeued
     ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeue.state.elapsedSeconds * 1000)}` } }
     : derivedSlip;
+  const leaveTheTable = useCallback(() => void leaveTableAction(matchId).then(() => router.push(to("/lobby"))), [matchId, router, to]);
+  useTableBackGuard(!readOnly && (match.state === "pending" || msToStart > 0), leaveTheTable);
   const foundMatchId = requeue.state.kind === "found" ? requeue.state.matchId : null;
   useEffect(() => {
     if (foundMatchId) router.push(to(`/match/${foundMatchId}`));
@@ -547,9 +549,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         void logoutAction().then((r) => (r.status === "refused" ? push({ kind: "text", text: copy.errors[r.code] }) : leave()), leave);
       }
       else if (action === "sitDown") void seatAction(matchId).then(refreshMatch);
-      else if (action === "leaveTable") {
-        void leaveTableAction(matchId).then(() => router.push(to("/lobby")));
-      }
+      else if (action === "leaveTable") leaveTheTable();
       else if (action === "cancelQueue") void requeue.cancel().then(() => router.push(to("/lobby")));
       else if (action === "challengeAgain") {
         // The same player, through the ordinary send (spec 069 clarification Q2); a refusal stays here and says why.
@@ -573,7 +573,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName, refreshMatch, requeue, oppFacts.playerId, match.language, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, requeue, oppFacts.playerId, match.language, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).

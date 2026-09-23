@@ -47,3 +47,30 @@ export function useTableDeadlineRead(match: MatchState, serverDrift: number, ref
     return () => clearTimeout(timer);
   }, [deadline, serverDrift, refresh]);
 }
+
+/**
+ * Back from the table or the count leaves it (spec 069 FR-019, game flow T28):
+ * one guard entry is pushed while the match has not gone, and popping it calls
+ * `onLeave`. After go the guard is inert; Back in a live match is a later stage's.
+ */
+export function useTableBackGuard(beforeGo: boolean, onLeave: () => void): void {
+  const armed = useRef(beforeGo);
+  const leave = useRef(onLeave);
+  useEffect(() => {
+    armed.current = beforeGo;
+    leave.current = onLeave;
+  }, [beforeGo, onLeave]);
+  const pushed = useRef(false);
+  useEffect(() => {
+    if (!beforeGo || pushed.current) return;
+    pushed.current = true;
+    window.history.pushState({ kind: "table-guard" }, "");
+  }, [beforeGo]);
+  useEffect(() => {
+    const onPop = () => {
+      if (armed.current) leave.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+}
