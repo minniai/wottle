@@ -26,18 +26,6 @@ interface PresenceInput {
   language?: Language;
 }
 
-export interface MatchBootstrapInput {
-  /** Spec 060: the match's game language, fixed here and never changed. */
-  language: Language;
-  id?: string;
-  boardSeed: string;
-  playerAId: string;
-  playerBId: string;
-  /** Spec 050: ten moves per player. */
-  moveLimit?: number;
-  rematchOf?: string;
-}
-
 export interface ActiveMatchSummary {
   id: string;
   state: "pending" | "in_progress";
@@ -146,38 +134,6 @@ export async function expireLobbyPresence(
     throw new Error(`Failed to expire lobby presence: ${error.message}`);
   }
 }
-
-export async function bootstrapMatchRecord(
-  client: AnyClient,
-  input: MatchBootstrapInput
-): Promise<string> {
-  const payload: Record<string, unknown> = {
-    id: input.id,
-    board_seed: input.boardSeed,
-    player_a_id: input.playerAId,
-    player_b_id: input.playerBId,
-    move_limit: input.moveLimit ?? 10,
-    language: input.language,
-    state: "pending",
-  };
-
-  if (input.rematchOf) {
-    payload.rematch_of = input.rematchOf;
-  }
-
-  const { data, error } = await client
-    .from("matches")
-    .upsert(payload, { onConflict: "id" })
-    .select("id")
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to create match record: ${error.message}`);
-  }
-
-  return data.id;
-}
-
 
 export async function findActiveMatchForPlayer(
   client: AnyClient,

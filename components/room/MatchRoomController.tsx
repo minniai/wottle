@@ -431,7 +431,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   useRoomHotkeys(handleAction);
 
   const rematchLine =
-    rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.error ? copy.errors[rematch.error] : null;
+    rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.phase === "busy" ? copy.opponentBusy(opp.displayName) : rematch.error ? copy.errors[rematch.error] : null;
   const allNotices: Notice[] = [
     ...notices,
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),

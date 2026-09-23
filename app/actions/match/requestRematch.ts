@@ -8,16 +8,13 @@ import { z } from "zod";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { writeMatchLog } from "@/lib/match/logWriter";
 import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
-import {
-  fetchRematchRequest,
-  insertRematchRequest,
-  updateRematchRequestStatus,
-} from "@/lib/match/rematchRepository";
+import { fetchRematchRequest, insertRematchRequest } from "@/lib/match/rematchRepository";
 import {
   detectSimultaneousRematch,
   validateRematchRequest,
 } from "@/lib/match/rematchService";
-import { createRematchMatch } from "@/lib/match/rematchMatch";
+import { acceptRematch } from "@/lib/match/createMatch";
+import { announceRematch } from "@/lib/match/rematchAnnouncements";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -41,59 +38,21 @@ async function fetchMatch(matchId: string) {
   };
 }
 
-async function setPlayersInMatch(playerIds: string[]) {
+/** Both asked: the second request is the answer to the first (spec 067 crossed rematch). */
+async function acceptCrossedRematch(matchId: string, requestId: string, requesterId: string, callerId: string): Promise<RematchResult> {
   const supabase = getServiceRoleClient();
-  await supabase
-    .from("players")
-    .update({
-      status: "in_match",
-      last_seen_at: new Date().toISOString(),
-    })
-    .in("id", playerIds);
-
-  await supabase
-    .from("lobby_presence")
-    .update({
-      mode: "auto",
-      invite_token: null,
-      updated_at: new Date().toISOString(),
-    })
-    .in("player_id", playerIds);
-}
-
-async function acceptRematchInternal(
-  matchId: string,
-  requestId: string,
-  playerAId: string,
-  playerBId: string,
-): Promise<string> {
-  const supabase = getServiceRoleClient();
-
-  const newMatchId = await createRematchMatch(supabase, { matchId, playerAId, playerBId });
-
-  await updateRematchRequestStatus(supabase, requestId, "accepted", newMatchId);
-  await setPlayersInMatch([playerAId, playerBId]);
-
-  await writeMatchLog(supabase, {
-    matchId: newMatchId,
-    eventType: "match.rematch.created",
-    metadata: { previousMatchId: matchId },
-  });
-
-  await broadcastRematchEvent(matchId, {
-    type: "rematch-accepted",
-    matchId,
-    requesterId: playerAId,
-    status: "accepted",
-    newMatchId,
-  });
-
-  return newMatchId;
+  const result = await acceptRematch(supabase, { requestId, actorId: callerId, origin: "crossed_rematch" });
+  if (result.status === "busy") return { status: "busy" };
+  if (result.status !== "created") throw new Error("A rematch has already been processed for this match.");
+  await announceRematch(supabase, matchId, requesterId, result.matchId);
+  return { status: "accepted", matchId: result.matchId };
 }
 
 export type RematchResult =
   | { status: "pending" }
-  | { status: "accepted"; matchId: string };
+  | { status: "accepted"; matchId: string }
+  /** Either player is in another match now (spec 067). */
+  | { status: "busy" };
 
 const matchIdSchema = z.string().uuid("Invalid match ID.");
 
@@ -140,13 +99,7 @@ export async function requestRematchAction(
 
   // Simultaneous detection: opponent already requested, caller is the responder
   if (detectSimultaneousRematch(existingRequest, playerId)) {
-    const newMatchId = await acceptRematchInternal(
-      matchId,
-      existingRequest!.id,
-      existingRequest!.requesterId,
-      playerId,
-    );
-    return { status: "accepted", matchId: newMatchId };
+    return acceptCrossedRematch(matchId, existingRequest!.id, existingRequest!.requesterId, playerId);
   }
 
   await writeMatchLog(supabase, {
