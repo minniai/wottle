@@ -25,9 +25,7 @@ export async function GET(
 
   const supabase = getServiceRoleClient();
   const playerId = session.player.id;
-  // The caller is named so a pending match can record them and start once
-  // both players have loaded the room (spec 050, contracts/match-state.md).
-  const state = await loadMatchState(supabase, matchId, { callerId: playerId });
+  const state = await loadMatchState(supabase, matchId);
 
   if (!state) {
     return NextResponse.json(

@@ -37,7 +37,7 @@ export default async function MatchPage({
     console.warn("[MatchPage] Reconnection handling failed:", error);
   }
 
-  const matchState = await loadMatchState(supabase, matchId, { callerId: session.player.id });
+  const matchState = await loadMatchState(supabase, matchId);
 
   // Nothing renders outside the room: a missing match is a lobby notice, not a
   // page of its own (spec 045 FR-017). The id travels with the notice: the lobby
