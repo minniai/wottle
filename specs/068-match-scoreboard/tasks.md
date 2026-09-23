@@ -264,16 +264,16 @@
 
 ## Phase 12: User Story 9 (Phase B part) and polish
 
-- [ ] T077 [US9] Complete the design system for Phase B in `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`:
+- [X] T077 [US9] Complete the design system for Phase B in `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`:
   - §5.1: the last-moved letter state;
   - §5.4 and §8: the missed beat, stakes, the illegal word, pick cleared on line 2, the line 2 precedence, back, gone for, and the end-early offer;
   - §9: announcements and focus at go.
 
   Record any strings shortened by T066.
-- [ ] T078 [US9] Update `docs/prd_and_requirements/wottle_game_rules.md` §12 rows: frozen tile (names the word), reconnection window (`gone for`, end early with headline focus), resigning (`keep playing ▸` primary), letter states (last moved).
-- [ ] T079 [US9] Update `CLAUDE.md`: the fixture phase count and list, and the new Icelandic strings added to gap 4's native-read list.
-- [ ] T080 Re-baseline the visual suite on darwin for the new and changed phases (`pnpm test:visual --update-snapshots`).
-- [ ] T081 Walk through every row of `specs/068-match-scoreboard/quickstart.md` by hand in the browser, at 1440×900 and 390×844.
+- [X] T078 [US9] Update `docs/prd_and_requirements/wottle_game_rules.md` §12 rows: frozen tile (names the word), reconnection window (`gone for`, end early with headline focus), resigning (`keep playing ▸` primary), letter states (last moved).
+- [X] T079 [US9] Update `CLAUDE.md`: the fixture phase count and list, and the new Icelandic strings added to gap 4's native-read list.
+- [X] T080 Re-baseline the visual suite on darwin for the new and changed phases (`pnpm test:visual --update-snapshots`).
+- [X] T081 Walk through every row of `specs/068-match-scoreboard/quickstart.md` by hand in the browser, at 1440×900 and 390×844.
 - [ ] T082 Final gate: run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` and `pnpm test:visual`; the chromium E2E room specs; `moves-flow` and `disconnect-claim` on `playtest-firefox --workers=1`; and `pnpm perf:move-receipt` (SC-009, unchanged). Record the results in the Notes.
 
 ---
@@ -323,4 +323,5 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - Phase B, line 2: the stakes live in `moveState.ts` (`Line2Extras.stakes`, priced by `timeoutPenalty`) rather than a separate `stakes.ts`. `LiveLines.line2Parts` carries the crimson number and the end-early action. Pick cleared and submit errors hold on line 2 with their own timers. The `pickCleared` notice kind is no longer raised in a match, but it stays in `notices.ts` with the generic timed-notice machinery; removing it is a follow-up. The pick-cleared tick flash is not built, because the opponent's tick already marks the swapped cells.
 - T063–T066: the announcement hook is `useAnnouncements`, which also says 1:00 and 0:15. Line 2 runs under the opponent's total (it sits on line 1 only), about 40 mono characters, and never wraps. Shortened for it: `frozen · Kári froze it · pick another`, `moved · Kári moved it · pick another`, the waiting fact in C4's form `Kári · 8 of 10 · 1:12 left` (the Icelandic `bíður eftir Kári` also broke the name-safe rule), `back · away 0:34 · the clock ran on`, and the Icelandic end-early offer without the name (`án tengingar · ljúka viðureigninni ▸`). All are to be recorded in design system §8 (T077).
 - US8: T071 and T072 shipped in Phase A with the scoreboard (analysis I2). The outage lifecycle lives in `useMatchTransport` (`useOutage`), not the room store: two failed safety polls in a row (or the browser's `offline` event) mark you offline, and the first good poll brings you back and calls `handlePlayerReconnect`. The own-disconnect `reconnecting` notice and its copy key are removed; line 2 carries it.
+- T081, walk-through by hand (fixtures at 1440×900 and 390×844, plus the Icelandic set) found three things, all fixed: the end-early offer nested a button inside the phone's live-row button (a hydration error; the dev overlay had been captured in the `gone` phone baseline); the lost-points number and its label ran together on line 2 (`−15IF UNPLAYED`); and on the phone the offer was written twice. The fixture screenshot test now fails on any console error.
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.
