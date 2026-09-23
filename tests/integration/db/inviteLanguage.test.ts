@@ -43,11 +43,12 @@ describe.skipIf(!db)("challenges by language (spec 060)", () => {
     players = await createPlayers(["Anna", "Ben"], { Anna: "en", Ben: "en" });
     const [anna, ben] = players;
     const sent = await sendDirectInvite(db!.client, { senderId: anna, recipientId: ben, language: "en" });
+    if (sent.status !== "sent") throw new Error("expected a sent challenge");
     const { data: invite } = await db!.client.from("match_invitations").select("language").eq("id", sent.inviteId).single();
     expect(invite?.language).toBe("en");
 
     const answer = await respondToInvite(db!.client, { inviteId: sent.inviteId, actorId: ben, decision: "accepted" });
-    const { data: match } = await db!.client.from("matches").select("language").eq("id", answer.matchId!).single();
+    const { data: match } = await db!.client.from("matches").select("language").eq("id", answer.status === "accepted" ? answer.matchId : "").single();
     expect(match?.language).toBe("en");
   });
 

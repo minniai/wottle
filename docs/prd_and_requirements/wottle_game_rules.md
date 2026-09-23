@@ -11,7 +11,7 @@
 ## Table of Contents
 
 1. [Board and tile state](#1-board-and-tile-state)
-2. [Moves](#2-moves) · [2a. Time control](#2a-time-control-clock-model)
+2. [Moves](#2-moves) · [2a. Time control](#2a-time-control-clock-model) · [2b. One match at a time](#2b-one-match-at-a-time-spec-067-2026-09-23)
 3. [What counts as a scored word](#3-what-counts-as-a-scored-word)
 4. [The per-letter coverage rule](#4-the-per-letter-coverage-rule-critical)
 5. [Scoring formula](#5-scoring-formula)
@@ -62,7 +62,22 @@
   3. still tied → **draw**.
   Running out of time is not a loss by itself. The recorded reason says who was short: `moves_complete` (both had ten), `incomplete` (one did not), `both_incomplete` (neither did). Every outcome is rated.
 - A player who has made ten moves watches the rest of the match with the field locked. If the opponent has been unreachable for the 90-second reconnection window, that player may end the match early (`end the match ▸`); the ordinary rules above decide it. A disconnection by itself changes nothing else: the clock runs, and a player who does not come back simply fails to finish.
-- Resigning ends the match at once as a forfeit (`forfeit`, the other player wins).
+- Resigning ends the match at once as a forfeit (`forfeit`, the other player wins). Nothing else resigns: signing out never ends a match, and is refused while one is live (spec 067).
+
+### 2b. One match at a time (spec 067, 2026-09-23)
+
+- **A player is in at most one live match** — `pending` or `in_progress` — at any moment.
+- **Every match is created by one database function, `create_match_between(a, b, language, origin, ref)`.** It locks both players (in id order) and refuses (`busy`) if either already has a live match. The six ways into a match only add their own precondition before calling it:
+  - `accept_invite`: a challenge, accepted once by its recipient while pending and in time. When two players challenge each other, the second challenge accepts the first (`crossed_challenge`).
+  - `accept_rematch`: a rematch, accepted by its responder within 30s of the request, after the match it follows is over. Crossed requests are `crossed_rematch`.
+  - `pair_from_queue`: two players both still searching in one language.
+  - A link accept (`link`) arrives with invite links and uses the same function.
+- **Creating a match ends every other commitment of both players in the same transaction:**
+  - their searches stop;
+  - their outgoing challenges and rematch requests are `withdrawn`;
+  - challenges and rematch requests addressed to them are `superseded`.
+- **An accept refused as `busy` leaves nothing accepted.** The challenge stays pending if the accepter was busy. It is superseded if the sender was busy.
+- **Identity.** A name belongs to the browser that claimed it: its device key's hash is `players.claim_hash`. The session cookie is signed. Details: `specs/067-identity-one-match/`.
 
 ---
 

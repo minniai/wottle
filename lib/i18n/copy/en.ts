@@ -32,6 +32,12 @@ const searchingSubline = (elapsedMmSs: string): string =>
 const startsIn = (seconds: number): string => `starts in ${seconds}`;
 const YOUR_NAME_PLACEHOLDER = "your name";
 const NO_ACCOUNT_NEEDED = "no account needed";
+// The returning door (spec 067 US3, artboard DoorReturning)
+const THIS_BROWSER_KEEPS_YOUR_NAME = "this browser keeps your name";
+const WELCOME_BACK = "welcome back";
+const ENTER_LOBBY = "enter the lobby ▸";
+const notYou = (name: string): string => `not ${name}? · use another name`;
+const returningLine = (rating: number | null): string => (rating === null ? "english" : `${rating} · english`);
 const YOU = "you";
 const OPPONENT = "opponent";
 const RATING_PENDING = "rating pending";
@@ -84,6 +90,8 @@ const challengeSent = (name: string): string => `challenge sent · waiting for $
 const challengeDeclined = (name: string): string => `${name} declined your challenge`;
 const challengeUnanswered = (name: string): string => `${name} did not answer`;
 const challengeTaken = (name: string): string => `${name} took another challenge`;
+// Accepting a challenge from someone who is now in another match (spec 067 FR-019)
+const opponentBusy = (name: string): string => `${name} can't play right now`;
 
 // The slip (spec 048, design system §5.9)
 /** Under /en the game plays English (spec 060); Icelandic says `íslensk orð`. */
@@ -207,6 +215,8 @@ const noSuchPlayer = (handle: string): string => `No such player · @${handle} h
 const errors = {
   rate_limited: "too many tries · wait a minute",
   invalid_name: "3 to 24 letters, digits, - or _",
+  name_taken: "that name is taken · pick another",
+  sign_out_in_match: "finish your match first",
   login_failed: "could not sign in · try again",
   signed_out: "sign in first",
   queue_failed: "could not start a search · try again",
@@ -257,6 +267,11 @@ export const copyEn = {
   startsIn,
   YOUR_NAME_PLACEHOLDER,
   NO_ACCOUNT_NEEDED,
+  THIS_BROWSER_KEEPS_YOUR_NAME,
+  WELCOME_BACK,
+  ENTER_LOBBY,
+  notYou,
+  returningLine,
   YOU,
   OPPONENT,
   RATING_PENDING,
@@ -291,6 +306,7 @@ export const copyEn = {
   challengeDeclined,
   challengeUnanswered,
   challengeTaken,
+  opponentBusy,
   TAGLINE,
   NEW_HERE_HOW_TO_PLAY,
   SIGN_IN_TO_SET_THE_FIELD,

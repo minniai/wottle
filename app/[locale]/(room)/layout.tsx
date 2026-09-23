@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { RoomShell } from "@/components/room/RoomShell";
 import { getLocale } from "@/lib/i18n/locales";
 import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
+import { readReturningPlayer } from "@/lib/auth/returningPlayer";
 import { readLobbySession, viewerInLanguage } from "@/lib/matchmaking/profile";
 
 /**
@@ -13,6 +14,12 @@ import { readLobbySession, viewerInLanguage } from "@/lib/matchmaking/profile";
 export default async function RoomLayout({ children, params }: { children: ReactNode; params?: LocaleParams }) {
   const locale = await readLocaleParam(params);
   const session = await readLobbySession();
-  const viewer = session ? await viewerInLanguage(session.player, getLocale(locale).language) : null;
-  return <RoomShell viewer={viewer}>{children}</RoomShell>;
+  const { language } = getLocale(locale);
+  const viewer = session ? await viewerInLanguage(session.player, language) : null;
+  const returning = session ? null : await readReturningPlayer(language);
+  return (
+    <RoomShell viewer={viewer} returning={returning}>
+      {children}
+    </RoomShell>
+  );
 }

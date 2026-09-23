@@ -23,5 +23,8 @@ describe("error codes (spec 060 research R4)", () => {
     expect(loginErrorCode(new RateLimitExceededError("auth:login", 30, "x"))).toBe("rate_limited");
     expect(loginErrorCode(new LoginValidationError("too short"))).toBe("invalid_name");
     expect(loginErrorCode(new Error("db down"))).toBe("login_failed");
+    // Spec 067: another browser holds the name.
+    const taken = Object.assign(new Error("taken"), { name: "NameTakenError" });
+    expect(loginErrorCode(taken)).toBe("name_taken");
   });
 });

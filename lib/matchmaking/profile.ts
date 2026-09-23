@@ -5,30 +5,36 @@ import "server-only";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
+import { SESSION_COOKIE_NAME, SESSION_TTL_SECONDS, sessionCookieOptions } from "@/lib/auth/cookies";
+import { requireSessionSecret } from "@/lib/auth/sessionSecret";
+import { signSession, verifySession, type SessionRejection } from "@/lib/auth/sessionToken";
+
 import { listCachedPresence, rememberPresence } from "./presenceCache";
-import {
-  findActiveMatchForPlayer,
-  upsertLobbyPresence,
-  upsertPlayerIdentity,
-} from "./service";
+import { findActiveMatchForPlayer, upsertLobbyPresence } from "./service";
+import { enterPlayer } from "@/lib/auth/claim";
 import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export interface LoginResult {
   player: PlayerIdentity;
-  sessionToken: string;
+}
+
+/** Who a session says the viewer is. Everything else about them is read fresh (spec 067 R1). */
+export interface SessionPlayer {
+  id: string;
+  username: string;
+  displayName: string;
 }
 
 export interface LobbySession {
-  token: string;
-  player: PlayerIdentity;
+  player: SessionPlayer;
   issuedAt: number;
+  expiresAt: number;
 }
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
-export const SESSION_COOKIE_NAME = "wottle-playtest-session";
-const SESSION_TTL_SECONDS = 4 * 60 * 60;
+export { SESSION_COOKIE_NAME };
 // Increased from 30s to 5 minutes for more reliable presence tracking in CI
 const PRESENCE_TTL_SECONDS = Number(
   process.env.PLAYTEST_PRESENCE_TTL_SECONDS ?? "300"
@@ -47,22 +53,6 @@ const usernameSchema = z
     "Use only letters (including Icelandic), numbers, underscores, or hyphens."
   );
 
-const lobbyStatusSchema = z.enum(["available", "matchmaking", "in_match", "offline"]);
-
-const sessionSchema: z.ZodType<LobbySession> = z.object({
-  token: z.string().min(1),
-  player: z.object({
-    id: z.string().uuid(),
-    username: z.string(),
-    displayName: z.string(),
-    avatarUrl: z.string().nullable().optional(),
-    status: lobbyStatusSchema,
-    lastSeenAt: z.string(),
-    eloRating: z.number().nullable().optional(),
-  }),
-  issuedAt: z.number().int(),
-});
-
 export class LoginValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -70,8 +60,12 @@ export class LoginValidationError extends Error {
   }
 }
 
-/** `language` is the lobby the sign-in happened in (spec 060); the player is present there first. */
-export async function performUsernameLogin(usernameInput: string, language: Language = "is"): Promise<LoginResult> {
+/**
+ * `language` is the lobby the sign-in happened in (spec 060); the player is present there first.
+ * `claimHash` is this browser's device key, hashed: the name is claimed for it, or refused
+ * with NameTakenError when another browser holds it (spec 067).
+ */
+export async function performUsernameLogin(usernameInput: string, language: Language, claimHash: string): Promise<LoginResult> {
   console.log("[performUsernameLogin] Starting login for:", usernameInput);
   
   const parsed = usernameSchema.safeParse(usernameInput);
@@ -84,87 +78,71 @@ export async function performUsernameLogin(usernameInput: string, language: Lang
   const displayName = formatDisplayName(parsed.data);
   const supabase = getServiceRoleClient();
 
-  console.log("[performUsernameLogin] Creating player identity...");
-  const player = await upsertPlayerIdentity(supabase, {
-    username: normalizedUsername,
-    displayName,
-    status: "available",
-  });
-  console.log("[performUsernameLogin] Player created:", player.id);
+  const entered = await enterPlayer(supabase, { username: normalizedUsername, displayName, claimHash });
+  return { player: await enterClaimedPlayer(entered, language) };
+}
 
-  console.log("[performUsernameLogin] Creating presence record...");
-  const presence = await createPresenceRecord(supabase, player.id, language);
-  console.log("[performUsernameLogin] Presence created:", {
-    playerId: presence.playerId,
-    expiresAt: presence.expiresAt,
-    mode: presence.mode,
-  });
-
-  // Verify presence record was actually persisted
-  const { data: verification, error: verifyError } = await supabase
-    .from("lobby_presence")
-    .select("*")
-    .eq("player_id", player.id)
-    .single();
-  
+/**
+ * A player this browser may be (by name and key, or by key alone) arrives in a
+ * lobby: present there, remembered by the cache, with that lobby's rating.
+ */
+export async function enterClaimedPlayer(entered: SessionPlayer, language: Language): Promise<PlayerIdentity> {
+  const supabase = getServiceRoleClient();
+  const player = await viewerInLanguage(entered, language);
+  await createPresenceRecord(supabase, player.id, language);
+  const { error: verifyError } = await supabase.from("lobby_presence").select("player_id").eq("player_id", player.id).single();
   if (verifyError) {
-    console.error("[performUsernameLogin] Failed to verify presence record:", verifyError);
     throw new Error(`Presence verification failed: ${verifyError.message}`);
   }
-  
-  console.log("[performUsernameLogin] Presence verified in database:", {
-    playerId: verification.player_id,
-    expiresAt: verification.expires_at,
-    isExpired: new Date(verification.expires_at) <= new Date(),
-  });
-
   rememberPresence(player, language);
-  console.log("[performUsernameLogin] Player added to server cache");
-
-  return {
-    player,
-    sessionToken: crypto.randomUUID(),
-  };
+  return player;
 }
 
 export async function persistLobbySession(
-  result: LoginResult,
+  result: { player: SessionPlayer },
   store?: CookieStore
 ): Promise<LobbySession> {
+  const issuedAt = Date.now();
   const session: LobbySession = {
-    token: result.sessionToken,
-    player: result.player,
-    issuedAt: Date.now(),
+    player: { id: result.player.id, username: result.player.username, displayName: result.player.displayName },
+    issuedAt,
+    expiresAt: issuedAt + SESSION_TTL_SECONDS * 1000,
   };
-
-  const encoded = encodeSession(session);
   const cookieStore = store ?? (await cookies());
-  cookieStore.set(SESSION_COOKIE_NAME, encoded, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: shouldUseSecureCookies(),
-    maxAge: SESSION_TTL_SECONDS,
-    path: "/",
-  });
-
+  cookieStore.set(SESSION_COOKIE_NAME, signedValueOf(session), sessionCookieOptions());
   return session;
 }
 
+/** The one reader of the session cookie (FR-003): only a server-signed, unexpired session names a player. */
 export async function readLobbySession(
   store?: CookieStore
 ): Promise<LobbySession | null> {
   const cookieStore = store ?? (await cookies());
   const raw = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (!raw) {
+  if (!raw) return null;
+  const verified = verifySession(raw, requireSessionSecret(), Date.now());
+  if (!verified.ok) {
+    logRejectedSession(verified.reason);
     return null;
   }
+  const { playerId, username, displayName, issuedAt, expiresAt } = verified.payload;
+  return { player: { id: playerId, username, displayName }, issuedAt, expiresAt };
+}
 
-  try {
-    const decoded = decodeSession(raw);
-    return sessionSchema.parse(decoded);
-  } catch {
-    return null;
-  }
+function signedValueOf(session: LobbySession): string {
+  const { player, issuedAt, expiresAt } = session;
+  return signSession(
+    { playerId: player.id, username: player.username, displayName: player.displayName, issuedAt, expiresAt },
+    requireSessionSecret(),
+  );
+}
+
+// Every pre-067 cookie reads as legacy until its owner signs in again; sample those.
+const LEGACY_LOG_SAMPLE = 0.1;
+
+function logRejectedSession(reason: SessionRejection): void {
+  if (reason === "legacy" && Math.random() >= LEGACY_LOG_SAMPLE) return;
+  console.warn(JSON.stringify({ event: "auth.session.rejected", reason }));
 }
 
 type LobbySnapshotRow = {
@@ -291,14 +269,6 @@ export async function healStuckInMatchStatus(playerId: string): Promise<void> {
   }
 }
 
-function encodeSession(session: LobbySession): string {
-  return Buffer.from(JSON.stringify(session), "utf8").toString("base64url");
-}
-
-function decodeSession(value: string): unknown {
-  return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
-}
-
 function formatDisplayName(username: string): string {
   if (!username) {
     return "Player";
@@ -333,51 +303,35 @@ function sortPlayers(players: PlayerIdentity[]): PlayerIdentity[] {
   return [...players].sort((a, b) => a.username.localeCompare(b.username));
 }
 
-function shouldUseSecureCookies(): boolean {
-  const raw = process.env.PLAYTEST_SESSION_SECURE;
-  const isProduction = process.env.NODE_ENV === "production";
-  
-  console.log("[shouldUseSecureCookies] Env Check:", { 
-    PLAYTEST_SESSION_SECURE: raw, 
-    NODE_ENV: process.env.NODE_ENV
-  });
-
-  if (raw) {
-    const normalized = raw.trim().toLowerCase();
-    if (["1", "true", "on", "yes", "enabled"].includes(normalized)) {
-      console.log("[shouldUseSecureCookies] Explicitly enabled via env");
-      return true;
-    }
-    if (["0", "false", "off", "no", "disabled"].includes(normalized)) {
-      console.log("[shouldUseSecureCookies] Explicitly disabled via env");
-      return false;
-    }
-  }
-  
-  if (process.env.CI === "true" || process.env.CI === "1") {
-    console.log("[shouldUseSecureCookies] Explicitly disabled in CI environment");
-    return false;
-  }
-  
-  const result = isProduction;
-  console.log(`[shouldUseSecureCookies] Fallback to NODE_ENV: ${isProduction} -> ${result}`);
-  return result;
+/**
+ * The signed-in player with their status and their rating in `language` (spec 060 US4).
+ * The session names only who they are (spec 067), so every page that shows the
+ * viewer's own bar reads the rest fresh here.
+ */
+export async function viewerInLanguage(player: SessionPlayer, language: Language): Promise<PlayerIdentity> {
+  const supabase = getServiceRoleClient();
+  const [row, ratings] = await Promise.all([
+    readViewerRow(supabase, player.id),
+    readEloRatings(supabase, [player.id], language).catch((error) => {
+      console.warn("[viewerInLanguage] rating read failed", error);
+      return new Map<string, number>();
+    }),
+  ]);
+  return {
+    id: player.id,
+    username: player.username,
+    displayName: player.displayName,
+    avatarUrl: row?.avatar_url ?? null,
+    status: row?.status ?? "available",
+    lastSeenAt: row?.last_seen_at ?? new Date().toISOString(),
+    eloRating: ratings.get(player.id) ?? null,
+  };
 }
 
+type ViewerRow = { status: LobbyStatus; avatar_url: string | null; last_seen_at: string };
 
-
-
-/**
- * The signed-in player with their rating in `language` (spec 060 US4). The
- * session cookie carries the rating from sign-in, in no particular language;
- * every page that shows the viewer's own bar reads it fresh here.
- */
-export async function viewerInLanguage(player: PlayerIdentity, language: Language): Promise<PlayerIdentity> {
-  try {
-    const ratings = await readEloRatings(getServiceRoleClient(), [player.id], language);
-    return { ...player, eloRating: ratings.get(player.id) ?? player.eloRating };
-  } catch (error) {
-    console.warn("[viewerInLanguage] rating read failed", error);
-    return player;
-  }
+async function readViewerRow(supabase: ReturnType<typeof getServiceRoleClient>, playerId: string): Promise<ViewerRow | null> {
+  const { data, error } = await supabase.from("players").select("status, avatar_url, last_seen_at").eq("id", playerId).maybeSingle();
+  if (error) console.warn("[viewerInLanguage] player read failed", error);
+  return (data as ViewerRow | null) ?? null;
 }

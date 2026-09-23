@@ -74,6 +74,9 @@ export function challengeOutcome(outgoing: OutgoingChallenge, copy: Copy): strin
       return copy.challengeUnanswered(outgoing.recipientName);
     case "declined":
       return outgoing.recipientInMatch ? copy.challengeTaken(outgoing.recipientName) : copy.challengeDeclined(outgoing.recipientName);
+    case "superseded":
+      // They were booked into another match before answering (spec 067).
+      return copy.challengeTaken(outgoing.recipientName);
     default:
       return null;
   }

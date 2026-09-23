@@ -109,7 +109,7 @@ export type Notice =
 /** The viewer's latest challenge as the lobby poll reports it (GET /api/lobby/invite). */
 export interface OutgoingChallenge {
   id: string;
-  status: "pending" | "accepted" | "declined" | "expired";
+  status: "pending" | "accepted" | "declined" | "expired" | "withdrawn" | "superseded";
   recipientName: string;
   recipientInMatch: boolean;
 }

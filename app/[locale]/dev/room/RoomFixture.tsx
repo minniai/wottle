@@ -9,7 +9,7 @@ import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { ProfilePage } from "@/components/profile/ProfilePage";
-import { useCopy } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { Seat } from "@/lib/constants/seatColors";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
@@ -166,7 +166,7 @@ const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, moveState: YOU
 const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, moveState: YOUR_MOVE };
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
-type MatchPhase = Exclude<RoomPhase, "landing-slip" | "lobby" | "queue" | "found" | "profile" | "rules">;
+type MatchPhase = Exclude<RoomPhase, "landing-slip" | "returning-slip" | "lobby" | "queue" | "found" | "profile" | "rules">;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -196,6 +196,8 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
 function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
   const slips: Partial<Record<RoomPhase, SlipState>> = {
     "landing-slip": { kind: "signIn" },
+    // Spec 067: the same slip, greeting the browser's player after a sign-out.
+    "returning-slip": { kind: "signIn" },
     resign: RESIGN_SLIP,
     "end-early": END_EARLY_SLIP,
     "over-slip": overSlip(copy),
@@ -204,11 +206,12 @@ function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
 }
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", profile: "lobby", queue: "queue", found: "found", final: "final", "over-slip": "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", "returning-slip": "lobby", profile: "lobby", queue: "queue", found: "found", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   const copy = useCopy();
+  const { language } = useLocale();
   const { OPPONENT, TAP_SECOND_LETTER, startsIn, searchingSubline, settingField } = copy;
   const [revealed, setRevealed] = useState<number | null>(phase === "reveal" ? 0 : null);
 
@@ -216,13 +219,16 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     // Seed the store so components reading it (Room's data-phase, seat colours)
     // agree with the props. No transport, no timers.
     const store = useRoomStore.getState();
-    store.setViewer(phase === "landing-slip" ? null : BIRNA);
+    const signedOut = phase === "landing-slip" || phase === "returning-slip";
+    store.setViewer(signedOut ? null : BIRNA);
+    // EN-L Birna 1310 in English; IS-T1 Birna 1212 in Icelandic (game-flow spec §5.0).
+    store.setReturning(phase === "returning-slip" ? { displayName: BIRNA.displayName, rating: language === "en" ? 1310 : 1212 } : null);
     store.setBoard(FIXTURE_BOARD);
     store.setPhase(STORE_PHASE[phase] ?? "match");
     const slip = slipFor(phase, copy);
     if (slip) store.setSlip(slip);
     else if (store.slip) store.clearSlip(store.slip.kind);
-  }, [phase, copy]);
+  }, [phase, copy, language]);
 
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
   useEffect(() => {
@@ -252,8 +258,8 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     );
   }
 
-  if (phase === "landing-slip" || phase === "lobby") {
-    const viewer = phase === "landing-slip" ? null : BIRNA;
+  if (phase === "landing-slip" || phase === "returning-slip" || phase === "lobby") {
+    const viewer = phase === "lobby" ? BIRNA : null;
     return (
       <RoomShell viewer={viewer}>
         <LobbyRoomView

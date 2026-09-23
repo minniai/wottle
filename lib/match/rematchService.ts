@@ -52,12 +52,7 @@ export function validateRematchRequest(
     return "You have already requested a rematch for this match.";
   }
 
-  if (
-    existingRequest &&
-    (existingRequest.status === "declined" ||
-      existingRequest.status === "expired" ||
-      existingRequest.status === "accepted")
-  ) {
+  if (existingRequest && existingRequest.status !== "pending") {
     return "A rematch has already been processed for this match.";
   }
 

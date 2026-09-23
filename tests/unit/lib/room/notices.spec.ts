@@ -56,6 +56,10 @@ describe("notices (design system §5.4, §8)", () => {
     expect(challengeOutcome({ ...out, status: "declined", recipientInMatch: true }, copyEn)).toBe("Kári took another challenge");
     expect(challengeOutcome({ ...out, status: "expired" }, copyEn)).toBe("Kári did not answer");
     expect(challengeOutcome({ ...out, status: "accepted" }, copyEn)).toBeNull();
+    // Spec 067: Kári was booked into another match before answering; a challenge
+    // we withdrew ourselves (by starting another match) just leaves the ledger.
+    expect(challengeOutcome({ ...out, status: "superseded" }, copyEn)).toBe("Kári took another challenge");
+    expect(challengeOutcome({ ...out, status: "withdrawn" }, copyEn)).toBeNull();
   });
 
   it("every fixed string is exclamation-free", () => {

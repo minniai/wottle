@@ -9,7 +9,19 @@ vi.mock("@/lib/matchmaking/profile", async (importOriginal) => {
   };
 });
 
+vi.mock("next/headers", () => {
+  const jar = new Map<string, string>();
+  return {
+    cookies: vi.fn(async () => ({
+      get: (name: string) => (jar.has(name) ? { name, value: jar.get(name)! } : undefined),
+      set: (name: string, value: string) => jar.set(name, value),
+      delete: (name: string) => jar.delete(name),
+    })),
+  };
+});
+
 import type { PlayerIdentity } from "@/lib/types/match";
+import { NameTakenError } from "@/lib/auth/claim";
 import { performUsernameLogin, persistLobbySession } from "@/lib/matchmaking/profile";
 import { POST } from "@/app/api/auth/login/route";
 import { resetRateLimitStoreForTests } from "@/lib/rate-limiting/middleware";
@@ -46,22 +58,24 @@ describe("POST /api/auth/login", () => {
   it("returns 200 with player payload when login succeeds", async () => {
     vi.mocked(performUsernameLogin).mockResolvedValue({
       player,
-      sessionToken: "session-123",
     });
 
     const response = await POST(createRequest({ username: "tester" }));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(await response.json()).toEqual({
-      player,
-      sessionToken: "session-123",
-    });
-    expect(performUsernameLogin).toHaveBeenCalledWith("tester");
-    expect(persistLobbySession).toHaveBeenCalledWith({
-      player,
-      sessionToken: "session-123",
-    });
+    // The response names the player; the session itself is only ever the signed httpOnly cookie.
+    expect(await response.json()).toEqual({ player });
+    expect(performUsernameLogin).toHaveBeenCalledWith("tester", "is", expect.stringMatching(/^[0-9a-f]{64}$/));
+    expect(persistLobbySession).toHaveBeenCalledWith({ player }, expect.anything());
+  });
+
+  it("returns 409 name_taken when another browser holds the name (spec 067)", async () => {
+    vi.mocked(performUsernameLogin).mockRejectedValue(new NameTakenError("tester"));
+    const response = await POST(createRequest({ username: "tester" }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: "name_taken" });
+    expect(persistLobbySession).not.toHaveBeenCalled();
   });
 
   it("returns 400 when username is missing", async () => {
@@ -92,7 +106,6 @@ describe("POST /api/auth/login", () => {
   it("returns 429 when rate limit is exceeded", async () => {
     vi.mocked(performUsernameLogin).mockResolvedValue({
       player,
-      sessionToken: "session-789",
     });
 
     for (let i = 0; i < 5; i += 1) {

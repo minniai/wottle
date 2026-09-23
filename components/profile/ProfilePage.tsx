@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth/logout";
 import {
@@ -21,6 +22,8 @@ interface ProfilePageProps {
   words: BestWord[];
   matches: RecentGameRow[];
   isSelf: boolean;
+  /** Sign-out is not offered while the owner's match is live (spec 067 FR-014). */
+  inLiveMatch?: boolean;
 }
 
 /** `september 2026` in the page's language. */
@@ -43,7 +46,7 @@ function winRate(rate: number | null): string {
  * identity + hairline chart + record row on the left; best words and recent
  * matches as ledgers on the right. Another player's profile uses the opponent colour.
  */
-export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProps) {
+export function ProfilePage({ profile, words, matches, isSelf, inLiveMatch = false }: ProfilePageProps) {
   const router = useRouter();
   const to = useLocalePath();
   const copy = useCopy();
@@ -58,12 +61,14 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
   const weekDelta = deriveRecentRatingDelta(ratingHistory, 7);
   const playingSince = since(identity.createdAt, copy);
 
+  const [refused, setRefused] = useState(false);
   const signOut = (target: string) => {
-    void logoutAction({}).finally(() => {
+    const leave = () => {
       setViewer(null);
       router.replace(target);
       router.refresh();
-    });
+    };
+    void logoutAction().then((r) => (r.status === "refused" ? setRefused(true) : leave()), leave);
   };
 
   return (
@@ -209,7 +214,12 @@ export function ProfilePage({ profile, words, matches, isSelf }: ProfilePageProp
           >
             {copy.BACK_LOBBY}
           </Link>
-          {isSelf ? (
+          {refused ? (
+            <span className="ledger__mono" data-testid="profile-sign-out-refused">
+              {copy.errors.sign_out_in_match}
+            </span>
+          ) : null}
+          {isSelf && !inLiveMatch ? (
             <div className="ledger__actions">
               <button
                 type="button"

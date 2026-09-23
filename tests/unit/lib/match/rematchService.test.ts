@@ -131,6 +131,11 @@ describe("validateRematchRequest", () => {
     expect(result).toContain("already been processed");
   });
 
+  it.each(["withdrawn", "superseded"] as const)("treats a %s request as processed (spec 067)", (status) => {
+    const existing = makeRequest({ status, requesterId: "player-b", responderId: "player-a" });
+    expect(validateRematchRequest("completed", "player-a", "player-b", "player-a", existing)).toContain("already been processed");
+  });
+
   it("rejects when request already accepted", () => {
     const existing = makeRequest({ status: "accepted" });
     const result = validateRematchRequest(

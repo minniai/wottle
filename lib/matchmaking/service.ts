@@ -9,12 +9,6 @@ import type {
 
 type AnyClient = SupabaseClient<any, any, any>;
 
-interface UpsertPlayerInput {
-  username: string;
-  displayName?: string;
-  avatarUrl?: string | null;
-  status?: LobbyStatus;
-}
 
 interface PresenceInput {
   playerId: string;
@@ -26,63 +20,11 @@ interface PresenceInput {
   language?: Language;
 }
 
-export interface MatchBootstrapInput {
-  /** Spec 060: the match's game language, fixed here and never changed. */
-  language: Language;
-  id?: string;
-  boardSeed: string;
-  playerAId: string;
-  playerBId: string;
-  /** Spec 050: ten moves per player. */
-  moveLimit?: number;
-  rematchOf?: string;
-}
-
 export interface ActiveMatchSummary {
   id: string;
   state: "pending" | "in_progress";
 }
 
-function mapPlayer(row: any): PlayerIdentity {
-  return {
-    id: row.id,
-    username: row.username,
-    displayName: row.display_name,
-    avatarUrl: row.avatar_url,
-    status: row.status,
-    lastSeenAt: row.last_seen_at,
-    eloRating: row.elo_rating,
-  };
-}
-
-export async function upsertPlayerIdentity(
-  client: AnyClient,
-  input: UpsertPlayerInput
-): Promise<PlayerIdentity> {
-  const displayName = input.displayName ?? input.username;
-  const status = input.status ?? "available";
-
-  const { data, error } = await client
-    .from("players")
-    .upsert(
-      {
-        username: input.username,
-        display_name: displayName,
-        avatar_url: input.avatarUrl ?? null,
-        status,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "username" }
-    )
-    .select("*")
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to upsert player identity: ${error.message}`);
-  }
-
-  return mapPlayer(data);
-}
 
 export async function upsertLobbyPresence(
   client: AnyClient,
@@ -146,38 +88,6 @@ export async function expireLobbyPresence(
     throw new Error(`Failed to expire lobby presence: ${error.message}`);
   }
 }
-
-export async function bootstrapMatchRecord(
-  client: AnyClient,
-  input: MatchBootstrapInput
-): Promise<string> {
-  const payload: Record<string, unknown> = {
-    id: input.id,
-    board_seed: input.boardSeed,
-    player_a_id: input.playerAId,
-    player_b_id: input.playerBId,
-    move_limit: input.moveLimit ?? 10,
-    language: input.language,
-    state: "pending",
-  };
-
-  if (input.rematchOf) {
-    payload.rematch_of = input.rematchOf;
-  }
-
-  const { data, error } = await client
-    .from("matches")
-    .upsert(payload, { onConflict: "id" })
-    .select("id")
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to create match record: ${error.message}`);
-  }
-
-  return data.id;
-}
-
 
 export async function findActiveMatchForPlayer(
   client: AnyClient,

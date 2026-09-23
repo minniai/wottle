@@ -2,8 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/matchmaking/service", () => ({
-  bootstrapMatchRecord: vi.fn().mockResolvedValue("match-1"),
   findActiveMatchForPlayer: vi.fn(),
+}));
+vi.mock("@/lib/match/createMatch", () => ({
+  acceptInvite: vi.fn(),
+  pairFromQueue: vi.fn(),
+  inviteTtlSeconds: () => 30,
 }));
 vi.mock("@/lib/observability/log", () => ({
   logPlaytestInfo: vi.fn(),
@@ -12,6 +16,7 @@ vi.mock("@/lib/observability/log", () => ({
 }));
 
 import { getOutgoingInvite, respondToInvite } from "@/lib/matchmaking/inviteService";
+import { acceptInvite } from "@/lib/match/createMatch";
 
 interface Call {
   table: string;
@@ -49,39 +54,44 @@ function recordingClient(reply: (call: Call) => unknown) {
 const has = (call: Call, op: string) => call.ops.some(([name]) => name === op);
 const arg = (call: Call, op: string) => call.ops.find(([name]) => name === op)?.[1];
 
-describe("two challengers, one opponent", () => {
+describe("accepting a challenge (spec 067)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("accepting one challenge declines the recipient's other pending challenges and frees their senders", async () => {
-    const { client, calls } = recordingClient((call) => {
-      if (call.table === "match_invitations" && has(call, "maybeSingle")) {
-        return { data: { id: "i2", sender_id: "silu", recipient_id: "kari", status: "pending", created_at: "" }, error: null };
-      }
-      if (call.table === "match_invitations" && has(call, "neq")) return { data: [{ sender_id: "nari" }], error: null };
-      return { data: null, error: null };
-    });
+  const pendingInvite = (call: Call) =>
+    call.table === "match_invitations" && has(call, "maybeSingle")
+      ? { data: { id: "i2", sender_id: "silu", recipient_id: "kari", status: "pending", created_at: "" }, error: null }
+      : call.table === "players"
+        ? { data: { id: "silu", display_name: "Silú", username: "silu" }, error: null }
+        : { data: null, error: null };
 
-    await respondToInvite(client, { inviteId: "i2", actorId: "kari", decision: "accepted" });
+  it("accepting goes through accept_invite and opens its match (spec 067)", async () => {
+    vi.mocked(acceptInvite).mockResolvedValue({ status: "created", matchId: "m1" });
+    const { client } = recordingClient(pendingInvite);
+    await expect(respondToInvite(client, { inviteId: "i2", actorId: "kari", decision: "accepted" })).resolves.toEqual({ status: "accepted", matchId: "m1" });
+    expect(acceptInvite).toHaveBeenCalledWith(client, { inviteId: "i2", actorId: "kari" });
+  });
 
-    const others = calls.find((c) => c.table === "match_invitations" && has(c, "neq"))!;
-    expect(arg(others, "update")?.[0]).toMatchObject({ status: "declined" });
-    expect(others.ops).toEqual(expect.arrayContaining([["eq", ["recipient_id", "kari"]], ["eq", ["status", "pending"]], ["neq", ["id", "i2"]]]));
-    const freed = calls.filter((c) => has(c, "in") && (arg(c, "in") as unknown[])[1]);
-    expect(freed.map((c) => [c.table, arg(c, "in")])).toEqual([
-      ["players", ["id", ["nari"]]],
-      ["lobby_presence", ["player_id", ["nari"]]],
-    ]);
+  it("accepting a challenge whose sender is now in a match names them (spec 067 FR-019)", async () => {
+    vi.mocked(acceptInvite).mockResolvedValue({ status: "busy", playerId: "silu" });
+    const { client } = recordingClient(pendingInvite);
+    await expect(respondToInvite(client, { inviteId: "i2", actorId: "kari", decision: "accepted" })).resolves.toEqual({ status: "busy", name: "Silú" });
+  });
+
+  it("accepting a challenge that is no longer pending says so", async () => {
+    vi.mocked(acceptInvite).mockResolvedValue({ status: "not_pending" });
+    const { client } = recordingClient(pendingInvite);
+    await expect(respondToInvite(client, { inviteId: "i2", actorId: "kari", decision: "accepted" })).rejects.toThrow(/no longer active/);
   });
 
   it("the challenger reads what became of their latest challenge", async () => {
     const { client, calls } = recordingClient(() => ({
-      data: { id: "i1", status: "declined", recipient: { username: "kari", display_name: "Kári", status: "in_match" } },
+      data: { id: "i1", status: "superseded", recipient: { username: "kari", display_name: "Kári", status: "in_match" } },
       error: null,
     }));
 
-    await expect(getOutgoingInvite(client, "nari")).resolves.toEqual({ id: "i1", status: "declined", recipientName: "Kári", recipientInMatch: true });
+    await expect(getOutgoingInvite(client, "nari")).resolves.toEqual({ id: "i1", status: "superseded", recipientName: "Kári", recipientInMatch: true });
     expect(calls[0].ops).toEqual(expect.arrayContaining([["eq", ["sender_id", "nari"]], ["order", ["created_at", { ascending: false }]]]));
   });
 

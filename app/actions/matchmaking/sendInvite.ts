@@ -10,22 +10,15 @@ import {
   type SendDirectInviteResult,
 } from "@/lib/matchmaking/inviteService";
 import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
+import { inviteTtlSeconds } from "@/lib/match/createMatch";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
-const DEFAULT_INVITE_TTL_SECONDS = Number(
-  process.env.PLAYTEST_INVITE_EXPIRY_SECONDS ?? "30"
-);
+type Failure = { status: "error" | "unauthenticated"; message: string };
 
-export interface InviteActionState extends SendDirectInviteResult {
-  status: "sent" | "error" | "unauthenticated";
-  message?: string;
-}
+/** Sent, or accepted at once when the recipient had already challenged you (spec 067). */
+export type InviteActionState = SendDirectInviteResult | Failure;
 
-export interface InviteDecisionState {
-  status: RespondInviteResult["status"] | "error" | "unauthenticated";
-  matchId?: string;
-  message?: string;
-}
+export type InviteDecisionState = RespondInviteResult | Failure;
 
 export async function sendInviteAction(
   recipientId: string,
@@ -33,41 +26,27 @@ export async function sendInviteAction(
 ): Promise<InviteActionState> {
   const parsedLanguage = playableLanguageSchema.safeParse(language);
   if (!parsedLanguage.success) {
-    return { status: "error", inviteId: "", expiresAt: "", message: "Unsupported language." };
+    return { status: "error", message: "Unsupported language." };
   }
   if (!recipientId) {
-    return { status: "error", inviteId: "", expiresAt: "", message: "Recipient is required." };
+    return { status: "error", message: "Recipient is required." };
   }
 
   const session = await readLobbySession();
   if (!session) {
-    return {
-      status: "unauthenticated",
-      inviteId: "",
-      expiresAt: "",
-      message: "Log in to send invites.",
-    };
+    return { status: "unauthenticated", message: "Log in to send invites." };
   }
 
   try {
     const supabase = getServiceRoleClient();
-    const result = await sendDirectInvite(supabase, {
+    return await sendDirectInvite(supabase, {
       senderId: session.player.id,
       recipientId,
-      ttlSeconds: DEFAULT_INVITE_TTL_SECONDS,
+      ttlSeconds: inviteTtlSeconds(),
       language: parsedLanguage.data,
     });
-    return {
-      status: "sent",
-      ...result,
-    };
   } catch (error) {
-    return {
-      status: "error",
-      inviteId: "",
-      expiresAt: "",
-      message: normalizeError(error),
-    };
+    return { status: "error", message: normalizeError(error) };
   }
 }
 
@@ -85,15 +64,11 @@ export async function respondInviteAction(
 
   try {
     const supabase = getServiceRoleClient();
-    const result = await respondToInvite(supabase, {
+    return await respondToInvite(supabase, {
       inviteId,
       actorId: session.player.id,
       decision,
     });
-    return {
-      status: result.status,
-      matchId: result.matchId,
-    };
   } catch (error) {
     return {
       status: "error",

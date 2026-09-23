@@ -15,15 +15,12 @@ import LandingPage from "@/app/[locale]/(room)/page";
 import { LobbyRoomPage } from "@/app/[locale]/(room)/LobbyRoomPage";
 
 const session = {
-  token: "tok",
+  expiresAt: Date.now() + 3_600_000,
   issuedAt: Date.now(),
   player: {
     id: "abc",
     username: "ari",
     displayName: "Ari",
-    status: "available" as const,
-    lastSeenAt: new Date().toISOString(),
-    eloRating: 1200,
   },
 };
 

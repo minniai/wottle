@@ -20,20 +20,8 @@ vi.mock("@/lib/match/rematchRepository", () => ({
   fetchRematchRequest: vi.fn(),
   updateRematchRequestStatus: vi.fn().mockResolvedValue(undefined),
 }));
-// Spec 060: rematches go through createRematchMatch, which reads the original's
-// language and then bootstraps; its own test covers the language.
-vi.mock("@/lib/match/rematchMatch", async () => {
-  const service = await import("@/lib/matchmaking/service");
-  return {
-    createRematchMatch: vi.fn((client: unknown, i: { matchId: string; playerAId: string; playerBId: string }) =>
-      service.bootstrapMatchRecord(client as never, { boardSeed: "s", playerAId: i.playerAId, playerBId: i.playerBId, rematchOf: i.matchId, language: "is" }),
-    ),
-  };
-});
-vi.mock("@/lib/matchmaking/service", () => ({
-  bootstrapMatchRecord: vi.fn(),
-  // A rematch inherits the source match's rank (spec 045 decision 1).
-}));
+// Spec 067: a rematch is created by accept_rematch in the database.
+vi.mock("@/lib/match/createMatch", () => ({ acceptRematch: vi.fn() }));
 
 import { respondToRematchAction } from "@/app/actions/match/respondToRematch";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -43,7 +31,7 @@ import {
   updateRematchRequestStatus,
 } from "@/lib/match/rematchRepository";
 import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
-import { bootstrapMatchRecord } from "@/lib/matchmaking/service";
+import { acceptRematch } from "@/lib/match/createMatch";
 import { writeMatchLog } from "@/lib/match/logWriter";
 
 const PLAYER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -86,34 +74,39 @@ describe("respondToRematchAction", () => {
     vi.clearAllMocks();
   });
 
-  it("accepts rematch and returns new match ID", async () => {
+  it("accepts through accept_rematch and announces the new match", async () => {
     mockSession(PLAYER_B);
-    const supabase = makeSupabaseMock();
-    vi.mocked(getServiceRoleClient).mockReturnValue(supabase as any);
+    vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock() as any);
     vi.mocked(fetchRematchRequest).mockResolvedValue(makePendingRequest());
-    vi.mocked(bootstrapMatchRecord).mockResolvedValue("new-match-1");
+    vi.mocked(acceptRematch).mockResolvedValue({ status: "created", matchId: "new-match-1" });
 
     const result = await respondToRematchAction(MATCH_ID, true);
 
     expect(result).toEqual({ status: "accepted", matchId: "new-match-1" });
-    expect(bootstrapMatchRecord).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        playerAId: PLAYER_A,
-        playerBId: PLAYER_B,
-        rematchOf: MATCH_ID,
-      }),
-    );
-    expect(updateRematchRequestStatus).toHaveBeenCalledWith(
-      expect.anything(),
-      "req-1",
-      "accepted",
-      "new-match-1",
-    );
-    expect(broadcastRematchEvent).toHaveBeenCalledWith(
-      MATCH_ID,
-      expect.objectContaining({ type: "rematch-accepted" }),
-    );
+    expect(acceptRematch).toHaveBeenCalledWith(expect.anything(), { requestId: "req-1", actorId: PLAYER_B });
+    expect(updateRematchRequestStatus).not.toHaveBeenCalled();
+    expect(writeMatchLog).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ matchId: "new-match-1", eventType: "match.rematch.created" }));
+    expect(broadcastRematchEvent).toHaveBeenCalledWith(MATCH_ID, expect.objectContaining({ type: "rematch-accepted", newMatchId: "new-match-1" }));
+  });
+
+  it("returns busy, and announces nothing, when either player is in another match (spec 067)", async () => {
+    mockSession(PLAYER_B);
+    vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock() as any);
+    vi.mocked(fetchRematchRequest).mockResolvedValue(makePendingRequest());
+    vi.mocked(acceptRematch).mockResolvedValue({ status: "busy", playerId: PLAYER_A });
+
+    await expect(respondToRematchAction(MATCH_ID, true)).resolves.toEqual({ status: "busy" });
+    expect(broadcastRematchEvent).not.toHaveBeenCalled();
+  });
+
+  it("announces the expiry when the database finds the request out of time", async () => {
+    mockSession(PLAYER_B);
+    vi.mocked(getServiceRoleClient).mockReturnValue(makeSupabaseMock() as any);
+    vi.mocked(fetchRematchRequest).mockResolvedValue(makePendingRequest());
+    vi.mocked(acceptRematch).mockResolvedValue({ status: "expired" });
+
+    await expect(respondToRematchAction(MATCH_ID, true)).resolves.toEqual({ status: "expired" });
+    expect(broadcastRematchEvent).toHaveBeenCalledWith(MATCH_ID, expect.objectContaining({ type: "rematch-expired" }));
   });
 
   it("declines rematch and returns declined status", async () => {

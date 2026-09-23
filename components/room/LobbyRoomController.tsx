@@ -175,16 +175,20 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       if (action === "findOpponent") router.replace(to("/matchmaking"));
       else if (action === "profile") router.push(to("/profile"));
       else if (action === "signOut") {
-        void logoutAction({}).finally(() => {
+        const leave = () => {
           disconnect();
           setViewer(null);
           router.replace(to("/"));
           router.refresh();
-        });
+        };
+        // Signing out is refused while a match is live (spec 067); it never resigns.
+        void logoutAction().then((r) => (r.status === "refused" ? push({ kind: "text", text: copy.errors[r.code] }) : leave()), leave);
       }
       else if (typeof action === "object" && "challenge" in action) {
         const target = players.find((p) => p.id === action.challenge);
         sendInviteAction(action.challenge, language).then((r) => {
+          // They had already challenged us: our challenge was the answer (spec 067).
+          if (r.status === "accepted") return router.replace(to(`/match/${r.matchId}`));
           if (r.status !== "sent") return push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "invite_failed"] });
           sentChallenge.current = r.inviteId;
           push({ kind: "challengeSent", toName: target?.displayName ?? target?.username ?? "", inviteId: r.inviteId });
@@ -192,7 +196,8 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       } else if (typeof action === "object" && "acceptChallenge" in action) {
         dismiss(`challenge:${action.acceptChallenge}`);
         respondInviteAction(action.acceptChallenge, "accepted").then((r) => {
-          if (r.status === "accepted" && r.matchId) router.replace(to(`/match/${r.matchId}`));
+          if (r.status === "accepted") router.replace(to(`/match/${r.matchId}`));
+          else if (r.status === "busy") push({ kind: "text", text: copy.opponentBusy(r.name) });
           else if (r.status !== "declined") push({ kind: "text", text: copy.errors[r.status === "unauthenticated" ? "signed_out" : "accept_failed"] });
         });
       } else if (typeof action === "object" && "declineChallenge" in action) {

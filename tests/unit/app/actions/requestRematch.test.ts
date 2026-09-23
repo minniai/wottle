@@ -25,20 +25,8 @@ vi.mock("@/lib/match/rematchService", () => ({
   detectSimultaneousRematch: vi.fn(),
   validateRematchRequest: vi.fn(),
 }));
-// Spec 060: rematches go through createRematchMatch, which reads the original's
-// language and then bootstraps; its own test covers the language.
-vi.mock("@/lib/match/rematchMatch", async () => {
-  const service = await import("@/lib/matchmaking/service");
-  return {
-    createRematchMatch: vi.fn((client: unknown, i: { matchId: string; playerAId: string; playerBId: string }) =>
-      service.bootstrapMatchRecord(client as never, { boardSeed: "s", playerAId: i.playerAId, playerBId: i.playerBId, rematchOf: i.matchId, language: "is" }),
-    ),
-  };
-});
-vi.mock("@/lib/matchmaking/service", () => ({
-  bootstrapMatchRecord: vi.fn(),
-  // A rematch inherits the source match's rank (spec 045 decision 1).
-}));
+// Spec 067: a rematch is created by accept_rematch in the database.
+vi.mock("@/lib/match/createMatch", () => ({ acceptRematch: vi.fn() }));
 
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -52,7 +40,7 @@ import {
   validateRematchRequest,
 } from "@/lib/match/rematchService";
 import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
-import { bootstrapMatchRecord } from "@/lib/matchmaking/service";
+import { acceptRematch } from "@/lib/match/createMatch";
 
 const PLAYER_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const PLAYER_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
@@ -146,15 +134,12 @@ describe("requestRematchAction", () => {
     vi.mocked(fetchRematchRequest).mockResolvedValue(existingRequest);
     vi.mocked(validateRematchRequest).mockReturnValue(null);
     vi.mocked(detectSimultaneousRematch).mockReturnValue(true);
-    vi.mocked(bootstrapMatchRecord).mockResolvedValue("new-match-1");
+    vi.mocked(acceptRematch).mockResolvedValue({ status: "created", matchId: "new-match-1" });
 
     const result = await requestRematchAction(MATCH_ID);
 
     expect(result).toEqual({ status: "accepted", matchId: "new-match-1" });
-    expect(bootstrapMatchRecord).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ rematchOf: MATCH_ID }),
-    );
+    expect(acceptRematch).toHaveBeenCalledWith(expect.anything(), { requestId: "req-1", actorId: PLAYER_B, origin: "crossed_rematch" });
   });
 
   it("throws when session is missing", async () => {

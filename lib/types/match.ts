@@ -181,7 +181,7 @@ export interface InvitationRecord {
   id: string;
   senderId: string;
   recipientId: string;
-  status: "pending" | "accepted" | "declined" | "expired";
+  status: "pending" | "accepted" | "declined" | "expired" | "withdrawn" | "superseded";
   createdAt: string;
   respondedAt?: string | null;
   matchId?: string | null;
@@ -232,7 +232,10 @@ export type RematchRequestStatus =
   | "pending"
   | "accepted"
   | "declined"
-  | "expired";
+  | "expired"
+  /** Spec 067: its requester started another match, or its responder was booked into one. */
+  | "withdrawn"
+  | "superseded";
 
 export interface RematchRequest {
   id: string;

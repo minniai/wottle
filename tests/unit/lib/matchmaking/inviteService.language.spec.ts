@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/matchmaking/service", () => ({ bootstrapMatchRecord: vi.fn(), findActiveMatchForPlayer: vi.fn() }));
+vi.mock("@/lib/matchmaking/service", () => ({ findActiveMatchForPlayer: vi.fn() }));
+vi.mock("@/lib/match/createMatch", () => ({ pairFromQueue: vi.fn(), acceptInvite: vi.fn(), inviteTtlSeconds: () => 30 }));
 vi.mock("@/lib/observability/log", () => ({ logPlaytestInfo: vi.fn(), logPlaytestError: vi.fn(), trackInviteAccepted: vi.fn() }));
 
 import { startAutoQueue } from "@/lib/matchmaking/inviteService";
-import { bootstrapMatchRecord, findActiveMatchForPlayer } from "@/lib/matchmaking/service";
+import { findActiveMatchForPlayer } from "@/lib/matchmaking/service";
+import { pairFromQueue } from "@/lib/match/createMatch";
 
 type Call = { method: string; args: unknown[] };
 
@@ -16,7 +18,6 @@ function recordingClient() {
     { data: { status: "idle" }, error: null }, // status check
     { error: null }, // join the queue
     { data: [{ id: "a-opponent", username: "opp", last_seen_at: "2026-09-22T12:00:00Z" }], error: null }, // candidates
-    { data: [{ id: "a-opponent" }], error: null }, // claim
   ];
   const chainFor = (calls: Call[], value: unknown) => {
     const chain: Record<string, unknown> = {
@@ -49,7 +50,7 @@ const has = (calls: Call[], method: string, ...args: unknown[]) =>
 describe("startAutoQueue by language (spec 060 FR-018)", () => {
   beforeEach(() => {
     vi.mocked(findActiveMatchForPlayer).mockResolvedValue(null);
-    vi.mocked(bootstrapMatchRecord).mockReset().mockResolvedValue("match-en");
+    vi.mocked(pairFromQueue).mockReset().mockResolvedValue({ status: "created", matchId: "match-en" });
   });
 
   it("joins the queue in its language, pairs only within it and creates the match in it", async () => {
@@ -57,11 +58,10 @@ describe("startAutoQueue by language (spec 060 FR-018)", () => {
     const result = await startAutoQueue(client as never, { playerId: "z-player", language: "en" });
 
     expect(result.status).toBe("matched");
-    const [, join, candidates, claim] = players;
+    const [, join, candidates] = players;
     expect(join.find((c) => c.method === "update")?.args[0]).toMatchObject({ status: "matchmaking", queue_language: "en" });
     expect(has(candidates, "eq", "queue_language", "en")).toBe(true);
-    expect(has(claim, "eq", "queue_language", "en")).toBe(true);
-    expect(bootstrapMatchRecord).toHaveBeenCalledWith(client, expect.objectContaining({ language: "en" }));
+    expect(pairFromQueue).toHaveBeenCalledWith(client, expect.objectContaining({ language: "en" }));
   });
 
   it("queues in Icelandic when no language is given", async () => {
@@ -70,10 +70,4 @@ describe("startAutoQueue by language (spec 060 FR-018)", () => {
     expect(has(players[2], "eq", "queue_language", "is")).toBe(true);
   });
 
-  it("leaving the queue for a match clears the queue language", async () => {
-    const { client, players } = recordingClient();
-    await startAutoQueue(client as never, { playerId: "z-player", language: "en" });
-    const claimUpdate = players[3].find((c) => c.method === "update")?.args[0];
-    expect(claimUpdate).toMatchObject({ status: "in_match", queue_language: null });
-  });
 });

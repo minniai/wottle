@@ -26,3 +26,10 @@ export const recentGameRowSchema = z.object({
 });
 
 export type RecentGameRow = z.infer<typeof recentGameRowSchema>;
+
+/** The player a signed-out browser's device key names, for the returning door (spec 067 US3). */
+export interface ReturningPlayer {
+  displayName: string;
+  /** Their rating in the page's language; null when they have none there. */
+  rating: number | null;
+}

@@ -29,6 +29,7 @@ import type { RecentGameRow } from "@/lib/types/lobby";
 
 export const ROOM_PHASES = [
   "landing-slip",
+  "returning-slip",
   "lobby",
   "queue",
   "found",

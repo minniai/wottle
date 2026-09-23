@@ -65,6 +65,11 @@ export const copyIs = {
   startsIn: (seconds: number): string => `hefst eftir ${seconds}`,
   YOUR_NAME_PLACEHOLDER: "nafn",
   NO_ACCOUNT_NEEDED: "skráning óþörf",
+  THIS_BROWSER_KEEPS_YOUR_NAME: "þessi vafri geymir nafnið þitt",
+  WELCOME_BACK: "gaman að sjá þig aftur",
+  ENTER_LOBBY: "inn í lobbíið ▸",
+  notYou: (name: string): string => `ekki ${name}? · annað nafn`,
+  returningLine: (rating: number | null): string => (rating === null ? "íslenska" : `${rating} · íslenska`),
   YOU: "þú",
   OPPONENT: "mótspilari",
   RATING_PENDING: "reikna Elo stig",
@@ -111,6 +116,7 @@ export const copyIs = {
   challengeDeclined: (name: string): string => `${name} hafnaði áskoruninni`,
   challengeUnanswered: (name: string): string => `${name} svaraði ekki`,
   challengeTaken: (name: string): string => `${name} þáði aðra áskorun`,
+  opponentBusy: (name: string): string => `${name} getur ekki spilað núna`,
 
   TAGLINE: "tveir leikmenn · eitt borð · íslensk orð",
   NEW_HERE_HOW_TO_PLAY: "nýr hér · leiðbeiningar ▸",
@@ -237,6 +243,8 @@ export const copyIs = {
   errors: {
     rate_limited: "of margar tilraunir · bíddu í mínútu",
     invalid_name: "3 til 24 stafir, tölur, - eða _",
+    name_taken: "þetta nafn er frátekið · veldu annað",
+    sign_out_in_match: "kláraðu viðureignina fyrst",
     login_failed: "innskráning tókst ekki · reyndu aftur",
     signed_out: "skráðu þig fyrst inn",
     queue_failed: "leit hófst ekki · reyndu aftur",

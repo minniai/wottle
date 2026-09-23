@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { forgetPresence, rememberPresence } from "@/lib/matchmaking/presenceCache";
-import { readLobbySession } from "@/lib/matchmaking/profile";
+import { readLobbySession, viewerInLanguage } from "@/lib/matchmaking/profile";
 import {
   expireLobbyPresence,
   upsertLobbyPresence,
@@ -48,7 +48,7 @@ export async function POST(request?: Request) {
 
     // Mirror the fresh presence into the server-side cache so short-lived
     // snapshot reads stay consistent between heartbeats.
-    rememberPresence(session.player, language);
+    rememberPresence(await viewerInLanguage(session.player, language), language);
 
     return NextResponse.json({
       ok: true,

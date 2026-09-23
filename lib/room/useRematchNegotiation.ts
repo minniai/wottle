@@ -8,7 +8,8 @@ import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import { acceptRematchAction, declineRematchAction } from "@/app/actions/match/respondToRematch";
 import type { RematchEvent } from "@/lib/types/match";
 
-export type RematchPhase = "idle" | "requesting" | "waiting" | "incoming" | "accepted" | "declined" | "expired";
+/** `busy`: either player is in another match, so no rematch can start (spec 067). */
+export type RematchPhase = "idle" | "requesting" | "waiting" | "incoming" | "accepted" | "declined" | "expired" | "busy";
 
 export const REMATCH_TIMEOUT_MS = 30_000;
 
@@ -92,6 +93,7 @@ export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: 
         onNewMatchRef.current(result.matchId);
         return;
       }
+      if (result.status === "busy") return setPhase("busy");
       setPhase("waiting");
       timeout.current = setTimeout(() => setPhase("expired"), REMATCH_TIMEOUT_MS);
     } catch (e) {
@@ -109,7 +111,7 @@ export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: 
       if (result.status === "accepted") {
         setPhase("accepted");
         onNewMatchRef.current(result.matchId);
-      } else setPhase("expired");
+      } else setPhase(result.status === "busy" ? "busy" : "expired");
     } catch (e) {
       setPhase("incoming");
       console.warn("[rematch] accept failed", e);

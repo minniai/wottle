@@ -22,16 +22,9 @@ describe("MatchmakingPage route", () => {
 
   test("renders when a session exists", async () => {
     vi.mocked(readLobbySession).mockResolvedValueOnce({
-      token: "tok",
       issuedAt: Date.now(),
-      player: {
-        id: "abc",
-        username: "ari",
-        displayName: "Ari",
-        status: "available",
-        lastSeenAt: new Date().toISOString(),
-        eloRating: 1234,
-      },
+      expiresAt: Date.now() + 3_600_000,
+      player: { id: "abc", username: "ari", displayName: "Ari" },
     });
     const element = await MatchmakingPage();
     expect(element).toBeTruthy();

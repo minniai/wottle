@@ -30,15 +30,12 @@ function createRequest(body: unknown) {
 }
 
 const session = {
-  token: "session-token",
+  expiresAt: Date.now() + 3_600_000,
   issuedAt: Date.now(),
   player: {
     id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     username: "tester-alpha",
     displayName: "Tester Alpha",
-    status: "available" as const,
-    lastSeenAt: new Date().toISOString(),
-    avatarUrl: null,
   },
 };
 
@@ -52,6 +49,7 @@ describe("POST /api/lobby/invite", () => {
   it("returns 200 when the invite service succeeds", async () => {
     vi.mocked(readLobbySession).mockResolvedValue(session);
     vi.mocked(sendDirectInvite).mockResolvedValue({
+      status: "sent",
       inviteId: "11111111-2222-3333-4444-555555555555",
       expiresAt: new Date(Date.now() + 30_000).toISOString(),
     });
