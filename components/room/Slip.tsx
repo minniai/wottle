@@ -160,6 +160,56 @@ function EndEarlyBody({ slip, onAction, headlineId, headlineRef }: { slip: Extra
   );
 }
 
+/** The table (spec 069, game flow C1): who you play, what is at stake, and whether each of you has sat down. */
+function ReadyBody({ slip, onAction, headlineId, headlineRef }: { slip: Extract<SlipState, { kind: "ready" }>; onAction: (a: LedgerAction) => void; headlineId: string; headlineRef: RefObject<HTMLHeadingElement | null> }) {
+  const { model } = slip;
+  return (
+    <>
+      <div role="status" aria-live="assertive" className="slip__head">
+        <span className="slip__label" data-testid="slip-table-label">{model.label}</span>
+        {/* Raised by the game, so its headline takes focus (game flow §8 item 3). */}
+        <h2 id={headlineId} ref={headlineRef} tabIndex={-1} className="slip__headline" data-seat="opp">
+          {model.headline.name} <span className="slip__mono">{model.headline.rating ?? ""}</span>
+        </h2>
+      </div>
+      <div className="slip__rule" />
+      <span className="slip__label">{model.facts}</span>
+      {model.stakes ? <span className="slip__label" data-testid="slip-stakes">{model.stakes}</span> : null}
+      <div className="slip__rule" />
+      <div className="slip__seats">
+        {model.seats.map((line) => (
+          <div key={line.seat} className="slip__seat" data-testid="slip-seat" data-seat={line.seat} data-seated={String(line.seated)}>
+            <span className="slip__square" data-seat={line.seat} />
+            <span className="slip__name">{line.name}</span>
+            <span className="slip__mono">{line.status}</span>
+          </div>
+        ))}
+      </div>
+      <TableActions model={model} onAction={onAction} />
+      {model.drain !== null ? <div className="slip__drain" data-testid="slip-drain" style={{ transform: `scaleX(${model.drain})` }} /> : null}
+    </>
+  );
+}
+
+/** A wait has no primary, and the exit is never where `ready ▸` was (game flow C1, §8 item 3). */
+function TableActions({ model, onAction }: { model: Extract<SlipState, { kind: "ready" }>["model"]; onAction: (a: LedgerAction) => void }) {
+  const { table } = useCopy();
+  if (model.actions === "none") return null;
+  return (
+    <>
+      <div className="slip__rule" />
+      <div className="slip__actions" data-stacked="true">
+        {model.actions === "ready+leave" ? (
+          <Primary label={table.READY_ACTION} action="sitDown" testId="slip-ready" onAction={onAction} guarded />
+        ) : (
+          <span className="slip__mono" data-testid="slip-seated">{table.YOU_ARE_SEATED}</span>
+        )}
+        <Secondary label={table.LEAVE} action="leaveTable" testId="slip-leave-table" onAction={onAction} />
+      </div>
+    </>
+  );
+}
+
 function MatchOverActions({ slip, onAction }: { slip: Extract<SlipState, { kind: "matchOver" }>; onAction: (a: LedgerAction) => void }) {
   const { ACCEPT, DECLINE, LOBBY, NEW_OPPONENT, REMATCH, rematchRequest, REVIEW_FIELD, waitingForRematch } = useCopy();
   if (slip.readOnly) return <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} />;
@@ -223,6 +273,8 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, onSignedI
   switch (slip.kind) {
     case "signIn":
       return <SignInBody onSignedIn={onSignedIn} />;
+    case "ready":
+      return <ReadyBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
     case "resign":
       return <ResignBody slip={slip} onAction={onAction} headlineId={headlineId} />;
     case "endEarly":

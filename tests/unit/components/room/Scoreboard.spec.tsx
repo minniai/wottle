@@ -107,4 +107,10 @@ describe("Scoreboard (spec 068)", () => {
     expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1187 → 1179 · −8");
     expect(document.querySelector(".points-lost")).toBeNull();
   });
+
+  it("draws no total at the table (spec 069)", () => {
+    const table = deriveScoreboard({ ...INPUT, phase: "table", moveState: null, table: { youSeated: true, oppSeated: false } }, copyEn);
+    render(<Scoreboard view={table} />);
+    for (const cell of screen.getAllByTestId("scoreboard-total")) expect(cell).toBeEmptyDOMElement();
+  });
 });

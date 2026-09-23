@@ -271,6 +271,8 @@ const table = {
   STARTS_WHEN_SEATED: "starts when both sit",
   PICK_WHEN_CLOCK_STARTS: "pick when the clock starts",
   VOID_LABEL: "no match",
+  NOT_STARTED: "not started",
+  YOU_LEFT: "You left the table",
   voidOppNotSeated: (name: string): string => `${name} did not sit down`,
   voidOppLeft: (name: string): string => `${name} left the table`,
   VOID_YOU_NOT_SEATED: "You did not sit down in time",

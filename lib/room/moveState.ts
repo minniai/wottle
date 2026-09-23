@@ -14,6 +14,10 @@ import type { LiveLines } from "./ledgerTypes";
  * turn frame and both bar sub-lines. The opponent's moves never change it.
  */
 export type MoveState =
+  /** Spec 069: the match is a table; nobody plays until both sit down. */
+  | { kind: "table"; opponentName: string }
+  /** Spec 069: the table did not fill, or someone left it. */
+  | { kind: "void"; opponentName: string }
   | { kind: "starting"; seconds: number; opponentName: string }
   | { kind: "yourMove"; move: number; opponentName: string }
   | { kind: "rejected"; move: number; opponentName: string; reason: MoveRejectionReason }
@@ -49,6 +53,8 @@ export function deriveMoveState(input: DeriveMoveStateInput): MoveState {
   const { you, opp } = viewerFacts(match, viewerSlot);
   const limit = match.moveLimit;
   const msToStart = input.msToStart ?? 0;
+  if (match.state === "completed" && match.endedReason === "void") return { kind: "void", opponentName };
+  if (match.state === "pending") return { kind: "table", opponentName };
   if (msToStart > 0 && match.state === "in_progress") return { kind: "starting", seconds: Math.ceil(msToStart / 1000), opponentName };
   if (clockMs <= 0 && match.state === "in_progress") return { kind: "timeUp", opponentName };
   if (holdMove !== null) {
@@ -145,6 +151,9 @@ function stateSources(state: MoveState, field: LiveState, extras: Line2Extras, c
 
 function line1For(state: MoveState, copy: Copy): string {
   switch (state.kind) {
+    case "table":
+    case "void":
+      return "";
     case "starting":
       return copy.startsIn(state.seconds);
     case "yourMove":
@@ -163,6 +172,8 @@ function line1For(state: MoveState, copy: Copy): string {
 
 /** Line 1 is the move's beat in the board face; line 2 the one thing that matters now (spec 068 FR-031). */
 export function liveLinesFor(state: MoveState, field: LiveState, copy: Copy, extras: Line2Extras = {}): LiveLines {
+  // At the table and the void the ledger has no live row (spec 069 C1, C3).
+  if (state.kind === "table" || state.kind === "void") return { line1: "", line2: "" };
   const line2 = selectLine2({ ...stateSources(state, field, extras, copy), ...extraSources(extras, copy) });
   if (!line2) return { line1: line1For(state, copy), line2: "" };
   return { line1: line1For(state, copy), line2: line2.text, ...(line2.parts ? { line2Parts: line2.parts } : {}) };

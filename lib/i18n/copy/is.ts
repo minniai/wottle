@@ -292,6 +292,8 @@ export const copyIs = {
     STARTS_WHEN_SEATED: "fer af stað þegar báðir sitja",
     PICK_WHEN_CLOCK_STARTS: "veldu þegar klukkan fer af stað", // native-read
     VOID_LABEL: "engin viðureign",
+    NOT_STARTED: "ekki hafin",
+    YOU_LEFT: "Þú fórst frá borðinu",
     voidOppNotSeated: (name: string): string => `${name} settist ekki`,
     voidOppLeft: (name: string): string => `${name} fór frá borðinu`,
     VOID_YOU_NOT_SEATED: "Þú settist ekki í tæka tíð",

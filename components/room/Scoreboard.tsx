@@ -101,8 +101,9 @@ function PlayerLine({ row, total, href, newTab, limit }: { row: PlayerRow; total
           <span key={i} className="scoreboard__segment" data-state={state} />
         ))}
       </span>
+      {/* Before a match starts there is no total; the column keeps its place (spec 069). */}
       <span className="scoreboard__total" data-testid="scoreboard-total">
-        {points(total)}
+        {row.showTotal ? points(total) : ""}
       </span>
     </div>
   );

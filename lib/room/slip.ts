@@ -1,6 +1,7 @@
 import type { Verdict } from "./ledgerTypes";
 import type { RatingRow } from "./ledgerRows";
 import type { RematchPhase } from "./useRematchNegotiation";
+import type { ReadySlipModel } from "./tableSlip";
 
 /**
  * The slip (spec 048, design system §5.9): the one element ever laid over the
@@ -14,6 +15,8 @@ export type EndReason = "moves" | "incomplete" | "resigned" | "abandoned";
 
 export type SlipState =
   | { kind: "signIn" }
+  /** Spec 069: the table (C1). Derived from the match, never stored. */
+  | { kind: "ready"; model: ReadySlipModel }
   | { kind: "resign"; move: number; clockMs: number; opponentName: string }
   | { kind: "endEarly"; opponentName: string; opponentMoves: number; clockMs: number }
   | {
@@ -39,7 +42,8 @@ export interface SlipRatingRow {
   rating?: RatingRow;
 }
 
-const RANK: Record<SlipKind, number> = { signIn: 0, resign: 1, endEarly: 2, matchOver: 3 };
+// Spec 069 (design system §5.9): match over > end early > resign > ready or void.
+const RANK: Record<SlipKind, number> = { signIn: 0, ready: 1, resign: 2, endEarly: 3, matchOver: 4 };
 
 export function slipPrecedence(kind: SlipKind): number {
   return RANK[kind];

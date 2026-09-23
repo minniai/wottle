@@ -18,7 +18,17 @@ import { segmentStates, type SegmentState } from "./segments";
  *   └──────────────┴──────────────────────────────┴──────┘
  */
 
-export type ScoreboardPhase = "starting" | "live" | "over";
+export type ScoreboardPhase = "table" | "void" | "starting" | "live" | "over";
+
+/** Spec 069: who has sat down, and at the void, why there was no match. */
+export interface ScoreboardTable {
+  youSeated: boolean;
+  oppSeated: boolean;
+  /** The void named the opponent: they never sat down, or they left. */
+  oppVoid?: "notSeated" | "left" | null;
+  /** The viewer is back in the queue after a void. */
+  youRequeued?: boolean;
+}
 
 export interface ScoreboardSeat {
   name: string;
@@ -52,9 +62,11 @@ export interface ScoreboardInput {
   compact?: boolean;
   you: ScoreboardSeat;
   opp: ScoreboardSeat;
+  /** The table and the void (spec 069). */
+  table?: ScoreboardTable;
 }
 
-export type ScoreboardClockPhase = ClockRowPhase | "starting" | "over";
+export type ScoreboardClockPhase = ClockRowPhase | "table" | "void" | "starting" | "over";
 
 export interface ClockRow {
   phase: ScoreboardClockPhase;
@@ -78,6 +90,8 @@ export interface PlayerRow {
   segments: SegmentState[];
   laneMode: "moves" | "outlined";
   total: number;
+  /** No total before a match starts (spec 069: the table and the void). */
+  showTotal: boolean;
   movesLeft: number;
   behindPace: boolean;
 }
@@ -118,7 +132,14 @@ function startingTicks(msToStart: number): number {
   return Math.round(FULL_TICKS * loaded);
 }
 
+/** The clock never ran: full, still, and saying why (spec 069 C1, C3). */
+function stillClock(input: ScoreboardInput, phase: "table" | "void", copy: Copy): ClockRow {
+  const detail = phase === "table" ? copy.table.STARTS_WHEN_SEATED : copy.table.NOT_STARTED;
+  return { phase, label: copy.MATCH_CLOCK, detail, numeral: formatClock(input.clockLengthMs), ticksLeft: FULL_TICKS, blocks: clockBlocks(FULL_TICKS) };
+}
+
 function clockRowFor(input: ScoreboardInput, copy: Copy): ClockRow {
+  if (input.phase === "table" || input.phase === "void") return stillClock(input, input.phase, copy);
   if (input.phase === "starting") {
     const ticks = startingTicks(input.msToStart ?? 0);
     const label = copy.startsIn(Math.max(1, Math.ceil((input.msToStart ?? 0) / 1000)));
@@ -177,7 +198,18 @@ function compactSub(input: ScoreboardInput, seat: Seat, behind: boolean, copy: C
   return plain(copy.compactMove(facts.movesPlayed + 1), isYourMove(input.moveState) ? "seat" : "muted");
 }
 
+function tableSub(input: ScoreboardInput, seat: Seat, copy: Copy): Sub {
+  const table = input.table ?? { youSeated: false, oppSeated: false };
+  if (input.phase === "table") {
+    const seated = seat === "you" ? table.youSeated : table.oppSeated;
+    return plain(seated ? copy.table.READY : seat === "you" ? copy.table.NOT_READY : copy.table.ON_THE_WAY);
+  }
+  if (seat === "opp") return plain(table.oppVoid === "left" ? copy.table.LEFT : table.oppVoid === "notSeated" ? copy.table.DID_NOT_SIT_DOWN : null);
+  return plain(table.youRequeued ? copy.SEARCHING : null);
+}
+
 function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy): Sub {
+  if (input.phase === "table" || input.phase === "void") return tableSub(input, seat, copy);
   if (input.phase === "over") return plain(null);
   if (input.phase === "starting") return plain(copy.READY);
   if (input.compact) return compactSub(input, seat, behind, copy);
@@ -189,6 +221,8 @@ function mutedFor(input: ScoreboardInput, seat: Seat, sub: Sub, copy: Copy): str
   if (input.phase === "over" && facts.finalLine) return facts.finalLine;
   if (input.compact) return "";
   const rating = String(facts.rating ?? copy.UNRATED);
+  // At the table both seats are named (canvas Table): `1187 · opponent`, `1204 · you`.
+  if (input.phase === "table") return `${rating} · ${seat === "opp" ? copy.table.OPPONENT : copy.YOU}`;
   // Only your own row names its seat: the opponent's square and place already say
   // who they are, and their count needs the room (canvas Match, MatchLastMinute).
   if (input.readOnly || sub.alert || seat === "opp") return rating;
@@ -210,6 +244,7 @@ function rowFor(input: ScoreboardInput, seat: Seat, copy: Copy): PlayerRow {
     segments: segmentStates(facts.movesPlayed, input.moveLimit, facts.inFlight),
     laneMode: away && input.phase === "live" ? "outlined" : "moves",
     total: facts.score,
+    showTotal: input.phase !== "table" && input.phase !== "void",
     movesLeft,
     behindPace: behind,
   };
