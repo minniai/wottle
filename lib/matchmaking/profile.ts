@@ -10,11 +10,8 @@ import { requireSessionSecret } from "@/lib/auth/sessionSecret";
 import { signSession, verifySession, type SessionRejection } from "@/lib/auth/sessionToken";
 
 import { listCachedPresence, rememberPresence } from "./presenceCache";
-import {
-  findActiveMatchForPlayer,
-  upsertLobbyPresence,
-  upsertPlayerIdentity,
-} from "./service";
+import { findActiveMatchForPlayer, upsertLobbyPresence } from "./service";
+import { enterPlayer } from "@/lib/auth/claim";
 import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -63,8 +60,12 @@ export class LoginValidationError extends Error {
   }
 }
 
-/** `language` is the lobby the sign-in happened in (spec 060); the player is present there first. */
-export async function performUsernameLogin(usernameInput: string, language: Language = "is"): Promise<LoginResult> {
+/**
+ * `language` is the lobby the sign-in happened in (spec 060); the player is present there first.
+ * `claimHash` is this browser's device key, hashed: the name is claimed for it, or refused
+ * with NameTakenError when another browser holds it (spec 067).
+ */
+export async function performUsernameLogin(usernameInput: string, language: Language, claimHash: string): Promise<LoginResult> {
   console.log("[performUsernameLogin] Starting login for:", usernameInput);
   
   const parsed = usernameSchema.safeParse(usernameInput);
@@ -77,13 +78,8 @@ export async function performUsernameLogin(usernameInput: string, language: Lang
   const displayName = formatDisplayName(parsed.data);
   const supabase = getServiceRoleClient();
 
-  console.log("[performUsernameLogin] Creating player identity...");
-  const player = await upsertPlayerIdentity(supabase, {
-    username: normalizedUsername,
-    displayName,
-    status: "available",
-  });
-  console.log("[performUsernameLogin] Player created:", player.id);
+  const entered = await enterPlayer(supabase, { username: normalizedUsername, displayName, claimHash });
+  const player = await viewerInLanguage(entered, language);
 
   console.log("[performUsernameLogin] Creating presence record...");
   const presence = await createPresenceRecord(supabase, player.id, language);

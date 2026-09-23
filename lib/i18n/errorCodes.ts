@@ -22,5 +22,6 @@ export function loginErrorCode(error: unknown): ErrorCode {
   const name = error instanceof Error ? error.name : "";
   if (name === "RateLimitExceededError") return "rate_limited";
   if (name === "LoginValidationError") return "invalid_name";
+  if (name === "NameTakenError") return "name_taken";
   return "login_failed";
 }

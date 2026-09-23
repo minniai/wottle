@@ -1,4 +1,9 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+
+import { NameTakenError } from "@/lib/auth/claim";
+import { deviceKeyFor, rememberEntry } from "@/lib/auth/device";
+import { hashDeviceKey } from "@/lib/auth/deviceKey";
 
 import {
   LoginValidationError,
@@ -48,8 +53,11 @@ export async function POST(request: Request) {
         "Too many login attempts. Please wait up to one minute and try again.",
     });
 
-    const { player } = await performUsernameLogin(username);
-    await persistLobbySession({ player });
+    const store = await cookies();
+    const deviceKey = deviceKeyFor(store);
+    const { player } = await performUsernameLogin(username, "is", hashDeviceKey(deviceKey));
+    await persistLobbySession({ player }, store);
+    rememberEntry(store, deviceKey);
 
     return NextResponse.json(
       { player },
@@ -67,6 +75,10 @@ export async function POST(request: Request) {
           },
         }
       );
+    }
+
+    if (error instanceof NameTakenError) {
+      return NextResponse.json({ code: "name_taken", error: error.message }, { status: 409, headers: NO_CACHE_HEADERS });
     }
 
     if (error instanceof LoginValidationError) {

@@ -9,12 +9,6 @@ import type {
 
 type AnyClient = SupabaseClient<any, any, any>;
 
-interface UpsertPlayerInput {
-  username: string;
-  displayName?: string;
-  avatarUrl?: string | null;
-  status?: LobbyStatus;
-}
 
 interface PresenceInput {
   playerId: string;
@@ -31,46 +25,6 @@ export interface ActiveMatchSummary {
   state: "pending" | "in_progress";
 }
 
-function mapPlayer(row: any): PlayerIdentity {
-  return {
-    id: row.id,
-    username: row.username,
-    displayName: row.display_name,
-    avatarUrl: row.avatar_url,
-    status: row.status,
-    lastSeenAt: row.last_seen_at,
-    eloRating: row.elo_rating,
-  };
-}
-
-export async function upsertPlayerIdentity(
-  client: AnyClient,
-  input: UpsertPlayerInput
-): Promise<PlayerIdentity> {
-  const displayName = input.displayName ?? input.username;
-  const status = input.status ?? "available";
-
-  const { data, error } = await client
-    .from("players")
-    .upsert(
-      {
-        username: input.username,
-        display_name: displayName,
-        avatar_url: input.avatarUrl ?? null,
-        status,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "username" }
-    )
-    .select("*")
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to upsert player identity: ${error.message}`);
-  }
-
-  return mapPlayer(data);
-}
 
 export async function upsertLobbyPresence(
   client: AnyClient,

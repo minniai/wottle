@@ -209,6 +209,7 @@ const noSuchPlayer = (handle: string): string => `No such player · @${handle} h
 const errors = {
   rate_limited: "too many tries · wait a minute",
   invalid_name: "3 to 24 letters, digits, - or _",
+  name_taken: "that name is taken · pick another",
   login_failed: "could not sign in · try again",
   signed_out: "sign in first",
   queue_failed: "could not start a search · try again",

@@ -2,7 +2,10 @@
 
 import "server-only";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+
+import { deviceKeyFor, rememberEntry } from "@/lib/auth/device";
+import { hashDeviceKey } from "@/lib/auth/deviceKey";
 import { redirect } from "next/navigation";
 
 import type { PlayerIdentity } from "@/lib/types/match";
@@ -10,7 +13,6 @@ import {
   LoginValidationError,
   performUsernameLogin,
   persistLobbySession,
-  viewerInLanguage,
 } from "@/lib/matchmaking/profile";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { loginErrorCode } from "@/lib/i18n/errorCodes";
@@ -48,17 +50,20 @@ export async function loginAction(
     });
 
     const language = playableLanguageSchema.safeParse(formData.get("language") ?? undefined);
+    const store = await cookies();
+    const deviceKey = deviceKeyFor(store);
     const { player } = await performUsernameLogin(
       typeof username === "string" ? username : "",
       language.success ? language.data : "is",
+      hashDeviceKey(deviceKey),
     );
-    await persistLobbySession({ player });
+    await persistLobbySession({ player }, store);
+    rememberEntry(store, deviceKey);
 
     // No revalidatePath("/"): the room converts the bar in place and rewrites the URL to /lobby
     // (spec 044 US7). A server re-render of / here would hit its signed-in redirect and remount the field.
-    // The bar shows the rating of the lobby the player signed in to (spec 060 US4).
-    const shown = await viewerInLanguage(player, language.success ? language.data : "is");
-    return { status: "success", player: shown };
+    // performUsernameLogin already read the rating of the lobby they signed in to (spec 060 US4).
+    return { status: "success", player };
   } catch (error) {
     console.error("[loginAction] sign-in failed", error);
 
