@@ -63,6 +63,9 @@ export const ROOM_PHASES = [
   "stakes",
   "pick-cleared",
   "last-moved",
+  // Spec 068 (US8): the opponent gone past the window with the offer on line 2; your own outage.
+  "gone",
+  "offline",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];

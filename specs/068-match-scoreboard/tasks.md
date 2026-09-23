@@ -244,21 +244,21 @@
   - end early: label `10 of 10 played · 1:12 on the clock`, headline focused, `end the match ▸` ignoring activation for 500ms, `keep waiting ▸`.
 - [X] T069 [US8] Update the resign and end-early slips in `components/room/Slip.tsx` and their copy in `lib/i18n/copy/{en,is}.ts`. The phone slips fill exactly the field's square, following F8's rows in `app/styles/room.css`.
 - [X] T070 [US8] Remove the 10s end-early re-raise (`endDeferred` timer) in `components/room/MatchRoomController.tsx`. `keep waiting` sets a per-match flag, the slip is never raised again, and the offer becomes the `endEarlyOffer` line 2 source (`Kári is gone · end the match ▸`, a secondary action). Update `tests/unit/components/room/MatchRoomController.spec.tsx`.
-- [ ] T071 [P] [US8] Add failing tests to `tests/unit/lib/room/scoreboard.spec.ts`: the opp `gone for 2:04` counts up from the server-corrected `disconnectedAt` and never reads `0:00 left`; the lane is outlined while reconnecting or gone; you at `10 of 10 · done`.
-- [ ] T072 [US8] Compute `goneForMs` with `serverCorrectedNow` in `components/room/MatchRoomController.tsx`, and pass it into `deriveScoreboard`.
-- [ ] T073 [P] [US8] Write failing tests in `tests/unit/components/room/hooks/useMatchTransport.outage.spec.tsx`:
+- [X] T071 [P] [US8] Add failing tests to `tests/unit/lib/room/scoreboard.spec.ts`: the opp `gone for 2:04` counts up from the server-corrected `disconnectedAt` and never reads `0:00 left`; the lane is outlined while reconnecting or gone; you at `10 of 10 · done`.
+- [X] T072 [US8] Compute `goneForMs` with `serverCorrectedNow` in `components/room/MatchRoomController.tsx`, and pass it into `deriveScoreboard`.
+- [X] T073 [P] [US8] Write failing tests in `tests/unit/components/room/hooks/useMatchTransport.outage.spec.tsx`:
   - the channel closes and a poll fails → `lostAt` is set and `offline` is true;
   - the first good snapshot → `recoveredAt` is set, `awayMs` is computed, and `handlePlayerReconnect` is called once;
   - no page load is needed.
-- [ ] T074 [US8] Implement the outage lifecycle in `components/room/hooks/useMatchTransport.ts` and `lib/room/roomStore.ts` (`connection.outage`).
-- [ ] T075 [US8] Wire your own outage:
+- [X] T074 [US8] Implement the outage lifecycle in `components/room/hooks/useMatchTransport.ts` and `lib/room/roomStore.ts` (`connection.outage`).
+- [X] T075 [US8] Wire your own outage:
   - the scoreboard reads `offline · reconnecting` with your lane outlined;
   - the turn frame goes to ink (`turnFrameFor`);
   - the field takes no pick;
   - line 2 shows the `offline` source, then `back · you were away 0:34 · the clock kept running` for 4s.
 
   Changes go in `lib/room/scoreboard.ts`, `lib/room/moveState.ts`, `components/room/hooks/useFieldInteraction.ts` and `components/room/MatchRoomController.tsx`, with tests in the matching spec files.
-- [ ] T076 [US8] Add the fixture phases `gone` and `offline`, and update `disconnect`, `end-early` and `resign` to the canvas values, in `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`.
+- [X] T076 [US8] Add the fixture phases `gone` and `offline`, and update `disconnect`, `end-early` and `resign` to the canvas values, in `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`.
 
 ---
 
@@ -322,4 +322,5 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - T050: 89 darwin baselines regenerated (final and over-slip deleted and regenerated, because the tolerance hid the removed totals row). The Linux baselines come from the CI visual job's artifact.
 - Phase B, line 2: the stakes live in `moveState.ts` (`Line2Extras.stakes`, priced by `timeoutPenalty`) rather than a separate `stakes.ts`. `LiveLines.line2Parts` carries the crimson number and the end-early action. Pick cleared and submit errors hold on line 2 with their own timers. The `pickCleared` notice kind is no longer raised in a match, but it stays in `notices.ts` with the generic timed-notice machinery; removing it is a follow-up. The pick-cleared tick flash is not built, because the opponent's tick already marks the swapped cells.
 - T063–T066: the announcement hook is `useAnnouncements`, which also says 1:00 and 0:15. Line 2 runs under the opponent's total (it sits on line 1 only), about 40 mono characters, and never wraps. Shortened for it: `frozen · Kári froze it · pick another`, `moved · Kári moved it · pick another`, the waiting fact in C4's form `Kári · 8 of 10 · 1:12 left` (the Icelandic `bíður eftir Kári` also broke the name-safe rule), `back · away 0:34 · the clock ran on`, and the Icelandic end-early offer without the name (`án tengingar · ljúka viðureigninni ▸`). All are to be recorded in design system §8 (T077).
+- US8: T071 and T072 shipped in Phase A with the scoreboard (analysis I2). The outage lifecycle lives in `useMatchTransport` (`useOutage`), not the room store: two failed safety polls in a row (or the browser's `offline` event) mark you offline, and the first good poll brings you back and calls `handlePlayerReconnect`. The own-disconnect `reconnecting` notice and its copy key are removed; line 2 carries it.
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.

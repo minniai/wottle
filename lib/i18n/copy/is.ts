@@ -225,7 +225,6 @@ export const copyIs = {
   rematchDeclined: (name: string): string => `${name} afþakkaði`,
   REMATCH_EXPIRED: "beiðni um aðra viðureign rann út",
   REALTIME_LOST: "rauntenging rofin · spyr reglulega",
-  RECONNECTING: "tengist aftur",
   UNRATED: "ekkert Elo",
   YOUR_MOVES: "leikirnir þínir",
   OPPONENT_MOVES: "leikir andstæðings",

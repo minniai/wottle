@@ -216,7 +216,6 @@ const territoryLine = (you: number, free: number, opp: number): string => `${you
 const rematchDeclined = (name: string): string => `${name} declined`;
 const REMATCH_EXPIRED = "rematch request expired";
 const REALTIME_LOST = "realtime lost · polling";
-const RECONNECTING = "reconnecting";
 const UNRATED = "unrated";
 const YOUR_MOVES = "your moves";
 const OPPONENT_MOVES = "opponent's moves";
@@ -435,7 +434,6 @@ export const copyEn = {
   rematchDeclined,
   REMATCH_EXPIRED,
   REALTIME_LOST,
-  RECONNECTING,
   UNRATED,
   YOUR_MOVES,
   OPPONENT_MOVES,

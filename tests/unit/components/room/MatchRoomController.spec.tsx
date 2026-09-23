@@ -673,3 +673,18 @@ describe("focus at go (spec 068 FR-034)", () => {
     vi.useRealTimers();
   });
 });
+
+describe("your own outage (spec 068 FR-038)", () => {
+  it("offline: your row and the live row say so, the frame goes to ink and the field takes no pick", () => {
+    useRoomStore.getState().leaveToLobby();
+    renderController();
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("offline · reconnecting");
+    expect(screen.getByTestId("scoreboard-row-you").querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("data-mode", "outlined");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("offline · reconnecting");
+    expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
+    expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
+  });
+});

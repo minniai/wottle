@@ -182,3 +182,19 @@ describe("RoomFixture: the whole move (spec 068 Phase B)", () => {
     expect(ticked.map((c) => c.getAttribute("data-last-move"))).toEqual(["you", "you", "opp", "opp"]);
   });
 });
+
+describe("RoomFixture: absence (spec 068 US8)", () => {
+  it("gone: Kári gone for 2:04, the offer on line 2, you done", () => {
+    render(<RoomFixture phase="gone" />);
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("8 of 10 · gone for 2:04");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("10 of 10 · done");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("Kári is gone · end the match ▸");
+    expect(screen.queryByTestId("slip")).toBeNull();
+  });
+
+  it("offline: your row and line 2 say so", () => {
+    render(<RoomFixture phase="offline" />);
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("offline · reconnecting");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("offline · reconnecting");
+  });
+});

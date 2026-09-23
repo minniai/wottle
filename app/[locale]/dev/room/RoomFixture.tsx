@@ -130,13 +130,15 @@ interface SeatOptions {
   completed: boolean;
   reconnectMsLeft: number | null;
   goneForMs?: number | null;
+  /** Your own transport has lost the match. */
+  offline?: boolean;
   /** Both players' moves and totals in this phase. */
   you?: { moves: number; score: number; scoring?: boolean };
   opp?: { moves: number; score: number; scoring?: boolean };
   lines: { you: string; opp: string };
 }
 
-function matchSeats({ completed, reconnectMsLeft, goneForMs = null, you = { moves: 3, score: 46 }, opp = { moves: 6, score: 15 }, lines }: SeatOptions) {
+function matchSeats({ completed, reconnectMsLeft, goneForMs = null, offline = false, you = { moves: 3, score: 46 }, opp = { moves: 6, score: 15 }, lines }: SeatOptions) {
   return {
     you: {
       name: BIRNA.displayName,
@@ -144,6 +146,7 @@ function matchSeats({ completed, reconnectMsLeft, goneForMs = null, you = { move
       movesPlayed: you.moves,
       scoring: you.scoring,
       score: you.score,
+      offline,
       finalLine: completed ? lines.you : undefined,
     },
     opp: {
@@ -213,6 +216,9 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   missed: { live: { kind: "idle" }, marks: {}, moveState: MISSED_M4, holdMove: HOLD_MOVE, seats: { you: { moves: 4, score: 41 } } },
   stakes: { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE_8, clockMs: LOW_CLOCK_MS, seats: { you: { moves: 7, score: 69 }, opp: { moves: 9, score: 41 } }, extras: { stakes: { movesLeft: 3, penalty: -15 } } },
   "pick-cleared": { ...IDLE, extras: { pickClearedBy: KARI.displayName } },
+  // Artboard Disconnect: you have ten at 1:12, Kári gone for 2:04 after you chose keep waiting.
+  gone: { live: { kind: "idle" }, marks: {}, moveState: { kind: "done", opponentName: KARI.displayName, opponentMoves: 8, clockMmSs: "1:12" }, clockMs: 72_000, state: { ...DISCONNECT_STATE, ...DONE_STATE, disconnectedPlayerId: OPP_ID }, seats: DONE_SEATS, extras: { endEarlyOffer: KARI.displayName } },
+  offline: { ...IDLE, extras: { offline: true } },
   "last-moved": {
     ...IDLE,
     ticks: [...OPP_LAST_SWAP.map((at) => ({ at, seat: "opp" as const, name: KARI.displayName })), ...YOUR_LAST_SWAP.map((at) => ({ at, seat: "you" as const, name: BIRNA.displayName }))],
@@ -336,8 +342,8 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   const disconnected = phase === "disconnect" || phase === "end-early";
   const spec = MATCH_PHASES[phase];
   const state = spec.state ?? MATCH_STATE;
-  const gone = phase === "end-early";
-  const seats = matchSeats({ completed, reconnectMsLeft: disconnected ? (gone ? 0 : RECONNECT_MS_LEFT) : null, goneForMs: gone ? GONE_FOR_MS : null, ...spec.seats, lines: finalLines(copy) });
+  const gone = phase === "end-early" || phase === "gone";
+  const seats = matchSeats({ completed, reconnectMsLeft: disconnected || gone ? (gone ? 0 : RECONNECT_MS_LEFT) : null, goneForMs: gone ? GONE_FOR_MS : null, offline: phase === "offline", ...spec.seats, lines: finalLines(copy) });
   const words = spec.liveWord ? [...FIXTURE_WORDS, spec.liveWord] : FIXTURE_WORDS;
   const bands = spec.liveWord === SCORED_WORD ? SCORING_BANDS : spec.liveWord === OPP_REVEAL_WORD ? OPP_REVEAL_BANDS : BANDS;
   const drawnCount = phase === "reveal" ? revealed : null;

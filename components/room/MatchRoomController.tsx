@@ -56,6 +56,9 @@ export interface MatchRoomControllerProps {
   pollIntervalMs?: number;
 }
 
+/** How long `back · away 0:34 · the clock ran on` holds line 2 (game flow C8). */
+const BACK_HOLD_MS = 4_000;
+
 /** How long an illegal pick or a refused move holds the live row before it returns (spec 047 P1, spec 050). */
 const NOTICE_HOLD_MS = 2000;
 
@@ -126,6 +129,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const onNewMatch = useCallback((newMatchId: string) => router.replace(to(`/match/${newMatchId}`)), [router, to]);
   const rematch = useRematchNegotiation({ matchId, currentPlayerId, onNewMatch });
   const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
+  // Back after an outage: line 2 says how long you were away, for four seconds (spec 068 FR-038).
+  const [backAwayMs, setBackAwayMs] = useState<number | null>(null);
+  useEffect(() => {
+    if (transport.awayMs === null) return;
+    setBackAwayMs(transport.awayMs);
+    const timer = setTimeout(() => setBackAwayMs(null), BACK_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [transport.awayMs]);
   const history = useWordHistory(matchId, match.resolvedSeq);
   const words = useAccumulatedMoves(match, history);
 
@@ -388,7 +399,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // Under 1:00 with a move to make, line 2 prices the moves left at 0:00 (spec 068 FR-029).
   const youMovesLeft = Math.max(0, match.moveLimit - youFacts.movesPlayed);
   const stakes = inProgress && clockMs > 0 && clockMs < 60_000 && youMovesLeft > 0 ? { movesLeft: youMovesLeft, penalty: timeoutPenalty(youFacts.score, youMovesLeft) } : null;
-  const line2Extras: Line2Extras = { pickClearedBy, submitError, stakes, endEarlyOffer: endable && endDeferred && !completed ? opp.displayName : null };
+  const line2Extras: Line2Extras = {
+    offline: transport.offline && !completed,
+    backAwayMs,
+    pickClearedBy,
+    submitError,
+    stakes,
+    endEarlyOffer: endable && endDeferred && !completed ? opp.displayName : null,
+  };
   const youScore = match.scores[viewerSlot === "player_a" ? "playerA" : "playerB"];
   const oppScore = match.scores[opponentSlot === "player_a" ? "playerA" : "playerB"];
   // The server's winner decides the verdict and the bars, not the totals (spec 048 US1, spec 050).
@@ -495,7 +513,6 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const allNotices: Notice[] = [
     ...notices,
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
-    ...(transport.isReconnecting && match.disconnectedPlayerId === currentPlayerId ? [{ kind: "text", text: copy.RECONNECTING } as Notice] : []),
     ...(transport.usePolling && !transport.isReconnecting ? [{ kind: "text", text: copy.REALTIME_LOST } as Notice] : []),
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
   ];
@@ -506,7 +523,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
+        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
         opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
@@ -556,8 +573,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
           ticks={ticks}
-          disabled={completed || readOnly || !canPick}
-          turnFrame={completed || readOnly ? null : turnFrameFor(moveState)}
+          disabled={completed || readOnly || !canPick || transport.offline}
+          turnFrame={completed || readOnly || transport.offline ? null : turnFrameFor(moveState)}
           bands={bands}
           highlightMove={highlightMove}
           drawnCount={drawnCount}
