@@ -405,11 +405,13 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         router.push(to("/profile"));
       }
       else if (action === "signOut") {
-        void logoutAction({}).finally(() => {
+        const leave = () => {
           useRoomStore.getState().setViewer(null);
           router.replace(to("/"));
           router.refresh();
-        });
+        };
+        // Signing out is refused while a match is live (spec 067); it never resigns.
+        void logoutAction().then((r) => (r.status === "refused" ? push({ kind: "text", text: copy.errors[r.code] }) : leave()), leave);
       }
       else if (action === "resign" || action === "leave") setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName });
       else if (action === "keepPlaying") clearSlip("resign");

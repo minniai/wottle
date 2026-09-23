@@ -1,9 +1,10 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }) }));
-vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "ok" }) }));
+vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "signed-out" }) }));
 
+import { logoutAction } from "@/app/actions/auth/logout";
 import { ProfilePage } from "@/components/profile/ProfilePage";
 import { ProfileRatingChart } from "@/components/profile/ProfileRatingChart";
 import type { PlayerProfile } from "@/lib/types/match";
@@ -70,6 +71,19 @@ describe("ProfilePage (design system Fig. 9, spec 044 US10)", () => {
     expect(screen.getByTestId("profile-page")).toHaveAttribute("data-seat", "opp");
     expect(screen.queryByTestId("profile-sign-out")).toBeNull();
     expect(screen.getByTestId("profile-best-words")).toHaveTextContent("—");
+  });
+
+  it("offers neither change name nor sign out while the owner has a live match (spec 067 FR-014)", () => {
+    render(<ProfilePage profile={profile} words={[]} matches={[]} isSelf inLiveMatch />);
+    expect(screen.queryByTestId("profile-change-name")).toBeNull();
+    expect(screen.queryByTestId("profile-sign-out")).toBeNull();
+  });
+
+  it("says so when the server refuses the sign-out, and stays", async () => {
+    vi.mocked(logoutAction).mockResolvedValueOnce({ status: "refused", code: "sign_out_in_match" });
+    render(<ProfilePage profile={profile} words={[]} matches={[]} isSelf />);
+    fireEvent.click(screen.getByTestId("profile-sign-out"));
+    expect(await screen.findByTestId("profile-sign-out-refused")).toHaveTextContent("finish your match first");
   });
 });
 

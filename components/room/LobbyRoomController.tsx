@@ -175,12 +175,14 @@ export function LobbyRoomController({ viewer, initialPlayers, recentGames }: Lob
       if (action === "findOpponent") router.replace(to("/matchmaking"));
       else if (action === "profile") router.push(to("/profile"));
       else if (action === "signOut") {
-        void logoutAction({}).finally(() => {
+        const leave = () => {
           disconnect();
           setViewer(null);
           router.replace(to("/"));
           router.refresh();
-        });
+        };
+        // Signing out is refused while a match is live (spec 067); it never resigns.
+        void logoutAction().then((r) => (r.status === "refused" ? push({ kind: "text", text: copy.errors[r.code] }) : leave()), leave);
       }
       else if (typeof action === "object" && "challenge" in action) {
         const target = players.find((p) => p.id === action.challenge);

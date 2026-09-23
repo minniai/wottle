@@ -22,6 +22,10 @@ vi.mock("@/app/actions/player/getBestWords", () => ({
   getBestWords: vi.fn(async () => ({ status: "ok", words: [] })),
 }));
 
+// Spec 067: the own profile hides sign-out while a match is live.
+vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn(() => ({})) }));
+vi.mock("@/lib/matchmaking/service", () => ({ findActiveMatchForPlayer: vi.fn(async () => null) }));
+
 vi.mock("@/app/actions/match/getRecentGames", () => ({
   getRecentGames: vi.fn(async () => ({ games: [] })),
 }));

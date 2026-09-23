@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mockReplace, pu
 vi.mock("@/app/actions/auth/login", () => ({
   loginAction: vi.fn(async () => ({ status: "success", player: { id: "me", username: "birna", displayName: "Birna", status: "available", lastSeenAt: "", eloRating: 1204 } })),
 }));
-vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "ok" }) }));
+vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "signed-out" }) }));
 vi.mock("@/app/actions/matchmaking/sendInvite", () => ({
   sendInviteAction: vi.fn().mockResolvedValue({ status: "sent", inviteId: "i1", expiresAt: "" }),
   respondInviteAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m9" }),
@@ -25,6 +25,7 @@ vi.mock("@/lib/matchmaking/presenceStore", async () => {
 
 import { LobbyRoomController } from "@/components/room/LobbyRoomController";
 import { respondInviteAction, sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { logoutAction } from "@/app/actions/auth/logout";
 import { useLobbyPresenceStore } from "@/lib/matchmaking/presenceStore";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { OVER_SLIP } from "@/app/[locale]/dev/room/fixtures";
@@ -239,6 +240,15 @@ describe("LobbyRoomController (spec 044 US7)", () => {
     fireEvent.click(screen.getByTestId("ledger-menu-item-signout"));
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en"));
     expect(useRoomStore.getState().viewer).toBeNull();
+  });
+
+  it("a refused sign-out says so and keeps the viewer (spec 067)", async () => {
+    vi.mocked(logoutAction).mockResolvedValueOnce({ status: "refused", code: "sign_out_in_match" });
+    render(<LobbyRoomController viewer={me} initialPlayers={[me]} recentGames={[]} />);
+    fireEvent.click(screen.getByTestId("ledger-menu-trigger"));
+    fireEvent.click(screen.getByTestId("ledger-menu-item-signout"));
+    await waitFor(() => expect(screen.getAllByTestId("ledger-notice").some((n) => n.textContent?.includes("finish your match first"))).toBe(true));
+    expect(mockReplace).not.toHaveBeenCalledWith("/en");
   });
 
   it("never returns to a match it was bounced out of", async () => {

@@ -8,6 +8,8 @@ import { getCopy } from "@/lib/i18n/getCopy";
 import { getLocale, localePath } from "@/lib/i18n/locales";
 import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
 import { readLobbySession } from "@/lib/matchmaking/profile";
+import { findActiveMatchForPlayer } from "@/lib/matchmaking/service";
+import { getServiceRoleClient } from "@/lib/supabase/server";
 
 export default async function OwnProfilePage({ params }: { params?: LocaleParams } = {}) {
   const locale = await readLocaleParam(params);
@@ -17,10 +19,11 @@ export default async function OwnProfilePage({ params }: { params?: LocaleParams
     redirect(localePath(locale, "/"));
   }
 
-  const [profileResult, bestWordsResult, recentGamesResult] = await Promise.all([
+  const [profileResult, bestWordsResult, recentGamesResult, liveMatch] = await Promise.all([
     getPlayerProfile(session.player.id, language),
     getBestWords(session.player.id, 12, language),
     getRecentGames({ playerId: session.player.id, limit: 10, language }),
+    findActiveMatchForPlayer(getServiceRoleClient(), session.player.id).catch(() => null),
   ]);
 
   if (profileResult.status !== "ok" || !profileResult.profile) {
@@ -37,6 +40,7 @@ export default async function OwnProfilePage({ params }: { params?: LocaleParams
       words={bestWordsResult.words ?? []}
       matches={recentGamesResult.games ?? []}
       isSelf
+      inLiveMatch={Boolean(liveMatch)}
     />
   );
 }
