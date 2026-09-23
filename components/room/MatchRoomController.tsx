@@ -48,6 +48,7 @@ import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
 import { tableFacts, useSeatAnnouncement, useTableBackGuard, useTableDeadlineRead } from "./hooks/useTable";
+import { useWakeLock } from "./hooks/useWakeLock";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { useReveal } from "./hooks/useReveal";
@@ -309,6 +310,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // The table (spec 069): its slip is derived from the match and the server-corrected second.
   const atTable = !readOnly && (match.state === "pending" || voided || msToStart > 0);
   const tableNow = useNowTick(atTable) + serverDrift;
+  // A phone stays awake at the table (FR-029).
+  useWakeLock(atTable && !voided);
   const table = tableFacts(match, viewerSlot);
   // A seated searcher whose table voided is back in the queue, and keeps searching from the void slip (FR-017).
   const requeue = useMatchmaking(!readOnly && voided && Boolean(table.youRequeued), voidedAtOf(match), match.language);

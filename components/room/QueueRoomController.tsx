@@ -17,6 +17,7 @@ import { Field } from "./Field";
 import { QueueRoomView } from "./QueueRoomView";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
+import { useWakeLock } from "./hooks/useWakeLock";
 
 export const LETTER_LAND_MS = 100;
 
@@ -91,6 +92,8 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
   }, [startQueue, setBoard, viewer.id, startedAt, language]);
 
   const { state, cancel, resume, keepSearching } = useMatchmaking(phase === "queue", startedAt, language);
+  // A phone stays awake while searching (spec 069 FR-029).
+  useWakeLock(state.kind === "searching" || state.kind === "stillSearching");
 
   // Letters land ~100 ms apart (all at once under reduced motion).
   const landed = queue?.lettersLanded ?? 100;
