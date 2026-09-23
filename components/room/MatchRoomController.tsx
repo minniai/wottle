@@ -10,7 +10,7 @@ import { resignMatch } from "@/app/actions/match/resignMatch";
 import { settleMatch } from "@/app/actions/match/settleMatch";
 import { leaveTableAction } from "@/app/actions/match/leaveTable";
 import { seatAction } from "@/app/actions/match/seat";
-import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { sendChallengeAction } from "@/app/actions/challenge/send";
 import { useLocalePath } from "@/components/i18n/LocaleProvider";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
@@ -556,8 +556,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "cancelQueue") void requeue.cancel().then(() => router.push(to("/")));
       else if (action === "challengeAgain") {
         // The same player, through the ordinary send (spec 069 clarification Q2); a refusal stays here and says why.
-        void sendInviteAction(oppFacts.playerId, match.language).then((r) => {
-          if (r.status === "accepted" && "matchId" in r && r.matchId) router.push(to(`/match/${r.matchId}`));
+        void sendChallengeAction({ recipientId: oppFacts.playerId }).then((r) => {
+          if (r.status === "crossed") router.push(to(`/match/${r.matchId}`));
           else if (r.status === "sent") router.push(to("/"));
           else push({ kind: "text", text: copy.errors[r.status === "cooldown" ? "table_cooldown" : "invite_failed"] });
         });
@@ -580,7 +580,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, requeue, oppFacts.playerId, match.language, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, requeue, oppFacts.playerId, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).

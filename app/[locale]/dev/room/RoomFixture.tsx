@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import { Field } from "@/components/room/Field";
 import type { CellState } from "@/components/room/FieldCell";
-import { LobbyRoomView } from "@/components/room/LobbyRoomView";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
@@ -197,7 +196,7 @@ const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CEL
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
 type TablePhase = "table" | "table-seated" | "void" | "void-queue";
-type MatchPhase = Exclude<RoomPhase, "lobby" | "queue" | "searching-paused" | "profile" | "rules" | TablePhase>;
+type MatchPhase = Exclude<RoomPhase, "queue" | "searching-paused" | "profile" | "rules" | TablePhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -299,24 +298,6 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     );
   }
 
-  if (phase === "lobby") {
-    const viewer = BIRNA;
-    return (
-      <RoomShell viewer={viewer}>
-        <LobbyRoomView
-          viewer={viewer}
-          players={LOBBY_PLAYERS}
-          recentGames={RECENT_GAMES}
-          loadingPlayers={false}
-          hint={TAP_SECOND_LETTER}
-          notices={[]}
-          onAction={NO_OP}
-        >
-          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={null} />
-        </LobbyRoomView>
-      </RoomShell>
-    );
-  }
 
   if (phase === "queue" || phase === "searching-paused") {
     // Spec 069 FR-021: a hidden tab's search waits for `resume ▸`.

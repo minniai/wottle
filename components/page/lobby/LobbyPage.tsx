@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
-import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { sendChallengeAction } from "@/app/actions/challenge/send";
 import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useLobbyList } from "@/components/standing/hooks/useLobbyList";
 import { useStandingSlot } from "@/components/standing/StandingProvider";
@@ -32,9 +32,9 @@ export function LobbyPage({ viewer, rows: initialRows, overview, recent }: Lobby
   const onFind = useCallback(() => router.push(to("/matchmaking")), [router, to]);
   const onChallenge = useCallback(
     (playerId: string) => {
-      void sendInviteAction(playerId, language).then((r) => r.status === "accepted" && r.matchId && router.push(to(`/match/${r.matchId}`)));
+      void sendChallengeAction({ recipientId: playerId }).then((r) => r.status === "crossed" && router.push(to(`/match/${r.matchId}`)));
     },
-    [language, router, to],
+    [router, to],
   );
   return (
     <PageFrame

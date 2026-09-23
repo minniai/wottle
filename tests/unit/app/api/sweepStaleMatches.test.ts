@@ -13,7 +13,7 @@ vi.mock("@/lib/match/findDueTables", () => ({ findDueTables: vi.fn() }));
 vi.mock("@/lib/match/tableService", () => ({ voidDueTable: vi.fn() }));
 vi.mock("@/lib/match/statePublisher", () => ({ publishMatchState: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn(() => ({})) }));
-vi.mock("@/lib/lobby/sweepLobby", () => ({ sweepLobby: vi.fn(async () => ({ gone: [], pruned: 0 })) }));
+vi.mock("@/lib/lobby/sweepLobby", () => ({ sweepLobby: vi.fn(async () => ({ gone: [], expired: 0, pruned: 0 })) }));
 
 import { POST } from "@/app/api/cron/sweep-stale-matches/route";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
@@ -86,7 +86,7 @@ describe("POST /api/cron/sweep-stale-matches", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [], voided: [], voidFailed: [], lobby: { gone: [], pruned: 0 } });
+    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [], voided: [], voidFailed: [], lobby: { gone: [], expired: 0, pruned: 0 } });
     expect(completeMatchInternal).not.toHaveBeenCalled();
   });
 
@@ -169,10 +169,10 @@ test("settles the lobby too, and a lobby failure does not fail the sweep (spec 0
   vi.mocked(findOrphanedMatches).mockResolvedValue([]);
   vi.mocked(findDueMatches).mockResolvedValue([]);
   vi.mocked(findDueTables).mockResolvedValue([]);
-  vi.mocked(sweepLobby).mockResolvedValueOnce({ gone: ["p1"], pruned: 2 });
+  vi.mocked(sweepLobby).mockResolvedValueOnce({ gone: ["p1"], expired: 1, pruned: 2 });
   const ok = await POST(buildRequest("Bearer s3cret"));
   expect(ok.status).toBe(200);
-  expect((await ok.json()).lobby).toEqual({ gone: ["p1"], pruned: 2 });
+  expect((await ok.json()).lobby).toEqual({ gone: ["p1"], expired: 1, pruned: 2 });
   vi.mocked(sweepLobby).mockRejectedValueOnce(new Error("db down"));
   const failed = await POST(buildRequest("Bearer s3cret"));
   expect(failed.status).toBe(200);

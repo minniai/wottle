@@ -32,6 +32,10 @@ export class Fixtures {
     await this.db.client.from("lobby_presence").insert(
       ids.map((id) => ({ player_id: id, connection_id: crypto.randomUUID(), mode: "direct_invite", expires_at: new Date(Date.now() + 300_000).toISOString() })),
     );
+    // Spec 070: present (a fresh tab), but hidden, so seating by attention stays the test's to decide.
+    for (const id of ids) {
+      await this.db.client.rpc("beat_tab", { p_player: id, p_tab: crypto.randomUUID(), p_visible: false, p_input_ago_ms: 60_000, p_page: "lobby" });
+    }
     return ids;
   }
 
@@ -44,6 +48,8 @@ export class Fixtures {
         status: "pending",
         language: options.language ?? "is",
         created_at: new Date(Date.now() - (options.ageMs ?? 0)).toISOString(),
+        // The old 30s life, which these tests were written against; spec 070 sends at 60s.
+        expires_at: new Date(Date.now() - (options.ageMs ?? 0) + 30_000).toISOString(),
       })
       .select("id")
       .single();

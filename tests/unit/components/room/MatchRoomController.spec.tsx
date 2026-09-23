@@ -38,7 +38,7 @@ vi.mock("@/app/actions/match/leaveTable", () => ({ leaveTableAction: vi.fn().moc
 vi.mock("@/app/actions/matchmaking/startQueue", () => ({ startQueueAction: vi.fn().mockResolvedValue({ status: "queued" }) }));
 vi.mock("@/app/actions/matchmaking/cancelQueue", () => ({ cancelQueueAction: vi.fn().mockResolvedValue({ status: "cancelled" }) }));
 vi.mock("@/app/actions/matchmaking/getMatchOverview", () => ({ getMatchOverviewAction: vi.fn().mockResolvedValue(null) }));
-vi.mock("@/app/actions/matchmaking/sendInvite", () => ({ sendInviteAction: vi.fn().mockResolvedValue({ status: "sent", inviteId: "i1" }) }));
+vi.mock("@/app/actions/challenge/send", () => ({ sendChallengeAction: vi.fn().mockResolvedValue({ status: "sent", inviteId: "i1" }) }));
 
 import { __resetWordIntegrityForTests } from "@/lib/room/wordIntegrity";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
@@ -51,7 +51,7 @@ import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import { seatAction } from "@/app/actions/match/seat";
 import { leaveTableAction } from "@/app/actions/match/leaveTable";
 import { cancelQueueAction } from "@/app/actions/matchmaking/cancelQueue";
-import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { sendChallengeAction } from "@/app/actions/challenge/send";
 import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
 import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -841,7 +841,7 @@ describe("MatchRoomController at the table (spec 069)", () => {
   it("`challenge again ▸` sends a new challenge to the same player and goes to the lobby", async () => {
     renderController(voidOf("challenge", "player-2"));
     fireEvent.click(await screen.findByTestId("slip-void-challengeAgain"));
-    await waitFor(() => expect(sendInviteAction).toHaveBeenCalledWith("player-2", "is"));
+    await waitFor(() => expect(sendChallengeAction).toHaveBeenCalledWith({ recipientId: "player-2" }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
   });
 

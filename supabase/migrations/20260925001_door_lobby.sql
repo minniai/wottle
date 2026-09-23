@@ -355,3 +355,348 @@ $$;
 
 revoke all on function public.head_to_head(uuid, text) from public, anon, authenticated;
 grant execute on function public.head_to_head(uuid, text) to service_role;
+
+-- ─── Challenges (US3) ──────────────────────────────────────────────────
+-- A challenge lasts 60s. One outgoing challenge per player. Every gate and
+-- every limit is decided here, from stored rows, under both players' locks.
+
+-- 'present', 'away' (every fresh tab hidden 2:00) or 'gone' (no fresh tab).
+create or replace function public.presence_of(p_player uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case
+           when not exists (select 1 from public.presence_tabs t
+                             where t.player_id = p_player and public.tab_is_fresh(t.beat_at, t.cadence_ms, t.leaving_at)) then 'gone'
+           when exists (select 1 from public.presence_tabs t
+                         where t.player_id = p_player and public.tab_is_fresh(t.beat_at, t.cadence_ms, t.leaving_at)
+                           and (t.visible or t.hidden_since > now() - interval '2 minutes')) then 'present'
+           else 'away' end;
+$$;
+
+create or replace function public.player_in_live_match(p_player uuid)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select exists (select 1 from public.matches m
+                  where m.state in ('pending', 'in_progress')
+                    and (m.player_a_id = p_player or m.player_b_id = p_player));
+$$;
+
+-- Three declines from this recipient within 10 minutes, the last within the session's 4 hours.
+create or replace function public.challenger_silenced(p_sender uuid, p_recipient uuid)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  with declines as (
+    select i.responded_at from public.match_invitations i
+     where i.sender_id = p_sender and i.recipient_id = p_recipient
+       and i.status = 'declined' and not i.auto_declined and i.responded_at is not null
+     order by i.responded_at desc
+     limit 3
+  )
+  select count(*) = 3
+         and max(responded_at) > now() - interval '4 hours'
+         and max(responded_at) - min(responded_at) <= interval '10 minutes'
+    from declines;
+$$;
+
+create or replace function public.send_challenge(p_sender uuid, p_recipient uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_lang text;
+  v_rlang text;
+  v_until timestamptz;
+  v_reverse uuid;
+  v_result jsonb;
+  v_silenced boolean;
+  v_withdrawn uuid[];
+  v_invite uuid;
+begin
+  if p_sender = p_recipient then
+    return jsonb_build_object('status', 'self');
+  end if;
+  perform 1 from public.players where id in (p_sender, p_recipient) order by id for update;
+
+  select coalesce(lobby_language, 'is') into v_lang from public.players where id = p_sender;
+  if not found then
+    return jsonb_build_object('status', 'gone');
+  end if;
+  if public.player_in_live_match(p_sender) then
+    return jsonb_build_object('status', 'busy_sender');
+  end if;
+  v_until := public.table_leave_cooldown_until(p_sender);
+  if v_until is not null and v_until > now() then
+    return jsonb_build_object('status', 'cooldown', 'until', v_until);
+  end if;
+  if (select count(*) from public.match_invitations
+       where sender_id = p_sender and created_at > now() - interval '1 minute') >= 6 then
+    return jsonb_build_object('status', 'rate_limited');
+  end if;
+
+  select coalesce(lobby_language, 'is') into v_rlang from public.players where id = p_recipient;
+  if not found or public.presence_of(p_recipient) = 'gone' then
+    return jsonb_build_object('status', 'gone');
+  end if;
+  if v_rlang <> v_lang then
+    return jsonb_build_object('status', 'other_lobby');
+  end if;
+  if public.player_in_live_match(p_recipient) then
+    return jsonb_build_object('status', 'in_match');
+  end if;
+  if public.presence_of(p_recipient) = 'away' then
+    return jsonb_build_object('status', 'away');
+  end if;
+
+  select max(responded_at) + interval '60 seconds' into v_until
+    from public.match_invitations
+   where sender_id = p_sender and recipient_id = p_recipient and status = 'declined' and not auto_declined;
+  if v_until is not null and v_until > now() then
+    return jsonb_build_object('status', 'declined_recently', 'until', v_until);
+  end if;
+
+  -- They had already challenged the sender: the send is the answer (§7.4, crossed).
+  select id into v_reverse from public.match_invitations
+   where sender_id = p_recipient and recipient_id = p_sender and status = 'pending' and expires_at > now()
+   order by created_at desc limit 1;
+  if v_reverse is not null then
+    v_result := public.accept_invite(v_reverse, p_sender, 60, 'crossed_challenge');
+    if v_result->>'status' = 'created' then
+      return jsonb_build_object('status', 'crossed', 'match_id', v_result->>'match_id');
+    end if;
+  end if;
+
+  -- One outgoing challenge, and a challenge ends a search (§7.5 invariants 1 and 3).
+  with withdrawn as (
+    update public.match_invitations
+       set status = 'withdrawn', responded_at = now()
+     where sender_id = p_sender and status = 'pending'
+    returning recipient_id
+  )
+  select coalesce(array_agg(recipient_id), '{}') into v_withdrawn from withdrawn;
+  update public.players
+     set status = 'available', queue_language = null, queued_at = null, search_paused = false
+   where id = p_sender and status = 'matchmaking';
+
+  v_silenced := public.challenger_silenced(p_sender, p_recipient);
+  insert into public.match_invitations (sender_id, recipient_id, status, language, expires_at, auto_declined, responded_at)
+  values (p_sender, p_recipient, case when v_silenced then 'declined' else 'pending' end, v_lang,
+          now() + interval '60 seconds', v_silenced, case when v_silenced then now() end)
+  returning id into v_invite;
+
+  return jsonb_build_object('status', 'sent', 'invite_id', v_invite, 'withdrawn_from', to_jsonb(v_withdrawn), 'silenced', v_silenced);
+end;
+$$;
+
+create or replace function public.withdraw_challenge(p_sender uuid, p_invite uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_recipient uuid;
+begin
+  update public.match_invitations
+     set status = 'withdrawn', responded_at = now()
+   where id = p_invite and sender_id = p_sender and status = 'pending'
+  returning recipient_id into v_recipient;
+  if v_recipient is null then
+    return jsonb_build_object('status', 'not_pending');
+  end if;
+  return jsonb_build_object('status', 'withdrawn', 'recipient_id', v_recipient);
+end;
+$$;
+
+create or replace function public.expire_challenges()
+returns table (invite_id uuid, sender_id uuid, recipient_id uuid)
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.match_invitations i
+     set status = 'expired', responded_at = now()
+   where i.status = 'pending' and i.expires_at < now()
+  returning i.id, i.sender_id, i.recipient_id;
+$$;
+
+-- create_match_between, as spec 069 left it, plus clearing an unseen result.
+create or replace function public.create_match_between(
+  p_a uuid,
+  p_b uuid,
+  p_language text,
+  p_origin text,
+  p_ref uuid,
+  p_pressed_by uuid[] default '{}'
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_found integer;
+  v_busy uuid;
+  v_rematch_of uuid;
+  v_match uuid;
+  v_seat_a boolean;
+  v_seat_b boolean;
+begin
+  if p_a is null or p_b is null or p_a = p_b then
+    return jsonb_build_object('status', 'invalid', 'reason', 'players');
+  end if;
+  if p_language is null or p_language not in ('is', 'en') then
+    return jsonb_build_object('status', 'invalid', 'reason', 'language');
+  end if;
+  if p_origin is null or p_origin not in ('queue', 'challenge', 'crossed_challenge', 'rematch', 'crossed_rematch', 'link') then
+    return jsonb_build_object('status', 'invalid', 'reason', 'origin');
+  end if;
+
+  perform 1 from public.players where id in (p_a, p_b) order by id for update;
+  select count(*) into v_found from public.players where id in (p_a, p_b);
+  if v_found <> 2 then
+    return jsonb_build_object('status', 'invalid', 'reason', 'unknown_player');
+  end if;
+
+  -- The one invariant: nobody holds two live matches.
+  select p.id into v_busy
+    from (values (p_a), (p_b)) as p(id)
+   where exists (
+     select 1 from public.matches m
+      where m.state in ('pending', 'in_progress')
+        and (m.player_a_id = p.id or m.player_b_id = p.id))
+   order by p.id
+   limit 1;
+  if v_busy is not null then
+    return jsonb_build_object('status', 'busy', 'player_id', v_busy);
+  end if;
+
+  if p_origin in ('rematch', 'crossed_rematch') then
+    select match_id into v_rematch_of from public.rematch_requests where id = p_ref;
+  end if;
+
+  -- Seated by their own press, or by a visible tab in use (spec 069 §7.3).
+  v_seat_a := p_a = any(coalesce(p_pressed_by, '{}')) or public.player_is_attentive(p_a);
+  v_seat_b := p_b = any(coalesce(p_pressed_by, '{}')) or public.player_is_attentive(p_b);
+
+  insert into public.matches (
+    board_seed, player_a_id, player_b_id, language, state, origin, origin_ref, rematch_of,
+    table_deadline_at, player_a_seated_at, player_b_seated_at)
+  values (
+    gen_random_uuid(), p_a, p_b, p_language, 'pending', p_origin, p_ref, v_rematch_of,
+    now() + interval '20 seconds',
+    case when v_seat_a then now() end,
+    case when v_seat_b then now() end)
+  returning id into v_match;
+
+  -- queued_at is kept: a void requeues a seated searcher at their old place.
+  update public.players
+     set status = 'in_match', queue_language = null, search_paused = false, updated_at = now()
+   where id in (p_a, p_b);
+  update public.lobby_presence
+     set mode = 'auto', invite_token = null, updated_at = now()
+   where player_id in (p_a, p_b);
+  -- Spec 070: a new match makes an old unseen result moot.
+  update public.players set unseen_result_match_id = null where id in (p_a, p_b);
+
+  update public.match_invitations
+     set status = 'withdrawn', responded_at = now()
+   where status = 'pending' and sender_id in (p_a, p_b) and id is distinct from p_ref;
+  update public.match_invitations
+     set status = 'superseded', responded_at = now()
+   where status = 'pending' and recipient_id in (p_a, p_b) and id is distinct from p_ref;
+  update public.rematch_requests
+     set status = 'withdrawn', responded_at = now()
+   where status = 'pending' and requester_id in (p_a, p_b) and id is distinct from p_ref;
+  update public.rematch_requests
+     set status = 'superseded', responded_at = now()
+   where status = 'pending' and responder_id in (p_a, p_b) and id is distinct from p_ref;
+
+  return jsonb_build_object(
+    'status', 'created',
+    'match_id', v_match,
+    'seats', jsonb_build_object('a', v_seat_a, 'b', v_seat_b));
+end;
+$$;
+
+
+-- accept_invite, as spec 069 left it, with its own expiry and the gone check.
+create or replace function public.accept_invite(
+  p_invite uuid,
+  p_actor uuid,
+  p_ttl_seconds integer,
+  p_origin text default 'challenge'
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_invite record;
+  v_result jsonb;
+  v_pressed uuid[];
+begin
+  select sender_id, recipient_id into v_invite from public.match_invitations where id = p_invite;
+  if not found then
+    return jsonb_build_object('status', 'not_pending');
+  end if;
+  if v_invite.recipient_id <> p_actor then
+    return jsonb_build_object('status', 'not_recipient');
+  end if;
+
+  perform 1 from public.players where id in (v_invite.sender_id, v_invite.recipient_id) order by id for update;
+  select * into v_invite from public.match_invitations where id = p_invite for update;
+  if v_invite.status <> 'pending' then
+    return jsonb_build_object('status', 'not_pending');
+  end if;
+  -- Spec 070: a challenge lasts until its own expires_at (60s).
+  if v_invite.expires_at < now() then
+    update public.match_invitations set status = 'expired', responded_at = now() where id = p_invite;
+    return jsonb_build_object('status', 'expired');
+  end if;
+  -- A sender who has gone cannot be played (§7.5 invariant 5): the challenge ends as left.
+  if public.presence_of(v_invite.sender_id) = 'gone' then
+    update public.match_invitations set status = 'left', responded_at = now() where id = p_invite;
+    return jsonb_build_object('status', 'gone');
+  end if;
+
+  v_pressed := case when p_origin = 'crossed_challenge'
+                    then array[v_invite.sender_id, v_invite.recipient_id]
+                    else array[p_actor] end;
+  v_result := public.create_match_between(
+    v_invite.sender_id, v_invite.recipient_id, coalesce(v_invite.language, 'is'), p_origin, p_invite, v_pressed);
+
+  if v_result->>'status' = 'created' then
+    update public.match_invitations
+       set status = 'accepted', responded_at = now(), match_id = (v_result->>'match_id')::uuid
+     where id = p_invite;
+  elsif v_result->>'status' = 'busy' and (v_result->>'player_id')::uuid = v_invite.sender_id then
+    update public.match_invitations set status = 'superseded', responded_at = now() where id = p_invite;
+  end if;
+  return v_result;
+end;
+$$;
+
+
+revoke all on function public.presence_of(uuid) from public, anon, authenticated;
+grant execute on function public.presence_of(uuid) to service_role;
+revoke all on function public.send_challenge(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.send_challenge(uuid, uuid) to service_role;
+revoke all on function public.withdraw_challenge(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.withdraw_challenge(uuid, uuid) to service_role;
+revoke all on function public.expire_challenges() from public, anon, authenticated;
+grant execute on function public.expire_challenges() to service_role;
+revoke all on function public.player_in_live_match(uuid) from public, anon, authenticated;
+revoke all on function public.challenger_silenced(uuid, uuid) from public, anon, authenticated;

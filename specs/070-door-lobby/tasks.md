@@ -153,7 +153,7 @@
   - a `pagehide` sends the beacon to `/api/presence/leave` with text/plain JSON;
   - the page kind is sent with each beat.
 - [X] T034 [P] [US6] Write a failing contract test in `tests/contract/beacons.contract.test.ts`. `POST /api/presence/leave` and `POST /api/lobby/invite/withdraw` accept a text/plain JSON body and return 204, or 401 with no session.
-- [ ] T035 [US6] Write a failing Playwright spec `tests/integration/ui/presence.spec.ts`:
+- [X] T035 [US6] Write a failing Playwright spec `tests/integration/ui/presence.spec.ts`:
   - B enters and appears in A's list;
   - B reloads and never disappears;
   - B closes its tab and disappears within 8s;
@@ -250,17 +250,17 @@
 
 ### Tests first
 
-- [ ] T060 [P] [US3] Write failing integration tests in `tests/integration/db/challenges.test.ts` for `send_challenge`:
+- [X] T060 [P] [US3] Write failing integration tests in `tests/integration/db/challenges.test.ts` for `send_challenge`:
   - `sent` records `expires_at` = +60s, withdraws the sender's other pending challenge, cancels the sender's search, and does not touch the sender's `players.status` or `lobby_presence.mode`;
   - refusals `in_match` (pending or in progress), `gone`, `away`, `other_lobby`, `self`, `busy_sender`, `cooldown` (spec 069), `declined_recently` (with `until` = decline + 60s) and `rate_limited` (the 7th in a minute);
   - `crossed` creates the match through `accept_invite`;
   - after three declines from the same recipient within 10 minutes, the next challenge is inserted `declined` with `auto_declined` and the status `sent`, for 4 hours.
-- [ ] T061 [P] [US3] Write failing integration tests in `tests/integration/db/challenges.lifecycle.test.ts`:
+- [X] T061 [P] [US3] Write failing integration tests in `tests/integration/db/challenges.lifecycle.test.ts`:
   - `withdraw_challenge` is a compare-and-set from pending, and returns `not_pending` otherwise;
   - `expire_challenges` expires past-due invites and returns both ids;
   - `accept_invite` refuses `gone` (the invite becomes `left`) and past-expiry invites;
   - `create_match_between` supersedes the other pending incoming invites and clears `unseen_result_match_id`.
-- [ ] T062 [P] [US3] Write a failing race test `tests/integration/db/challenges.race.test.ts`: 100 rounds of send, accept, withdraw, crossed send and queue pairing at once. It holds that a player never has two pending outgoing challenges, that no match is created with a busy or gone player, and that every invite ends in exactly one terminal status.
+- [X] T062 [P] [US3] Write a failing race test `tests/integration/db/challenges.race.test.ts`: 100 rounds of send, accept, withdraw, crossed send and queue pairing at once. It holds that a player never has two pending outgoing challenges, that no match is created with a busy or gone player, and that every invite ends in exactly one terminal status.
 - [ ] T063 [P] [US3] Write a failing test in `tests/unit/lib/pages/composer.spec.ts`:
   - line 2 carries the stakes from `stakesFor` and the terms from config, in both languages (one line on desktop, two on a phone);
   - line 3 appears for a running search or a pending outgoing challenge;
@@ -284,10 +284,10 @@
 
 ### Implementation
 
-- [ ] T067 [US3] Add `send_challenge`, `withdraw_challenge` and `expire_challenges` to the migration, and change `accept_invite` and `create_match_between` (data-model.md). Make T060–T062 pass.
-- [ ] T068 [US3] Implement `lib/matchmaking/challengeService.ts`: `send`, `withdraw`, `respond`, `expire` and `settleGone`. Each is an RPC parsed by Zod, pokes per the contract, and logs `challenge.*`. Remove `sendDirectInvite`, `getOutgoingInvite` and the `mode='direct_invite'` write from `lib/matchmaking/inviteService.ts`. Add `tests/unit/lib/matchmaking/one-challenge-writer.test.ts`, which fails on any `from("match_invitations").insert/update` outside `challengeService` and the SQL.
-- [ ] T069 [US3] Implement the server actions `app/actions/challenge/send.ts`, `withdraw.ts` and `respond.ts` (Zod input, explicit return, session). Add `POST /api/lobby/invite/withdraw` (the beacon) in `app/api/lobby/invite/withdraw/route.ts`. Make `app/api/lobby/invite/[inviteId]/respond/route.ts` a wrapper around `respond`. Delete `app/actions/matchmaking/sendInvite.ts` (which holds both `sendInviteAction` and `respondInviteAction`) and the GET in `app/api/lobby/invite/route.ts`, together with their tests. Make T034 pass for withdraw.
-- [ ] T070 [US3] Set `expire_challenges` in the cron sweep (replacing T041's placeholder), and change the `PLAYTEST_INVITE_EXPIRY_SECONDS` default to 60 in `lib/match/createMatch.ts` and the env docs.
+- [X] T067 [US3] Add `send_challenge`, `withdraw_challenge` and `expire_challenges` to the migration, and change `accept_invite` and `create_match_between` (data-model.md). Make T060–T062 pass.
+- [X] T068 [US3] Implement `lib/matchmaking/challengeService.ts`: `send`, `withdraw`, `respond`, `expire` and `settleGone`. Each is an RPC parsed by Zod, pokes per the contract, and logs `challenge.*`. Remove `sendDirectInvite`, `getOutgoingInvite` and the `mode='direct_invite'` write from `lib/matchmaking/inviteService.ts`. Add `tests/unit/lib/matchmaking/one-challenge-writer.test.ts`, which fails on any `from("match_invitations").insert/update` outside `challengeService` and the SQL.
+- [X] T069 [US3] Implement the server actions `app/actions/challenge/send.ts`, `withdraw.ts` and `respond.ts` (Zod input, explicit return, session). Add `POST /api/lobby/invite/withdraw` (the beacon) in `app/api/lobby/invite/withdraw/route.ts`. Make `app/api/lobby/invite/[inviteId]/respond/route.ts` a wrapper around `respond`. Delete `app/actions/matchmaking/sendInvite.ts` (which holds both `sendInviteAction` and `respondInviteAction`) and the GET in `app/api/lobby/invite/route.ts`, together with their tests. Make T034 pass for withdraw.
+- [X] T070 [US3] Set `expire_challenges` in the cron sweep (replacing T041's placeholder), and change the `PLAYTEST_INVITE_EXPIRY_SECONDS` default to 60 in `lib/match/createMatch.ts` and the env docs.
 - [ ] T071 [P] [US3] Implement `lib/pages/composer.ts` (T063) and `components/standing/hooks/useHeldOutcome.ts` (T065).
 - [ ] T072 [US3] Implement `components/page/lobby/ComposerRow.tsx` and wire it into `HereNowTable.tsx`: send, `not now`, the row's status cell (`sent · 0:52`, the outcomes, `challenges you`) and the action cell (`again in`, errors). Add the phone 176px variant (F6). Make T064 pass.
 - [ ] T073 [US3] Add the challenge strings to `lib/i18n/copy/{en,is}.ts`: the composer lines, the send and withdraw labels, the outcomes table, the errors, `again in`, `withdraws your challenge`, `accepted`, `Kári can't play right now`, `Kári has left · challenge withdrawn`, and the name-safe Icelandic forms.
