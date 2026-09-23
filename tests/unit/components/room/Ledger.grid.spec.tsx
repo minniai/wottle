@@ -71,3 +71,23 @@ describe("the live row's second line in parts (spec 068 FR-028, FR-029, FR-036)"
     expect(onAction).toHaveBeenCalledWith("endEarly");
   });
 });
+
+describe("notices on the grid (spec 068 FR-012, FR-013)", () => {
+  it("a notice takes the state line's second line, beside the territory bar, so nothing runs past the field", () => {
+    render(<Ledger variant="match" model={model} notices={[{ kind: "text", text: "realtime lost · polling" }]} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    const line = screen.getByTestId("ledger-state-line");
+    expect(within(line).getByTestId("ledger-notice")).toHaveTextContent("realtime lost · polling");
+    expect(within(line).getByTestId("ledger-territory")).toBeInTheDocument();
+    expect(screen.getAllByTestId("ledger-notice")).toHaveLength(1);
+    const rows = screen.getByTestId("ledger-rows");
+    expect(rows.compareDocumentPosition(screen.getByTestId("ledger-notice")) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
+  it("in the final state the verdict's score line stays and the notice takes its detail line", () => {
+    const final: LedgerModel = { ...model, completed: true, verdict: { scoreLine: "Birna wins 134–88", detailLine: "by 46 points", winnerSeat: "you" } };
+    render(<Ledger variant="final" model={final} notices={[{ kind: "text", text: "Kári declined" }]} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Birna wins 134–88");
+    expect(screen.getByTestId("verdict")).toHaveTextContent("Kári declined");
+    expect(screen.getByTestId("verdict")).not.toHaveTextContent("by 46 points");
+  });
+});

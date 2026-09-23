@@ -41,8 +41,8 @@ test.describe("@reconnect-flow disconnect is a bar state", () => {
       const topBar = a.page.getByTestId("scoreboard-row-opp");
       await expect(topBar.getByTestId("scoreboard-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 20_000 });
       await expect(topBar.getByTestId("scoreboard-track")).toHaveAttribute("data-mode", "outlined");
-      const clockBefore = await a.page.getByTestId("match-clock").textContent();
-      await expect.poll(() => a.page.getByTestId("match-clock").textContent(), { timeout: 5_000 }).not.toBe(clockBefore);
+      const clockBefore = await a.page.getByTestId("scoreboard-clock").textContent();
+      await expect.poll(() => a.page.getByTestId("scoreboard-clock").textContent(), { timeout: 5_000 }).not.toBe(clockBefore);
       // Nothing over the field while the window runs; end early is a slip, and only for a player with ten moves.
       expect(await a.page.locator("[role=dialog], [role=alertdialog]").count()).toBe(0);
 

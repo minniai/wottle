@@ -472,6 +472,11 @@ describe("room.css the ledger's grid (spec 068)", () => {
     expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__header\s*\{[^}]*height:\s*calc\(var\(--sb-row\) \+ 1\.5px\)[^}]*border-bottom:\s*1\.5px solid var\(--ink\)/);
   });
 
+  it("the ⋯ menu opens downward from the caption, which does not clip it", () => {
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.room-menu__list\s*\{[^}]*top:\s*calc\(100% \+ 6px\)[^}]*bottom:\s*auto/);
+    expect(rules).not.toMatch(/\.ledger\[data-grid\] \.ledger__caption,\s*\.ledger\[data-grid\] \.ledger__state-line\s*\{[^}]*overflow:\s*hidden/);
+  });
+
   it("each move row is exactly one cell tall, after the stack's gap and the field's frame", () => {
     expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__rows\s*\{[^}]*grid-auto-rows:\s*var\(--cell-size\)[^}]*margin-top:\s*calc\(var\(--bar-gap\) \+ 1\.5px\)/);
   });

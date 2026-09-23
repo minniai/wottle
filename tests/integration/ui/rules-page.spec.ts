@@ -54,14 +54,14 @@ test.describe("@rules the how-to-play page", () => {
       await loginViaSlip(pageB, playerBUsername);
       await startMatchWithDirectInvite(pageA, pageB, { playerBUsername });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 20_000 });
-      const clockBefore = await pageA.getByTestId("match-clock").textContent();
+      const clockBefore = await pageA.getByTestId("scoreboard-clock").textContent();
       await pageA.getByTestId("ledger-menu-trigger").click();
       const [rulesTab] = await Promise.all([contextA.waitForEvent("page"), pageA.getByTestId("ledger-menu-item-howToPlay").click()]);
       await expect(rulesTab).toHaveURL(/\/rules$/);
       await expect(rulesTab.getByTestId("rules-page")).toBeVisible();
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match");
       await expect
-        .poll(async () => pageA.getByTestId("match-clock").textContent(), { timeout: 5_000 })
+        .poll(async () => pageA.getByTestId("scoreboard-clock").textContent(), { timeout: 5_000 })
         .not.toBe(clockBefore);
       await rulesTab.close();
     } finally {

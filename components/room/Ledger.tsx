@@ -249,16 +249,18 @@ export function Ledger(props: LedgerProps) {
     </>
   );
 
+  const territoryBar = (
+    <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={territoryAria(territory.you, territory.opp)}>
+      <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
+      <span style={{ flex: 1 }} />
+      <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
+    </div>
+  );
+  const territoryNumbers = <div className="ledger__mono">{territoryLine(territory.you, territory.free, territory.opp)}</div>;
   const territoryBlock = showsTable ? (
     <>
-      <div className="ledger__territory" data-testid="ledger-territory" role="img" aria-label={territoryAria(territory.you, territory.opp)}>
-        <span className="ledger__territory-you" style={{ width: `${(territory.you / total) * 100}%` }} />
-        <span style={{ flex: 1 }} />
-        <span className="ledger__territory-opp" style={{ width: `${(territory.opp / total) * 100}%` }} />
-      </div>
-      <div className="ledger__mono">
-        {territoryLine(territory.you, territory.free, territory.opp)}
-      </div>
+      {territoryBar}
+      {territoryNumbers}
     </>
   ) : null;
 
@@ -269,6 +271,8 @@ export function Ledger(props: LedgerProps) {
   ));
 
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
+
+  const latestNotice = noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null;
 
   // Desktop match and final (spec 068): the ledger sits on the scoreboard's grid.
   // Its first three rows mirror the scoreboard's, and each move row is one cell tall.
@@ -305,8 +309,19 @@ export function Ledger(props: LedgerProps) {
       {grid ? (
         <div className="ledger__head" data-testid="ledger-head">
           {caption}
+          {/* The state's line: territory (or the verdict), whose second line a notice takes while it shows. */}
           <div className="ledger__state-line" data-testid="ledger-state-line">
-            {verdictBlock ?? territoryBlock}
+            {model.verdict ? (
+              <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
+                <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
+                {latestNotice ?? <div className="ledger__mono">{model.verdict.detailLine}</div>}
+              </div>
+            ) : (
+              <>
+                {territoryBar}
+                {latestNotice ?? territoryNumbers}
+              </>
+            )}
           </div>
           {header}
         </div>
@@ -364,7 +379,7 @@ export function Ledger(props: LedgerProps) {
             {model.hint}
           </div>
 
-          {noticeLines}
+          {grid ? null : noticeLines}
 
           {/* On the grid the ⋯ and the final state's actions live in the caption. */}
           {grid ? null : <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />}

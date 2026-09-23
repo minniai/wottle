@@ -37,7 +37,7 @@ test.describe("Move flow", () => {
         await expect(live(p)).toContainText("move 1 · your move", { timeout: 20_000 });
         await expect(p.getByTestId("field")).toHaveAttribute("data-turn", "you");
         await expect(p.getByTestId("scoreboard-row-you")).toContainText("move 1 of 10");
-        await expect(p.getByTestId("match-clock")).toHaveText(/\d:\d\d/);
+        await expect(p.getByTestId("scoreboard-clock")).toHaveText(/\d:\d\d/);
         await expect(rail(p)).toHaveAttribute("aria-valuenow", "10");
       }
 
