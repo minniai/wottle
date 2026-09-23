@@ -3,7 +3,6 @@
 import "server-only";
 
 import { z } from "zod";
-import { readLobbySession } from "@/lib/matchmaking/profile";
 import { readRatings } from "@/lib/rating/playerRatings";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import type { Language } from "@/lib/types/game-config";
@@ -30,11 +29,6 @@ export async function getPlayerProfile(
   playerId: string,
   language: Language = "is",
 ): Promise<GetPlayerProfileResult> {
-  const session = await readLobbySession();
-  if (!session) {
-    return { status: "error", error: "Authentication required." };
-  }
-
   const parsed = inputSchema.safeParse({ playerId });
   if (!parsed.success) {
     return { status: "error", error: "Invalid player ID." };
