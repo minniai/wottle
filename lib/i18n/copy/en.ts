@@ -210,6 +210,7 @@ const errors = {
   rate_limited: "too many tries · wait a minute",
   invalid_name: "3 to 24 letters, digits, - or _",
   name_taken: "that name is taken · pick another",
+  sign_out_in_match: "finish your match first",
   login_failed: "could not sign in · try again",
   signed_out: "sign in first",
   queue_failed: "could not start a search · try again",

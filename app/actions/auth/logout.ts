@@ -3,40 +3,27 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { ZodError } from "zod";
 
-import { resignMatch } from "@/app/actions/match/resignMatch";
-import { readLobbySession, SESSION_COOKIE_NAME } from "@/lib/matchmaking/profile";
-import {
-  expireLobbyPresence,
-  findActiveMatchForPlayer,
-} from "@/lib/matchmaking/service";
+import { SESSION_COOKIE_NAME, signedOutCookieOptions, SIGNED_OUT_COOKIE_NAME } from "@/lib/auth/cookies";
+import type { ErrorCode } from "@/lib/i18n/copy/types";
+import { readLobbySession } from "@/lib/matchmaking/profile";
 import { forgetPresence } from "@/lib/matchmaking/presenceCache";
-import {
-  assertWithinRateLimit,
-  RateLimitExceededError,
-} from "@/lib/rate-limiting/middleware";
+import { expireLobbyPresence } from "@/lib/matchmaking/service";
+import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
-export interface LogoutInput {
-  resignActiveMatch?: boolean;
-}
+export type LogoutResult =
+  | { status: "signed-out" }
+  /** A live match is never ended by signing out (spec 067 FR-013, FR-014). */
+  | { status: "refused"; code: Extract<ErrorCode, "sign_out_in_match"> };
 
-export interface LogoutResult {
-  status: "signed-out";
-  resignedMatchId: string | null;
-}
-
-export async function logoutAction(
-  input: LogoutInput = {},
-): Promise<LogoutResult> {
+export async function logoutAction(): Promise<LogoutResult> {
   const session = await readLobbySession();
   if (!session) {
-    return { status: "signed-out", resignedMatchId: null };
+    return { status: "signed-out" };
   }
 
   const playerId = session.player.id;
-
   assertWithinRateLimit({
     identifier: playerId,
     scope: "auth:logout",
@@ -46,23 +33,13 @@ export async function logoutAction(
   });
 
   const supabase = getServiceRoleClient();
-
-  let resignedMatchId: string | null = null;
-  if (input.resignActiveMatch) {
-    const activeMatch = await findActiveMatchForPlayer(supabase, playerId);
-    if (activeMatch) {
-      try {
-        await resignMatch(activeMatch.id);
-        resignedMatchId = activeMatch.id;
-      } catch (error) {
-        if (error instanceof RateLimitExceededError) throw error;
-        if (error instanceof ZodError) throw error;
-        console.warn(
-          "[logoutAction] resignMatch failed, continuing with logout",
-          error,
-        );
-      }
-    }
+  // One transaction: refuse during a live match, otherwise withdraw the
+  // player's challenges and rematch requests and leave the queue (FR-015).
+  const { data, error } = await supabase.rpc("sign_out_player", { p_player: playerId });
+  if (error) throw new Error(`sign_out_player: ${error.message}`);
+  if ((data as { status: string }).status === "in_match") {
+    console.warn(JSON.stringify({ event: "auth.sign_out.refused", playerId }));
+    return { status: "refused", code: "sign_out_in_match" };
   }
 
   await expireLobbyPresence(supabase, playerId);
@@ -70,9 +47,11 @@ export async function logoutAction(
 
   const cookieStore = await cookies();
   cookieStore.delete({ name: SESSION_COOKIE_NAME, path: "/" });
+  // The device key stays: the door greets this browser's player by name (US3).
+  cookieStore.set(SIGNED_OUT_COOKIE_NAME, "1", signedOutCookieOptions());
 
   // No revalidatePath: every caller already runs router.refresh(), and a layout-wide
   // revalidation of `/` also purges the prerendered /rules pages, which then 404
   // (NoFallbackError) until the next deploy.
-  return { status: "signed-out", resignedMatchId };
+  return { status: "signed-out" };
 }

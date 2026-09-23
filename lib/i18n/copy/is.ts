@@ -239,6 +239,7 @@ export const copyIs = {
     rate_limited: "of margar tilraunir · bíddu í mínútu",
     invalid_name: "3 til 24 stafir, tölur, - eða _",
     name_taken: "þetta nafn er frátekið · veldu annað",
+    sign_out_in_match: "kláraðu viðureignina fyrst",
     login_failed: "innskráning tókst ekki · reyndu aftur",
     signed_out: "skráðu þig fyrst inn",
     queue_failed: "leit hófst ekki · reyndu aftur",
