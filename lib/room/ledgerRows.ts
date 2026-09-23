@@ -3,7 +3,7 @@ import { liveText, type LiveState } from "./liveLines";
 import { liveLinesFor, type MoveState } from "./moveState";
 
 export { liveText, type LiveState } from "./liveLines";
-import { clockPhase, formatClock, laneFraction } from "./clock";
+import { formatClock } from "./clock";
 import { seatForSlot, type Seat } from "@/lib/constants/seatColors";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { bandIdForWord } from "./bandGeometry";
@@ -124,25 +124,18 @@ export function buildTerritory(frozenTiles: FrozenTileMap, viewerSlot: PlayerSlo
 
 export interface BuildLedgerInput extends BuildRowsInput {
   frozenTiles: FrozenTileMap;
-  /** The shared clock as the client reads it; the ledger clock draws it once (spec 050 FR-015). */
-  clockMs?: number;
-  /** This match's clock length (5:00 unless a playtest shortens it); the bar drains over it. */
-  clockLengthMs?: number;
   /** Match-level lines only; the field's instruction lives on the live row. Empty hides the line. */
   hint?: string;
 }
 
 /**
  * The ledger is the match's (2026-09-21): during a match its caption names no
- * move of the viewer's (the bottom bar counts those); the final caption is set
- * by the caller.
+ * move of the viewer's (the scoreboard counts those, and holds the clock since
+ * spec 068); the final caption is set by the caller.
  */
 export function buildMatchLedger(input: BuildLedgerInput, copy: Copy): LedgerModel {
   return {
     caption: "",
-    clock: input.clockMs === undefined ? undefined : formatClock(input.clockMs),
-    clockPhase: input.clockMs === undefined ? undefined : clockPhase(input.clockMs),
-    clockFraction: input.clockMs === undefined ? undefined : laneFraction(input.clockMs, input.clockLengthMs),
     completed: input.completed,
     rows: buildLedgerRows(input, copy),
     territory: buildTerritory(input.frozenTiles, input.viewerSlot),

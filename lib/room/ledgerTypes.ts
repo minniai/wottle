@@ -1,4 +1,3 @@
-import type { ClockPhase } from "./clock";
 import type { Seat } from "@/lib/constants/seatColors";
 import type { Coordinate } from "@/lib/types/board";
 import type { ReadingDirection } from "@/lib/types/match";
@@ -53,12 +52,6 @@ export interface Verdict {
 
 export interface LedgerModel {
   caption: string;
-  /** The shared clock, drawn once beside the caption (spec 050 FR-015); absent outside a match. */
-  clock?: string;
-  /** The ledger clock's look (2026-09-21): calm, low, flash or spent. */
-  clockPhase?: ClockPhase;
-  /** Time left over the match's clock length, 0..1: the bar's fill. */
-  clockFraction?: number;
   /** Whether the match is over. */
   completed?: boolean;
   /** The final totals, closing the table in the final state (2026-09-21). */

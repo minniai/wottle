@@ -1,10 +1,17 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import postcss from "postcss";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(resolve(__dirname, "../../../app/styles/room.css"), "utf-8");
 /** Rules only: a comment may name the selector it warns against. */
 const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+describe("room.css parses", () => {
+  it("is valid CSS: a stray brace breaks the whole room, and the greps below would not notice", () => {
+    expect(() => postcss.parse(css)).not.toThrow();
+  });
+});
 
 /** Design system §6 — geometry never animates; only transform and opacity do. */
 describe("room.css motion (design system §6)", () => {
@@ -24,11 +31,10 @@ describe("room.css motion (design system §6)", () => {
     }
   });
 
-  it("reduced motion zeroes durations and holds the low clock solid", () => {
+  it("reduced motion zeroes durations; no clock flashes anywhere (spec 068)", () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration: 0ms !important/);
-    // Spec 050: the low clock blinks in the ledger caption; under reduced motion it holds solid.
-    // The ledger clock's flash holds inverted, not blinking, under reduced motion.
-    expect(css).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*\.ledger__clock-invert[\s\S]*animation: none/);
+    // Spec 068 FR-006: the ledger clock and its inverted flash are gone; urgency is weight only.
+    expect(rules).not.toMatch(/clock-flash|\.ledger__clock/);
     expect(css).not.toMatch(/player-bar__lane--low/);
   });
 
@@ -370,24 +376,6 @@ describe("room.css slip (spec 048)", () => {
   });
 });
 
-describe("room.css the ledger clock (2026-09-21)", () => {
-  it("is a boxed block with a 32px tabular numeral and a bar whose fill scales, never resizes", () => {
-    expect(block(".ledger__clock")).toMatch(/border:\s*1\.5px solid var\(--ink\)/);
-    expect(block(".ledger__clock-time")).toMatch(/font-size:\s*32px/);
-    expect(block(".ledger__clock-time")).toMatch(/tabular-nums/);
-    expect(block(".ledger__clock-fill")).toMatch(/transform:\s*scaleX\(var\(--clock-fraction/);
-  });
-  it("under a minute takes the tint; the last 15 seconds flash the inverted face once a second", () => {
-    expect(block('.ledger__clock[data-phase="low"]')).toMatch(/background:\s*var\(--tint\)/);
-    expect(block(".ledger__clock-invert")).toMatch(/background:\s*var\(--ink\)/);
-    expect(block('.ledger__clock[data-phase="flash"] .ledger__clock-invert')).toMatch(/animation:\s*clock-flash 1s/);
-  });
-  it("the caption clock is gone", () => {
-    expect(css).not.toMatch(/ledger__caption-clock/);
-  });
-});
-
-
 // Reported 2026-09-21: in a narrow ledger the queue's context (`10 moves each ·
 // one 5:00 clock`) wrapped into the wordmark (`wottle10 MOVES EACH`).
 describe("room.css the ledger caption", () => {
@@ -473,6 +461,18 @@ describe("room.css interaction states", () => {
 
   it("a free letter takes the tint under the pointer only while the field takes picks", () => {
     expect(rule('.field:not([data-disabled]) .field__cell[data-state="free"]:hover')).toMatch(/background:\s*var\(--tint\)/);
+  });
+});
+
+/** Spec 068 FR-012: the match ledger on the scoreboard's grid. */
+describe("room.css the ledger's grid (spec 068)", () => {
+  it("its first three rows take the scoreboard's row height; the header's ink rule closes the third", () => {
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__caption,\s*\.ledger\[data-grid\] \.ledger__state-line\s*\{[^}]*height:\s*var\(--sb-row\)/);
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__header\s*\{[^}]*height:\s*calc\(var\(--sb-row\) \+ 1\.5px\)[^}]*border-bottom:\s*1\.5px solid var\(--ink\)/);
+  });
+
+  it("each move row is exactly one cell tall, after the stack's gap and the field's frame", () => {
+    expect(rules).toMatch(/\.ledger\[data-grid\] \.ledger__rows\s*\{[^}]*grid-auto-rows:\s*var\(--cell-size\)[^}]*margin-top:\s*calc\(var\(--bar-gap\) \+ 1\.5px\)/);
   });
 });
 

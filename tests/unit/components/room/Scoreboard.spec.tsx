@@ -88,4 +88,16 @@ describe("Scoreboard (spec 068)", () => {
     expect((blocks[6] as HTMLElement).style.getPropertyValue("--fill")).toBe("0.5");
     expect(screen.getByTestId("scoreboard")).toHaveAttribute("data-compact", "true");
   });
+
+  it("time is not motion: under reduced motion the ticks still show the time left (spec 068 §6)", () => {
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q.includes("reduce"), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    try {
+      render(<Scoreboard view={view} />);
+      expect(screen.getByTestId("scoreboard-clock-track").querySelectorAll('[data-tick="on"]')).toHaveLength(39);
+      expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("3:12");
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
 });

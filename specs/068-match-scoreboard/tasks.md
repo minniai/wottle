@@ -102,7 +102,7 @@
   - none for 7 moves at 3:12;
   - none with 10 played;
   - a case table (SC-007).
-- [ ] T021 [US2] Implement the phase styles in `app/styles/room.css`:
+- [X] T021 [US2] Implement the phase styles in `app/styles/room.css`:
   - `running`: `--paper`, `--muted` ticks, numeral 500;
   - `underMinute` and `lastSeconds`: `--tint`, `--ink` ticks, numeral 700;
   - `lastSeconds` label: `--ink` 600;
@@ -110,8 +110,8 @@
 
   Delete `@keyframes clock-flash` and every `[data-phase="flash"]` rule.
 - [X] T022 [US2] Implement the `behindPace` suffix in `lib/room/scoreboard.ts`, which replaces `move N of 10` with `move N · behind pace`.
-- [ ] T023 [US2] Add a no-blink fixture test to `tests/integration/ui/room-fixtures.spec.ts`: on `last-seconds`, take two screenshots 1s apart with the clock frozen by the fixture and assert pixel identity outside the numeral and track boxes (SC-002). Also assert that `room.css` holds no `clock-flash` or `animation` on `.scoreboard`, in `tests/unit/styles/room-css.test.ts`.
-- [ ] T024 [US2] Assert that time still steps under reduced motion: the numeral and ticks update each second with `prefers-reduced-motion`, in `tests/unit/components/room/Scoreboard.spec.tsx`.
+- [X] T023 [US2] Add a no-blink fixture test to `tests/integration/ui/room-fixtures.spec.ts`: on `last-seconds`, take two screenshots 1s apart with the clock frozen by the fixture and assert pixel identity outside the numeral and track boxes (SC-002). Also assert that `room.css` holds no `clock-flash` or `animation` on `.scoreboard`, in `tests/unit/styles/room-css.test.ts`.
+- [X] T024 [US2] Assert that time still steps under reduced motion: the numeral and ticks update each second with `prefers-reduced-motion`, in `tests/unit/components/room/Scoreboard.spec.tsx`.
 
 ---
 
@@ -120,16 +120,16 @@
 **Goal:** the ledger's rows are level with the scoreboard's rows and with the board's rows.
 **Independent test:** at 1440×900 and 1280×800, every ledger edge is within 1px of its left-column edge.
 
-- [ ] T025 [P] [US3] Write failing tests in `tests/unit/components/room/Ledger.grid.spec.tsx`: the match ledger renders no `LedgerClock`; its first three rows are `ledger-caption` (wordmark, context, `⋯`), `ledger-state-line` (territory or the state's line) and `ledger-header`; there are ten move rows.
-- [ ] T026 [US3] Remove `LedgerClock` and the clock fields (`clock`, `clockPhase`, `clockFraction`) from `components/room/Ledger.tsx` and `lib/room/ledgerRows.ts` (plus `tests/unit/components/room/Ledger.rail.spec.tsx` and `ledgerRows.spec.ts`). Move `⋯` (`RoomMenu`) into the caption row on desktop in the match states, and drop the desktop foot there.
-- [ ] T027 [US3] Grid the ledger in `app/styles/room.css` for `.room[data-layout="scoreboard"]`:
+- [X] T025 [P] [US3] Write failing tests in `tests/unit/components/room/Ledger.grid.spec.tsx`: the match ledger renders no `LedgerClock`; its first three rows are `ledger-caption` (wordmark, context, `⋯`), `ledger-state-line` (territory or the state's line) and `ledger-header`; there are ten move rows.
+- [X] T026 [US3] Remove `LedgerClock` and the clock fields (`clock`, `clockPhase`, `clockFraction`) from `components/room/Ledger.tsx` and `lib/room/ledgerRows.ts` (plus `tests/unit/components/room/Ledger.rail.spec.tsx` and `ledgerRows.spec.ts`). Move `⋯` (`RoomMenu`) into the caption row on desktop in the match states, and drop the desktop foot there.
+- [X] T027 [US3] Grid the ledger in `app/styles/room.css` for `.room[data-layout="scoreboard"]`:
   - caption, state line and header are each `--sb-row` (40px);
   - the header's 1.5px `--ink` rule is level with the box's bottom border;
   - a 12px gap;
   - each `.ledger__row` is `height: var(--cell-size)` with its rule on the cell boundary;
   - `.room__ledger` height = scoreboard + 12 + field.
-- [ ] T028 [US3] Add a grid-alignment fixture test to `tests/integration/ui/room-fixtures.spec.ts`: at 1440×900 and 1280×800, measure the `boundingBox` of the scoreboard rows against the ledger's first three rows, and the field row boundaries against the ledger move rows, and assert |Δ| ≤ 1px (SC-001). Also assert that at 1000×800 the room has no horizontal overflow.
-- [ ] T029 [US3] Place the live row on the viewer's next open move row (unchanged behaviour) and check that row-level folding (`useMeasuredLines`) still fits one cell in `components/room/Ledger.tsx`. Update `tests/unit/components/room/Ledger.rows.spec.tsx`.
+- [X] T028 [US3] Add a grid-alignment fixture test to `tests/integration/ui/room-fixtures.spec.ts`: at 1440×900 and 1280×800, measure the `boundingBox` of the scoreboard rows against the ledger's first three rows, and the field row boundaries against the ledger move rows, and assert |Δ| ≤ 1px (SC-001). Also assert that at 1000×800 the room has no horizontal overflow.
+- [X] T029 [US3] Place the live row on the viewer's next open move row (unchanged behaviour) and check that row-level folding (`useMeasuredLines`) still fits one cell in `components/room/Ledger.tsx`. Update `tests/unit/components/room/Ledger.rows.spec.tsx`.
 
 ---
 
@@ -314,4 +314,5 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - T001 baseline (2026-09-23): 175 unit files, 1721 tests passing (2 skipped); lint, typecheck and docs:check clean.
 - T002 folded into each task: `Copy` is derived from the English object and guarded by the parity test, so each key is added with the test that needs it.
 - US1: the opponent row names no seat word (`1265 · 6 of 10 · playing`), as the canvas draws it; the full sub-line does not fit 216px. The phone total takes `--opp-text` (20px is under the large-text size; axe). The clock row has two lines, the phase label (`match clock`, `under a minute`, …) over the pace or detail, as the canvas draws it. `gone for` shipped in Phase A with the scoreboard (analysis I2).
+- US2/US3: tests were written before the CSS they check (analysis D1). A `postcss.parse` check was added to `room-css.test.ts` after a stray brace broke the stylesheet while every grep still passed. The ledger reads the room's whole-pixel cell through `--cell-size` on `.room[data-layout="scoreboard"]`.
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.

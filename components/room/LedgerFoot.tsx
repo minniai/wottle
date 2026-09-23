@@ -13,10 +13,12 @@ interface LedgerFootProps {
   variant: RoomMenuVariant;
   actions?: ReactNode;
   onAction: (action: LedgerAction) => void;
+  /** The `⋯` menu, unless the ledger already draws it in its caption (spec 068). */
+  menu?: boolean;
 }
 
 /** The state's actions left (`how to play ▸` outside a match, spec 048 US5), the `⋯` menu right (design system §5.4). */
-export function LedgerFoot({ variant, actions, onAction }: LedgerFootProps) {
+export function LedgerFoot({ variant, actions, onAction, menu = true }: LedgerFootProps) {
   const { HOW_TO_PLAY, LANGUAGE_LINK } = useCopy();
   const to = useLocalePath();
   const locale = useLocale();
@@ -40,7 +42,7 @@ export function LedgerFoot({ variant, actions, onAction }: LedgerFootProps) {
         )}
         {actions}
       </div>
-      <RoomMenu variant={variant} onAction={onAction} />
+      {menu ? <RoomMenu variant={variant} onAction={onAction} /> : null}
     </div>
   );
 }

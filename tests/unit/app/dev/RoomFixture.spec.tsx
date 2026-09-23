@@ -79,7 +79,7 @@ describe("RoomFixture", () => {
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("move 4 of 10");
     expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · playing");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("3:12");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("3:12");
   });
 
   it("scoring locks the field; opp-reveal keeps your pick; low-clock is heavy", () => {
@@ -99,16 +99,17 @@ describe("RoomFixture", () => {
     opp.unmount();
 
     render(<RoomFixture phase="low-clock" />);
-    expect(screen.getByTestId("match-clock")).toHaveAttribute("data-phase", "low");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("0:48");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveAttribute("data-phase", "underMinute");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("0:48");
   });
 
-  it("last-seconds: the ledger clock flashes its inverted face and names the seconds left", () => {
+  it("last-seconds: the clock row names the seconds left, in weight only (spec 068: nothing flashes)", () => {
     render(<RoomFixture phase="last-seconds" />);
-    const clock = screen.getByTestId("match-clock");
-    expect(clock).toHaveAttribute("data-phase", "flash");
+    const clock = screen.getByTestId("scoreboard-clock");
+    expect(clock).toHaveAttribute("data-phase", "lastSeconds");
     expect(clock).toHaveTextContent("last 12s");
-    expect(clock).toHaveAttribute("aria-label", "match clock, 0:12 left");
+    expect(clock).toHaveAttribute("aria-label", "last 12s, ≈2s a move, 0:12 left");
+    expect(document.querySelector(".ledger__clock-invert")).toBeNull();
   });
 
   it("end-early: the slip offers to end the match once you have ten and the opponent is gone", () => {

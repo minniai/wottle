@@ -159,7 +159,7 @@ describe("MatchRoomController (spec 050)", () => {
     // 2026-09-21: the ledger names no move of the viewer's; the bottom bar's lane counts them.
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("");
     expect(screen.getByTestId("scoreboard-row-you").querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("aria-valuenow", "8");
-    expect(screen.getByTestId("match-clock")).toBeInTheDocument();
+    expect(screen.getByTestId("scoreboard-clock")).toBeInTheDocument();
     // Spec 068: no player bars in the match; one box above the field, your row nearest the board.
     expect(screen.queryByTestId("player-bar-top")).toBeNull();
     expect(screen.queryByTestId("player-bar-bottom")).toBeNull();
@@ -174,7 +174,7 @@ describe("MatchRoomController (spec 050)", () => {
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("starts in 2");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("5:00");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("5:00");
     fireEvent.click(cell(0, 0));
     expect(cell(0, 0)).not.toHaveAttribute("data-state", "picked");
   });
@@ -287,7 +287,7 @@ describe("MatchRoomController (spec 050)", () => {
     vi.setSystemTime(new Date("2026-01-01T00:06:00.000Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:00.000Z", deadlineAt: "2026-01-01T00:05:00.000Z", serverNow: "2026-01-01T00:06:00.000Z" } }));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("time · scoring");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("0:00");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("0:00");
     expect(settleMatch).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
   });
@@ -313,7 +313,8 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
     expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("final · 4:52");
-    expect(screen.queryByTestId("match-clock")).toBeNull();
+    // The scoreboard holds the time that was left (spec 068); no clock runs.
+    expect(screen.getByTestId("scoreboard-clock")).toHaveAttribute("data-phase", "over");
     expect(screen.getByTestId("scoreboard-row-opp")).not.toHaveTextContent("reconnecting");
     await waitFor(() => expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("1191 → 1203 · +12 · wins"));
     expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1204 → 1192 · −12");
@@ -391,13 +392,13 @@ describe("MatchRoomController (spec 050)", () => {
     const top = screen.getByTestId("scoreboard-row-opp");
     expect(top).toHaveTextContent("reconnecting · 1:20 left");
     expect(top.querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("data-mode", "outlined");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("4:50");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:50");
     expect(screen.queryByRole("dialog")).toBeNull();
     act(() => {
       vi.advanceTimersByTime(2_000);
     });
     expect(top).toHaveTextContent("reconnecting · 1:18 left");
-    expect(screen.getByTestId("match-clock")).toHaveTextContent("4:48");
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:48");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     vi.useRealTimers();
   });

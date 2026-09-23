@@ -165,40 +165,66 @@ test.describe("@visual the room is one composition", () => {
 });
 
 /**
- * Spec 047 US2 (FR-007, review S1, amendment P3). The ledger's top rule sits on
- * the top bar's top and its foot on the bottom bar's bottom; the ten rows share
- * the stack's height. Asserted on the reference viewports and on a tall,
- * narrow one where the width binds the field and the old `align-self: stretch`
- * dropped the foot ~330px below the bar.
+ * Spec 068 FR-011–FR-013, SC-001: one grid. The ledger's first three rows are
+ * level with the scoreboard's, and each move row with a row of the board, to
+ * within 1px, at the reference viewports; at 1000px wide nothing overflows.
  */
-test.describe("@visual the ledger is the height of the stack", () => {
-  test("ledger edges meet the scoreboard's top and the field's bottom; rows share one height, the live row at least that", async ({ page }, testInfo) => {
+test.describe("@visual one grid for the board and the ledger", () => {
+  test("ledger rows are level with the scoreboard's rows and the board's rows", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "visual-390x844", "one column below 900px");
-    const viewports = [testInfo.project.use.viewport!, { width: 1024, height: 1100 }];
-
-    for (const viewport of viewports) {
+    for (const viewport of [testInfo.project.use.viewport!, { width: 1280, height: 800 }]) {
       await page.setViewportSize(viewport);
-      await page.goto("/en/dev/room?phase=picking");
+      await page.goto("/en/dev/room?phase=idle");
       await expect(page.getByTestId("field")).toBeVisible();
-      // Rows keep at least their content height (spec 050), and a fallback face
-      // wraps the live row; measure with the room's own faces, as screenshots do.
       await page.evaluate(() => document.fonts.ready);
-
-      const boxes = await page.evaluate(() => {
-        const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
-        const rows = Array.from({ length: 10 }, (_, i) => rect(`ledger-row-${i + 1}`).height);
-        // Spec 068: the scoreboard is the stack's top, the field its bottom.
-        return { top: rect("scoreboard"), bottom: rect("field"), ledger: rect("ledger"), rows };
+      const edges = await page.evaluate(() => {
+        const rect = (el: Element) => el.getBoundingClientRect();
+        const byId = (id: string) => rect(document.querySelector(`[data-testid="${id}"]`)!);
+        const cells = Array.from(document.querySelectorAll('[data-testid="field-cell"]')).filter((_, i) => i % 10 === 0).map((c) => rect(c).bottom);
+        return {
+          // The header's ink rule is level with the box's bottom border, not the last row inside it.
+          scoreboard: [byId("scoreboard-clock").bottom, byId("scoreboard-row-opp").bottom, byId("scoreboard").bottom],
+          head: ["ledger-caption", "ledger-state-line", "ledger-header"].map((id) => byId(id).bottom),
+          boxTop: byId("scoreboard").top,
+          ledgerTop: byId("ledger").top,
+          cells,
+          rows: Array.from({ length: 10 }, (_, i) => byId(`ledger-row-${i + 1}`).bottom),
+        };
       });
-
-      expect(Math.abs(boxes.ledger.top - boxes.top.top), `top at ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(1);
-      expect(Math.abs(boxes.ledger.bottom - boxes.bottom.bottom), `bottom at ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(1);
-      // Rows share one height; the live row (move 4 in this fixture) may be taller when
-      // its instruction wraps, since a row never gets less than its content (spec 050).
-      const others = boxes.rows.filter((_, i) => i !== 3);
-      expect(Math.max(...others) - Math.min(...others)).toBeLessThanOrEqual(1);
-      expect(boxes.rows[3]).toBeGreaterThanOrEqual(Math.min(...others) - 1);
+      const at = `${viewport.width}×${viewport.height}`;
+      expect(Math.abs(edges.ledgerTop - edges.boxTop), `top at ${at}`).toBeLessThanOrEqual(1);
+      edges.head.forEach((y, i) => expect(Math.abs(y - edges.scoreboard[i]), `head row ${i + 1} at ${at}`).toBeLessThanOrEqual(1));
+      edges.rows.forEach((y, i) => expect(Math.abs(y - edges.cells[i]), `move row ${i + 1} at ${at}`).toBeLessThanOrEqual(1));
     }
+  });
+
+  test("at 1000px wide the room does not overflow sideways (the 901–1100px fix)", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "visual-1440x900", "one width check is enough");
+    for (const phase of ["idle", "lobby"]) {
+      await page.setViewportSize({ width: 1000, height: 900 });
+      await page.goto(`/en/dev/room?phase=${phase}`);
+      await expect(page.getByTestId("field")).toBeVisible();
+      const overflow = await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth);
+      expect(overflow, `${phase} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
+    }
+  });
+});
+
+/** Spec 068 FR-006, SC-002: urgency is weight only; nothing on the scoreboard or the ledger blinks. */
+test.describe("@visual nothing blinks", () => {
+  test("in the last seconds no scoreboard or ledger element animates, and a second later nothing has changed", async ({ page }) => {
+    await page.goto("/en/dev/room?phase=last-seconds");
+    await expect(page.getByTestId("scoreboard-clock")).toHaveAttribute("data-phase", "lastSeconds");
+    await page.evaluate(() => document.fonts.ready);
+    const animated = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('[data-testid="scoreboard"] *, [data-testid="scoreboard"], [data-testid="ledger"] *'))
+        .filter((el) => getComputedStyle(el).animationName !== "none")
+        .map((el) => el.getAttribute("data-testid") ?? el.className),
+    );
+    expect(animated).toEqual([]);
+    const before = await page.getByTestId("scoreboard").screenshot();
+    await page.waitForTimeout(1_000);
+    expect(await page.getByTestId("scoreboard").screenshot()).toEqual(before);
   });
 });
 

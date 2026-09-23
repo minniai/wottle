@@ -7,11 +7,10 @@ import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeKey, noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
-import type { ClockPhase } from "@/lib/room/clock";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
-import type { RoomMenuVariant } from "./RoomMenu";
+import { RoomMenu, type RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
 
@@ -90,49 +89,6 @@ function LiveText({ live }: { live?: LiveLines }) {
       <span className="ledger__live-line1">{live.line1}</span>
       {live.line2 ? <span className="ledger__live-line2">{live.line2}</span> : null}
     </>
-  );
-}
-
-/** Whole seconds left in a `m:ss` string. */
-const secondsIn = (time: string): number => {
-  const [m, sec] = time.split(":").map(Number);
-  return (m || 0) * 60 + (sec || 0);
-};
-
-function ClockFace({ time, label, fraction }: { time: string; label: string; fraction: number }) {
-  return (
-    <>
-      <div className="ledger__clock-head">
-        <span className="ledger__clock-label">{label}</span>
-        <span className="ledger__clock-time">{time}</span>
-      </div>
-      <span className="ledger__clock-bar">
-        <span className="ledger__clock-fill" style={{ "--clock-fraction": fraction } as CSSProperties} />
-      </span>
-    </>
-  );
-}
-
-/**
- * The one place the match clock is drawn (spec 050 FR-015; the ledger clock,
- * 2026-09-21): a boxed block under the caption, a 32px numeral over a bar that
- * drains. Under 1:00 it takes the tint; in the last 15 seconds an inverted
- * face flashes over it once a second (held under reduced motion); at 0:00 it
- * holds inverted. The live row announces the beats, so the timer is silent to AT.
- */
-function LedgerClock({ time, phase, fraction }: { time: string; phase: ClockPhase; fraction: number }) {
-  const { lastSeconds, MATCH_CLOCK, TIME_SPENT, clockAria } = useCopy();
-  const inverted = phase === "flash" || phase === "spent";
-  const invertedLabel = phase === "spent" ? TIME_SPENT : lastSeconds(secondsIn(time));
-  return (
-    <div className="ledger__clock" data-testid="match-clock" data-phase={phase} role="timer" aria-label={clockAria(MATCH_CLOCK, time)} aria-live="off">
-      <ClockFace time={time} label={MATCH_CLOCK} fraction={fraction} />
-      {inverted ? (
-        <div className="ledger__clock-invert" aria-hidden="true">
-          <ClockFace time={time} label={invertedLabel} fraction={fraction} />
-        </div>
-      ) : null}
-    </div>
   );
 }
 
@@ -229,8 +185,7 @@ export function Ledger(props: LedgerProps) {
   };
   const total = Math.max(1, territory.you + territory.opp + territory.free);
 
-  const table = (
-    <>
+  const header = (
       <div className="ledger__header" data-testid="ledger-header">
         <span className="ledger__header-you">
           {viewerName}
@@ -243,6 +198,10 @@ export function Ledger(props: LedgerProps) {
           {opponentName ?? "—"}
         </span>
       </div>
+  );
+
+  const rowsAndTotals = (
+    <>
       <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
         {rows.map((row) => (
           <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} />
@@ -255,6 +214,13 @@ export function Ledger(props: LedgerProps) {
           <span className="ledger__totals-opp">{points(model.totals.opp)}</span>
         </div>
       ) : null}
+    </>
+  );
+
+  const table = (
+    <>
+      {header}
+      {rowsAndTotals}
     </>
   );
 
@@ -279,31 +245,47 @@ export function Ledger(props: LedgerProps) {
 
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
 
-  return (
-    <section className="ledger" data-testid="ledger" data-variant={variant} aria-label={LEDGER}>
-      <div className="ledger__caption" data-testid="ledger-caption">
-        <span className="ledger__wordmark">{WORDMARK}</span>
-        <span className="ledger__caption-right">
-          <span className="ledger__mono" data-testid="ledger-context">
-            {model.caption}
-          </span>
+  // Desktop match and final (spec 068): the ledger sits on the scoreboard's grid.
+  // Its first three rows mirror the scoreboard's, and each move row is one cell tall.
+  const grid = showsTable && !collapsed;
+
+  const verdictBlock = model.verdict ? (
+    <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
+      <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
+      <div className="ledger__mono">{model.verdict.detailLine}</div>
+    </div>
+  ) : null;
+
+  const caption = (
+    <div className="ledger__caption" data-testid="ledger-caption">
+      <span className="ledger__wordmark">{WORDMARK}</span>
+      <span className="ledger__caption-right">
+        <span className="ledger__mono" data-testid="ledger-context">
+          {model.caption}
         </span>
-      </div>
-      {model.clock !== undefined ? <LedgerClock time={model.clock} phase={model.clockPhase ?? "calm"} fraction={model.clockFraction ?? 1} /> : null}
+        {grid ? <RoomMenu variant={menuVariant(variant)} onAction={onAction} /> : null}
+      </span>
+    </div>
+  );
 
-      {model.verdict ? (
-        <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
-          <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
-          <div className="ledger__mono">{model.verdict.detailLine}</div>
+  return (
+    <section className="ledger" data-testid="ledger" data-variant={variant} data-grid={grid || undefined} aria-label={LEDGER}>
+      {grid ? (
+        <div className="ledger__head" data-testid="ledger-head">
+          {caption}
+          <div className="ledger__state-line" data-testid="ledger-state-line">
+            {verdictBlock ?? territoryBlock}
+          </div>
+          {header}
         </div>
-      ) : null}
-
-      {showsTable && !collapsed ? (
+      ) : (
         <>
-          {table}
-          {territoryBlock}
+          {caption}
+          {verdictBlock}
         </>
-      ) : null}
+      )}
+
+      {grid ? rowsAndTotals : null}
 
       {collapsed || showsTable ? null : body}
 
@@ -345,7 +327,8 @@ export function Ledger(props: LedgerProps) {
 
           {noticeLines}
 
-          <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} />
+          {/* On the grid the ⋯ lives in the caption; the final state keeps its actions in the foot. */}
+          {grid && variant === "match" ? null : <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} menu={!grid} />}
         </>
       )}
     </section>

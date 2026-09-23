@@ -105,13 +105,11 @@ export function MatchRoomView(props: MatchRoomViewProps) {
       hint,
       moveState,
       holdMove,
-      clockMs: completed ? undefined : clockMs,
-      clockLengthMs,
       penalizeUnplayed,
     }, copy);
     const totals = completed ? { you: you.score, opp: opp.score } : undefined;
     return { ...base, caption: caption ?? base.caption, verdict, totals };
-  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed, copy]);
+  }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, penalizeUnplayed, copy]);
   const scoreboard = useMemo(
     () =>
       deriveScoreboard(

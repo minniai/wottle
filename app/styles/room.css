@@ -61,9 +61,14 @@
   height: calc(var(--field-size) + 2 * var(--bar-height) + 2 * var(--bar-gap));
 }
 
-/* Under a scoreboard the ledger spans the box, its gap and the field (spec 068). */
+/* Under a scoreboard the ledger sets its own height: its head mirrors the box
+   and each move row is one cell, so it ends level with the field (spec 068).
+   The cell is the room's, so the ledger reads the same integer as the field. */
+.room[data-layout="scoreboard"] {
+  --cell-size: var(--room-cell);
+}
 .room[data-layout="scoreboard"] .room__ledger {
-  height: calc(3 * var(--sb-row) + 3px + var(--bar-gap) + var(--field-size));
+  height: auto;
 }
 
 @media (max-width: 1100px) {
@@ -664,84 +669,52 @@
   min-width: 0;
   text-align: right;
 }
-/* The ledger clock (2026-09-21): the one clock, a boxed block under the caption. */
-.ledger__clock {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px 10px 10px;
-  margin-bottom: 8px;
-  border: 1.5px solid var(--ink);
-  background: var(--paper);
-  color: var(--ink);
-}
-.ledger__clock[data-phase="low"] {
-  background: var(--tint);
-}
-.ledger__clock-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-.ledger__clock-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.ledger__clock-time {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 32px;
-  font-weight: 500;
-  line-height: 1;
-}
-.ledger__clock[data-phase="low"] .ledger__clock-time,
-.ledger__clock-invert .ledger__clock-time {
-  font-weight: 700;
-}
-.ledger__clock-bar {
-  position: relative;
-  display: block;
-  height: 10px;
-  background: var(--rule);
+/* The ledger on the scoreboard's grid (spec 068 FR-012): the head's three rows
+   mirror the scoreboard's, the header's ink rule level with the box's bottom
+   border; after the stack's gap and the field's frame each move row is exactly
+   one cell tall, its rule on a cell boundary. */
+.ledger[data-grid] .ledger__caption,
+.ledger[data-grid] .ledger__state-line {
+  height: var(--sb-row);
+  box-sizing: border-box;
+  padding: 0;
+  border-bottom: 1px solid var(--rule);
   overflow: hidden;
 }
-.ledger__clock[data-phase="low"] .ledger__clock-bar {
-  height: 12px;
+.ledger[data-grid] .ledger__caption {
+  align-items: center;
 }
-.ledger__clock-fill {
-  position: absolute;
-  inset: 0;
-  background: var(--ink);
-  transform: scaleX(var(--clock-fraction, 1));
-  transform-origin: left center;
-}
-/* The last 15 seconds and 0:00: an inverted face over the block. It flashes
-   (opacity, in steps) while seconds remain and holds at 0:00. */
-.ledger__clock-invert {
-  position: absolute;
-  inset: -1.5px;
+.ledger[data-grid] .ledger__state-line {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 9.5px 11.5px 11.5px;
-  background: var(--ink);
-  color: var(--paper);
+  justify-content: center;
+  gap: 5px;
 }
-.ledger__clock-invert .ledger__clock-label {
-  font-weight: 600;
+.ledger[data-grid] .ledger__state-line .ledger__territory {
+  margin-top: 0;
 }
-.ledger__clock-invert .ledger__clock-bar {
-  height: 12px;
-  background: var(--muted);
+.ledger[data-grid] .ledger__state-line .ledger__verdict {
+  padding: 0;
+  border-bottom: 0;
 }
-.ledger__clock-invert .ledger__clock-fill {
-  background: var(--paper);
+.ledger[data-grid] .ledger__state-line .ledger__verdict-line {
+  font-size: 16px;
+  line-height: 1.1;
 }
-.ledger__clock[data-phase="flash"] .ledger__clock-invert {
-  animation: clock-flash 1s infinite;
+.ledger[data-grid] .ledger__header {
+  height: calc(var(--sb-row) + 1.5px);
+  box-sizing: border-box;
+  padding: 0;
+  border-bottom: 1.5px solid var(--ink);
+}
+.ledger[data-grid] .ledger__rows {
+  flex: none;
+  grid-auto-rows: var(--cell-size);
+  margin-top: calc(var(--bar-gap) + 1.5px);
+}
+.ledger[data-grid] .ledger__row {
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .ledger__wordmark {
   flex: none;
@@ -1282,10 +1255,6 @@
   from { opacity: 0.4; }
   to { opacity: 1; }
 }
-@keyframes clock-flash {
-  0%, 49.9% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
 @keyframes lane-blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0.35; }
@@ -1315,10 +1284,6 @@
     animation-duration: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0ms !important;
-  }
-  /* Held inverted, not blinking: same specificity as the rule that starts it. */
-  .ledger__clock[data-phase="flash"] .ledger__clock-invert {
-    animation: none;
   }
 }
 

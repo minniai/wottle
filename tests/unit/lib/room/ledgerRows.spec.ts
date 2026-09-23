@@ -86,16 +86,11 @@ describe("buildLedgerRows (design system §5.4, spec 050)", () => {
 });
 
 describe("buildMatchLedger", () => {
-  it("the caption names no move of the viewer's; the ledger clock carries the time, its phase and how much is left", () => {
-    const model = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 192_000 }, copyEn);
+  it("the caption names no move of the viewer's and the ledger holds no clock: the scoreboard does (spec 068)", () => {
+    const model = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {} }, copyEn);
     expect(model.caption).toBe("");
-    expect(model.clock).toBe("3:12");
-    expect(model.clockPhase).toBe("calm");
-    expect(model.clockFraction).toBeCloseTo(0.64);
-    expect(buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 48_000 }, copyEn).clockPhase).toBe("low");
-    const short = buildMatchLedger({ movesPlayed: { you: 3, opp: 6 }, completed: false, words, playerAId: A, viewerSlot: "player_a", live: { kind: "idle" }, frozenTiles: {}, clockMs: 12_000, clockLengthMs: 20_000 }, copyEn);
-    expect(short.clockPhase).toBe("flash");
-    expect(short.clockFraction).toBeCloseTo(0.6);
+    expect(model).not.toHaveProperty("clock");
+    expect(model).not.toHaveProperty("clockPhase");
   });
 });
 

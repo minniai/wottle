@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { MATCH_CLOCK_BUDGET_MS, behindPace, clockBlocks, clockPhase, clockRowPhase, formatClock, isLowClock, laneFraction, pace, serverCorrectedNow, ticksLeft } from "@/lib/room/clock";
+import { MATCH_CLOCK_BUDGET_MS, behindPace, clockBlocks, clockRowPhase, formatClock, isLowClock, pace, serverCorrectedNow, ticksLeft } from "@/lib/room/clock";
 
 describe("room clock helpers", () => {
   test("budget is 5:00 per player (decision Q1)", () => {
@@ -20,26 +20,7 @@ describe("room clock helpers", () => {
     expect(formatClock(-5)).toBe("0:00");
   });
 
-  test("laneFraction is remaining over budget, clamped to 0..1", () => {
-    expect(laneFraction(150_000)).toBe(0.5);
-    expect(laneFraction(600_000)).toBe(1);
-    expect(laneFraction(-1)).toBe(0);
-  });
 });
-
-describe("clockPhase (the ledger clock, 2026-09-21)", () => {
-  test("calm from 1:00 up, low under a minute, flash in the last 15 seconds, spent at 0:00", () => {
-    expect(clockPhase(192_000)).toBe("calm");
-    expect(clockPhase(60_000)).toBe("calm");
-    expect(clockPhase(59_999)).toBe("low");
-    expect(clockPhase(15_001)).toBe("low");
-    expect(clockPhase(15_000)).toBe("flash");
-    expect(clockPhase(1)).toBe("flash");
-    expect(clockPhase(0)).toBe("spent");
-  });
-});
-
-
 
 describe("the scoreboard's clock row (spec 068)", () => {
   test("one tick empties every 5s: 3:12 is 39 ticks", () => {
