@@ -86,19 +86,32 @@ function SeatWords({ cell, seat, showPoints, folded }: { cell: SeatCell | null; 
 /** Line 2 in parts: words, a crimson number of points lost, or a secondary action (spec 068). */
 function Line2({ live, onAction }: { live: LiveLines; onAction?: (action: LedgerAction) => void }) {
   if (!live.line2Parts) return <>{live.line2}</>;
+  // Inside a control (the phone's live row) an action is left out: its button is drawn beside the row.
+  if (!onAction) {
+    const words = live.line2Parts.map((part) => ("text" in part ? part.text : "")).join("").replace(/ · $/, "");
+    const loss = live.line2Parts.find((part) => "pointsLost" in part);
+    if (!loss) return <>{words}</>;
+  }
   return (
     <>
       {live.line2Parts.map((part, i) => {
         if ("text" in part) return <span key={i}>{part.text}</span>;
         if ("pointsLost" in part) return <PointsLost key={i} value={part.pointsLost.value} label={part.pointsLost.label} />;
+        if (!onAction) return null;
         return (
-          <button key={i} type="button" className="action-secondary" onClick={() => onAction?.(part.action.action)}>
+          <button key={i} type="button" className="action-secondary" onClick={() => onAction(part.action.action)}>
             {part.action.label}
           </button>
         );
       })}
     </>
   );
+}
+
+/** The action a live row's second line offers, if any (the end-early offer, spec 068 FR-036). */
+function offerOf(live?: LiveLines): { label: string; action: LedgerAction } | null {
+  const part = live?.line2Parts?.find((p) => "action" in p);
+  return part && "action" in part ? part.action : null;
 }
 
 /** The live row's state line and, only while there is one, the instruction beneath it (amendment P1). */
@@ -351,10 +364,15 @@ export function Ledger(props: LedgerProps) {
             onClick={() => (sheetOpen ? closeSheet() : setSheetOpen(true))}
           >
             <span className="ledger__live-text" aria-live="polite">
-              <LiveText live={collapsedLive} onAction={onAction} />
+              <LiveText live={collapsedLive} />
             </span>
             <span className="ledger__live-more">{HISTORY}</span>
           </button>
+          {offerOf(collapsedLive) ? (
+            <button type="button" className="action-secondary ledger__live-offer" data-testid="ledger-live-offer" onClick={() => onAction(offerOf(collapsedLive)!.action)}>
+              {offerOf(collapsedLive)!.label}
+            </button>
+          ) : null}
           <div className="ledger__territory-block">{territoryBlock}</div>
           <LedgerSheet open={sheetOpen} onClose={closeSheet}>
             {showsTable ? table : body}

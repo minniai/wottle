@@ -20,15 +20,15 @@ export function PointsLost({ value, label, labelFirst = false }: PointsLostProps
   const { points } = useCopy();
   const number = <span className={value < 0 ? "ledger__total points-lost" : "ledger__total points-none"}>{points(value)}</span>;
   const words = label ? <span className="ledger__miss">{label}</span> : null;
+  if (!words) return number;
+  // A space between them for inline use (`−15 if unplayed`); a flex cell ignores it and uses its gap.
   return labelFirst ? (
     <>
-      {words}
-      {number}
+      {words} {number}
     </>
   ) : (
     <>
-      {number}
-      {words}
+      {number} {words}
     </>
   );
 }

@@ -58,7 +58,7 @@ describe("the live row's second line in parts (spec 068 FR-028, FR-029, FR-036)"
   it("draws a crimson number and a muted label for the stakes", () => {
     render(<Ledger variant="match" model={withLine2("3 moves left · −15 if unplayed", [{ text: "3 moves left · " }, { pointsLost: { value: -15, label: "if unplayed" } }])} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
     const live = screen.getByTestId("ledger-live-row");
-    expect(live).toHaveTextContent("3 moves left · −15if unplayed");
+    expect(live).toHaveTextContent("3 moves left · −15 if unplayed");
     expect(live.querySelector(".points-lost")).toHaveTextContent("−15");
   });
 
@@ -89,5 +89,22 @@ describe("notices on the grid (spec 068 FR-012, FR-013)", () => {
     expect(screen.getByTestId("verdict")).toHaveTextContent("Birna wins 134–88");
     expect(screen.getByTestId("verdict")).toHaveTextContent("Kári declined");
     expect(screen.getByTestId("verdict")).not.toHaveTextContent("by 46 points");
+  });
+});
+
+describe("the end-early offer on a phone (spec 068 FR-036)", () => {
+  it("is a real button beside the live row's trigger, never nested inside it", () => {
+    const onAction = vi.fn();
+    const offer: LedgerModel = {
+      ...model,
+      rows: model.rows.map((r) => (r.move === 4 ? { ...r, live: { line1: "10 of 10 played", line2: "Kári is gone · end the match ▸", line2Parts: [{ text: "Kári is gone · " }, { action: { label: "end the match ▸", action: "endEarly" } }] } } : r)),
+    };
+    render(<Ledger variant="match" collapsed model={offer} viewerName="Birna" opponentName="Kári" onAction={onAction} />);
+    const trigger = screen.getByTestId("ledger-live-trigger");
+    expect(trigger.querySelector("button")).toBeNull();
+    expect(trigger).toHaveTextContent("Kári is gone");
+    expect(trigger).not.toHaveTextContent("end the match");
+    fireEvent.click(screen.getByTestId("ledger-live-offer"));
+    expect(onAction).toHaveBeenCalledWith("endEarly");
   });
 });

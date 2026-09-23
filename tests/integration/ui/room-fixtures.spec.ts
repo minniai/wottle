@@ -29,6 +29,9 @@ test.describe("@visual the room, from fixtures", () => {
   for (const phase of ROOM_PHASES) {
     test(`${phase} matches its baseline`, async ({ page }, testInfo) => {
       test.skip(phase === "phone-sheet" && testInfo.project.name !== "visual-390x844", "the open sheet exists only on a phone");
+      // A console error (a nested control, a hydration warning) puts the dev overlay into the screenshot.
+      const errors: string[] = [];
+      page.on("console", (message) => message.type() === "error" && errors.push(message.text().slice(0, 200)));
       await page.goto(`/en/dev/room?phase=${phase}`);
 
       // Application state, not font state: Playwright already awaits
@@ -43,6 +46,7 @@ test.describe("@visual the room, from fixtures", () => {
       }
 
       await expect(page).toHaveScreenshot(`${phase}.png`, { fullPage: phase === "rules" });
+      expect(errors, `${phase} logs no errors`).toEqual([]);
     });
   }
 

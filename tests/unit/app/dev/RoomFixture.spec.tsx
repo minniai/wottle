@@ -168,7 +168,7 @@ describe("RoomFixture: the whole move (spec 068 Phase B)", () => {
   it("stakes: under a minute your move prices the moves left", () => {
     render(<RoomFixture phase="stakes" />);
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 8 · your move");
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("3 moves left · −15if unplayed");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("3 moves left · −15 if unplayed");
   });
 
   it("pick-cleared: the notice is the live row's second line", () => {

@@ -267,8 +267,8 @@ describe("Ledger (design system §5.4)", () => {
     it("a miss says no word, a move lost to the clock says not played, each beside its −5", () => {
       render(<Ledger variant="final" model={played} viewerName="Birna" opponentName="Kári" onAction={() => {}} />);
       const row = screen.getByTestId("ledger-row-1");
-      expect(row.querySelector('[data-seat="you"]')).toHaveTextContent("no word−5");
-      expect(row.querySelector('[data-seat="opp"]')).toHaveTextContent("−5not played");
+      expect(row.querySelector('[data-seat="you"]')).toHaveTextContent("no word −5");
+      expect(row.querySelector('[data-seat="opp"]')).toHaveTextContent("−5 not played");
       expect(row.querySelector('[data-seat="you"] .ledger__miss')).toBeInTheDocument();
       // Spec 068 FR-021: only the number is crimson, in either column; the words stay muted.
       expect(row.querySelector('[data-seat="you"] .points-lost')).toHaveTextContent("−5");

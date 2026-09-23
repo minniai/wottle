@@ -11,12 +11,12 @@ describe("PointsLost", () => {
     expect(number).toHaveTextContent("−5");
     expect(container.querySelector(".ledger__miss")).toHaveTextContent("no word");
     // Label first, then the number: `no word −5` (your column reads inward to the spine).
-    expect(container.textContent).toBe("no word−5");
+    expect(container.textContent).toBe("no word −5");
   });
 
   it("can put the number first: `−5 not played`, `−15 if unplayed`", () => {
     const { container } = render(<PointsLost value={-15} label="if unplayed" />);
-    expect(container.textContent).toBe("−15if unplayed");
+    expect(container.textContent).toBe("−15 if unplayed");
     expect(container.querySelector(".points-lost")).toHaveTextContent("−15");
   });
 

@@ -637,7 +637,7 @@ describe("the live row's second line in a match (spec 068 FR-029, FR-030)", () =
     vi.setSystemTime(new Date("2026-01-01T00:04:12Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:04:12Z" } }, { movesPlayed: 7, score: 69 }));
     const live = screen.getByTestId("ledger-live-row");
-    expect(live).toHaveTextContent("3 moves left · −15if unplayed");
+    expect(live).toHaveTextContent("3 moves left · −15 if unplayed");
     expect(live.querySelector(".points-lost")).toHaveTextContent("−15");
     vi.useRealTimers();
   });
