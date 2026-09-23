@@ -85,4 +85,36 @@ test.describe("@identity this browser keeps your name", () => {
       await contextB.close();
     }
   });
+
+  test("the returning door: one press back in, or another name, and the browser keeps both", async ({ page }) => {
+    const first = generateTestUsername("id-back-a");
+    const second = generateTestUsername("id-back-b");
+    const signOut = async () => {
+      await page.getByTestId("ledger-menu-trigger").click();
+      await page.getByTestId("ledger-menu-item-signout").click();
+      await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn", { timeout: 15_000 });
+    };
+
+    await loginViaSlip(page, first);
+    await signOut();
+    await expect(page.getByTestId("slip")).toContainText("welcome back");
+    await expect(page.getByTestId("slip-returning-name")).toContainText(first, { ignoreCase: true });
+    await page.getByTestId("slip-enter-returning").click();
+    await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.getByTestId("player-bar-bottom")).toContainText(first, { ignoreCase: true });
+
+    await signOut();
+    await page.getByTestId("slip-use-another-name").click();
+    await page.getByTestId("player-bar-name-input").fill(second);
+    await page.getByTestId("player-bar-action-play").click();
+    await expect(page.getByTestId("player-bar-bottom")).toContainText(second, { timeout: 15_000, ignoreCase: true });
+
+    await signOut();
+    await expect(page.getByTestId("slip-returning-name")).toContainText(second, { ignoreCase: true });
+    // The same key still claims the first name.
+    await page.getByTestId("slip-use-another-name").click();
+    await page.getByTestId("player-bar-name-input").fill(first);
+    await page.getByTestId("player-bar-action-play").click();
+    await expect(page.getByTestId("player-bar-bottom")).toContainText(first, { timeout: 15_000, ignoreCase: true });
+  });
 });

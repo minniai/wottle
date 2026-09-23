@@ -17,7 +17,10 @@ test.describe("@lobby-logout sign out from the ⋯ menu", () => {
 
     await page.getByTestId("ledger-menu-trigger").click();
     await page.getByTestId("ledger-menu-item-signout").click();
-    await expect(page.getByTestId("player-bar-name-input")).toBeVisible({ timeout: 15_000 });
+    // Spec 067: the door greets this browser's player; another name is one press away.
+    await expect(page.getByTestId("slip-returning-name")).toContainText(userA, { timeout: 15_000, ignoreCase: true });
+    await page.getByTestId("slip-use-another-name").click();
+    await expect(page.getByTestId("player-bar-name-input")).toBeVisible();
 
     await page.getByTestId("player-bar-name-input").fill(userB);
     await page.getByTestId("player-bar-action-play").click();
