@@ -8,12 +8,16 @@ import { subscribeToMatchChannel } from "@/lib/realtime/matchChannel";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 import type { MatchState, RematchEvent } from "@/lib/types/match";
+import { attentionQuery, type Attention } from "@/lib/matchmaking/attention";
+
+import { useAttention } from "./useAttention";
 
 export const SAFETY_POLL_INTERVAL_MS = 2_000;
 
-async function fetchMatchSnapshot(matchId: string): Promise<MatchState | null> {
+async function fetchMatchSnapshot(matchId: string, attention: Attention): Promise<MatchState | null> {
   try {
-    const res = await fetch(`/api/match/${matchId}/state`, { cache: "no-store" });
+    // The poll reports the tab's attention, so a player on the result screen can be seated at a rematch (spec 069 R5).
+    const res = await fetch(`/api/match/${matchId}/state?${attentionQuery(attention)}`, { cache: "no-store" });
     return res.ok ? ((await res.json()) as MatchState) : null;
   } catch {
     return null;
@@ -28,6 +32,8 @@ export interface TransportState {
   offline: boolean;
   /** Set on recovery: how long the viewer was away. */
   awayMs: number | null;
+  /** Read the match now, outside the poll (spec 069: after a seat, and when the table's time runs out). */
+  refresh: () => void;
 }
 
 /** Two failed safety polls in a row (about 4s) are an outage; one is a hiccup. */
@@ -96,6 +102,7 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [pollError, setPollError] = useState<string | null>(null);
   const outage = useOutage(matchId, currentPlayerId);
+  const attention = useAttention();
   const onPoll = outage.onPoll;
 
   const fallBack = useCallback(() => {
@@ -134,7 +141,8 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
   }, [matchId, currentPlayerId, usePolling, applySnapshot, applyResolution, fallBack]);
 
   useEffect(() => {
-    const notify = () => navigator.sendBeacon?.(`/api/match/${matchId}/disconnect`);
+    // At the table there is no match to be disconnected from: closing the tab simply leaves the seat empty (spec 069).
+    const notify = () => useRoomStore.getState().match?.state !== "pending" && navigator.sendBeacon?.(`/api/match/${matchId}/disconnect`);
     window.addEventListener("pagehide", notify);
     return () => window.removeEventListener("pagehide", notify);
   }, [matchId]);
@@ -143,7 +151,7 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
     if (!usePolling) return;
     let mounted = true;
     const poll = async () => {
-      const snapshot = await fetchMatchSnapshot(matchId);
+      const snapshot = await fetchMatchSnapshot(matchId, attention());
       if (!mounted) return;
       if (snapshot) {
         applySnapshot(snapshot);
@@ -156,14 +164,14 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
       mounted = false;
       clearInterval(timer);
     };
-  }, [matchId, usePolling, pollIntervalMs, applySnapshot]);
+  }, [matchId, usePolling, pollIntervalMs, applySnapshot, attention]);
 
   const latest = useRef<MatchState | null>(null);
   useEffect(() => useRoomStore.subscribe((s) => (latest.current = s.match)), []);
   useEffect(() => {
     let mounted = true;
     const safetyPoll = async () => {
-      const snapshot = await fetchMatchSnapshot(matchId);
+      const snapshot = await fetchMatchSnapshot(matchId, attention());
       if (!mounted) return;
       onPoll(snapshot !== null);
       if (snapshot && latest.current && shouldApplySafetySnapshot(latest.current, snapshot)) applySnapshot(snapshot);
@@ -173,7 +181,10 @@ export function useMatchTransport(matchId: string, currentPlayerId: string, poll
       mounted = false;
       clearInterval(timer);
     };
-  }, [matchId, applySnapshot, onPoll]);
+  }, [matchId, applySnapshot, onPoll, attention]);
 
-  return { usePolling, isReconnecting, pollError, offline: outage.offline, awayMs: outage.awayMs };
+  const refresh = useCallback(() => {
+    void fetchMatchSnapshot(matchId, attention()).then((snapshot) => snapshot && applySnapshot(snapshot));
+  }, [matchId, attention, applySnapshot]);
+  return { usePolling, isReconnecting, pollError, offline: outage.offline, awayMs: outage.awayMs, refresh };
 }

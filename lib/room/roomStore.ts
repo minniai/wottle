@@ -2,18 +2,21 @@
 
 import { create } from "zustand";
 
+import { boardOrBlank } from "@/lib/constants/board";
+
 import { outranks, type SlipKind, type SlipState } from "./slip";
 import { latestResolved } from "./lastMoves";
 import type { ReturningPlayer } from "@/lib/types/lobby";
-import type { MatchState, MoveResolution, PlayerIdentity, PlayerSlot } from "@/lib/types/match";
+import type { MatchState, MoveResolution, PlayerIdentity, PlayerSlot, Stakes } from "@/lib/types/match";
 
 /**
- * Client model of the one room (spec 044 data-model §3.1). Lobby, queue, found,
+ * Client model of the one room (spec 044 data-model §3.1). Lobby, queue,
  * match and final are phases of the same store; the field never unmounts, so
  * `board` is only ever *replaced* by real data, never cleared by a phase change.
  * Server-authoritative state lives in `match`; everything else is presentation.
  */
-export type RoomPhase = "lobby" | "queue" | "found" | "match" | "final";
+/** The table took the queue's `found` moment (spec 069): a pairing is the match's own page. */
+export type RoomPhase = "lobby" | "queue" | "match" | "final";
 export type ConnectionMode = "realtime" | "polling";
 
 export interface QueueState {
@@ -31,7 +34,6 @@ export interface RoomState {
   queue: QueueState | null;
   /** Bumped to start a fresh search for an opponent; the queue controller remounts on it. */
   searchId: number;
-  found: { countdown: 3 | 2 | 1 } | null;
   connection: ConnectionMode;
   /** The one overlay (spec 048 §5.9); precedence enforced by `setSlip`. */
   slip: SlipState | null;
@@ -54,8 +56,6 @@ export interface RoomState {
   cancelQueue: () => void;
   /** Placeholder letters landed so far (queue state). */
   setLettersLanded: (count: number) => void;
-  /** Opponent found: the top bar writes them in and counts the start down. */
-  setFound: (opponent: PlayerIdentity | null, countdown: 3 | 2 | 1) => void;
   /** Load a server snapshot; derives viewerSlot and picks match|final from `state`. */
   hydrateMatch: (state: MatchState, viewerId: string | null) => void;
   /** Merge a broadcast/polled snapshot; never regresses the resolution cursor or the scores. */
@@ -64,6 +64,8 @@ export interface RoomState {
   applyResolution: (resolution: MoveResolution) => void;
   /** Each player's latest resolved move by player id: the last-moved tick (spec 068 FR-027). */
   lastResolved: Record<string, MoveResolution>;
+  /** The table's stakes (spec 069), kept after go when snapshots stop carrying them: the resign slip names the loss. */
+  stakes: Record<string, Stakes> | null;
   /** The latest resolution that arrived live (`move-resolved`), never one read from a snapshot: announced once (spec 068 FR-033). */
   liveResolution: MoveResolution | null;
   leaveToLobby: () => void;
@@ -80,7 +82,9 @@ export interface RoomState {
 
 const EMPTY_BOARD: string[][] = [];
 
+/** A void table never became a match, so it has no final state (spec 069): the room stays at the table. */
 function phaseForMatch(state: MatchState): RoomPhase {
+  if (state.endedReason === "void") return "match";
   return state.state === "completed" || state.state === "abandoned" ? "final" : "match";
 }
 
@@ -155,13 +159,13 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   board: EMPTY_BOARD,
   queue: null,
   searchId: 0,
-  found: null,
   connection: "realtime",
   slip: null,
   returning: null,
   slipDismissed: false,
   holdMove: null,
   lastResolved: {},
+  stakes: null,
   liveResolution: null,
 
   // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
@@ -178,28 +182,27 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   requestNewSearch: () => set((s) => ({ searchId: s.searchId + 1 })),
 
-  cancelQueue: () => set({ phase: "lobby", queue: null, found: null }),
+  cancelQueue: () => set({ phase: "lobby", queue: null }),
 
   setLettersLanded: (count) => set((s) => (s.queue ? { queue: { ...s.queue, lettersLanded: count } } : {})),
 
-  setFound: (opponent, countdown) => set({ phase: "found", opponent, found: { countdown }, queue: null }),
 
   hydrateMatch: (state, viewerId) =>
     set((s) => ({
       match: state,
-      board: state.board,
+      board: boardOrBlank(state.board),
       viewerSlot: deriveViewerSlot(state, viewerId),
       phase: phaseForMatch(state),
       queue: null,
-      found: null,
       lastResolved: withLastResolved(s.match?.matchId === state.matchId ? s.lastResolved : {}, lastOf(state)),
+      stakes: state.stakes ?? (s.match?.matchId === state.matchId ? s.stakes : null),
       // Another match in the same room (a rematch) starts with no slip and no hold.
       ...(s.match?.matchId === state.matchId ? {} : { slip: null, slipDismissed: false, holdMove: null, liveResolution: null }),
     })),
 
   applySnapshot: (snapshot) => {
     const merged = mergeSnapshot(get().match, snapshot);
-    set((s) => ({ match: merged, board: merged.board, phase: phaseForMatch(merged), lastResolved: withLastResolved(s.lastResolved, lastOf(snapshot)) }));
+    set((s) => ({ match: merged, board: boardOrBlank(merged.board), phase: phaseForMatch(merged), lastResolved: withLastResolved(s.lastResolved, lastOf(snapshot)), stakes: snapshot.stakes ?? s.stakes }));
   },
 
   applyResolution: (resolution) => {
@@ -207,11 +210,11 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     if (!current || resolution.matchId !== current.matchId) return;
     if (resolution.globalSeq <= current.resolvedSeq) return;
     const next = withResolution(current, resolution);
-    set((s) => ({ match: next, board: next.board, lastResolved: withLastResolved(s.lastResolved, [resolution]), liveResolution: resolution }));
+    set((s) => ({ match: next, board: boardOrBlank(next.board), lastResolved: withLastResolved(s.lastResolved, [resolution]), liveResolution: resolution }));
   },
 
   leaveToLobby: () =>
-    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdMove: null, lastResolved: {}, liveResolution: null }),
+    set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, slip: null, slipDismissed: false, holdMove: null, lastResolved: {}, liveResolution: null, stakes: null }),
 
   setReturning: (returning) => set({ returning }),
   setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: s.slip?.kind === next.kind ? s.slipDismissed : false })),

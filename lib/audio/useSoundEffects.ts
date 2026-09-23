@@ -81,6 +81,8 @@ export interface SoundEffects {
   playWordDiscovery: () => void;
   playMatchStart: () => void;
   playMatchEnd: () => void;
+  /** Spec 069 (game flow §7.7): two notes, for a table (or a challenge) waiting in a hidden tab. */
+  playChallenge: () => void;
 }
 
 export function useSoundEffects(enabled: boolean): SoundEffects {
@@ -153,5 +155,12 @@ export function useSoundEffects(enabled: boolean): SoundEffects {
     playArpeggio(ctx, [659, 523, 392], 133);
   }, [getCtx]);
 
-  return { playTileSelect, playValidSwap, playInvalidMove, playWordDiscovery, playMatchStart, playMatchEnd };
+  const playChallenge = useCallback(() => {
+    const ctx = getCtx();
+    if (!ctx) return;
+    // 659→880Hz, two short notes: someone is waiting for you
+    playArpeggio(ctx, [659, 880], 150);
+  }, [getCtx]);
+
+  return { playTileSelect, playValidSwap, playInvalidMove, playWordDiscovery, playMatchStart, playMatchEnd, playChallenge };
 }

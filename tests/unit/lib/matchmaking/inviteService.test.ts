@@ -19,7 +19,6 @@ import {
   calculateInviteExpiry,
   isInviteExpired,
   selectQueueOpponent,
-  shouldClaimOpponent,
   startAutoQueue,
 } from "@/lib/matchmaking/inviteService";
 import { findActiveMatchForPlayer } from "@/lib/matchmaking/service";
@@ -39,27 +38,21 @@ describe("inviteService helpers", () => {
     expect(isInviteExpired(createdAt, now, 90)).toBe(false);
   });
 
-  it("prefers the oldest waiting opponent in queue arbitration", () => {
+  it("prefers the searcher who joined first (spec 069 FR-020)", () => {
     const candidate = selectQueueOpponent(
       [
-        { id: "a", lastSeenAt: "2025-11-17T12:00:00Z" },
-        { id: "b", lastSeenAt: "2025-11-17T12:00:05Z" },
+        { id: "b", queuedAt: "2025-11-17T12:00:05Z" },
+        { id: "a", queuedAt: "2025-11-17T12:00:00Z" },
+        { id: "c", queuedAt: null },
       ],
       "self"
     );
     expect(candidate?.id).toBe("a");
   });
 
-  it("exactly one side of a simultaneous pair claims: the player whose id sorts higher", () => {
-    // Both players see each other in the queue at the same instant; without a
-    // deterministic side the two conditional claims both succeed and two matches appear.
-    expect(shouldClaimOpponent("player-1", "opponent-1")).toBe(true);
-    expect(shouldClaimOpponent("opponent-1", "player-1")).toBe(false);
-  });
-
   it("returns null when no valid opponents are found", () => {
     const candidate = selectQueueOpponent(
-      [{ id: "self", lastSeenAt: "2025-11-17T12:00:00Z" }],
+      [{ id: "self", queuedAt: "2025-11-17T12:00:00Z" }],
       "self"
     );
     expect(candidate).toBeNull();
@@ -83,6 +76,7 @@ function makeMockChain(resolvedValue: unknown) {
     "update",
     "eq",
     "neq",
+    "gt",
     "order",
     "upsert",
   ]) {
@@ -103,10 +97,12 @@ function makeAutoQueueClient({ opponentId = OPPONENT_ID }: { opponentId?: string
         if (playersCallCount === 1) return makeMockChain({ data: { status: "idle" }, error: null }); // status check
         if (playersCallCount === 2) return makeMockChain({ error: null }); // join the queue
         // the candidates
-        return makeMockChain({ data: [{ id: opponentId, username: "opp", last_seen_at: "2025-11-17T12:00:00Z" }], error: null });
+        return makeMockChain({ data: [{ id: opponentId, username: "opp", queued_at: "2025-11-17T12:00:00Z" }], error: null });
       }
       return makeMockChain({ error: null });
     }),
+    // No table-leave cooldown (spec 069).
+    rpc: vi.fn(async () => ({ data: null, error: null })),
   };
 }
 
@@ -116,11 +112,11 @@ describe("startAutoQueue", () => {
     vi.mocked(pairFromQueue).mockReset().mockResolvedValue({ status: "created", matchId: "match-123" });
   });
 
-  it("defers to the opponent when their id sorts higher: stays queued, never pairs", async () => {
+  it("claims the searcher who joined first whatever their id (spec 069: the locks, not a tie-break, keep one match)", async () => {
     const client = makeAutoQueueClient({ opponentId: "zz-opponent" });
     const result = await startAutoQueue(client as any, { playerId: PLAYER_ID });
-    expect(result.status).toBe("queued");
-    expect(pairFromQueue).not.toHaveBeenCalled();
+    expect(result.status).toBe("matched");
+    expect(pairFromQueue).toHaveBeenCalledWith(client, { selfId: PLAYER_ID, opponentId: "zz-opponent", language: "is" });
   });
 
   it("creates the match through pair_from_queue (spec 067)", async () => {

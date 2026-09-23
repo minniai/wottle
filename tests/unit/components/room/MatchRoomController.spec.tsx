@@ -33,6 +33,12 @@ vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.
 vi.mock("@/app/actions/match/respondToRematch", () => ({ acceptRematchAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m2" }), declineRematchAction: vi.fn().mockResolvedValue({ status: "declined" }) }));
 vi.mock("@/app/actions/match/cancelRematch", () => ({ cancelRematchAction: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "ok" }) }));
+vi.mock("@/app/actions/match/seat", () => ({ seatAction: vi.fn().mockResolvedValue({ status: "seated" }) }));
+vi.mock("@/app/actions/match/leaveTable", () => ({ leaveTableAction: vi.fn().mockResolvedValue({ status: "void" }) }));
+vi.mock("@/app/actions/matchmaking/startQueue", () => ({ startQueueAction: vi.fn().mockResolvedValue({ status: "queued" }) }));
+vi.mock("@/app/actions/matchmaking/cancelQueue", () => ({ cancelQueueAction: vi.fn().mockResolvedValue({ status: "cancelled" }) }));
+vi.mock("@/app/actions/matchmaking/getMatchOverview", () => ({ getMatchOverviewAction: vi.fn().mockResolvedValue(null) }));
+vi.mock("@/app/actions/matchmaking/sendInvite", () => ({ sendInviteAction: vi.fn().mockResolvedValue({ status: "sent", inviteId: "i1" }) }));
 
 import { __resetWordIntegrityForTests } from "@/lib/room/wordIntegrity";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
@@ -42,9 +48,15 @@ import { settleMatch } from "@/app/actions/match/settleMatch";
 import { getMatchRatings } from "@/app/actions/match/getMatchRatings";
 import { logoutAction } from "@/app/actions/auth/logout";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
+import { seatAction } from "@/app/actions/match/seat";
+import { leaveTableAction } from "@/app/actions/match/leaveTable";
+import { cancelQueueAction } from "@/app/actions/matchmaking/cancelQueue";
+import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
 import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { LETTER_SCORING_VALUES_IS } from "@/lib/game-engine/letter-values/letter_scoring_values_is";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const profiles: MatchPlayerProfiles = {
   playerA: { playerId: "player-1", displayName: "Alice", username: "alice", avatarUrl: null, eloRating: 1200 },
@@ -74,6 +86,8 @@ function state(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchFacts>
     resolvedSeq: 7,
     scores: { playerA: 45, playerB: 30 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
     ...overrides,
   };
 }
@@ -107,7 +121,7 @@ describe("MatchRoomController (spec 050)", () => {
       ok: true,
       status: 200,
       json: async () => {
-        if (String(url).endsWith("/state")) return useRoomStore.getState().match ?? state();
+        if (String(url).includes("/state")) return useRoomStore.getState().match ?? state();
         if (String(url).endsWith("/words")) return { matchId: "m1", words: [] };
         return { status: "accepted", moveId: "mv-8", globalSeq: 8, receivedAt: NOW };
       },
@@ -172,7 +186,10 @@ describe("MatchRoomController (spec 050)", () => {
 
   it("before started_at the room counts 3·2·1 from the server anchor and takes no pick; the caption holds at 5:00", () => {
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("starts in 2");
+    // The count is the scoreboard's clock row; the live row names the first move and to wait (spec 069 C2).
+    expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("starts in 2");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 1");
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick when the clock starts");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
     expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("5:00");
     fireEvent.click(cell(0, 0));
@@ -365,7 +382,7 @@ describe("MatchRoomController (spec 050)", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("slip-accept-rematch"));
     });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m2"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/match/m2"));
   });
 
   it("final: rematch ▸ sends the request and shows waiting for the opponent", async () => {
@@ -485,7 +502,7 @@ describe("MatchRoomController (spec 050)", () => {
     vi.useFakeTimers();
     // Your third move froze þar; the fourth is open. A reload holds nothing.
     const initial = state({ frozenTiles: { "1,2": { owner: "player_a" } } }, { movesPlayed: 3, lastResolution: resolution() });
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).endsWith("/state") ? initial : String(url).endsWith("/words") ? { matchId: "m1", words: [] } : { status: "accepted" }) })));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).includes("/state") ? initial : String(url).endsWith("/words") ? { matchId: "m1", words: [] } : { status: "accepted" }) })));
     renderController(initial);
     act(() => vi.advanceTimersByTime(2_000)); // the reveal settles
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
@@ -630,7 +647,7 @@ describe("the last-moved tick (spec 068 FR-027)", () => {
     act(() =>
       mockCallbacks.onMoveResolved!({
         matchId: "m1", moveId: "mv-9", playerId: "player-2", globalSeq: 20, seq: 6, status: "resolved",
-        swap: { from: { x: 4, y: 4 }, to: { x: 5, y: 4 } }, board: state().board, words: [], delta: -5,
+        swap: { from: { x: 4, y: 4 }, to: { x: 5, y: 4 } }, board: board(), words: [], delta: -5,
         totals: { playerA: 46, playerB: 10 }, frozenTiles: {}, movesPlayed: { playerA: 2, playerB: 6 }, resolvedAt: "2026-01-01T00:00:30Z",
       }),
     );
@@ -686,7 +703,7 @@ describe("focus at go (spec 068 FR-034)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:01Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:03.000Z", deadlineAt: "2026-01-01T00:05:03.000Z", serverNow: "2026-01-01T00:00:01.000Z" } }, { movesPlayed: 0 }, { movesPlayed: 0 }));
-    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/starts in/);
+    expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("pick when the clock starts");
     expect(document.activeElement?.getAttribute("data-testid")).not.toBe("field-cell");
     await act(async () => vi.advanceTimersByTimeAsync(3_000));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 1 · your move");
@@ -723,5 +740,135 @@ describe("the state row's notice on the grid (spec 068)", () => {
     await act(async () => vi.advanceTimersByTimeAsync(0));
     expect(screen.getByTestId("ledger-state-line")).toHaveTextContent("not disconnected");
     vi.useRealTimers();
+  });
+});
+
+/** Spec 069 T027: the room at the table (game flow C1, C2). */
+describe("MatchRoomController at the table (spec 069)", () => {
+  const T0 = Date.parse(NOW);
+  const table = (seats: { a: string | null; b: string | null }, over: Partial<MatchState> = {}): MatchState =>
+    state({
+      state: "pending",
+      board: null,
+      clock: { startedAt: null, deadlineAt: null, serverNow: NOW },
+      resolvedSeq: 0,
+      scores: { playerA: 0, playerB: 0 },
+      table: { ...SEATED_TABLE, seats, deadlineAt: new Date(T0 + 14_000).toISOString(), origin: "queue" },
+      stakes: { "player-1": { win: 16, draw: 0, loss: -16 }, "player-2": { win: 16, draw: 0, loss: -16 } },
+      ...over,
+    }, { movesPlayed: 0, score: 0 }, { movesPlayed: 0, score: 0 });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: T0, shouldAdvanceTime: true });
+    useRoomStore.getState().leaveToLobby();
+    mockPush.mockClear();
+    vi.mocked(seatAction).mockClear();
+    vi.mocked(leaveTableAction).mockClear();
+    vi.mocked(getMatchRatings).mockClear();
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).includes("/state") ? useRoomStore.getState().match : { matchId: "m1", words: [] }) })));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("stands the ready slip over an empty field, with no live row and the caption `opponent found`", async () => {
+    renderController(table({ a: null, b: null }));
+    const slip = await screen.findByTestId("slip");
+    expect(slip).toHaveAttribute("data-kind", "ready");
+    expect(within(slip).getByTestId("slip-table-label")).toHaveTextContent("opponent found · 0:14");
+    expect(screen.getByTestId("room-slot-field")).toHaveAttribute("data-slipped", "true");
+    expect(screen.getAllByRole("gridcell").every((c) => !c.textContent)).toBe(true);
+    expect(screen.queryByTestId("ledger-live-row")).toBeNull();
+    expect(screen.getByTestId("ledger-caption")).toHaveTextContent("opponent found");
+    expect(document.title).toBe("Bob · opponent found · Wottle");
+  });
+
+  it("`ready ▸` sits the viewer down; `leave` voids the table and goes to the lobby", async () => {
+    renderController(table({ a: null, b: null }));
+    await screen.findByTestId("slip-ready");
+    await act(async () => void vi.advanceTimersByTime(600));
+    fireEvent.click(screen.getByTestId("slip-ready"));
+    expect(seatAction).toHaveBeenCalledWith("m1");
+    fireEvent.click(screen.getByTestId("slip-leave-table"));
+    await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+  });
+
+  it("says politely when the opponent sits down", async () => {
+    renderController(table({ a: "x", b: null }));
+    await screen.findByTestId("slip-seated");
+    act(() => useRoomStore.getState().applySnapshot(table({ a: "x", b: "y" })));
+    await waitFor(() => expect(screen.getByTestId("room-announcer")).toHaveTextContent("Bob · ready"));
+  });
+
+  it("once the start is set the slip reads `starts in 3`, and lifts 3.3s before go", async () => {
+    const start = (inMs: number) => ({ startedAt: new Date(T0 + inMs).toISOString(), deadlineAt: new Date(T0 + inMs + 300_000).toISOString(), serverNow: NOW });
+    renderController(table({ a: "x", b: "y" }, { state: "in_progress", board: board(), clock: start(4_000) }));
+    expect(await screen.findByTestId("slip-table-label")).toHaveTextContent("starts in 3");
+    await act(async () => void vi.advanceTimersByTime(1_200));
+    await waitFor(() => expect(screen.queryByTestId("slip")).toBeNull());
+    expect(document.title).toMatch(/^[123] · Bob · Wottle$/);
+  });
+
+  it("re-reads the table once when its time runs out", async () => {
+    const fetch = vi.fn(async (_url: string) => ({ ok: true, status: 200, json: async () => useRoomStore.getState().match }));
+    vi.stubGlobal("fetch", fetch);
+    renderController(table({ a: "x", b: null }));
+    await screen.findByTestId("slip");
+    fetch.mockClear();
+    await act(async () => void vi.advanceTimersByTime(14_100));
+    expect(fetch.mock.calls.some(([url]) => String(url).includes("/api/match/m1/state"))).toBe(true);
+  });
+
+  const voidOf = (origin: "queue" | "challenge" | "rematch", voidedBy: string, seats: { a: string | null; b: string | null } = { a: "x", b: null }) =>
+    table(seats, { state: "completed", endedReason: "void", completedAt: NOW, table: { ...SEATED_TABLE, seats, origin, voidReason: "not_seated", voidedBy, rematchOf: origin === "rematch" ? "m0" : null, deadlineAt: NOW } });
+
+  it("a void rates nothing and raises no match-over slip; a seated searcher keeps searching from it (spec 069 T040)", async () => {
+    vi.mocked(startQueueAction).mockClear();
+    renderController(voidOf("queue", "player-2"));
+    const slip = await screen.findByTestId("slip");
+    expect(slip).toHaveAttribute("data-kind", "void");
+    expect(slip).toHaveTextContent("Bob did not sit down");
+    expect(getMatchRatings).not.toHaveBeenCalled();
+    await waitFor(() => expect(startQueueAction).toHaveBeenCalled());
+    expect(screen.getByTestId("slip-void-searching")).toHaveTextContent("searching · 0:0");
+    fireEvent.click(screen.getByTestId("slip-void-cancelQueue"));
+    await waitFor(() => expect(cancelQueueAction).toHaveBeenCalled());
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+  });
+
+  it("`challenge again ▸` sends a new challenge to the same player and goes to the lobby", async () => {
+    renderController(voidOf("challenge", "player-2"));
+    fireEvent.click(await screen.findByTestId("slip-void-challengeAgain"));
+    await waitFor(() => expect(sendInviteAction).toHaveBeenCalledWith("player-2", "is"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+  });
+
+  it("after a rematch table, `result ▸` opens the previous match", async () => {
+    renderController(voidOf("rematch", "player-2"));
+    fireEvent.click(await screen.findByTestId("slip-void-result"));
+    expect(mockPush).toHaveBeenCalledWith("/en/match/m0");
+  });
+
+  it("Back from the table leaves it: a guard entry is pushed, and popping it voids the table (spec 069 T041)", async () => {
+    const pushState = vi.spyOn(window.history, "pushState");
+    renderController(table({ a: null, b: null }));
+    await screen.findByTestId("slip");
+    expect(pushState).toHaveBeenCalledWith({ kind: "table-guard" }, "");
+    act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
+    await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    pushState.mockRestore();
+  });
+
+  it("after go, Back no longer leaves", async () => {
+    const pushState = vi.spyOn(window.history, "pushState");
+    renderController(state());
+    await screen.findByTestId("field");
+    expect(pushState).not.toHaveBeenCalledWith({ kind: "table-guard" }, "");
+    act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
+    expect(leaveTableAction).not.toHaveBeenCalled();
+    pushState.mockRestore();
   });
 });

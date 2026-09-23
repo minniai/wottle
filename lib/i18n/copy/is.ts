@@ -45,6 +45,9 @@ const MONTHS = [
 const byPoints = (n: number): string =>
   `með ${n} ${plural("is", n, { one: "stigi", other: "stigum" })}`;
 
+/** `+8`, `0`, `−8`: a rating change at stake, in ink (never `--err`). */
+const stakeIs = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
+
 export const copyIs = {
   /** The game's name, from the locale registry (spec 068: one source, capitalised). */
   WORDMARK: LOCALES.is.wordmark,
@@ -156,8 +159,8 @@ export const copyIs = {
   NEW_HERE_HOW_TO_PLAY: "nýr hér · leiðbeiningar ▸",
   SIGN_IN_TO_SET_THE_FIELD: "skráðu þig inn til að raða á borðið",
   RESIGN_QUESTION: "Gefast upp?",
-  resignConsequence: (opponentName: string): string =>
-    `${opponentName} vinnur · Elo-stigin þín reiknast sem tap`,
+  resignConsequence: (opponentName: string, loss?: number): string =>
+    `${opponentName} vinnur · Elo-stigin þín reiknast sem tap${loss === undefined ? "" : ` · ${stakeIs(loss)}`}`,
   resignLabel: (move: number, clockMmSs: string): string =>
     `leikur ${move} af 10 · ${clockMmSs} eftir`,
   YES_RESIGN: "já, gefast upp ▸",
@@ -272,6 +275,46 @@ export const copyIs = {
       : "prófíll ekki tiltækur",
   noSuchPlayer: (handle: string): string =>
     `Enginn slíkur leikmaður · @${handle} hefur ekki spilað hér`,
+  // The table (spec 069, game flow C1–C3, B7)
+  table: {
+    label: (mmSs: string): string => `mótspilari fundinn · ${mmSs}`,
+    CONTEXT: "mótspilari fundinn",
+    facts: (words: string, moves: number, clockMmSs: string): string => `${words} · ${moves} leikir hvor · ein ${clockMmSs} klukka`, // native-read
+    stakes: (win: number, draw: number, loss: number): string => `sigur ${stakeIs(win)} · jafntefli ${stakeIs(draw)} · tap ${stakeIs(loss)}`,
+    ON_THE_WAY: "á leiðinni",
+    READY: "við borðið",
+    NOT_READY: "á leiðinni",
+    OPPONENT: "mótspilari",
+    seatYou: (name: string): string => `${name} · þú`,
+    READY_ACTION: "ég er til ▸",
+    YOU_ARE_SEATED: "þú ert við borðið",
+    LEAVE: "fara",
+    STARTS_WHEN_SEATED: "fer af stað þegar báðir sitja",
+    PICK_WHEN_CLOCK_STARTS: "veldu þegar klukkan fer af stað", // native-read
+    VOID_LABEL: "engin viðureign",
+    NOT_STARTED: "ekki hafin",
+    YOU_LEFT: "Þú fórst frá borðinu",
+    voidOppNotSeated: (name: string): string => `${name} settist ekki`,
+    voidOppLeft: (name: string): string => `${name} fór frá borðinu`,
+    VOID_YOU_NOT_SEATED: "Þú settist ekki í tæka tíð",
+    NOTHING_RATED: "hefur ekki áhrif á Elo stig",
+    BACK_IN_QUEUE: "þú ert aftur í leitinni", // native-read
+    DID_NOT_SIT_DOWN: "settist ekki",
+    LEFT: "fór",
+    CHALLENGE_AGAIN: "skora aftur á ▸", // native-read
+    MISSED_NOTICE: "þú settist ekki · leitin stöðvaðist",
+    SEARCH_PAUSED: "leit í bið",
+    RESUME: "halda áfram ▸",
+    stillSearching: (mmSs: string): string => `Leitar enn? · ${mmSs}`,
+    KEEP_SEARCHING: "halda áfram að leita ▸",
+    SEARCH_STOPPED: "leit stöðvuð",
+    FIND_AGAIN: "leita aftur ▸",
+    findAgainIn: (mmSs: string): string => `leita aftur eftir ${mmSs}`,
+    titleTable: (name: string): string => `${name} · mótspilari fundinn`,
+    titleStarting: (n: number, name: string): string => `${n} · ${name}`,
+    titleSearching: (mmSs: string): string => `leitar ${mmSs}`,
+  },
+
   errors: {
     rate_limited: "of margar tilraunir · bíddu í mínútu",
     invalid_name: "3 til 24 stafir, tölur, - eða _",
@@ -290,6 +333,9 @@ export const copyIs = {
     move_cap: "þú hefur leikið öllum leikjunum",
     move_in_flight: "verið er að reikna fyrri leikinn",
     move_failed: "skiptum hafnað",
+    not_started: "viðureignin er ekki hafin",
+    table_late: "of seint að setjast",
+    table_cooldown: "þú fórst frá tveimur borðum · bíddu í nokkrar mínútur", // native-read
     unknown: "eitthvað fór úrskeiðis · reyndu aftur",
   },
 

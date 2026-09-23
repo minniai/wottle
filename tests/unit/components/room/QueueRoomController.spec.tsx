@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockReplace = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mockReplace, push: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mockReplace, push: mockPush }), useSearchParams: () => new URLSearchParams() }));
 vi.mock("@/app/actions/matchmaking/startQueue", () => ({ startQueueAction: vi.fn() }));
 vi.mock("@/app/actions/matchmaking/cancelQueue", () => ({ cancelQueueAction: vi.fn().mockResolvedValue({ status: "cancelled" }) }));
 vi.mock("@/app/actions/matchmaking/getMatchOverview", () => ({ getMatchOverviewAction: vi.fn() }));
@@ -15,6 +16,7 @@ import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
 import { QueueRoom, QueueRoomController } from "@/components/room/QueueRoomController";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { MatchState, PlayerIdentity } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const me: PlayerIdentity = { id: "me", username: "birna", displayName: "Birna", status: "matchmaking", lastSeenAt: "", eloRating: 1204 };
 const kari: PlayerIdentity = { id: "k", username: "kari", displayName: "Kári", status: "in_match", lastSeenAt: "", eloRating: 1191 };
@@ -32,6 +34,8 @@ const match: MatchState = {
   resolvedSeq: 0,
   scores: { playerA: 0, playerB: 0 },
   frozenTiles: {},
+  table: SEATED_TABLE,
+  stakes: null,
 };
 
 describe("QueueRoomController (spec 044 US8, Q3)", () => {
@@ -72,75 +76,51 @@ describe("QueueRoomController (spec 044 US8, Q3)", () => {
     expect(mockReplace).toHaveBeenCalledWith("/en/lobby");
   });
 
-  it("found: the opponent writes into the top bar, letters swap to the real board, the start counts down, then the match phase renders", async () => {
-    vi.mocked(startQueueAction).mockResolvedValue({ status: "matched", matchId: "m1" });
-    vi.mocked(getMatchOverviewAction).mockResolvedValue({ status: "ok", self: me, opponent: kari });
-    render(<QueueRoomController viewer={me} />);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
-    });
-    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "found");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Kári");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("starts in 3");
-    expect(screen.getAllByRole("gridcell")[0].querySelector("span")?.textContent).toBe("Þ");
-    expect(window.history.replaceState).toHaveBeenCalledWith(null, "", "/en/match/m1");
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000);
-    });
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("starts in 2");
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(2_100);
-    });
-    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "match");
-    expect(screen.getByTestId("room")).toHaveAttribute("data-match-id", "m1");
-    // In the match the scoreboard takes over from the bars (spec 068).
-    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1191 · ready");
-    expect(mockReplace).not.toHaveBeenCalled();
-  });
-
-  // Reported 2026-09-21: a queue-found match that ended (here by the clock) fell
-  // back to `Finding an opponent · ranked · 0:00` instead of showing the result.
-  it("a queue-found match that completes stays in the room as the final state; new opponent starts a fresh search", async () => {
+  it("a pairing goes to the table at the match's own address, as a new page (spec 069 FR-023)", async () => {
     vi.mocked(startQueueAction).mockResolvedValue({ status: "matched", matchId: "m1" });
     vi.mocked(getMatchOverviewAction).mockResolvedValue({ status: "ok", self: me, opponent: kari });
     render(<QueueRoom viewer={me} />);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_200);
-    });
-    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "match");
-
-    const completed: MatchState = {
-      ...match,
-      state: "completed",
-      endedReason: "both_incomplete",
-      winnerId: null,
-      completedAt: "2026-01-01T00:05:03.000Z",
-      clock: { ...match.clock, serverNow: "2026-01-01T00:05:05.000Z" },
-    };
-    await act(async () => {
-      useRoomStore.getState().applySnapshot(completed);
       await vi.advanceTimersByTimeAsync(50);
     });
-
-    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "final");
-    expect(screen.getByTestId("room")).toHaveAttribute("data-match-id", "m1");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished");
-    expect(screen.queryByText("Finding an opponent")).toBeNull();
+    expect(mockPush).toHaveBeenCalledWith("/en/match/m1");
     expect(mockReplace).not.toHaveBeenCalled();
+    // The queue no longer counts a start of its own: the table does (spec 069 C1, C2).
+    expect(screen.queryByText("starts in 3")).toBeNull();
+  });
 
-    // The route is already /matchmaking, so nothing would remount the queue: the
-    // store's search counter does.
+
+  it("a hidden tab's search reads `search paused · resume ▸`; resume ▸ asks again (spec 069 FR-021)", async () => {
     vi.mocked(startQueueAction).mockResolvedValue({ status: "queued" });
+    render(<QueueRoomController viewer={me} />);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-    await act(async () => {
-      screen.getByTestId("slip-new-opponent").click();
       await vi.advanceTimersByTimeAsync(50);
     });
-    expect(mockReplace).toHaveBeenCalledWith("/en/matchmaking");
-    expect(screen.getByTestId("room")).toHaveAttribute("data-phase", "queue");
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    act(() => void document.dispatchEvent(new Event("visibilitychange")));
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("search paused");
+    const asked = vi.mocked(startQueueAction).mock.calls.length;
+    fireEvent.click(screen.getByTestId("queue-resume"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    expect(startQueueAction).toHaveBeenCalledTimes(asked + 1);
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
+    expect(document.title).toMatch(/^searching 0:\d\d · Wottle$/);
+  });
+
+  it("3:00 in, asks `still searching?`; keep searching ▸ carries on (spec 069 FR-022)", async () => {
+    vi.mocked(startQueueAction).mockResolvedValue({ status: "queued" });
+    render(<QueueRoomController viewer={me} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(180_500);
+    });
+    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Still searching? · 3:00");
+    fireEvent.click(screen.getByTestId("queue-keep-searching"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
     expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Finding an opponent");
   });
 });
-

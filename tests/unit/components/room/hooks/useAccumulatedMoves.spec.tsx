@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { useAccumulatedMoves } from "@/components/room/hooks/useAccumulatedMoves";
 import type { HistoryWord } from "@/lib/match/wordHistory";
 import type { MatchState, MoveResolution, PlayerMatchFacts, WordScore } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const A = "a";
 const B = "b";
@@ -14,7 +15,7 @@ const resolution = (playerId: string, moveId: string, seq: number, globalSeq: nu
   totals: { playerA: 0, playerB: 0 }, frozenTiles: {}, movesPlayed: { playerA: 0, playerB: 0 }, resolvedAt: "",
 });
 function state(a: Partial<PlayerMatchFacts> = {}, b: Partial<PlayerMatchFacts> = {}, matchId = "m1"): MatchState {
-  return { matchId, board: [], state: "in_progress", players: { playerA: facts(A, a), playerB: facts(B, b) }, clock: { startedAt: null, deadlineAt: null, serverNow: "" }, moveLimit: 10, language: "is", resolvedSeq: 0, scores: { playerA: 0, playerB: 0 }, frozenTiles: {} };
+  return { matchId, board: [], state: "in_progress", players: { playerA: facts(A, a), playerB: facts(B, b) }, clock: { startedAt: null, deadlineAt: null, serverNow: "" }, moveLimit: 10, language: "is", resolvedSeq: 0, scores: { playerA: 0, playerB: 0 }, frozenTiles: {}, table: SEATED_TABLE, stakes: null };
 }
 const history: HistoryWord[] = [
   { ...word(A, "borð"), moveSeq: 1, globalSeq: 1 },

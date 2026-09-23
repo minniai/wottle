@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { shouldApplySafetySnapshot } from "@/lib/match/safetySnapshot";
 import type { MatchState, PlayerMatchFacts } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 /** Spec 050 contracts/match-state.md § safety poll. */
 const facts = (playerId: string, over: Partial<PlayerMatchFacts> = {}): PlayerMatchFacts => ({ playerId, movesPlayed: 3, score: 10, inFlight: null, lastResolution: null, ...over });
@@ -18,6 +19,8 @@ function buildState(overrides: Partial<MatchState> = {}, a: Partial<PlayerMatchF
     resolvedSeq: 6,
     scores: { playerA: 10, playerB: 10 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
     disconnectedPlayerId: null,
     ...overrides,
   };
@@ -49,5 +52,12 @@ describe("shouldApplySafetySnapshot", () => {
   it("applies when the disconnect flag flips either way", () => {
     expect(shouldApplySafetySnapshot(buildState(), buildState({ disconnectedPlayerId: "player-b" }))).toBe(true);
     expect(shouldApplySafetySnapshot(buildState({ disconnectedPlayerId: "player-b" }), buildState())).toBe(true);
+  });
+
+  it("applies a seat taken at the table (spec 069)", () => {
+    const current = buildState();
+    const seated = { ...current, table: { ...current.table, seats: { a: current.table.seats.a, b: null } } };
+    expect(shouldApplySafetySnapshot(seated, current)).toBe(true);
+    expect(shouldApplySafetySnapshot(current, current)).toBe(false);
   });
 });

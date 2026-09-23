@@ -36,7 +36,9 @@ export type MatchEndedReason =
   | "disconnect"
   | "forfeit"
   | "abandoned"
-  | "error";
+  | "error"
+  /** Spec 069: the table did not fill, or a player left it before go. Nothing is rated. */
+  | "void";
 
 // ─── Moves (spec 050) ────────────────────────────────────────────────
 
@@ -127,8 +129,12 @@ export interface WordScore {
 /** The room's snapshot (spec 050, contracts/match-state.md); `state` broadcast and `GET /api/match/[id]/state`. */
 export interface MatchState {
   matchId: string;
-  /** `matches.board`: the live board, rewritten by every resolved move. */
-  board: string[][];
+  /**
+   * `matches.board`: the live board, rewritten by every resolved move. Null
+   * until both players are seated (spec 069 FR-003): the letters never leave
+   * the server before the table fills.
+   */
+  board: string[][] | null;
   state: MatchPhase;
   players: {
     playerA: PlayerMatchFacts;
@@ -157,6 +163,42 @@ export interface MatchState {
   endedReason?: MatchEndedReason | null;
   /** Set once completed; with `clock.startedAt` it gives the match's duration. */
   completedAt?: string | null;
+  /** Spec 069: the table, from creation to go, and the void if it never filled. */
+  table: MatchTable;
+  /** Spec 069: each player's rating change for a win, a draw and a loss; read while pending only. */
+  stakes: Record<string, Stakes> | null;
+}
+
+// ─── The table (spec 069) ────────────────────────────────────────────
+
+export type SeatKey = "a" | "b";
+
+export type TableOrigin =
+  | "queue"
+  | "challenge"
+  | "crossed_challenge"
+  | "rematch"
+  | "crossed_rematch"
+  | "link";
+
+export type VoidReason = "not_seated" | "left";
+
+export interface MatchTable {
+  /** ISO time each seat was taken, or null while that player has not sat down. */
+  seats: Record<SeatKey, string | null>;
+  /** `table_deadline_at`: the time to sit down. */
+  deadlineAt: string | null;
+  origin: TableOrigin | null;
+  /** The previous match of a rematch table, for the void slip's `result ▸`. */
+  rematchOf: string | null;
+  voidReason: VoidReason | null;
+  voidedBy: string | null;
+}
+
+export interface Stakes {
+  win: number;
+  draw: number;
+  loss: number;
 }
 
 export type PlayerSlot = "player_a" | "player_b";

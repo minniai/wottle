@@ -7,6 +7,9 @@ import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
 import { findActiveMatchForPlayer } from "./service";
 import { acceptInvite, inviteTtlSeconds, pairFromQueue } from "@/lib/match/createMatch";
 import { logPlaytestError, logPlaytestInfo, trackInviteAccepted } from "@/lib/observability/log";
+import { QUEUE_FRESH_MS } from "@/lib/constants/table";
+import { recordAttention, type Attention } from "./attention";
+import { readCooldownUntil } from "./tableStatus";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -26,7 +29,9 @@ export interface SendDirectInviteParams {
 /** Sent, or — when the recipient had already challenged the sender — accepted at once (spec 067). */
 export type SendDirectInviteResult =
   | { status: "sent"; inviteId: string; expiresAt: string }
-  | { status: "accepted"; matchId: string };
+  | { status: "accepted"; matchId: string }
+  /** Spec 069 FR-024: two table leaves in 10 minutes; sending waits until then. */
+  | { status: "cooldown"; until: string };
 
 export interface RespondInviteParams {
   inviteId: string;
@@ -59,12 +64,24 @@ export interface StartQueueParams {
   playerId: string;
   /** Spec 060: the lobby's game language; players are paired only within it. Icelandic unless given. */
   language?: Language;
+  /** Spec 069: the searching tab's visibility and last input; a hidden tab pauses the search. */
+  attention?: Attention;
+  /**
+   * Spec 069: the first poll of a search, or `resume ▸`: clears a pause. Any other
+   * poll leaves it, so one already in flight when the tab went hidden cannot undo it.
+   */
+  resume?: boolean;
 }
 
 export interface QueueResult {
-  status: "queued" | "matched";
+  /** `paused`: the tab is hidden (spec 069 FR-021); `cooldown`: two table leaves in 10 minutes (FR-024). */
+  status: "queued" | "matched" | "paused" | "cooldown";
   matchId?: string;
   estimatedWaitSeconds?: number;
+  /** When the search began; polls never move it (FR-020). */
+  queuedAt?: string;
+  /** The cooldown's end. */
+  until?: string;
 }
 
 interface InviteRow {
@@ -81,7 +98,7 @@ interface InviteRow {
 interface QueueCandidate {
   id: string;
   username: string;
-  last_seen_at: string;
+  queued_at: string | null;
 }
 
 export function calculateInviteExpiry(
@@ -100,27 +117,18 @@ export function isInviteExpired(
   return now.getTime() - created >= ttlSeconds * 1_000;
 }
 
-export function selectQueueOpponent<T extends { id: string; lastSeenAt: string }>(
+/**
+ * The searcher who joined first (spec 069 FR-020). Two searchers claiming at
+ * once cannot book anyone twice: `pair_from_queue` locks both players and
+ * refuses one no longer searching (spec 067), so no tie-break is needed.
+ */
+export function selectQueueOpponent<T extends { id: string; queuedAt: string | null }>(
   candidates: T[],
   selfId: string
 ): T | null {
+  const joined = (c: T) => (c.queuedAt ? Date.parse(c.queuedAt) : Number.POSITIVE_INFINITY);
   const filtered = candidates.filter((candidate) => candidate.id !== selfId);
-  if (filtered.length === 0) {
-    return null;
-  }
-  return filtered.sort(
-    (a, b) => Date.parse(a.lastSeenAt) - Date.parse(b.lastSeenAt)
-  )[0];
-}
-
-/**
- * Two players who see each other in the queue on the same poll would both pass
- * the conditional claim (each is still `matchmaking` when the other reads) and
- * create two matches. Only the side whose id sorts higher claims; the other
- * stays queued and picks the match up on its next poll via findActiveMatchForPlayer.
- */
-export function shouldClaimOpponent(selfId: string, opponentId: string): boolean {
-  return selfId > opponentId;
+  return filtered.length === 0 ? null : filtered.sort((a, b) => joined(a) - joined(b))[0];
 }
 
 export async function sendDirectInvite(
@@ -130,6 +138,8 @@ export async function sendDirectInvite(
   if (params.senderId === params.recipientId) {
     throw new Error("You cannot invite yourself.");
   }
+  const until = await readCooldownUntil(client, params.senderId);
+  if (until) return { status: "cooldown", until };
 
   const ttlSeconds = params.ttlSeconds ?? DEFAULT_INVITE_TTL_SECONDS;
   const expiresAt = calculateInviteExpiry(new Date(), ttlSeconds);
@@ -346,7 +356,7 @@ export async function startAutoQueue(
   // 2. Check if locked by opponent (prevent overwrite race condition)
   const { data: player } = await client
     .from("players")
-    .select("status")
+    .select("status, queued_at, last_seen_at")
     .eq("id", params.playerId)
     .single();
 
@@ -357,9 +367,18 @@ export async function startAutoQueue(
     };
   }
 
-  // 3. Join the queue for this language (spec 060 FR-018)
+  // Spec 069: the tab's attention, the cooldown, and a hidden tab's pause come before joining.
+  if (params.attention) await recordAttention(client, params.playerId, params.attention);
+  const until = await readCooldownUntil(client, params.playerId);
+  if (until) {
+    logPlaytestInfo("table.cooldown", { playerId: params.playerId, metadata: { until } });
+    return { status: "cooldown", until };
+  }
   const language = params.language ?? "is";
-  await joinQueue(client, params.playerId, language);
+  if (params.attention && !params.attention.visible) return pauseSearch(client, params.playerId, language);
+
+  // 3. Join the queue for this language (spec 060 FR-018), keeping the join time of a search still running.
+  const queuedAt = await joinQueue(client, params.playerId, language, player as JoinFacts | null, Boolean(params.resume));
   await updatePresenceMode(client, params.playerId, {
     mode: "auto",
     inviteToken: null,
@@ -367,23 +386,19 @@ export async function startAutoQueue(
 
   const candidates = await fetchQueueCandidates(client, params.playerId, language);
   const opponent = selectQueueOpponent(
-    candidates.map((candidate) => ({
-      id: candidate.id,
-      lastSeenAt: candidate.last_seen_at,
-      username: candidate.username,
-    })),
+    candidates.map((candidate) => ({ id: candidate.id, queuedAt: candidate.queued_at, username: candidate.username })),
     params.playerId
   );
 
-  if (!opponent || !shouldClaimOpponent(params.playerId, opponent.id)) {
-    return { status: "queued", estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS };
+  if (!opponent) {
+    return { status: "queued", estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS, queuedAt };
   }
 
   // The pairing, the status and presence writes and the end of every other
   // commitment either player had happen in one transaction (spec 067).
   const result = await pairFromQueue(client, { selfId: params.playerId, opponentId: opponent.id, language });
   if (result.status !== "created") {
-    return { status: "queued", estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS };
+    return { status: "queued", estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS, queuedAt };
   }
 
   logPlaytestInfo("matchmaking.queue.matched", {
@@ -469,14 +484,17 @@ async function fetchInvite(client: AnyClient, inviteId: string) {
   return data as InviteRow | null;
 }
 
+/** Searchers heard from within 10s and not paused, in the order they joined (spec 069 FR-020, FR-021). */
 async function fetchQueueCandidates(client: AnyClient, excludePlayerId: string, language: Language) {
   const { data, error } = await client
     .from("players")
-    .select("id,username,last_seen_at")
+    .select("id,username,queued_at")
     .eq("status", "matchmaking")
     .eq("queue_language", language)
+    .eq("search_paused", false)
+    .gt("last_seen_at", new Date(Date.now() - QUEUE_FRESH_MS).toISOString())
     .neq("id", excludePlayerId)
-    .order("last_seen_at", { ascending: true })
+    .order("queued_at", { ascending: true })
     .limit(5);
 
   if (error) {
@@ -487,12 +505,38 @@ async function fetchQueueCandidates(client: AnyClient, excludePlayerId: string, 
   return (data ?? []) as QueueCandidate[];
 }
 
-async function joinQueue(client: AnyClient, playerId: string, language: Language) {
+interface JoinFacts {
+  status: string;
+  queued_at: string | null;
+  last_seen_at: string | null;
+}
+
+/** A search heard from this recently is still running: its join time is kept (a poll, a requeue). */
+const SEARCH_CONTINUES_MS = 30_000;
+
+function joinTimeFor(facts: JoinFacts | null, now: Date): string {
+  const running = facts?.status === "matchmaking" && facts.queued_at && facts.last_seen_at && now.getTime() - Date.parse(facts.last_seen_at) < SEARCH_CONTINUES_MS;
+  return running ? facts!.queued_at! : now.toISOString();
+}
+
+async function joinQueue(client: AnyClient, playerId: string, language: Language, facts: JoinFacts | null, resume: boolean): Promise<string> {
+  const now = new Date();
+  const queuedAt = joinTimeFor(facts, now);
+  const fresh = queuedAt === now.toISOString();
   const { error } = await client
     .from("players")
-    .update({ status: "matchmaking", queue_language: language, last_seen_at: new Date().toISOString() })
+    .update({ status: "matchmaking", queue_language: language, last_seen_at: now.toISOString(), queued_at: queuedAt, ...(fresh || resume ? { search_paused: false } : {}) })
     .eq("id", playerId);
   if (error) logPlaytestError("matchmaking.player_status_failed", { playerId, metadata: { status: "matchmaking", language }, error });
+  return queuedAt;
+}
+
+/** A hidden tab pauses its search on every device (spec 069 FR-021): the queue skips it; its place is kept. */
+async function pauseSearch(client: AnyClient, playerId: string, language: Language): Promise<QueueResult> {
+  const { error } = await client.from("players").update({ status: "matchmaking", queue_language: language, search_paused: true }).eq("id", playerId);
+  if (error) logPlaytestError("matchmaking.player_status_failed", { playerId, metadata: { status: "paused", language }, error });
+  logPlaytestInfo("queue.paused", { playerId });
+  return { status: "paused" };
 }
 
 async function setPlayerStatus(

@@ -103,7 +103,8 @@ export function buildLedgerRows(input: BuildRowsInput, copy: Copy): LedgerRow[] 
     return toCell(visible.filter((w) => seatOf(w.playerId) === seat && w.moveSeq === move));
   };
   const holding = input.holdMove != null;
-  const liveMove = holding ? null : Math.min(input.movesPlayed.you + 1, limit);
+  const atTable = input.moveState?.kind === "table" || input.moveState?.kind === "void";
+  const liveMove = holding || atTable ? null : Math.min(input.movesPlayed.you + 1, limit);
   const lines = input.moveState ? liveLinesFor(input.moveState, input.live, copy, input.line2Extras) : liveText(input.live, copy);
   return emptyRows(limit).map((row) => {
     const cells = { you: cellFor("you", row.move), opp: cellFor("opp", row.move) };

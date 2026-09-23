@@ -18,6 +18,9 @@ import { useRoomStore, type RoomPhase as StorePhase } from "@/lib/room/roomStore
 import type { AccumulatedWord, LiveState } from "@/lib/room/ledgerRows";
 import type { SlipState } from "@/lib/room/slip";
 import { turnFrameFor, type Line2Extras, type MoveState } from "@/lib/room/moveState";
+import { tableSlipFor } from "@/lib/room/tableSlip";
+import { tableFacts } from "@/components/room/hooks/useTable";
+import { BLANK_BOARD } from "@/lib/constants/board";
 import type { Coordinate } from "@/lib/types/board";
 import type { MatchResult, MatchState } from "@/lib/types/match";
 import {
@@ -35,6 +38,10 @@ import {
   FIXTURE_FROZEN,
   FIXTURE_WORDS,
   HOLD_MOVE,
+  TABLE_NOW_MS,
+  tableState,
+  voidState,
+  VOID_SEARCHING_ELAPSED,
   ILLEGAL_CELL,
   ILLEGAL_LIVE,
   KARI,
@@ -188,7 +195,8 @@ const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, moveState: YOU
 const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, moveState: YOUR_MOVE };
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
-type MatchPhase = Exclude<RoomPhase, "landing-slip" | "returning-slip" | "lobby" | "queue" | "found" | "profile" | "rules">;
+type TablePhase = "table" | "table-seated" | "void" | "void-queue";
+type MatchPhase = Exclude<RoomPhase, "landing-slip" | "returning-slip" | "lobby" | "queue" | "searching-paused" | "profile" | "rules" | TablePhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -241,7 +249,7 @@ function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
 }
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", "returning-slip": "lobby", profile: "lobby", queue: "queue", found: "found", final: "final", "over-slip": "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", "returning-slip": "lobby", profile: "lobby", queue: "queue", "searching-paused": "queue", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
@@ -313,29 +321,33 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     );
   }
 
-  if (phase === "queue" || phase === "found") {
-    const found = phase === "found";
+  if (phase === "queue" || phase === "searching-paused") {
+    // Spec 069 FR-021: a hidden tab's search waits for `resume ▸`.
+    const paused = phase === "searching-paused";
+    const resume = (
+      <button type="button" className="action-primary" data-testid="queue-resume" onClick={NO_OP}>
+        {copy.table.RESUME}
+      </button>
+    );
     return (
       <RoomShell viewer={BIRNA}>
         <QueueRoomView
           viewer={BIRNA}
-          opponent={found ? KARI : null}
-          found={found ? { countdown: 3 } : null}
+          opponent={null}
           elapsed={QUEUE_ELAPSED}
-          live={found ? startsIn(3) : settingField(QUEUE_LETTERS_LANDED)}
+          live={settingField(QUEUE_LETTERS_LANDED)}
           hint={searchingSubline(QUEUE_ELAPSED)}
+          search={paused ? { name: copy.FINDING_OPPONENT, subline: copy.table.SEARCH_PAUSED, action: resume } : null}
           onAction={NO_OP}
         >
-          <Field
-          language="is"
-            board={FIXTURE_BOARD}
-            viewerSlot="player_a"
-            disabled
-            landedCount={found ? null : QUEUE_LETTERS_LANDED}
-          />
+          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" disabled landedCount={QUEUE_LETTERS_LANDED} />
         </QueueRoomView>
       </RoomShell>
     );
+  }
+
+  if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue") {
+    return <TableFixture phase={phase} copy={copy} />;
   }
 
   const completed = phase === "final" || phase === "over-slip";
@@ -376,6 +388,42 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
         onAction={NO_OP}
       >
         <MatchField drawnCount={drawnCount} marks={spec.marks} turnFrame={spec.moveState ? turnFrameFor(spec.moveState) : null} disabled={completed || locked} bands={bands} ticks={spec.ticks} />
+      </MatchRoomView>
+    </RoomShell>
+  );
+}
+
+/** Spec 069 (canvas Table, Void): the table and the void, over the empty ruled field. */
+function TableFixture({ phase, copy }: { phase: TablePhase; copy: Copy }) {
+  const state = phase === "table" ? tableState({ a: null, b: null }) : phase === "table-seated" ? tableState({ a: "2026-09-23T12:00:01.000Z", b: null }) : voidState(phase === "void" ? "challenge" : "queue");
+  const voided = phase === "void" || phase === "void-queue";
+  const derived = tableSlipFor({ match: state, viewerSlot: "player_a", you: { name: BIRNA.displayName, rating: BIRNA.eloRating ?? null }, opp: { name: KARI.displayName, rating: KARI.eloRating ?? null }, nowMs: TABLE_NOW_MS, copy });
+  const slip = derived?.kind === "void" && phase === "void-queue" ? { ...derived, model: { ...derived.model, searching: `${copy.SEARCHING} · ${VOID_SEARCHING_ELAPSED}` } } : derived;
+  const seats = matchSeats({ completed: false, reconnectMsLeft: null, you: { moves: 0, score: 0 }, opp: { moves: 0, score: 0 }, lines: finalLines(copy) });
+  return (
+    <RoomShell viewer={BIRNA}>
+      <MatchRoomView
+        matchId={state.matchId}
+        viewerSlot="player_a"
+        you={seats.you}
+        opp={seats.opp}
+        clockMs={300_000}
+        clockLengthMs={300_000}
+        moveLimit={10}
+        completed={false}
+        words={[]}
+        playerAId={YOU_ID}
+        frozenTiles={{}}
+        live={{ kind: "idle" }}
+        moveState={{ kind: voided ? "void" : "table", opponentName: KARI.displayName }}
+        holdMove={null}
+        caption={voided ? copy.table.VOID_LABEL : copy.table.CONTEXT}
+        notices={[]}
+        table={tableFacts(state, "player_a")}
+        tableSlip={slip}
+        onAction={NO_OP}
+      >
+        <Field language="is" board={BLANK_BOARD as string[][]} viewerSlot="player_a" disabled onActivate={NO_OP} />
       </MatchRoomView>
     </RoomShell>
   );

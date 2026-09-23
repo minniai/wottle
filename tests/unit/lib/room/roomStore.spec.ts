@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { MatchState, MoveResolution, PlayerMatchFacts } from "@/lib/types/match";
+import { SEATED_TABLE } from "@/lib/match/table";
 
 const A = "player-a";
 const B = "player-b";
@@ -24,6 +25,8 @@ function matchState(overrides: Partial<MatchState> = {}): MatchState {
     resolvedSeq: 0,
     scores: { playerA: 0, playerB: 0 },
     frozenTiles: {},
+    table: SEATED_TABLE,
+    stakes: null,
     ...overrides,
   };
 }
@@ -41,15 +44,12 @@ describe("roomStore (spec 044 data-model §3.1, spec 050)", () => {
     useRoomStore.setState({ viewer: null, board: board(), connection: "realtime" });
   });
 
-  it("walks lobby → queue → found → match → final → lobby without clearing the board", () => {
+  it("walks lobby → queue → match → final → lobby without clearing the board", () => {
     const s = useRoomStore.getState;
     const initial = s().board;
     s().startQueue(1_000);
     expect(s().phase).toBe("queue");
     expect(s().queue).toEqual({ startedAt: 1_000, lettersLanded: 0 });
-    expect(s().board).toBe(initial);
-
-    s().setPhase("found");
     expect(s().board).toBe(initial);
 
     s().hydrateMatch(matchState(), A);
@@ -167,17 +167,11 @@ describe("roomStore (spec 044 data-model §3.1, spec 050)", () => {
     expect(useRoomStore.getState().connection).toBe("polling");
   });
 
-  it("queue: letters landed count advances; found writes the opponent and counts down", () => {
+  it("queue: the letters landed count advances", () => {
     const s = useRoomStore.getState;
     s().startQueue(0);
     s().setLettersLanded(58);
     expect(s().queue?.lettersLanded).toBe(58);
-    const kari = { id: "k", username: "kari", displayName: "Kári", status: "in_match" as const, lastSeenAt: "" };
-    s().setFound(kari, 3);
-    expect(s().phase).toBe("found");
-    expect(s().opponent?.displayName).toBe("Kári");
-    expect(s().found).toEqual({ countdown: 3 });
-    expect(s().queue).toBeNull();
   });
 });
 
@@ -221,5 +215,21 @@ describe("roomStore: each player's last resolved move, for the tick (spec 068 FR
     store.applyResolution(resolution({ globalSeq: 1 }));
     store.leaveToLobby();
     expect(useRoomStore.getState().lastResolved).toEqual({});
+  });
+
+  it("a void table stays in the match phase: it has no final state (spec 069)", () => {
+    const s = useRoomStore.getState;
+    s().hydrateMatch(matchState({ state: "completed", endedReason: "void" }), A);
+    expect(s().phase).toBe("match");
+  });
+
+  it("keeps the table's stakes after go, when snapshots no longer carry them (spec 069 US8)", () => {
+    const s = useRoomStore.getState;
+    const stakes = { [A]: { win: 8, draw: 0, loss: -9 } };
+    s().hydrateMatch(matchState({ state: "pending", stakes }), A);
+    s().applySnapshot(matchState({ stakes: null }));
+    expect(s().stakes).toEqual(stakes);
+    s().hydrateMatch(matchState({ matchId: "m2", stakes: null }), A);
+    expect(s().stakes).toBeNull();
   });
 });

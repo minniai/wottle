@@ -140,8 +140,9 @@ const TAGLINE = "two players · one field · English words";
 const NEW_HERE_HOW_TO_PLAY = "new here · how to play ▸";
 const SIGN_IN_TO_SET_THE_FIELD = "sign in to set the field";
 const RESIGN_QUESTION = "Resign the match?";
-const resignConsequence = (opponentName: string): string =>
-  `${opponentName} wins · your rating moves as a loss`;
+/** Spec 069 US8: with the table's loss stake when the room has it, in ink (a rating change is never `--err`). */
+const resignConsequence = (opponentName: string, loss?: number): string =>
+  `${opponentName} wins · your rating moves as a loss${loss === undefined ? "" : ` · ${stake(loss)}`}`;
 const resignLabel = (move: number, clockMmSs: string): string =>
   `move ${move} of 10 · ${clockMmSs} left`;
 const YES_RESIGN = "yes, resign ▸";
@@ -252,6 +253,47 @@ const profileUnavailable = (reason: string | null): string =>
   `profile unavailable · ${(reason ?? "try again in a moment").toLowerCase()}`;
 const noSuchPlayer = (handle: string): string => `No such player · @${handle} has not played a round here yet`;
 // Messages the server sends back, by code (research R4)
+// The table (spec 069, game flow C1–C3, B7)
+/** `+8`, `0`, `−8`: a rating change at stake, in ink (never `--err`). */
+const stake = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
+const table = {
+  label: (mmSs: string): string => `opponent found · ${mmSs}`,
+  CONTEXT: "opponent found",
+  facts: (words: string, moves: number, clockMmSs: string): string => `${words} · ${moves} moves each · one ${clockMmSs} clock`,
+  stakes: (win: number, draw: number, loss: number): string => `win ${stake(win)} · draw ${stake(draw)} · loss ${stake(loss)}`,
+  ON_THE_WAY: "on the way",
+  READY: "ready",
+  NOT_READY: "not ready",
+  OPPONENT: "opponent",
+  seatYou: (name: string): string => `${name} · you`,
+  READY_ACTION: "ready ▸",
+  YOU_ARE_SEATED: "you are seated",
+  LEAVE: "leave",
+  STARTS_WHEN_SEATED: "starts when both sit",
+  PICK_WHEN_CLOCK_STARTS: "pick when the clock starts",
+  VOID_LABEL: "no match",
+  NOT_STARTED: "not started",
+  YOU_LEFT: "You left the table",
+  voidOppNotSeated: (name: string): string => `${name} did not sit down`,
+  voidOppLeft: (name: string): string => `${name} left the table`,
+  VOID_YOU_NOT_SEATED: "You did not sit down in time",
+  NOTHING_RATED: "nothing was rated",
+  BACK_IN_QUEUE: "you are back in the queue",
+  DID_NOT_SIT_DOWN: "did not sit down",
+  LEFT: "left",
+  CHALLENGE_AGAIN: "challenge again ▸",
+  MISSED_NOTICE: "you did not sit down · your search stopped",
+  SEARCH_PAUSED: "search paused",
+  RESUME: "resume ▸",
+  stillSearching: (mmSs: string): string => `Still searching? · ${mmSs}`,
+  KEEP_SEARCHING: "keep searching ▸",
+  SEARCH_STOPPED: "search stopped",
+  FIND_AGAIN: "find again ▸",
+  findAgainIn: (mmSs: string): string => `find again in ${mmSs}`,
+  titleTable: (name: string): string => `${name} · opponent found`,
+  titleStarting: (n: number, name: string): string => `${n} · ${name}`,
+  titleSearching: (mmSs: string): string => `searching ${mmSs}`,
+};
 const errors = {
   rate_limited: "too many tries · wait a minute",
   invalid_name: "3 to 24 letters, digits, - or _",
@@ -270,6 +312,9 @@ const errors = {
   move_cap: "you have made all your moves",
   move_in_flight: "your previous move is still being scored",
   move_failed: "swap rejected",
+  not_started: "the match has not started",
+  table_late: "too late to sit down",
+  table_cooldown: "you left two tables · wait a few minutes",
   unknown: "something went wrong · try again",
 } as const satisfies Record<string, string>;
 // Rules page
@@ -463,6 +508,7 @@ export const copyEn = {
   ratingChartAria,
   profileUnavailable,
   noSuchPlayer,
+  table,
   errors,
   RULES_TITLE,
   rulesMetaTitle,

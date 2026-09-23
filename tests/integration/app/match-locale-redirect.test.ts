@@ -51,4 +51,12 @@ describe("the match page follows the match's language", () => {
     vi.mocked(loadMatchState).mockResolvedValue(state("en") as never);
     await expect(MatchPage({ params: { matchId: "m1", locale: "en" } })).resolves.toBeTruthy();
   });
+
+  test("a void table is shown to its players and to nobody else (spec 069 T043)", async () => {
+    const voided = { ...state("is"), state: "completed", endedReason: "void" };
+    vi.mocked(loadMatchState).mockResolvedValue(voided as never);
+    await expect(MatchPage({ params: { matchId: "m1", locale: "is" } })).resolves.toBeTruthy();
+    vi.mocked(readLobbySession).mockResolvedValue({ player: { id: "p9" } } as never);
+    await expect(MatchPage({ params: { matchId: "m1", locale: "is" } })).rejects.toThrow("NEXT_REDIRECT:/lobby");
+  });
 });

@@ -36,7 +36,7 @@ export async function resignMatch(
 
   const { data: match, error } = await supabase
     .from("matches")
-    .select("id,state,player_a_id,player_b_id,winner_id")
+    .select("id,state,player_a_id,player_b_id,winner_id,started_at")
     .eq("id", matchId)
     .single();
 
@@ -53,6 +53,11 @@ export async function resignMatch(
 
   if (match.state === "completed") {
     throw new Error("Match has already ended.");
+  }
+
+  // Spec 069 FR-019: nobody forfeits a match that has not started; the way out of a table is `leave`.
+  if (match.state === "pending" || (match.started_at && Date.parse(match.started_at) > Date.now())) {
+    throw new Error("The match has not started.");
   }
 
   const winnerId =

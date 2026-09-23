@@ -4,6 +4,12 @@
  */
 import type { TestDb } from "./harness";
 
+/** Spec 069: a match past the table was sat at by both players, and started. */
+const SEATED_NOW = () => {
+  const at = new Date().toISOString();
+  return { player_a_seated_at: at, player_b_seated_at: at, started_at: at };
+};
+
 export type Rpc = Record<string, unknown> & { status: string };
 
 export class Fixtures {
@@ -49,7 +55,7 @@ export class Fixtures {
   async match(a: string, b: string, state: "pending" | "in_progress" | "completed", language: "is" | "en" = "is"): Promise<string> {
     const { data, error } = await this.db.client
       .from("matches")
-      .insert({ board_seed: crypto.randomUUID(), player_a_id: a, player_b_id: b, state, language })
+      .insert({ board_seed: crypto.randomUUID(), player_a_id: a, player_b_id: b, state, language, ...(state === "pending" ? {} : SEATED_NOW()) })
       .select("id")
       .single();
     if (error || !data) throw new Error(`matches.insert: ${error?.message}`);

@@ -16,6 +16,7 @@ const SAMPLE: Record<string, unknown> = {
   reason: "forfeit", margin: 46, wordsA: 12, wordsB: 9, terrA: 30, terrB: 22, count: 3,
   c: { row: 8, column: "F", letter: "T", value: 2, state: "free" }, monthIndex: 8, year: 2026,
   on: true, you: 30, opp: 22, free: 48, label: "klukkan", time: "1:12", left: 4, limit: 10,
+  win: 8, draw: 0, loss: -8, mmSs: "0:14",
   peak: 1216, weekDelta: "+12", month: "september 2026", result: "win", handle: "kari",
   lengthBonus: 5, missPenalty: "−5", min: 1180, max: 1216, wordmark: "orðusta",
 };
@@ -29,9 +30,12 @@ function argsFor(fn: (...args: unknown[]) => unknown): unknown[] {
     .map((p) => SAMPLE[p] ?? 3);
 }
 
+/** A nested group (spec 069 `table`) renders its values, never its keys, so a key named `OPPONENT` is not English. */
 function render(value: unknown): string {
   const out = typeof value === "function" ? (value as (...a: unknown[]) => unknown)(...argsFor(value as never)) : value;
-  return typeof out === "string" ? out : JSON.stringify(out);
+  if (typeof out === "string") return out;
+  if (out && typeof out === "object" && !Array.isArray(out)) return Object.values(out).map(render).join(" | ");
+  return JSON.stringify(out);
 }
 
 const ENGLISH_WORDS = /\b(the|your|waiting|points|match over|you win|opponent|rating pending|challenge|sign in)\b/i;

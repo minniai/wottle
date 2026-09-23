@@ -96,6 +96,9 @@ export async function createTestMatch(db: TestDb, options: MatchOptions = {}): P
     deadline_at: new Date(now + (options.deadlineInMs ?? 300_000)).toISOString(),
     player_a_moves: options.moves?.a ?? 0,
     player_b_moves: options.moves?.b ?? 0,
+    // Spec 069: a match that started was sat at by both players.
+    player_a_seated_at: new Date(now - 5000).toISOString(),
+    player_b_seated_at: new Date(now - 5000).toISOString(),
   });
   if (matchError) throw new Error(`matches.insert: ${matchError.message}`);
   return { matchId, playerAId: a.id, playerBId: b.id };

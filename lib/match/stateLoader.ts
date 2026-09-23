@@ -1,9 +1,9 @@
-import { readRatings } from "@/lib/rating/playerRatings";
-import { getLanguagePack } from "@/lib/game-engine/languagePack";
+import { TABLE_COLUMNS, tableOf, type TableRow } from "@/lib/match/table";
+import { DEFAULT_RATING_RECORD, readRatings } from "@/lib/rating/playerRatings";
+import { stakesFor } from "@/lib/rating/stakes";
 import type { Language } from "@/lib/types/game-config";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { generateBoard } from "@/lib/game-engine/boardGenerator";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import { logPlaytestError } from "@/lib/observability/log";
 import { boardGridSchema } from "@/lib/types/board";
@@ -18,10 +18,13 @@ import type {
   MatchState,
   MoveResolution,
   PlayerMatchFacts,
+  Stakes,
   WordScore,
 } from "@/lib/types/match";
 
 import { getDisconnectRecord, RECONNECT_WINDOW_MS } from "./disconnectStore";
+import { startingBoardFor } from "./startingBoard";
+import { startTableIfSeated, voidDueTable } from "./tableService";
 import { findStaleParticipantDetail } from "./heartbeatRepository";
 import { mapWordScoreRows, type WordScoreEntryRow } from "./wordScoreRow";
 
@@ -31,15 +34,13 @@ type AnyClient = SupabaseClient<any, any, any>;
  * The room's snapshot (spec 050, contracts/match-state.md). One read of the
  * match row, the in-flight and last finished moves, and the heartbeats.
  *
- * Start: while the match is `pending`, a participant's load calls
- * `start_match_if_ready`, which records the caller, sets the board once and
- * starts the clock 3s ahead once both have loaded (or 10s after creation).
+ * The table (spec 069): a `pending` match is a table. The loader never
+ * starts one by itself and never hands out its letters; it voids a table
+ * whose time to sit down has run out and starts one both players sat at
+ * (both through `tableService`), and reads the players' stakes.
  * Self-heal: a pending or stale move dispatches the resolver; a passed
  * deadline dispatches settlement. Both are deduplicated per process.
  */
-export const MATCH_CLOCK_MS = Number(process.env.PLAYTEST_MATCH_CLOCK_MS ?? 300_000);
-export const START_COUNTDOWN_MS = 3_000;
-export const START_GRACE_MS = 10_000;
 /** A move claimed longer ago than this is reclaimable; the loader nudges the resolver when it sees one. */
 export const STALE_CLAIM_MS = 10_000;
 
@@ -84,7 +85,7 @@ export function __resetSelfHealTrackerForTests(): void {
 
 // ─── Rows ────────────────────────────────────────────────────────────
 
-interface MatchRow {
+interface MatchRow extends TableRow {
   id: string;
   state: MatchPhase;
   board_seed: string | null;
@@ -129,7 +130,7 @@ interface MoveRow {
 }
 
 const MATCH_COLUMNS =
-  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,completed_at,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit,language";
+  "id,state,board_seed,board,player_a_id,player_b_id,frozen_tiles,winner_id,ended_reason,completed_at,created_at,started_at,deadline_at,resolved_seq,player_a_moves,player_b_moves,player_a_score,player_b_score,move_limit,language," + TABLE_COLUMNS;
 
 const MOVE_COLUMNS =
   "id,player_id,global_seq,seq,status,rejection_reason,from_x,from_y,to_x,to_y,received_at,claimed_at,resolved_at,board_after,frozen_after,delta,score_a_after,score_b_after";
@@ -143,48 +144,44 @@ function coerceFrozenTileMap(value: unknown): FrozenTileMap {
   return value && typeof value === "object" ? (value as FrozenTileMap) : {};
 }
 
-// ─── Start ───────────────────────────────────────────────────────────
-
-interface StartAnswer {
-  found: boolean;
-  started?: boolean;
-  state?: MatchPhase;
-  startedAt?: string | null;
-  deadlineAt?: string | null;
-}
+// ─── The table (spec 069) ───────────────────────────────────────────
 
 function languageOf(match: Pick<MatchRow, "language">): Language {
   return match.language ?? "is";
 }
 
-/** The starting board from the seed, drawn from the match language's letters (spec 060 FR-014). */
-function boardFor(match: Pick<MatchRow, "board_seed" | "id" | "language">): string[][] {
-  return generateBoard({ seed: match.board_seed ?? match.id, weights: getLanguagePack(languageOf(match)).letterWeights });
+async function readMatchRow(client: AnyClient, matchId: string): Promise<MatchRow | null> {
+  const { data, error } = await client.from("matches").select(MATCH_COLUMNS).eq("id", matchId).maybeSingle();
+  if (error) {
+    console.error("[MatchState] Failed to load match:", error);
+    return null;
+  }
+  return (data ?? null) as MatchRow | null;
 }
 
-async function startIfReady(client: AnyClient, match: MatchRow, callerId: string): Promise<void> {
-  const board = parseBoard(match.board) ?? boardFor(match);
-  const { data, error } = await client.rpc("start_match_if_ready", {
-    p_match_id: match.id,
-    p_caller_id: callerId,
-    p_board: board,
-    p_clock_ms: MATCH_CLOCK_MS,
-    p_countdown_ms: START_COUNTDOWN_MS,
-    p_grace_ms: START_GRACE_MS,
-  });
-  if (error) {
-    console.error("[MatchState] start_match_if_ready failed:", error.message);
-    return;
-  }
-  const answer = (data ?? {}) as StartAnswer;
-  match.board = board;
-  if (answer.state) match.state = answer.state;
-  match.started_at = answer.startedAt ?? match.started_at;
-  match.deadline_at = answer.deadlineAt ?? match.deadline_at;
-  if (answer.started) {
-    const language = languageOf(match);
-    void import("@/lib/game-engine/dictionary").then(({ loadDictionary }) => loadDictionary(language)).catch(() => undefined);
-  }
+/** A table past its time without both seats is void; one both sat at starts. Either way, read it again. */
+async function settleTable(client: AnyClient, match: MatchRow): Promise<MatchRow> {
+  const seated = match.player_a_seated_at !== null && match.player_b_seated_at !== null;
+  const due = match.table_deadline_at !== null && Date.parse(match.table_deadline_at) <= Date.now();
+  if (!seated && !due) return match;
+  if (seated) await startTableIfSeated({ client }, match.id);
+  else await voidDueTable({ client }, match.id);
+  return (await readMatchRow(client, match.id)) ?? match;
+}
+
+async function stakesOf(client: AnyClient, match: MatchRow): Promise<Record<string, Stakes>> {
+  const ratings = await readRatings(client, [match.player_a_id, match.player_b_id], languageOf(match));
+  const a = ratings.get(match.player_a_id) ?? DEFAULT_RATING_RECORD;
+  const b = ratings.get(match.player_b_id) ?? DEFAULT_RATING_RECORD;
+  return { [match.player_a_id]: stakesFor(a, b), [match.player_b_id]: stakesFor(b, a) };
+}
+
+/** The letters leave the server only once both players are seated (FR-003). */
+function boardOf(match: MatchRow): string[][] | null {
+  if (match.state === "pending" || match.ended_reason === "void") return null;
+  const board = parseBoard(match.board);
+  if (!board) logPlaytestError("match.board.unreadable", { matchId: match.id, metadata: { matchState: match.state } });
+  return board ?? startingBoardFor(match);
 }
 
 // ─── Moves ───────────────────────────────────────────────────────────
@@ -295,27 +292,10 @@ async function disconnectFacts(client: AnyClient, match: MatchRow) {
 
 // ─── The loader ──────────────────────────────────────────────────────
 
-export interface LoadMatchStateOptions {
-  /** The participant loading the room; lets a pending match record them and start. */
-  callerId?: string;
-}
-
-export async function loadMatchState(
-  client: AnyClient,
-  matchId: string,
-  options: LoadMatchStateOptions = {},
-): Promise<MatchState | null> {
-  const { data, error: matchError } = await client.from("matches").select(MATCH_COLUMNS).eq("id", matchId).maybeSingle();
-  if (matchError) {
-    console.error("[MatchState] Failed to load match:", matchError);
-    return null;
-  }
-  const match = (data ?? null) as MatchRow | null;
-  if (!match) return null;
-
-  if (match.state === "pending" && options.callerId) {
-    await startIfReady(client, match, options.callerId);
-  }
+export async function loadMatchState(client: AnyClient, matchId: string): Promise<MatchState | null> {
+  const read = await readMatchRow(client, matchId);
+  if (!read) return null;
+  const match = read.state === "pending" ? await settleTable(client, read) : read;
 
   const facts = await loadMoveFacts(client, matchId);
   if (match.state === "in_progress" && facts.stale) triggerResolveInBackground(matchId);
@@ -323,16 +303,11 @@ export async function loadMatchState(
     triggerSettleInBackground(matchId);
   }
 
-  const board = parseBoard(match.board);
-  if (!board) {
-    logPlaytestError("match.board.unreadable", { matchId, metadata: { matchState: match.state } });
-  }
-
   const clock: MatchClock = { startedAt: match.started_at, deadlineAt: match.deadline_at, serverNow: new Date().toISOString() };
 
   return {
     matchId: match.id,
-    board: board ?? boardFor(match),
+    board: boardOf(match),
     state: match.state,
     players: {
       playerA: playerFacts(match, match.player_a_id, facts),
@@ -348,6 +323,8 @@ export async function loadMatchState(
     winnerId: match.winner_id ?? null,
     endedReason: (match.ended_reason as MatchEndedReason | null) ?? null,
     completedAt: match.completed_at ?? null,
+    table: tableOf(match),
+    stakes: match.state === "pending" ? await stakesOf(client, match) : null,
   };
 }
 

@@ -410,8 +410,31 @@ test.describe("@visual the room fits a phone", () => {
     });
   }
 
+  // Spec 069 FR-028 (artboard PhoneTable): the table fits every phone size; both actions and the
+  // facts line (moved from the slip to the live row) stay in view, and nothing scrolls.
+  for (const { width, height, name } of [
+    { width: 390, height: 844, name: "phone-table" },
+    { width: 390, height: 664, name: "phone-table-664" },
+    { width: 360, height: 640, name: "phone-table-360" },
+  ]) {
+    test(`${name} (${width}×${height}): the table fits, nothing scrolls`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("/dev/room?phase=table");
+      await expect(page.getByTestId("slip")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const g = await page.evaluate(() => ({ scrollHeight: document.scrollingElement!.scrollHeight, scrollWidth: document.scrollingElement!.scrollWidth }));
+      expect(g.scrollHeight).toBeLessThanOrEqual(height);
+      expect(g.scrollWidth).toBeLessThanOrEqual(width);
+      for (const id of ["slip-ready", "slip-leave-table", "ledger-phone-foot"]) await expect(page.getByTestId(id)).toBeInViewport();
+      await expect(page.getByTestId("ledger-live-trigger")).toContainText("íslensk orð · 10 leikir hvor");
+      await expect(page.getByTestId("slip").locator("[data-slip-facts]")).toBeHidden();
+      await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: false });
+    });
+  }
+
   // Spec 068 FR-018 (game flow F8): a phone slip is exactly the field's square and never crosses the scoreboard.
-  for (const phase of ["resign", "end-early"]) {
+  // Spec 069 (game flow F5): the table's slips too.
+  for (const phase of ["resign", "end-early", "table", "void"]) {
     test(`the ${phase} slip fills the field's square`, async ({ page }) => {
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByTestId("slip")).toBeVisible();
@@ -527,7 +550,7 @@ test.describe("@visual room clarity", () => {
     }
   });
 
-  for (const phase of ["landing-slip", "returning-slip", "resign", "end-early", "over-slip"]) {
+  for (const phase of ["landing-slip", "returning-slip", "resign", "end-early", "over-slip", "table", "table-seated", "void", "void-queue"]) {
     test(`${phase} is accessible with the slip open`, async ({ page }) => {
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByRole("dialog")).toBeVisible();

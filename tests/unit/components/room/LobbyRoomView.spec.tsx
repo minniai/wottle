@@ -80,4 +80,12 @@ describe("LobbyRoomView (spec 045 US1, FR-003)", () => {
       expect(src, `LobbyRoomView must not import ${banned}`).not.toContain(banned);
     }
   });
+
+  it("during the table-leave cooldown the find action is a countdown, not a control (spec 069 T055)", () => {
+    render(view({ findAgainIn: "4:12" }));
+    expect(screen.queryByTestId("player-bar-action-find")).toBeNull();
+    const wait = screen.getByTestId("player-bar-find-again");
+    expect(wait).toHaveTextContent("find again in 4:12");
+    expect(wait.tagName).not.toBe("BUTTON");
+  });
 });

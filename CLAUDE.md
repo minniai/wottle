@@ -20,9 +20,15 @@ Wottle is a competitive 2-player real-time word duel built with Next.js, TypeScr
 - **Name.** Orðusta and Wottle are capitalised wherever written as a word (`lib/i18n/locales.ts` `wordmark`); a live match's tab title reads `3:12 · move 4 · Wottle`.
 - **Phase B (the whole move).** A 2px last-moved tick under each player's latest resolved swap; live row line 2 shows one source by precedence and never wraps; the missed beat (`move 4 · no word`) and the stakes under 1:00 (`3 moves left · −15 if unplayed`); opponent moves and `1:00 left` / `0:15 left` announced once (`useAnnouncements`); focus moves to the field at go; the resign slip's primary is `keep playing ▸`; the end-early slip focuses its headline, guards its primary for 500ms, and `keep waiting ▸` moves the offer to line 2 for good; your own outage reads `offline · reconnecting`, then `back · away 0:34 · the clock ran on` (`useOutage` in `useMatchTransport`).
 
+**The table (spec `specs/069-match-table/spec.md`, 2026-09-23, branch `069-match-table`)**: nobody is rated for a match they did not sit down at.
+- **The table.** Every match begins `pending`, at a table: the field is the empty ruled frame under the **ready** slip and the server holds the letters (`board: null`) until both players are seated. A player is seated at creation by their own press (accepting a challenge or rematch, or a crossed send) or by a visible tab with input in the last 30s (`useAttention`, reported on the table check, the queue poll and the match's state poll); anyone else has 20s to press `ready ▸` / `ég er til ▸`. `seat_player`'s second seat writes the board and sets `started_at` 4.5s ahead; the slip lifts 3.3s before go and the 3·2·1 runs in the scoreboard's clock row (`lib/room/tableSlip.ts`, `components/room/hooks/useTable.ts`).
+- **The void.** A table not filled in 20s, or left (`leave`, or Back), is `completed` with `ended_reason` `void` (`void_reason` `not_seated` | `left`, `voided_by`): no winner, no rating, in no history, record or rematch offer. A seated queue player is requeued at the front (`queued_at` kept) and keeps searching from the **void** slip; the absent player's search stops (`you did not sit down · your search stopped`). Voided lazily by the loader, by a seat past the deadline and by the 30s sweep (`find_due_tables`). `resignMatch` refuses before go.
+- **The queue.** Paired in `queued_at` order among searchers heard from within 10s and not paused; a hidden tab pauses its search on every device (a beacon to `/api/matchmaking/pause`; `resume ▸`); 3:00 in, `Still searching?`; a pairing pushes `/match/:id` (the queue's own `found` phase is gone). Two `left` voids in 10 minutes refuse searching and sending challenges for 5 minutes (`table_leave_cooldown_until`; the lobby reads `find again in 4:12`); accepting stays open.
+- **Everywhere.** Every room page checks every 3s for a waiting table (`useTableCheck` → `GET /api/match/active`); tables are pushed history; the resign slip names the loss stake the table showed. One migration, `supabase/migrations/20260924001_the_table.sql` (it drops `start_match_if_ready`); the table's functions are called only from `lib/match/tableService.ts`.
+
 **Languages by URL (spec `specs/060-locales/spec.md`, 2026-09-22, branch `060-locales`)**: every page lives under `app/[locale]`; `proxy.ts` serves Icelandic unprefixed (`/`, `/lobby`, `/match/…`, wordmark `Orðusta`), English under `/en/…` (`Wottle`), and redirects `/is/…` to the bare path (`lib/i18n/routing.ts`). Build every internal path with `localePath` / `useLocalePath` (`lib/i18n/locales.ts`; `tests/unit/styles/locale-links-grep.test.ts` fails on a bare one). Strings are one typed object per language, `lib/i18n/copy/{en,is}.ts` (`Copy`; a parity test fails on a missing key or an English leftover), read with `useCopy()` or `getCopy(locale)` and passed to the room's pure functions as `copy`; server failures reach the room as `ErrorCode`s. A match's language is fixed at creation (`matches.language`; invites carry it, rematches copy it, a match opened under the other locale redirects to its own) and picks its language pack (`lib/game-engine/languagePack.ts`: dictionary, letter values, letter weights). Queue (`players.queue_language`), lobby presence (`lobby_presence.language`, Realtime `lobby-presence:{language}`) and ratings (`player_ratings (player_id, language)`, `lib/rating/playerRatings.ts`) are per language. Adding a language is a registry entry, a copy file, a word list and a language pack. Tasks and notes: `specs/060-locales/tasks.md`.
 
-Fixture phases (32): landing-slip, returning-slip, lobby, queue, found, idle, picking, illegal, reveal, final, disconnect, profile, phone-sheet, resign, over-slip, rules, scoring, scored, opp-reveal, rejected, done-waiting, time-up, end-early, low-clock, last-seconds, starting, missed, stakes, pick-cleared, last-moved, gone, offline. The phone views `phone-match`, `phone-match-664` and `phone-match-360` are viewport tests over `idle` with their own baselines, not phases.
+Fixture phases (36): landing-slip, returning-slip, lobby, queue, table, table-seated, void, void-queue, searching-paused, idle, picking, illegal, reveal, final, disconnect, profile, phone-sheet, resign, over-slip, rules, scoring, scored, opp-reveal, rejected, done-waiting, time-up, end-early, low-clock, last-seconds, starting, missed, stakes, pick-cleared, last-moved, gone, offline. The phone views `phone-match`, `phone-match-664` and `phone-match-360` (over `idle`) and `phone-table`, `phone-table-664` and `phone-table-360` (over `table`) are viewport tests with their own baselines, not phases.
 
 ## Design (MANDATORY for any UI change)
 
@@ -30,7 +36,7 @@ Fixture phases (32): landing-slip, returning-slip, lobby, queue, found, idle, pi
 - **Crimson (`--err`) marks a number of points lost and nothing else** (spec 068): the `−5` of `no word` and of `not played`. Only the number is crimson; its label stays `--muted`, and a floored 0 is muted. Never a seat, a rating change, urgency, a frame, focus or a control. Its one door is the `.points-lost` class, applied only by `components/room/PointsLost.tsx`.
 - Every visible element is a letter (or a state of a letter) on the **field**, a fact about one player on that player's row of the **scoreboard** (in a match) or in their **bar** (lobby, queue), or a fact about the match on the scoreboard's clock row or in the **ledger**. If a new element is none of these, do not add it.
 - Colours are **seat-relative**: `--you` teal, `--opp` terracotta, always via `getSeatColors(viewerSlot, slot)`. Never map colour to `player_a` / `player_b`.
-- **Only the slip is ever positioned over the field** (design system §5.9, spec 048): a paper panel with a 1.5px ink frame, for sign in, resign, end early (spec 050; it was claim the win) and match over, with the field faded to 32% beneath it. No other modal, banner, toast, overlay or confetti; every other state change is written into the scoreboard, the bars or the ledger's live row. <!-- retired-name -->
+- **Only the slip is ever positioned over the field** (design system §5.9, spec 048): a paper panel with a 1.5px ink frame, for sign in, ready and void (spec 069: the table, derived from the match, never raised), resign, end early (spec 050; it was claim the win) and match over, with the field faded to 32% beneath it. Ranking: match over > end early > resign > ready or void. No other modal, banner, toast, overlay or confetti; every other state change is written into the scoreboard, the bars or the ledger's live row. <!-- retired-name -->
 - **The live row says the beat and the next step** (`lib/room/moveState.ts` `deriveMoveState` → `liveLinesFor` → `{ line1, line2 }`, spec 050): line 1 is the move's beat in the board face (`starts in 3`, `move 4 · your move`, `move 4 · scoring`, `move 4 scored`, `10 of 10 played`, `time · scoring`); line 2 is the field's instruction while a move is yours to make (`pick a letter`, `picking · T (2) · tap a second letter`) or the beat's fact otherwise (`you +13 · move 5 opens`, `Kári · 8 of 10 · 1:12 left`). Line 2 shows exactly one thing (spec 068), by precedence: offline > back > submit error > refused or illegal pick (`frozen · Kári froze it · pick another`, `frozen · GILT · Kári · pick another`, 2s) > pick cleared (`pick cleared · Kári moved that letter`, 2s) > the end-early offer > the missed beat (`−5 · move 5 opens`) or the stakes (`3 moves left · −15 if unplayed`) > the instruction or fact. It never wraps at 1440 (about 40 mono characters; a test renders every string in both languages; a long string is shortened in the copy). After your own reveal the scored row holds 600ms (the move hold) before the next opens, and the field takes no pick meanwhile; the opponent's reveal never locks your field, and a pick on a letter they exchanged or froze clears on line 2, not as a notice.
 - **The scoreboard (spec 068):** in the match states (starting, live, match over) one box above the field (1.5px `--ink` frame) holds the clock and both players; there are no player bars around the field (the lobby and queue keep theirs). Row 1 is the match clock: a two-line label (`match clock`, `under a minute`, `last 12s`, `time`, `starts in 3`, `match over` over the pace `≈27s a move` while the move is yours, or `4:52 of 5:00` at match over), the track, the numeral. Row 2 is the opponent, row 3 you (nearest the board): square, name, sub-line, that player's ten moves on the track (emptying from the right; 30% in flight; outlined when reconnecting, gone or offline), the total. **One track column:** the clock's ten 30s blocks of six 5s ticks stand above each player's ten moves. Only your row names its seat (`1310 · you · move 4 of 10`); theirs reads `1265 · 6 of 10 · playing`, `reconnecting · 0:42 left` in the 90s window and `8 of 10 · gone for 2:04` after it; yours says `move 8 · behind pace` when moves left − seconds left ÷ 30 ≥ 1. Starting: both rows `ready` while the clock row loads over the 3·2·1. Match over: the clock holds what was left and the rows carry the rating lines. The clock is drawn nowhere else. The field is outlined 3px in `--you` only while a move is yours to make.
 - **Nothing blinks.** Urgency is weight and ground only: under 1:00 the clock row takes `--tint`, ink ticks, numeral 700; the last 15 seconds read `last 12s`; 0:00 is an empty track and `time`. Time is not motion: the numeral and ticks step once a second under reduced motion too.
@@ -71,6 +77,7 @@ pnpm typecheck               # TypeScript type check
 pnpm perf:lobby-presence      # Assert lobby broadcast <2s p95
 pnpm perf:move-receipt        # Assert move receipt RTT <200ms p95 (spec 050)
 pnpm perf:move-resolve        # Assert one move resolves <50ms p95, warm dictionary (spec 050)
+pnpm perf:seat                # Assert sitting down at the table <200ms p95, live local Supabase (spec 069)
 pnpm perf:swap                # Legacy swap latency (regression baseline)
 ```
 
@@ -226,7 +233,8 @@ The previous redesign (phases 1a–6, April–June 2026) shipped in full and is 
 #### 4. Move Resolution (`/lib/match/moveResolver.ts`, spec 050)
 
 ```txt
-Match states: pending → in_progress → completed | abandoned
+Match states: pending (the table) → in_progress → completed | abandoned
+              pending → completed with ended_reason 'void' (the table did not fill, or was left)
 Move states:  pending → resolving → resolved | rejected
 
 Move flow:
@@ -247,7 +255,7 @@ Move flow:
 
 #### 4a. Match Creation (spec 067)
 
-- One writer of new matches: `create_match_between(a, b, language, origin, ref)`. It takes both players' row locks in id order and refuses `busy` if either has a `pending` or `in_progress` match.
+- One writer of new matches: `create_match_between(a, b, language, origin, ref, pressed_by)`. It takes both players' row locks in id order and refuses `busy` if either has a `pending` or `in_progress` match. Spec 069: it opens the table (`table_deadline_at` 20s out) and seats the players in `pressed_by` and any whose attention is fresh; a table full at creation starts at once (`start_table_if_seated`).
 - In the same transaction it:
   - books both players (`in_match`, search cleared);
   - withdraws their outgoing challenges and rematch requests;
@@ -261,10 +269,10 @@ Move flow:
 #### 5. Game State Management
 
 - Board: `matches.board` (`BoardGrid = string[][]`, 10x10, written by every resolved move)
-- Clock: **one** 5:00 clock for the match (`matches.started_at`, `matches.deadline_at`), never paused; the deadline is decided at receipt by the database clock. Ten moves per player (`matches.move_limit`). There are no per-player timers and no per-round timer.
+- Clock: **one** 5:00 clock for the match (`matches.started_at`, `matches.deadline_at`), set by the seat that completes the table, 4.5s ahead (spec 069), never paused; the deadline is decided at receipt by the database clock. Ten moves per player (`matches.move_limit`). There are no per-player timers and no per-round timer.
 - Ordering: `match_moves.global_seq` is the authority; `received_at` is informational
 - Refusal: a move whose letters were frozen or exchanged since the player saw them is `rejected` and not counted
-- State loading: `/lib/match/stateLoader.ts` for server-side hydration (starts the match on first load while `pending`; dispatches the resolver and settlement when it sees pending, stale or due work)
+- State loading: `/lib/match/stateLoader.ts` for server-side hydration (never starts a match: a `pending` table past its deadline is voided and one both sat at is started, both through `tableService`; no board before go; the stakes while pending; dispatches the resolver and settlement when it sees pending, stale or due work)
 
 #### 6. Session & Authentication
 
@@ -293,8 +301,9 @@ Room flow (spec 044):
 1. app/(room)/layout.tsx reads the session once → RoomShell seeds roomStore.viewer
 2. Lobby page → LobbyRoomController: presence store, warm-up field, LobbyLedger, invites polled every 3s
 3. find an opponent ▸ → /matchmaking → QueueRoom (keyed on the store's searchId) → QueueRoomController: placeholder letters land, startQueueAction polled
-   every 3s, found → opponent writes into the top bar, real board swapped in, starts in 3·2·1,
-   then MatchRoomController renders in place (URL via history.replaceState)
+   every 3s with the tab's attention (hidden → paused), matched → router.push(/match/:id): the table (spec 069)
+3a. The table: MatchRoomController at the `table` beat, the ready slip over the empty field; ready ▸ → seatAction;
+   the second seat starts the match 4.5s ahead; the 3·2·1 in the scoreboard; leave / Back → leaveTableAction (void)
 4. Match page → MatchRoomController: useMatchTransport (Realtime + 2s safety poll + polling fallback)
    → roomStore.applySnapshot / applyResolution; useFieldInteraction posts moves (with the two letters
    seen); two reveals: own (locks the field, then the 600ms hold) and opponent's (bands only)
@@ -365,7 +374,7 @@ RLS policies enforced on all tables: players, lobby_presence, matches, match_mov
 1. **Legacy `boards` table** — singleton board from the original prototype (`supabase/migrations/20251105001_init.sql`) still exists in the schema and is seeded by `scripts/supabase/seed.ts`; no runtime code reads it anymore. A follow-up migration can drop the table + its seed/reset/verify wiring.
 2. **Unread `matches.rated` column** — added by spec 045, retired by spec 048 (every match is rated). Nothing reads or writes it; a follow-up migration can drop it.
 3. **Unread rating columns on `players`** — `elo_rating`, `games_played`, `wins`, `losses`, `draws` stopped being read or written with spec 060 (ratings live in `player_ratings`, one row per language). A follow-up migration can drop them.
-4. **Icelandic translation review** — `lib/i18n/copy/is.ts` and `components/rules/content/is.tsx` were drafted in the implementation and need a native speaker's read before release. Spec 068 Phase B added `venjulegar reglur ráða úrslitum`, `Kári frysti stafinn · veldu annan`, `Kári færði stafinn · veldu annan`, `samtala fer aldrei undir 0`, `engu að tapa`, `tenging komin · 0:34 án tengingar`, `síðasti leikur · Kári` and `án tengingar · ljúka viðureigninni ▸`.
+4. **Icelandic translation review** — `lib/i18n/copy/is.ts` and `components/rules/content/is.tsx` were drafted in the implementation and need a native speaker's read before release. Spec 068 Phase B added `venjulegar reglur ráða úrslitum`, `Kári frysti stafinn · veldu annan`, `Kári færði stafinn · veldu annan`, `samtala fer aldrei undir 0`, `engu að tapa`, `tenging komin · 0:34 án tengingar`, `síðasti leikur · Kári` and `án tengingar · ljúka viðureigninni ▸`. Spec 069 added, marked `// native-read` in `is.ts`: `veldu þegar klukkan fer af stað`, `þú ert aftur í leitinni`, `skora aftur á ▸`, `þú fórst frá tveimur borðum · bíddu í nokkrar mínútur` and the facts line `íslensk orð · 10 leikir hvor · ein 5:00 klukka`.
 5. **Linux visual baselines** for the `is-*` set and the refreshed English phases come from the CI visual job's artifacts.
 6. **Identity is a bridge (spec 067).** Losing a browser's cookies loses its names until Supabase Auth (next phase) brings recovery. The Icelandic `sign_out_in_match` (`kláraðu viðureignina fyrst`), `opponentBusy` and returning-door strings need the native read in gap 4. `WOTTLE_SESSION_SECRET` must be set in Vercel before release, and the release signs everyone out once (no grace for unsigned cookies).
 
@@ -617,6 +626,8 @@ Key files:
 - Supabase PostgreSQL. One additive migration, `20260923001_identity_one_match.sql`: three columns on `players`, two on `matches`, widened status checks, and seven security-definer functions. (067-identity-one-match)
 - TypeScript 5.x, Node.js 22, React 19, Next.js 16.2 (App Router) + Tailwind CSS 4.x (tokens in `app/globals.css`, `tailwind.config.ts`), zustand (`roomStore`), Supabase JS v2 (Realtime transport, unchanged). No new dependency. (068-match-scoreboard)
 - N/A. No schema, migration or API change. (068-match-scoreboard)
+- TypeScript 5.x, Node.js 22, React 19, Next.js 16.2 (App Router); PL/pgSQL. + Supabase JS v2 (RPC, Realtime), Zod, zustand (`roomStore`), Tailwind 4. Browser APIs: Page Visibility, Screen Wake Lock (feature-detected), `navigator.sendBeacon`, Web Audio (existing `useSoundEffects`). No new dependency. (069-match-table)
+- Supabase PostgreSQL. One additive migration, `20260924001_the_table.sql`: 5 columns on `matches`, 6 on `players`, `ended_reason` widened with `'void'`, 5 new functions, 2 changed, 1 dropped. (069-match-table)
 
 - **Runtime (current)**: Node.js 22 (`.nvmrc`, `engines.node >=22`), pnpm 11.7 (`packageManager`; settings live in `pnpm-workspace.yaml`). Per-spec lines below that say "Node.js 20" are historical.
 - TypeScript 5.x, Node.js 20 + Next.js 16 (App Router), Supabase JS v2, Zod (007-server-authoritative-timer)

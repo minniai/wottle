@@ -13,14 +13,17 @@ import { Room } from "./Room";
 
 export interface QueueRoomViewProps {
   viewer: PlayerIdentity;
-  /** Set once an opponent is found; `null` while searching. */
+  /** Always `null` since the table took the found moment (spec 069); kept for the ledger's header. */
   opponent: PlayerIdentity | null;
-  /** Set once found: the round-1 countdown, 3 → 2 → 1. */
-  found: { countdown: 3 | 2 | 1 } | null;
   /** Time in the queue, already formatted (`0:07`). */
   elapsed: string;
   /** The live line: `setting the field · n of 100 letters`, then `round 1 in 3`. */
   live: string;
+  /**
+   * Spec 069: what the search says when it is not simply searching (paused, the
+   * 3:00 check, stopped, the cooldown): the top bar's name and sub-line, and its action.
+   */
+  search?: { name: string; subline: string; action?: ReactNode } | null;
   hint: string;
   onAction: (action: LedgerAction) => void;
   /** The field slot — the placeholder field, wired by the controller. */
@@ -29,17 +32,17 @@ export interface QueueRoomViewProps {
 
 
 /**
- * The queue and found phases of the room (spec 044 US8): a placeholder field
- * sets itself letter by letter; when an opponent is found their name writes into
- * the top bar and round 1 counts down.
+ * The queue phase of the room (spec 044 US8): a placeholder field sets itself
+ * letter by letter while the search runs. A pairing goes to the table
+ * (spec 069), which is the match's own page.
  *
  * Presentational, as `MatchRoomView` is: polling, timers and the board swap stay
  * in the controller so the fixture route can mount this without a database
  * (spec 045 FR-003).
  */
 export function QueueRoomView(props: QueueRoomViewProps) {
-  const { CANCEL, FINDING_OPPONENT, OPPONENT, QUEUE_CONTEXT, startsIn, searchingSubline, YOU, UNRATED } = useCopy();
-  const { viewer, opponent, found, elapsed, live, hint, onAction, children } = props;
+  const { CANCEL, FINDING_OPPONENT, QUEUE_CONTEXT, searchingSubline, YOU, UNRATED } = useCopy();
+  const { viewer, opponent, elapsed, live, hint, onAction, children } = props;
   const isPhone = useIsPhone();
 
   const model: LedgerModel = useMemo(
@@ -56,26 +59,14 @@ export function QueueRoomView(props: QueueRoomViewProps) {
   return (
     <Room
       topBar={
-        found ? (
-          <PlayerBar
-            seat="opp"
-            position="top"
-            state="found"
-            name={opponent?.displayName ?? OPPONENT}
-            subline={`${opponent?.eloRating ?? UNRATED} · ${OPPONENT} · ${startsIn(found.countdown)}`}
-            score={0}
-            writing
-          />
-        ) : (
-          <PlayerBar
-            seat="opp"
-            position="top"
-            state="searching"
-            name={FINDING_OPPONENT}
-            subline={searchingSubline(elapsed)}
-            action={cancelButton("player-bar-action-cancel", "action-secondary")}
-          />
-        )
+        <PlayerBar
+          seat="opp"
+          position="top"
+          state="searching"
+          name={props.search?.name ?? FINDING_OPPONENT}
+          subline={props.search?.subline ?? searchingSubline(elapsed)}
+          action={props.search ? props.search.action : cancelButton("player-bar-action-cancel", "action-secondary")}
+        />
       }
       field={children}
       bottomBar={
@@ -88,7 +79,7 @@ export function QueueRoomView(props: QueueRoomViewProps) {
           model={model}
           viewerName={viewer.displayName}
           opponentName={opponent?.displayName ?? null}
-          footActions={found ? null : cancelButton("ledger-cancel-queue", "action-secondary")}
+          footActions={cancelButton("ledger-cancel-queue", "action-secondary")}
           onAction={onAction}
         />
       }

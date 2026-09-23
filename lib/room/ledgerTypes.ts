@@ -92,6 +92,10 @@ export type LedgerAction =
   | "result"
   | "howToPlay"
   | "findOpponent"
+  /** Spec 069: the table. */
+  | "sitDown"
+  | "leaveTable"
+  | "challengeAgain"
   | { challenge: string }
   | { acceptChallenge: string }
   | { declineChallenge: string };

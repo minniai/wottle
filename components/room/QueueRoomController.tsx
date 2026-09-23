@@ -1,54 +1,59 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useCopy } from "@/components/i18n/LocaleProvider";
-import { diffBoards, generateBoard } from "@/lib/game-engine/boardGenerator";
+import { generateBoard } from "@/lib/game-engine/boardGenerator";
 import { getLanguagePack } from "@/lib/game-engine/languagePack";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
-import { useMatchmaking } from "@/lib/room/useMatchmaking";
-import type { MatchPlayerProfiles, MatchState, PlayerIdentity } from "@/lib/types/match";
+import { useMatchmaking, type MatchmakingState } from "@/lib/room/useMatchmaking";
+import type { Copy } from "@/lib/i18n/copy/types";
+import type { PlayerIdentity } from "@/lib/types/match";
 import { Field } from "./Field";
-import { MatchRoomController } from "./MatchRoomController";
 import { QueueRoomView } from "./QueueRoomView";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
 import { useReducedMotion } from "./hooks/useReducedMotion";
+import { useWakeLock } from "./hooks/useWakeLock";
 
 export const LETTER_LAND_MS = 100;
-export const FOUND_COUNTDOWN_MS = 1_000;
+
+interface SearchControls {
+  resume: () => void;
+  keepSearching: () => void;
+  findAgain: () => void;
+}
+
+function control(label: string, testId: string, onClick: () => void, className = "action-primary") {
+  return (
+    <button type="button" className={className} data-testid={testId} onClick={onClick}>
+      {label}
+    </button>
+  );
+}
+
+/** The search's lines when it is not simply searching (spec 069, game flow B7). */
+function searchLines(state: MatchmakingState, copy: Copy, on: SearchControls): { name: string; subline: string; action?: ReactNode } | null {
+  const { table, FINDING_OPPONENT } = copy;
+  switch (state.kind) {
+    case "paused":
+      return { name: FINDING_OPPONENT, subline: table.SEARCH_PAUSED, action: control(table.RESUME, "queue-resume", on.resume) };
+    case "stillSearching":
+      return { name: table.stillSearching(formatClock(state.elapsedSeconds * 1000)), subline: "", action: control(table.KEEP_SEARCHING, "queue-keep-searching", on.keepSearching) };
+    case "stopped":
+      return { name: table.SEARCH_STOPPED, subline: "", action: control(table.FIND_AGAIN, "queue-find-again", on.findAgain) };
+    case "cooldown":
+      return { name: FINDING_OPPONENT, subline: table.findAgainIn(formatClock(state.leftMs)) };
+    default:
+      return null;
+  }
+}
 
 interface QueueRoomControllerProps {
   viewer: PlayerIdentity;
-}
-
-interface ReadyMatch {
-  matchId: string;
-  state: MatchState;
-  profiles: MatchPlayerProfiles;
-}
-
-async function fetchMatch(matchId: string): Promise<MatchState | null> {
-  const res = await fetch(`/api/match/${matchId}/state`, { cache: "no-store" }).catch(() => null);
-  return res && res.ok ? ((await res.json()) as MatchState) : null;
-}
-
-function profilesFor(state: MatchState, viewer: PlayerIdentity, opponent: PlayerIdentity | null): MatchPlayerProfiles {
-  const toProfile = (p: PlayerIdentity | null, id: string) => ({
-    playerId: id,
-    displayName: p?.displayName ?? "opponent",
-    username: p?.username ?? "",
-    avatarUrl: p?.avatarUrl ?? null,
-    eloRating: p?.eloRating ?? 1200,
-  });
-  const viewerIsA = state.players.playerA.playerId === viewer.id;
-  return {
-    playerA: toProfile(viewerIsA ? viewer : opponent, state.players.playerA.playerId),
-    playerB: toProfile(viewerIsA ? opponent : viewer, state.players.playerB.playerId),
-  };
 }
 
 /**
@@ -61,36 +66,34 @@ export function QueueRoom({ viewer }: QueueRoomControllerProps) {
 }
 
 /**
- * Queue → found → match in one room (spec 044 US8, decision Q3): a placeholder
- * field sets itself letter by letter; when an opponent is found their name
- * writes into the top bar, differing letters swap to the real board, round 1
- * counts down, and the match phase takes over. The URL follows without a
- * route change.
+ * The queue (spec 044 US8): a placeholder field sets itself letter by letter
+ * while the search runs. A pairing goes to the table at the match's own
+ * address, as a new page (spec 069 FR-023): Back from the table leaves it.
  */
 export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
-  const { startsIn, searchingSubline, settingField } = useCopy();
+  const copy = useCopy();
+  const { searchingSubline, settingField } = copy;
   const router = useRouter();
   const to = useLocalePath();
   const { language } = useLocale();
   const reducedMotion = useReducedMotion();
   const phase = useRoomStore((s) => s.phase);
   const queue = useRoomStore((s) => s.queue);
-  const found = useRoomStore((s) => s.found);
   const board = useRoomStore((s) => s.board);
   const startQueue = useRoomStore((s) => s.startQueue);
   const cancelQueue = useRoomStore((s) => s.cancelQueue);
   const setBoard = useRoomStore((s) => s.setBoard);
   const setLettersLanded = useRoomStore((s) => s.setLettersLanded);
-  const setFound = useRoomStore((s) => s.setFound);
   const [startedAt] = useState(() => Date.now());
-  const [ready, setReady] = useState<ReadyMatch | null>(null);
 
   useEffect(() => {
     startQueue(startedAt);
     setBoard(generateBoard({ seed: `queue:${viewer.id}:${startedAt}`, weights: getLanguagePack(language).letterWeights }));
   }, [startQueue, setBoard, viewer.id, startedAt, language]);
 
-  const { state, cancel } = useMatchmaking(phase === "queue", startedAt, language);
+  const { state, cancel, resume, keepSearching } = useMatchmaking(phase === "queue", startedAt, language);
+  // A phone stays awake while searching (spec 069 FR-029).
+  useWakeLock(state.kind === "searching" || state.kind === "stillSearching");
 
   // Letters land ~100 ms apart (all at once under reduced motion).
   const landed = queue?.lettersLanded ?? 100;
@@ -105,35 +108,11 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
     return () => clearTimeout(id);
   }, [phase, landed, reducedMotion, setLettersLanded]);
 
-  // Found: fetch the real board, swap the letters that differ, count round 1 in.
+  // Paired: the table is the match's own page (spec 069 FR-023).
+  const matchId = state.kind === "found" ? state.matchId : null;
   useEffect(() => {
-    if (state.kind !== "found") return;
-    let active = true;
-    void fetchMatch(state.matchId).then((match) => {
-      if (!active || !match) {
-        if (active) router.replace(to(`/match/${state.matchId}`));
-        return;
-      }
-      setLettersLanded(100);
-      setBoard(board.length === 10 && diffBoards(board, match.board).length > 0 ? match.board : match.board);
-      setFound(state.opponent, 3);
-      setReady({ matchId: state.matchId, state: match, profiles: profilesFor(match, viewer, state.opponent) });
-      window.history.replaceState(null, "", to(`/match/${state.matchId}`));
-    });
-    return () => {
-      active = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, viewer]);
-
-  useEffect(() => {
-    if (phase !== "found" || !found) return;
-    const id = setTimeout(() => {
-      if (found.countdown > 1) setFound(useRoomStore.getState().opponent, (found.countdown - 1) as 2 | 1);
-      else useRoomStore.getState().setPhase("match");
-    }, reducedMotion ? 0 : FOUND_COUNTDOWN_MS);
-    return () => clearTimeout(id);
-  }, [phase, found, reducedMotion, setFound]);
+    if (matchId) router.push(to(`/match/${matchId}`));
+  }, [matchId, router, to]);
 
   const handleAction = useCallback(
     (action: LedgerAction) => {
@@ -149,21 +128,21 @@ export function QueueRoomController({ viewer }: QueueRoomControllerProps) {
   // `?` opens the rules, `M` mutes (design system §9, FR-026).
   useRoomHotkeys(handleAction);
 
-  // The match keeps the room through its final state: the verdict, the
-  // match-over slip and rematch live there, not in the queue (reported 2026-09-21).
-  if ((phase === "match" || phase === "final") && ready) {
-    return <MatchRoomController initialState={ready.state} currentPlayerId={viewer.id} matchId={ready.matchId} playerProfiles={ready.profiles} />;
-  }
-
   const opponent = useRoomStore.getState().opponent;
-  const elapsed = state.kind === "searching" ? formatClock(state.elapsedSeconds * 1000) : "0:00";
+  const elapsed = state.kind === "searching" || state.kind === "stillSearching" ? formatClock(state.elapsedSeconds * 1000) : "0:00";
+  // The tab says how long the search has run (spec 069 FR-026).
+  const title = state.kind === "searching" ? `${copy.table.titleSearching(elapsed)} · ${copy.WORDMARK}` : copy.WORDMARK;
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+  const search = searchLines(state, copy, { resume, keepSearching, findAgain: () => useRoomStore.getState().requestNewSearch() });
   return (
     <QueueRoomView
       viewer={viewer}
       opponent={opponent}
-      found={phase === "found" && found ? { countdown: found.countdown } : null}
       elapsed={elapsed}
-      live={phase === "found" && found ? startsIn(found.countdown) : settingField(Math.min(landed, 100))}
+      live={settingField(Math.min(landed, 100))}
+      search={search}
       hint={searchingSubline(elapsed)}
       onAction={handleAction}
     >
