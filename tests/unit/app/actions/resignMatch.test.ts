@@ -107,6 +107,19 @@ describe("resignMatch", () => {
     );
   });
 
+  it("refuses a match still at the table, and during the count (spec 069 FR-019)", async () => {
+    mockSession(PLAYER_A);
+    for (const row of [
+      { state: "pending", started_at: null },
+      { state: "in_progress", started_at: new Date(Date.now() + 3_000).toISOString() },
+    ]) {
+      const mock = makeSupabaseMock({ id: MATCH_ID, player_a_id: PLAYER_A, player_b_id: PLAYER_B, winner_id: null, ...row });
+      vi.mocked(getServiceRoleClient).mockReturnValue(mock as any);
+      await expect(resignMatch(MATCH_ID)).rejects.toThrow("The match has not started.");
+    }
+    expect(completeMatchInternal).not.toHaveBeenCalled();
+  });
+
   it("resigns successfully and declares opponent as winner", async () => {
     mockSession(PLAYER_A);
     const mock = makeSupabaseMock({
