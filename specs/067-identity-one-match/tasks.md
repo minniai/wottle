@@ -14,41 +14,41 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `WOTTLE_SESSION_SECRET` generation to `scripts/supabase/quickstart.sh`. Inside the existing `sync_env_values`, write `openssl rand -base64 48` only when the key is absent from `$ENV_FILE`. Never overwrite an existing value.
-- [ ] T002 [P] Add `WOTTLE_SESSION_SECRET` (a fixed 48-byte base64 test value) to every job env block in `.github/workflows/ci.yml` that sets `PLAYTEST_SESSION_SECRET`/`SUPABASE_SERVICE_ROLE_KEY`. Include the Playwright server start near line 485.
-- [ ] T003 [P] Add `WOTTLE_SESSION_SECRET` to the Vitest setup env (`vitest.config.ts` `test.env` or the existing setup file) so unit tests get a deterministic secret.
+- [X] T001 Add `WOTTLE_SESSION_SECRET` generation to `scripts/supabase/quickstart.sh`. Inside the existing `sync_env_values`, write `openssl rand -base64 48` only when the key is absent from `$ENV_FILE`. Never overwrite an existing value.
+- [X] T002 [P] Add `WOTTLE_SESSION_SECRET` (a fixed 48-byte base64 test value) to every job env block in `.github/workflows/ci.yml` that sets `PLAYTEST_SESSION_SECRET`/`SUPABASE_SERVICE_ROLE_KEY`. Include the Playwright server start near line 485.
+- [X] T003 [P] Add `WOTTLE_SESSION_SECRET` to the Vitest setup env (`vitest.config.ts` `test.env` or the existing setup file) so unit tests get a deterministic secret.
 
 ---
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T003a Write the failing `tests/integration/db/identity-columns.test.ts`. It asserts that `players.claim_hash`, `claimed_at`, `last_entered_at` and `players_claim_hash_idx` exist; that `matches.origin` rejects values outside the six origins; that `match_invitations` and `rematch_requests` accept `withdrawn` and `superseded`; and that a stale sender (`status='matchmaking'`, `queue_language` null) is `available` after the migration.
-- [ ] T004 Write `supabase/migrations/20260923001_identity_columns.sql` (T003a turns green):
+- [X] T003a Write the failing `tests/integration/db/identity-columns.test.ts`. It asserts that `players.claim_hash`, `claimed_at`, `last_entered_at` and `players_claim_hash_idx` exist; that `matches.origin` rejects values outside the six origins; that `match_invitations` and `rematch_requests` accept `withdrawn` and `superseded`; and that a stale sender (`status='matchmaking'`, `queue_language` null) is `available` after the migration.
+- [X] T004 Write `supabase/migrations/20260923001_identity_columns.sql` (T003a turns green):
   - `players`: add `claim_hash text`, `claimed_at timestamptz`, `last_entered_at timestamptz`, and index `players_claim_hash_idx (claim_hash, last_entered_at desc) where claim_hash is not null`.
   - `matches`: add `origin text` with a check on the six origins, and `origin_ref uuid`.
   - `match_invitations` and `rematch_requests`: widen the status checks by drop + add constraint, adding `withdrawn` and `superseded`.
   - `update public.players set status = 'available' where status = 'matchmaking' and queue_language is null` (senders stranded by the old `sendDirectInvite`).
   Follow the header and comment style of `20260922001_match_language.sql`.
-- [ ] T005 [P] Write the failing tests `tests/unit/auth/sessionToken.test.ts`:
+- [X] T005 [P] Write the failing tests `tests/unit/auth/sessionToken.test.ts`:
   - sign → verify round-trip;
   - one changed character in the payload or the mac → `bad_mac`;
   - the old base64-JSON format → `legacy`;
   - `expiresAt` in the past → `expired`;
   - garbage → `malformed`;
   - the mac is compared with `timingSafeEqual` (a spy on `crypto`).
-- [ ] T006 [P] Write the failing tests `tests/unit/auth/sessionSecret.test.ts`: a missing secret throws `SessionSecretMissingError`; a secret shorter than 32 decoded bytes throws when `NODE_ENV=production`; a valid secret returns a `Buffer`.
-- [ ] T007 [P] Write the failing tests `tests/unit/auth/deviceKey.test.ts`: `newDeviceKey()` is 43 base64url characters (32 bytes) and unique across 1,000 calls; `hashDeviceKey` is 64-hex SHA-256 and deterministic.
-- [ ] T008 [P] Implement `lib/auth/sessionToken.ts` per research R1 (`import "server-only"`):
+- [X] T006 [P] Write the failing tests `tests/unit/auth/sessionSecret.test.ts`: a missing secret throws `SessionSecretMissingError`; a secret shorter than 32 decoded bytes throws when `NODE_ENV=production`; a valid secret returns a `Buffer`.
+- [X] T007 [P] Write the failing tests `tests/unit/auth/deviceKey.test.ts`: `newDeviceKey()` is 43 base64url characters (32 bytes) and unique across 1,000 calls; `hashDeviceKey` is 64-hex SHA-256 and deterministic.
+- [X] T008 [P] Implement `lib/auth/sessionToken.ts` per research R1 (`import "server-only"`):
   - `SessionPayload` zod schema `{playerId uuid, username, displayName, issuedAt, expiresAt}`;
   - `signSession(payload, secret): string` → `v1.<b64url json>.<b64url hmac>`;
   - `verifySession(value, secret, now): SessionVerification`.
   T005 turns green.
-- [ ] T009 [P] Implement `lib/auth/sessionSecret.ts` (`requireSessionSecret(): Buffer`, `SessionSecretMissingError`) so that T006 passes.
-- [ ] T010 [P] Implement `lib/auth/deviceKey.ts` (`newDeviceKey`, `hashDeviceKey`) so that T007 passes.
-- [ ] T011 [P] Implement `lib/auth/cookies.ts`:
+- [X] T009 [P] Implement `lib/auth/sessionSecret.ts` (`requireSessionSecret(): Buffer`, `SessionSecretMissingError`) so that T006 passes.
+- [X] T010 [P] Implement `lib/auth/deviceKey.ts` (`newDeviceKey`, `hashDeviceKey`) so that T007 passes.
+- [X] T011 [P] Implement `lib/auth/cookies.ts`:
   - the names `SESSION_COOKIE_NAME` (moved from `lib/matchmaking/profile.ts`, re-exported there for existing importers), `DEVICE_COOKIE_NAME = "wottle-device"` and `SIGNED_OUT_COOKIE_NAME = "wottle-signed-out"`;
   - option builders `sessionCookieOptions()` (4h), `deviceCookieOptions()` and `signedOutCookieOptions()` (1 year), all httpOnly, `sameSite: "lax"`, and `secure` from the existing `shouldUseSecureCookies()` (move it here).
-- [ ] T012 [P] Write the failing guard test `tests/unit/auth/server-only-guard.test.ts`: it greps every file containing `"use client"` under `components/`, `lib/`, `app/`, and fails if any imports from `@/lib/auth/`.
+- [X] T012 [P] Write the failing guard test `tests/unit/auth/server-only-guard.test.ts`: it greps every file containing `"use client"` under `components/`, `lib/`, `app/`, and fails if any imports from `@/lib/auth/`.
 
 **Checkpoint**: the primitives are green. No behaviour has changed yet.
 
@@ -59,27 +59,27 @@
 **Goal**: only a server-issued, signed, unexpired session identifies a player.
 **Independent test**: sign in, alter or fabricate `wottle-playtest-session`, reload: the sign-in slip; every action or route answers as unauthenticated.
 
-- [ ] T013 [US1] Write the failing tests `tests/unit/lib/matchmaking/session.test.ts` for `readLobbySession`:
+- [X] T013 [US1] Write the failing tests `tests/unit/lib/matchmaking/session.test.ts` for `readLobbySession`:
   - a valid signed cookie returns `{player:{id,username,displayName}, issuedAt, expiresAt}`;
   - a tampered, legacy, expired or missing cookie returns null;
   - it logs `auth.session.rejected` with the reason, sampling `legacy` 1 in 10.
   Mock `next/headers` `cookies()` as the existing `tests/unit/app/actions/auth/logout.test.ts` does.
-- [ ] T014 [US1] Rewrite `readLobbySession` and `persistLobbySession` in `lib/matchmaking/profile.ts`:
+- [X] T014 [US1] Rewrite `readLobbySession` and `persistLobbySession` in `lib/matchmaking/profile.ts`:
   - reading goes through `verifySession(requireSessionSecret())`;
   - writing through `signSession` with the options from `lib/auth/cookies.ts`;
   - `LobbySession` narrows to `{ player: { id, username, displayName }, issuedAt, expiresAt }`;
   - delete `encodeSession`/`decodeSession` and the old `sessionSchema`, and drop `sessionToken` from `LoginResult`.
   T013 turns green.
-- [ ] T015 [US1] Fix every compile error from the narrowed `LobbySession`. `pnpm typecheck` lists them. Callers that used `session.player.status|avatarUrl|lastSeenAt|eloRating` read the player row instead, or the store.
+- [X] T015 [US1] Fix every compile error from the narrowed `LobbySession`. `pnpm typecheck` lists them. Callers that used `session.player.status|avatarUrl|lastSeenAt|eloRating` read the player row instead, or the store.
   Candidates:
   - `app/[locale]/(room)/layout.tsx` (viewer seed)
   - `app/actions/auth/login.ts` (`viewerInLanguage`)
   - `app/actions/player/getPlayerProfile.ts`
   - `app/api/lobby/presence/route.ts`
-- [ ] T016 [P] [US1] Remove `sessionToken` from the result of `app/actions/auth/login.ts` and from `app/api/auth/login/route.ts`. Update `tests/unit/app/actions/auth/login.test.ts` and `tests/contract/post-login.contract.test.ts` to assert it is absent.
-- [ ] T017 [US1] Write the failing, table-driven contract test `tests/contract/forged-session.contract.test.ts` over every route handler that calls `readLobbySession`: `api/match/[matchId]/{state,words,disconnect}`, `api/match/{active,start}`, `api/lobby/invite`, `api/lobby/invite/[inviteId]/respond`, `api/lobby/presence`. For each: a legacy base64 cookie → 401; one flipped character → 401; a valid signed cookie → not 401. Add a unit test that sends a forged cookie through the real `readLobbySession` into `submitMove`, `sendInviteAction`, `startQueueAction` and `resignMatch` and expects the unauthenticated result (SC-001).
-- [ ] T018 [US1] Make T017 green. Any route that decodes on its own or trusts a header instead of `readLobbySession` is changed to call it. The survey found none, so this should only need the test.
-- [ ] T019 [US1] Run `pnpm test:unit`, `pnpm typecheck` and `pnpm lint`, and fix any remaining unit test that built a session object with the old shape (they `vi.mock` `readLobbySession`; update the mocked return shape).
+- [X] T016 [P] [US1] Remove `sessionToken` from the result of `app/actions/auth/login.ts` and from `app/api/auth/login/route.ts`. Update `tests/unit/app/actions/auth/login.test.ts` and `tests/contract/post-login.contract.test.ts` to assert it is absent.
+- [X] T017 [US1] Write the failing, table-driven contract test `tests/contract/forged-session.contract.test.ts` over every route handler that calls `readLobbySession`: `api/match/[matchId]/{state,words,disconnect}`, `api/match/{active,start}`, `api/lobby/invite`, `api/lobby/invite/[inviteId]/respond`, `api/lobby/presence`. For each: a legacy base64 cookie → 401; one flipped character → 401; a valid signed cookie → not 401. Add a unit test that sends a forged cookie through the real `readLobbySession` into `submitMove`, `sendInviteAction`, `startQueueAction` and `resignMatch` and expects the unauthenticated result (SC-001).
+- [X] T018 [US1] Make T017 green. Any route that decodes on its own or trusts a header instead of `readLobbySession` is changed to call it. The survey found none, so this should only need the test.
+- [X] T019 [US1] Run `pnpm test:unit`, `pnpm typecheck` and `pnpm lint`, and fix any remaining unit test that built a session object with the old shape (they `vi.mock` `readLobbySession`; update the mocked return shape).
 
 **Checkpoint**: sessions are unforgeable. Every player is signed out once and signs in again as today (no claim yet).
 
