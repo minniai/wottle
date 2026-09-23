@@ -13,6 +13,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    // The database suites share one queue and one lobby (spec 067 race tests put
+    // searchers in it); run files one at a time so no suite pairs with another's players.
+    fileParallelism: false,
     setupFiles: ["./tests/setup.ts"],
     include: [
       "tests/integration/**/*.{test,spec}.ts?(x)",

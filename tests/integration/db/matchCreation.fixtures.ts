@@ -92,8 +92,13 @@ export class Fixtures {
   }
 
   async dropAll(): Promise<void> {
-    if (!this.players.length) return;
     const ids = this.players;
+    this.players = [];
+    // A long id list does not fit in one request's URL; drop in slices.
+    for (let i = 0; i < ids.length; i += 20) await this.dropPlayers(ids.slice(i, i + 20));
+  }
+
+  private async dropPlayers(ids: string[]): Promise<void> {
     const or = `player_a_id.in.(${ids.join(",")}),player_b_id.in.(${ids.join(",")})`;
     const { data: matches } = await this.db.client.from("matches").select("id").or(or);
     const matchIds = (matches ?? []).map((m) => m.id as string);
@@ -103,7 +108,7 @@ export class Fixtures {
       await this.db.client.from("matches").update({ rematch_of: null }).in("id", matchIds);
       await this.db.client.from("matches").delete().in("id", matchIds);
     }
-    await this.db.client.from("players").delete().in("id", ids);
-    this.players = [];
+    const { error } = await this.db.client.from("players").delete().in("id", ids);
+    if (error) throw new Error(`players.delete: ${error.message}`);
   }
 }
