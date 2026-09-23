@@ -103,3 +103,12 @@ describe("getRecentGames", () => {
     }
   });
 });
+
+describe("what counts as a played match (spec 070 FR-039)", () => {
+  test("filters out void and abandoned matches", async () => {
+    const chain = buildChain({ data: [], error: null });
+    vi.mocked(getServiceRoleClient).mockReturnValue({ from: vi.fn(() => chain) } as never);
+    await getRecentGames({ playerId: PLAYER_ID, limit: 4, language: "is" });
+    expect(chain.or).toHaveBeenCalledWith("ended_reason.is.null,ended_reason.not.in.(void,abandoned)");
+  });
+});

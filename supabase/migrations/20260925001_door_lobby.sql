@@ -257,8 +257,10 @@ $$;
 
 -- A player with tabs but none fresh is gone: their search stops and their
 -- pending challenges, sent and received, end as `left` (§7.1, §7.4).
+drop function if exists public.settle_gone_players();
+
 create or replace function public.settle_gone_players()
-returns table (player_id uuid)
+returns table (player_id uuid, counterpart_id uuid)
 language plpgsql
 security definer
 set search_path = ''
@@ -280,16 +282,16 @@ begin
        set status = 'available', queue_language = null, queued_at = null, search_paused = false
       from gone g
      where p.id = g.id and p.status = 'matchmaking'
-    returning p.id
+    returning p.id as gone_id, null::uuid as other_id
   ),
   invites as (
     update public.match_invitations i
        set status = 'left', responded_at = now()
       from gone g
      where i.status = 'pending' and (i.sender_id = g.id or i.recipient_id = g.id)
-    returning g.id
+    returning g.id as gone_id, case when i.sender_id = g.id then i.recipient_id else i.sender_id end as other_id
   )
-  select distinct x.id from (select id from searches union all select id from invites) x;
+  select distinct x.gone_id, x.other_id from (select * from searches union all select * from invites) x;
 end;
 $$;
 
@@ -327,3 +329,29 @@ as $$
               from public.players p where p.id = p_player),
            false);
 $$;
+
+-- ─── Head to head (US10, FR-038a) ──────────────────────────────────────
+-- The viewer's record against each opponent in one language, over completed
+-- matches that were played: never a void table, never an abandoned match.
+
+create or replace function public.head_to_head(p_viewer uuid, p_language text)
+returns table (opponent_id uuid, wins integer, losses integer, draws integer)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case when m.player_a_id = p_viewer then m.player_b_id else m.player_a_id end,
+         count(*) filter (where m.winner_id = p_viewer)::integer,
+         count(*) filter (where m.winner_id is not null and m.winner_id <> p_viewer)::integer,
+         count(*) filter (where m.winner_id is null)::integer
+    from public.matches m
+   where m.state = 'completed'
+     and m.language = p_language
+     and (m.ended_reason is null or m.ended_reason not in ('void', 'abandoned'))
+     and (m.player_a_id = p_viewer or m.player_b_id = p_viewer)
+   group by 1;
+$$;
+
+revoke all on function public.head_to_head(uuid, text) from public, anon, authenticated;
+grant execute on function public.head_to_head(uuid, text) to service_role;

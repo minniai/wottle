@@ -48,7 +48,10 @@ describe.skipIf(!db)("settling gone players (spec 070 US6)", () => {
 
     const { data, error } = await client().rpc("settle_gone_players");
     expect(error).toBeNull();
-    expect((data as Array<{ player_id: string }>).map((r) => r.player_id).filter((id) => players.includes(id))).toEqual([gone]);
+    const rows = (data as Array<{ player_id: string; counterpart_id: string | null }>).filter((r) => players.includes(r.player_id));
+    expect([...new Set(rows.map((r) => r.player_id))]).toEqual([gone]);
+    // Each counterpart is named, so the sweep can tell them what became of the challenge.
+    expect(rows.map((r) => r.counterpart_id).filter(Boolean).sort()).toEqual([here, other].sort());
 
     const { data: me } = await client().from("players").select("status, queue_language, queued_at").eq("id", gone).single();
     expect(me).toMatchObject({ status: "available", queue_language: null, queued_at: null });

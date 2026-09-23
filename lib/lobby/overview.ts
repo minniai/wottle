@@ -3,7 +3,7 @@ import "server-only";
 import { lobbyNumbers, playerPresence } from "@/lib/presence/presenceService";
 import { readEloRatings } from "@/lib/rating/playerRatings";
 import { getServiceRoleClient } from "@/lib/supabase/server";
-import type { LobbyCounts, LobbyLanguage, Overview } from "@/lib/types/standing";
+import type { FormResult, LastMatch, LobbyCounts, LobbyLanguage, Overview } from "@/lib/types/standing";
 
 /**
  * The lobby overview (spec 070 US10, S10; research R9): counts for this lobby
@@ -45,7 +45,64 @@ export async function publicOverview(language: LobbyLanguage): Promise<Overview>
   return { counts, here: door.here, more: door.more };
 }
 
-/** With a session: the counts only for now; the last match and last ten arrive with US10. */
-export async function viewerOverview(_playerId: string, language: LobbyLanguage): Promise<Overview> {
-  return { counts: await lobbyCounts(language) };
+const FORM_LENGTH = 10;
+const RESULT: Record<string, FormResult> = { win: "W", loss: "L", draw: "D" };
+
+interface LastMatchRow {
+  id: string;
+  player_a_id: string;
+  player_b_id: string;
+  winner_id: string | null;
+  started_at: string | null;
+  completed_at: string;
+  player_a_score: number | null;
+  player_b_score: number | null;
+  player_a: { display_name: string } | null;
+  player_b: { display_name: string } | null;
+}
+
+async function lastMatch(playerId: string, language: LobbyLanguage): Promise<LastMatch | null> {
+  const client = getServiceRoleClient();
+  const { data, error } = await client
+    .from("matches")
+    .select("id, player_a_id, player_b_id, winner_id, started_at, completed_at, player_a_score, player_b_score, player_a:player_a_id (display_name), player_b:player_b_id (display_name)")
+    .eq("state", "completed")
+    .eq("language", language)
+    .or("ended_reason.is.null,ended_reason.not.in.(void,abandoned)")
+    .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`last match: ${error.message}`);
+  const row = data as unknown as LastMatchRow | null;
+  if (!row) return null;
+  const isA = row.player_a_id === playerId;
+  const words = await client.from("word_score_entries").select("player_id, tiles").eq("match_id", row.id);
+  return {
+    matchId: row.id,
+    opponent: (isA ? row.player_b : row.player_a)?.display_name ?? "",
+    you: (isA ? row.player_a_score : row.player_b_score) ?? 0,
+    them: (isA ? row.player_b_score : row.player_a_score) ?? 0,
+    durationMs: row.started_at ? Date.parse(row.completed_at) - Date.parse(row.started_at) : null,
+    completedAt: row.completed_at,
+    youWon: row.winner_id === null ? null : row.winner_id === playerId,
+    bands: (words.data ?? []).map((w) => ({ tiles: w.tiles as Array<{ x: number; y: number }>, seat: w.player_id === playerId ? "you" : "opp" })),
+  };
+}
+
+async function form(playerId: string, language: LobbyLanguage): Promise<FormResult[]> {
+  const { data } = await getServiceRoleClient()
+    .from("match_ratings")
+    .select("match_result, created_at")
+    .eq("player_id", playerId)
+    .eq("language", language)
+    .order("created_at", { ascending: false })
+    .limit(FORM_LENGTH);
+  return (data ?? []).map((r) => RESULT[r.match_result as string]).filter(Boolean).reverse();
+}
+
+/** With a session: the counts, the last match (for the band map) and the last ten, oldest first (US10). */
+export async function viewerOverview(playerId: string, language: LobbyLanguage): Promise<Overview> {
+  const [counts, last, results] = await Promise.all([lobbyCounts(language), lastMatch(playerId, language), form(playerId, language)]);
+  return { counts, lastMatch: last, form: results };
 }

@@ -6,12 +6,16 @@ const eqMock = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
   getServiceRoleClient: () => ({
     from: () => ({
-      select: () => ({
-        eq: (column: string, value: unknown) => {
-          eqMock(column, value);
-          return getMock();
-        },
-      }),
+      select: () => {
+        const chain = {
+          eq: (column: string, value: unknown) => {
+            eqMock(column, value);
+            return chain;
+          },
+          then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) => getMock().then(resolve, reject),
+        };
+        return chain;
+      },
     }),
   }),
 }));
@@ -55,5 +59,14 @@ describe("GET /api/lobby/stats/matches-in-progress", () => {
     );
     const res = await GET();
     expect(res.status).toBe(500);
+  });
+});
+
+describe("GET /api/lobby/stats/matches-in-progress?language= (spec 070 S10)", () => {
+  test("counts one lobby's matches when a language is named", async () => {
+    getMock.mockResolvedValue({ count: 2, error: null });
+    const { GET } = await import("@/app/api/lobby/stats/matches-in-progress/route");
+    await GET(new Request("http://localhost/api/lobby/stats/matches-in-progress?language=en"));
+    expect(eqMock).toHaveBeenCalledWith("language", "en");
   });
 });

@@ -7,13 +7,14 @@ const NO_CACHE_HEADERS = {
   "cache-control": "no-store",
 };
 
-export async function GET() {
+/** Matches in progress, in one lobby's language when `?language=` names it (spec 070 S10). */
+export async function GET(request?: Request) {
   try {
+    const language = request ? new URL(request.url).searchParams.get("language") : null;
     const supabase = getServiceRoleClient();
-    const { count, error } = await supabase
-      .from("matches")
-      .select("id", { count: "exact", head: true })
-      .eq("state", "in_progress");
+    let query = supabase.from("matches").select("id", { count: "exact", head: true }).eq("state", "in_progress");
+    if (language === "is" || language === "en") query = query.eq("language", language);
+    const { count, error } = await query;
 
     if (error) {
       console.error("Failed to count matches-in-progress", error);

@@ -162,12 +162,12 @@
 ### Implementation
 
 - [X] T036 [US6] Add `beat_tab`, `leave_tab`, `player_presence` (replacing US1's minimal version) and `settle_gone_players` to the migration. Make T031 and T032 pass.
-- [ ] T037 [US6] Implement `lib/presence/presenceService.ts`: `beat`, `leave`, `playerPresence` and `lobbyCounts`, with RPCs parsed by Zod and structured logs `presence.transition` and `presence.gone`.
-- [ ] T038 [US6] Implement `app/api/presence/beat/route.ts` and `app/api/presence/leave/route.ts` per the contract. Beat pokes `lobby:{language}` on a transition. Leave pokes with `recheckInMs: 8500`. Make T034 pass for presence.
+- [X] T037 [US6] Implement `lib/presence/presenceService.ts`: `beat`, `leave`, `playerPresence` and `lobbyCounts`, with RPCs parsed by Zod and structured logs `presence.transition` and `presence.gone`.
+- [X] T038 [US6] Implement `app/api/presence/beat/route.ts` and `app/api/presence/leave/route.ts` per the contract. Beat pokes `lobby:{language}` on a transition. Leave pokes with `recheckInMs: 8500`. Make T034 pass for presence.
 - [ ] T039 [US6] Implement `components/standing/hooks/useTabPresence.ts` (T033) and wire it into `StandingProvider`. Retire the 60s heartbeat in `lib/matchmaking/presenceStore.ts`, and delete `app/api/lobby/presence/route.ts` and its unit test `tests/unit/lib/matchmaking/presenceHeartbeat.test.ts`, replacing them with the new tests.
-- [ ] T040 [US6] Point the attention recording in `lib/matchmaking/attention.ts` at the best of the player's fresh tabs as well, so that seating (spec 069) reads any signed-in page. Add a case to `tests/unit/lib/matchmaking/attention.spec.ts`.
-- [ ] T041 [US6] Add `expire` of challenges (placeholder until US3), `settle_gone_players` and pruning `presence_tabs` stale for more than 10 minutes to `app/api/cron/sweep-stale-matches/route.ts`. Poke the affected counterparts (`outcome`) and lobbies (`presence`). Extend `tests/unit/app/api/sweepStaleMatches.test.ts`.
-- [ ] T042 [US6] Write a perf bench `tests/perf/heartbeat.bench.ts` for `POST /api/presence/beat` p95 under 100ms on local Supabase. Make T035 pass.
+- [X] T040 [US6] Point the attention recording in `lib/matchmaking/attention.ts` at the best of the player's fresh tabs as well, so that seating (spec 069) reads any signed-in page. Add a case to `tests/unit/lib/matchmaking/attention.spec.ts`.
+- [X] T041 [US6] Add `expire` of challenges (placeholder until US3), `settle_gone_players` and pruning `presence_tabs` stale for more than 10 minutes to `app/api/cron/sweep-stale-matches/route.ts`. Poke the affected counterparts (`outcome`) and lobbies (`presence`). Extend `tests/unit/app/api/sweepStaleMatches.test.ts`.
+- [X] T042 [US6] Write a perf bench `tests/perf/heartbeat.bench.ts` for `POST /api/presence/beat` p95 under 100ms on local Supabase. Make T035 pass.
 
 **Checkpoint**: Presence is truthful everywhere the old lobby reads it, because `lobby_presence` is still maintained.
 
@@ -179,14 +179,14 @@
 
 **Independent test**: `tests/integration/db/overview.test.ts` and `head-to-head.test.ts` pass.
 
-- [ ] T043 [P] [US10] Write failing integration tests in `tests/integration/db/head-to-head.test.ts`. `head_to_head(viewer, language)` counts wins, losses and draws against each opponent over completed matches in that language; it excludes void, abandoned and other-language matches; and it is one query.
-- [ ] T044 [P] [US10] Write failing integration tests in `tests/integration/db/overview.test.ts`:
+- [X] T043 [P] [US10] Write failing integration tests in `tests/integration/db/head-to-head.test.ts`. `head_to_head(viewer, language)` counts wins, losses and draws against each opponent over completed matches in that language; it excludes void, abandoned and other-language matches; and it is one query.
+- [X] T044 [P] [US10] Write failing integration tests in `tests/integration/db/overview.test.ts`:
   - the counts for this lobby and the other, with `playersInMatch` (players at a table or in a match) and `matchesOn` (matches in progress) as separate numbers;
   - `lastMatch` is the latest completed, rated match in that language, and carries `bands`: every `word_score_entries` row's tiles, with the seat relative to the viewer;
   - `form` is the last ten `match_ratings` results in that language, oldest first;
   - void and abandoned matches never appear.
-- [ ] T045 [US10] Add `head_to_head` to the migration, and implement `lib/matchmaking/headToHead.ts` (T043).
-- [ ] T046 [US10] Extend `lib/lobby/overview.ts` and `app/api/lobby/overview/route.ts` with `lastMatch` and `form` for a session (T044). Make `app/actions/match/getRecentGames.ts` exclude `state='abandoned'`, and add `?language=` to `app/api/lobby/stats/matches-in-progress/route.ts`. Update `tests/unit/app/actions/getRecentGames.spec.ts`.
+- [X] T045 [US10] Add `head_to_head` to the migration, and implement `lib/matchmaking/headToHead.ts` (T043).
+- [X] T046 [US10] Extend `lib/lobby/overview.ts` and `app/api/lobby/overview/route.ts` with `lastMatch` and `form` for a session (T044). Make `app/actions/match/getRecentGames.ts` exclude `state='abandoned'`, and add `?language=` to `app/api/lobby/stats/matches-in-progress/route.ts`. Update `tests/unit/app/actions/getRecentGames.spec.ts`.
 
 ---
 
