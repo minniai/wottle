@@ -66,6 +66,13 @@ test.describe("The table", () => {
       await pageA.waitForTimeout(600);
       await pageA.getByTestId("slip-ready").click();
 
+      // Both rooms count from the server's start (SC-004): each reaches go within 250ms of the other,
+      // sampled every 50ms from this one process (so the bound allows one sample each way).
+      const goAt = (p: Page) =>
+        p.waitForFunction(() => document.querySelector('[data-testid="ledger-live-row"]')?.textContent?.includes("your move"), null, { polling: 50, timeout: 20_000 }).then(() => Date.now());
+      const [goA, goB] = await Promise.all([goAt(pageA), goAt(pageB)]);
+      expect(Math.abs(goA - goB)).toBeLessThan(350);
+
       // The start is set; the slip lifts; the count runs; move 1 opens on both.
       for (const p of [pageA, pageB]) {
         await expect(p.getByTestId("ledger-live-row")).toContainText("move 1 · your move", { timeout: 20_000 });
