@@ -12,7 +12,9 @@ import {
 const YEAR = 365 * 24 * 60 * 60;
 
 describe("identity cookies (spec 067)", () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
 
   it("should name the three cookies", () => {
     expect([SESSION_COOKIE_NAME, DEVICE_COOKIE_NAME, SIGNED_OUT_COOKIE_NAME]).toEqual([

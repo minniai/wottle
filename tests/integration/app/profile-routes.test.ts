@@ -65,8 +65,8 @@ describe("/profile route", () => {
 
   test("renders profile page when session + profile exist", async () => {
     vi.mocked(readLobbySession).mockResolvedValueOnce({
-      token: "tok",
       issuedAt: Date.now(),
+      expiresAt: Date.now() + 3_600_000,
       player: FAKE_PROFILE.identity,
     });
     vi.mocked(getPlayerProfile).mockResolvedValueOnce({

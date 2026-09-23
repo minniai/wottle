@@ -46,21 +46,17 @@ describe("POST /api/auth/login", () => {
   it("returns 200 with player payload when login succeeds", async () => {
     vi.mocked(performUsernameLogin).mockResolvedValue({
       player,
-      sessionToken: "session-123",
     });
 
     const response = await POST(createRequest({ username: "tester" }));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(await response.json()).toEqual({
-      player,
-      sessionToken: "session-123",
-    });
+    // The response names the player; the session itself is only ever the signed httpOnly cookie.
+    expect(await response.json()).toEqual({ player });
     expect(performUsernameLogin).toHaveBeenCalledWith("tester");
     expect(persistLobbySession).toHaveBeenCalledWith({
       player,
-      sessionToken: "session-123",
     });
   });
 
@@ -92,7 +88,6 @@ describe("POST /api/auth/login", () => {
   it("returns 429 when rate limit is exceeded", async () => {
     vi.mocked(performUsernameLogin).mockResolvedValue({
       player,
-      sessionToken: "session-789",
     });
 
     for (let i = 0; i < 5; i += 1) {

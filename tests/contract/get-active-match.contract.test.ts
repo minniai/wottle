@@ -22,15 +22,12 @@ import { getServiceRoleClient } from "@/lib/supabase/server";
 import { GET } from "@/app/api/match/active/route";
 
 const session = {
-  token: "session-token",
+  expiresAt: Date.now() + 3_600_000,
   issuedAt: Date.now(),
   player: {
     id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     username: "tester-alpha",
     displayName: "Tester Alpha",
-    status: "available" as const,
-    lastSeenAt: new Date().toISOString(),
-    avatarUrl: null,
   },
 };
 

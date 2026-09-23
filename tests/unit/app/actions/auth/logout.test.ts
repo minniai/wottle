@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LobbySession } from "@/lib/matchmaking/profile";
-import type { LobbyStatus } from "@/lib/types/match";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({
@@ -53,16 +52,12 @@ function buildSession(
   overrides: Partial<LobbySession["player"]> = {},
 ): LobbySession {
   return {
-    token: "t",
     issuedAt: 0,
+    expiresAt: 3_600_000,
     player: {
       id: "player-1",
       username: "ari",
       displayName: "Ari",
-      avatarUrl: null,
-      status: "available" as LobbyStatus,
-      lastSeenAt: "",
-      eloRating: null,
       ...overrides,
     },
   };
@@ -108,7 +103,7 @@ describe("logoutAction", () => {
 
   it("does not resign when the opt-in flag is absent", async () => {
     vi.mocked(readLobbySession).mockResolvedValue(
-      buildSession({ status: "in_match" }),
+      buildSession(),
     );
 
     await logoutAction();
@@ -123,7 +118,7 @@ describe("logoutAction", () => {
       created_at: "2026-04-20T00:00:00Z",
     } as any);
     vi.mocked(readLobbySession).mockResolvedValue(
-      buildSession({ status: "in_match" }),
+      buildSession(),
     );
 
     const result = await logoutAction({ resignActiveMatch: true });
@@ -141,7 +136,7 @@ describe("logoutAction", () => {
     } as any);
     vi.mocked(resignMatch).mockRejectedValueOnce(new Error("match ended"));
     vi.mocked(readLobbySession).mockResolvedValue(
-      buildSession({ status: "in_match" }),
+      buildSession(),
     );
 
     const result = await logoutAction({ resignActiveMatch: true });
@@ -165,7 +160,7 @@ describe("logoutAction", () => {
       new RateLimitExceededError("match:resign", 60, "Too many resigns."),
     );
     vi.mocked(readLobbySession).mockResolvedValue(
-      buildSession({ status: "in_match" }),
+      buildSession(),
     );
 
     await expect(
