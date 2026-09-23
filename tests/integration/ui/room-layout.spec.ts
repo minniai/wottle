@@ -34,16 +34,17 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match");
 
-      const top = await box(pageA, "player-bar-top");
+      // Spec 068: one scoreboard above the field, no bars; the ledger spans the same stack.
+      const top = await box(pageA, "scoreboard");
       const field = await box(pageA, "room-slot-field");
-      const bottom = await box(pageA, "player-bar-bottom");
       const ledger = await box(pageA, "ledger");
+      await expect(pageA.getByTestId("player-bar-top")).toHaveCount(0);
+      await expect(pageA.getByTestId("player-bar-bottom")).toHaveCount(0);
 
       expect(top.y + top.height).toBeLessThanOrEqual(field.y + 1);
-      expect(field.y + field.height).toBeLessThanOrEqual(bottom.y + 1);
       expect(ledger.x).toBeGreaterThan(field.x + field.width);
       expect(Math.abs(ledger.y - top.y)).toBeLessThanOrEqual(2);
-      expect(Math.abs(ledger.y + ledger.height - (bottom.y + bottom.height))).toBeLessThanOrEqual(2);
+      expect(Math.abs(ledger.y + ledger.height - (field.y + field.height))).toBeLessThanOrEqual(2);
       expect(Math.abs(field.width - field.height)).toBeLessThanOrEqual(2);
 
       const scrollable = await pageA.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1);
@@ -66,7 +67,6 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       expect(overlappers).toEqual([]);
 
       expect(intersects(top, field)).toBe(false);
-      expect(intersects(bottom, field)).toBe(false);
       await expect(pageA.getByTestId("topbar")).toHaveCount(0);
     } finally {
       await contextA.close();
@@ -101,7 +101,7 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
     }
   });
 
-  test("phone 390×844: bar / field / bar / live row visible without scrolling", async ({ browser }) => {
+  test("phone 390×844: scoreboard / field / live row visible without scrolling", async ({ browser }) => {
     const contextA = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const contextB = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const pageA = await contextA.newPage();
@@ -113,11 +113,11 @@ test.describe("@room-layout room fits and nothing covers the field", () => {
       await loginViaSlip(pageB, userB);
       await startMatchWithDirectInvite(pageA, pageB, { timeoutMs: 60_000, playerBUsername: userB });
       await expect(pageA.getByTestId("room")).toBeVisible({ timeout: 20_000 });
-      const top = await box(pageA, "player-bar-top");
+      const top = await box(pageA, "scoreboard");
       const field = await box(pageA, "room-slot-field");
-      const bottom = await box(pageA, "player-bar-bottom");
       const live = await box(pageA, "ledger-live-trigger");
-      for (const b of [top, field, bottom, live]) expect(b.y + b.height).toBeLessThanOrEqual(844);
+      for (const b of [top, field, live]) expect(b.y + b.height).toBeLessThanOrEqual(844);
+      expect(top.y + top.height).toBeLessThanOrEqual(field.y + 1);
       expect(field.width).toBeGreaterThanOrEqual(358); // full width minus 16px gutters
       const cell = await pageA.getByTestId("field-cell").first().boundingBox();
       expect(cell!.width).toBeGreaterThanOrEqual(34);

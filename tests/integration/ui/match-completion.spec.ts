@@ -63,8 +63,8 @@ test.describe("@match-completion final room state", () => {
       await submitSwap(pageA);
       await submitSwap(pageB);
       for (const p of [pageA, pageB]) {
-        await expect(p.getByTestId("player-bar-bottom").getByTestId("player-bar-lane")).toHaveAttribute("aria-valuenow", "9", { timeout: 45_000 });
-        await expect(p.getByTestId("player-bar-top")).toContainText("1 of 10", { timeout: 20_000 });
+        await expect(p.getByTestId("scoreboard-row-you").getByTestId("scoreboard-track")).toHaveAttribute("aria-valuenow", "9", { timeout: 45_000 });
+        await expect(p.getByTestId("scoreboard-row-opp")).toContainText("1 of 10", { timeout: 20_000 });
       }
       const playedBoard = await readField(pageA);
       const moved = differences(startingBoard, playedBoard);
@@ -91,7 +91,7 @@ test.describe("@match-completion final room state", () => {
         for (const band of await readBands(p)) expect(band.spelled).toBe(band.word);
       }
       // Every match is rated (spec 048 US6): an invite-created match writes rating rows too.
-      await expect(pageB.getByTestId("player-bar-bottom").getByTestId("player-bar-subline")).toContainText(/\d+ → \d+ · [+−]\d+/, { timeout: 15_000 });
+      await expect(pageB.getByTestId("scoreboard-row-you").getByTestId("scoreboard-subline")).toContainText(/\d+ → \d+ · [+−]\d+/, { timeout: 15_000 });
 
       // review the match ▸ lifts the slip; result ▸ in the foot brings it back.
       await pageA.getByTestId("slip-review-field").click();

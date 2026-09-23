@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { copyEn } from "@/lib/i18n/copy/en";
 
-import { barSuffixFor, barToneFor, deriveMoveState, liveLinesFor, turnFrameFor, type MoveState } from "@/lib/room/moveState";
+import { deriveMoveState, liveLinesFor, turnFrameFor, type MoveState } from "@/lib/room/moveState";
 import type { MatchState, MoveResolution, PlayerMatchFacts } from "@/lib/types/match";
 
 /** Spec 050 contracts/move-state.md. */
@@ -91,22 +91,6 @@ describe("liveLinesFor", () => {
 });
 
 describe("bar suffixes and the turn frame", () => {
-  const counts = { you: 3, opp: 6, oppScoring: false, limit: 10 };
-  it("your count in your bar, in the seat colour only while a move is yours to make", () => {
-    const yourMove: MoveState = { kind: "yourMove", move: 4, opponentName: K };
-    expect(barSuffixFor(yourMove, "you", counts, copyEn)).toBe("move 4 of 10");
-    expect(barToneFor(yourMove)).toBe("seat");
-    expect(barSuffixFor({ kind: "scoring", move: 4, opponentName: K }, "you", counts, copyEn)).toBe("move 4 of 10 · scoring");
-    expect(barToneFor({ kind: "scoring", move: 4, opponentName: K })).toBe("muted");
-    expect(barSuffixFor({ kind: "done", opponentName: K, opponentMoves: 8, clockMmSs: "1:12" }, "you", { ...counts, you: 10 }, copyEn)).toBe("10 of 10 · done");
-    expect(barSuffixFor({ kind: "timeUp", opponentName: K }, "you", counts, copyEn)).toBeNull();
-  });
-  it("their count in their bar: playing, scoring or done", () => {
-    const yourMove: MoveState = { kind: "yourMove", move: 4, opponentName: K };
-    expect(barSuffixFor(yourMove, "opp", counts, copyEn)).toBe("6 of 10 · playing");
-    expect(barSuffixFor(yourMove, "opp", { ...counts, oppScoring: true }, copyEn)).toBe("6 of 10 · scoring");
-    expect(barSuffixFor(yourMove, "opp", { ...counts, opp: 10 }, copyEn)).toBe("10 of 10 · done");
-  });
   it("the field is framed only while a move is yours to make", () => {
     expect(turnFrameFor({ kind: "yourMove", move: 4, opponentName: K })).toBe("you");
     expect(turnFrameFor({ kind: "rejected", move: 4, opponentName: K, reason: "moved" })).toBe("you");
@@ -125,8 +109,6 @@ describe("the start countdown (spec 050 FR-008, contracts/match-state.md)", () =
   it("nothing is the viewer's to make while it counts: no frame, a muted suffix", () => {
     const state: MoveState = { kind: "starting", seconds: 1, opponentName: K };
     expect(turnFrameFor(state)).toBeNull();
-    expect(barToneFor(state)).toBe("muted");
-    expect(barSuffixFor(state, "you", { you: 0, opp: 0, oppScoring: false, limit: 10 }, copyEn)).toBe("move 1 of 10");
   });
 
   it("at the start the first move opens", () => {

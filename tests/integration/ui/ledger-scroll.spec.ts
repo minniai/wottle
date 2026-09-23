@@ -15,7 +15,8 @@ for (const height of [844, 780]) {
     const geometry = await sheet.evaluate((el) => ({
       bottom: el.getBoundingClientRect().bottom,
       top: el.getBoundingClientRect().top,
-      barBottom: document.querySelector('[data-testid="player-bar-bottom"]')!.getBoundingClientRect().bottom,
+      // Spec 068 FR-017: the sheet lies below the field, never over the scoreboard.
+      barBottom: document.querySelector('[data-testid="room-slot-field"]')!.getBoundingClientRect().bottom,
       clientHeight: el.clientHeight,
       scrollHeight: el.scrollHeight,
       pageHeight: document.scrollingElement!.scrollHeight,

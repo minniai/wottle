@@ -80,6 +80,18 @@ const moveScoringSuffix = (move: number): string => `move ${move} of 10 · scori
 const DONE_SUFFIX = "10 of 10 · done";
 const oppProgress = (moves: number, state: "playing" | "scoring"): string => `${moves} of 10 · ${state}`;
 
+// The scoreboard (spec 068): the clock row's label and the player rows' states
+const SCOREBOARD = "scoreboard";
+/** The clock row's label while the move is yours: time left per move left. */
+const paceLabel = (seconds: number): string => (seconds < 1 ? "<1s a move" : `≈${seconds}s a move`);
+const clockOfLength = (elapsedMmSs: string, lengthMmSs: string): string => `${elapsedMmSs} of ${lengthMmSs}`;
+const UNDER_A_MINUTE = "under a minute";
+const READY = "ready";
+const moveBehindPace = (move: number): string => `move ${move} · behind pace`;
+const goneFor = (moves: number, mmSs: string): string => `${moves} of 10 · gone for ${mmSs}`;
+const OFFLINE_RECONNECTING = "offline · reconnecting";
+const profileOpensInNewTab = (name: string): string => `${name}, profile opens in a new tab`;
+
 // Notices (live-row styled lines)
 const rematchRequest = (name: string): string =>
   `${name} asks for a rematch · accept ▸ · decline`;
@@ -299,6 +311,15 @@ export const copyEn = {
   moveScoringSuffix,
   DONE_SUFFIX,
   oppProgress,
+  SCOREBOARD,
+  paceLabel,
+  clockOfLength,
+  UNDER_A_MINUTE,
+  READY,
+  moveBehindPace,
+  goneFor,
+  OFFLINE_RECONNECTING,
+  profileOpensInNewTab,
   rematchRequest,
   waitingForRematch,
   challengeNotice,

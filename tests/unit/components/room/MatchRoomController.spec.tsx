@@ -148,22 +148,26 @@ describe("MatchRoomController (spec 050)", () => {
     log.mockRestore();
   });
 
-  it("renders opponent bar → field → your bar with the ledger, seats relative to the viewer, the clock once in the ledger", () => {
+  it("renders the scoreboard (clock, opponent, you) above the field with the ledger, seats relative to the viewer (spec 068)", () => {
     renderController();
     const room = screen.getByTestId("room");
     expect(room).toHaveAttribute("data-phase", "match");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("Bob");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1191 · opponent · 5 of 10 · playing");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1200 · you · move 3 of 10");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("Bob");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1191 · 5 of 10 · playing");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("Alice");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("1200 · you · move 3 of 10");
     // 2026-09-21: the ledger names no move of the viewer's; the bottom bar's lane counts them.
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("");
-    expect(screen.getByTestId("player-bar-bottom").querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("aria-valuenow", "8");
+    expect(screen.getByTestId("scoreboard-row-you").querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("aria-valuenow", "8");
     expect(screen.getByTestId("match-clock")).toBeInTheDocument();
-    expect(screen.queryByTestId("player-bar-clock")).toBeNull();
+    // Spec 068: no player bars in the match; one box above the field, your row nearest the board.
+    expect(screen.queryByTestId("player-bar-top")).toBeNull();
+    expect(screen.queryByTestId("player-bar-bottom")).toBeNull();
+    expect(room).toHaveAttribute("data-layout", "scoreboard");
     const ids = Array.from(room.querySelectorAll("[data-testid]")).map((el) => el.getAttribute("data-testid"));
-    expect(ids.indexOf("player-bar-top")).toBeLessThan(ids.indexOf("field"));
-    expect(ids.indexOf("field")).toBeLessThan(ids.indexOf("player-bar-bottom"));
+    expect(ids.indexOf("scoreboard-clock")).toBeLessThan(ids.indexOf("scoreboard-row-opp"));
+    expect(ids.indexOf("scoreboard-row-opp")).toBeLessThan(ids.indexOf("scoreboard-row-you"));
+    expect(ids.indexOf("scoreboard-row-you")).toBeLessThan(ids.indexOf("field"));
   });
 
   it("before started_at the room counts 3·2·1 from the server anchor and takes no pick; the caption holds at 5:00", () => {
@@ -194,7 +198,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(live().querySelector(".ledger__live-line1")).toHaveTextContent("move 3 · scoring");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 3 of 10 · scoring");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("move 3 of 10 · scoring");
   });
 
   it("the opponent's resolution lands live: their letters and band, their count, your pick cleared if touched", () => {
@@ -205,7 +209,7 @@ describe("MatchRoomController (spec 050)", () => {
     const theirs = resolution({ moveId: "mv-9", playerId: "player-2", globalSeq: 8, seq: 6, words: [ORD], delta: 13, totals: { playerA: 45, playerB: 43 }, frozenTiles: { "5,5": { owner: "player_b" }, "6,5": { owner: "player_b" }, "7,5": { owner: "player_b" } }, movesPlayed: { playerA: 2, playerB: 6 }, swap: { from: { x: 9, y: 9 }, to: { x: 8, y: 8 } } });
     act(() => mockCallbacks.onMoveResolved!(theirs));
     act(() => vi.advanceTimersByTime(0));
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("6 of 10 · playing");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · playing");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-disabled");
     expect(cell(5, 5)).toHaveAttribute("data-state", "scored");
@@ -235,9 +239,9 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("ledger-row-3").textContent).toContain("þar");
     expect(screen.getByTestId("ledger-row-4")).toHaveAttribute("data-status", "live");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("move 4 · your move");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("move 4 of 10");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("60");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("60");
     expect(cell(1, 2)).toHaveAttribute("data-state", "scored");
     // Hovering a ledger row dims the other moves' bands.
     const bands = screen.getAllByTestId("field-band");
@@ -292,7 +296,7 @@ describe("MatchRoomController (spec 050)", () => {
     renderController(state({}, { movesPlayed: 10 }, { movesPlayed: 8 }));
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent("10 of 10 played");
     expect(screen.getByTestId("ledger-live-row")).toHaveTextContent(/waiting for Bob · 8 of 10 · \d:\d\d left/);
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("10 of 10 · done");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("10 of 10 · done");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
   });
@@ -310,9 +314,9 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
     expect(screen.getByTestId("ledger-context")).toHaveTextContent("final · 4:52");
     expect(screen.queryByTestId("match-clock")).toBeNull();
-    expect(screen.getByTestId("player-bar-top")).not.toHaveTextContent("reconnecting");
-    await waitFor(() => expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("1191 → 1203 · +12 · wins"));
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("1204 → 1192 · −12");
+    expect(screen.getByTestId("scoreboard-row-opp")).not.toHaveTextContent("reconnecting");
+    await waitFor(() => expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("1191 → 1203 · +12 · wins"));
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("1204 → 1192 · −12");
     const slip = screen.getByTestId("slip");
     expect(slip).toHaveAttribute("data-kind", "matchOver");
     expect(slip).toHaveTextContent("Alice wins");
@@ -334,7 +338,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("verdict")).toHaveTextContent("Bob wins 124–88");
     expect(screen.getByTestId("verdict")).toHaveTextContent("Bob played 8 of 10 · by 36 points");
     expect(screen.getByTestId("ledger-row-9").querySelector('[data-seat="opp"]')).toHaveAttribute("data-unplayed", "true");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("rating pending");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("rating pending");
   });
 
   it("final: both short of ten says neither finished, and the score still decides", () => {
@@ -372,7 +376,7 @@ describe("MatchRoomController (spec 050)", () => {
   it("read-only non-participant: player A is the bottom seat without · you, field disabled, only ◂ lobby", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     render(<MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="stranger" matchId="m1" playerProfiles={profiles} />);
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("Alice");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("Alice");
     expect(screen.getByTestId("ledger-header")).not.toHaveTextContent("· you");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     expect(await screen.findByTestId("slip-lobby")).toBeInTheDocument();
@@ -384,9 +388,9 @@ describe("MatchRoomController (spec 050)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:10Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:10Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
-    const top = screen.getByTestId("player-bar-top");
+    const top = screen.getByTestId("scoreboard-row-opp");
     expect(top).toHaveTextContent("reconnecting · 1:20 left");
-    expect(top.querySelector('[data-testid="player-bar-lane"]')).toHaveAttribute("data-mode", "disconnected");
+    expect(top.querySelector('[data-testid="scoreboard-track"]')).toHaveAttribute("data-mode", "outlined");
     expect(screen.getByTestId("match-clock")).toHaveTextContent("4:50");
     expect(screen.queryByRole("dialog")).toBeNull();
     act(() => {
@@ -413,7 +417,8 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("slip")).toHaveTextContent("Bob 6 of 10 · 0:00 left to reconnect");
     fireEvent.click(screen.getByTestId("slip-keep-waiting"));
     expect(screen.queryByTestId("slip")).toBeNull();
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 0:00 left");
+    // Spec 068 FR-037: past the window the row counts how long they have been gone, never a frozen 0:00 left.
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · gone for 0:30");
     await act(async () => vi.advanceTimersByTimeAsync(9_999));
     expect(screen.queryByTestId("slip")).toBeNull();
     await act(async () => vi.advanceTimersByTimeAsync(1));
@@ -547,14 +552,14 @@ describe("MatchRoomController (spec 050)", () => {
 
   it("a player's name opens their profile: in a live match in a new tab, after it in the same tab", () => {
     const live = renderController();
-    const oppLive = screen.getByTestId("player-bar-top").querySelector("a")!;
+    const oppLive = screen.getByTestId("scoreboard-row-opp").querySelector("a")!;
     expect(oppLive).toHaveAttribute("href", "/en/profile/bob");
     expect(oppLive).toHaveAttribute("target", "_blank");
-    expect(screen.getByTestId("player-bar-bottom").querySelector("a")).toHaveAttribute("href", "/en/profile/alice");
+    expect(screen.getByTestId("scoreboard-row-you").querySelector("a")).toHaveAttribute("href", "/en/profile/alice");
     live.unmount();
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
-    const oppFinal = screen.getByTestId("player-bar-top").querySelector("a")!;
+    const oppFinal = screen.getByTestId("scoreboard-row-opp").querySelector("a")!;
     expect(oppFinal).toHaveAttribute("href", "/en/profile/bob");
     expect(oppFinal).not.toHaveAttribute("target");
   });
@@ -576,7 +581,7 @@ describe("the reconnect window on the server-corrected clock (spec 068 R9)", () 
     // The device runs 60s fast; the server says 30s have passed since the disconnect.
     vi.setSystemTime(new Date("2026-01-01T00:01:30Z"));
     renderController(state({ clock: { startedAt: "2026-01-01T00:00:00Z", deadlineAt: "2026-01-01T00:05:00Z", serverNow: "2026-01-01T00:00:30Z" }, disconnectedPlayerId: "player-2", disconnectedAt: "2026-01-01T00:00:00Z", reconnectWindowMs: 90_000 }));
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("reconnecting · 1:00 left");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("reconnecting · 1:00 left");
     vi.useRealTimers();
   });
 });

@@ -105,6 +105,15 @@ export const copyIs = {
   moveOfSuffix: (move: number): string => `leikur ${move} af 10`,
   moveScoringSuffix: (move: number): string => `leikur ${move} af 10 · reiknast`,
   DONE_SUFFIX: "10 af 10 · búið",
+  SCOREBOARD: "stigatafla",
+  paceLabel: (seconds: number): string => (seconds < 1 ? "<1 sek á leik" : `≈${seconds} sek á leik`),
+  clockOfLength: (elapsedMmSs: string, lengthMmSs: string): string => `${elapsedMmSs} af ${lengthMmSs}`,
+  UNDER_A_MINUTE: "innan við mínúta",
+  READY: "við borðið",
+  moveBehindPace: (move: number): string => `leikur ${move} · á eftir áætlun`,
+  goneFor: (moves: number, mmSs: string): string => `${moves} af 10 · án tengingar í ${mmSs}`,
+  OFFLINE_RECONNECTING: "án tengingar · tengist aftur",
+  profileOpensInNewTab: (name: string): string => `${name}, prófíll opnast í nýjum flipa`,
   oppProgress: (moves: number, state: "playing" | "scoring"): string =>
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,
 

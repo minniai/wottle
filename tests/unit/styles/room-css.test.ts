@@ -88,7 +88,8 @@ describe("room.css field paint (spec 045 US2)", () => {
   });
 
   it("declares --cell-size from the measured field size, with no fallback anywhere", () => {
-    expect(field).toMatch(/--cell-size:\s*calc\(var\(--field-size\)\s*\/\s*10\)/);
+    // Under a scoreboard the room passes its whole-pixel cell (spec 068); otherwise a tenth of the field.
+    expect(field).toMatch(/--cell-size:\s*var\(--room-cell,\s*calc\(var\(--field-size\)\s*\/\s*10\)\)/);
     expect(css, "a 48px fallback silently produces the wrong size (finding A2)").not.toContain("--cell-size, 48px");
   });
 
@@ -472,5 +473,49 @@ describe("room.css interaction states", () => {
 
   it("a free letter takes the tint under the pointer only while the field takes picks", () => {
     expect(rule('.field:not([data-disabled]) .field__cell[data-state="free"]:hover')).toMatch(/background:\s*var\(--tint\)/);
+  });
+});
+
+/** Spec 068: the scoreboard's geometry (contracts/scoreboard.md) and its stillness (FR-006). */
+describe("room.css scoreboard (spec 068)", () => {
+  const block = (selector: string, source = rules): string => {
+    const at = source.indexOf(`${selector} {`);
+    expect(at, `${selector} is declared`).toBeGreaterThanOrEqual(0);
+    return source.slice(at, source.indexOf("}", at));
+  };
+  const phone = rules.slice(rules.lastIndexOf("@media (max-width: 900px)", rules.indexOf("--sb-row: 34px")));
+
+  it("draws three 40px rows on a 216 · track · 64 grid inside a 1.5px ink frame", () => {
+    expect(block(".scoreboard")).toMatch(/border:\s*1\.5px solid var\(--ink\)/);
+    const row = block(".scoreboard__row");
+    expect(row).toMatch(/height:\s*var\(--sb-row\)/);
+    expect(row).toMatch(/grid-template-columns:\s*216px minmax\(0, 1fr\) 64px/);
+    expect(row).toMatch(/column-gap:\s*16px/);
+    expect(row).toMatch(/padding:\s*0 14px/);
+    expect(rules).toMatch(/--sb-row:\s*40px/);
+  });
+
+  it("on a phone the rows are 34px on a 112 · track · 36 grid", () => {
+    expect(phone).toMatch(/--sb-row:\s*34px/);
+    expect(phone).toMatch(/grid-template-columns:\s*112px minmax\(0, 1fr\) 36px/);
+    expect(phone).toMatch(/column-gap:\s*10px/);
+    expect(phone).toMatch(/padding:\s*0 8px/);
+  });
+
+  it("the clock and move tracks share the ten columns and their 3px gaps", () => {
+    expect(block(".scoreboard__track")).toMatch(/grid-template-columns:\s*repeat\(10, minmax\(0, 1fr\)\)/);
+    expect(block(".scoreboard__track")).toMatch(/column-gap:\s*3px/);
+  });
+
+  it("urgency is weight: under a minute the clock row takes the tint, its ticks ink and a 700 numeral", () => {
+    expect(rules).toMatch(/\.scoreboard__row--clock\[data-phase="underMinute"\],\s*\.scoreboard__row--clock\[data-phase="lastSeconds"\]\s*\{[^}]*background:\s*var\(--tint\)/);
+    expect(rules).toMatch(/\[data-phase="underMinute"\] \.scoreboard__numeral,[^{]*\{[^}]*font-weight:\s*700/);
+  });
+
+  it("nothing on the scoreboard animates", () => {
+    const scoreboardRules = [...rules.matchAll(/(\.scoreboard[^{]*)\{([^}]*)\}/g)];
+    for (const [, selector, body] of scoreboardRules) {
+      expect(body, `${selector.trim()} animates`).not.toMatch(/animation|transition/);
+    }
   });
 });

@@ -172,7 +172,7 @@ test.describe("@visual the room is one composition", () => {
  * dropped the foot ~330px below the bar.
  */
 test.describe("@visual the ledger is the height of the stack", () => {
-  test("ledger edges meet the bars' outer edges; rows share one height, the live row at least that", async ({ page }, testInfo) => {
+  test("ledger edges meet the scoreboard's top and the field's bottom; rows share one height, the live row at least that", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "visual-390x844", "one column below 900px");
     const viewports = [testInfo.project.use.viewport!, { width: 1024, height: 1100 }];
 
@@ -187,7 +187,8 @@ test.describe("@visual the ledger is the height of the stack", () => {
       const boxes = await page.evaluate(() => {
         const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
         const rows = Array.from({ length: 10 }, (_, i) => rect(`ledger-row-${i + 1}`).height);
-        return { top: rect("player-bar-top"), bottom: rect("player-bar-bottom"), ledger: rect("ledger"), rows };
+        // Spec 068: the scoreboard is the stack's top, the field its bottom.
+        return { top: rect("scoreboard"), bottom: rect("field"), ledger: rect("ledger"), rows };
       });
 
       expect(Math.abs(boxes.ledger.top - boxes.top.top), `top at ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(1);
@@ -248,7 +249,7 @@ test.describe("@visual the room fits a phone", () => {
     test.skip(testInfo.project.name !== "visual-390x844", "the phone layout, at the phone viewport");
   });
 
-  test("bar / field / bar / live row, and the page does not scroll", async ({ page }) => {
+  test("scoreboard / field / live row, and the page does not scroll", async ({ page }) => {
     await page.goto("/en/dev/room?phase=picking");
     await expect(page.getByTestId("field")).toBeVisible();
 
@@ -269,7 +270,7 @@ test.describe("@visual the room fits a phone", () => {
     expect(cell!.width).toBeGreaterThanOrEqual(35);
   });
 
-  test("the sheet opens in flow, below the bottom bar, and still does not scroll the page", async ({ page }) => {
+  test("the sheet opens in flow, below the field, and still does not scroll the page", async ({ page }) => {
     await page.goto("/en/dev/room?phase=picking");
     await page.getByTestId("ledger-live-trigger").click();
 
@@ -281,15 +282,15 @@ test.describe("@visual the room fits a phone", () => {
       const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
       return {
         sheetTop: rect("ledger-sheet").top,
-        bottomBar: rect("player-bar-bottom").bottom,
+        scoreboardBottom: rect("scoreboard").bottom,
         fieldBottom: rect("field").bottom,
         scrollHeight: document.scrollingElement!.scrollHeight,
         innerHeight: window.innerHeight,
       };
     });
 
-    // Never over the field or the bars — the design's central rule.
-    expect(geometry.sheetTop).toBeGreaterThanOrEqual(geometry.bottomBar);
+    // Never over the field or the scoreboard — the design's central rule.
+    expect(geometry.sheetTop).toBeGreaterThanOrEqual(geometry.scoreboardBottom);
     expect(geometry.sheetTop).toBeGreaterThanOrEqual(geometry.fieldBottom);
     expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.innerHeight);
   });
@@ -355,19 +356,20 @@ test.describe("@visual one owner, one colour", () => {
 });
 
 test.describe("@visual room clarity", () => {
-  test("each bar's lane is ten segments, the moves left, legible at every size", async ({ page }) => {
+  test("each player's row is ten segments on the scoreboard's track, legible at every size", async ({ page }, testInfo) => {
     await page.goto("/en/dev/room?phase=idle");
     await expect(page.getByTestId("move-rail")).toHaveCount(0);
-    const lane = (bar: string) => page.getByTestId(bar).getByTestId("player-bar-lane");
-    await expect(lane("player-bar-bottom")).toHaveAttribute("aria-valuenow", "7");
-    await expect(lane("player-bar-top")).toHaveAttribute("aria-valuenow", "4");
-    const segments = lane("player-bar-bottom").locator(".player-bar__segment");
+    const lane = (row: string) => page.getByTestId(row).getByTestId("scoreboard-track");
+    await expect(lane("scoreboard-row-you")).toHaveAttribute("aria-valuenow", "7");
+    await expect(lane("scoreboard-row-opp")).toHaveAttribute("aria-valuenow", "4");
+    const segments = lane("scoreboard-row-you").locator(".scoreboard__segment");
     await expect(segments).toHaveCount(10);
-    await expect(lane("player-bar-bottom").locator('.player-bar__segment[data-state="left"]')).toHaveCount(7);
-    // Every segment stays a readable mark on a phone: at least 24px by 6px.
+    await expect(lane("scoreboard-row-you").locator('.scoreboard__segment[data-state="left"]')).toHaveCount(7);
+    // Every segment stays a readable mark (spec 068 FR-008/009): 8px tall on desktop, 6px on a phone.
+    const phone = testInfo.project.name === "visual-390x844";
     for (const box of await segments.evaluateAll((els) => els.map((el) => el.getBoundingClientRect()).map((r) => ({ w: r.width, h: r.height })))) {
-      expect(box.w).toBeGreaterThanOrEqual(24);
-      expect(box.h).toBe(6);
+      expect(box.w).toBeGreaterThanOrEqual(phone ? 12 : 24);
+      expect(box.h).toBe(phone ? 6 : 8);
     }
   });
 

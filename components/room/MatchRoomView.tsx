@@ -4,15 +4,15 @@ import { useMemo, type ReactNode } from "react";
 
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
-import { formatClock } from "@/lib/room/clock";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
-import { barSuffixFor, barToneFor, type MoveState } from "@/lib/room/moveState";
+import type { MoveState } from "@/lib/room/moveState";
+import { deriveScoreboard, type ScoreboardPhase } from "@/lib/room/scoreboard";
 import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger } from "./Ledger";
 import { useIsPhone } from "./hooks/useIsPhone";
-import { PlayerBar } from "./PlayerBar";
 import { Room } from "./Room";
+import { Scoreboard } from "./Scoreboard";
 import { useCountUp } from "./hooks/useCountUp";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 
@@ -26,6 +26,10 @@ export interface SeatFacts {
   score: number;
   /** ms left in the reconnection window, when this player is disconnected. */
   reconnectMsLeft?: number | null;
+  /** The window is spent and this player is still away: for how long (spec 068). */
+  goneForMs?: number | null;
+  /** The viewer's own transport has lost the match (spec 068). */
+  offline?: boolean;
   /** Final: `1191 → 1203 · +12 · wins` or `rating pending`. */
   finalLine?: string;
   /** The player's profile; opened in a new tab while the match is live. */
@@ -42,6 +46,10 @@ export interface MatchRoomViewProps {
   clockMs?: number;
   /** This match's clock length; the ledger clock's bar drains over it. */
   clockLengthMs?: number;
+  /** Before `started_at`: ms until the clock starts (the 3·2·1). */
+  msToStart?: number;
+  /** Match over: how long it ran. */
+  elapsedMs?: number;
   /** The match ended on the clock with a player short of ten: their unplayed rows show penalties (rules §5.6). */
   penalizeUnplayed?: boolean;
   moveLimit?: number;
@@ -67,17 +75,14 @@ export interface MatchRoomViewProps {
   children: ReactNode;
 }
 
-function subline(facts: SeatFacts, seatWord: string | null, copy: Copy): string {
-  if (facts.finalLine) return facts.finalLine;
-  if (facts.reconnectMsLeft != null) return copy.reconnecting(formatClock(facts.reconnectMsLeft));
-  const rating = String(facts.rating ?? copy.UNRATED);
-  return seatWord ? `${rating} · ${seatWord}` : rating;
+function scoreboardPhase(completed: boolean, moveState: MoveState | undefined): ScoreboardPhase {
+  if (completed) return "over";
+  return moveState?.kind === "starting" ? "starting" : "live";
 }
 
-/** The match phase of the room: opponent bar / field / your bar + ledger (design system §7). */
+/** The match phase of the room: the scoreboard over the field, and the ledger (spec 068, design system §7). */
 export function MatchRoomView(props: MatchRoomViewProps) {
   const copy = useCopy();
-  const { OPPONENT, YOU } = copy;
   const { matchId, viewerSlot, you, opp, clockMs, clockLengthMs, penalizeUnplayed = false, moveLimit = 10, completed, words, playerAId, frozenTiles, live } = props;
   const isPhone = useIsPhone();
   const { hiddenWordIds, hint, caption, verdict, readOnly = false, notices, footActions, onRowHover, onAction, children, moveState, holdMove = null } = props;
@@ -107,51 +112,42 @@ export function MatchRoomView(props: MatchRoomViewProps) {
     const totals = completed ? { you: you.score, opp: opp.score } : undefined;
     return { ...base, caption: caption ?? base.caption, verdict, totals };
   }, [you.score, opp.score, movesPlayed, moveLimit, completed, words, hiddenWordIds, playerAId, viewerSlot, live, frozenTiles, hint, caption, verdict, moveState, holdMove, clockMs, clockLengthMs, penalizeUnplayed, copy]);
-  const turn = moveState && !completed && !readOnly ? moveState : null;
-  const counts = { you: you.movesPlayed, opp: opp.movesPlayed, oppScoring: Boolean(opp.scoring), limit: moveLimit };
-  const youSuffix = turn ? barSuffixFor(turn, "you", counts, copy) : null;
-  const oppSuffix = turn ? barSuffixFor(turn, "opp", counts, copy) : null;
+  const scoreboard = useMemo(
+    () =>
+      deriveScoreboard(
+        {
+          phase: scoreboardPhase(completed, moveState),
+          moveState: completed || readOnly ? null : (moveState ?? null),
+          remainingMs: clockMs ?? 0,
+          clockLengthMs: clockLengthMs ?? 300_000,
+          msToStart: props.msToStart,
+          elapsedMs: props.elapsedMs,
+          moveLimit,
+          readOnly,
+          you: { name: you.name, rating: you.rating, movesPlayed: you.movesPlayed, inFlight: Boolean(you.scoring), score: you.score, offline: you.offline, finalLine: you.finalLine },
+          opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, finalLine: opp.finalLine },
+        },
+        copy,
+      ),
+    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, you, opp, copy],
+  );
 
   return (
     <Room
       matchId={matchId}
       onSlipAction={onAction}
+      layout="scoreboard"
       topBar={
-        <PlayerBar
-          seat="opp"
-          position="top"
-          state={completed ? "final" : "playing"}
-          name={opp.name}
-          profileHref={opp.profileHref}
-          profileInNewTab={opp.profileInNewTab}
-          subline={subline(opp, readOnly ? null : OPPONENT, copy)}
-          sublineSuffix={opp.reconnectMsLeft != null ? null : oppSuffix}
-          movesPlayed={opp.movesPlayed}
-          moveInFlight={opp.scoring}
-          moveLimit={moveLimit}
-          score={oppScore}
-          disconnected={opp.reconnectMsLeft != null}
+        <Scoreboard
+          view={scoreboard}
+          totals={{ you: youScore, opp: oppScore }}
+          profiles={{ you: you.profileHref, opp: opp.profileHref }}
+          profileInNewTab={Boolean(opp.profileInNewTab)}
+          compact={isPhone}
         />
       }
       field={children}
-      bottomBar={
-        <PlayerBar
-          seat="you"
-          position="bottom"
-          state={completed ? "final" : "playing"}
-          name={you.name}
-          profileHref={you.profileHref}
-          profileInNewTab={you.profileInNewTab}
-          subline={subline(you, readOnly ? null : YOU, copy)}
-          sublineSuffix={youSuffix}
-          sublineTone={turn ? barToneFor(turn) : "muted"}
-          movesPlayed={you.movesPlayed}
-          moveInFlight={you.scoring}
-          moveLimit={moveLimit}
-          score={youScore}
-          disconnected={you.reconnectMsLeft != null}
-        />
-      }
+      bottomBar={null}
       ledger={
         <Ledger
           variant={completed ? "final" : "match"}

@@ -26,9 +26,9 @@ test("an absent opponent: after ten moves and the window, end the match early @t
     await contextB.close();
 
     // While the window runs, the opponent's bar carries it and the field is clear.
-    const topBar = pageA.getByTestId("player-bar-top");
-    await expect(topBar.getByTestId("player-bar-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 30_000 });
-    await expect(topBar.getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "disconnected");
+    const topBar = pageA.getByTestId("scoreboard-row-opp");
+    await expect(topBar.getByTestId("scoreboard-subline")).toContainText(/reconnecting · \d:\d\d left/, { timeout: 30_000 });
+    await expect(topBar.getByTestId("scoreboard-track")).toHaveAttribute("data-mode", "outlined");
     await expect(pageA.getByTestId("slip")).toHaveCount(0);
 
     for (let n = 1; n <= 10; n += 1) await submitSwap(pageA);

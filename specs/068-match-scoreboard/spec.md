@@ -46,7 +46,7 @@ Reading down any column compares time left with moves left.
 
 1. **Given** a match at 3:12 with the move yours, **When** the room renders, **Then** row 1 reads the pace `≈27s a move` (192s ÷ 7 moves left, rounded), the track shows 6 full blocks and 3 of 6 ticks in the seventh (⌈192 ÷ 5⌉ = 39 ticks), and the numeral reads `3:12`.
 2. **Given** the move is not yours, **When** the room renders, **Then** row 1's label reads `match clock` / `leikklukka`.
-3. **Given** Kári has played 6 of 10, **When** the room renders, **Then** row 2's track shows 4 filled move segments on the left and 6 empty on the right, row 2's sub-line reads `1265 · opponent · 6 of 10 · playing`, and his total `34` is in the right-hand column in `--opp`.
+3. **Given** Kári has played 6 of 10, **When** the room renders, **Then** row 2's track shows 4 filled move segments on the left and 6 empty on the right, row 2's sub-line reads `1265 · 6 of 10 · playing` (only your own row names its seat), and his total `34` is in the right-hand column in `--opp`.
 4. **Given** it is Birna's move 4, **When** the room renders, **Then** row 3's sub-line reads `1310 · you · move 4 of 10` in `--you` and her total is `44`.
 5. **Given** one of Birna's moves is in flight, **When** the room renders, **Then** its segment on row 3 shows at 30%.
 6. **Given** the clock passes a 5s boundary, **When** the next second renders, **Then** exactly one tick empties from the right of the clock track, and the numeral steps every second.
@@ -282,7 +282,7 @@ The design system, CLAUDE.md and the visual baselines describe the scoreboard, n
   - each player's ten moves, emptying from the right as moves resolve, shown at 30% while in flight, and outlined while that player is disconnected or offline.
 - **FR-003**: Each player row MUST carry the player's seat square and name, a sub-line, and their total in the value column. The total is in the seat colour, using the text variant under 17px.
 - **FR-004**: Sub-lines MUST follow the canvas strings:
-  - **Opponent:** `<rating> · opponent · 6 of 10 · playing` / `· scoring`; `10 of 10 · done`; `reconnecting · 0:42 left`; `8 of 10 · gone for 2:04`; `ready` while starting.
+  - **Opponent:** `<rating> · 6 of 10 · playing` / `· scoring` (the row names no seat word; its square and place say who it is, as on the canvas); `10 of 10 · done`; `reconnecting · 0:42 left`; `8 of 10 · gone for 2:04`; `ready` while starting.
   - **Viewer:** `<rating> · you · move 4 of 10` in `--you` while the move is theirs; `· scoring`; `10 of 10 · done`; `move 8 · behind pace`; `offline · reconnecting`; `ready`.
   - **Match over:** the rating change and, for the winner, `· wins`; while ratings are not yet written, `rating pending`, as today.
   - **Phone:** the short forms `6 of 10` and `move 4`.

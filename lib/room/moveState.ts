@@ -88,32 +88,6 @@ export function liveLinesFor(state: MoveState, field: LiveState, copy: Copy): Li
   }
 }
 
-export interface BarCounts {
-  you: number;
-  opp: number;
-  /** The opponent has a move in flight. */
-  oppScoring: boolean;
-  limit: number;
-}
-
-/** The suffix a bar's sub-line carries for this beat, or null when the clock is spent. */
-export function barSuffixFor(state: MoveState, seat: Seat, counts: BarCounts, copy: Copy): string | null {
-  if (state.kind === "timeUp") return null;
-  if (seat === "you") {
-    if (state.kind === "done") return copy.DONE_SUFFIX;
-    if (state.kind === "scoring") return copy.moveScoringSuffix(state.move);
-    if (state.kind === "starting") return copy.moveOfSuffix(counts.you + 1);
-    return copy.moveOfSuffix(state.move);
-  }
-  if (counts.opp >= counts.limit) return copy.DONE_SUFFIX;
-  return copy.oppProgress(counts.opp, counts.oppScoring ? "scoring" : "playing");
-}
-
-/** The viewer's suffix is in the seat colour only while a move is theirs to make. */
-export function barToneFor(state: MoveState): "seat" | "muted" {
-  return state.kind === "yourMove" || state.kind === "rejected" ? "seat" : "muted";
-}
-
 /** The field is framed in the viewer's seat colour while a move is theirs to make. */
 export function turnFrameFor(state: MoveState): Seat | null {
   return state.kind === "yourMove" || state.kind === "rejected" ? "you" : null;

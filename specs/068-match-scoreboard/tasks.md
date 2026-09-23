@@ -47,14 +47,14 @@
 **Goal:** one scoreboard above the field in the match states, with no player bars.
 **Independent test:** `/en/dev/room?phase=idle` at 1440×900 shows exactly three rows (clock, Kári, Birna), with no `player-bar-*` in the match.
 
-- [ ] T011 [P] [US1] Write failing tests in `tests/unit/lib/room/scoreboard.spec.ts` for `deriveScoreboard`:
+- [X] T011 [P] [US1] Write failing tests in `tests/unit/lib/room/scoreboard.spec.ts` for `deriveScoreboard`:
   - clock label, pace or `match clock`, numeral and blocks for the `idle` fixture values;
   - every sub-line suffix in `data-model.md`'s table (playing, scoring, done, reconnecting, gone for, ready, final and `rating pending`);
   - `suffixTone`;
   - segments;
   - read-only drops `· you` and `· opponent`.
-- [ ] T012 [US1] Implement `deriveScoreboard(input, copy)` in the new `lib/room/scoreboard.ts` (contract `contracts/scoreboard.md`), absorbing `subline()` from `components/room/MatchRoomView.tsx` and `barSuffixFor` / `barToneFor` from `lib/room/moveState.ts`. Delete the originals and move their tests from `tests/unit/lib/room/moveState.spec.ts` into `scoreboard.spec.ts`.
-- [ ] T013 [P] [US1] Write failing tests in `tests/unit/components/room/Scoreboard.spec.tsx`:
+- [X] T012 [US1] Implement `deriveScoreboard(input, copy)` in the new `lib/room/scoreboard.ts` (contract `contracts/scoreboard.md`), absorbing `subline()` from `components/room/MatchRoomView.tsx` and `barSuffixFor` / `barToneFor` from `lib/room/moveState.ts`. Delete the originals and move their tests from `tests/unit/lib/room/moveState.spec.ts` into `scoreboard.spec.ts`.
+- [X] T013 [P] [US1] Write failing tests in `tests/unit/components/room/Scoreboard.spec.tsx`:
   - three rows in the order clock, opp, you;
   - the testids from research R13;
   - `role="timer"` on the clock row, which is not live;
@@ -63,14 +63,14 @@
   - totals in the value column;
   - names link to profiles and open in a new tab while live;
   - the phone variant renders no tick marks.
-- [ ] T014 [US1] Implement `components/room/Scoreboard.tsx`, which renders a `ScoreboardView`. Its seat colours come from `getSeatColors`.
-- [ ] T015 [US1] Add the `.scoreboard` styles to `app/styles/room.css`:
+- [X] T014 [US1] Implement `components/room/Scoreboard.tsx`, which renders a `ScoreboardView`. Its seat colours come from `getSeatColors`.
+- [X] T015 [US1] Add the `.scoreboard` styles to `app/styles/room.css`:
   - desktop: rows 40px, columns 216 · 1fr · 64, gap 16, padding 14, 1.5px `--ink` frame;
   - clock track: 10 blocks of 6 ticks on the move lanes' 10-column grid with 3px gaps;
   - segments reuse the lane segment styles (spent, scoring at 30%, outlined);
   - phone (≤900px): rows 34px, columns 112 · 1fr · 36, gap 10, padding 8, blocks filled with no tick marks.
-- [ ] T016 [US1] Swap the bars for the scoreboard in `components/room/MatchRoomView.tsx`: `Room layout="scoreboard"`, `topBar={<Scoreboard …/>}` (count-up totals kept) and no `bottomBar`. Drop the `PlayerBar` import. Pass the clock inputs from `components/room/MatchRoomController.tsx`: `remainingMs`, `msToStart`, and `elapsedMs` for the over state.
-- [ ] T017 [US1] **CRITICAL regression, in the same commit as T016.** Migrate the match selectors from `player-bar-top|bottom`, `player-bar-subline`, `player-bar-score` and `player-bar-turn` to `scoreboard-row-opp|you`, `scoreboard-subline`, `scoreboard-total` and `scoreboard-turn` in:
+- [X] T016 [US1] Swap the bars for the scoreboard in `components/room/MatchRoomView.tsx`: `Room layout="scoreboard"`, `topBar={<Scoreboard …/>}` (count-up totals kept) and no `bottomBar`. Drop the `PlayerBar` import. Pass the clock inputs from `components/room/MatchRoomController.tsx`: `remainingMs`, `msToStart`, and `elapsedMs` for the over state.
+- [X] T017 [US1] **CRITICAL regression, in the same commit as T016.** Migrate the match selectors from `player-bar-top|bottom`, `player-bar-subline`, `player-bar-score` and `player-bar-turn` to `scoreboard-row-opp|you`, `scoreboard-subline`, `scoreboard-total` and `scoreboard-turn` in:
   - `tests/integration/ui/moves-flow.spec.ts`
   - `tests/integration/ui/disconnect-claim.spec.ts`
   - `tests/integration/ui/match-completion.spec.ts`
@@ -313,4 +313,5 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 
 - T001 baseline (2026-09-23): 175 unit files, 1721 tests passing (2 skipped); lint, typecheck and docs:check clean.
 - T002 folded into each task: `Copy` is derived from the English object and guarded by the parity test, so each key is added with the test that needs it.
+- US1: the opponent row names no seat word (`1265 · 6 of 10 · playing`), as the canvas draws it; the full sub-line does not fit 216px. The phone total takes `--opp-text` (20px is under the large-text size; axe). The clock row has two lines, the phase label (`match clock`, `under a minute`, …) over the pace or detail, as the canvas draws it. `gone for` shipped in Phase A with the scoreboard (analysis I2).
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.

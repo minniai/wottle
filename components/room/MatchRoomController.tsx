@@ -317,6 +317,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const now = useNowTick(Boolean(disconnectedAt)) + serverDrift;
   const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
   const reconnectMsLeft = disconnectedAt ? Math.max(0, new Date(disconnectedAt).getTime() + windowMs - now) : null;
+  // Past the window the scoreboard counts how long they have been gone, never a frozen 0:00 (spec 068 FR-037).
+  const goneForMs = disconnectedAt && reconnectMsLeft === 0 ? Math.max(0, now - new Date(disconnectedAt).getTime() - windowMs) : null;
   const viewerDone = youFacts.movesPlayed >= match.moveLimit;
   const endable = reconnectMsLeft === 0 && viewerDone;
   const setSlip = useRoomStore((s) => s.setSlip);
@@ -451,9 +453,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         matchId={matchId}
         viewerSlot={viewerSlot}
         you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft }}
+        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
+        msToStart={Math.max(0, msToStart)}
+        elapsedMs={completed ? durationMs : undefined}
         penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}
         moveLimit={match.moveLimit}
         completed={completed}

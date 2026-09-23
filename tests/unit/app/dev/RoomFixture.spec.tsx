@@ -77,8 +77,8 @@ describe("RoomFixture", () => {
     unmount();
     render(<RoomFixture phase="idle" />);
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("6 of 10 · playing");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("move 4 of 10");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · playing");
     expect(screen.getByTestId("match-clock")).toHaveTextContent("3:12");
   });
 
@@ -88,13 +88,13 @@ describe("RoomFixture", () => {
     const scoring = render(<RoomFixture phase="scoring" />);
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
     expect(screen.getByTestId("field")).not.toHaveAttribute("data-turn");
-    expect(screen.getByTestId("player-bar-bottom")).toHaveTextContent("move 4 of 10 · scoring");
+    expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("move 4 of 10 · scoring");
     scoring.unmount();
 
     const opp = render(<RoomFixture phase="opp-reveal" />);
     expect(cell(0, 9)).toHaveAttribute("data-state", "picked");
     expect(screen.getByTestId("field")).toHaveAttribute("data-turn", "you");
-    expect(screen.getByTestId("player-bar-top")).toHaveTextContent("6 of 10 · scoring");
+    expect(screen.getByTestId("scoreboard-row-opp")).toHaveTextContent("6 of 10 · scoring");
     expect(screen.getAllByTestId("field-band").find((b) => b.getAttribute("data-word") === "LEG")).toHaveClass("field__band--live");
     opp.unmount();
 

@@ -12,7 +12,7 @@ import { submitSwap } from "./helpers/swaps";
 
 const live = (p: Page) => p.getByTestId("ledger-live-row");
 // The viewer's moves left, on the bottom bar's lane (2026-09-21: the ledger's rail is gone).
-const rail = (p: Page) => p.getByTestId("player-bar-bottom").getByTestId("player-bar-lane");
+const rail = (p: Page) => p.getByTestId("scoreboard-row-you").getByTestId("scoreboard-track");
 
 test.describe("Move flow", () => {
   test("ten moves each at their own pace, then the final room @two-player-playtest", async ({ browser }) => {
@@ -36,7 +36,7 @@ test.describe("Move flow", () => {
       for (const p of [pageA, pageB]) {
         await expect(live(p)).toContainText("move 1 · your move", { timeout: 20_000 });
         await expect(p.getByTestId("field")).toHaveAttribute("data-turn", "you");
-        await expect(p.getByTestId("player-bar-bottom")).toContainText("move 1 of 10");
+        await expect(p.getByTestId("scoreboard-row-you")).toContainText("move 1 of 10");
         await expect(p.getByTestId("match-clock")).toHaveText(/\d:\d\d/);
         await expect(rail(p)).toHaveAttribute("aria-valuenow", "10");
       }
@@ -48,8 +48,8 @@ test.describe("Move flow", () => {
       }
       await expect(live(pageB)).toContainText("move 1 · your move");
       await expect(pageB.getByTestId("field")).toHaveAttribute("data-turn", "you");
-      await expect(pageB.getByTestId("player-bar-top")).toContainText("3 of 10", { timeout: 20_000 });
-      await expect(pageB.getByTestId("player-bar-bottom")).toContainText("move 1 of 10");
+      await expect(pageB.getByTestId("scoreboard-row-opp")).toContainText("3 of 10", { timeout: 20_000 });
+      await expect(pageB.getByTestId("scoreboard-row-you")).toContainText("move 1 of 10");
       // B's ledger holds A's three moves in A's column: rows 1–3 are past.
       for (let r = 1; r <= 3; r += 1) {
         await expect(pageB.getByTestId(`ledger-row-${r}`)).not.toHaveAttribute("data-status", "future");
