@@ -3,6 +3,7 @@
 import { create } from "zustand";
 
 import { outranks, type SlipKind, type SlipState } from "./slip";
+import type { ReturningPlayer } from "@/lib/types/lobby";
 import type { MatchState, MoveResolution, PlayerIdentity, PlayerSlot } from "@/lib/types/match";
 
 /**
@@ -33,6 +34,8 @@ export interface RoomState {
   connection: ConnectionMode;
   /** The one overlay (spec 048 §5.9); precedence enforced by `setSlip`. */
   slip: SlipState | null;
+  /** Signed out, this browser's key still names a player: the door greets them (spec 067 US3). */
+  returning: ReturningPlayer | null;
   /** Final phase: `review the match ▸` hides the match-over slip; `result ▸` restores it. */
   slipDismissed: boolean;
   /** The viewer's move (its per-player sequence) held after its reveal before the next opens (spec 050 FR-013). */
@@ -61,6 +64,7 @@ export interface RoomState {
   leaveToLobby: () => void;
   /** Show a slip unless a higher-ranked one is already up. */
   setSlip: (next: SlipState) => void;
+  setReturning: (returning: ReturningPlayer | null) => void;
   /** Take down a slip of that kind only. */
   clearSlip: (kind: SlipKind) => void;
   dismissSlip: () => void;
@@ -136,6 +140,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   found: null,
   connection: "realtime",
   slip: null,
+  returning: null,
   slipDismissed: false,
   holdMove: null,
 
@@ -187,6 +192,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   leaveToLobby: () =>
     set({ phase: "lobby", match: null, opponent: null, viewerSlot: null, queue: null, found: null, slip: null, slipDismissed: false, holdMove: null }),
 
+  setReturning: (returning) => set({ returning }),
   setSlip: (next) => set((s) => (outranks(s.slip, next) ? {} : { slip: next, slipDismissed: s.slip?.kind === next.kind ? s.slipDismissed : false })),
   clearSlip: (kind) => set((s) => (s.slip?.kind === kind ? { slip: null, slipDismissed: false } : {})),
   dismissSlip: () => set({ slipDismissed: true }),
