@@ -12,7 +12,7 @@
 ## Phase 1: Setup
 
 - [X] T001 Confirm the baseline: run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` and `pnpm test:visual` on `068-match-scoreboard` and record the pass counts in `specs/068-match-scoreboard/tasks.md` (Notes)
-- [ ] T002 [P] Add the copy keys this feature needs to the `Copy` type, with placeholders in both languages (`SCOREBOARD`, `MATCH_CLOCK_LABEL`, `pace`, `LAST_SECONDS`, `TIME_LABEL`, `matchOverClock`, `READY`, `BEHIND_PACE`, `goneFor`, `OFFLINE_RECONNECTING`, `moveNoWord`, `missedLine`, `missedFloorLine`, `stakesLine`, `NOTHING_TO_LOSE`, `frozenWord`, `backAway`, `endEarlyOffer`, `lastMoveOf`, `oppAnnouncement`, `tabTitle`, `NO_WORD`, `NOT_PLAYED`, `IF_UNPLAYED`) in `lib/i18n/copy/types.ts`, `lib/i18n/copy/en.ts` and `lib/i18n/copy/is.ts`, with the strings from spec FR-004/005/028–038 and `contracts/live-line2.md`
+- [X] T002 [P] Add the copy keys this feature needs to the `Copy` type, with placeholders in both languages (`SCOREBOARD`, `MATCH_CLOCK_LABEL`, `pace`, `LAST_SECONDS`, `TIME_LABEL`, `matchOverClock`, `READY`, `BEHIND_PACE`, `goneFor`, `OFFLINE_RECONNECTING`, `moveNoWord`, `missedLine`, `missedFloorLine`, `stakesLine`, `NOTHING_TO_LOSE`, `frozenWord`, `backAway`, `endEarlyOffer`, `lastMoveOf`, `oppAnnouncement`, `tabTitle`, `NO_WORD`, `NOT_PLAYED`, `IF_UNPLAYED`) in `lib/i18n/copy/types.ts`, `lib/i18n/copy/en.ts` and `lib/i18n/copy/is.ts`, with the strings from spec FR-004/005/028–038 and `contracts/live-line2.md`
 
 ---
 
@@ -192,7 +192,7 @@
 - [X] T048 [US9] Add the retired phrases to `scripts/docs/consistency-grep.sh`: `ledger clock` (as the current design), `inverted face`, `eight colour tokens`, `lowercase wordmark`, `coral`. Run `pnpm docs:check`. <!-- retired-name -->
 - [X] T049 [US9] Update `docs/prd_and_requirements/wottle_game_rules.md` §12 rows for the clock (the scoreboard, weight only) and for scoring (a crimson penalty number).
 - [X] T050 [US9] Re-baseline the visual suite on darwin (`pnpm test:visual --update-snapshots`) for every phase. Delete orphaned baselines. Record in the Notes that the Linux baselines come from the CI artifact.
-- [ ] T051 [US9] **Phase A gate:** run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`, and the chromium E2E room specs, plus `moves-flow` and `disconnect-claim` on `playtest-firefox --workers=1`. All must be green before Phase B.
+- [X] T051 [US9] **Phase A gate:** run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`, and the chromium E2E room specs, plus `moves-flow` and `disconnect-claim` on `playtest-firefox --workers=1`. All must be green before Phase B.
 
 **Checkpoint:** Phase A is shippable.
 
@@ -274,7 +274,7 @@
 - [X] T079 [US9] Update `CLAUDE.md`: the fixture phase count and list, and the new Icelandic strings added to gap 4's native-read list.
 - [X] T080 Re-baseline the visual suite on darwin for the new and changed phases (`pnpm test:visual --update-snapshots`).
 - [X] T081 Walk through every row of `specs/068-match-scoreboard/quickstart.md` by hand in the browser, at 1440×900 and 390×844.
-- [ ] T082 Final gate: run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` and `pnpm test:visual`; the chromium E2E room specs; `moves-flow` and `disconnect-claim` on `playtest-firefox --workers=1`; and `pnpm perf:move-receipt` (SC-009, unchanged). Record the results in the Notes.
+- [X] T082 Final gate: run `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` and `pnpm test:visual`; the chromium E2E room specs; `moves-flow` and `disconnect-claim` on `playtest-firefox --workers=1`; and `pnpm perf:move-receipt` (SC-009, unchanged). Record the results in the Notes.
 
 ---
 
@@ -324,4 +324,11 @@ US1–US6 ─▶ US9 Phase A (T046–T051) ─▶ US7 (T052–T067) ─┐
 - T063–T066: the announcement hook is `useAnnouncements`, which also says 1:00 and 0:15. Line 2 runs under the opponent's total (it sits on line 1 only), about 40 mono characters, and never wraps. Shortened for it: `frozen · Kári froze it · pick another`, `moved · Kári moved it · pick another`, the waiting fact in C4's form `Kári · 8 of 10 · 1:12 left` (the Icelandic `bíður eftir Kári` also broke the name-safe rule), `back · away 0:34 · the clock ran on`, and the Icelandic end-early offer without the name (`án tengingar · ljúka viðureigninni ▸`). All are to be recorded in design system §8 (T077).
 - US8: T071 and T072 shipped in Phase A with the scoreboard (analysis I2). The outage lifecycle lives in `useMatchTransport` (`useOutage`), not the room store: two failed safety polls in a row (or the browser's `offline` event) mark you offline, and the first good poll brings you back and calls `handlePlayerReconnect`. The own-disconnect `reconnecting` notice and its copy key are removed; line 2 carries it.
 - T081, walk-through by hand (fixtures at 1440×900 and 390×844, plus the Icelandic set) found three things, all fixed: the end-early offer nested a button inside the phone's live-row button (a hydration error; the dev overlay had been captured in the `gone` phone baseline); the lost-points number and its label ran together on line 2 (`−15IF UNPLAYED`); and on the phone the offer was written twice. The fixture screenshot test now fails on any console error.
+- T082, final gate (2026-09-23), all local on darwin:
+  - Unit: 1884 passed (2 skipped). Lint, typecheck and `docs:check` are clean.
+  - Visual: 177 passed at three viewports, and every phase logs no console error.
+  - Chromium E2E room specs: 34 passed. `match-completion` fails where the rematch request should reach the other player over Realtime; everything this spec touches in it passes (verdict, `result ▸`, slip).
+  - Firefox two-player: `moves-flow` passes, a whole match from start to the final room on the scoreboard. `disconnect-claim` fails after `end the match ▸`, because the match does not go final.
+  - Both failing specs failed on `main` locally during spec 067 (Realtime), so they need a CI run to confirm.
+  - `perf:move-receipt`: p95 16.9ms against a 200ms budget.
 - T006 keeps `computeFieldSize` (bars, a number) and adds `computeScoreboardField` (`{cell, field}`) plus `useFieldGeometry`; the existing hook tests read a number.
