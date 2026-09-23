@@ -49,6 +49,7 @@ describe("POST /api/lobby/invite", () => {
   it("returns 200 when the invite service succeeds", async () => {
     vi.mocked(readLobbySession).mockResolvedValue(session);
     vi.mocked(sendDirectInvite).mockResolvedValue({
+      status: "sent",
       inviteId: "11111111-2222-3333-4444-555555555555",
       expiresAt: new Date(Date.now() + 30_000).toISOString(),
     });

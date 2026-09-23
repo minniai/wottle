@@ -1,18 +1,16 @@
 import type { Language } from "@/lib/types/game-config";
 import "server-only";
 
-import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { LobbyStatus, PlayerIdentity } from "@/lib/types/match";
-import { bootstrapMatchRecord, findActiveMatchForPlayer } from "./service";
+import { findActiveMatchForPlayer } from "./service";
+import { acceptInvite, inviteTtlSeconds, pairFromQueue } from "@/lib/match/createMatch";
 import { logPlaytestError, logPlaytestInfo, trackInviteAccepted } from "@/lib/observability/log";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
-const DEFAULT_INVITE_TTL_SECONDS = Number(
-  process.env.PLAYTEST_INVITE_EXPIRY_SECONDS ?? "30"
-);
+const DEFAULT_INVITE_TTL_SECONDS = inviteTtlSeconds();
 const DEFAULT_QUEUE_WAIT_SECONDS = Number(
   process.env.PLAYTEST_QUEUE_WAIT_SECONDS ?? "15"
 );
@@ -25,10 +23,10 @@ export interface SendDirectInviteParams {
   language?: Language;
 }
 
-export interface SendDirectInviteResult {
-  inviteId: string;
-  expiresAt: string;
-}
+/** Sent, or — when the recipient had already challenged the sender — accepted at once (spec 067). */
+export type SendDirectInviteResult =
+  | { status: "sent"; inviteId: string; expiresAt: string }
+  | { status: "accepted"; matchId: string };
 
 export interface RespondInviteParams {
   inviteId: string;
@@ -36,10 +34,11 @@ export interface RespondInviteParams {
   decision: "accepted" | "declined";
 }
 
-export interface RespondInviteResult {
-  status: "accepted" | "declined";
-  matchId?: string;
-}
+export type RespondInviteResult =
+  | { status: "accepted"; matchId: string }
+  | { status: "declined" }
+  /** The other player is in a match now; `name` is the one who cannot play (spec 067 FR-019). */
+  | { status: "busy"; name: string };
 
 export interface PendingInviteSummary {
   id: string;
@@ -72,7 +71,7 @@ interface InviteRow {
   id: string;
   sender_id: string;
   recipient_id: string;
-  status: "pending" | "accepted" | "declined" | "expired";
+  status: "pending" | "accepted" | "declined" | "expired" | "withdrawn" | "superseded";
   created_at: string;
   responded_at: string | null;
   match_id: string | null;
@@ -147,6 +146,9 @@ export async function sendDirectInvite(
     throw new Error("Recipient is in another language's lobby.");
   }
 
+  const crossed = await pendingInviteBetween(client, params.recipientId, params.senderId);
+  if (crossed) return acceptCrossedChallenge(client, crossed, params.senderId);
+
   const existing = await client
     .from("match_invitations")
     .select("id")
@@ -179,7 +181,6 @@ export async function sendDirectInvite(
     );
   }
 
-  await setPlayerStatus(client, params.senderId, "matchmaking");
   await updatePresenceMode(client, params.senderId, {
     mode: "direct_invite",
     inviteToken: data.id,
@@ -190,10 +191,25 @@ export async function sendDirectInvite(
     metadata: { recipientId: params.recipientId },
   });
 
-  return {
-    inviteId: data.id,
-    expiresAt,
-  };
+  return { status: "sent", inviteId: data.id, expiresAt };
+}
+
+async function pendingInviteBetween(client: AnyClient, senderId: string, recipientId: string): Promise<string | null> {
+  const { data } = await client
+    .from("match_invitations")
+    .select("id")
+    .eq("sender_id", senderId)
+    .eq("recipient_id", recipientId)
+    .eq("status", "pending")
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+/** Both challenged each other: the second challenge is the answer to the first. */
+async function acceptCrossedChallenge(client: AnyClient, inviteId: string, actorId: string): Promise<SendDirectInviteResult> {
+  const result = await acceptInvite(client, { inviteId, actorId, origin: "crossed_challenge" });
+  if (result.status === "created") return { status: "accepted", matchId: result.matchId };
+  throw new Error(result.status === "busy" ? "Recipient is unavailable right now." : "Invite is no longer active.");
 }
 
 export async function respondToInvite(
@@ -204,74 +220,40 @@ export async function respondToInvite(
   if (!invite) {
     throw new Error("Invite not found.");
   }
-  if (invite.status !== "pending") {
-    throw new Error("Invite is no longer active.");
-  }
   if (invite.recipient_id !== params.actorId) {
     throw new Error("You cannot respond to this invite.");
   }
-
-  if (params.decision === "declined") {
-    await client
-      .from("match_invitations")
-      .update({
-        status: "declined",
-        responded_at: new Date().toISOString(),
-      })
-      .eq("id", params.inviteId);
-
-    await setPlayerStatus(client, invite.sender_id, "available");
-    await updatePresenceMode(client, invite.sender_id, {
-      mode: "auto",
-      inviteToken: null,
-    });
-
-    logPlaytestInfo("matchmaking.invite.declined", {
-      playerId: params.actorId,
-      metadata: { inviteId: invite.id },
-    });
-
-    return { status: "declined" };
+  if (params.decision === "accepted") {
+    return acceptChallenge(client, invite, params.actorId);
   }
-
-  const matchId = await bootstrapMatchRecord(client, {
-    boardSeed: randomUUID(),
-    playerAId: invite.sender_id,
-    playerBId: invite.recipient_id,
-    language: invite.language ?? "is",
-  });
+  if (invite.status !== "pending") {
+    throw new Error("Invite is no longer active.");
+  }
 
   await client
     .from("match_invitations")
-    .update({
-      status: "accepted",
-      responded_at: new Date().toISOString(),
-      match_id: matchId,
-    })
+    .update({ status: "declined", responded_at: new Date().toISOString() })
     .eq("id", params.inviteId);
-
-  await releaseOtherChallengers(client, invite.recipient_id, invite.id);
-  await Promise.all([
-    setPlayerStatus(client, invite.sender_id, "in_match"),
-    setPlayerStatus(client, invite.recipient_id, "in_match"),
-    updatePresenceMode(client, invite.sender_id, {
-      mode: "auto",
-      inviteToken: null,
-    }),
-    updatePresenceMode(client, invite.recipient_id, {
-      mode: "auto",
-      inviteToken: null,
-    }),
-  ]);
-
-  trackInviteAccepted({
-    matchId,
+  await updatePresenceMode(client, invite.sender_id, { mode: "auto", inviteToken: null });
+  logPlaytestInfo("matchmaking.invite.declined", {
     playerId: params.actorId,
-    inviteId: invite.id,
-    opponentId: invite.sender_id,
+    metadata: { inviteId: invite.id },
   });
+  return { status: "declined" };
+}
 
-  return { status: "accepted", matchId };
+async function acceptChallenge(client: AnyClient, invite: InviteRow, actorId: string): Promise<RespondInviteResult> {
+  const result = await acceptInvite(client, { inviteId: invite.id, actorId });
+  if (result.status === "busy") return { status: "busy", name: await displayNameOf(client, result.playerId) };
+  if (result.status === "not_recipient") throw new Error("You cannot respond to this invite.");
+  if (result.status !== "created") throw new Error("Invite is no longer active.");
+  trackInviteAccepted({ matchId: result.matchId, playerId: actorId, inviteId: invite.id, opponentId: invite.sender_id });
+  return { status: "accepted", matchId: result.matchId };
+}
+
+async function displayNameOf(client: AnyClient, playerId: string): Promise<string> {
+  const player = await fetchPlayer(client, playerId);
+  return player?.display_name ?? player?.username ?? "";
 }
 
 export async function listPendingInvites(
@@ -341,37 +323,6 @@ export async function getOutgoingInvite(
   };
 }
 
-/**
- * A recipient can be challenged by several players at once; accepting one
- * answers the rest, so no challenger waits on a player already in a match.
- */
-async function releaseOtherChallengers(client: AnyClient, recipientId: string, acceptedId: string) {
-  const { data, error } = await client
-    .from("match_invitations")
-    .update({ status: "declined", responded_at: new Date().toISOString() })
-    .eq("recipient_id", recipientId)
-    .eq("status", "pending")
-    .neq("id", acceptedId)
-    .select("sender_id");
-
-  if (error) {
-    logPlaytestError("matchmaking.invite.release_failed", { playerId: recipientId, error });
-    return;
-  }
-  await releaseSenders(client, (data ?? []).map((row: { sender_id: string }) => row.sender_id));
-}
-
-/** A sender whose challenge is answered or expired is available again. */
-async function releaseSenders(client: AnyClient, senderIds: string[]) {
-  const unique = [...new Set(senderIds)];
-  if (unique.length === 0) return;
-  await client.from("players").update({ status: "available", queue_language: null }).in("id", unique);
-  await client
-    .from("lobby_presence")
-    .update({ invite_token: null, mode: "auto" })
-    .in("player_id", unique);
-}
-
 export async function startAutoQueue(
   client: AnyClient,
   params: StartQueueParams
@@ -425,61 +376,22 @@ export async function startAutoQueue(
   );
 
   if (!opponent || !shouldClaimOpponent(params.playerId, opponent.id)) {
-    return {
-      status: "queued",
-      estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS,
-    };
+    return { status: "queued", estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS };
   }
 
-  // Atomically claim the opponent by updating their status with a condition
-  // This prevents race conditions when two players try to match simultaneously
-  const { data: claimed } = await client
-    .from("players")
-    .update({ status: "in_match", queue_language: null })
-    .eq("id", opponent.id)
-    .eq("status", "matchmaking") // Only update if still in matchmaking
-    .eq("queue_language", language) // …in this language: a switch between fetch and claim loses the race
-    .select("id");
-
-  // If we couldn't claim the opponent (someone else got them first), stay in queue
-  if (!claimed || claimed.length === 0) {
-    return {
-      status: "queued",
-      estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS,
-    };
+  // The pairing, the status and presence writes and the end of every other
+  // commitment either player had happen in one transaction (spec 067).
+  const result = await pairFromQueue(client, { selfId: params.playerId, opponentId: opponent.id, language });
+  if (result.status !== "created") {
+    return { status: "queued", estimatedWaitSeconds: DEFAULT_QUEUE_WAIT_SECONDS };
   }
-
-  // Successfully claimed opponent, now create the match
-  const matchId = await bootstrapMatchRecord(client, {
-    boardSeed: randomUUID(),
-    playerAId: params.playerId,
-    playerBId: opponent.id,
-    language,
-  });
-
-  // Update our own status and presence
-  await Promise.all([
-    setPlayerStatus(client, params.playerId, "in_match"),
-    updatePresenceMode(client, params.playerId, {
-      mode: "auto",
-      inviteToken: null,
-    }),
-    updatePresenceMode(client, opponent.id, {
-      mode: "auto",
-      inviteToken: null,
-    }),
-  ]);
 
   logPlaytestInfo("matchmaking.queue.matched", {
-    matchId,
+    matchId: result.matchId,
     playerId: params.playerId,
     metadata: { opponentId: opponent.id },
   });
-
-  return {
-    status: "matched",
-    matchId,
-  };
+  return { status: "matched", matchId: result.matchId };
 }
 
 export async function expireStaleInvites(
@@ -498,14 +410,13 @@ export async function expireStaleInvites(
     })
     .eq("status", "pending")
     .lte("created_at", cutoff)
-    .select("id,sender_id");
+    .select("id");
 
   if (error) {
     throw new Error(`Failed to expire invites: ${error.message}`);
   }
 
   const expiredIds = data?.map((row) => row.id as string) ?? [];
-  await releaseSenders(client, data?.map((row) => row.sender_id as string) ?? []);
 
   if (expiredIds.length > 0) {
     logPlaytestInfo("matchmaking.invite.expired", {
