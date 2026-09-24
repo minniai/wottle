@@ -20,3 +20,11 @@ export function nextParam(raw: string | null | undefined): string | null {
   const path = raw.split(/[?#]/)[0].replace(LOCALE_PREFIX, "") || "/";
   return KNOWN_PAGES.some((page) => page.test(path)) ? raw : null;
 }
+
+const MATCH_PATH = new RegExp(`^(/en)?/match/${UUID}$`, "i");
+
+/** The rules page's `?from=` (spec 072 FR-061): a match path on this site, or nothing. */
+export function matchPathParam(raw: string | null | undefined): string | null {
+  if (!raw || !isSafeShape(raw)) return null;
+  return MATCH_PATH.test(raw) ? raw : null;
+}

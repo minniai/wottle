@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -75,6 +76,12 @@ export function PageMenu({ signOut, extra }: PageMenuProps) {
               {copy.soundToggle(sound)}
             </button>
             {soundHinted ? <span className="page-menu__note">{copy.pages.SOUND_AFTER_CLICK}</span> : null}
+          </li>
+          {/* Spec 072 FR-060: on a phone the rules are reached from here. */}
+          <li role="none" className="page-only-phone">
+            <Link role="menuitem" href={to("/rules")} className="page-link" data-testid="page-menu-rules" onClick={close}>
+              {copy.HOW_TO_PLAY}
+            </Link>
           </li>
           {/* On a phone the masthead has no room for the switch; it lives here (F2). */}
           <li role="none" className="page-only-phone">

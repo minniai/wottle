@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
@@ -20,15 +21,28 @@ interface Item {
   action?: LedgerAction;
   /** A link, not an action: the rules page opens in a new tab so the match keeps running (spec 048 US5). */
   href?: string;
+  /** Text to copy to the clipboard (spec 072: the review's link). */
+  copy?: string;
 }
+
+const COPIED_MS = 2_000;
 
 interface MenuState {
   sound: boolean;
   rulesHref: string;
   copy: Copy;
+  /** Spec 072 (Q3): the review's link, copied by `copy link ▸`; null off a finished match. */
+  reviewLink: string | null;
+  copied: boolean;
 }
 
-function itemsFor(variant: RoomMenuVariant, { sound, rulesHref, copy }: MenuState): Item[] {
+/** The match's review link, from the page's own path (`/match/:id` or `/en/match/:id`). */
+function reviewLinkOf(pathname: string): string | null {
+  if (!/\/match\/[0-9a-f-]{36}$/i.test(pathname) || typeof window === "undefined") return null;
+  return `${window.location.origin}${pathname}?review=last`;
+}
+
+function itemsFor(variant: RoomMenuVariant, { sound, rulesHref, copy, reviewLink, copied }: MenuState): Item[] {
   const shared: Item[] = [{ key: "sound", label: copy.soundToggle(sound), action: "toggleSound" }];
   if (variant === "match") {
     return [
@@ -41,7 +55,8 @@ function itemsFor(variant: RoomMenuVariant, { sound, rulesHref, copy }: MenuStat
   }
   // After a match the rules stay one step away (the desktop final ledger has no foot, spec 068).
   const rules: Item[] = variant === "final" ? [{ key: "howToPlay", label: copy.MENU_HOW_TO_PLAY, href: rulesHref }] : [];
-  return [...shared, ...rules, { key: "profile", label: copy.MENU_PROFILE, action: "profile" }, { key: "signout", label: copy.SIGN_OUT, action: "signOut" }];
+  const link: Item[] = variant === "final" && reviewLink ? [{ key: "copyLink", label: copied ? copy.pages.LINK_COPIED_SHORT : copy.pages.COPY_LINK, copy: reviewLink }] : [];
+  return [...shared, ...rules, ...link, { key: "profile", label: copy.MENU_PROFILE, action: "profile" }, { key: "signout", label: copy.SIGN_OUT, action: "signOut" }];
 }
 
 /** The `⋯` menu in the ledger foot (design system §5.4). No dialog: a plain list. */
@@ -52,6 +67,10 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
   const setSound = usePreferencesStore((s) => s.setSoundEnabled);
   const to = useLocalePath();
   const copy = useCopy();
+  const pathname = usePathname() ?? "";
+  const [copied, setCopied] = useState(false);
+  // Opened from a match, the rules know where to send a tab the browser will not close (spec 072 FR-061).
+  const rulesHref = /\/match\//.test(pathname) ? `${to("/rules")}?from=${encodeURIComponent(pathname)}` : to("/rules");
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -68,6 +87,12 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
   }, [open, close]);
 
   const select = (item: Item) => {
+    if (item.copy) {
+      void navigator.clipboard?.writeText(item.copy).catch(() => undefined);
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPIED_MS);
+      return;
+    }
     if (!item.action) return;
     if (item.action === "toggleSound") setSound(!sound);
     onAction(item.action);
@@ -89,7 +114,7 @@ export function RoomMenu({ variant, onAction }: RoomMenuProps) {
       </button>
       {open ? (
         <ul className="room-menu__list" role="menu" data-testid="ledger-menu-list">
-          {itemsFor(variant, { sound, rulesHref: to("/rules"), copy }).map((item) => (
+          {itemsFor(variant, { sound, rulesHref, copy, reviewLink: reviewLinkOf(pathname), copied }).map((item) => (
             <li key={item.key} role="none">
               {item.href ? (
                 <a role="menuitem" className="action-secondary" data-testid={`ledger-menu-item-${item.key}`} href={item.href} target="_blank" rel="noopener" onClick={() => setOpen(false)}>

@@ -57,3 +57,21 @@ export function lobbyPrimary(input: { othersHere: number; find: PagePrimaryModel
   if (othersHere === 0) return { invite: "secondary", find, inviteNote: null };
   return { invite: "secondary", find, inviteNote: note };
 }
+
+export type RulesPrimary =
+  | { kind: "closeTab"; label: string; back: string }
+  | { kind: "find"; label: string }
+  | { kind: "enterLobby"; label: string }
+  | { kind: "none" };
+
+/**
+ * The rules page's primary (spec 072 FR-061, game flow E3): opened from a
+ * match it closes its own tab; signed in with nothing standing it is find;
+ * signed out it is the lobby. A call or a standing state in the slot outranks it.
+ */
+export function rulesPrimary(slot: SlotState, copy: Copy, ctx: { signedIn: boolean; from: string | null }): RulesPrimary {
+  if (slot.kind === "call" || slot.kind === "linkCall") return { kind: "none" };
+  if (ctx.from) return { kind: "closeTab", label: copy.pages.CLOSE_TAB, back: ctx.from };
+  if (!ctx.signedIn) return { kind: "enterLobby", label: copy.ENTER_LOBBY };
+  return slot.kind === "empty" ? { kind: "find", label: copy.FIND_OPPONENT } : { kind: "none" };
+}

@@ -13,3 +13,8 @@ export function readHandle(raw: string): string {
   }
   return decoded.normalize("NFC");
 }
+
+/** The path of a player's profile (spec 072 FR-047): the handle percent-encoded, `/profile/k%C3%A1ri`. */
+export function profileHandlePath(handle: string): string {
+  return `/profile/${encodeURIComponent(handle.normalize("NFC"))}`;
+}

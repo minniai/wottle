@@ -39,8 +39,8 @@ test.describe("@rules the how-to-play page", () => {
     await loginViaSlip(page, generateTestUsername("rules"));
     await page.getByTestId("masthead-nav").getByRole("link", { name: "how to play ▸" }).click();
     await expect(page).toHaveURL(/\/rules$/);
-    await page.getByTestId("rules-back-top").click();
-    await expect(page).toHaveURL(/\/en$/, { timeout: 15_000 });
+    // Spec 072 E3: signed in with nothing standing, the rules' primary is find an opponent.
+    await expect(page.getByTestId("rules-find")).toBeVisible();
   });
 
   test("opened from a live match's menu, the page comes up in a new tab and the match keeps running", async ({ browser }) => {
