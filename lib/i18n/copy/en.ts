@@ -300,6 +300,36 @@ const table = {
 /** Spec 071 (FR-018): the rematch series, on the scoreboard's clock row. */
 const seriesLine = (ordinal: number, leader: string | null, hi: number, lo: number): string =>
   leader ? `match ${ordinal} · ${leader} ${hi}–${lo}` : `match ${ordinal} · ${hi}–${lo}`;
+/** Spec 071 (D3, F7): review, one step at a time. */
+const review = {
+  step: (n: number, total: number): string => `step ${n} of ${total}`,
+  caption: (mmSs: string): string => `review · ${mmSs}`,
+  clockAt: (n: number): string => `the clock at step ${n}`,
+  CLOCK_THEN: "the clock then",
+  atStep: (moves: number, limit: number, n: number): string => `${moves} of ${limit} at step ${n}`,
+  move: (n: number, name: string): string => `move ${n} · ${name}`,
+  NO_WORD: "no word",
+  REFUSED: "refused",
+  refusedWhy: (reason: "frozen" | "moved"): string => `refused · ${reason}`,
+  TIME: "time",
+  ENDED_EARLY: "ended early",
+  notPlayed: (points: string): string => `${points} not played`,
+  froze: (n: number): string => `froze ${n}`,
+  leads: (name: string, hi: number, lo: number): string => `${name} leads ${hi}–${lo}`,
+  level: (a: number, b: number): string => `level ${a}–${b}`,
+  valueText: (n: number, total: number, who: string, what: string): string => `step ${n} of ${total}, ${who}, ${what}`,
+  plus: (n: number): string => `plus ${n}`,
+  minus: (n: number): string => `minus ${n}`,
+  cellName: (move: number, name: string): string => `move ${move}, ${name}`,
+  NOT_YET_REACHED: "not yet reached",
+  SCRUBBER: "review step",
+  FIRST: "first",
+  BACK: "back",
+  PLAY: "play ▸",
+  PAUSE: "pause",
+  NEXT: "next",
+  LAST: "last",
+};
 const rematch = {
   sent: (mmSs: string): string => `rematch sent · ${mmSs}`,
   asks: (name: string, mmSs: string): string => `${name} asks for a rematch · ${mmSs}`,
@@ -530,6 +560,7 @@ export const copyEn = {
   noSuchPlayer,
   table,
   rematch,
+  review,
   seriesLine,
   pages,
   errors,

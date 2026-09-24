@@ -276,6 +276,35 @@ export const copyIs = {
   // The table (spec 069, game flow C1–C3, B7)
   seriesLine: (ordinal: number, leader: string | null, hi: number, lo: number): string =>
     leader ? `viðureign ${ordinal} · ${leader} ${hi}–${lo}` : `viðureign ${ordinal} · ${hi}–${lo}`,
+  review: {
+    step: (n: number, total: number): string => `skref ${n} af ${total}`,
+    caption: (mmSs: string): string => `yfirferð · ${mmSs}`,
+    clockAt: (n: number): string => `klukkan við skref ${n}`,
+    CLOCK_THEN: "klukkan þá",
+    atStep: (moves: number, limit: number, n: number): string => `${moves} af ${limit} við skref ${n}`,
+    move: (n: number, name: string): string => `leikur ${n} · ${name}`,
+    NO_WORD: "ekkert orð",
+    REFUSED: "hafnað",
+    refusedWhy: (reason: "frozen" | "moved"): string => `hafnað · ${reason === "frozen" ? "frosinn" : "færður"}`, // native-read
+    TIME: "tími",
+    ENDED_EARLY: "lokið snemma",
+    notPlayed: (points: string): string => `${points} óleikið`, // native-read
+    froze: (n: number): string => `${n} frosnir`,
+    leads: (name: string, hi: number, lo: number): string => `${name} leiðir ${hi}–${lo}`,
+    level: (a: number, b: number): string => `jafnt ${a}–${b}`,
+    valueText: (n: number, total: number, who: string, what: string): string => `skref ${n} af ${total}, ${who}, ${what}`,
+    plus: (n: number): string => `plús ${n}`,
+    minus: (n: number): string => `mínus ${n}`,
+    cellName: (move: number, name: string): string => `leikur ${move}, ${name}`,
+    NOT_YET_REACHED: "ekki komið að", // native-read
+    SCRUBBER: "skref yfirferðar", // native-read
+    FIRST: "fyrst",
+    BACK: "aftur",
+    PLAY: "spila ▸",
+    PAUSE: "hlé",
+    NEXT: "næst",
+    LAST: "síðast",
+  },
   rematch: {
     sent: (mmSs: string): string => `beiðni send · ${mmSs}`,
     asks: (name: string, mmSs: string): string => `${name} vill aðra viðureign · ${mmSs}`,
