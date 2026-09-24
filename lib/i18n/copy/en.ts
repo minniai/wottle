@@ -342,6 +342,7 @@ const rematch = {
   withdrew: (name: string): string => `${name} withdrew`,
   startedAnother: (name: string): string => `${name} started another match`,
   hasLeft: (name: string): string => `${name} has left`,
+  HAS_LEFT: "has left",
   CANCEL: "cancel ▸",
   title: (name: string, wordmark: string): string => `(1) ${name} asks for a rematch · ${wordmark}`,
 };

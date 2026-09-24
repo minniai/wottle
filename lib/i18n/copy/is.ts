@@ -316,6 +316,7 @@ export const copyIs = {
     withdrew: (name: string): string => `${name} hætti við`, // native-read
     startedAnother: (name: string): string => `${name} hóf aðra viðureign`, // native-read
     hasLeft: (name: string): string => `${name} fór`, // native-read
+    HAS_LEFT: "fór", // native-read
     CANCEL: "hætta við ▸",
     title: (name: string, wordmark: string): string => `(1) ${name} vill aðra viðureign · ${wordmark}`,
   },

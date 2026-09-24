@@ -31,6 +31,8 @@ export interface SeatFacts {
   goneForMs?: number | null;
   /** Spec 070 US8: this player's app is open on another page. */
   steppedOut?: boolean;
+  /** Spec 071: the opponent has left the result. */
+  left?: boolean;
   /** The viewer's own transport has lost the match (spec 068). */
   offline?: boolean;
   /** Final: `1191 → 1203 · +12 · wins` or `rating pending`. */
@@ -154,7 +156,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           readOnly,
           compact: isPhone,
           you: { name: you.name, rating: you.rating, movesPlayed: you.movesPlayed, inFlight: Boolean(you.scoring), score: you.score, offline: you.offline, finalLine: you.finalLine },
-          opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, steppedOut: opp.steppedOut, finalLine: opp.finalLine },
+          opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, steppedOut: opp.steppedOut, finalLine: opp.finalLine, left: opp.left },
           table: props.table,
           series: props.series,
           review: props.review?.scoreboard,
