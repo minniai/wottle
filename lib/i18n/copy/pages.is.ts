@@ -171,6 +171,21 @@ export const pagesIs: Widen<typeof pagesEn> = {
     failed: "áskorun fór ekki · reyndu aftur", // native-read
   },
 
+  // Profiles (spec 072: E1, E2, F9)
+  profileRatingLine: (languageName: string, peak: number, week: string | null): string =>
+    `elo · ${languageName} · hæst ${peak}${week ? ` · ${week} í vikunni` : ""}`,
+
+  CHART_START: "fyrir 30 dögum",
+  CHART_END: "í dag",
+  chartEmpty: (rating: number): string => `${rating} · engar viðureignir síðustu 30 daga`,
+  OTHER_LANGUAGE_EMPTY: { is: "engar viðureignir á íslensku enn", en: "engar viðureignir á ensku enn" },
+  YOUR_MATCHES: "þínar viðureignir",
+  PRESENCE: { here: "hér núna", away: "fjarverandi", not_here: "ekki hér" }, // native-read (fjarverandi)
+  presenceInMatch: (moves: number, limit: number): string => `í viðureign · ${moves} af ${limit}`,
+  presenceOtherLobby: (languageName: string): string => `í ${languageName === "enska" ? "enska" : "íslenska"} lobbíinu`, // native-read
+  wordStripAria: (word: string, points: number): string => `${word}, ${points}`,
+  profileTitle: (name: string, wordmark: string): string => `${name} · ${wordmark}`,
+
   // Invite links (spec 072: B9, T6, T64)
   INVITE_A_FRIEND: "bjóða vini ▸",
   linkWorksFor: (minutes: number): string => `tengill sem gildir í ${minutes} mínútur`,

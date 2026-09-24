@@ -316,19 +316,19 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Tests first
 
-- [ ] T058 [P] [US5] Write failing unit tests for the derivations in `tests/unit/lib/profile/`:
+- [X] T058 [P] [US5] Write failing unit tests for the derivations in `tests/unit/lib/profile/`:
   - `profileHeader.spec.ts`: EN and IS sub-lines; the month from `firstPlayedAt`; the week clause dropped at 0; `−` U+2212; the new-player line;
   - `record.spec.ts`: `57%` for 20/35 and `—` at 0;
   - `weekChange.spec.ts`: current minus the last `rating_after` before now − 7d, or the first `rating_before` in the window;
   - `chartSeries.spec.ts`: the first point at the window start, one point per match, `empty` with a flat line, ticks;
   - `bestWordStrips.spec.ts`: 40px and 32px cells, letter values from the language pack.
-- [ ] T059 [P] [US5] Write failing integration tests for `readProfile` in `tests/integration/db/readProfile.test.ts`:
+- [X] T059 [P] [US5] Write failing integration tests for `readProfile` in `tests/integration/db/readProfile.test.ts`:
   - the IS-T1 seed gives the expected `ProfileView`;
   - void and abandoned matches are excluded;
   - the other-language summary;
   - a new player.
   In `tests/unit/types/profile-view-allowlist.test.ts`: the keys of a built `ProfileView` equal an allow-list with no `lastSeen*`, `status` or `avatarUrl`.
-- [ ] T060 [P] [US5] Write failing component tests in `tests/unit/components/profile/ProfileOwnPage.spec.tsx`:
+- [X] T060 [P] [US5] Write failing component tests in `tests/unit/components/profile/ProfileOwnPage.spec.tsx`:
   - column A order;
   - the name `h1`;
   - the rating in `--you`;
@@ -341,12 +341,12 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Implementation
 
-- [ ] T061 [US5] Implement the pure modules in `lib/profile/`: `profileHeader.ts`, `record.ts`, `weekChange.ts`, `chartSeries.ts` and `bestWordStrips.ts`. Makes T058 pass.
-- [ ] T062 [US5] Implement `lib/profile/readProfile.ts` (server-only; parallel queries per R13, `best_words` via `linkService`'s sibling `profileRepository` or a direct `.rpc` in `lib/profile/profileRepository.ts`), returning `ProfileView`. Makes T059 pass.
-- [ ] T063 [US5] Build `components/profile/ProfileHeader.tsx`, `RecordRow.tsx`, `WordStrip.tsx`, `ProfileChart.tsx` (reworked from `ProfileRatingChart.tsx`: one 1.5px polyline, 708×200 desktop and 358×140 phone, with `30 DAYS AGO` / `TODAY` labels, the flat empty state and a `role="img"` label), `ProfileMatches.tsx` and `ProfileOwnPage.tsx`. Makes T060 pass.
+- [X] T061 [US5] Implement the pure modules in `lib/profile/`: `profileHeader.ts`, `record.ts`, `weekChange.ts`, `chartSeries.ts` and `bestWordStrips.ts`. Makes T058 pass.
+- [X] T062 [US5] Implement `lib/profile/readProfile.ts` (server-only; parallel queries per R13, `best_words` via `linkService`'s sibling `profileRepository` or a direct `.rpc` in `lib/profile/profileRepository.ts`), returning `ProfileView`. Makes T059 pass.
+- [X] T063 [US5] Build `components/profile/ProfileHeader.tsx`, `RecordRow.tsx`, `WordStrip.tsx`, `ProfileChart.tsx` (reworked from `ProfileRatingChart.tsx`: one 1.5px polyline, 708×200 desktop and 358×140 phone, with `30 DAYS AGO` / `TODAY` labels, the flat empty state and a `role="img"` label), `ProfileMatches.tsx` and `ProfileOwnPage.tsx`. Makes T060 pass.
 - [ ] T064 [US5] Rewrite `app/[locale]/(pages)/(framed)/profile/page.tsx` to `readProfile(..., { mode: "own" })` → `ProfileOwnPage`, with the signed-out redirect to `/{locale}?next=/profile` and the tab title. Retire `components/profile/ProfilePage.tsx`, `ProfileRatingChart.tsx`, `deriveProfileChartData.ts`, `app/actions/player/getPlayerProfile.ts`, `getBestWords.ts` and the `PlayerProfile` / `BestWord` / `RatingHistoryEntry` types once nothing imports them (grep, and update or remove their tests).
-- [ ] T065 [P] [US5] Add the profile strings (sub-lines, labels, best words, recent matches, results, empty lines, folio) to `lib/i18n/copy/pages.{en,is}.ts`.
-- [ ] T066 [P] [US5] Add page fixtures `profile-own`, `is-profile-own`, `profile-own-new` and `profile-own-call` (Embla's call), and the phone view `phone-profile` (390×844, 390×664, 360×640), with baselines. On the phone the name is Zilla 32, the rating on its own line, the sub-lines on two lines, the record in mono 28, 32px strips, and the primary pinned (F9).
+- [X] T065 [P] [US5] Add the profile strings (sub-lines, labels, best words, recent matches, results, empty lines, folio) to `lib/i18n/copy/pages.{en,is}.ts`.
+- [X] T066 [P] [US5] Add page fixtures `profile-own`, `is-profile-own`, `profile-own-new` and `profile-own-call` (Embla's call), and the phone view `phone-profile` (390×844, 390×664, 360×640), with baselines. On the phone the name is Zilla 32, the rating on its own line, the sub-lines on two lines, the record in mono 28, 32px strips, and the primary pinned (F9).
 
 **Checkpoint**: the own profile is complete on desktop and phone.
 

@@ -166,6 +166,21 @@ export const pagesEn = {
     failed: "challenge not sent · try again",
   },
 
+  // Profiles (spec 072: E1, E2, F9)
+  profileRatingLine: (languageName: string, peak: number, week: string | null): string =>
+    `rating · ${languageName} · peak ${peak}${week ? ` · ${week} this week` : ""}`,
+
+  CHART_START: "30 days ago",
+  CHART_END: "today",
+  chartEmpty: (rating: number): string => `${rating} · no matches in the last 30 days`,
+  OTHER_LANGUAGE_EMPTY: { is: "no Icelandic matches yet", en: "no English matches yet" },
+  YOUR_MATCHES: "your matches",
+  PRESENCE: { here: "here now", away: "away", not_here: "not here" },
+  presenceInMatch: (moves: number, limit: number): string => `in a match · ${moves} of ${limit}`,
+  presenceOtherLobby: (languageName: string): string => `in the ${languageName} lobby`,
+  wordStripAria: (word: string, points: number): string => `${word}, ${points}`,
+  profileTitle: (name: string, wordmark: string): string => `${name} · ${wordmark}`,
+
   // Invite links (spec 072: B9, T6, T64)
   INVITE_A_FRIEND: "invite a friend ▸",
   linkWorksFor: (minutes: number): string => `a link that works for ${minutes} minutes`,
