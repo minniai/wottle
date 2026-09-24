@@ -18,7 +18,7 @@ import { toByteaHex } from "./linkToken";
  * its hash is never logged.
  */
 export type CreateOutcome =
-  | { status: "created"; linkId: string; expiresAt: string }
+  | { status: "created"; linkId: string; expiresAt: string; language: "is" | "en" }
   | { status: "cooldown"; until: string }
   | { status: "busy_sender" | "rate_limited" | "invalid" };
 
@@ -27,7 +27,7 @@ export type AcceptOutcome =
   | { status: "expired" | "own" | "busy" };
 
 const createReply = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("created"), link_id: z.string().uuid(), expires_at: z.string(), withdrawn_from: z.array(z.string().uuid()).nullable() }),
+  z.object({ status: z.literal("created"), link_id: z.string().uuid(), expires_at: z.string(), language: z.enum(["is", "en"]), withdrawn_from: z.array(z.string().uuid()).nullable() }),
   z.object({ status: z.literal("cooldown"), until: z.string() }),
   z.object({ status: z.enum(["busy_sender", "rate_limited", "invalid"]) }),
 ]);
@@ -68,7 +68,7 @@ export async function createLink(senderId: string, tokenHash: Buffer): Promise<C
   }
   log("link.created", { senderId, linkId: reply.link_id });
   await Promise.all([pokePlayer(senderId, "link"), pokePlayers(reply.withdrawn_from ?? [], "outcome")]);
-  return { status: "created", linkId: reply.link_id, expiresAt: reply.expires_at };
+  return { status: "created", linkId: reply.link_id, expiresAt: reply.expires_at, language: reply.language };
 }
 
 /** Reads a link; writes nothing (research R4). Null when no link has this hash. */

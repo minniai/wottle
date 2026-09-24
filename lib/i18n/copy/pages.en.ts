@@ -166,6 +166,32 @@ export const pagesEn = {
     failed: "challenge not sent · try again",
   },
 
+  // Invite links (spec 072: B9, T6, T64)
+  INVITE_A_FRIEND: "invite a friend ▸",
+  linkWorksFor: (minutes: number): string => `a link that works for ${minutes} minutes`,
+  linkCopied: (leftMmSs: string): string => `Link copied · valid ${leftMmSs}`,
+  linkOut: (leftMmSs: string): string => `Link out · valid ${leftMmSs}`,
+  linkReady: (leftMmSs: string): string => `Link ready · valid ${leftMmSs}`,
+  COPY_AGAIN: "copy again ▸",
+  NEW_LINK: "new link ▸",
+  CANCEL_LINK: "cancel link ▸",
+  COPY: "copy ▸",
+  LINK_OUTCOMES: { cancelled: "link cancelled", expired: "link expired" },
+  OWN_LINK: "this is your link",
+  ownLinkLine2: (leftMmSs: string): string => `valid ${leftMmSs}`,
+  linkCallLine1: (name: string): string => `${name} invites you by link`,
+  linkCallLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · link valid ${leftMmSs}`,
+  linkCallAnnounce: (name: string): string => `${name} invites you by link`,
+  SENDING_CANCELS_LINK: "sending cancels your link",
+  FINDING_CANCELS_LINK: "finding cancels your link",
+  titleLink: (leftMmSs: string): string => `link out · ${leftMmSs}`,
+  LINK_EXPIRED_NOTE: "this link has expired",
+  LINK_ERRORS: {
+    busy_sender: "finish your match first",
+    rate_limited: "too many challenges · wait a minute",
+    failed: "no link made · try again",
+  },
+
   // Leave slip (C7, F8)
   leaveLabel: (move: number, limit: number, leftMmSs: string): string => `move ${move} of ${limit} · ${leftMmSs} left`,
   LEAVE_HEADLINE: "Leave the match?",

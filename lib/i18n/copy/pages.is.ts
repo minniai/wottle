@@ -171,6 +171,32 @@ export const pagesIs: Widen<typeof pagesEn> = {
     failed: "áskorun fór ekki · reyndu aftur", // native-read
   },
 
+  // Invite links (spec 072: B9, T6, T64)
+  INVITE_A_FRIEND: "bjóða vini ▸",
+  linkWorksFor: (minutes: number): string => `tengill sem gildir í ${minutes} mínútur`,
+  linkCopied: (leftMmSs: string): string => `Tengill afritaður · gildir í ${leftMmSs}`,
+  linkOut: (leftMmSs: string): string => `Tengill úti · gildir í ${leftMmSs}`, // native-read
+  linkReady: (leftMmSs: string): string => `Tengill tilbúinn · gildir í ${leftMmSs}`, // native-read
+  COPY_AGAIN: "afrita aftur ▸",
+  NEW_LINK: "nýr tengill ▸", // native-read
+  CANCEL_LINK: "ógilda tengil ▸", // native-read
+  COPY: "afrita ▸",
+  LINK_OUTCOMES: { cancelled: "tengill ógiltur", expired: "tengillinn rann út" }, // native-read
+  OWN_LINK: "þetta er tengillinn þinn",
+  ownLinkLine2: (leftMmSs: string): string => `gildir í ${leftMmSs}`,
+  linkCallLine1: (name: string): string => `${name} býður þér með tengli`, // native-read
+  linkCallLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · tengill gildir í ${leftMmSs}`,
+  linkCallAnnounce: (name: string): string => `${name} býður þér með tengli`, // native-read
+  SENDING_CANCELS_LINK: "tengillinn þinn fellur úr gildi", // native-read
+  FINDING_CANCELS_LINK: "tengillinn þinn fellur úr gildi", // native-read
+  titleLink: (leftMmSs: string): string => `tengill úti · ${leftMmSs}`, // native-read
+  LINK_EXPIRED_NOTE: "þessi tengill er útrunninn",
+  LINK_ERRORS: {
+    busy_sender: "ljúktu fyrst viðureigninni",
+    rate_limited: "of margar áskoranir · bíddu í mínútu",
+    failed: "enginn tengill búinn til · reyndu aftur", // native-read
+  },
+
   leaveLabel: (move: number, limit: number, leftMmSs: string): string => `leikur ${move} af ${limit} · ${leftMmSs} eftir`,
   LEAVE_HEADLINE: "Fara úr viðureigninni?",
   LEAVE_BODY: ["klukkan gengur áfram · þú getur komið aftur", "hver óleikinn leikur kostar allt að 5 við 0:00"], // native-read
