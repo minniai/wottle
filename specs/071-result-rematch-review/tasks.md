@@ -352,7 +352,7 @@
   - `tests/unit/components/room/ReviewControls.spec.tsx` (compact): five 44×44 glyph buttons with the `aria-label`s `fyrst`, `aftur`, `spila`, `næst`, `síðast`;
   - `tests/unit/components/room/Ledger.phone.spec.tsx`: in review, the rows open in the sheet with `saga ▸`, the cursor line takes the live row, and the foot is pinned with `◂ úrslit` and the controls; in the final state, `úrslit ▸` sits in the foot when the slip is lifted.
 - [X] T071 [US8] Implement the compact variants in `Slip.tsx`, `ReviewControls.tsx`, `Ledger.tsx`, `LedgerFoot.tsx` and `LedgerSheet.tsx`, with styles in `app/styles/room.css`. Move `úrslit ▸` out of the sheet into the pinned foot (the map found it only inside the sheet today). T070 passes.
-- [ ] T072 [US8] Add the viewport tests `phone-result` and `phone-review` (over `result-moves` and `review`) at 390×844, 390×664 and 360 in `tests/integration/ui/room-fixtures.spec.ts`, and take baselines.
+- [X] T072 [US8] Add the viewport tests `phone-result` and `phone-review` (over `result-moves` and `review`) at 390×844, 390×664 and 360 in `tests/integration/ui/room-fixtures.spec.ts`, and take baselines.
 
 ---
 
@@ -365,7 +365,7 @@
 
 ## Phase 11: User Story 9 – The rules document describes review (P3)
 
-- [ ] T075 [US9] Amend `docs/prd_and_requirements/wottle_game_rules.md` §12:
+- [X] T075 [US9] Amend `docs/prd_and_requirements/wottle_game_rules.md` §12:
   - *Match over*: headline focus, two action rows, the detail by reason, the 500ms guard, the rematch window and single request; reactions are phase 2;
   - add *Review*: steps in receipt order, refused steps, the closing step, scrubber and keys, public for completed matches; best here is phase 2;
   - §2a: `ended_early`.
@@ -376,7 +376,7 @@
 
 ## Phase 12: Polish and cross-cutting
 
-- [ ] T076 [P] Extend `tests/integration/ui/slot-overflow.spec.ts` with the longest IS and EN strings for:
+- [X] T076 [P] Extend `tests/integration/ui/slot-overflow.spec.ts` with the longest IS and EN strings for:
   - the detail line;
   - the negotiation line;
   - the cursor lines;
@@ -384,14 +384,14 @@
   - the review controls.
 
   Check them at 1440 and 390.
-- [ ] T077 [P] Run `tests/unit/lib/i18n/copyParity.spec.ts` and `tests/unit/i18n/name-safe-grep.test.ts` over the new keys, and fix any gaps. List every new IS string marked `// native-read` in CLAUDE.md's remaining gaps.
-- [ ] T078 [P] Run an axe check on the result and review pages at 1440×900 and 390×844 in both languages (SC-009), in `tests/integration/ui/review-flow.spec.ts`.
-- [ ] T079 [P] Update `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`: the review scrubber in the clock row, review cells, and the result slip's focus and guard.
-- [ ] T080 Update the spec-071 paragraph and the fixture phase list in `CLAUDE.md`, and fix the Recent Changes. Run `pnpm docs:check`.
-- [ ] T081 Gates (with `pnpm perf:review-moves` and `pnpm perf:rematch`): `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm test:visual` (production build), the `tests/integration/db` suites against local Supabase, and the rematch-flow and review-flow Playwright specs.
+- [X] T077 [P] Run `tests/unit/lib/i18n/copyParity.spec.ts` and `tests/unit/i18n/name-safe-grep.test.ts` over the new keys, and fix any gaps. List every new IS string marked `// native-read` in CLAUDE.md's remaining gaps.
+- [X] T078 [P] Run an axe check on the result and review pages at 1440×900 and 390×844 in both languages (SC-009), in `tests/integration/ui/review-flow.spec.ts`.
+- [X] T079 [P] Update `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md`: the review scrubber in the clock row, review cells, and the result slip's focus and guard.
+- [X] T080 Update the spec-071 paragraph and the fixture phase list in `CLAUDE.md`, and fix the Recent Changes. Run `pnpm docs:check`.
+- [X] T081 Gates (with `pnpm perf:review-moves` and `pnpm perf:rematch`): `pnpm test:unit`, `pnpm lint`, `pnpm typecheck`, `pnpm test:visual` (production build), the `tests/integration/db` suites against local Supabase, and the rematch-flow and review-flow Playwright specs.
 - [ ] T082 Walk `specs/071-result-rematch-review/quickstart.md` by hand (for the user).
-- [ ] T083 [P] Add `perf:review-moves` (`tests/perf/review-moves.bench.ts`): `GET /moves` plus `buildReviewSteps` on a 20-move match against local Supabase; assert under 150ms p95 for the route and under 5ms for the build. Add the script to `package.json`.
-- [ ] T084 [P] Add `perf:rematch` (`tests/perf/rematch.bench.ts`): `request_rematch` plus `accept_rematch`, under 200ms p95.
+- [X] T083 [P] Add `perf:review-moves` (`tests/perf/review-moves.bench.ts`): `GET /moves` plus `buildReviewSteps` on a 20-move match against local Supabase; assert under 150ms p95 for the route and under 5ms for the build. Add the script to `package.json`.
+- [X] T084 [P] Add `perf:rematch` (`tests/perf/rematch.bench.ts`): `request_rematch` plus `accept_rematch`, under 200ms p95.
 
 ---
 
@@ -437,4 +437,11 @@ Commit each passing test separately (`test(071): …`, then `feat(071): …`), p
 - **The closing step** takes the ledger's first row with an unplayed move for its cursor line.
 - **T069's cooldown fixture** is `rematch-declined` (it shows `again in 0:52`). The "past 2:00" and "opponent left" cases are pinned in `tests/integration/db/rematch.test.ts` rather than in Playwright, since a 2:00 wait does not belong in the e2e suite.
 - **Two answers on the result** (a rematch and a call) share the ledger's state row, one line each, the rematch first. Accepting either supersedes the other through `create_match_between`.
+- **Gates, 2026-09-24 (production build):**
+  - Unit: 2886 tests, one failure, `HereNowList.spec.tsx`. It comes from an uncommitted door copy edit in the working tree (`ENTER_LOBBY`), not this spec.
+  - Lint, typecheck and `docs:check` are clean.
+  - Database: 36 suites, 158 tests.
+  - Perf: `perf:review-moves` 8ms read, 0.11ms build; `perf:rematch` 4ms request, 5ms accept (all p95).
+  - Visual: 271 passed. `page is-door` fails, from the same uncommitted copy edit.
+  - Playwright: rematch-flow, review-flow, match-completion, matchmaking, moves-flow, deadline-flow, disconnect-claim, table, leave-slip, room-layout, slot-overflow (spec 071), and result-review-a11y all pass.
 
