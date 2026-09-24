@@ -570,6 +570,26 @@
   justify-content: flex-end;
   padding-right: 0;
 }
+/* Spec 072: a link the clipboard refused, shown to select by hand (not uppercased: it is a URL). */
+.line-slot__url {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 2px 0;
+  width: 100%;
+  max-width: 480px;
+}
+/* Spec 072: `invite a friend ▸` below the here-now table, with its note. */
+.lobby-invite {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 16px 0 0;
+  min-height: 44px;
+}
 .form-strip {
   display: flex;
   align-items: center;
@@ -996,7 +1016,11 @@
   }
   /* F2, F6: the pinned primary shows only while find is the page's primary. */
   .lobby[data-composing="true"] .lobby-block__primary,
-  .lobby:not([data-find="primary"]) .lobby-block__primary {
+  .lobby:not([data-find="primary"]):not([data-invite="primary"]) .lobby-block__primary {
+    display: none;
+  }
+  /* An empty lobby pins `invite a friend ▸`; find stays in the block's note line. */
+  .lobby[data-invite="primary"] .lobby-block__primary .lobby-block__find.page-link {
     display: none;
   }
   .lobby-block__note {

@@ -72,9 +72,10 @@ export function LobbyPage({ viewer, rows: initialRows, overview, recent, switchP
         recent={recent}
         onFind={onFind}
         onSend={onSend}
+        onInvite={machine?.inviteFriend}
         standing={
           machine
-            ? { searching: machine.slot.kind === "search", outgoing: machine.facts?.outgoing?.status === "pending", callUp: machine.slot.kind === "call", overlays: machine.overlays, closed: machine.closed }
+            ? { searching: machine.slot.kind === "search", outgoing: machine.facts?.outgoing?.status === "pending", callUp: machine.slot.kind === "call" || machine.slot.kind === "linkCall", overlays: machine.overlays, closed: machine.closed, link: machine.linkOut }
             : undefined
         }
         primaryFor={machine?.primaryFor}
