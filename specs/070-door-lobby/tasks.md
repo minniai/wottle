@@ -479,7 +479,7 @@
   - the directory structure (`(pages)`, `components/page`, `components/standing`, `lib/pages`, `lib/presence`, `lib/brand`);
   - the fixture phase list;
   - Remaining Gaps: the Icelandic (?) strings of this stage.
-- [ ] T117 [P] Update `docs/design_documentation/260922-game-flow/HANDOVER.md` only if the user asks. It is the user's file, and it has an uncommitted edit.
+- [X] T117 [P] Update `docs/design_documentation/260922-game-flow/HANDOVER.md` only if the user asks. It is the user's file, and it has an uncommitted edit.
 - [X] T118 Run the gates: `pnpm test:unit`, `pnpm test:integration`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`, `pnpm perf:heartbeat`, `pnpm perf:standing` and `pnpm perf:seat`. Then run the chromium Playwright specs one at a time: `door`, `presence`, `lobby-challenge`, `line-slot`, `lobby-language`, `leave-slip`, `table`, `moves-flow`, `room-flow`, `reconnect-flow`, `matchmaking`, `match-completion` and `lobby-presence`. Check each by its exit code, not by grepping. Record the results in `specs/070-door-lobby/tasks.md`.
   - **Results, 2026-09-24** (exit codes; Playwright on a realtime-on production build, chromium, one file at a time):
     - `test:unit` 0 (238 files, 2624 tests), `test:integration` 0 (43 files, 164 tests), `lint` 0, `typecheck` 0, `docs:check` 0, `test:visual` 0.
