@@ -191,7 +191,7 @@ describe("deriveScoreboard: review (spec 071 FR-033)", () => {
     const view = at7();
     expect(view.you).toMatchObject({ total: 51, suffix: "3 of 10 at step 7", behindPace: false });
     expect(view.opp).toMatchObject({ total: 18, suffix: "4 of 10 at step 7" });
-    expect(view.you.segments.filter((s) => s === "played").length).toBe(3);
+    expect(view.you.segments.filter((s) => s === "spent").length).toBe(3);
   });
 
   it("keeps the phone's row short", () => {

@@ -7,6 +7,11 @@ import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { TICKS_PER_BLOCK } from "@/lib/room/clock";
 import type { ClockRow, PlayerRow, ScoreboardView } from "@/lib/room/scoreboard";
 
+import { ReviewScrubber } from "./ReviewScrubber";
+
+const NO_STEP = () => undefined;
+const NO_TOGGLE = () => undefined;
+
 interface ScoreboardProps {
   view: ScoreboardView;
   /** The totals as drawn, e.g. while counting up; the view's totals otherwise. */
@@ -16,6 +21,9 @@ interface ScoreboardProps {
   profileInNewTab?: boolean;
   /** The phone's scoreboard: the blocks fill in 5s steps with no tick marks (spec 068 FR-009). */
   compact?: boolean;
+  /** Spec 071: in review the clock row's track is the scrubber. */
+  onReviewStep?: (step: number) => void;
+  onReviewTogglePlay?: () => void;
 }
 
 function Block({ ticks, compact }: { ticks: number; compact: boolean }) {
@@ -31,8 +39,25 @@ function Block({ ticks, compact }: { ticks: number; compact: boolean }) {
   );
 }
 
-function ClockLine({ clock, compact }: { clock: ClockRow; compact: boolean }) {
-  const { clockAria } = useCopy();
+interface ReviewHandlers {
+  onReviewStep?: (step: number) => void;
+  onReviewTogglePlay?: () => void;
+}
+
+function ClockLine({ clock, compact, onReviewStep, onReviewTogglePlay }: { clock: ClockRow; compact: boolean } & ReviewHandlers) {
+  const { clockAria, review } = useCopy();
+  if (clock.review) {
+    return (
+      <div className="scoreboard__row scoreboard__row--clock" data-testid="scoreboard-clock" data-phase="review">
+        <span className="scoreboard__text">
+          <span className="scoreboard__label">{clock.label}</span>
+          <span className="scoreboard__detail">{clock.detail}</span>
+        </span>
+        <ReviewScrubber {...clock.review} label={review.SCRUBBER} onStep={onReviewStep ?? NO_STEP} onTogglePlay={onReviewTogglePlay ?? NO_TOGGLE} />
+        <span className="scoreboard__numeral">{clock.numeral}</span>
+      </div>
+    );
+  }
   return (
     <div className="scoreboard__row scoreboard__row--clock" data-testid="scoreboard-clock" role="timer" aria-live="off" aria-label={clockAria(clock.detail ? `${clock.label}, ${clock.detail}` : clock.label, clock.numeral)} data-phase={clock.phase}>
       <span className="scoreboard__text">
@@ -114,12 +139,12 @@ function PlayerLine({ row, total, href, newTab, limit }: { row: PlayerRow; total
  * design system §5.3): the clock, then the opponent, then you, nearest the
  * board you play on. Urgency is weight only; nothing here animates.
  */
-export function Scoreboard({ view, totals, profiles = {}, profileInNewTab = false, compact = false }: ScoreboardProps) {
+export function Scoreboard({ view, totals, profiles = {}, profileInNewTab = false, compact = false, onReviewStep, onReviewTogglePlay }: ScoreboardProps) {
   const { SCOREBOARD } = useCopy();
   const limit = view.you.segments.length;
   return (
     <section className="scoreboard" data-testid="scoreboard" data-compact={compact ? "true" : undefined} aria-label={SCOREBOARD}>
-      <ClockLine clock={view.clock} compact={compact} />
+      <ClockLine clock={view.clock} compact={compact} onReviewStep={onReviewStep} onReviewTogglePlay={onReviewTogglePlay} />
       <PlayerLine row={view.opp} total={totals?.opp ?? view.opp.total} href={profiles.opp} newTab={profileInNewTab} limit={limit} />
       <PlayerLine row={view.you} total={totals?.you ?? view.you.total} href={profiles.you} newTab={profileInNewTab} limit={limit} />
     </section>
