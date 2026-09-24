@@ -172,7 +172,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     const timer = setTimeout(() => setBackAwayMs(null), BACK_HOLD_MS);
     return () => clearTimeout(timer);
   }, [transport.awayMs]);
-  const history = useWordHistory(matchId, match.resolvedSeq);
+  const history = useWordHistory(currentPlayerId ? matchId : null, match.resolvedSeq);
   const words = useAccumulatedMoves(match, history);
 
   // Spec 047 FR-002 / spec 049: a record the board does not spell is reported
@@ -384,6 +384,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const reviewExchange: [Coordinate, Coordinate] | null = reviewStep?.swap && review.previous ? [reviewStep.swap.from, reviewStep.swap.to] : null;
 
   const reviewWords = useMemo(() => (reviewStep && review.steps ? wordsAtStep(review.steps, reviewStep.index) : null), [reviewStep, review.steps]);
+  // In review the ledger reads every move from the steps, so a signed-out reader's is complete too.
+  const reviewAllWords = useMemo(() => (reviewStep && review.steps ? wordsAtStep(review.steps, review.steps.length).words : null), [reviewStep, review.steps]);
   const bands = useMemo(() => {
     if (reviewStep && reviewWords) {
       const live = reviewWords.liveMoveKey;
@@ -743,7 +745,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
             </button>
           ) : undefined
         }
-        words={words}
+        words={reviewAllWords ?? words}
         hiddenWordIds={hiddenWordIds}
         playerAId={match.players.playerA.playerId}
         frozenTiles={frozenTiles}
