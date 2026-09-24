@@ -49,6 +49,7 @@ function toStep(row: ReviewMoveRow, prior: Prior, index: number, moves: MovesRes
     totals: row.scoreAfter,
     movesPlayed,
     frozeCount: refused ? 0 : newlyFrozen(prior.frozen, row.frozenAfter),
+    ...(refused ? { refusal: row.rejectionReason ?? "frozen" } : {}),
   };
 }
 

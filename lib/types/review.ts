@@ -56,6 +56,8 @@ export interface ReviewStep {
   movesPlayed: { a: number; b: number };
   /** Letters this step froze. */
   frozeCount: number;
+  /** Why a refused step was refused. */
+  refusal?: "frozen" | "moved";
   /** The closing step: each player's unplayed moves and what they cost (floored at the total). */
   closing?: { reason: "time" | "ended_early"; unplayed: { a: number; b: number }; penalty: { a: number; b: number } };
 }
