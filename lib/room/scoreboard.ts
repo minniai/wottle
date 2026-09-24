@@ -68,9 +68,19 @@ export interface ScoreboardInput {
   table?: ScoreboardTable;
   /** Spec 071: `match 2 · Birna 1–0`, a fact about the match, under the clock's label when nothing else is. */
   series?: string | null;
+  /** Spec 071 (FR-033): review at a step; the seats carry each player's total and moves at it. */
+  review?: ScoreboardReview;
 }
 
-export type ScoreboardClockPhase = ClockRowPhase | "table" | "void" | "starting" | "over";
+export interface ScoreboardReview {
+  step: number;
+  stepCount: number;
+  /** The clock as it read when the step's move was received. */
+  clockMs: number;
+  valueText: string;
+}
+
+export type ScoreboardClockPhase = ClockRowPhase | "table" | "void" | "starting" | "over" | "review";
 
 export interface ClockRow {
   phase: ScoreboardClockPhase;
@@ -81,6 +91,8 @@ export interface ClockRow {
   numeral: string;
   ticksLeft: number;
   blocks: number[];
+  /** Spec 071: in review the track is the scrubber, at `step / stepCount`. */
+  review?: { step: number; stepCount: number; fraction: number; valueText: string };
 }
 
 export interface PlayerRow {
@@ -142,7 +154,23 @@ function stillClock(input: ScoreboardInput, phase: "table" | "void", copy: Copy)
   return { phase, label: copy.MATCH_CLOCK, detail, numeral: formatClock(input.clockLengthMs), ticksLeft: FULL_TICKS, blocks: clockBlocks(FULL_TICKS) };
 }
 
+/** Spec 071 (FR-033): the clock row as the review's scrubber: the step, and the clock when its move came in. */
+function reviewClock(review: ScoreboardReview, input: ScoreboardInput, copy: Copy): ClockRow {
+  const ticks = ticksLeft(review.clockMs);
+  const { step, stepCount, valueText } = review;
+  return {
+    phase: "review",
+    label: input.compact ? copy.review.step(step, stepCount).split(" ").slice(0, 2).join(" ") : copy.review.step(step, stepCount),
+    detail: input.compact ? copy.review.CLOCK_THEN : copy.review.clockAt(step),
+    numeral: formatClock(review.clockMs),
+    ticksLeft: ticks,
+    blocks: clockBlocks(ticks),
+    review: { step, stepCount, fraction: step / stepCount, valueText },
+  };
+}
+
 function clockRowFor(input: ScoreboardInput, copy: Copy): ClockRow {
+  if (input.review) return reviewClock(input.review, input, copy);
   if (input.phase === "table" || input.phase === "void") return withSeries(stillClock(input, input.phase, copy), input);
   if (input.phase === "starting") {
     const ticks = startingTicks(input.msToStart ?? 0);
@@ -220,6 +248,7 @@ function tableSub(input: ScoreboardInput, seat: Seat, copy: Copy): Sub {
 }
 
 function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy): Sub {
+  if (input.review) return plain(copy.review.atStep(input[seat].movesPlayed, input.moveLimit, input.review.step));
   if (input.phase === "table" || input.phase === "void") return tableSub(input, seat, copy);
   if (input.phase === "over") return plain(null);
   if (input.phase === "starting") return plain(copy.READY);
@@ -229,6 +258,7 @@ function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy)
 
 function mutedFor(input: ScoreboardInput, seat: Seat, sub: Sub, copy: Copy): string {
   const facts = input[seat];
+  if (input.review) return input.compact ? "" : String(facts.rating ?? copy.UNRATED);
   if (input.phase === "over" && facts.finalLine) return facts.finalLine;
   if (input.compact) return "";
   const rating = String(facts.rating ?? copy.UNRATED);

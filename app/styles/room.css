@@ -1686,3 +1686,34 @@
 .profile__match-link:hover {
   text-decoration: underline;
 }
+
+/* Spec 071 (FR-033): review's scrubber takes the clock row's track. A 10px bar (4px on a
+   phone) in the scoreboard's ink, inside a hit area the height of the row. */
+.review-scrubber {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  touch-action: none;
+}
+.review-scrubber:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.review-scrubber__bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 10px;
+  background: var(--rule);
+}
+.review-scrubber__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform: scaleX(var(--fraction));
+  transform-origin: left center;
+}
+.scoreboard[data-compact="true"] .review-scrubber__bar {
+  height: 4px;
+}
