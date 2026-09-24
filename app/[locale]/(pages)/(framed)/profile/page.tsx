@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getRecentGames } from "@/app/actions/match/getRecentGames";
 import { getBestWords } from "@/app/actions/player/getBestWords";
 import { getPlayerProfile } from "@/app/actions/player/getPlayerProfile";
+import { ProfileNotice } from "@/components/profile/ProfileNotice";
 import { ProfilePage } from "@/components/profile/ProfilePage";
 import { getCopy } from "@/lib/i18n/getCopy";
 import { getLocale, localePath } from "@/lib/i18n/locales";
@@ -28,9 +29,7 @@ export default async function OwnProfilePage({ params }: { params?: LocaleParams
 
   if (profileResult.status !== "ok" || !profileResult.profile) {
     return (
-      <div className="room">
-        <div className="ledger__live-row">{getCopy(locale).profileUnavailable(profileResult.error ?? null)}</div>
-      </div>
+      <ProfileNotice locale={locale} text={getCopy(locale).profileUnavailable(profileResult.error ?? null)} testId="profile-unavailable" />
     );
   }
 

@@ -2,7 +2,9 @@ import { getLocale } from "@/lib/i18n/locales";
 import { getRecentGames } from "@/app/actions/match/getRecentGames";
 import { getBestWords } from "@/app/actions/player/getBestWords";
 import { getPlayerProfileByHandle } from "@/app/actions/player/getPlayerProfileByHandle";
+import { ProfileNotice } from "@/components/profile/ProfileNotice";
 import { ProfilePage } from "@/components/profile/ProfilePage";
+import { readHandle } from "@/lib/profile/readHandle";
 import { getCopy } from "@/lib/i18n/getCopy";
 import { readLocaleParam } from "@/lib/i18n/params";
 import { readLobbySession } from "@/lib/matchmaking/profile";
@@ -26,17 +28,13 @@ export default async function PublicProfilePage({
 
   if (profileResult.status === "not_found") {
     return (
-      <div className="room">
-        <div className="ledger__live-row" data-testid="profile-not-found">{copy.noSuchPlayer(handle)}</div>
-      </div>
+      <ProfileNotice locale={locale} text={copy.noSuchPlayer(readHandle(handle))} testId="profile-not-found" />
     );
   }
 
   if (profileResult.status !== "ok" || !profileResult.profile) {
     return (
-      <div className="room">
-        <div className="ledger__live-row">{copy.profileUnavailable(profileResult.error ?? null)}</div>
-      </div>
+      <ProfileNotice locale={locale} text={copy.profileUnavailable(profileResult.error ?? null)} testId="profile-unavailable" />
     );
   }
 
