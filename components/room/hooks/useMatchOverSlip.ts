@@ -27,6 +27,8 @@ export interface MatchOverSlipInput {
   busy: boolean;
   /** A reveal ran in this session, so the slip lands after the delay rather than at once. */
   revealed: boolean;
+  /** Spec 071: the viewer's highest-scoring word, or null. */
+  bestWord?: { word: string; points: number } | null;
 }
 
 /**
@@ -80,6 +82,7 @@ export function buildMatchOverSlip(input: MatchOverSlipInput, copy: Copy): SlipS
     ratings: ratingRows(input, copy),
     rematch,
     readOnly,
+    bestWord: input.bestWord ?? null,
   };
 }
 
