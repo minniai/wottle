@@ -1373,10 +1373,29 @@
   background: var(--ink);
   transform-origin: left center;
 }
+/* A call or a rematch in the ledger (spec 070 B6, spec 071 T41): the line, then its answers. */
+.ledger__notice[data-kind="call"],
+.ledger__notice[data-kind="rematch"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ledger__call-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ledger__call-actions {
+  display: flex;
+  gap: 16px;
+}
 .ledger__drain {
-  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 4px;
-  margin-top: 4px;
   background: var(--ink);
   transform-origin: left center;
 }
