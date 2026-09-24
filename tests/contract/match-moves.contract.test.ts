@@ -26,7 +26,9 @@ describe("GET /api/match/[matchId]/moves (spec 071 FR-043)", () => {
   beforeEach(() => {
     vi.mocked(loadCompletedMoves).mockResolvedValue(bothFinished());
   });
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("serves a completed match to a signed-out visitor, and never reads a session", async () => {
     const res = await call();

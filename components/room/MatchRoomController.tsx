@@ -28,6 +28,7 @@ import type { Line2Extras } from "@/lib/room/moveState";
 import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
+import { penalisesUnplayed } from "@/lib/match/endedReasons";
 import { ledgerCallLine } from "@/lib/room/ledgerCallLine";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
 import { useCopy } from "@/components/i18n/LocaleProvider";
@@ -630,7 +631,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         clockLengthMs={clockLengthMs ?? undefined}
         msToStart={Math.max(0, msToStart)}
         elapsedMs={completed ? durationMs : undefined}
-        penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}
+        penalizeUnplayed={completed && penalisesUnplayed(match.endedReason)}
         moveLimit={match.moveLimit}
         completed={completed}
         caption={completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
