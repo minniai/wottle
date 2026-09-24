@@ -5,11 +5,13 @@ import { useEffect } from "react";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { DoorPage } from "@/components/page/door/DoorPage";
 import { InviteDoorPage } from "@/components/page/door/InviteDoor";
+import { ProfileOwnPage } from "@/components/profile/ProfileOwnPage";
 import { LineSlot } from "@/components/page/LineSlot";
 import { Lobby } from "@/components/page/lobby/Lobby";
 import { PageFrame } from "@/components/page/PageFrame";
 import { useIsPhone } from "@/components/room/hooks/useIsPhone";
-import { pagePrimary } from "@/lib/pages/pagePrimary";
+import { pagePrimary, type PagePrimaryModel } from "@/lib/pages/pagePrimary";
+import type { ProfileView } from "@/lib/types/profile";
 import { challengesClosed, rowOverlays } from "@/lib/pages/rowOverlays";
 import { phoneSlotHeight, slotLines } from "@/lib/pages/slotLines";
 
@@ -28,6 +30,8 @@ import {
   switchConfirm,
   linkOut,
   INVITE_TOKEN,
+  profileView,
+  profileViewNew,
   linkCallIn,
   ownLinkOpened,
   FIXED_NOW,
@@ -98,6 +102,27 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
   );
 }
 
+/** A profile in its page frame, with a standing in the slot when one is given (spec 072 fixtures). */
+function ProfileFixturePage({ view, standing, children }: { view: ProfileView; standing?: StandingFixture; children: (primary: PagePrimaryModel | undefined) => React.ReactNode }) {
+  const copy = useCopy();
+  const phone = useIsPhone();
+  const model = standing ? slotLines(standing.slot, copy, { nowMs: standing.now, phone, viewer: standing.facts.viewer, searchingCount: 0 }) : null;
+  return (
+    <PageFrame
+      variant="signedIn"
+      place="profile"
+      viewer={{ displayName: "Birna", handle: "birna" }}
+      otherLobbyHere={7}
+      slot={model ? <LineSlot model={model} onAction={NO_OP} announcement="" variant="desktop" /> : undefined}
+      bottomSlot={model && model.style !== "terms" ? <LineSlot model={model} onAction={NO_OP} announcement="" variant="phone" /> : null}
+      bottomHeight={model ? phoneSlotHeight(model) : 0}
+      folioDetail={view.handle}
+    >
+      {children(standing ? pagePrimary(standing.slot, copy, { composing: false }) : undefined)}
+    </PageFrame>
+  );
+}
+
 /** Renders one page phase from static facts (T017); each story adds its phases. */
 export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: boolean }) {
   // `long`: every name at the 24-character limit, for the overflow test (SC-007).
@@ -152,6 +177,14 @@ export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: 
       return <StandingFixturePage fixture={L(lobbyIs())} standing={L(linkCallIn("is"))} focusSkip />;
     case "lobby-own-link":
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(ownLinkOpened())} />;
+    case "profile-own":
+      return <ProfileFixturePage view={profileView("en")}>{(primary) => <ProfileOwnPage view={L(profileView("en"))} primary={primary} />}</ProfileFixturePage>;
+    case "is-profile-own":
+      return <ProfileFixturePage view={profileView("is")}>{(primary) => <ProfileOwnPage view={L(profileView("is"))} primary={primary} />}</ProfileFixturePage>;
+    case "profile-own-new":
+      return <ProfileFixturePage view={profileViewNew()}>{(primary) => <ProfileOwnPage view={profileViewNew()} primary={primary} />}</ProfileFixturePage>;
+    case "profile-own-call":
+      return <ProfileFixturePage view={profileView("is")} standing={challengeIn()}>{(primary) => <ProfileOwnPage view={L(profileView("is"))} primary={primary} />}</ProfileFixturePage>;
     case "lobby-link-refused":
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkOut("en", true))} />;
   }

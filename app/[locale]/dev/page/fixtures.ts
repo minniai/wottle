@@ -3,7 +3,8 @@ import type { RecentGameRow } from "@/lib/types/lobby";
 import type { HeldOutcome } from "@/lib/pages/heldOutcome";
 import type { SlotState } from "@/lib/pages/standingSlot";
 import type { LinkView } from "@/lib/types/link";
-import type { Band, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
+import type { ProfileView } from "@/lib/types/profile";
+import type { Band, FormResult, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
 
 /**
  * Page fixtures (spec 070 T017, R17): every state of the door and the lobby,
@@ -41,6 +42,11 @@ export const PAGE_PHASES = [
   "lobby-link-call",
   "is-lobby-link-call",
   "lobby-own-link",
+  // Spec 072 US5: your profile (ProfileOwn), a new player's, and with a call up.
+  "profile-own",
+  "is-profile-own",
+  "profile-own-new",
+  "profile-own-call",
 ] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
@@ -295,6 +301,55 @@ export function ownLinkOpened(): StandingFixture {
   const own = { token: INVITE_TOKEN, view: { ...inviteView("en"), senderName: "Birna", senderHandle: "birna" } };
   const link = { id: id(910), status: "pending" as const, expiresAt: at(552_000), respondedAt: null };
   return { now: FIXED_NOW, slot: { kind: "link", link, held: null, own }, facts: facts("en", { link }), held: null };
+}
+
+const DAY = 86_400_000;
+const ratingWalk = [1196, 1188, 1203, 1209, 1200, 1214, 1216, 1205, 1196, 1204, 1208, 1212];
+
+/** ProfileOwn (IS-T1): Birna 1212, 35 matches since March, 20–15–0, the last ten, three best words. */
+export function profileView(language: "is" | "en"): ProfileView {
+  const is = language === "is";
+  const lastTen: FormResult[] = ["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"];
+  const opponents = ["Kári", "Embla", "Jónas", "Kári", "Sóley", "Hekla", "Ragnar", "Katla"];
+  const scores: Array<[number, number, "win" | "loss" | "draw"]> = [[134, 88, "win"], [184, 150, "win"], [132, 171, "loss"], [166, 159, "win"], [120, 120, "draw"], [158, 141, "win"], [149, 162, "loss"], [171, 133, "win"]];
+  return {
+    playerId: id(930),
+    handle: "birna",
+    displayName: "Birna",
+    language,
+    rating: is ? 1212 : 1310,
+    peak: is ? 1216 : 1318,
+    weekChange: is ? 16 : -4,
+    matches: is ? 35 : 22,
+    firstPlayedAt: "2026-03-04T10:00:00.000Z",
+    record: is ? { won: 20, lost: 15, drawn: 0, winRate: 20 / 35 } : { won: 13, lost: 9, drawn: 0, winRate: 13 / 22 },
+    lastTen,
+    chart: ratingWalk.map((rating, i) => ({ at: new Date(FIXED_NOW - (30 - (i * 30) / 11) * DAY).toISOString(), rating: is ? rating : rating + 98 })),
+    chartEmpty: false,
+    bestWords: is
+      ? [word("HESTAR", 32, [4, 3, 1, 2, 1, 1]), word("BORÐA", 29, [5, 5, 1, 2, 1]), word("SKÍRN", 24, [1, 2, 4, 1, 1])]
+      : [word("FJORD", 31, [4, 8, 1, 1, 2]), word("QUILT", 29, [10, 1, 1, 1, 1]), word("BRISK", 26, [3, 1, 1, 1, 5])],
+    otherLanguage: is ? { language: "en", rating: 1310, matches: 22 } : { language: "is", rating: 1212, matches: 35 },
+    matchesList: opponents.map((name, i) => ({
+      matchId: id(940 + i), result: scores[i][2], opponentId: id(950 + i), opponentUsername: name.toLowerCase(), opponentDisplayName: name,
+      yourScore: scores[i][0], opponentScore: scores[i][1], wordsFound: 0, completedAt: new Date(FIXED_NOW - (i + 1) * DAY).toISOString(),
+    })),
+    presence: null,
+  };
+}
+
+function word(text: string, points: number, values: number[]): ProfileView["bestWords"][number] {
+  return { word: text, points, tiles: Array.from(text, (letter, i) => ({ letter, value: values[i] ?? 1 })) };
+}
+
+/** A player with no match in this language: 1200, a flat chart, ten empty cells. */
+export function profileViewNew(): ProfileView {
+  const base = profileView("en");
+  return {
+    ...base, rating: 1200, peak: 1200, weekChange: 0, matches: 0, firstPlayedAt: null, record: { won: 0, lost: 0, drawn: 0, winRate: null }, lastTen: [],
+    chart: [{ at: new Date(FIXED_NOW - 30 * DAY).toISOString(), rating: 1200 }, { at: new Date(FIXED_NOW).toISOString(), rating: 1200 }], chartEmpty: true,
+    bestWords: [], matchesList: [], otherLanguage: { language: "is", rating: 1200, matches: 0 },
+  };
 }
 
 /** The longest names a player may take (24 characters, wide letters), for the overflow test (SC-007). */

@@ -35,6 +35,8 @@ type PageFrameProps =
       bottomHeight?: number;
       /** While a call is up, a skip link to it is the page's first focusable element. */
       skipLabel?: string | null;
+      /** Spec 072: the folio names whose page it is (`Orðusta · prófíll · birna`). */
+      folioDetail?: string | null;
       children: ReactNode;
     };
 
@@ -68,7 +70,7 @@ export function PageFrame(props: PageFrameProps) {
         {props.viewer ? <div className="page-slot" data-testid="line-slot">{props.slot ?? <SlotTerms counts={null} />}</div> : null}
       </header>
       <main className="page-main" aria-label={copy.pages.MAIN}>{props.children}</main>
-      <Folio place={props.place} />
+      <Folio place={props.place} detail={props.folioDetail ?? null} />
       {props.bottomSlot ? <div className="page-bottom">{props.bottomSlot}</div> : null}
     </div>
   );

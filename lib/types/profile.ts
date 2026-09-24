@@ -1,12 +1,12 @@
 import type { Language } from "@/lib/types/game-config";
+import type { RecentGameRow } from "@/lib/types/lobby";
+import type { FormResult } from "@/lib/types/standing";
 
 /**
  * Spec 072: what a profile page shows (E1, E2, F9). It replaces the old
  * `PlayerProfile` on pages and never carries a last-seen time, a status or an
  * avatar: `tests/unit/types/profile-view-allowlist.test.ts` pins its keys.
  */
-export type FormResult = "W" | "L" | "D";
-
 export type PresenceWordState = "here" | "in_match" | "away" | "other_lobby" | "not_here";
 
 export interface PresenceWord {
@@ -20,22 +20,19 @@ export interface ProfileWord {
   tiles: { letter: string; value: number }[];
 }
 
-export interface ProfileMatchRow {
-  matchId: string;
-  opponentName: string;
-  opponentHandle: string;
-  own: number;
-  theirs: number;
-  result: FormResult;
-  endedAt: string;
-}
-
 export interface ProfileRecord {
   won: number;
   lost: number;
   drawn: number;
   /** won ÷ matches, 0–1; null with no matches (FR-032). */
   winRate: number | null;
+}
+
+/** One rated match in this language, oldest first: what the chart, the week and the peak are read from. */
+export interface RatingEvent {
+  at: string;
+  before: number;
+  after: number;
 }
 
 export interface ChartPoint {
@@ -61,10 +58,12 @@ export interface ProfileView {
   lastTen: FormResult[];
   /** The 30-day series; the first point is the rating at the window's start. */
   chart: ChartPoint[];
+  /** No match in the window: the chart is a flat line at the rating. */
+  chartEmpty: boolean;
   bestWords: ProfileWord[];
   otherLanguage: { language: Language; rating: number; matches: number };
   /** Own: the recent eight. Public: the viewer's matches against this player. */
-  matchesList: ProfileMatchRow[];
+  matchesList: RecentGameRow[];
   /** Public profiles only. */
   presence: PresenceWord | null;
 }
