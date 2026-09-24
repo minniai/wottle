@@ -18,6 +18,8 @@ export const beatInputSchema = z.object({
   visible: z.boolean(),
   inputAgoMs: z.number().int().min(0).max(86_400_000).nullable(),
   page: presencePageSchema,
+  /** Spec 071: the match this tab's page is on. */
+  matchId: z.string().uuid().optional(),
 });
 export type BeatInput = z.infer<typeof beatInputSchema>;
 
@@ -39,6 +41,7 @@ export async function beat(playerId: string, input: BeatInput): Promise<BeatResu
     p_visible: input.visible,
     p_input_ago_ms: input.inputAgoMs,
     p_page: input.page,
+    p_match_id: input.matchId ?? null,
   });
   if (error) throw new Error(`beat_tab: ${error.message}`);
   const row = beatRowSchema.parse((data as unknown[])[0]);
