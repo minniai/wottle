@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { localePath } from "@/lib/i18n/locales";
-import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
+import { readLocaleParam } from "@/lib/i18n/params";
 
-/** The post-game screen is the room's final state (spec 044 US9); this route only forwards. */
+/** Spec 071 (FR-041): the old summary is the match's review, at its last step. */
 export default async function MatchSummaryRedirect({
   params,
 }: {
@@ -11,5 +11,5 @@ export default async function MatchSummaryRedirect({
 }) {
   const resolved = await params;
   const locale = await readLocaleParam(resolved);
-  redirect(localePath(locale, `/match/${resolved.matchId}`));
+  redirect(localePath(locale, `/match/${resolved.matchId}?review=last`));
 }
