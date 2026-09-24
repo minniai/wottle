@@ -6,6 +6,7 @@ import { useCopy } from "@/components/i18n/LocaleProvider";
 import { DoorPage } from "@/components/page/door/DoorPage";
 import { InviteDoorPage } from "@/components/page/door/InviteDoor";
 import { ProfileOwnPage } from "@/components/profile/ProfileOwnPage";
+import { ProfilePublicPage } from "@/components/profile/ProfilePublicPage";
 import { LineSlot } from "@/components/page/LineSlot";
 import { Lobby } from "@/components/page/lobby/Lobby";
 import { PageFrame } from "@/components/page/PageFrame";
@@ -32,6 +33,8 @@ import {
   INVITE_TOKEN,
   profileView,
   profileViewNew,
+  publicProfileView,
+  sentToKari,
   linkCallIn,
   ownLinkOpened,
   FIXED_NOW,
@@ -103,7 +106,11 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
 }
 
 /** A profile in its page frame, with a standing in the slot when one is given (spec 072 fixtures). */
-function ProfileFixturePage({ view, standing, children }: { view: ProfileView; standing?: StandingFixture; children: (primary: PagePrimaryModel | undefined) => React.ReactNode }) {
+const HERE_NOW = { state: "here" as const, movesPlayed: null };
+const PUBLIC_CHALLENGE_EN = { kind: "challenge" as const, label: "challenge ▸", stakes: "english words · win +7 · draw −1 · loss −9" };
+const PUBLIC_CHALLENGE_IS = { kind: "challenge" as const, label: "skora á ▸", stakes: "íslensk orð · sigur +9 · jafntefli +1 · tap −7" };
+
+function ProfileFixturePage({ view, standing, signedOut = false, children }: { view: ProfileView; standing?: StandingFixture; signedOut?: boolean; children: (primary: PagePrimaryModel | undefined) => React.ReactNode }) {
   const copy = useCopy();
   const phone = useIsPhone();
   const model = standing ? slotLines(standing.slot, copy, { nowMs: standing.now, phone, viewer: standing.facts.viewer, searchingCount: 0 }) : null;
@@ -111,7 +118,7 @@ function ProfileFixturePage({ view, standing, children }: { view: ProfileView; s
     <PageFrame
       variant="signedIn"
       place="profile"
-      viewer={{ displayName: "Birna", handle: "birna" }}
+      viewer={signedOut ? null : { displayName: "Birna", handle: "birna" }}
       otherLobbyHere={7}
       slot={model ? <LineSlot model={model} onAction={NO_OP} announcement="" variant="desktop" /> : undefined}
       bottomSlot={model && model.style !== "terms" ? <LineSlot model={model} onAction={NO_OP} announcement="" variant="phone" /> : null}
@@ -185,6 +192,18 @@ export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: 
       return <ProfileFixturePage view={profileViewNew()}>{(primary) => <ProfileOwnPage view={profileViewNew()} primary={primary} />}</ProfileFixturePage>;
     case "profile-own-call":
       return <ProfileFixturePage view={profileView("is")} standing={challengeIn()}>{(primary) => <ProfileOwnPage view={L(profileView("is"))} primary={primary} />}</ProfileFixturePage>;
+    case "profile-public":
+      return <ProfileFixturePage view={publicProfileView()}>{() => <ProfilePublicPage view={L(publicProfileView())} signedIn fixture={{ presence: HERE_NOW, model: PUBLIC_CHALLENGE_EN }} />}</ProfileFixturePage>;
+    case "is-profile-public":
+      return <ProfileFixturePage view={publicProfileView("is")}>{() => <ProfilePublicPage view={L(publicProfileView("is"))} signedIn fixture={{ presence: HERE_NOW, model: PUBLIC_CHALLENGE_IS }} />}</ProfileFixturePage>;
+    case "profile-public-sent":
+      return <ProfileFixturePage view={publicProfileView()} standing={sentToKari()}>{() => <ProfilePublicPage view={L(publicProfileView())} signedIn fixture={{ presence: HERE_NOW, model: { kind: "sent", label: "sent · 0:41" } }} />}</ProfileFixturePage>;
+    case "profile-public-in-match":
+      return <ProfileFixturePage view={publicProfileView()}>{() => <ProfilePublicPage view={L(publicProfileView())} signedIn fixture={{ presence: { state: "in_match", movesPlayed: 6 }, model: { kind: "closed", reason: null } }} />}</ProfileFixturePage>;
+    case "profile-public-away":
+      return <ProfileFixturePage view={publicProfileView()}>{() => <ProfilePublicPage view={L(publicProfileView())} signedIn fixture={{ presence: { state: "away", movesPlayed: null }, model: { kind: "closed", reason: null } }} />}</ProfileFixturePage>;
+    case "profile-public-signed-out":
+      return <ProfileFixturePage view={publicProfileView()} signedOut>{() => <ProfilePublicPage view={L(publicProfileView())} signedIn={false} fixture={{ presence: HERE_NOW, model: { kind: "enterLobby", label: "enter the lobby ▸" } }} />}</ProfileFixturePage>;
     case "lobby-link-refused":
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkOut("en", true))} />;
   }

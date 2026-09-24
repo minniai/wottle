@@ -7,7 +7,6 @@ import type { CellState } from "@/components/room/FieldCell";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { PageFrame } from "@/components/page/PageFrame";
-import { ProfilePage } from "@/components/profile/ProfilePage";
 import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { Seat } from "@/lib/constants/seatColors";
@@ -22,7 +21,7 @@ import { tableFacts } from "@/components/room/hooks/useTable";
 import { ReviewFixture, type ReviewPhase } from "./ReviewFixture";
 import { BLANK_BOARD } from "@/lib/constants/board";
 import type { Coordinate } from "@/lib/types/board";
-import type { MatchResult, MatchState } from "@/lib/types/match";
+import type { MatchState } from "@/lib/types/match";
 import {
   BIRNA,
   CLOCK_MS,
@@ -62,7 +61,6 @@ import {
   OPP_REVEAL_WORD,
   PICKED_CELL,
   PICKED_LIVE,
-  PROFILE_FIXTURE,
   QUEUE_ELAPSED,
   QUEUE_LETTERS_LANDED,
   RECENT_GAMES,
@@ -205,7 +203,7 @@ const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CEL
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
 type TablePhase = "table" | "table-seated" | "void" | "void-queue" | "table-link-waits";
-type MatchPhase = Exclude<RoomPhase, "profile" | "rules" | TablePhase | ReviewPhase>;
+type MatchPhase = Exclude<RoomPhase, "rules" | TablePhase | ReviewPhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -270,7 +268,6 @@ function isReviewPhase(phase: string): phase is ReviewPhase {
 }
 
 const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = {
-  profile: "lobby",
   final: "final",
   "over-slip": "final",
   ...Object.fromEntries([...RESULT_PHASES, ...REMATCH_PHASES, ...REVIEW_PHASES].map((p) => [p, "final" as const])),
@@ -304,28 +301,6 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     return () => clearTimeout(id);
   }, [phase]);
 
-  if (phase === "profile") {
-    const profile = {
-      identity: { ...BIRNA, createdAt: "2026-03-02T09:00:00.000Z" },
-      stats: { eloRating: 1204, gamesPlayed: 34, wins: 19, losses: 15, draws: 0, winRate: 19 / 34 },
-      ratingTrend: [1197, 1216, 1186, 1199, 1204],
-      bestWord: { word: "BORÐA", points: 38, opponentName: KARI.displayName },
-      form: ["W", "L", "W", "W", "L", "W", "L", "W", "W", "L"] as MatchResult[],
-      peakRating: 1216,
-      ratingHistory: PROFILE_FIXTURE.ratingHistory.map((rating, i) => ({
-        rating,
-        recordedAt: `2026-0${1 + Math.floor(i / 6)}-${String(1 + (i % 6) * 5).padStart(2, "0")}T12:00:00.000Z`,
-      })),
-    };
-    return (
-      <RoomShell viewer={BIRNA}>
-        {/* A page since spec 070: the frame gives it the masthead and the one main. */}
-        <PageFrame variant="signedIn" place="profile" viewer={{ displayName: BIRNA.displayName, handle: BIRNA.username }} otherLobbyHere={null}>
-          <ProfilePage profile={profile} words={[...PROFILE_FIXTURE.bestWords]} matches={RECENT_GAMES} isSelf />
-        </PageFrame>
-      </RoomShell>
-    );
-  }
 
 
 

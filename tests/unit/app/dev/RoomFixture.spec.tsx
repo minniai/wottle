@@ -47,8 +47,7 @@ describe("RoomFixture", () => {
 
   it.each(IN_ROOM_PHASES)("renders the %s phase", (phase) => {
     render(<RoomFixture phase={phase} />);
-    if (phase === "profile") expect(screen.getByTestId("profile-page")).toBeInTheDocument();
-    else expect(screen.getByTestId("field")).toBeInTheDocument();
+    expect(screen.getByTestId("field")).toBeInTheDocument();
   });
 
   it("each move beat carries its live line (spec 050 contracts/move-state.md)", () => {

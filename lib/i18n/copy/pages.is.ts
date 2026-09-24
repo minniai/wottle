@@ -186,6 +186,10 @@ export const pagesIs: Widen<typeof pagesEn> = {
   wordStripAria: (word: string, points: number): string => `${word}, ${points}`,
   profileTitle: (name: string, wordmark: string): string => `${name} · ${wordmark}`,
 
+  NO_SUCH_PLAYER: "Enginn leikmaður með þetta nafn.",
+  CHALLENGE_PRIMARY: "skora á ▸",
+  profileStakes: (words: string, win: number, draw: number, loss: number): string => `${words} · sigur ${signed(win)} · jafntefli ${signed(draw)} · tap ${signed(loss)}`,
+
   // Invite links (spec 072: B9, T6, T64)
   INVITE_A_FRIEND: "bjóða vini ▸",
   linkWorksFor: (minutes: number): string => `tengill sem gildir í ${minutes} mínútur`,
