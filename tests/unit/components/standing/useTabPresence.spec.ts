@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { pageOf, useTabPresence } from "@/components/standing/hooks/useTabPresence";
+import { matchOf, pageOf, useTabPresence } from "@/components/standing/hooks/useTabPresence";
 
 /** Spec 070 US6 (T033): one heartbeat per tab, faster while visible, and a beacon on the way out. */
 describe("useTabPresence", () => {
@@ -36,6 +36,17 @@ describe("useTabPresence", () => {
     expect(typeof first.inputAgoMs).toBe("number");
     await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("names the match it is on, and beats again when the match changes (spec 071 R5)", async () => {
+    const M1 = "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11";
+    const M2 = "6e3d2d2f-9e1f-4c9f-8e6f-3e9a2e1d8b22";
+    const { rerender } = renderHook(({ matchId }) => useTabPresence("match", matchId), { initialProps: { matchId: M1 as string | null } });
+    await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+    expect(bodies()[0]).toMatchObject({ page: "match", matchId: M1 });
+    rerender({ matchId: M2 });
+    await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+    expect(bodies()[1]).toMatchObject({ page: "match", matchId: M2 });
   });
 
   it("keeps the same tab id across a reload of the tab", async () => {
@@ -105,5 +116,16 @@ describe("pageOf", () => {
     ["/dev/page", "other"],
   ])("%s is %s", (path, page) => {
     expect(pageOf(path)).toBe(page);
+  });
+});
+
+describe("matchOf", () => {
+  it.each([
+    ["/match/5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11"],
+    ["/en/match/5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11"],
+    ["/en/match/nope", null],
+    ["/", null],
+  ])("%s is on %s", (path, id) => {
+    expect(matchOf(path)).toBe(id);
   });
 });
