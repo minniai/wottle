@@ -25,6 +25,7 @@ import type { StandingFacts, SwitchPending } from "@/lib/types/standing";
 
 import { useFavicon } from "./hooks/useFavicon";
 import { useHeldOutcome, type HeldOutcome } from "./hooks/useHeldOutcome";
+import { useLinkSlot, type LinkSeed } from "./hooks/useLinkSlot";
 import { useNotifications, type NotificationsApi } from "./hooks/useNotifications";
 import { useStandingFacts, type PokeListener } from "./hooks/useStandingFacts";
 import { matchOf, pageOf, useTabPresence } from "./hooks/useTabPresence";
@@ -53,9 +54,14 @@ export interface StandingMachine {
   refresh: () => void;
   /** The lobby page, opened in the other lobby with something out, asks before switching (US7.4). */
   setSwitchPending: (pending: SwitchPending | null) => void;
+  /** Spec 072: `invite a friend ▸`, and a link opened here handed over by the lobby page. */
+  inviteFriend: () => void;
+  seedLink: (seed: LinkSeed) => void;
+  /** The viewer has a link out: sending or finding cancels it. */
+  linkOut: boolean;
 }
 
-const TICKING = new Set<SlotState["kind"]>(["call", "match", "sent", "search"]);
+const TICKING = new Set<SlotState["kind"]>(["call", "linkCall", "match", "sent", "link", "search"]);
 
 /** Plays the cue and notifies for each call that arrives after the first read (a reload does not ring again). */
 function useCallSignals(facts: StandingFacts | null, notifications: NotificationsApi, copy: ReturnType<typeof useCopy>) {
@@ -158,11 +164,12 @@ export function useStandingMachine(): StandingMachine {
   const held = useHeldOutcome(facts?.outgoing ?? null, (matchId) => router.push(to(`/match/${matchId}`)));
   const search = run && searchApi ? searchApi.state : null;
   const [switchPending, setSwitchPending] = useState<SwitchPending | null>(null);
-  const slot = standingSlot({ facts: facts && switchPending ? { ...facts, switchPending } : facts, held, search });
+  const link = useLinkSlot(facts?.link ?? null, refresh);
+  const slot = standingSlot({ facts: facts && switchPending ? { ...facts, switchPending } : facts, held, search, link: link.inputs });
   const nowMs = useNowTick(TICKING.has(slot.kind));
   const viewer = facts?.viewer ?? { rating: 1200, gamesPlayed: 0 };
   const languageName = language === "is" ? copy.pages.LANGUAGE_NAME_IS : copy.pages.LANGUAGE_NAME_EN;
-  const base = slotLines(slot, copy, { nowMs, phone, viewer, searchingCount: facts?.counts.searching ?? 0, languageName });
+  const base = slotLines(slot, copy, { nowMs, phone, viewer, searchingCount: facts?.counts.searching ?? 0, languageName, linkText: link.text, clipboardRefused: link.clipboardRefused });
   const model: SlotModel = note ? { style: "status", square: "you", line1: note, line2: "", primary: null, secondaries: [], bar: null } : base;
   const announcement = useAnnouncement(slot, held, nowMs, copy);
 
@@ -179,7 +186,8 @@ export function useStandingMachine(): StandingMachine {
     router.push(to(`/match/${tableId}`));
   }, [tableId, page, router, to, playChallenge, notifications, copy, facts?.match?.opponent]);
 
-  useWakeLock(Boolean(search && (search.kind === "searching" || search.kind === "stillSearching")) || facts?.outgoing?.status === "pending");
+  const linkOut = facts?.link?.status === "pending";
+  useWakeLock(Boolean(search && (search.kind === "searching" || search.kind === "stillSearching")) || facts?.outgoing?.status === "pending" || linkOut);
   useFavicon(locale.id, (facts?.incoming.length ?? 0) > 0);
   useTabTitle(page === "match" ? null : pageTitle(slot, copy, { nowMs, calls: facts?.incoming.length ?? 0, arrival }));
 
@@ -203,6 +211,7 @@ export function useStandingMachine(): StandingMachine {
   const onAction = useCallback(
     (action: SlotAction) => {
       const matchId = slot.kind === "match" ? slot.match.matchId : null;
+      if (link.handle(action, slot)) return;
       switch (action) {
         case "accept":
           return void accept();
@@ -232,8 +241,15 @@ export function useStandingMachine(): StandingMachine {
           });
       }
     },
-    [slot, accept, refresh, searchApi, start, router, to, endSearch, switchPending],
+    [slot, accept, refresh, searchApi, start, router, to, endSearch, switchPending, link],
   );
+
+  const inviteFriend = useCallback(() => {
+    void link.invite().then((line) => {
+      if (line) flash(line);
+      else endSearch();
+    });
+  }, [link, flash, endSearch]);
 
   const announceArrival = useCallback(
     (name: string) => {
@@ -262,5 +278,8 @@ export function useStandingMachine(): StandingMachine {
     onPoke,
     refresh,
     setSwitchPending,
+    inviteFriend,
+    seedLink: link.seed,
+    linkOut,
   };
 }

@@ -42,6 +42,8 @@ export interface SlotModel {
   primary: SlotButton | null;
   secondaries: SlotButton[];
   bar: { kind: "drain"; fraction: number } | { kind: "sweep" } | null;
+  /** Spec 072: line 2 is a link to select and copy by hand (the clipboard refused it). */
+  line2IsUrl?: boolean;
 }
 
 export interface SlotContext {
@@ -126,7 +128,7 @@ function linkModel(slot: Extract<SlotState, { kind: "link" }>, copy: Copy, ctx: 
   const bar = { kind: "drain" as const, fraction: clamp(ms / LINK_TTL_MS) };
   const cancel: SlotButton = { label: copy.pages.CANCEL_LINK, action: "cancelLink" };
   const kept = ctx.linkText?.linkId === link.id ? ctx.linkText : null;
-  if (kept && ctx.clipboardRefused) return status(copy.pages.linkReady(clock), kept.url, { secondaries: [cancel], bar });
+  if (kept && ctx.clipboardRefused) return status(copy.pages.linkReady(clock), kept.url, { secondaries: [cancel], bar, line2IsUrl: true });
   if (kept) return status(copy.pages.linkCopied(clock), "", { secondaries: [{ label: copy.pages.COPY_AGAIN, action: "copyLink" }, cancel], bar });
   return status(copy.pages.linkOut(clock), "", { secondaries: [{ label: copy.pages.NEW_LINK, action: "newLink" }, cancel], bar });
 }

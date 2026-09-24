@@ -9,6 +9,7 @@ import { publishMatchState } from "@/lib/match/statePublisher";
 import { voidDueTable } from "@/lib/match/tableService";
 import { sweepLobby, type LobbySweep } from "@/lib/lobby/sweepLobby";
 import { sweepRematches, type RematchSweep } from "@/lib/match/rematchSweep";
+import { expireDueLinks } from "@/lib/matchmaking/linkService";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = { "Cache-Control": "no-store" } as const;
@@ -81,6 +82,10 @@ export async function POST(request: Request): Promise<Response> {
   const lobby: LobbySweep | { error: string } = await sweepLobby().catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
   // Spec 071: rematch requests that ran out, or whose players left the match, end here.
   const rematches: RematchSweep | { error: string } = await sweepRematches().catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
+  // Spec 072: invite links that ran out end here, and each sender hears of it.
+  const links: { expired: number } | { error: string } = await expireDueLinks()
+    .then((expired) => ({ expired }))
+    .catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
 
   console.log(
     JSON.stringify({
@@ -93,12 +98,13 @@ export async function POST(request: Request): Promise<Response> {
       void_failed_count: tables.failed.length,
       lobby,
       rematches,
+      links,
       duration_ms: Date.now() - startedAt,
     }),
   );
 
   return NextResponse.json(
-    { swept: orphans.done, failed: orphans.failed, settled: due.done, settleFailed: due.failed, voided: tables.done, voidFailed: tables.failed, lobby, rematches },
+    { swept: orphans.done, failed: orphans.failed, settled: due.done, settleFailed: due.failed, voided: tables.done, voidFailed: tables.failed, lobby, rematches, links },
     { status: 200, headers: NO_CACHE_HEADERS },
   );
 }

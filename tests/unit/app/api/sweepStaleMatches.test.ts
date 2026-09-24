@@ -15,6 +15,7 @@ vi.mock("@/lib/match/statePublisher", () => ({ publishMatchState: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn(() => ({})) }));
 vi.mock("@/lib/lobby/sweepLobby", () => ({ sweepLobby: vi.fn(async () => ({ gone: [], expired: 0, pruned: 0 })) }));
 vi.mock("@/lib/match/rematchSweep", () => ({ sweepRematches: vi.fn(async () => ({ ended: [] })) }));
+vi.mock("@/lib/matchmaking/linkService", () => ({ expireDueLinks: vi.fn(async () => 0) }));
 
 import { POST } from "@/app/api/cron/sweep-stale-matches/route";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
@@ -25,6 +26,7 @@ import { findDueTables } from "@/lib/match/findDueTables";
 import { voidDueTable } from "@/lib/match/tableService";
 import { sweepLobby } from "@/lib/lobby/sweepLobby";
 import { sweepRematches } from "@/lib/match/rematchSweep";
+import { expireDueLinks } from "@/lib/matchmaking/linkService";
 
 const ORIGINAL_SECRET = process.env.CRON_SECRET;
 
@@ -88,7 +90,7 @@ describe("POST /api/cron/sweep-stale-matches", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [], voided: [], voidFailed: [], lobby: { gone: [], expired: 0, pruned: 0 }, rematches: { ended: [] } });
+    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [], voided: [], voidFailed: [], lobby: { gone: [], expired: 0, pruned: 0 }, rematches: { ended: [] }, links: { expired: 0 } });
     expect(completeMatchInternal).not.toHaveBeenCalled();
   });
 
@@ -192,4 +194,17 @@ test("ends rematch requests that ran out or whose players left, and a failure do
   const failed = await POST(buildRequest("Bearer s3cret"));
   expect(failed.status).toBe(200);
   expect((await failed.json()).rematches).toEqual({ error: "db down" });
+});
+
+test("expires invite links that ran out, and a failure does not fail the sweep (spec 072 T029)", async () => {
+  process.env.CRON_SECRET = "s3cret";
+  vi.mocked(findOrphanedMatches).mockResolvedValue([]);
+  vi.mocked(findDueMatches).mockResolvedValue([]);
+  vi.mocked(findDueTables).mockResolvedValue([]);
+  vi.mocked(expireDueLinks).mockResolvedValueOnce(2);
+  expect((await (await POST(buildRequest("Bearer s3cret"))).json()).links).toEqual({ expired: 2 });
+  vi.mocked(expireDueLinks).mockRejectedValueOnce(new Error("db down"));
+  const failed = await POST(buildRequest("Bearer s3cret"));
+  expect(failed.status).toBe(200);
+  expect((await failed.json()).links).toEqual({ error: "db down" });
 });
