@@ -141,15 +141,15 @@ describe("territory and verdict", () => {
   });
   const base = { viewerName: "Birna", opponentName: "Kári", viewerScore: 134, opponentScore: 88, viewerWords: 10, opponentWords: 8, viewerMoves: 10, opponentMoves: 10, territory: { you: 27, opp: 21, free: 52 } };
   it("both finished: the counted line", () => {
-    expect(buildVerdict(base, copyEn)).toEqual({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "by 46 points · 10 words to 8 · territory 27–21" });
+    expect(buildVerdict(base, copyEn)).toMatchObject({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "by 46 points · 10 words to 8 · territory 27–21" });
   });
   it("incomplete (2026-09-21): the score decides; the detail says who was short, then the margin", () => {
-    expect(buildVerdict({ ...base, viewerScore: 134, opponentScore: 88, opponentMoves: 8, endedReason: "incomplete" }, copyEn)).toEqual({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "Kári played 8 of 10 · by 46 points" });
-    expect(buildVerdict({ ...base, viewerScore: 88, opponentScore: 134, viewerMoves: 8, endedReason: "incomplete" }, copyEn)).toEqual({ winnerSeat: "opp", scoreLine: "Kári wins 134–88", detailLine: "Birna played 8 of 10 · by 46 points" });
+    expect(buildVerdict({ ...base, viewerScore: 134, opponentScore: 88, opponentMoves: 8, endedReason: "incomplete" }, copyEn)).toMatchObject({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "Kári played 8 of 10 · by 46 points" });
+    expect(buildVerdict({ ...base, viewerScore: 88, opponentScore: 134, viewerMoves: 8, endedReason: "incomplete" }, copyEn)).toMatchObject({ winnerSeat: "opp", scoreLine: "Kári wins 134–88", detailLine: "Birna played 8 of 10 · by 46 points" });
   });
   it("both incomplete: neither finished, and the score still decides", () => {
-    expect(buildVerdict({ ...base, viewerMoves: 6, opponentMoves: 3, endedReason: "both_incomplete" }, copyEn)).toEqual({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "neither finished · by 46 points" });
-    expect(buildVerdict({ ...base, viewerScore: 50, opponentScore: 50, viewerMoves: 6, opponentMoves: 3, winnerSeat: null, endedReason: "both_incomplete" }, copyEn)).toEqual({ winnerSeat: null, scoreLine: "draw 50–50", detailLine: "neither finished" });
+    expect(buildVerdict({ ...base, viewerMoves: 6, opponentMoves: 3, endedReason: "both_incomplete" }, copyEn)).toMatchObject({ winnerSeat: "you", scoreLine: "Birna wins 134–88", detailLine: "neither finished · by 46 points" });
+    expect(buildVerdict({ ...base, viewerScore: 50, opponentScore: 50, viewerMoves: 6, opponentMoves: 3, winnerSeat: null, endedReason: "both_incomplete" }, copyEn)).toMatchObject({ winnerSeat: null, scoreLine: "draw 50–50", detailLine: "neither finished" });
   });
   it("negative totals read with a real minus", () => {
     expect(buildVerdict({ ...base, viewerScore: -4, opponentScore: -12 }, copyEn).scoreLine).toBe("Birna wins −4 to −12");

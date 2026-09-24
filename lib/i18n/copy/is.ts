@@ -187,18 +187,16 @@ export const copyIs = {
   forcedDetail: (loserName: string, reason: "forfeit" | "disconnect"): string =>
     reason === "forfeit" ? `${loserName} gafst upp` : `${loserName} fór`,
   incompleteDetail: (name: string, moves: number): string => `${name} lék ${moves} af 10`,
-  NEITHER_FINISHED: "hvorugur kláraði",
+  NEITHER_FINISHED: "hvorugt kláraði",
   marginDetail: (margin: number): string => byPoints(margin),
   SPINE_HEADER: "leikur",
   TOTAL_LABEL: "samtals",
   NOT_PLAYED: "ekki leikinn",
-  verdictDetail: (
-    margin: number,
-    wordsA: number,
-    wordsB: number,
-    terrA: number,
-    terrB: number,
-  ) => `${byPoints(margin)} · ${wordsA} orð gegn ${wordsB} · svæði ${terrA}–${terrB}`,
+  wordsDetail: (a: number, b: number): string => `${a} orð gegn ${b}`,
+  territoryDetail: (a: number, b: number): string => `svæði ${a}–${b}`,
+  ENDED_EARLY: "lokið snemma",
+  wasGone: (name: string): string => `${name} hætti að spila`, // native-read
+  bestWordLine: (word: string, points: number): string => `besta orðið þitt · ${word} ${points}`,
 
   REMATCH: "annan leik? ▸",
   NEW_OPPONENT: "nýr mótspilari ▸",
