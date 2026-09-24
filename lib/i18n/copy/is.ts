@@ -315,6 +315,7 @@ export const copyIs = {
   },
   table: {
     label: (mmSs: string): string => `mótspilari fundinn · ${mmSs}`,
+    tableWaits: (mmSs: string): string => `borðið bíður · ${mmSs}`, // native-read
     CONTEXT: "mótspilari fundinn",
     facts: (words: string, moves: number, clockMmSs: string): string => `${words} · ${moves} leikir hvor · ein ${clockMmSs} klukka`, // native-read
     stakes: (win: number, draw: number, loss: number): string => `sigur ${stakeIs(win)} · jafntefli ${stakeIs(draw)} · tap ${stakeIs(loss)}`,

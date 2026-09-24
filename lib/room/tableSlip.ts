@@ -1,4 +1,5 @@
 import type { Copy } from "@/lib/i18n/copy/types";
+import { LINK_TTL_MS } from "@/lib/constants/links";
 import { SLIP_LIFT_BEFORE_GO_MS, TABLE_SEAT_WINDOW_MS } from "@/lib/constants/table";
 import type { MatchState, PlayerSlot, SeatKey } from "@/lib/types/match";
 
@@ -86,12 +87,26 @@ function stakesLine(input: TableSlipInput): string | null {
   return stakes ? input.copy.table.stakes(stakes.win, stakes.draw, stakes.loss) : null;
 }
 
+/** Spec 072: a link table the viewer sits at while its sender has not come yet. */
+function waitingForSender(input: TableSlipInput): boolean {
+  const keys = seatKeys(input.viewerSlot);
+  const { seats, origin } = input.match.table;
+  return origin === "link" && seats[keys.you] !== null && seats[keys.opp] === null;
+}
+
 function labelFor(input: TableSlipInput, secondsLeft: number): string {
   const { match, copy } = input;
   if (match.state !== "pending") {
     return copy.startsIn(Math.min(SLIP_COUNT, Math.max(1, Math.ceil(msUntil(match.clock.startedAt, input.nowMs) / 1000))));
   }
-  return copy.table.label(formatClock(secondsLeft * 1000));
+  const left = formatClock(secondsLeft * 1000);
+  return waitingForSender(input) ? copy.table.tableWaits(left) : copy.table.label(left);
+}
+
+/** What is left of the time to sit down, 1 → 0: a link table's is the link's ten minutes. */
+function drainOf(input: TableSlipInput, secondsLeft: number): number {
+  const windowS = (input.match.table.origin === "link" ? LINK_TTL_MS : TABLE_SEAT_WINDOW_MS) / 1000;
+  return Math.min(1, secondsLeft / windowS);
 }
 
 export function readySlipModel(input: TableSlipInput): ReadySlipModel {
@@ -108,7 +123,7 @@ export function readySlipModel(input: TableSlipInput): ReadySlipModel {
     stakes: stakesLine(input),
     seats,
     actions: !pending ? "none" : youSeated ? "seated+leave" : "ready+leave",
-    drain: pending ? secondsLeft / (TABLE_SEAT_WINDOW_MS / 1000) : null,
+    drain: pending ? drainOf(input, secondsLeft) : null,
   };
 }
 

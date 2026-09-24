@@ -119,7 +119,7 @@ async function overFact(ctx: Context, matchId: string): Promise<MatchFact | null
 async function linkFact(ctx: Context): Promise<OutgoingLink | null> {
   const { data } = await ctx.client
     .from("match_links")
-    .select("id, status, expires_at, responded_at")
+    .select("id, status, expires_at, responded_at, match_id")
     .eq("sender_id", ctx.viewerId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -127,7 +127,8 @@ async function linkFact(ctx: Context): Promise<OutgoingLink | null> {
   if (!data) return null;
   const respondedAt = (data.responded_at as string | null) ?? null;
   const standing = data.status === "pending" || (respondedAt !== null && Date.now() - Date.parse(respondedAt) < OUTCOME_WINDOW_MS);
-  return standing ? { id: data.id as string, status: data.status as OutgoingLink["status"], expiresAt: data.expires_at as string, respondedAt } : null;
+  if (!standing) return null;
+  return { id: data.id as string, status: data.status as OutgoingLink["status"], expiresAt: data.expires_at as string, respondedAt, matchId: (data.match_id as string | null) ?? null };
 }
 
 export async function readStanding(viewerId: string): Promise<StandingFacts> {

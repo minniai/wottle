@@ -204,7 +204,7 @@ const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, moveState: YOU
 const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, moveState: YOUR_MOVE };
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
-type TablePhase = "table" | "table-seated" | "void" | "void-queue";
+type TablePhase = "table" | "table-seated" | "void" | "void-queue" | "table-link-waits";
 type MatchPhase = Exclude<RoomPhase, "profile" | "rules" | TablePhase | ReviewPhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
@@ -331,7 +331,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
 
   if (isReviewPhase(phase)) return <ReviewFixture phase={phase} />;
 
-  if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue") {
+  if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue" || phase === "table-link-waits") {
     return <TableFixture phase={phase} copy={copy} />;
   }
 
@@ -379,9 +379,18 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   );
 }
 
+function tableFixtureState(phase: TablePhase) {
+  const seated = { a: "2026-09-23T12:00:01.000Z", b: null };
+  if (phase === "table") return tableState({ a: null, b: null });
+  if (phase === "table-seated") return tableState(seated);
+  // Spec 072: the table waits for the link's sender until the link would have expired.
+  if (phase === "table-link-waits") return tableState(seated, { table: { ...tableState(seated).table, origin: "link", deadlineAt: new Date(TABLE_NOW_MS + 552_000).toISOString() }, stakes: null });
+  return voidState(phase === "void" ? "challenge" : "queue");
+}
+
 /** Spec 069 (canvas Table, Void): the table and the void, over the empty ruled field. */
 function TableFixture({ phase, copy }: { phase: TablePhase; copy: Copy }) {
-  const state = phase === "table" ? tableState({ a: null, b: null }) : phase === "table-seated" ? tableState({ a: "2026-09-23T12:00:01.000Z", b: null }) : voidState(phase === "void" ? "challenge" : "queue");
+  const state = tableFixtureState(phase);
   const voided = phase === "void" || phase === "void-queue";
   const derived = tableSlipFor({ match: state, viewerSlot: "player_a", you: { name: BIRNA.displayName, rating: BIRNA.eloRating ?? null }, opp: { name: KARI.displayName, rating: KARI.eloRating ?? null }, nowMs: TABLE_NOW_MS, copy });
   const slip = derived?.kind === "void" && phase === "void-queue" ? { ...derived, model: { ...derived.model, searching: `${copy.SEARCHING} · ${VOID_SEARCHING_ELAPSED}` } } : derived;

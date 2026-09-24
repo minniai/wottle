@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { acceptLinkAction } from "@/app/actions/link/accept";
 
@@ -41,6 +41,8 @@ export interface LinkSlotHandlers {
   onAccepted: (matchId: string, language: "is" | "en") => void;
   /** A line held in the slot for 4s: why nothing happened. */
   flash: (line: string) => void;
+  /** The viewer's lobby language: the language of their own link's match. */
+  language: "is" | "en";
 }
 
 export function useLinkSlot(link: OutgoingLink | null, refresh: () => void, handlers: LinkSlotHandlers): LinkSlotApi {
@@ -64,6 +66,18 @@ export function useLinkSlot(link: OutgoingLink | null, refresh: () => void, hand
   }, []);
 
   const { onAccepted, flash } = handlers;
+  // The sender's link was used: the friend is at the table, and so is the sender (T63).
+  const usedMatch = link?.status === "used" ? (link.matchId ?? null) : null;
+  const pendingSeen = useRef(false);
+  const linkStatus = link?.status ?? null;
+  useEffect(() => {
+    if (linkStatus === "pending") pendingSeen.current = true;
+  }, [linkStatus]);
+  useEffect(() => {
+    if (!usedMatch || !pendingSeen.current) return;
+    pendingSeen.current = false;
+    onAccepted(usedMatch, handlers.language);
+  }, [usedMatch, onAccepted, handlers.language]);
   const acceptCall = useCallback(async () => {
     if (!call) return;
     const result = await acceptLinkAction({ token: call.token, mode: "session" });
