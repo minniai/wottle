@@ -14,6 +14,7 @@ import type { LobbyRow, Overview } from "@/lib/types/standing";
 import { FormStrip } from "./FormStrip";
 import type { SendChallengeActionResult } from "@/app/actions/challenge/send";
 
+import { LINK_TTL_MS } from "@/lib/constants/links";
 import { lobbyPrimary, type PagePrimaryModel } from "@/lib/pages/pagePrimary";
 
 import { HereNowTable, type RowOverlay } from "./HereNowTable";
@@ -66,10 +67,11 @@ function FirstMatch() {
  * your last match and your last matches. No field and no hint.
  */
 /** `invite a friend ▸` below the table (spec 072 B1), with its note. */
-function InviteBelow({ onInvite, note }: { onInvite: () => void; note: string | null }) {
+function InviteBelow({ onInvite, note, hidden }: { onInvite: () => void; note: string | null; hidden: boolean }) {
   const copy = useCopy();
+  // Its line is kept while a standing state holds it back, so nothing below moves (SC-006).
   return (
-    <p className="lobby-invite">
+    <p className="lobby-invite" style={hidden ? { visibility: "hidden" } : undefined} aria-hidden={hidden || undefined}>
       <button type="button" className="page-link page-link--ink" onClick={onInvite} data-testid="lobby-invite">
         {copy.pages.INVITE_A_FRIEND}
       </button>
@@ -136,7 +138,7 @@ export function Lobby({ viewer, rows, overview, recent, onFind, onSend, onInvite
           onComposing={setComposing}
           initialOpenId={initialOpenId}
         />
-        {plan.invite === "secondary" && onInvite && !empty ? <InviteBelow onInvite={onInvite} note={plan.inviteNote} /> : null}
+        {plan.invite !== "primary" && onInvite && !empty ? <InviteBelow onInvite={onInvite} note={plan.inviteNote ?? copy.pages.linkWorksFor(LINK_TTL_MS / 60_000)} hidden={plan.invite === "hidden"} /> : null}
       </div>
       <div className="page-col-b">
         {overview.lastMatch ? <LastMatch last={overview.lastMatch} viewerName={viewer.displayName} nowMs={nowMs} /> : <FirstMatch />}

@@ -25,7 +25,7 @@ describe.skipIf(!db)("the standing read · links (spec 072)", () => {
     const [birna] = await f.players_(["Birna"]);
     const { result, hash } = await makeLink(f, birna);
     const facts = standingFactsSchema.parse(await readStanding(birna));
-    expect(facts.link).toEqual({ id: result.link_id, status: "pending", expiresAt: expect.any(String), respondedAt: null });
+    expect(facts.link).toEqual({ id: result.link_id, status: "pending", expiresAt: expect.any(String), respondedAt: null, matchId: null });
     expect(JSON.stringify(facts)).not.toMatch(/token|hash|\\\\x/);
 
     await f.rpc("cancel_link", { p_sender: birna, p_link: result.link_id });
