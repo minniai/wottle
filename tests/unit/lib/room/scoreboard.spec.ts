@@ -40,6 +40,15 @@ describe("deriveScoreboard: the clock row", () => {
     expect(clock.phase).toBe("running");
   });
 
+  it("names the series under the label when there is no pace to show (spec 071 FR-018)", () => {
+    const series = "match 2 · Birna 1–0";
+    expect(board({ series, moveState: { kind: "scoring", move: 4, opponentName: K } }).clock.detail).toBe(series);
+    expect(board({ series, phase: "table" }).clock.detail).toBe(series);
+    // The pace, while the move is yours, outranks it; at the end the match's length does.
+    expect(board({ series }).clock.detail).toMatch(/a move$/);
+    expect(board({ series, phase: "over", elapsedMs: 292_000 }).clock.detail).toBe("4:52 of 5:00");
+  });
+
   it("gives no pace when the move is not yours", () => {
     expect(board({ moveState: { kind: "scoring", move: 4, opponentName: K } }).clock).toMatchObject({ label: "match clock", detail: "" });
     expect(board({ moveState: null }).clock.detail).toBe("");
