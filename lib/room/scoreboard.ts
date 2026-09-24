@@ -248,7 +248,10 @@ function tableSub(input: ScoreboardInput, seat: Seat, copy: Copy): Sub {
 }
 
 function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy): Sub {
-  if (input.review) return plain(copy.review.atStep(input[seat].movesPlayed, input.moveLimit, input.review.step));
+  if (input.review) {
+    const moves = input[seat].movesPlayed;
+    return plain(input.compact ? copy.review.movesOf(moves, input.moveLimit) : copy.review.atStep(moves, input.moveLimit, input.review.step));
+  }
   if (input.phase === "table" || input.phase === "void") return tableSub(input, seat, copy);
   if (input.phase === "over") return plain(null);
   if (input.phase === "starting") return plain(copy.READY);

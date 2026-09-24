@@ -307,6 +307,7 @@ const review = {
   clockAt: (n: number): string => `the clock at step ${n}`,
   CLOCK_THEN: "the clock then",
   atStep: (moves: number, limit: number, n: number): string => `${moves} of ${limit} at step ${n}`,
+  movesOf: (moves: number, limit: number): string => `${moves} of ${limit}`,
   move: (n: number, name: string): string => `move ${n} · ${name}`,
   NO_WORD: "no word",
   REFUSED: "refused",

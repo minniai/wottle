@@ -1082,6 +1082,9 @@
 .ledger__territory-opp { background: var(--opp); }
 .ledger__hint {
   padding: 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Match-level lines only; during a match there is usually nothing to say. */
 .ledger__hint:empty {
