@@ -93,8 +93,9 @@ export async function claimWinAction(
     if (limited) return limited;
 
     // The ordinary rules decide (spec 050 FR-012): the caller has all their
-    // moves and the absent opponent does not, so the caller wins `incomplete`.
-    await completeMatchInternal(parsed.data.matchId, "natural");
+    // moves and the absent opponent does not. Spec 071: recorded as `ended_early`,
+    // so the result can say why.
+    await completeMatchInternal(parsed.data.matchId, "ended_early");
     return { status: "ok", matchId: parsed.data.matchId };
   } catch (error) {
     return {
