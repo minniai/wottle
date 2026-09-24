@@ -216,31 +216,31 @@
 
 ### Tests first
 
-- [ ] T044 [P] [US3] Write failing unit tests in `tests/unit/lib/review/`:
+- [X] T044 [P] [US3] Write failing unit tests in `tests/unit/lib/review/`:
   - `reviewParam.spec.ts` (`parseReviewParam`: null, `last`, empty, text, 0, 99, 7);
   - `scrubber.spec.ts` (`stepAtFraction`, `scrubberValueText` for a move, a miss, a refusal and the closing step, EN and IS);
   - `cursorLines.spec.ts` (every line form in the contract, fitting 40 mono characters);
   - `ledgerCells.spec.ts` (reached, current and ahead, and the `not yet reached` names);
   - `bandsAtStep.spec.ts` (step k's words are current, earlier ones settled, later ones absent).
-- [ ] T045 [P] [US3] Write failing unit tests in `tests/unit/lib/room/scoreboard.spec.ts` for `deriveScoreboard({ review })`:
+- [X] T045 [P] [US3] Write failing unit tests in `tests/unit/lib/room/scoreboard.spec.ts` for `deriveScoreboard({ review })`:
   - the clock row phase is `review`, with step, clock and fraction;
   - the player rows show totals and moves at step k, with the sub-line `1204 · 3 of 10 at step 7`;
   - no pace, tint or series.
-- [ ] T046 [P] [US3] Write failing component tests in `tests/unit/components/room/ReviewScrubber.spec.tsx`:
+- [X] T046 [P] [US3] Write failing component tests in `tests/unit/components/room/ReviewScrubber.spec.tsx`:
   - `role="slider"` with `aria-valuemin`, `max`, `now` and `valuetext`;
   - ←/→ step, Home/End jump, Space toggles play;
   - keys do nothing unless the scrubber has focus;
   - a pointer at x selects `stepAtFraction`.
-- [ ] T047 [P] [US3] Write failing component tests in `tests/unit/components/room/ReviewControls.spec.tsx`:
+- [X] T047 [P] [US3] Write failing component tests in `tests/unit/components/room/ReviewControls.spec.tsx`:
   - five buttons with words (`first · back · play ▸ · next · last`, IS `fyrst · aftur · spila ▸ · næst · síðast`);
   - `play ▸` becomes `pause`;
   - first and back are disabled at step 1, next and last at the end.
-- [ ] T048 [P] [US3] Write failing component tests in `tests/unit/components/room/Ledger.review.spec.tsx`:
+- [X] T048 [P] [US3] Write failing component tests in `tests/unit/components/room/Ledger.review.spec.tsx`:
   - the caption `review · 4:52`;
   - the rows form a `grid` with a roving tabindex (arrows move, Enter jumps);
   - cell states and names;
   - the cursor line replaces the live row.
-- [ ] T049 [P] [US3] Write failing hook tests in `tests/unit/components/room/hooks/useReview.spec.tsx` and `useReviewAutoplay.spec.tsx`, under fake timers with fetch mocked:
+- [X] T049 [P] [US3] Write failing hook tests in `tests/unit/components/room/hooks/useReview.spec.tsx` and `useReviewAutoplay.spec.tsx`, under fake timers with fetch mocked:
   - `/moves` is loaded once;
   - the step clamps;
   - autoplay advances once a second, stops at the end, and stops on any input or `visibilitychange` to hidden;
@@ -250,11 +250,11 @@
 
 ### Implementation
 
-- [ ] T050 [P] [US3] Implement `lib/review/reviewParam.ts`, `scrubber.ts`, `cursorLines.ts`, `ledgerCells.ts` and `bandsAtStep.ts`, plus the copy (EN and IS: `step 7 of 20`, `review`, `the clock at step 7`, `at step 7`, `refused · frozen`, `time · −N not played`, `ended early · −N not played`, `froze N`, `leads`, `level`, `not yet reached`, `first`, `back`, `play ▸`, `pause`, `next`, `last`, and the phone `klukkan þá`). T044 passes.
-- [ ] T051 [US3] Add the `review` input to `lib/room/scoreboard.ts`. T045 passes.
-- [ ] T052 [P] [US3] Implement `components/room/ReviewScrubber.tsx`, and render it from `components/room/Scoreboard.tsx` when the clock phase is `review` (both desktop and compact). Style it in `app/styles/room.css` with the scoreboard's tokens only: a 10px bar desktop, 4px phone, and a 44px hit area. T046 passes.
-- [ ] T053 [P] [US3] Implement `components/room/ReviewControls.tsx` with a desktop variant that has words. T047 passes.
-- [ ] T054 [US3] Add review mode to `components/room/Ledger.tsx`:
+- [X] T050 [P] [US3] Implement `lib/review/reviewParam.ts`, `scrubber.ts`, `cursorLines.ts`, `ledgerCells.ts` and `bandsAtStep.ts`, plus the copy (EN and IS: `step 7 of 20`, `review`, `the clock at step 7`, `at step 7`, `refused · frozen`, `time · −N not played`, `ended early · −N not played`, `froze N`, `leads`, `level`, `not yet reached`, `first`, `back`, `play ▸`, `pause`, `next`, `last`, and the phone `klukkan þá`). T044 passes.
+- [X] T051 [US3] Add the `review` input to `lib/room/scoreboard.ts`. T045 passes.
+- [X] T052 [P] [US3] Implement `components/room/ReviewScrubber.tsx`, and render it from `components/room/Scoreboard.tsx` when the clock phase is `review` (both desktop and compact). Style it in `app/styles/room.css` with the scoreboard's tokens only: a 10px bar desktop, 4px phone, and a 44px hit area. T046 passes.
+- [X] T053 [P] [US3] Implement `components/room/ReviewControls.tsx` with a desktop variant that has words. T047 passes.
+- [X] T054 [US3] Add review mode to `components/room/Ledger.tsx`:
   - `ReviewCell` buttons in a `role="grid"` using `lib/a11y/rovingFocus.ts`;
   - cell states from `ledgerCellStates`;
   - the cursor line in the live row's slot;
@@ -262,14 +262,14 @@
   - the caption `review · m:ss`.
 
   T048 passes.
-- [ ] T055 [US3] Implement `components/room/hooks/useReview.ts` (load `/moves`, build the steps, hold the step, expose `go(n)`, `next`, `back`, `first` and `last`) and `useReviewAutoplay.ts`. Reuse `useReveal` and `planReveal` for a forward step by one: key = step index, band ids = the step's words, `exchange` = the step's swap. T049 passes.
-- [ ] T056 [US3] Wire review into `components/room/MatchRoomController.tsx` and `MatchRoomView.tsx`. When the match is completed and `review` is present:
+- [X] T055 [US3] Implement `components/room/hooks/useReview.ts` (load `/moves`, build the steps, hold the step, expose `go(n)`, `next`, `back`, `first` and `last`) and `useReviewAutoplay.ts`. Reuse `useReveal` and `planReveal` for a forward step by one: key = step index, band ids = the step's words, `exchange` = the step's swap. T049 passes.
+- [X] T056 [US3] Wire review into `components/room/MatchRoomController.tsx` and `MatchRoomView.tsx`. When the match is completed and `review` is present:
   - the Field gets the step's board, frozen map, `bandsFromWords(bandsAtStep…)` with step k as `liveMoveKey`, ticks from the step's swap, and `exchange`;
   - the scoreboard gets the review input;
   - the ledger enters review mode;
   - the slip stays lifted.
-- [ ] T057 [US3] Review foot in `components/room/LedgerFoot.tsx`: `◂ result` on the left. On the right, one primary by availability from `RematchOffer`: `rematch ▸` while offered, else `challenge again ▸` if the opponent is here, else `new opponent ▸`. `⋯` holds `lobby`. Extend its spec.
-- [ ] T058 [US3] Build a static review fixture `app/[locale]/dev/room/reviewFixture.ts` (IS-M, 20 steps; an EN version from the English pack). Fill the `review`, `review-refused` and `review-time` phases, and take baselines at 1280×800, 1440×900 and 390×844.
+- [X] T057 [US3] Review foot in `components/room/LedgerFoot.tsx`: `◂ result` on the left. On the right, one primary by availability from `RematchOffer`: `rematch ▸` while offered, else `challenge again ▸` if the opponent is here, else `new opponent ▸`. `⋯` holds `lobby`. Extend its spec.
+- [X] T058 [US3] Build a static review fixture `app/[locale]/dev/room/reviewFixture.ts` (IS-M, 20 steps; an EN version from the English pack). Fill the `review`, `review-refused` and `review-time` phases, and take baselines at 1280×800, 1440×900 and 390×844.
 
 **Checkpoint**: review renders and steps from the fixtures and from a real completed match.
 
@@ -283,23 +283,23 @@
 
 ### Tests first
 
-- [ ] T059 [P] [US4] Write failing hook tests in `tests/unit/components/room/hooks/useReviewHistory.spec.tsx`:
+- [X] T059 [P] [US4] Write failing hook tests in `tests/unit/components/room/hooks/useReviewHistory.spec.tsx`:
   - `enter(n)` pushes `{kind:"review"}` with `?review=n`;
   - `step(n)` replaces;
   - `leave()` calls `history.back()` from a review entry and `replaceState` to the plain URL otherwise;
   - a popstate without `review` restores the slip;
   - a non-canonical param is replaced by the canonical one;
   - on a match that is not completed the param is removed.
-- [ ] T060 [P] [US4] Write failing tests for the page redirects in `tests/unit/app/matchPage.redirects.spec.ts`:
+- [X] T060 [P] [US4] Write failing tests for the page redirects in `tests/unit/app/matchPage.redirects.spec.ts`:
   - `/summary` goes to `?review=last` in the match's locale;
   - the locale redirect keeps the query;
   - the door redirect's `next` keeps the query.
 
 ### Implementation
 
-- [ ] T061 [US4] Implement `components/room/hooks/useReviewHistory.ts` with the native History API, which Next 16 syncs with `useSearchParams` (verified with Context7). Use it in `MatchRoomController.tsx`: `review the match ▸` enters at the last step, `◂ result` leaves, and Esc in review does nothing special. T059 passes.
-- [ ] T062 [US4] Change `app/[locale]/match/[matchId]/summary/page.tsx` to redirect to `?review=last`. Make every redirect in `app/[locale]/(room)/match/[matchId]/page.tsx` keep the search params. T060 passes.
-- [ ] T063 [US4] Write `tests/integration/ui/review-flow.spec.ts` (chromium):
+- [X] T061 [US4] Implement `components/room/hooks/useReviewHistory.ts` with the native History API, which Next 16 syncs with `useSearchParams` (verified with Context7). Use it in `MatchRoomController.tsx`: `review the match ▸` enters at the last step, `◂ result` leaves, and Esc in review does nothing special. T059 passes.
+- [X] T062 [US4] Change `app/[locale]/match/[matchId]/summary/page.tsx` to redirect to `?review=last`. Make every redirect in `app/[locale]/(room)/match/[matchId]/page.tsx` keep the search params. T060 passes.
+- [X] T063 [US4] Write `tests/integration/ui/review-flow.spec.ts` (chromium):
   - result → `review the match ▸` gives `?review=20`, with the slip gone;
   - End and Home work;
   - step five times, then Back once reaches the result with the slip, and Back again reaches the lobby;
@@ -317,11 +317,11 @@
 
 **Independent test**: open a completed match's review signed out.
 
-- [ ] T064 [P] [US5] Write failing tests:
+- [X] T064 [P] [US5] Write failing tests:
   - in `tests/unit/app/matchPage.access.spec.ts`: signed out plus completed and not void renders read-only; signed out plus live goes to the door with `next`; void goes to `/`;
   - in `tests/unit/components/room/MatchRoomController.readOnly.spec.tsx`: a read-only view never calls `/state`, never beats, raises no slip, enters review at `last` with no param, shows the line `this match is over · Birna – Kári`, and its foot's primary is `enter the lobby ▸` when signed out and none when signed in.
-- [ ] T065 [US5] Change `app/[locale]/(room)/match/[matchId]/page.tsx` so a signed-out visitor can read a completed, non-void match. Change `MatchRoomController.tsx` so read-only skips the transport poll, the beat and the slip, and defaults to review. The first player takes the near seat. Add the copy for the line and `enter the lobby ▸`. T064 passes.
-- [ ] T066 [US5] Fill the `review-public` fixture and its baseline. Add the signed-out case to `review-flow.spec.ts`.
+- [X] T065 [US5] Change `app/[locale]/(room)/match/[matchId]/page.tsx` so a signed-out visitor can read a completed, non-void match. Change `MatchRoomController.tsx` so read-only skips the transport poll, the beat and the slip, and defaults to review. The first player takes the near seat. Add the copy for the line and `enter the lobby ▸`. T064 passes.
+- [X] T066 [US5] Fill the `review-public` fixture and its baseline. Add the signed-out case to `review-flow.spec.ts`.
 
 ---
 
@@ -331,13 +331,13 @@
 
 **Independent test**: the `rematch-cooldown` fixture, plus the loader offer tests.
 
-- [ ] T067 [P] [US6] Write failing tests in `tests/unit/components/room/Slip.matchOver.spec.tsx` for the `closed` view:
+- [X] T067 [P] [US6] Write failing tests in `tests/unit/components/room/Slip.matchOver.spec.tsx` for the `closed` view:
   - `new opponent ▸` is primary;
   - `challenge again ▸` appears only when the opponent is here, and is disabled with `again in 0:52` during the cooldown;
   - `Kári has left` shows on the scoreboard sub-line (`lib/room/scoreboard.ts` test);
   - when the window closes while the slip is up, the primary is re-guarded.
-- [ ] T068 [US6] Implement `challenge again ▸`: it calls the existing `sendChallengeAction` (the same language and the 60s rules) from `Slip.tsx` and the review foot, and its state shows in the line slot. Add the opponent's `has left` sub-line to `lib/room/scoreboard.ts` from `rematch.opponentOnMatch`. T067 passes.
-- [ ] T069 [US6] Fill the `rematch-cooldown` fixture and its baseline. Add the "past 2:00" and "opponent went to the lobby" cases to `rematch-flow.spec.ts`.
+- [X] T068 [US6] Implement `challenge again ▸`: it calls the existing `sendChallengeAction` (the same language and the 60s rules) from `Slip.tsx` and the review foot, and its state shows in the line slot. Add the opponent's `has left` sub-line to `lib/room/scoreboard.ts` from `rematch.opponentOnMatch`. T067 passes.
+- [X] T069 [US6] Fill the `rematch-cooldown` fixture and its baseline. Add the "past 2:00" and "opponent went to the lobby" cases to `rematch-flow.spec.ts`.
 
 ---
 
@@ -347,19 +347,19 @@
 
 **Independent test**: the `phone-result` and `phone-review` viewport tests at 390×844, 390×664 and 360.
 
-- [ ] T070 [P] [US8] Write failing tests:
+- [X] T070 [P] [US8] Write failing tests:
   - `tests/unit/components/room/Slip.matchOver.spec.tsx` (compact): two detail clauses, and the negotiation replaces action row 2;
   - `tests/unit/components/room/ReviewControls.spec.tsx` (compact): five 44×44 glyph buttons with the `aria-label`s `fyrst`, `aftur`, `spila`, `næst`, `síðast`;
   - `tests/unit/components/room/Ledger.phone.spec.tsx`: in review, the rows open in the sheet with `saga ▸`, the cursor line takes the live row, and the foot is pinned with `◂ úrslit` and the controls; in the final state, `úrslit ▸` sits in the foot when the slip is lifted.
-- [ ] T071 [US8] Implement the compact variants in `Slip.tsx`, `ReviewControls.tsx`, `Ledger.tsx`, `LedgerFoot.tsx` and `LedgerSheet.tsx`, with styles in `app/styles/room.css`. Move `úrslit ▸` out of the sheet into the pinned foot (the map found it only inside the sheet today). T070 passes.
+- [X] T071 [US8] Implement the compact variants in `Slip.tsx`, `ReviewControls.tsx`, `Ledger.tsx`, `LedgerFoot.tsx` and `LedgerSheet.tsx`, with styles in `app/styles/room.css`. Move `úrslit ▸` out of the sheet into the pinned foot (the map found it only inside the sheet today). T070 passes.
 - [ ] T072 [US8] Add the viewport tests `phone-result` and `phone-review` (over `result-moves` and `review`) at 390×844, 390×664 and 360 in `tests/integration/ui/room-fixtures.spec.ts`, and take baselines.
 
 ---
 
 ## Phase 10: User Story 7 – Other calls while on the result (P3)
 
-- [ ] T073 [P] [US7] Write failing tests in `tests/unit/lib/room/ledgerCallLine.spec.ts`: with a rematch and a third-party call, the rematch comes first and the call second. Integration test in `tests/integration/db/rematch.test.ts`: accepting either answers the other (the call is `superseded` through `create_match_between`, and the rematch request is `superseded`).
-- [ ] T074 [US7] Render both lines in `components/room/Ledger.tsx`, with the call's `accept ▸` as a secondary. T073 passes.
+- [X] T073 [P] [US7] Write failing tests in `tests/unit/lib/room/ledgerCallLine.spec.ts`: with a rematch and a third-party call, the rematch comes first and the call second. Integration test in `tests/integration/db/rematch.test.ts`: accepting either answers the other (the call is `superseded` through `create_match_between`, and the rematch request is `superseded`).
+- [X] T074 [US7] Render both lines in `components/room/Ledger.tsx`, with the call's `accept ▸` as a secondary. T073 passes.
 
 ---
 
@@ -431,3 +431,10 @@ Commit each passing test separately (`test(071): …`, then `feat(071): …`), p
 - **T030** extends `tests/unit/lib/one-service-per-rpc.test.ts` rather than adding a grep test. `accept_rematch` stays with the creation functions in `lib/match/createMatch.ts`.
 - **Busy accepts** end the request as `superseded` (spec 067 left it pending); `tests/integration/db/accept-rematch.test.ts` was updated.
 - **The live guard steps back past every guard entry** at completion, the table's included (each entry records its depth), so one Back from the result reaches the lobby.
+- **Review's step motion** (T055): stepping forward by one exchanges the step's letters through the Field's `exchange`; its bands appear at once rather than drawing over 400ms. A back step or a jump is instant, as specified. The band draw on a forward step is a follow-up.
+- **The App Router and native history:** a state object that carries the router's own `__NA` marker is taken as the router's call and not synced into `useSearchParams`. Review's entries carry only `{ kind }` (`useReviewHistory`).
+- **A reader** of a finished match (not a participant, signed in or out) gets `?review=last`, no slip, and a transport in `reader` mode that subscribes to and polls nothing. A signed-out reader's words come from the steps, since `/words` needs a session.
+- **The closing step** takes the ledger's first row with an unplayed move for its cursor line.
+- **T069's cooldown fixture** is `rematch-declined` (it shows `again in 0:52`). The "past 2:00" and "opponent left" cases are pinned in `tests/integration/db/rematch.test.ts` rather than in Playwright, since a 2:00 wait does not belong in the e2e suite.
+- **Two answers on the result** (a rematch and a call) share the ledger's state row, one line each, the rematch first. Accepting either supersedes the other through `create_match_between`.
+
