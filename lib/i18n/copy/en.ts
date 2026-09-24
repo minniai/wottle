@@ -180,8 +180,12 @@ const marginDetail = (margin: number): string => `by ${margin} points`;
 const SPINE_HEADER = "move";
 const TOTAL_LABEL = "total";
 const NOT_PLAYED = "not played";
-const verdictDetail = (margin: number, wordsA: number, wordsB: number, terrA: number, terrB: number) =>
-  `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
+/** Spec 071: the detail line's clauses, joined with ` · ` (a phone shows the first two). */
+const wordsDetail = (a: number, b: number): string => `${a} words to ${b}`;
+const territoryDetail = (a: number, b: number): string => `territory ${a}–${b}`;
+const ENDED_EARLY = "ended early";
+const wasGone = (name: string): string => `${name} was gone`;
+const bestWordLine = (word: string, points: number): string => `your best word · ${word} ${points}`;
 
 // Foot actions
 const REMATCH = "rematch ▸";
@@ -449,7 +453,11 @@ export const copyEn = {
   SPINE_HEADER,
   TOTAL_LABEL,
   NOT_PLAYED,
-  verdictDetail,
+  wordsDetail,
+  territoryDetail,
+  ENDED_EARLY,
+  wasGone,
+  bestWordLine,
   REMATCH,
   NEW_OPPONENT,
   LOBBY,

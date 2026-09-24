@@ -1,4 +1,5 @@
 import type { Copy } from "@/lib/i18n/copy/types";
+import { resultDetail, type DetailFacts } from "@/lib/room/resultDetail";
 import { liveText, type LiveState } from "./liveLines";
 import { liveLinesFor, type Line2Extras, type MoveState } from "./moveState";
 
@@ -171,51 +172,47 @@ export interface VerdictInput {
   /** The seat the server recorded as the winner, when the totals do not name them (spec 048). */
   winnerSeat?: Seat | null;
   endedReason?: MatchEndedReason | null;
+  /** Spec 071: the clock as it read when the match was resigned (`3:12`). */
+  endClock?: string | null;
 }
 
-/** A win the totals do not explain: the detail line says what ended the match instead. */
-const FORCED: Record<string, "forfeit" | "disconnect"> = { forfeit: "forfeit", disconnect: "disconnect", abandoned: "disconnect" };
+/** A win the totals do not explain: the winner the server recorded names it instead. */
+const FORCED = new Set(["forfeit", "disconnect", "abandoned", "ended_early"]);
 
 /**
- * `Kári wins 170–127` / `by 43 points · 10 words to 8 · territory 32–25` —
- * stated once, same voice for win and loss. When someone was short of ten at
- * 0:00 the detail says so first: `Kári played 8 of 10 · by 12 points`,
- * `neither finished · by 12 points`.
+ * `Kári wins 170–127` over the detail line (spec 071 FR-004): why the match ended, said once,
+ * in the same voice for a win and a loss (`resultDetail`).
  */
 export function buildVerdict(v: VerdictInput, copy: Copy): Verdict {
-  const forced = v.endedReason ? FORCED[v.endedReason] : undefined;
+  const forced = !!v.endedReason && FORCED.has(v.endedReason);
   // A forced end names its winner; otherwise the totals decide (rules §2a, 2026-09-21),
   // with the server's recorded winner breaking a tie on frozen tiles.
   const byScore: Seat | null = v.viewerScore === v.opponentScore ? null : v.viewerScore > v.opponentScore ? "you" : "opp";
   const winnerSeat = forced ? (v.winnerSeat ?? byScore) : (byScore ?? v.winnerSeat ?? null);
   const youWin = winnerSeat === "you";
   const [hi, lo] = youWin ? [v.viewerScore, v.opponentScore] : [v.opponentScore, v.viewerScore];
-  const [wordsHi, wordsLo] = youWin ? [v.viewerWords, v.opponentWords] : [v.opponentWords, v.viewerWords];
-  const [terrHi, terrLo] = youWin ? [v.territory.you, v.territory.opp] : [v.territory.opp, v.territory.you];
-  const loserName = youWin ? v.opponentName : v.viewerName;
+  const detailClauses = resultDetail(detailFacts(v, winnerSeat, hi - lo), copy);
   return {
     winnerSeat,
     scoreLine: winnerSeat === null ? copy.drawLine(v.viewerScore, v.opponentScore) : copy.verdictLine(youWin ? v.viewerName : v.opponentName, hi, lo),
-    detailLine: forced && winnerSeat !== null ? copy.forcedDetail(loserName, forced) : naturalDetail(v, { winnerSeat, margin: hi - lo, counts: [wordsHi, wordsLo, terrHi, terrLo] }, copy),
+    detailLine: detailClauses.join(" · "),
+    detailClauses,
   };
 }
 
-/** Who was short of ten comes first (their unplayed moves cost them points), then the margin. */
-function naturalDetail(
-  v: VerdictInput,
-  { winnerSeat, margin, counts: [wordsHi, wordsLo, terrHi, terrLo] }: { winnerSeat: Seat | null; margin: number; counts: number[] },
-  copy: Copy,
-): string {
-  const short =
-    v.endedReason === "both_incomplete"
-      ? copy.NEITHER_FINISHED
-      : v.endedReason === "incomplete"
-        ? v.viewerMoves < v.opponentMoves
-          ? copy.incompleteDetail(v.viewerName, v.viewerMoves)
-          : copy.incompleteDetail(v.opponentName, v.opponentMoves)
-        : null;
-  if (!short) return copy.verdictDetail(margin, wordsHi, wordsLo, terrHi, terrLo);
-  return winnerSeat === null ? short : `${short} · ${copy.marginDetail(margin)}`;
+function detailFacts(v: VerdictInput, winnerSeat: Seat | null, margin: number): DetailFacts {
+  const youWin = winnerSeat === "you";
+  const viewerShort = v.viewerMoves < v.opponentMoves;
+  return {
+    endedReason: v.endedReason,
+    winnerName: winnerSeat === null ? null : youWin ? v.viewerName : v.opponentName,
+    loserName: youWin ? v.opponentName : v.viewerName,
+    margin,
+    words: youWin ? [v.viewerWords, v.opponentWords] : [v.opponentWords, v.viewerWords],
+    territory: youWin ? [v.territory.you, v.territory.opp] : [v.territory.opp, v.territory.you],
+    short: viewerShort ? { name: v.viewerName, moves: v.viewerMoves } : { name: v.opponentName, moves: v.opponentMoves },
+    endClock: v.endClock ?? null,
+  };
 }
 
 export interface RatingRow {

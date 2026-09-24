@@ -52,6 +52,8 @@ export interface Verdict {
   winnerSeat: Seat | null;
   scoreLine: string;
   detailLine: string;
+  /** Spec 071: the detail line's clauses; a phone shows the first two. */
+  detailClauses?: string[];
 }
 
 export interface LedgerModel {
