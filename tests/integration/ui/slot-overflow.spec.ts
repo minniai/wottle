@@ -24,6 +24,8 @@ const SLOTS = [
 
 const VIEWPORTS = [
   { width: 1440, height: 900 },
+  // The middle band (design system §4: 900-1100): reported 2026-09-24, pages overflowed here.
+  { width: 1024, height: 768 },
   { width: 390, height: 844 },
 ];
 
@@ -48,6 +50,9 @@ for (const viewport of VIEWPORTS) {
                 if (box.right > document.documentElement.clientWidth + 1) out.push(`${selector} passes the page edge: "${text}"`);
               }
             }
+            // No page is wider than the window.
+            const page = document.scrollingElement!;
+            if (page.scrollWidth > page.clientWidth + 1) out.push(`the page is wider than the window (${page.scrollWidth} > ${page.clientWidth})`);
             // The phone bottom slot has a fixed height: nothing in it may run past its bottom edge.
             const bottom = document.querySelector<HTMLElement>(".page-bottom .line-slot");
             if (bottom && bottom.getBoundingClientRect().height > 0 && bottom.scrollHeight > bottom.clientHeight + 1) {

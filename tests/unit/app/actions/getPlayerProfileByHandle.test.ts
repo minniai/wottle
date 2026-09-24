@@ -74,3 +74,26 @@ describe("getPlayerProfileByHandle", () => {
     expect(result.status).toBe("error");
   });
 });
+
+describe("a handle with an Icelandic letter (reported 2026-09-24)", () => {
+  test("arrives percent-encoded from the route and still finds the player", async () => {
+    const chain = buildLookupChain({ data: { id: "p-kari" }, error: null });
+    vi.mocked(getServiceRoleClient).mockReturnValue({ from: vi.fn(() => chain) } as never);
+    getPlayerProfileMock.mockResolvedValue({ status: "ok", profile: {} });
+    const result = await getPlayerProfileByHandle("k%C3%A1ri94389", "is");
+    expect(result.status).toBe("ok");
+    expect(chain.eq).toHaveBeenCalledWith("username", "kári94389");
+  });
+
+  test("a decomposed á is read as the one letter", async () => {
+    const chain = buildLookupChain({ data: { id: "p-kari" }, error: null });
+    vi.mocked(getServiceRoleClient).mockReturnValue({ from: vi.fn(() => chain) } as never);
+    getPlayerProfileMock.mockResolvedValue({ status: "ok", profile: {} });
+    await getPlayerProfileByHandle("kári94389", "is");
+    expect(chain.eq).toHaveBeenCalledWith("username", "kári94389");
+  });
+
+  test("a malformed escape is refused, not thrown", async () => {
+    expect((await getPlayerProfileByHandle("k%E0%A4%A", "is")).status).toBe("error");
+  });
+});

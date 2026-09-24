@@ -48,4 +48,26 @@ test.describe("@profile-room", () => {
       await ctx.close();
     }
   });
+
+  // Reported 2026-09-24: a lobby row's link to a player whose handle holds an Icelandic letter read
+  // `profile unavailable`, since the route hands the handle over percent-encoded.
+  test("a handle with an Icelandic letter opens from the lobby row", async ({ browser }) => {
+    const seedCtx = await browser.newContext();
+    const ctx = await browser.newContext();
+    try {
+      const seedPage = await seedCtx.newPage();
+      const seed = await login(seedPage, "þóra");
+      const page = await ctx.newPage();
+      await login(page, "prof-row");
+      const row = page.getByTestId("lobby-row").filter({ hasText: `@${seed}` });
+      await row.waitFor({ timeout: 30_000 });
+      await row.getByRole("link").first().click();
+      await expect(page.getByTestId("profile-page")).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByTestId("profile-handle")).toContainText(`@${seed}`);
+      await expect(page.getByTestId("profile-unavailable")).toHaveCount(0);
+    } finally {
+      await seedCtx.close();
+      await ctx.close();
+    }
+  });
 });

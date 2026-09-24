@@ -303,6 +303,17 @@
   }
 }
 
+/* Between the phone and the full page (design system §4: 40px gutter, 260px right
+   column from 900 to 1100): the page follows the window instead of overflowing it. */
+@media (min-width: 901px) and (max-width: 1167px) {
+  .page {
+    --page-width: calc(100vw - 64px);
+    --gutter: 40px;
+    --col-b: 260px;
+    --col-a: calc(var(--page-width) - var(--gutter) - var(--col-b));
+  }
+}
+
 /* ---------- Columns (§5.0: A 708, gutter 56, B 340) ---------- */
 .page-only-phone {
   display: none;
@@ -328,6 +339,15 @@
   text-transform: uppercase;
   line-height: 1.3;
   color: var(--muted);
+}
+/* A profile that cannot be shown: one sentence and the way back, at the page's measure. */
+.profile-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 48px 0;
+  max-width: 560px;
 }
 .page-sentence {
   margin: 0;
@@ -701,8 +721,9 @@
 }
 .last-match__map {
   display: block;
-  width: 340px;
-  height: 340px;
+  /* The right column's width: 340px on the full page, 260px in the middle band. */
+  width: var(--col-b);
+  aspect-ratio: 1;
   margin-top: 8px;
 }
 .last-match__map:focus-visible {

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getPlayerProfile } from "@/app/actions/player/getPlayerProfile";
 import type { Language } from "@/lib/types/game-config";
 import type { GetPlayerProfileResult } from "@/app/actions/player/getPlayerProfile";
+import { readHandle } from "@/lib/profile/readHandle";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const handleSchema = z
@@ -22,7 +23,7 @@ export async function getPlayerProfileByHandle(
   handle: string,
   language: Language = "is",
 ): Promise<GetPlayerProfileResult> {
-  const parsed = handleSchema.safeParse(handle);
+  const parsed = handleSchema.safeParse(readHandle(handle));
   if (!parsed.success) {
     return { status: "error", error: "Invalid handle." };
   }
