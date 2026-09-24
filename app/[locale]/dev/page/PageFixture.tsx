@@ -28,6 +28,8 @@ import {
   switchConfirm,
   linkOut,
   INVITE_TOKEN,
+  linkCallIn,
+  ownLinkOpened,
   FIXED_NOW,
   inviteView,
   type LobbyFixture,
@@ -72,7 +74,7 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
       slot={<LineSlot model={model} onAction={NO_OP} announcement="" counts={counts} variant="desktop" />}
       bottomSlot={model.style === "terms" ? null : <LineSlot model={model} onAction={NO_OP} announcement="" variant="phone" />}
       bottomHeight={phoneSlotHeight(model)}
-      skipLabel={slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : null}
+      skipLabel={slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : slot.kind === "linkCall" ? copy.pages.skipToCall(slot.call.view.senderName) : null}
     >
       <Lobby
         viewer={fixture.viewer}
@@ -84,7 +86,7 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
         standing={{
           searching: slot.kind === "search",
           outgoing: facts.outgoing?.status === "pending",
-          callUp: slot.kind === "call",
+          callUp: slot.kind === "call" || slot.kind === "linkCall",
           overlays: rowOverlays(facts, held, now, copy),
           closed: challengesClosed(facts) || slot.kind === "switch",
           link: facts.link?.status === "pending",
@@ -144,6 +146,12 @@ export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: 
       return <InviteDoorPage overview={L(DOOR_EN)} token={INVITE_TOKEN} view={inviteView("en", false)} returning={null} renderedAt={FIXED_NOW} />;
     case "invite-door-returning":
       return <InviteDoorPage overview={L(DOOR_EN)} token={INVITE_TOKEN} view={inviteView("en")} returning={L({ displayName: "Birna", rating: 1310 })} renderedAt={FIXED_NOW} />;
+    case "lobby-link-call":
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkCallIn("en"))} focusSkip />;
+    case "is-lobby-link-call":
+      return <StandingFixturePage fixture={L(lobbyIs())} standing={L(linkCallIn("is"))} focusSkip />;
+    case "lobby-own-link":
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(ownLinkOpened())} />;
     case "lobby-link-refused":
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkOut("en", true))} />;
   }

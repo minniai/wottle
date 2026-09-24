@@ -118,9 +118,10 @@ function sentModel(slot: Extract<SlotState, { kind: "sent" }>, copy: Copy, ctx: 
 
 function linkModel(slot: Extract<SlotState, { kind: "link" }>, copy: Copy, ctx: SlotContext): SlotModel {
   if (slot.held) return status(copy.pages.LINK_OUTCOMES[slot.held], "");
-  if (!slot.link && slot.own) {
+  if (slot.own) {
     const ms = left(slot.own.view.expiresAt, ctx.nowMs);
-    return status(copy.pages.OWN_LINK, copy.pages.ownLinkLine2(formatClock(ms)), { secondaries: [{ label: copy.pages.COPY, action: "copyOwnLink" }] });
+    const cancel: SlotButton[] = slot.link ? [{ label: copy.pages.CANCEL_LINK, action: "cancelLink" }] : [];
+    return status(copy.pages.OWN_LINK, copy.pages.ownLinkLine2(formatClock(ms)), { secondaries: [{ label: copy.pages.COPY, action: "copyOwnLink" }, ...cancel] });
   }
   const link = slot.link!;
   const ms = left(link.expiresAt, ctx.nowMs);

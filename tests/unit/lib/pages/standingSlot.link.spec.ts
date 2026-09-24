@@ -40,7 +40,7 @@ describe("standingSlot · links", () => {
 
   it("shows the sender's own link, opened, when nothing else stands", () => {
     expect(standingSlot({ facts: facts(), held: null, search: null, link: { own: linkCall } })).toMatchObject({ kind: "link", link: null, own: linkCall });
-    expect(standingSlot({ facts: facts({ link }), held: null, search: null, link: { own: linkCall } })).toMatchObject({ kind: "link", link });
+    expect(standingSlot({ facts: facts({ link }), held: null, search: null, link: { own: linkCall } })).toMatchObject({ kind: "link", link, own: linkCall });
   });
 
   it("puts a link call among the calls, after challenges, counting it", () => {

@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 
+import { acceptLinkAction } from "@/app/actions/link/accept";
+
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { localePath } from "@/lib/i18n/locales";
 import { formatClock } from "@/lib/room/clock";
@@ -34,7 +36,14 @@ export interface LinkSlotApi {
 const ownUrl = (own: LinkCall) => `${window.location.origin}${localePath(own.view.language, `/c/${own.token}`)}`;
 
 /** Spec 072: the viewer's link out, a link opened here, and the sender's own link, for the slot. */
-export function useLinkSlot(link: OutgoingLink | null, refresh: () => void): LinkSlotApi {
+export interface LinkSlotHandlers {
+  /** A link call accepted: the table, in the link's language. */
+  onAccepted: (matchId: string, language: "is" | "en") => void;
+  /** A line held in the slot for 4s: why nothing happened. */
+  flash: (line: string) => void;
+}
+
+export function useLinkSlot(link: OutgoingLink | null, refresh: () => void, handlers: LinkSlotHandlers): LinkSlotApi {
   const copy = useCopy();
   const out = useLinkOut(link);
   const [call, setCall] = useState<LinkCall | null>(null);
@@ -53,6 +62,17 @@ export function useLinkSlot(link: OutgoingLink | null, refresh: () => void): Lin
     if (s.call !== undefined) setCall(s.call);
     if (s.own !== undefined) setOwn(s.own);
   }, []);
+
+  const { onAccepted, flash } = handlers;
+  const acceptCall = useCallback(async () => {
+    if (!call) return;
+    const result = await acceptLinkAction({ token: call.token, mode: "session" });
+    setCall(null);
+    refresh();
+    if (result.status === "created") onAccepted(result.matchId, result.language);
+    else if (result.status === "busy") flash(copy.pages.LINK_BUSY);
+    else if (result.status !== "own") flash(copy.pages.LINK_EXPIRED_NOTE);
+  }, [call, refresh, onAccepted, flash, copy]);
 
   const handle = useCallback(
     (action: SlotAction, slot: SlotState): boolean => {
@@ -73,16 +93,19 @@ export function useLinkSlot(link: OutgoingLink | null, refresh: () => void): Lin
         case "dismissLink":
           setCall(null);
           return true;
+        case "acceptLink":
+          void acceptCall();
+          return true;
         default:
           return false;
       }
     },
-    [out, refresh],
+    [out, refresh, acceptCall],
   );
 
   return {
     inputs: { call, own, held: out.held },
-    text: out.text,
+    text: out.text ?? (own && link?.status === "pending" ? { linkId: link.id, url: ownUrl(own) } : null),
     clipboardRefused: out.clipboardRefused,
     invite,
     seed,

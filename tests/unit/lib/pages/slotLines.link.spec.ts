@@ -53,6 +53,12 @@ describe("slotLines · links", () => {
     expect(m.secondaries).toEqual([{ label: "copy ▸", action: "copyOwnLink" }]);
   });
 
+  it("offers to cancel the sender's own link when it is the pending one", () => {
+    const m = slotLines(slot({ own: linkCall }), copyEn, ctx());
+    expect(m.line1).toBe("this is your link");
+    expect(m.secondaries.map((b) => b.action)).toEqual(["copyOwnLink", "cancelLink"]);
+  });
+
   it("calls a signed-in player to a link, with accept as the primary", () => {
     const m = slotLines({ kind: "linkCall", call: linkCall, more: 0 }, copyEn, ctx({ languageName: undefined }));
     expect(m).toMatchObject({ style: "call", square: "opp", line1: "Hekla invites you by link", line2: "1250 · english words · link valid 9:12" });

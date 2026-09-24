@@ -70,7 +70,7 @@ export function StandingProvider({ children }: { children: ReactNode }) {
     bottomHeight: phoneSlotHeight(model),
     signOut: signOutState(machine, copy),
     menuExtra: <NotificationsItem machine={machine} />,
-    skipLabel: slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : null,
+    skipLabel: slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : slot.kind === "linkCall" ? copy.pages.skipToCall(slot.call.view.senderName) : null,
     machine,
   };
   const run = machine.search.run;
