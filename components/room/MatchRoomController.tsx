@@ -38,7 +38,7 @@ import { useMatchReview } from "./hooks/useMatchReview";
 import { ReviewControls } from "./ReviewControls";
 import type { MatchRoomReview } from "./MatchRoomView";
 import { cursorLines } from "@/lib/review/cursorLines";
-import { ledgerCellStates } from "@/lib/review/ledgerCells";
+import { cursorRow, ledgerCellStates } from "@/lib/review/ledgerCells";
 import { scrubberValueText } from "@/lib/review/scrubber";
 import { wordsAtStep } from "@/lib/review/wordsAtStep";
 import type { ReviewStep } from "@/lib/types/review";
@@ -692,7 +692,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         scoreboard: { step: reviewStep.index, stepCount, clockMs: reviewStep.clockMs, valueText: scrubberValueText(reviewStep, stepCount, names, copy) },
         ledger: {
           viewerSlot,
-          current: reviewStep.slot && reviewStep.moveNumber !== null && reviewStep.kind === "move" ? { slot: reviewStep.slot, move: reviewStep.moveNumber } : null,
+          current: cursorRow(reviewStep, match.moveLimit),
           cursor: cursorLines(reviewStep, names, copy),
           states: ledgerCellStates(review.steps, reviewStep.index),
           names,

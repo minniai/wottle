@@ -13,7 +13,7 @@ describe("fixture phases (spec 048, spec 050)", () => {
     expect(isRoomPhase(phase)).toBe(true);
   });
 
-  it.each(["rematch-sent", "rematch-in", "rematch-declined"])("lists the rematch %s (spec 071)", (phase) => {
+  it.each(["rematch-sent", "rematch-in", "rematch-declined", "review", "review-refused", "review-time", "review-public", "rematch-in-review"])("lists the rematch %s (spec 071)", (phase) => {
     expect(isRoomPhase(phase)).toBe(true);
   });
 

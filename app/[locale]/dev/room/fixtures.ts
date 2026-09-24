@@ -80,6 +80,12 @@ export const ROOM_PHASES = [
   "rematch-sent",
   "rematch-in",
   "rematch-declined",
+  // Spec 071 (D3, artboards Review and RematchIncoming): review at a step.
+  "review",
+  "review-refused",
+  "review-time",
+  "review-public",
+  "rematch-in-review",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];

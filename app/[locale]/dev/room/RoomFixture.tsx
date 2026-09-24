@@ -19,6 +19,7 @@ import type { SlipState } from "@/lib/room/slip";
 import { turnFrameFor, type Line2Extras, type MoveState } from "@/lib/room/moveState";
 import { tableSlipFor } from "@/lib/room/tableSlip";
 import { tableFacts } from "@/components/room/hooks/useTable";
+import { ReviewFixture, type ReviewPhase } from "./ReviewFixture";
 import { BLANK_BOARD } from "@/lib/constants/board";
 import type { Coordinate } from "@/lib/types/board";
 import type { MatchResult, MatchState } from "@/lib/types/match";
@@ -204,7 +205,7 @@ const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CEL
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
 type TablePhase = "table" | "table-seated" | "void" | "void-queue";
-type MatchPhase = Exclude<RoomPhase, "profile" | "rules" | TablePhase>;
+type MatchPhase = Exclude<RoomPhase, "profile" | "rules" | TablePhase | ReviewPhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -263,11 +264,16 @@ function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
 }
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
+const REVIEW_PHASES = ["review", "review-refused", "review-time", "review-public", "rematch-in-review"] as const;
+function isReviewPhase(phase: string): phase is ReviewPhase {
+  return (REVIEW_PHASES as readonly string[]).includes(phase);
+}
+
 const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = {
   profile: "lobby",
   final: "final",
   "over-slip": "final",
-  ...Object.fromEntries([...RESULT_PHASES, ...REMATCH_PHASES].map((p) => [p, "final" as const])),
+  ...Object.fromEntries([...RESULT_PHASES, ...REMATCH_PHASES, ...REVIEW_PHASES].map((p) => [p, "final" as const])),
 };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
@@ -322,6 +328,8 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   }
 
 
+
+  if (isReviewPhase(phase)) return <ReviewFixture phase={phase} />;
 
   if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue") {
     return <TableFixture phase={phase} copy={copy} />;
