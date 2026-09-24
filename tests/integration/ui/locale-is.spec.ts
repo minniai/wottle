@@ -10,12 +10,12 @@ import { generateTestUsername } from "./helpers/matchmaking";
  * to an Icelandic player.
  */
 test.describe("@locale Orðusta at the plain address", () => {
-  test("the root is Icelandic: lang, title, wordmark and the sign-in slip", async ({ page }) => {
+  test("the root is Icelandic: lang, title, lockup and the door", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "is");
-    await expect(page).toHaveTitle("Orðusta");
-    await expect(page.getByTestId("slip")).toContainText("Orðusta");
-    await expect(page.getByTestId("player-bar-name-input")).toHaveAttribute("placeholder", "nafn");
+    await expect(page).toHaveTitle("Orðusta · orðaeinvígi fyrir tvo");
+    await expect(page.getByRole("img", { name: "Orðusta, Wottle á ensku" })).toBeVisible();
+    await expect(page.getByTestId("door-name")).toHaveAttribute("placeholder", "nafn");
   });
 
   test("/is redirects to the unprefixed address, keeping the path", async ({ page }) => {
@@ -28,18 +28,16 @@ test.describe("@locale Orðusta at the plain address", () => {
   test("English lives under /en and is called Wottle", async ({ page }) => {
     await page.goto("/en");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page).toHaveTitle("Wottle");
-    await expect(page.getByTestId("slip")).toContainText("Wottle");
+    await expect(page).toHaveTitle("Wottle · a word duel for two");
+    await expect(page.getByRole("img", { name: "Wottle, Orðusta in Icelandic" })).toBeVisible();
   });
 
   test("signed in at /, the lobby is Icelandic and shows no English line", async ({ page }) => {
     await page.goto("/");
-    await page.getByTestId("player-bar-name-input").fill(generateTestUsername("isl"));
-    await page.getByTestId("player-bar-action-play").click();
-    await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 20_000 });
-    await expect(page).toHaveURL(/\/lobby$/, { timeout: 20_000 });
-    expect(new URL(page.url()).pathname).toBe("/lobby");
-    await expect(page.getByTestId("player-bar-action-find")).toHaveText("finna mótspilara ▸");
+    await page.getByTestId("door-name").fill(generateTestUsername("isl"));
+    await page.getByTestId("door-enter").click();
+    await expect(page.getByTestId("lobby-find")).toHaveText("finna mótspilara ▸", { timeout: 20_000 });
+    expect(new URL(page.url()).pathname).toBe("/");
     const text = await page.locator("body").innerText();
     const english = [copyEn.FIND_OPPONENT, copyEn.HERE_NOW, copyEn.HOW_TO_PLAY, copyEn.YOUR_LAST_MATCHES, copyEn.NO_OPPONENT];
     for (const line of english) expect(text.toLowerCase()).not.toContain(line.toLowerCase());
@@ -52,12 +50,11 @@ test.describe("@locale Orðusta at the plain address", () => {
       expect(results.violations, path).toEqual([]);
     }
     await page.goto("/en");
-    await page.getByTestId("player-bar-name-input").fill(generateTestUsername("axe"));
-    await page.getByTestId("player-bar-action-play").click();
-    await expect(page).toHaveURL(/\/en\/lobby$/, { timeout: 20_000 });
-    await expect(page.getByTestId("ledger-here-now")).toBeVisible();
-    // The room is checked against WCAG 2.1 AA, as in room-fixtures.spec.ts (it has no h1 by design).
+    await page.getByTestId("door-name").fill(generateTestUsername("axe"));
+    await page.getByTestId("door-enter").click();
+    await expect(page.getByTestId("lobby-find")).toBeVisible({ timeout: 20_000 });
+    // The lobby is a page (spec 070): landmarks and one h1, checked against WCAG 2.1 AA.
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-    expect(results.violations, "/en/lobby").toEqual([]);
+    expect(results.violations, "/en (the lobby)").toEqual([]);
   });
 });

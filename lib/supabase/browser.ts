@@ -24,6 +24,8 @@ export function getBrowserSupabaseClient(): SupabaseClient {
       detectSessionInUrl: false,
       autoRefreshToken: false,
     },
+    // The socket's keep-alive runs in a worker, so background throttling cannot drop it (spec 070 FR-037).
+    realtime: { worker: true },
   });
 
   return browserClient;

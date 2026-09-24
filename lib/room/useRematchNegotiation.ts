@@ -29,6 +29,19 @@ export interface RematchApi {
   decline: () => Promise<void>;
   /** Feed rematch broadcasts from the room's single match channel. */
   handleEvent: (event: RematchEvent) => void;
+  /** On a `rematch` poke or an accepted event: read where the rematch went, and go (spec 070 FR-034). */
+  check: () => Promise<void>;
+}
+
+async function readRematchId(matchId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/match/${matchId}/state`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { rematchMatchId?: string | null };
+    return body.rematchMatchId ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -62,13 +75,19 @@ export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: 
     [matchId],
   );
 
+  const check = useCallback(async () => {
+    const newMatchId = await readRematchId(matchId);
+    if (!newMatchId) return;
+    clearTimer();
+    setPhase("accepted");
+    onNewMatchRef.current(newMatchId);
+  }, [matchId]);
+
   const handleEvent = useCallback(
     (event: RematchEvent) => {
       const mine = event.requesterId === currentPlayerId;
-      if (event.type === "rematch-accepted" && event.newMatchId) {
-        clearTimer();
-        setPhase("accepted");
-        onNewMatchRef.current(event.newMatchId);
+      if (event.type === "rematch-accepted") {
+        void check();
       } else if (event.type === "rematch-declined") {
         clearTimer();
         setPhase("declined");
@@ -79,7 +98,7 @@ export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: 
         setPhase("incoming");
       }
     },
-    [currentPlayerId],
+    [currentPlayerId, check],
   );
 
   const request = useCallback(async () => {
@@ -125,5 +144,5 @@ export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: 
     await declineRematchAction(matchId).catch(() => undefined);
   }, [matchId]);
 
-  return { phase, error, request, accept, decline, handleEvent };
+  return { phase, error, request, accept, decline, handleEvent, check };
 }

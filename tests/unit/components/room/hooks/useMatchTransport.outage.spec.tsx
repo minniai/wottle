@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 /** Spec 068 FR-038, research R8: the viewer's own outage, noticed and recovered in place. */
 const reconnect = vi.hoisted(() => vi.fn(async () => undefined));
 vi.mock("@/app/actions/match/handleDisconnect", () => ({ handlePlayerDisconnect: vi.fn(async () => undefined), handlePlayerReconnect: reconnect }));
-vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn(async () => undefined) }) }));
+vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn(async () => undefined), getChannels: () => [] }) }));
 vi.mock("@/lib/realtime/matchChannel", () => ({ subscribeToMatchChannel: () => ({ on: () => undefined }) }));
 
 import { useMatchTransport } from "@/components/room/hooks/useMatchTransport";

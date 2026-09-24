@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/realtime/pokes", () => ({ pokePlayers: vi.fn(async () => undefined) }));
 
 import type { Mock } from "vitest";
 
 import { leaveTable, seatPlayer, startTableIfSeated, voidDueTable } from "@/lib/match/tableService";
 import { TABLE_LEAD_MS } from "@/lib/constants/table";
+import { pokePlayers } from "@/lib/realtime/pokes";
 
-const ROW = { id: "m1", board_seed: "seed-1", language: "en" };
+const ROW = { id: "m1", board_seed: "seed-1", language: "en", player_a_id: "pa", player_b_id: "pb" };
 
 function deps(replies: Record<string, unknown>): { client: never; publish: Mock; rpc: Mock } {
   const rpc = vi.fn(async (fn: string) => ({ data: replies[fn], error: null }));
@@ -86,5 +88,12 @@ describe("the table service (spec 069 T008)", () => {
   it("throws on an unexpected reply", async () => {
     const d = deps({ seat_player: { status: "nonsense" } });
     await expect(seatPlayer(d, "m1", "p1")).rejects.toThrow(/seat_player/);
+  });
+
+  it("pokes both players: `seat` on a seat or start, `table` when the table is voided (spec 070 US9)", async () => {
+    await seatPlayer(deps({ seat_player: { status: "seated" } }), "m1", "pa");
+    expect(pokePlayers).toHaveBeenLastCalledWith(["pa", "pb"], "seat");
+    await leaveTable(deps({ void_table: { status: "void", reason: "left", voidedBy: "pa" } }), "m1", "pa");
+    expect(pokePlayers).toHaveBeenLastCalledWith(["pa", "pb"], "table");
   });
 });

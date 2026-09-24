@@ -32,8 +32,6 @@ export interface RoomState {
   match: MatchState | null;
   board: string[][];
   queue: QueueState | null;
-  /** Bumped to start a fresh search for an opponent; the queue controller remounts on it. */
-  searchId: number;
   connection: ConnectionMode;
   /** The one overlay (spec 048 §5.9); precedence enforced by `setSlip`. */
   slip: SlipState | null;
@@ -51,8 +49,6 @@ export interface RoomState {
   /** Enter a phase. Never touches `board`. */
   setPhase: (phase: RoomPhase) => void;
   startQueue: (now?: number) => void;
-  /** `new opponent ▸`: a fresh search even when the route is already /matchmaking. */
-  requestNewSearch: () => void;
   cancelQueue: () => void;
   /** Placeholder letters landed so far (queue state). */
   setLettersLanded: (count: number) => void;
@@ -111,6 +107,7 @@ function mergeSnapshot(previous: MatchState | null, snapshot: MatchState): Match
       disconnectedPlayerId: snapshot.disconnectedPlayerId,
       disconnectedAt: snapshot.disconnectedAt,
       reconnectWindowMs: snapshot.reconnectWindowMs,
+      steppedOutPlayerId: snapshot.steppedOutPlayerId,
     };
   }
   const scores =
@@ -158,7 +155,6 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   match: null,
   board: EMPTY_BOARD,
   queue: null,
-  searchId: 0,
   connection: "realtime",
   slip: null,
   returning: null,
@@ -168,9 +164,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   stakes: null,
   liveResolution: null,
 
-  // A signed-in viewer never sees the sign-in slip (spec 048 data-model §2).
-  setViewer: (viewer) =>
-    set((s) => ({ viewer, slip: viewer && s.slip?.kind === "signIn" ? null : s.slip })),
+  setViewer: (viewer) => set({ viewer }),
   setOpponent: (opponent) => set({ opponent }),
   setBoard: (board) => set({ board }),
   setConnection: (connection) => set({ connection }),
@@ -179,8 +173,6 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   startQueue: (now = Date.now()) =>
     // A search starts clean: a match-over slip from the last match must not ride along.
     set({ phase: "queue", queue: { startedAt: now, lettersLanded: 0 }, opponent: null, match: null, slip: null, slipDismissed: false, holdMove: null }),
-
-  requestNewSearch: () => set((s) => ({ searchId: s.searchId + 1 })),
 
   cancelQueue: () => set({ phase: "lobby", queue: null }),
 

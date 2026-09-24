@@ -9,6 +9,8 @@
 
 import { LOCALES } from "@/lib/i18n/locales";
 
+import { pagesEn as pages } from "./pages.en";
+
 /** The game's name, from the locale registry (spec 068: one source, capitalised). */
 const WORDMARK = LOCALES.en.wordmark;
 
@@ -99,6 +101,8 @@ const OFFLINE_RECONNECTING = "offline · reconnecting";
 const movesOf = (moves: number): string => `${moves} of 10`;
 const compactMove = (move: number): string => `move ${move}`;
 const goneForShort = (mmSs: string): string => `gone for ${mmSs}`;
+const steppedOut = (moves: number): string => `${moves} of 10 · stepped out`;
+const STEPPED_OUT = "stepped out";
 const BEHIND_PACE = "behind pace";
 const OFFLINE = "offline";
 // The live row's second line (spec 068 FR-028–FR-031, FR-038)
@@ -125,12 +129,6 @@ const profileOpensInNewTab = (name: string): string => `${name}, profile opens i
 const rematchRequest = (name: string): string =>
   `${name} asks for a rematch · accept ▸ · decline`;
 const waitingForRematch = (name: string): string => `waiting for ${name}`;
-const challengeNotice = (name: string): string =>
-  `${name} challenges you · accept ▸ · decline`;
-const challengeSent = (name: string): string => `challenge sent · waiting for ${name}`;
-const challengeDeclined = (name: string): string => `${name} declined your challenge`;
-const challengeUnanswered = (name: string): string => `${name} did not answer`;
-const challengeTaken = (name: string): string => `${name} took another challenge`;
 // Accepting a challenge from someone who is now in another match (spec 067 FR-019)
 const opponentBusy = (name: string): string => `${name} can't play right now`;
 
@@ -398,6 +396,8 @@ export const copyEn = {
   movesOf,
   compactMove,
   goneForShort,
+  steppedOut,
+  STEPPED_OUT,
   BEHIND_PACE,
   OFFLINE,
   moveNoWord,
@@ -415,11 +415,6 @@ export const copyEn = {
   tabTitle,
   rematchRequest,
   waitingForRematch,
-  challengeNotice,
-  challengeSent,
-  challengeDeclined,
-  challengeUnanswered,
-  challengeTaken,
   opponentBusy,
   TAGLINE,
   NEW_HERE_HOW_TO_PLAY,
@@ -509,6 +504,7 @@ export const copyEn = {
   profileUnavailable,
   noSuchPlayer,
   table,
+  pages,
   errors,
   RULES_TITLE,
   rulesMetaTitle,

@@ -25,7 +25,7 @@ import type {
 import { getDisconnectRecord, RECONNECT_WINDOW_MS } from "./disconnectStore";
 import { startingBoardFor } from "./startingBoard";
 import { startTableIfSeated, voidDueTable } from "./tableService";
-import { findStaleParticipantDetail } from "./heartbeatRepository";
+import { readParticipants } from "./heartbeatRepository";
 import { mapWordScoreRows, type WordScoreEntryRow } from "./wordScoreRow";
 
 type AnyClient = SupabaseClient<any, any, any>;
@@ -271,23 +271,34 @@ function playerFacts(match: MatchRow, playerId: string, facts: MoveFacts): Playe
 // ─── Disconnect ──────────────────────────────────────────────────────
 
 async function disconnectFacts(client: AnyClient, match: MatchRow) {
-  const inMemory =
-    getDisconnectRecord(match.id, match.player_a_id) ?? getDisconnectRecord(match.id, match.player_b_id) ?? null;
-  const stale =
-    !inMemory && match.state === "in_progress"
-      ? await findStaleParticipantDetail(client, {
+  const participants =
+    match.state === "in_progress"
+      ? await readParticipants(client, {
           matchId: match.id,
           playerAId: match.player_a_id,
           playerBId: match.player_b_id,
           matchCreatedAt: new Date(match.created_at),
         })
-      : null;
-  const disconnectedPlayerId = inMemory?.playerId ?? stale?.playerId ?? null;
+      : { stale: null, steppedOut: null };
+  const steppedOut = participants.steppedOut;
+  // A player who left the match page for the lobby closed its tab's beacon: they stepped out, not away (spec 070 US8).
+  const recorded = getDisconnectRecord(match.id, match.player_a_id) ?? getDisconnectRecord(match.id, match.player_b_id) ?? null;
+  const inMemory = recorded && recorded.playerId !== steppedOut ? recorded : null;
+  const gone = inMemory ?? participants.stale;
+  const disconnectedPlayerId = gone?.playerId ?? null;
   return {
     disconnectedPlayerId,
-    disconnectedAt: inMemory?.disconnectedAt ?? stale?.disconnectedAt ?? null,
+    disconnectedAt: gone?.disconnectedAt ?? null,
     reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,
+    steppedOutPlayerId: steppedOut,
   };
+}
+
+/** Spec 070 FR-034: where an accepted rematch went, read with the old match rather than broadcast. */
+async function rematchOf(client: AnyClient, match: MatchRow): Promise<string | null> {
+  if (match.state !== "completed") return null;
+  const { data } = await client.from("rematch_requests").select("new_match_id").eq("match_id", match.id).eq("status", "accepted").limit(1).maybeSingle();
+  return (data?.new_match_id as string | null | undefined) ?? null;
 }
 
 // ─── The loader ──────────────────────────────────────────────────────
@@ -325,6 +336,7 @@ export async function loadMatchState(client: AnyClient, matchId: string): Promis
     completedAt: match.completed_at ?? null,
     table: tableOf(match),
     stakes: match.state === "pending" ? await stakesOf(client, match) : null,
+    rematchMatchId: await rematchOf(client, match),
   };
 }
 

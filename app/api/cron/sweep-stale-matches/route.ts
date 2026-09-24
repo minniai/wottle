@@ -7,6 +7,7 @@ import { findDueTables } from "@/lib/match/findDueTables";
 import { settleMatchIfDue } from "@/lib/match/matchSettlement";
 import { publishMatchState } from "@/lib/match/statePublisher";
 import { voidDueTable } from "@/lib/match/tableService";
+import { sweepLobby, type LobbySweep } from "@/lib/lobby/sweepLobby";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = { "Cache-Control": "no-store" } as const;
@@ -35,7 +36,8 @@ function partition<T>(ids: string[], settled: PromiseSettledResult<T>[]): { done
  * Three sweeps every 30s (pg_cron → this route): orphaned matches (both players
  * gone) are abandoned, unrated (spec 050 FR-011a); matches past their deadline
  * are settled under the normal rules (contracts/settlement.md); tables whose
- * time to sit down has run out are void (spec 069 FR-015). Each goes through
+ * time to sit down has run out are void (spec 069 FR-015); and the lobby is
+ * settled (spec 070): gone players stop searching and their challenges end. Each goes through
  * its own compare-and-set, so whichever runs first wins.
  */
 export async function POST(request: Request): Promise<Response> {
@@ -74,6 +76,8 @@ export async function POST(request: Request): Promise<Response> {
   const due = partition(dueIds, await Promise.allSettled(dueIds.map((id) => settleMatchIfDue(id))));
   const tableDeps = { client: getServiceRoleClient(), publish: publishMatchState };
   const tables = partition(tableIds, await Promise.allSettled(tableIds.map((id) => voidDueTable(tableDeps, id))));
+  // Spec 070: gone players stop searching and their challenges end; stale tabs are pruned.
+  const lobby: LobbySweep | { error: string } = await sweepLobby().catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
 
   console.log(
     JSON.stringify({
@@ -84,12 +88,13 @@ export async function POST(request: Request): Promise<Response> {
       settle_failed_count: due.failed.length,
       voided_count: tables.done.length,
       void_failed_count: tables.failed.length,
+      lobby,
       duration_ms: Date.now() - startedAt,
     }),
   );
 
   return NextResponse.json(
-    { swept: orphans.done, failed: orphans.failed, settled: due.done, settleFailed: due.failed, voided: tables.done, voidFailed: tables.failed },
+    { swept: orphans.done, failed: orphans.failed, settled: due.done, settleFailed: due.failed, voided: tables.done, voidFailed: tables.failed, lobby },
     { status: 200, headers: NO_CACHE_HEADERS },
   );
 }

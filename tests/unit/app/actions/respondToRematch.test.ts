@@ -13,6 +13,7 @@ vi.mock("@/lib/rate-limiting/middleware", () => ({
 vi.mock("@/lib/match/logWriter", () => ({
   writeMatchLog: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("@/lib/realtime/pokes", () => ({ pokePlayers: vi.fn(async () => undefined) }));
 vi.mock("@/lib/match/rematchBroadcast", () => ({
   broadcastRematchEvent: vi.fn().mockResolvedValue(undefined),
 }));
@@ -30,6 +31,7 @@ import {
   fetchRematchRequest,
   updateRematchRequestStatus,
 } from "@/lib/match/rematchRepository";
+import { pokePlayers } from "@/lib/realtime/pokes";
 import { broadcastRematchEvent } from "@/lib/match/rematchBroadcast";
 import { acceptRematch } from "@/lib/match/createMatch";
 import { writeMatchLog } from "@/lib/match/logWriter";
@@ -86,7 +88,9 @@ describe("respondToRematchAction", () => {
     expect(acceptRematch).toHaveBeenCalledWith(expect.anything(), { requestId: "req-1", actorId: PLAYER_B });
     expect(updateRematchRequestStatus).not.toHaveBeenCalled();
     expect(writeMatchLog).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ matchId: "new-match-1", eventType: "match.rematch.created" }));
-    expect(broadcastRematchEvent).toHaveBeenCalledWith(MATCH_ID, expect.objectContaining({ type: "rematch-accepted", newMatchId: "new-match-1" }));
+    // Spec 070 FR-034: the broadcast names no match; both players are poked and read the id themselves.
+    expect(broadcastRematchEvent).toHaveBeenCalledWith(MATCH_ID, { type: "rematch-accepted", matchId: MATCH_ID, requesterId: expect.any(String), status: "accepted" });
+    expect(pokePlayers).toHaveBeenCalledWith([expect.any(String), expect.any(String)], "rematch");
   });
 
   it("returns busy, and announces nothing, when either player is in another match (spec 067)", async () => {

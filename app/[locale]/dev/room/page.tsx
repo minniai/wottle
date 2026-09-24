@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { isRoomPhase, type RoomPhase } from "./fixtures";
 import { RoomFixture } from "./RoomFixture";
-import RulesPage from "@/app/[locale]/rules/page";
+import RulesPage from "@/app/[locale]/(pages)/(framed)/rules/page";
 
 /**
  * The fixture route (spec 045 US1). Renders any room state from static data so

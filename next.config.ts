@@ -24,7 +24,6 @@ const DENIED_PERMISSIONS = [
   "payment",
   "picture-in-picture",
   "publickey-credentials-get",
-  "screen-wake-lock",
   "sync-xhr",
   "usb",
   "xr-spatial-tracking",
@@ -56,6 +55,16 @@ const nextConfig: NextConfig = {
       `data/wordlists/word_list_${DEFAULT_GAME_CONFIG.minimumWordLength}_${BOARD_SIZE}_*.txt`,
       "data/wordlists/word_list_*_exclusions.txt",
     ],
+  },
+  // Spec 070 FR-001: the door and the lobby are one URL per locale; the search
+  // runs in the line slot, so the queue has no page of its own.
+  async redirects() {
+    return [
+      { source: "/lobby", destination: "/", permanent: true },
+      { source: "/en/lobby", destination: "/en", permanent: true },
+      { source: "/matchmaking", destination: "/", permanent: true },
+      { source: "/en/matchmaking", destination: "/en", permanent: true },
+    ];
   },
   async headers() {
     const headers = [...COMMON_SECURITY_HEADERS];

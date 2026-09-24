@@ -25,7 +25,7 @@ export function LedgerFoot({ variant, actions, onAction, menu = true }: LedgerFo
   const other = getLocale(locale.switchTo);
   // The other language's lobby: the same page from the lobby, and the way out after a
   // match, which keeps its own language (a signed-out visitor lands on the landing page).
-  const languageHref = localePath(other.id, "/lobby");
+  const languageHref = localePath(other.id, "/");
   return (
     <div className="ledger__foot" data-testid="ledger-foot" data-field-safe>
       <div className="ledger__actions">

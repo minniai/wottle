@@ -1,0 +1,103 @@
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/link", () => ({ default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a> }));
+
+import { LocaleProvider } from "@/components/i18n/LocaleProvider";
+import { Lobby, type LobbyProps } from "@/components/page/lobby/Lobby";
+import type { LobbyRow } from "@/lib/types/standing";
+
+const row = (n: number, name: string, rating: number, state: LobbyRow["state"] = "here", record: LobbyRow["record"] = null): LobbyRow => ({
+  playerId: `00000000-0000-4000-8000-00000000000${n}`,
+  displayName: name,
+  handle: name.toLowerCase(),
+  rating,
+  state,
+  movesPlayed: state === "in_match" ? 6 : null,
+  record,
+});
+
+const BASE: LobbyProps = {
+  viewer: { displayName: "Birna", handle: "birna", rating: 1212, gamesPlayed: 35, wins: 20, losses: 15, draws: 0 },
+  rows: [row(1, "Embla", 1242, "here", { wins: 1, losses: 0, draws: 0 }), row(2, "Kári", 1179, "here", { wins: 3, losses: 1, draws: 0 }), row(3, "Jónas", 1163, "in_match")],
+  overview: {
+    counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "en", here: 7 } },
+    lastMatch: { matchId: "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: new Date(Date.now() - 86_400_000).toISOString(), youWon: true, bands: [{ tiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }], seat: "you" }] },
+    form: ["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"],
+  },
+  recent: [{ matchId: "m1", result: "win", opponentId: "k", opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 134, opponentScore: 88, wordsFound: 10, completedAt: new Date().toISOString() }],
+  onFind: vi.fn(),
+  onSend: vi.fn(async () => ({ status: "sent" as const, inviteId: "i" })),
+};
+
+function renderLobby(locale: "is" | "en", props: Partial<LobbyProps> = {}) {
+  return render(
+    <LocaleProvider locale={locale}>
+      <Lobby {...BASE} {...props} />
+    </LocaleProvider>,
+  );
+}
+
+/** Spec 070 US2 (T050): the lobby page's content. */
+describe("Lobby", () => {
+  it("names you in the one h1, with your rating, language, matches and record", () => {
+    renderLobby("is");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Birna");
+    expect(document.querySelector(".lobby-block__sub")!.textContent).toBe("1212 · elo · íslenska · 35 viðureignir · 20–15–0");
+  });
+
+  it("puts find an opponent in the block, with how many are searching", () => {
+    renderLobby("en");
+    fireEvent.click(screen.getByRole("button", { name: "find an opponent ▸" }));
+    expect(BASE.onFind).toHaveBeenCalled();
+    expect(screen.getByText("2 searching now")).toBeTruthy();
+  });
+
+  it("draws the last ten as an image whose letters carry the meaning", () => {
+    renderLobby("is");
+    const strip = screen.getByRole("img", { name: "síðustu tíu: 7 sigrar, 3 töp" });
+    expect(within(strip).getAllByText("S")).toHaveLength(7);
+  });
+
+  it("lists who is here in a table, with record, status and a challenge labelled name first", () => {
+    renderLobby("en");
+    const table = screen.getByRole("table");
+    expect(within(table).getByRole("columnheader", { name: "your record" })).toBeTruthy();
+    expect(screen.getByText("here now · 2 · 1 playing")).toBeTruthy();
+    expect(within(table).getByText("3–1")).toBeTruthy();
+    expect(within(table).getByRole("button", { name: "Kári · challenge" })).toBeTruthy();
+    expect(within(table).getByText("in a match · 6 of 10")).toBeTruthy();
+    expect(within(table).queryByRole("button", { name: "Jónas · challenge" })).toBeNull();
+    expect(within(table).getByRole("link", { name: /Kári/ }).getAttribute("href")).toBe("/en/profile/k%C3%A1ri");
+  });
+
+  it("draws the last match as a band map inside one link to it, then the verdict and your last matches", () => {
+    renderLobby("en");
+    const link = screen.getByRole("link", { name: "review your last match" });
+    expect(link.getAttribute("href")).toBe("/en/match/5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11?review=last");
+    expect(within(link).getByRole("img", { name: "Birna 134, Kári 88, yesterday" })).toBeTruthy();
+    expect(screen.getByTestId("last-match-verdict").textContent).toBe("Birna wins 134–88");
+    expect(screen.getByText("your last matches")).toBeTruthy();
+  });
+
+  it("shows a new player the first-match state", () => {
+    renderLobby("en", { viewer: { ...BASE.viewer, gamesPlayed: 0, wins: 0, losses: 0, rating: 1200 }, overview: { ...BASE.overview, lastMatch: null, form: [] }, recent: [] });
+    expect(document.querySelector(".lobby-block__sub")!.textContent).toBe("1200 · rating · english · no matches yet");
+    expect(screen.getByText("Your first match will show here.")).toBeTruthy();
+  });
+
+  it("in an empty lobby says so, keeps find as the primary and offers to tell you when someone comes", () => {
+    renderLobby("en", { rows: [] });
+    expect(screen.getByText("No one else is here.")).toBeTruthy();
+    expect(screen.getByText("you will be paired as soon as someone arrives")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "find an opponent ▸" }).className).toContain("action-primary");
+  });
+
+  it("shows eight rows, then the rest on request", () => {
+    const many = Array.from({ length: 11 }, (_, i) => row(i, `P${i}`, 1200 + i));
+    renderLobby("en", { rows: many });
+    expect(screen.getAllByTestId("lobby-row")).toHaveLength(8);
+    fireEvent.click(screen.getByRole("button", { name: "+ 3 more ▸" }));
+    expect(screen.getAllByTestId("lobby-row")).toHaveLength(11);
+  });
+});

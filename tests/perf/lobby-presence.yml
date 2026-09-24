@@ -17,10 +17,12 @@ config:
       expression: "median < 1000"
 
 scenarios:
+  # Spec 070: the lobby list needs a session; the public overview carries the
+  # same presence read (player_presence + lobby_counts) for anyone.
   - name: lobby presence snapshot
     flow:
       - get:
-          url: "/api/lobby/players"
+          url: "/api/lobby/overview?language=is"
           expect:
             - statusCode: 200
 

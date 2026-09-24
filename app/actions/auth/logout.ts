@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE_NAME, signedOutCookieOptions, SIGNED_OUT_COOKIE_NAME } from "@/lib/auth/cookies";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { readLobbySession } from "@/lib/matchmaking/profile";
+import { clearUnseenResult } from "@/lib/match/unseenResult";
 import { forgetPresence } from "@/lib/matchmaking/presenceCache";
 import { expireLobbyPresence } from "@/lib/matchmaking/service";
 import { assertWithinRateLimit } from "@/lib/rate-limiting/middleware";
@@ -43,6 +44,7 @@ export async function logoutAction(): Promise<LogoutResult> {
   }
 
   await expireLobbyPresence(supabase, playerId);
+  await clearUnseenResult(playerId, null);
   forgetPresence(playerId);
 
   const cookieStore = await cookies();

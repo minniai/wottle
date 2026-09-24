@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn() }) }));
+vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn(), getChannels: () => [] }) }));
 vi.mock("@/lib/realtime/matchChannel", () => ({
   subscribeToMatchChannel: (_c: unknown, _m: string, cb: { onMoveResolved?: (r: MoveResolution) => void; onState?: (s: MatchState) => void; onRematchEvent?: (e: import("@/lib/types/match").RematchEvent) => void }) => {
     mockCallbacks.onMoveResolved = cb.onMoveResolved ?? null;
@@ -38,7 +38,10 @@ vi.mock("@/app/actions/match/leaveTable", () => ({ leaveTableAction: vi.fn().moc
 vi.mock("@/app/actions/matchmaking/startQueue", () => ({ startQueueAction: vi.fn().mockResolvedValue({ status: "queued" }) }));
 vi.mock("@/app/actions/matchmaking/cancelQueue", () => ({ cancelQueueAction: vi.fn().mockResolvedValue({ status: "cancelled" }) }));
 vi.mock("@/app/actions/matchmaking/getMatchOverview", () => ({ getMatchOverviewAction: vi.fn().mockResolvedValue(null) }));
-vi.mock("@/app/actions/matchmaking/sendInvite", () => ({ sendInviteAction: vi.fn().mockResolvedValue({ status: "sent", inviteId: "i1" }) }));
+vi.mock("@/app/actions/challenge/send", () => ({ sendChallengeAction: vi.fn().mockResolvedValue({ status: "sent", inviteId: "i1" }) }));
+// Spec 070: the search is the standing provider's; the void slip reads it.
+const standing = vi.hoisted(() => ({ machine: null as null | { slot: unknown; onAction: (a: string) => void; search: { start: () => void } } }));
+vi.mock("@/components/standing/StandingProvider", () => ({ useStandingSlot: () => ({ machine: standing.machine }) }));
 
 import { __resetWordIntegrityForTests } from "@/lib/room/wordIntegrity";
 import { MatchRoomController } from "@/components/room/MatchRoomController";
@@ -51,7 +54,7 @@ import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import { seatAction } from "@/app/actions/match/seat";
 import { leaveTableAction } from "@/app/actions/match/leaveTable";
 import { cancelQueueAction } from "@/app/actions/matchmaking/cancelQueue";
-import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { sendChallengeAction } from "@/app/actions/challenge/send";
 import { startQueueAction } from "@/app/actions/matchmaking/startQueue";
 import type { RematchEvent } from "@/lib/types/match";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -616,7 +619,7 @@ describe("MatchRoomController (spec 050)", () => {
     await screen.findByTestId("slip", {}, { timeout: 3_000 });
     fireEvent.click(screen.getByTestId("slip-lobby"));
     expect(screen.queryByTestId("slip")).toBeNull();
-    expect(mockReplace).toHaveBeenCalledWith("/en/lobby");
+    expect(mockReplace).toHaveBeenCalledWith("/en");
   });
 });
 
@@ -792,7 +795,7 @@ describe("MatchRoomController at the table (spec 069)", () => {
     expect(seatAction).toHaveBeenCalledWith("m1");
     fireEvent.click(screen.getByTestId("slip-leave-table"));
     await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
   });
 
   it("says politely when the opponent sits down", async () => {
@@ -824,25 +827,26 @@ describe("MatchRoomController at the table (spec 069)", () => {
   const voidOf = (origin: "queue" | "challenge" | "rematch", voidedBy: string, seats: { a: string | null; b: string | null } = { a: "x", b: null }) =>
     table(seats, { state: "completed", endedReason: "void", completedAt: NOW, table: { ...SEATED_TABLE, seats, origin, voidReason: "not_seated", voidedBy, rematchOf: origin === "rematch" ? "m0" : null, deadlineAt: NOW } });
 
-  it("a void rates nothing and raises no match-over slip; a seated searcher keeps searching from it (spec 069 T040)", async () => {
-    vi.mocked(startQueueAction).mockClear();
+  it("a void rates nothing and raises no match-over slip; a seated searcher keeps searching from it (spec 069 T040, spec 070)", async () => {
+    const onAction = vi.fn();
+    standing.machine = { slot: { kind: "search", search: { kind: "searching", elapsedSeconds: 3 } }, onAction, search: { start: vi.fn() } };
     renderController(voidOf("queue", "player-2"));
     const slip = await screen.findByTestId("slip");
     expect(slip).toHaveAttribute("data-kind", "void");
     expect(slip).toHaveTextContent("Bob did not sit down");
     expect(getMatchRatings).not.toHaveBeenCalled();
-    await waitFor(() => expect(startQueueAction).toHaveBeenCalled());
-    expect(screen.getByTestId("slip-void-searching")).toHaveTextContent("searching · 0:0");
+    expect(screen.getByTestId("slip-void-searching")).toHaveTextContent("searching · 0:03");
     fireEvent.click(screen.getByTestId("slip-void-cancelQueue"));
-    await waitFor(() => expect(cancelQueueAction).toHaveBeenCalled());
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    expect(onAction).toHaveBeenCalledWith("cancelSearch");
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
+    standing.machine = null;
   });
 
   it("`challenge again ▸` sends a new challenge to the same player and goes to the lobby", async () => {
     renderController(voidOf("challenge", "player-2"));
     fireEvent.click(await screen.findByTestId("slip-void-challengeAgain"));
-    await waitFor(() => expect(sendInviteAction).toHaveBeenCalledWith("player-2", "is"));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    await waitFor(() => expect(sendChallengeAction).toHaveBeenCalledWith({ recipientId: "player-2" }));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
   });
 
   it("after a rematch table, `result ▸` opens the previous match", async () => {
@@ -858,7 +862,7 @@ describe("MatchRoomController at the table (spec 069)", () => {
     expect(pushState).toHaveBeenCalledWith({ kind: "table-guard" }, "");
     act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
     await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/lobby"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
     pushState.mockRestore();
   });
 

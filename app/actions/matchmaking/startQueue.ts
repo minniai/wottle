@@ -5,6 +5,7 @@ import "server-only";
 import { z } from "zod";
 
 import type { Attention } from "@/lib/matchmaking/attention";
+import { withdrawOutgoing } from "@/lib/matchmaking/challengeService";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import {
   startAutoQueue,
@@ -41,6 +42,8 @@ export async function startQueueAction(input: { language?: string; attention?: A
 
   try {
     const supabase = getServiceRoleClient();
+    // The first ask of a search withdraws the player's challenge (spec 070 FR-019).
+    if (input.resume === true) await withdrawOutgoing(session.player.id);
     const attention = attentionSchema.safeParse(input.attention);
     const result = await startAutoQueue(supabase, {
       playerId: session.player.id,

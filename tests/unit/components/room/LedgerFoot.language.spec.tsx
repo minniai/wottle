@@ -10,7 +10,7 @@ describe("LedgerFoot language link", () => {
     render(<LocaleProvider locale="en"><LedgerFoot variant="lobby" onAction={() => {}} /></LocaleProvider>);
     const link = screen.getByTestId("ledger-language");
     expect(link).toHaveTextContent("íslenska ▸");
-    expect(link).toHaveAttribute("href", "/lobby");
+    expect(link).toHaveAttribute("href", "/");
     expect(link).toHaveAttribute("lang", "is");
   });
 
@@ -18,12 +18,12 @@ describe("LedgerFoot language link", () => {
     render(<LocaleProvider locale="is"><LedgerFoot variant="lobby" onAction={() => {}} /></LocaleProvider>);
     const link = screen.getByTestId("ledger-language");
     expect(link).toHaveTextContent("english ▸");
-    expect(link).toHaveAttribute("href", "/en/lobby");
+    expect(link).toHaveAttribute("href", "/en");
   });
 
   it("after a match it leads to the other language's lobby, since a match keeps its own language", () => {
     render(<LocaleProvider locale="en"><LedgerFoot variant="final" onAction={() => {}} /></LocaleProvider>);
-    expect(screen.getByTestId("ledger-language")).toHaveAttribute("href", "/lobby");
+    expect(screen.getByTestId("ledger-language")).toHaveAttribute("href", "/");
   });
 
   it("a live match offers no language link", () => {

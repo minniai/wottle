@@ -119,6 +119,12 @@ describe("RoomFixture", () => {
     expect(screen.getByTestId("slip-end-early")).toBeInTheDocument();
   });
 
+  it("leave: the slip asks before leaving and focuses stay; it never offers to resign (spec 070 C7)", () => {
+    render(<RoomFixture phase="leave" />);
+    expect(screen.getByTestId("slip")).toHaveAttribute("data-kind", "leave");
+    expect(screen.getByTestId("slip")).not.toHaveTextContent(/resign/i);
+  });
+
   it("final: on the grid the scoreboard carries the totals, so the ledger ends level with the field (spec 068)", () => {
     const final = render(<RoomFixture phase="final" />);
     expect(screen.queryByTestId("ledger-totals")).toBeNull();

@@ -88,6 +88,9 @@ export type LedgerAction =
   | "endEarly"
   | "keepWaiting"
   | "keepPlaying"
+  /** Spec 070: the leave slip's safe action and its way out. */
+  | "stay"
+  | "goToLobby"
   | "reviewField"
   | "result"
   | "howToPlay"
@@ -96,24 +99,17 @@ export type LedgerAction =
   | "sitDown"
   | "leaveTable"
   | "challengeAgain"
-  | { challenge: string }
-  | { acceptChallenge: string }
-  | { declineChallenge: string };
+  /** Spec 070 B6: a call answered from the result screen's ledger line. */
+  | "acceptCall"
+  | "declineCall"
+  | { challenge: string };
 
 export type Notice =
   | { kind: "pickCleared"; byName: string; expiresAt: number }
   | { kind: "rematchRequest"; requesterName: string }
-  | { kind: "challenge"; fromName: string; inviteId: string }
-  | { kind: "challengeSent"; toName: string; inviteId: string }
-  | { kind: "text"; text: string };
-
-/** The viewer's latest challenge as the lobby poll reports it (GET /api/lobby/invite). */
-export interface OutgoingChallenge {
-  id: string;
-  status: "pending" | "accepted" | "declined" | "expired" | "withdrawn" | "superseded";
-  recipientName: string;
-  recipientInMatch: boolean;
-}
+  | { kind: "text"; text: string }
+  /** Spec 070 B6: a third party's call on the result screen. */
+  | { kind: "call"; inviteId: string; text: string };
 
 export const EMPTY_TERRITORY: Territory = { you: 0, opp: 0, free: 100 };
 

@@ -10,7 +10,7 @@ import { resignMatch } from "@/app/actions/match/resignMatch";
 import { settleMatch } from "@/app/actions/match/settleMatch";
 import { leaveTableAction } from "@/app/actions/match/leaveTable";
 import { seatAction } from "@/app/actions/match/seat";
-import { sendInviteAction } from "@/app/actions/matchmaking/sendInvite";
+import { sendChallengeAction } from "@/app/actions/challenge/send";
 import { useLocalePath } from "@/components/i18n/LocaleProvider";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
@@ -28,8 +28,8 @@ import type { Line2Extras } from "@/lib/room/moveState";
 import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
+import { ledgerCallLine } from "@/lib/room/ledgerCallLine";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
-import { useMatchmaking } from "@/lib/room/useMatchmaking";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -38,6 +38,7 @@ import type { Coordinate } from "@/lib/types/board";
 import type { MatchPlayerProfiles, MatchState, MoveRejectionReason, MoveResolution, PlayerSlot } from "@/lib/types/match";
 import { boardOrBlank } from "@/lib/constants/board";
 import { Field } from "./Field";
+import { useStandingSlot } from "@/components/standing/StandingProvider";
 import { MatchRoomView } from "./MatchRoomView";
 import { useAccumulatedMoves } from "./hooks/useAccumulatedMoves";
 import { useWordHistory } from "./hooks/useWordHistory";
@@ -47,6 +48,7 @@ import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
+import { useLiveBackGuard } from "./hooks/useLiveBackGuard";
 import { tableFacts, useSeatAnnouncement, useTableBackGuard, useTableDeadlineRead } from "./hooks/useTable";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
@@ -106,22 +108,17 @@ function latestResolution(match: MatchState): MoveResolution | null {
   return a.globalSeq >= b.globalSeq ? a : b;
 }
 
-/**
- * The match phase of the room (spec 044, spec 050). Owns nothing visual: it
- * hydrates the room store, runs transport, and wires the field interaction into
- * bars, field and ledger.
- */
-/** When a void table ended; the requeued search counts from it. */
-function voidedAtOf(match: MatchState): number {
-  return match.completedAt ? Date.parse(match.completedAt) : Date.now();
-}
-
 /** The clock's length for this match (5:00 unless the playtest env shortens it); null before it is set. */
 function clockLengthOf(clock: MatchState["clock"]): number | null {
   if (!clock?.startedAt || !clock.deadlineAt) return null;
   return new Date(clock.deadlineAt).getTime() - new Date(clock.startedAt).getTime();
 }
 
+/**
+ * The match phase of the room (spec 044, spec 050). Owns nothing visual: it
+ * hydrates the room store, runs transport, and wires the field interaction into
+ * bars, field and ledger.
+ */
 export function MatchRoomController({ initialState, currentPlayerId, matchId, playerProfiles, pollIntervalMs }: MatchRoomControllerProps) {
   const copy = useCopy();
   const { LOBBY, RESULT } = copy;
@@ -313,18 +310,20 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // A phone stays awake at the table (FR-029).
   useWakeLock(atTable && !voided);
   const table = tableFacts(match, viewerSlot);
-  // A seated searcher whose table voided is back in the queue, and keeps searching from the void slip (FR-017).
-  const requeue = useMatchmaking(!readOnly && voided && Boolean(table.youRequeued), voidedAtOf(match), match.language);
+  // A seated searcher whose table voided is back in the queue (FR-017); spec 070: the search is the
+  // standing provider's, one poll for the whole app, and the void slip reads it.
+  const standing = useStandingSlot().machine;
+  const requeued = standing?.slot.kind === "search" ? standing.slot.search : null;
+  // Spec 070 FR-034: a rematch reaches this page as a poke on the player's topic; the id is read, never carried.
+  const onPoke = standing?.onPoke;
+  const checkRematch = rematch.check;
+  useEffect(() => onPoke?.((kind) => kind === "rematch" && void checkRematch()), [onPoke, checkRematch]);
   const derivedSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
-  const tableSlip = derivedSlip?.kind === "void" && requeue.state.kind === "searching" && table.youRequeued
-    ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeue.state.elapsedSeconds * 1000)}` } }
+  const tableSlip = derivedSlip?.kind === "void" && requeued?.kind === "searching" && table.youRequeued
+    ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeued.elapsedSeconds * 1000)}` } }
     : derivedSlip;
-  const leaveTheTable = useCallback(() => void leaveTableAction(matchId).then(() => router.push(to("/lobby"))), [matchId, router, to]);
+  const leaveTheTable = useCallback(() => void leaveTableAction(matchId).then(() => router.push(to("/"))), [matchId, router, to]);
   useTableBackGuard(!readOnly && (match.state === "pending" || msToStart > 0), leaveTheTable);
-  const foundMatchId = requeue.state.kind === "found" ? requeue.state.matchId : null;
-  useEffect(() => {
-    if (foundMatchId) router.push(to(`/match/${foundMatchId}`));
-  }, [foundMatchId, router, to]);
   const tableAnnouncement = useSeatAnnouncement(match, viewerSlot, opp.displayName, copy);
   const refreshMatch = transport.refresh;
   useTableDeadlineRead(match, serverDrift, refreshMatch);
@@ -427,6 +426,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // elapsed and the viewer has all their moves, ending early is put on a slip.
   const opponentGone = match.disconnectedPlayerId === oppFacts.playerId && inProgress;
   const disconnectedAt = opponentGone ? match.disconnectedAt ?? null : null;
+  const opponentSteppedOut = !opponentGone && inProgress && match.steppedOutPlayerId === oppFacts.playerId;
   // Measured on the server-corrected clock: a wrong device clock must not move the 90s window (spec 068 R9).
   const now = useNowTick(Boolean(disconnectedAt)) + serverDrift;
   const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
@@ -519,23 +519,31 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     [matchId, push],
   );
 
+  // Spec 070 US8: after go, Back opens the leave slip; leaving never resigns and the clock runs on.
+  const raiseLeave = useCallback(
+    () => setSlip({ kind: "leave", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), limit: match.moveLimit, clockMs }),
+    [setSlip, youFacts.movesPlayed, match.moveLimit, clockMs],
+  );
+  const liveGuard = useLiveBackGuard({ live: !readOnly && inProgress && msToStart <= 0, onBack: raiseLeave });
   const handleAction = useCallback(
     (action: LedgerAction) => {
       if (action === "rematch") void rematch.request();
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
       else if (action === "reviewField") dismissSlip();
+      // B6: a third party's call answered from the result screen goes through the standing machine.
+      else if (action === "acceptCall") standing?.onAction("accept");
+      else if (action === "declineCall") standing?.onAction("decline");
       else if (action === "result" && !voided) restoreSlip();
       else if (action === "newOpponent") {
-        // A queue-found match runs under /matchmaking, so the route alone would
-        // not remount the queue; the store's search counter does.
-        useRoomStore.getState().requestNewSearch();
-        router.replace(to("/matchmaking"));
+        // Spec 070: a search runs in the line slot, from the lobby.
+        standing?.search.start();
+        router.replace(to("/"));
       }
       else if (action === "lobby") {
         // The slip belongs to the match: take it down before the lobby draws.
         dismissSlip();
-        router.replace(to("/lobby"));
+        router.replace(to("/"));
       }
       // The final ⋯ menu offers profile and sign out (reported 2026-09-21: they did nothing here).
       else if (action === "profile") {
@@ -553,17 +561,27 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       }
       else if (action === "sitDown") void seatAction(matchId).then(refreshMatch);
       else if (action === "leaveTable") leaveTheTable();
-      else if (action === "cancelQueue") void requeue.cancel().then(() => router.push(to("/lobby")));
+      else if (action === "cancelQueue") {
+        standing?.onAction("cancelSearch");
+        router.push(to("/"));
+      }
       else if (action === "challengeAgain") {
         // The same player, through the ordinary send (spec 069 clarification Q2); a refusal stays here and says why.
-        void sendInviteAction(oppFacts.playerId, match.language).then((r) => {
-          if (r.status === "accepted" && "matchId" in r && r.matchId) router.push(to(`/match/${r.matchId}`));
-          else if (r.status === "sent") router.push(to("/lobby"));
+        void sendChallengeAction({ recipientId: oppFacts.playerId }).then((r) => {
+          if (r.status === "crossed") router.push(to(`/match/${r.matchId}`));
+          else if (r.status === "sent") router.push(to("/"));
           else push({ kind: "text", text: copy.errors[r.status === "cooldown" ? "table_cooldown" : "invite_failed"] });
         });
       }
       else if (action === "result" && voided && match.table.rematchOf) router.push(to(`/match/${match.table.rematchOf}`));
-      else if (action === "resign" || action === "leave") {
+      else if (action === "leave") raiseLeave();
+      else if (action === "stay") clearSlip("leave");
+      else if (action === "goToLobby") {
+        clearSlip("leave");
+        liveGuard.release();
+        router.push(to("/"));
+      }
+      else if (action === "resign") {
         // The loss stake the table showed (spec 069 US8); none after a mid-match reload.
         const loss = useRoomStore.getState().stakes?.[youFacts.playerId]?.loss;
         setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName, ...(loss === undefined ? {} : { loss }) });
@@ -580,7 +598,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, requeue, oppFacts.playerId, match.language, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, raiseLeave, liveGuard, oppFacts.playerId, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
@@ -588,6 +606,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   const rematchLine =
     rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.phase === "busy" ? copy.opponentBusy(opp.displayName) : rematch.error ? copy.errors[rematch.error] : null;
+  const callLine = completed && !slipUp ? ledgerCallLine(null, standing?.slot.kind === "call" ? standing.slot.call : null, copy) : null;
   // Steady transport lines first, pushed notices last: on the desktop grid the state row shows the
   // latest one, so a fresh error or rematch line is never hidden behind `realtime lost` (spec 068).
   const allNotices: Notice[] = [
@@ -595,6 +614,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
     ...notices,
+    // B6: once the result's slip is lifted, a third party's call is the ledger's line.
+    ...(callLine ? [callLine] : []),
   ];
   void dismiss;
 
@@ -604,7 +625,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         matchId={matchId}
         viewerSlot={viewerSlot}
         you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs }}
+        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
         msToStart={Math.max(0, msToStart)}

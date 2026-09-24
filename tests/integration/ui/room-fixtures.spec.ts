@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { FIXED_NOW, PAGE_PHASES } from "../../../app/[locale]/dev/page/fixtures";
 import { ROOM_PHASES } from "../../../app/[locale]/dev/room/fixtures";
 import { copyEn } from "../../../lib/i18n/copy/en";
 import { copyIs } from "../../../lib/i18n/copy/is";
@@ -434,7 +435,7 @@ test.describe("@visual the room fits a phone", () => {
 
   // Spec 068 FR-018 (game flow F8): a phone slip is exactly the field's square and never crosses the scoreboard.
   // Spec 069 (game flow F5): the table's slips too.
-  for (const phase of ["resign", "end-early", "table", "void"]) {
+  for (const phase of ["resign", "leave", "end-early", "table", "void"]) {
     test(`the ${phase} slip fills the field's square`, async ({ page }) => {
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByTestId("slip")).toBeVisible();
@@ -550,7 +551,7 @@ test.describe("@visual room clarity", () => {
     }
   });
 
-  for (const phase of ["landing-slip", "returning-slip", "resign", "end-early", "over-slip", "table", "table-seated", "void", "void-queue"]) {
+  for (const phase of ["resign", "leave", "end-early", "over-slip", "table", "table-seated", "void", "void-queue"]) {
     test(`${phase} is accessible with the slip open`, async ({ page }) => {
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByRole("dialog")).toBeVisible();
@@ -570,7 +571,7 @@ test.describe("@visual room clarity", () => {
  * pins the Icelandic lines fitting it — the longest strings, the slips, the
  * final verdict, the profile and the rules.
  */
-const ICELANDIC_PHASES = ["landing-slip", "returning-slip", "lobby", "picking", "reveal", "done-waiting", "final", "over-slip", "profile", "rules"] as const;
+const ICELANDIC_PHASES = ["picking", "reveal", "done-waiting", "final", "over-slip", "profile", "rules"] as const;
 
 test.describe("@visual @is the room in Icelandic", () => {
   for (const phase of ICELANDIC_PHASES) {
@@ -581,6 +582,26 @@ test.describe("@visual @is the room in Icelandic", () => {
       else if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
       else await expect(page.getByTestId("field")).toBeVisible();
       await expect(page).toHaveScreenshot(`is-${phase}.png`, { fullPage: phase === "rules" });
+    });
+  }
+});
+
+/**
+ * The pages (spec 070 T017): the door and the lobby from `/dev/page`, at the
+ * three project viewports, plus the two short phones every page must fit.
+ */
+test.describe("@visual the pages, from fixtures", () => {
+  for (const phase of PAGE_PHASES as readonly string[]) {
+    test(`page ${phase} matches its baseline`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on("console", (message) => message.type() === "error" && errors.push(message.text().slice(0, 200)));
+      const localePrefix = phase.startsWith("is-") ? "" : "/en";
+      // The fixtures' own instant: a countdown on a row reads the same on every run.
+      await page.clock.setFixedTime(FIXED_NOW);
+      await page.goto(`${localePrefix}/dev/page?phase=${phase}`);
+      await expect(page.getByRole("main")).toBeVisible();
+      await expect(page).toHaveScreenshot(`page-${phase}.png`, { fullPage: true });
+      expect(errors, `${phase} logs no errors`).toEqual([]);
     });
   }
 });

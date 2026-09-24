@@ -20,21 +20,21 @@ The canvas is private. A session signed in to the owner's account reads it with 
 - **Fixtures and visual tests.** New or changed room states get a `/dev/room` fixture phase. Baselines change only through `pnpm test:visual --update-snapshots`, and the Linux set comes from the CI visual job.
 - **Icelandic strings marked (?) ship as drafted.** They stay listed for a native read in spec §10 Q1.
 - **Out of scope in every stage:**
-  - phase 2: S14 head-to-head, S15 block, report and rename, S16 reactions, S17 best-here hints, S18 Web Push, S20 provisional ratings and the 1200 pairing rule
+  - phase 2: S15 block, report and rename, S16 reactions, S17 best-here hints, S18 Web Push, S20 provisional ratings and the 1200 pairing rule (S14 head-to-head was built in stage 4)
   - identity recovery, which comes with Supabase Auth in the next phase
   - watching live matches and following players, both out of this beta
   - cross-language challenges, S19, which is withdrawn
 
 ## The stages
 
-| #   | Stage                                              | Server work (§7.9)            | Screens                                |
-| --- | -------------------------------------------------- | ----------------------------- | -------------------------------------- |
-| 1   | Identity and one commitment at a time              | S1, S2                        | A1 returning door, name taken          |
-| 2   | The scoreboard, one grid, colours and brand casing | none                          | C4, C6, C8, F3, F8 (resign, end early) |
-| 3   | The table                                          | S3, S7, S12, S13 (table rows) | C1, C2, C3, F5                         |
-| 4   | Door, lobby, challenges and presence               | S4, S5, S6, S10               | A1, B1–B8, C7, F1, F2, F6, F8 (leave)  |
-| 5   | Result, rematch and review                         | S8, S9, S13 (review rows)     | D1, D2, D3, F4, F7                     |
-| 6   | Invite links and profiles                          | S11                           | A2, B9, E1, E2, E3, F9                 |
+| #   | Stage                                              | Server work (§7.9)            | Screens                                | Status (24 September 2026)                                |
+| --- | -------------------------------------------------- | ----------------------------- | -------------------------------------- | --------------------------------------------------------- |
+| 1   | Identity and one commitment at a time              | S1, S2                        | A1 returning door, name taken          | Merged, spec 067, PR #310                                 |
+| 2   | The scoreboard, one grid, colours and brand casing | none                          | C4, C6, C8, F3, F8 (resign, end early) | Merged, spec 068, PR #313                                 |
+| 3   | The table                                          | S3, S7, S12, S13 (table rows) | C1, C2, C3, F5                         | Merged, spec 069, PR #317                                 |
+| 4   | Door, lobby, challenges and presence               | S4, S5, S6, S10 (and S14)     | A1, B1–B8, C7, F1, F2, F6, F8 (leave)  | Built on branch `070-door-lobby`, spec 070; PR not opened |
+| 5   | Result, rematch and review                         | S8, S9, S13 (review rows)     | D1, D2, D3, F4, F7                     | Not started                                               |
+| 6   | Invite links and profiles                          | S11                           | A2, B9, E1, E2, E3, F9                 | Not started                                               |
 
 ### Stage 1 · Identity and one commitment at a time
 
@@ -112,6 +112,14 @@ Build:
 
 Out of scope: invite links and profiles (stage 6); phase 2 items; watching and following.
 ```
+
+**What stage 4 left for the stages after it** (spec `specs/070-door-lobby/`, tasks and gate results in its `tasks.md`):
+
+- **S14 moved forward.** The owner chose to build the lobby's record column in stage 4, so head-to-head (`head_to_head`, `lib/matchmaking/headToHead.ts`) exists; it is no longer a phase 2 item. Block, report and rename still are.
+- **Pages have their own fixtures.** The door and the lobby render at `/dev/page?phase=…` (door, lobby, composer, the line slot's states), next to `/dev/room`. A new page state gets a page phase. Page screenshots freeze the clock at the fixtures' instant, and `?long=1` swaps every name for a 24-character one for `tests/integration/ui/slot-overflow.spec.ts`.
+- **Take baselines from a production build.** The dev server draws its issue badge into full-page screenshots. Build with `NEXT_PUBLIC_DISABLE_REALTIME=false` (the quickstart's `.env.local` turns realtime off, so the dev server only polls) and run the two-player specs one at a time against it.
+- **Stage 5.** The rematch id is no longer broadcast: both players get a `rematch` poke and read `rematchMatchId` from the old match's state route (`useRematchNegotiation.check`). A call that arrives on the result screen after the slip is lifted is the ledger's line through `ledgerCallLine(rematch, call)`, which already ranks a rematch first; stage 5 passes its request in. A match that ends while a player is away stays in their line slot (`unseen_result_match_id`) until they open it, and the slot's `result ▸` goes to the match page, which review will extend.
+- **Stage 6.** The profile is already a page in the page frame, with the masthead and line slot; the invite door and the public profile's `challenge ▸` should reuse the door's form and the lobby's composer and its stakes. A link counts as the sender's outgoing challenge, so it goes through `send_challenge`'s gates (`lib/matchmaking/challengeService.ts` is the one caller; a grep test enforces it).
 
 ### Stage 5 · Result, rematch and review
 

@@ -107,7 +107,9 @@ test.describe("@match-completion final room state", () => {
       await expect(pageB.getByTestId("ledger-notice").filter({ hasText: /declined/ })).toBeVisible({ timeout: 15_000 });
 
       await pageA.getByTestId("slip-lobby").click();
-      await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+      // Spec 070: the lobby is a page at the language's root, not a state of the room.
+      await expect(pageA).toHaveURL(/\/en\/?$/, { timeout: 15_000 });
+      await expect(pageA.getByTestId("lobby-find")).toBeVisible();
       // Reported 2026-09-21: the match-over slip stayed up over the lobby.
       await expect(pageA.getByTestId("slip")).toHaveCount(0);
     } finally {

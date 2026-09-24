@@ -8,14 +8,11 @@ import { expect, type Page } from "@playwright/test";
  */
 export async function loginViaSlip(page: Page, username: string): Promise<void> {
   await page.goto("/en");
-  // Spec 048 US4: the name input is on the sign-in slip over the empty field.
-  await expect(page.getByTestId("slip")).toHaveAttribute("data-kind", "signIn");
-  await page.getByTestId("player-bar-name-input").fill(username);
-  await page.getByTestId("player-bar-action-play").click();
-  await expect(page.getByTestId("slip")).toHaveCount(0, { timeout: 20_000 });
-  await expect(page).toHaveURL(/\/lobby$/, { timeout: 20_000 });
-  await expect(page.getByTestId("ledger-here-now")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId("player-bar-action-find")).toBeEnabled({ timeout: 10_000 });
+  // Spec 070: the door. One name field, one primary; the lobby renders at the same URL.
+  await page.getByTestId("door-name").fill(username);
+  await page.getByTestId("door-enter").click();
+  await expect(page.getByTestId("door-form")).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.getByTestId("lobby-find")).toBeVisible({ timeout: 20_000 });
 }
 
 /**
@@ -88,17 +85,9 @@ export async function startMatchWithDirectInvite(
   // Stabilisation wait: presence store churns while realtime sync settles.
   await safeWait(pageA, 1500);
 
-  // Player A: `challenge ▸` on Player B's here-now row (no dialog — design system §5.5).
-  const remainingForChallenge = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const targetRow = pageA.getByTestId("ledger-here-now-row").filter({ hasText: `@${playerBUsername}` });
-  await targetRow.waitFor({ state: "visible", timeout: remainingForChallenge });
-  await targetRow.getByRole("button", { name: /challenge/i }).click();
-
-  // Player B: the challenge arrives as a ledger line; accept ▸.
-  const remainingForNotice = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const accept = pageB.getByTestId("notice-accept-challenge");
-  await accept.waitFor({ state: "visible", timeout: remainingForNotice });
-  await accept.click();
+  // Player A challenges B from B's row; B accepts the call in the line slot.
+  await challenge(pageA, playerBUsername, Math.max(5_000, timeoutMs - (Date.now() - startTime)));
+  await acceptCall(pageB, Math.max(5_000, timeoutMs - (Date.now() - startTime)));
 
   // Both players: wait for the match shell.
   const remainingForMatch = Math.max(5_000, timeoutMs - (Date.now() - startTime));
@@ -109,6 +98,23 @@ export async function startMatchWithDirectInvite(
   );
 
   return [matchIdA, matchIdB];
+}
+
+/** `challenge ▸` on the named player's row opens the composer (spec 070 B2); send it. */
+export async function challenge(page: Page, username: string, timeoutMs = 30_000): Promise<void> {
+  const row = page.getByTestId("lobby-row").filter({ hasText: `@${username}` });
+  await row.waitFor({ state: "visible", timeout: timeoutMs });
+  await row.getByRole("button", { name: /challenge/i }).click();
+  await safeWait(page, GUARD_MS);
+  await page.getByTestId("composer-send").click();
+}
+
+/** The call arrives in the line slot (spec 070 B5); `accept ▸` after its 500ms guard. */
+export async function acceptCall(page: Page, timeoutMs = 30_000): Promise<void> {
+  const accept = page.locator("[data-testid=slot-accept]:visible").first();
+  await accept.waitFor({ state: "visible", timeout: timeoutMs });
+  await safeWait(page, GUARD_MS);
+  await accept.click();
 }
 
 /**
@@ -129,8 +135,8 @@ async function waitForPlayersVisible(
       throw new Error("Page was closed while waiting for players to be visible");
     }
 
-    const lobbyListA = pageA.getByTestId("ledger-here-now");
-    const lobbyListB = pageB.getByTestId("ledger-here-now");
+    const lobbyListA = pageA.getByRole("main");
+    const lobbyListB = pageB.getByRole("main");
 
     const lobbyReadyA = await lobbyListA.isVisible().catch(() => false);
     const lobbyReadyB = await lobbyListB.isVisible().catch(() => false);
@@ -165,6 +171,15 @@ async function waitForPlayersVisible(
   }
 
   throw new Error(`Timeout waiting for players to be visible after ${timeoutMs}ms`);
+}
+
+/** How long a control that appears ignores a press (game flow §5.0 guards), plus a margin. */
+const GUARD_MS = 600;
+
+/** Spec 070: `find an opponent ▸` from the lobby, when it is there to press. */
+export async function findOpponent(page: Page): Promise<void> {
+  const find = page.getByTestId("lobby-find");
+  if (await find.isVisible().catch(() => false)) await find.click();
 }
 
 /** How long `ready ▸` ignores a press after it appears (game flow §5.0 guards). */
@@ -278,21 +293,8 @@ export async function startMatchWithRetry(
         throw new Error("Page was closed before starting match (likely due to test timeout)");
       }
 
-      // Click both start buttons simultaneously
-      await Promise.all([
-        pageA.getByTestId("player-bar-action-find").click().catch((e) => {
-          if (!isPageOpen(pageA)) {
-            throw new Error("Page A was closed during button click");
-          }
-          throw e;
-        }),
-        pageB.getByTestId("player-bar-action-find").click().catch((e) => {
-          if (!isPageOpen(pageB)) {
-            throw new Error("Page B was closed during button click");
-          }
-          throw e;
-        }),
-      ]);
+      // Both press find (spec 070: the search runs in the line slot); a page already searching shows none.
+      await Promise.all([findOpponent(pageA), findOpponent(pageB)]);
 
       // Wait a moment for queue processing
       await safeWait(pageA, 500);

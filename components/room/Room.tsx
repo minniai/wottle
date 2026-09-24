@@ -22,7 +22,6 @@ interface RoomProps {
   ledger: ReactNode;
   /** Actions from the slip over the field (spec 048 §5.9); the store says whether one is up. */
   onSlipAction?: (action: LedgerAction) => void;
-  onSignedIn?: (player: PlayerIdentity) => void;
   /** A slip derived from the match rather than raised (spec 069: the table's); it stands unless a raised one is up. */
   slip?: SlipState | null;
 }
@@ -46,7 +45,7 @@ function roomStyle(layout: RoomLayout, field: number, cell: number): CSSProperti
  * the ledger on the right; one column below 900px. The field is the largest
  * square that fits, measured with a ResizeObserver, never viewport units.
  */
-export function Room({ matchId, layout = "bars", topBar, field, bottomBar, ledger, onSlipAction, onSignedIn, slip: derived = null }: RoomProps) {
+export function Room({ matchId, layout = "bars", topBar, field, bottomBar, ledger, onSlipAction, slip: derived = null }: RoomProps) {
   const phase = useRoomStore((s) => s.phase);
   const raised = useRoomStore((s) => (s.slipDismissed ? null : s.slip));
   const slip = raised ?? derived;
@@ -66,7 +65,7 @@ export function Room({ matchId, layout = "bars", topBar, field, bottomBar, ledge
           data-slipped={slip ? "true" : undefined}
         >
           {field}
-          {slip ? <Slip slip={slip} onAction={onSlipAction ?? NO_ACTION} onSignedIn={onSignedIn} /> : null}
+          {slip ? <Slip slip={slip} onAction={onSlipAction ?? NO_ACTION} /> : null}
         </div>
         {layout === "bars" || bottomBar ? <div data-testid="room-slot-bottom">{bottomBar}</div> : null}
       </div>

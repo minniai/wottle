@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 
 import { Field } from "@/components/room/Field";
 import type { CellState } from "@/components/room/FieldCell";
-import { LobbyRoomView } from "@/components/room/LobbyRoomView";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
-import { QueueRoomView } from "@/components/room/QueueRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
+import { PageFrame } from "@/components/page/PageFrame";
 import { ProfilePage } from "@/components/profile/ProfilePage";
 import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
@@ -30,6 +29,7 @@ import {
   DONE,
   DONE_STATE,
   END_EARLY_SLIP,
+  LEAVE_SLIP,
   FINAL_STATE,
   FIXTURE_BOARD,
   finalLines,
@@ -196,7 +196,7 @@ const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CEL
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
 type TablePhase = "table" | "table-seated" | "void" | "void-queue";
-type MatchPhase = Exclude<RoomPhase, "landing-slip" | "returning-slip" | "lobby" | "queue" | "searching-paused" | "profile" | "rules" | TablePhase>;
+type MatchPhase = Exclude<RoomPhase, "profile" | "rules" | TablePhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -218,6 +218,7 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   final: { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
   disconnect: { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE, state: DISCONNECT_STATE },
   resign: IDLE,
+  leave: IDLE,
   "end-early": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: 72_000, state: { ...DISCONNECT_STATE, ...DONE_STATE, disconnectedPlayerId: OPP_ID }, seats: DONE_SEATS },
   "over-slip": { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
   // Spec 068 (Phase B): the missed beat held, the stakes under a minute, pick cleared on line 2, the ticks.
@@ -238,18 +239,16 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
 /** The slip each phase seeds (spec 048 contracts/fixture-phases.md). */
 function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
   const slips: Partial<Record<RoomPhase, SlipState>> = {
-    "landing-slip": { kind: "signIn" },
-    // Spec 067: the same slip, greeting the browser's player after a sign-out.
-    "returning-slip": { kind: "signIn" },
     resign: RESIGN_SLIP,
     "end-early": END_EARLY_SLIP,
+    leave: LEAVE_SLIP,
     "over-slip": overSlip(copy),
   };
   return slips[phase];
 }
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { "landing-slip": "lobby", "returning-slip": "lobby", profile: "lobby", queue: "queue", "searching-paused": "queue", final: "final", "over-slip": "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { profile: "lobby", final: "final", "over-slip": "final" };
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
@@ -262,15 +261,13 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     // Seed the store so components reading it (Room's data-phase, seat colours)
     // agree with the props. No transport, no timers.
     const store = useRoomStore.getState();
-    const signedOut = phase === "landing-slip" || phase === "returning-slip";
-    store.setViewer(signedOut ? null : BIRNA);
-    // EN-L Birna 1310 in English; IS-T1 Birna 1212 in Icelandic (game-flow spec §5.0).
-    store.setReturning(phase === "returning-slip" ? { displayName: BIRNA.displayName, rating: language === "en" ? 1310 : 1212 } : null);
+    store.setViewer(BIRNA);
     store.setBoard(FIXTURE_BOARD);
     store.setPhase(STORE_PHASE[phase] ?? "match");
     const slip = slipFor(phase, copy);
-    if (slip) store.setSlip(slip);
-    else if (store.slip) store.clearSlip(store.slip.kind);
+    // Slips rank; a fixture shows exactly its own, so the previous one goes first.
+    if (store.slip) store.clearSlip(store.slip.kind);
+    if (slip) useRoomStore.getState().setSlip(slip);
   }, [phase, copy, language]);
 
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
@@ -296,55 +293,15 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     };
     return (
       <RoomShell viewer={BIRNA}>
-        <ProfilePage profile={profile} words={[...PROFILE_FIXTURE.bestWords]} matches={RECENT_GAMES} isSelf />
+        {/* A page since spec 070: the frame gives it the masthead and the one main. */}
+        <PageFrame variant="signedIn" place="profile" viewer={{ displayName: BIRNA.displayName, handle: BIRNA.username }} otherLobbyHere={null}>
+          <ProfilePage profile={profile} words={[...PROFILE_FIXTURE.bestWords]} matches={RECENT_GAMES} isSelf />
+        </PageFrame>
       </RoomShell>
     );
   }
 
-  if (phase === "landing-slip" || phase === "returning-slip" || phase === "lobby") {
-    const viewer = phase === "lobby" ? BIRNA : null;
-    return (
-      <RoomShell viewer={viewer}>
-        <LobbyRoomView
-          viewer={viewer}
-          players={LOBBY_PLAYERS}
-          recentGames={RECENT_GAMES}
-          loadingPlayers={false}
-          hint={TAP_SECOND_LETTER}
-          notices={[]}
-          onAction={NO_OP}
-          onSignedIn={NO_OP}
-        >
-          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" onActivate={NO_OP} landedCount={viewer ? null : 0} />
-        </LobbyRoomView>
-      </RoomShell>
-    );
-  }
 
-  if (phase === "queue" || phase === "searching-paused") {
-    // Spec 069 FR-021: a hidden tab's search waits for `resume ▸`.
-    const paused = phase === "searching-paused";
-    const resume = (
-      <button type="button" className="action-primary" data-testid="queue-resume" onClick={NO_OP}>
-        {copy.table.RESUME}
-      </button>
-    );
-    return (
-      <RoomShell viewer={BIRNA}>
-        <QueueRoomView
-          viewer={BIRNA}
-          opponent={null}
-          elapsed={QUEUE_ELAPSED}
-          live={settingField(QUEUE_LETTERS_LANDED)}
-          hint={searchingSubline(QUEUE_ELAPSED)}
-          search={paused ? { name: copy.FINDING_OPPONENT, subline: copy.table.SEARCH_PAUSED, action: resume } : null}
-          onAction={NO_OP}
-        >
-          <Field language="is" board={FIXTURE_BOARD} viewerSlot="player_a" disabled landedCount={QUEUE_LETTERS_LANDED} />
-        </QueueRoomView>
-      </RoomShell>
-    );
-  }
 
   if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue") {
     return <TableFixture phase={phase} copy={copy} />;

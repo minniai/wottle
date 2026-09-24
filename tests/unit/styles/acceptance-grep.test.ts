@@ -88,3 +88,15 @@ describe("retired with rounds (spec 050)", () => {
     expect(hits, hits.map((h) => `${rel}:${h.n}: ${h.line.trim()}`).join("\n")).toEqual([]);
   });
 });
+
+/** Spec 070: the lobby and queue rooms, the sign-in slip and the polled invites are gone; pages and the line slot replace them. */
+const RETIRED_070 = /LobbyRoomController|QueueRoomController|LobbyRoomPage|QueueRoom\b|NameInput|useLobbyInvites|useTableCheck|presenceStore|presenceChannel|api\/lobby\/presence|sendInviteAction|inviteTimeout|challengeSent|syncChallenges|challengeOutcome|notice-accept-challenge|ledger-here-now/;
+
+describe("retired lobby and queue rooms (spec 070)", () => {
+  const all = [...new Set(["app", "components", "lib"].flatMap(files))];
+  test.each(all.map((f) => [f.replace(`${ROOT}/`, "")]))("%s names nothing spec 070 retired", (rel) => {
+    const lines = readFileSync(join(ROOT, rel), "utf8").split("\n");
+    const hits = lines.map((line, i) => ({ line, n: i + 1 })).filter(({ line }) => RETIRED_070.test(line));
+    expect(hits, hits.map((h) => `${rel}:${h.n}: ${h.line.trim()}`).join("\n")).toEqual([]);
+  });
+});

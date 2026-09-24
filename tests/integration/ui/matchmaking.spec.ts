@@ -1,6 +1,6 @@
 /**
- * Spec 044 US8 — the queue stays in the room: searching bar, letters
- * landing, the opponent writing in, then the match, with no route flash.
+ * Spec 044 US8, spec 070 US5: the search runs in the lobby's line slot, in
+ * place; a pairing opens the table; new opponent searches from the lobby again.
  */
 import { expect, test, type BrowserContext } from "@playwright/test";
 
@@ -17,20 +17,20 @@ async function loginAs(context: BrowserContext, prefix: string) {
 }
 
 test.describe("@matchmaking queue → found → match in the room", () => {
-  test("find an opponent ▸ searches; cancel ▸ returns to the lobby", async ({ browser }) => {
+  test("find an opponent ▸ searches in the line slot; cancel ▸ ends it, in place", async ({ browser }) => {
     const ctx = await browser.newContext();
     try {
       const { page } = await loginAs(ctx, "q-cancel");
-      await page.getByTestId("player-bar-action-find").click();
-      await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
-      await expect(page.getByTestId("player-bar-top")).toContainText("Finding an opponent");
-      await expect(page.getByTestId("player-bar-top").getByTestId("player-bar-lane")).toHaveAttribute("data-mode", "searching");
-      // Spec 045 B7: the queue's progress is a live row, as Fig. 7 draws it;
-      // the hint keeps the queue's own context line.
-      await expect(page.getByTestId("ledger-live-row")).toContainText(/setting the field · \d+ of 100 letters/);
-      await page.getByTestId("ledger-cancel-queue").click();
-      await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
-      await expect(page).toHaveURL(/\/lobby$/);
+      await page.getByTestId("lobby-find").click();
+      await expect(page.getByTestId("line-slot-line1").first()).toContainText("Searching for an opponent", { timeout: 15_000 });
+      await expect(page.getByTestId("line-slot-desktop")).toHaveAttribute("data-style", "status");
+      // A wait has no primary: find is gone while the search runs.
+      await expect(page.getByTestId("lobby-find")).toHaveCount(0);
+      await expect(page).toHaveURL(/\/en$/);
+      await page.locator("[data-testid=slot-cancelSearch]:visible").first().click();
+      await expect(page.getByTestId("lobby-find")).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByTestId("line-slot-desktop")).toHaveAttribute("data-style", "terms");
+      await expect(page).toHaveURL(/\/en$/);
     } finally {
       await ctx.close();
     }
@@ -41,7 +41,7 @@ test.describe("@matchmaking queue → found → match in the room", () => {
     const ctxB = await browser.newContext();
     try {
       const [a, b] = await Promise.all([loginAs(ctxA, "q-a"), loginAs(ctxB, "q-b")]);
-      await Promise.all([a.page.getByTestId("player-bar-action-find").click(), b.page.getByTestId("player-bar-action-find").click()]);
+      await Promise.all([a.page.getByTestId("lobby-find").click(), b.page.getByTestId("lobby-find").click()]);
       for (const p of [a.page, b.page]) {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "match", { timeout: 60_000 });
       }
@@ -71,12 +71,11 @@ test.describe("@matchmaking queue → found → match in the room", () => {
         await expect(p.getByTestId("scoreboard-row-opp")).not.toContainText("Finding an opponent");
       }
 
-      // new opponent ▸ from that result goes back to a fresh search.
+      // new opponent ▸ from that result goes back to a fresh search, in the lobby.
       await a.page.getByTestId("slip-new-opponent").click();
-      await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
-      await expect(a.page.getByTestId("player-bar-top")).toContainText("Finding an opponent");
-      await expect(a.page).toHaveURL(/\/matchmaking$/);
-      await a.page.getByTestId("ledger-cancel-queue").click();
+      await expect(a.page).toHaveURL(/\/en$/, { timeout: 15_000 });
+      await expect(a.page.getByTestId("line-slot-line1").first()).toContainText("Searching for an opponent", { timeout: 15_000 });
+      await a.page.locator("[data-testid=slot-cancelSearch]:visible").first().click();
     } finally {
       await ctxA.close();
       await ctxB.close();
@@ -88,26 +87,26 @@ test.describe("@matchmaking queue → found → match in the room", () => {
     const ctxB = await browser.newContext();
     try {
       const [a, b] = await Promise.all([loginAs(ctxA, "hid-a"), loginAs(ctxB, "hid-b")]);
-      await a.page.getByTestId("player-bar-action-find").click();
-      await expect(a.page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
+      await a.page.getByTestId("lobby-find").click();
+      await expect(a.page.getByTestId("line-slot-line1").first()).toContainText("Searching for an opponent", { timeout: 15_000 });
       await a.page.waitForTimeout(1_500);
       await a.page.evaluate(() => {
         Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
         document.dispatchEvent(new Event("visibilitychange"));
       });
-      await expect(a.page.getByTestId("player-bar-top")).toContainText("search paused");
+      await expect(a.page.getByTestId("line-slot-line1").first()).toContainText("search paused");
 
-      await b.page.getByTestId("player-bar-action-find").click();
-      await expect(b.page.getByTestId("room")).toHaveAttribute("data-phase", "queue", { timeout: 15_000 });
+      await b.page.getByTestId("lobby-find").click();
+      await expect(b.page.getByTestId("line-slot-line1").first()).toContainText("Searching for an opponent", { timeout: 15_000 });
       // Several of B's polls: A is paused, so B keeps searching.
       await b.page.waitForTimeout(8_000);
-      await expect(b.page).toHaveURL(/\/matchmaking$/);
+      await expect(b.page).toHaveURL(/\/en$/);
 
       await a.page.evaluate(() => {
         Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
         document.dispatchEvent(new Event("visibilitychange"));
       });
-      await a.page.getByTestId("queue-resume").click();
+      await a.page.locator("[data-testid=slot-resume]:visible").first().click();
       for (const p of [a.page, b.page]) await expect(p).toHaveURL(/\/match\/[0-9a-f-]{36}/, { timeout: 20_000 });
     } finally {
       await ctxA.close();

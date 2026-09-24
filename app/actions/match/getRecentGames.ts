@@ -54,8 +54,8 @@ export async function getRecentGames(
       `,
     )
     .eq("state", "completed")
-    // Spec 069 FR-016: a void table was never a match.
-    .or("ended_reason.is.null,ended_reason.neq.void")
+    // Spec 069 FR-016: a void table was never a match; spec 070 FR-039: nor is an abandoned one.
+    .or("ended_reason.is.null,ended_reason.not.in.(void,abandoned)")
     .eq("language", language)
     .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`)
     .order("completed_at", { ascending: false })

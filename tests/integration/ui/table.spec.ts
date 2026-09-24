@@ -6,7 +6,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
+import { acceptCall, challenge, generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
 
 /** The tab reports itself hidden, so the server does not seat this player at creation (spec 069 R5). */
 async function hideTab(page: Page): Promise<void> {
@@ -27,15 +27,11 @@ async function showTab(page: Page): Promise<void> {
 
 /** A challenges B while A's tab is hidden; B's accept seats B, A waits at the table unseated. */
 async function tableWithAUnseated(pageA: Page, pageB: Page, userB: string): Promise<string> {
-  const row = pageA.getByTestId("ledger-here-now-row").filter({ hasText: `@${userB}` });
-  await row.waitFor({ state: "visible", timeout: 60_000 });
-  await row.getByRole("button", { name: /challenge/i }).click();
+  await challenge(pageA, userB, 60_000);
   await hideTab(pageA);
-  // Let a table check report the hidden tab (every 3s) before B accepts.
+  // Let the hidden tab's beat reach the server before B accepts.
   await pageA.waitForTimeout(3_500);
-  const accept = pageB.getByTestId("notice-accept-challenge");
-  await accept.waitFor({ state: "visible", timeout: 30_000 });
-  await accept.click();
+  await acceptCall(pageB);
   for (const p of [pageA, pageB]) await expect(p).toHaveURL(/\/match\/[0-9a-f-]{36}/, { timeout: 30_000 });
   await showTab(pageA);
   return pageA.url().split("/match/")[1];
@@ -96,7 +92,7 @@ test.describe("The table", () => {
       await tableWithAUnseated(pageA, pageB, userB);
 
       await pageA.getByTestId("slip-leave-table").click();
-      await expect(pageA).toHaveURL(/\/lobby$/, { timeout: 20_000 });
+      await expect(pageA).toHaveURL(/\/en\/?$/, { timeout: 20_000 });
       await expect(pageB.getByTestId("slip")).toHaveAttribute("data-kind", "void", { timeout: 20_000 });
       await expect(pageB.getByTestId("slip")).toContainText("left the table");
       await expect(pageB.getByTestId("slip")).toContainText("nothing was rated");

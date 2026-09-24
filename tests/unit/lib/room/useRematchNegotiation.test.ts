@@ -50,3 +50,33 @@ describe("useRematchNegotiation (spec 067: a rematch is refused while either pla
     expect(onNewMatch).toHaveBeenCalledWith("m2");
   });
 });
+
+describe("useRematchNegotiation (spec 070 US9: the rematch is a poke, the id comes from a read)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("an accepted event carries no id: it reads the match state route and goes to the id from that response", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ rematchMatchId: "m9" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { hook, onNewMatch } = negotiate();
+    await act(async () => {
+      hook.result.current.handleEvent({ type: "rematch-accepted", matchId: "m1", requesterId: "kari", status: "accepted" });
+    });
+    await vi.waitFor(() => expect(onNewMatch).toHaveBeenCalledWith("m9"));
+    expect(fetchMock).toHaveBeenCalledWith("/api/match/m1/state", expect.objectContaining({ cache: "no-store" }));
+    expect(hook.result.current.phase).toBe("accepted");
+    vi.unstubAllGlobals();
+  });
+
+  it("a rematch poke with nothing to go to changes nothing", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ rematchMatchId: null }), { status: 200 })));
+    const { hook, onNewMatch } = negotiate();
+    await act(async () => {
+      await hook.result.current.check();
+    });
+    expect(onNewMatch).not.toHaveBeenCalled();
+    expect(hook.result.current.phase).toBe("idle");
+    vi.unstubAllGlobals();
+  });
+});

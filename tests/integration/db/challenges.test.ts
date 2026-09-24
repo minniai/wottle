@@ -1,103 +1,107 @@
 /**
- * Two challengers, one opponent (2026-09-22): accepting one challenge answers
- * the others and frees their senders; an unanswered one expires; each sender
- * reads what became of theirs. Live local Supabase; skips without one.
+ * Spec 070 US3 (T060): sending a challenge. One locked function decides every
+ * gate, withdraws the sender's other challenge and search, starts a crossed
+ * pair at once, and counts every limit from stored rows. Live local Supabase.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-vi.mock("server-only", () => ({}));
-
-import { expireStaleInvites, getOutgoingInvite, respondToInvite, sendDirectInvite } from "@/lib/matchmaking/inviteService";
-
+import { ChallengeFixtures } from "./challengeFixtures";
 import { connectTestDb } from "./harness";
 
 const db = await connectTestDb();
+const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 
-function sentId(result: Awaited<ReturnType<typeof sendDirectInvite>>): string {
-  if (result.status !== "sent") throw new Error(`expected a sent challenge, got ${result.status}`);
-  return result.inviteId;
-}
+describe.skipIf(!db)("send_challenge (spec 070 US3)", () => {
+  const f = new ChallengeFixtures(db!);
+  afterEach(() => f.dropAll());
 
-async function createPlayers(names: string[]): Promise<string[]> {
-  const suffix = crypto.randomUUID().slice(0, 8);
-  const { data, error } = await db!.client
-    .from("players")
-    .insert(names.map((n) => ({ username: `tch-${n.toLowerCase()}-${suffix}`, display_name: n, status: "available" })))
-    .select("id, display_name");
-  if (error || !data) throw new Error(`players.insert: ${error?.message}`);
-  return names.map((n) => data.find((p) => p.display_name === n)!.id as string);
-}
-
-describe.skipIf(!db)("challenges (2026-09-22)", () => {
-  let players: string[] = [];
-
-  afterEach(async () => {
-    const { data } = await db!.client.from("match_invitations").select("match_id").in("recipient_id", players);
-    const matchIds = (data ?? []).map((r) => r.match_id).filter(Boolean);
-    await db!.client.from("match_invitations").delete().in("sender_id", players);
-    if (matchIds.length) await db!.client.from("matches").delete().in("id", matchIds);
-    await db!.client.from("players").delete().in("id", players);
+  it("records a 60s challenge, withdraws the sender's other one and search, and leaves the sender's status alone", async () => {
+    const [a, b, c] = await f.players_(["A", "B", "C"]);
+    const first = await f.send(a, c);
+    expect(first.status).toBe("sent");
+    await db!.client.from("players").update({ status: "matchmaking", queue_language: "is", queued_at: new Date().toISOString() }).eq("id", a);
+    const second = await f.send(a, b);
+    expect(second).toMatchObject({ status: "sent" });
+    const invite = await f.invite(second.invite_id as string);
+    const ttl = Date.parse(invite.expires_at as string) - Date.parse(invite.created_at as string);
+    expect(ttl).toBeGreaterThanOrEqual(59_000);
+    expect(ttl).toBeLessThanOrEqual(61_000);
+    expect((await f.invite(first.invite_id as string)).status).toBe("withdrawn");
+    const { data: me } = await db!.client.from("players").select("status, queue_language").eq("id", a).single();
+    expect(me).toMatchObject({ status: "available", queue_language: null });
+    const { data: lp } = await db!.client.from("lobby_presence").select("mode").eq("player_id", a).single();
+    expect(lp!.mode).toBe("auto");
+    expect(second.withdrawn_from).toEqual([c]);
   });
 
-  it("accepting Silú's challenge supersedes Nari's, and Nari reads that Kári took another", async () => {
-    players = await createPlayers(["Nari", "Silu", "Kari"]);
-    const [nari, silu, kari] = players;
-    const first = sentId(await sendDirectInvite(db!.client, { senderId: nari, recipientId: kari }));
-    const second = sentId(await sendDirectInvite(db!.client, { senderId: silu, recipientId: kari }));
-
-    const accepted = await respondToInvite(db!.client, { inviteId: second, actorId: kari, decision: "accepted" });
-    expect(accepted.status).toBe("accepted");
-
-    const { data: rows } = await db!.client.from("match_invitations").select("id, status").in("id", [first, second]);
-    expect(Object.fromEntries((rows ?? []).map((r) => [r.id, r.status]))).toEqual({ [first]: "superseded", [second]: "accepted" });
-    const { data: nariRow } = await db!.client.from("players").select("status").eq("id", nari).single();
-    expect(nariRow?.status).toBe("available");
-    await expect(getOutgoingInvite(db!.client, nari)).resolves.toEqual({ id: first, status: "superseded", recipientName: "Kari", recipientInMatch: true });
+  it("refuses a player at a table or in a match, and a sender who is", async () => {
+    const [a, b, c, d] = await f.players_(["A", "B", "C", "D"]);
+    await db!.client.from("matches").insert({ board_seed: crypto.randomUUID(), player_a_id: b, player_b_id: c, state: "pending", language: "is" });
+    expect((await f.send(a, b)).status).toBe("in_match");
+    expect((await f.send(c, d)).status).toBe("busy_sender");
   });
 
-  it("sending a challenge never marks the sender, so they can still be challenged back (spec 067)", async () => {
-    players = await createPlayers(["Nari", "Kari"]);
-    const [nari, kari] = players;
-    sentId(await sendDirectInvite(db!.client, { senderId: nari, recipientId: kari }));
-    const { data: nariRow } = await db!.client.from("players").select("status").eq("id", nari).single();
-    expect(nariRow?.status).toBe("available");
+  it("refuses someone gone, someone away, another lobby, and yourself", async () => {
+    const [a, gone, away] = await f.players_(["A", "Gone", "Away"]);
+    const [english] = await f.players_(["En"], "en");
+    await db!.client.from("presence_tabs").update({ beat_at: ago(40_000) }).eq("player_id", gone);
+    await db!.client.from("presence_tabs").update({ visible: false, hidden_since: ago(125_000), cadence_ms: 30_000 }).eq("player_id", away);
+    expect((await f.send(a, gone)).status).toBe("gone");
+    expect((await f.send(a, away)).status).toBe("away");
+    expect((await f.send(a, english)).status).toBe("other_lobby");
+    expect((await f.send(a, a)).status).toBe("self");
   });
 
-  it("challenging someone whose challenge to you is pending starts the match at once (spec 067)", async () => {
-    players = await createPlayers(["Nari", "Kari"]);
-    const [nari, kari] = players;
-    const first = sentId(await sendDirectInvite(db!.client, { senderId: nari, recipientId: kari }));
-    const crossed = await sendDirectInvite(db!.client, { senderId: kari, recipientId: nari });
-
-    expect(crossed.status).toBe("accepted");
-    const matchId = crossed.status === "accepted" ? crossed.matchId : "";
-    const { data: match } = await db!.client.from("matches").select("origin, player_a_id, player_b_id").eq("id", matchId).single();
-    expect(match).toEqual({ origin: "crossed_challenge", player_a_id: nari, player_b_id: kari });
-    const { data: row } = await db!.client.from("match_invitations").select("status").eq("id", first).single();
-    expect(row?.status).toBe("accepted");
+  it("refuses the same pair for 60s after a decline, with the time it ends", async () => {
+    const [a, b] = await f.players_(["A", "B"]);
+    const sent = await f.send(a, b);
+    await db!.client.from("match_invitations").update({ status: "declined", responded_at: ago(8_000) }).eq("id", sent.invite_id as string);
+    const again = await f.send(a, b);
+    expect(again.status).toBe("declined_recently");
+    expect(Date.parse(again.until as string) - Date.now()).toBeGreaterThan(50_000);
+    await db!.client.from("match_invitations").update({ responded_at: ago(61_000) }).eq("id", sent.invite_id as string);
+    expect((await f.send(a, b)).status).toBe("sent");
   });
 
-  it("accepting a challenge from someone now in another match is refused and names them (spec 067)", async () => {
-    players = await createPlayers(["Nari", "Silu", "Kari"]);
-    const [nari, silu, kari] = players;
-    const stale = sentId(await sendDirectInvite(db!.client, { senderId: nari, recipientId: kari }));
-    const fresh = sentId(await sendDirectInvite(db!.client, { senderId: nari, recipientId: silu }));
-    await respondToInvite(db!.client, { inviteId: fresh, actorId: silu, decision: "accepted" });
-
-    await expect(respondToInvite(db!.client, { inviteId: stale, actorId: kari, decision: "accepted" })).rejects.toThrow(/no longer active/);
-    const { data: m } = await db!.client.from("matches").select("id").or(`player_a_id.eq.${kari},player_b_id.eq.${kari}`);
-    expect(m).toEqual([]);
+  it("allows six challenges a minute and refuses the seventh", async () => {
+    const [a, ...others] = await f.players_(["A", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]);
+    for (const other of others.slice(0, 6)) expect((await f.send(a, other)).status).toBe("sent");
+    expect((await f.send(a, others[6])).status).toBe("rate_limited");
   });
 
-  it("an unanswered challenge expires and its sender reads so", async () => {
-    players = await createPlayers(["Nari", "Kari"]);
-    const [nari, kari] = players;
-    const sent = sentId(await sendDirectInvite(db!.client, { senderId: nari, recipientId: kari }));
-    await db!.client.from("match_invitations").update({ created_at: new Date(Date.now() - 60_000).toISOString() }).eq("id", sent);
+  it("refuses during the table-leave cooldown (spec 069)", async () => {
+    const [a, b, c] = await f.players_(["A", "B", "C"]);
+    for (const leftAgo of [4 * 60_000, 60_000]) {
+      await db!.client.from("matches").insert({
+        board_seed: crypto.randomUUID(), player_a_id: a, player_b_id: c, state: "completed", language: "is",
+        ended_reason: "void", void_reason: "left", voided_by: a, completed_at: ago(leftAgo),
+      });
+    }
+    const refused = await f.send(a, b);
+    expect(refused.status).toBe("cooldown");
+    expect(refused.until).toBeTruthy();
+  });
 
-    expect(await expireStaleInvites(db!.client, { ttlSeconds: 30 })).toContain(sent);
-    await expect(getOutgoingInvite(db!.client, nari)).resolves.toMatchObject({ id: sent, status: "expired", recipientInMatch: false });
-    const { data: nariRow } = await db!.client.from("players").select("status").eq("id", nari).single();
-    expect(nariRow?.status).toBe("available");
+  it("starts the match at once when the other had already challenged the sender", async () => {
+    const [a, b] = await f.players_(["A", "B"]);
+    await f.send(b, a);
+    const crossed = await f.send(a, b);
+    expect(crossed.status).toBe("crossed");
+    const { data: m } = await db!.client.from("matches").select("origin, player_a_seated_at, player_b_seated_at").eq("id", crossed.match_id as string).single();
+    expect(m!.origin).toBe("crossed_challenge");
+    expect(m!.player_a_seated_at).not.toBeNull();
+    expect(m!.player_b_seated_at).not.toBeNull();
+  });
+
+  it("silences a challenger declined three times in 10 minutes: sent to them, declined to the other", async () => {
+    const [a, b] = await f.players_(["A", "B"]);
+    for (const minutesAgo of [9, 6, 3]) {
+      await db!.client.from("match_invitations").insert({ sender_id: a, recipient_id: b, status: "declined", language: "is", responded_at: ago(minutesAgo * 60_000), created_at: ago(minutesAgo * 60_000 + 5_000) });
+    }
+    const silenced = await f.send(a, b);
+    expect(silenced.status).toBe("sent");
+    const row = await f.invite(silenced.invite_id as string);
+    expect(row).toMatchObject({ status: "declined", auto_declined: true });
+    expect(row.responded_at).not.toBeNull();
   });
 });

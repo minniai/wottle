@@ -45,7 +45,7 @@ async function acceptCrossedRematch(matchId: string, requestId: string, requeste
   const result = await acceptRematch(supabase, { requestId, actorId: callerId, origin: "crossed_rematch" });
   if (result.status === "busy") return { status: "busy" };
   if (result.status !== "created") throw new Error("A rematch has already been processed for this match.");
-  await announceRematch(supabase, matchId, requesterId, result.matchId);
+  await announceRematch(supabase, { matchId, requesterId, newMatchId: result.matchId, players: [requesterId, callerId] });
   return { status: "accepted", matchId: result.matchId };
 }
 

@@ -7,7 +7,7 @@ vi.mock("@/lib/observability/log", () => ({ logPlaytestInfo: vi.fn(), logPlaytes
 
 import { acceptInvite } from "@/lib/match/createMatch";
 import { logPlaytestInfo } from "@/lib/observability/log";
-import { respondToInvite, sendDirectInvite, startAutoQueue } from "@/lib/matchmaking/inviteService";
+import { startAutoQueue } from "@/lib/matchmaking/inviteService";
 
 /** Spec 069 US5 (T053): two table leaves in 10 minutes refuse searching and sending; accepting stays open (Q1). */
 const UNTIL = "2026-09-23T12:05:00.000Z";
@@ -41,18 +41,5 @@ describe("the table-leave cooldown (spec 069 US5)", () => {
     const client = clientWith(null, { players: { data: { status: "matchmaking", queued_at: null, last_seen_at: null }, error: null } });
     await expect(startAutoQueue(client as never, { playerId: "p1", language: "is", attention: { visible: false, inputAgoMs: 0 } })).resolves.toEqual({ status: "paused" });
     expect(logPlaytestInfo).toHaveBeenCalledWith("queue.paused", { playerId: "p1" });
-  });
-
-  it("refuses sending a challenge with the time it ends", async () => {
-    const client = clientWith(UNTIL);
-    await expect(sendDirectInvite(client as never, { senderId: "p1", recipientId: "p2", language: "is" })).resolves.toEqual({ status: "cooldown", until: UNTIL });
-  });
-
-  it("never refuses accepting a challenge", async () => {
-    const invite = { id: "i1", sender_id: "p2", recipient_id: "p1", status: "pending", created_at: new Date().toISOString(), language: "is" };
-    const client = clientWith(UNTIL, { match_invitations: { data: invite, error: null } });
-    await respondToInvite(client as never, { inviteId: "i1", actorId: "p1", decision: "accepted" });
-    expect(acceptInvite).toHaveBeenCalled();
-    expect(client.rpc).not.toHaveBeenCalledWith("table_leave_cooldown_until", expect.anything());
   });
 });

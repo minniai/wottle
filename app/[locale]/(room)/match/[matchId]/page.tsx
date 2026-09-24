@@ -23,8 +23,9 @@ export default async function MatchPage({
   const locale = await readLocaleParam(resolved);
   const session = await readLobbySession();
 
+  // T4: the door, with a validated way back here once the visitor has entered.
   if (!session) {
-    redirect(localePath(locale, "/"));
+    redirect(localePath(locale, `/?next=${encodeURIComponent(localePath(locale, `/match/${matchId}`))}`));
   }
 
   const supabase = getServiceRoleClient();
@@ -44,7 +45,7 @@ export default async function MatchPage({
   // polls for an active match and would otherwise send us straight back here,
   // and a match that fails to load fails to load every time — an endless loop.
   if (!matchState) {
-    redirect(localePath(locale, `/lobby?notice=no-match&match=${encodeURIComponent(matchId)}`));
+    redirect(localePath(locale, `/?notice=no-match&match=${encodeURIComponent(matchId)}`));
   }
 
   // Spec 060 FR-015: the page speaks the match's language, so the words on the
@@ -59,7 +60,7 @@ export default async function MatchPage({
   const participants = [matchState.players.playerA.playerId, matchState.players.playerB.playerId];
   const readable = (matchState.state === "completed" || matchState.state === "abandoned") && matchState.endedReason !== "void";
   if (!participants.includes(session.player.id) && !readable) {
-    redirect(localePath(locale, "/lobby"));
+    redirect(localePath(locale, "/"));
   }
 
   const playerProfiles = await loadMatchPlayerProfiles(

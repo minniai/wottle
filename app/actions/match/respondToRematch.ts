@@ -92,7 +92,7 @@ export async function acceptRematchAction(
   const { playerId, request, supabase } = ctx;
   const result = await acceptRematch(supabase, { requestId: request.id, actorId: playerId });
   if (result.status === "created") {
-    await announceRematch(supabase, matchId, request.requesterId, result.matchId);
+    await announceRematch(supabase, { matchId, requesterId: request.requesterId, newMatchId: result.matchId, players: [request.requesterId, playerId] });
     return { status: "accepted", matchId: result.matchId };
   }
   if (result.status === "busy") return { status: "busy" };

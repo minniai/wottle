@@ -45,6 +45,9 @@ export async function recordHeartbeat(
         match_id: matchId,
         player_id: playerId,
         last_seen_at: new Date().toISOString(),
+        // Spec 070: this beat is from the match page itself.
+        source: "match",
+        cadence_ms: 2_000,
       },
       { onConflict: "match_id,player_id" },
     );
@@ -117,4 +120,49 @@ export async function findStaleParticipant(
 ): Promise<string | null> {
   const stale = await findStaleParticipantDetail(client, opts);
   return stale?.playerId ?? null;
+}
+
+/** A page's beat is fresh for three of its beats plus 5s (spec 070 FR-028), as presence reckons it. */
+const PAGE_MISSED_BEATS = 3;
+const PAGE_SLACK_MS = 5_000;
+
+interface HeartbeatRow {
+  player_id: string;
+  last_seen_at: string;
+  source: "match" | "page";
+  cadence_ms: number;
+}
+
+export interface Participants {
+  stale: StaleParticipant | null;
+  /** A player whose app is open on another page (the lobby, a profile): `stepped out`, never reconnecting. */
+  steppedOut: string | null;
+}
+
+/**
+ * Who has gone quiet, and who has only stepped out (spec 070 US8, FR-031).
+ * A beat from the match is fresh for 10s; a beat from a page for three of its
+ * own beats plus 5s. A player fresh from a page is stepped out and not stale.
+ */
+export async function readParticipants(client: AnyClient, opts: FindStaleParticipantOptions): Promise<Participants> {
+  const now = opts.now ?? new Date();
+  if (now.getTime() - opts.matchCreatedAt.getTime() < GRACE_WINDOW_MS) return { stale: null, steppedOut: null };
+  const { data, error } = await client.from("match_heartbeats").select("player_id, last_seen_at, source, cadence_ms").eq("match_id", opts.matchId);
+  if (error || !data) return { stale: null, steppedOut: null };
+  const rows = new Map((data as HeartbeatRow[]).map((r) => [r.player_id, r]));
+  let steppedOut: string | null = null;
+  for (const playerId of [opts.playerAId, opts.playerBId]) {
+    const row = rows.get(playerId);
+    const seen = row ? Date.parse(row.last_seen_at) : undefined;
+    const pageFresh = row?.source === "page" && seen !== undefined && now.getTime() - seen < PAGE_MISSED_BEATS * row.cadence_ms + PAGE_SLACK_MS;
+    if (pageFresh) {
+      steppedOut = playerId;
+      continue;
+    }
+    if (seen === undefined || seen <= now.getTime() - HEARTBEAT_STALE_MS) {
+      const anchor = seen === undefined ? opts.matchCreatedAt.getTime() + GRACE_WINDOW_MS : seen + HEARTBEAT_STALE_MS;
+      return { stale: { playerId, disconnectedAt: new Date(anchor).toISOString() }, steppedOut };
+    }
+  }
+  return { stale: null, steppedOut };
 }

@@ -26,10 +26,10 @@ describe("match creation wrappers (spec 067)", () => {
     expect(rpc).toHaveBeenCalledWith("accept_invite", { p_invite: "i1", p_actor: "p1", p_ttl_seconds: 60, p_origin: "challenge" });
   });
 
-  it("should default the time-to-live to 30 seconds", async () => {
+  it("should default the time-to-live to 60 seconds (spec 070)", async () => {
     const { client, rpc } = clientReturning({ status: "created", match_id: "m1" });
     await acceptInvite(client, { inviteId: "i1", actorId: "p1", origin: "crossed_challenge" });
-    expect(rpc).toHaveBeenCalledWith("accept_invite", expect.objectContaining({ p_ttl_seconds: 30, p_origin: "crossed_challenge" }));
+    expect(rpc).toHaveBeenCalledWith("accept_invite", expect.objectContaining({ p_ttl_seconds: 60, p_origin: "crossed_challenge" }));
   });
 
   it("should name the busy player on a refusal", async () => {

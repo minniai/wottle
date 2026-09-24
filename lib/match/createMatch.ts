@@ -15,7 +15,7 @@ export type MatchOrigin = "queue" | "challenge" | "crossed_challenge" | "rematch
 export type CreateMatchResult =
   | { status: "created"; matchId: string }
   | { status: "busy"; playerId: string }
-  | { status: "not_pending" | "not_recipient" | "expired" | "not_completed" | "not_searching" }
+  | { status: "not_pending" | "not_recipient" | "expired" | "not_completed" | "not_searching" | "gone" }
   | { status: "invalid"; reason: string };
 
 type RpcClient = TableDeps["client"];
@@ -23,11 +23,12 @@ type RpcClient = TableDeps["client"];
 const replySchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("created"), match_id: z.string(), seats: z.object({ a: z.boolean(), b: z.boolean() }).optional() }),
   z.object({ status: z.literal("busy"), player_id: z.string() }),
-  z.object({ status: z.enum(["not_pending", "not_recipient", "expired", "not_completed", "not_searching"]) }),
+  z.object({ status: z.enum(["not_pending", "not_recipient", "expired", "not_completed", "not_searching", "gone"]) }),
   z.object({ status: z.literal("invalid"), reason: z.string() }),
 ]);
 
-const DEFAULT_INVITE_TTL_SECONDS = 30;
+/** Spec 070: a challenge lasts 60s (owner decision §10 Q10). */
+const DEFAULT_INVITE_TTL_SECONDS = 60;
 
 export function inviteTtlSeconds(): number {
   return Number(process.env.PLAYTEST_INVITE_EXPIRY_SECONDS ?? DEFAULT_INVITE_TTL_SECONDS);

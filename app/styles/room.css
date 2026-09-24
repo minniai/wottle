@@ -1227,6 +1227,7 @@
   color: var(--ink);
 }
 .slip[data-kind="resign"] .slip__headline,
+.slip[data-kind="leave"] .slip__headline,
 .slip[data-kind="endEarly"] .slip__headline {
   font-weight: 600;
   font-size: 24px;
@@ -1308,6 +1309,7 @@
   /* Game flow F8 (spec 068 FR-018): in a match a decision slip is exactly the
      field's square, 20px inside; the actions share a row until they do not fit. */
   .room[data-layout="scoreboard"] .slip[data-kind="resign"],
+  .room[data-layout="scoreboard"] .slip[data-kind="leave"],
   .room[data-layout="scoreboard"] .slip[data-kind="endEarly"] {
     width: 100%;
     height: 100%;

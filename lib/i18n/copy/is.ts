@@ -2,6 +2,8 @@ import { LOCALES } from "@/lib/i18n/locales";
 import { plural } from "@/lib/i18n/plural";
 import type { Copy } from "@/lib/i18n/copy/types";
 
+import { pagesIs } from "./pages.is";
+
 /**
  * Icelandic strings for the room: Orðusta (design system §8; spec 060). Same keys
  * as `en.ts`; each function owns its own word order and number agreement.
@@ -122,6 +124,8 @@ export const copyIs = {
   movesOf: (moves: number): string => `${moves} af 10`,
   compactMove: (move: number): string => `leikur ${move}`,
   goneForShort: (mmSs: string): string => `án tengingar í ${mmSs}`,
+  steppedOut: (moves: number): string => `${moves} af 10 · brá sér frá`,
+  STEPPED_OUT: "brá sér frá",
   BEHIND_PACE: "á eftir áætlun",
   OFFLINE: "án tengingar",
   moveNoWord: (move: number): string => `leikur ${move} · ekkert orð`,
@@ -131,7 +135,7 @@ export const copyIs = {
   IF_UNPLAYED: "ef óleiknir",
   NOTHING_TO_LOSE: "engu að tapa",
   frozenWord: (word: string, owner: string): string => `frosinn · ${word} · ${owner} · veldu annan`,
-  backAway: (mmSs: string): string => `tenging komin · ${mmSs} án tengingar`,
+  backAway: (mmSs: string): string => `aftur í sambandi · ${mmSs} án tengingar`, // native-read
   // The name stays in the nominative (game flow §8 item 13).
   oppAnnouncement: (name: string, words: string[], delta: number, moves: number): string =>
     words.length > 0 ? `${name} ${words.join(" · ")} ${signed(delta)} · ${moves} af 10` : `${name} ekkert orð ${points(delta)} · ${moves} af 10`,
@@ -147,12 +151,7 @@ export const copyIs = {
 
   rematchRequest: (name: string): string =>
     `${name} vill aðra viðureign · samþykkja ▸ · hafna`,
-  waitingForRematch: (name: string): string => `bíður eftir ${name}`,
-  challengeNotice: (name: string): string => `${name} skorar á þig · þiggja ▸ · hafna`,
-  challengeSent: (name: string): string => `áskorun send · bíður eftir ${name}`,
-  challengeDeclined: (name: string): string => `${name} hafnaði áskoruninni`,
-  challengeUnanswered: (name: string): string => `${name} svaraði ekki`,
-  challengeTaken: (name: string): string => `${name} þáði aðra áskorun`,
+  waitingForRematch: (name: string): string => `${name} · beðið svars`, // native-read (spec 070: no name after a preposition)
   opponentBusy: (name: string): string => `${name} getur ekki spilað núna`,
 
   TAGLINE: "tveir leikmenn · eitt borð · íslensk orð",
@@ -261,7 +260,7 @@ export const copyIs = {
   WIN_RATE: "sigurhlutfall",
   BEST_WORDS: "bestu orðin",
   RECENT_MATCHES: "nýlegar viðureignir",
-  versus: (name: string): string => `gegn ${name}`,
+  versus: (name: string): string => `mótspilari · ${name}`, // native-read
   matchResult: (result: "win" | "loss" | "draw"): string =>
     result === "win" ? "sigur" : result === "loss" ? "tap" : "jafnt",
   BACK_LOBBY: "◂ lobbí",
@@ -314,6 +313,8 @@ export const copyIs = {
     titleStarting: (n: number, name: string): string => `${n} · ${name}`,
     titleSearching: (mmSs: string): string => `leitar ${mmSs}`,
   },
+
+  pages: pagesIs,
 
   errors: {
     rate_limited: "of margar tilraunir · bíddu í mínútu",

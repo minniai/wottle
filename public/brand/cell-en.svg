@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <rect x="0.75" y="0.75" width="46.5" height="46.5" fill="#FFFDF7" stroke="#0F1A24" stroke-width="1.5"/>
+  <rect x="2.4" y="9.6" width="43.2" height="28.8" fill="#147D7A" fill-opacity="0.14"/>
+  <path d="M4.4 10.6 L8.7 24 L4.4 37.4" fill="none" stroke="#147D7A" stroke-width="1.5" stroke-linecap="square"/>
+  <text x="24" y="33.5" text-anchor="middle" font-family="Zilla Slab, Georgia, serif" font-weight="600" font-size="26.4" fill="#147D7A">W</text>
+  <text x="44" y="11" text-anchor="end" font-family="Red Hat Mono, ui-monospace, monospace" font-weight="500" font-size="8.6" fill="#147D7A">4</text>
+</svg>

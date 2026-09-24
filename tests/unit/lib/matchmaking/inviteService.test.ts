@@ -16,8 +16,6 @@ vi.mock("@/lib/observability/log", () => ({
 }));
 
 import {
-  calculateInviteExpiry,
-  isInviteExpired,
   selectQueueOpponent,
   startAutoQueue,
 } from "@/lib/matchmaking/inviteService";
@@ -25,19 +23,6 @@ import { findActiveMatchForPlayer } from "@/lib/matchmaking/service";
 import { pairFromQueue } from "@/lib/match/createMatch";
 
 describe("inviteService helpers", () => {
-  it("calculates expiry timestamps using the provided TTL", () => {
-    const now = new Date("2025-11-17T12:00:00.000Z");
-    const expiry = calculateInviteExpiry(now, 45);
-    expect(expiry).toBe("2025-11-17T12:00:45.000Z");
-  });
-
-  it("detects expired invites based on creation time", () => {
-    const now = new Date("2025-11-17T12:01:00.000Z");
-    const createdAt = "2025-11-17T12:00:00.000Z";
-    expect(isInviteExpired(createdAt, now, 30)).toBe(true);
-    expect(isInviteExpired(createdAt, now, 90)).toBe(false);
-  });
-
   it("prefers the searcher who joined first (spec 069 FR-020)", () => {
     const candidate = selectQueueOpponent(
       [

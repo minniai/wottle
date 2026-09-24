@@ -4,6 +4,7 @@ import { attentionFromQuery, recordAttention } from "@/lib/matchmaking/attention
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { loadMatchState } from "@/lib/match/stateLoader";
 import { recordHeartbeat } from "@/lib/match/heartbeatRepository";
+import { clearUnseenResult } from "@/lib/match/unseenResult";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const NO_CACHE_HEADERS = {
@@ -50,6 +51,8 @@ export async function GET(
   // Fire-and-forget so the state response doesn't wait on the upsert;
   // recordHeartbeat swallows errors and logs them.
   void recordHeartbeat(supabase, matchId, playerId);
+  // Spec 070 US8: opening the result lets it go from the line slot.
+  if (state.state === "completed") void clearUnseenResult(playerId, matchId);
   // Spec 069 R5: the match room reports its tab's attention too, so a player on
   // the result screen can be seated by attention at a rematch's table.
   const attention = attentionFromQuery(new URL(request.url).searchParams);
