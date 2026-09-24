@@ -433,15 +433,20 @@ describe("MatchRoomController (spec 050)", () => {
     expect(mockPlayChallenge).toHaveBeenCalledTimes(1);
   });
 
-  it("read-only non-participant: player A is the bottom seat without · you, field disabled, only ◂ lobby", async () => {
+  it("read-only reader (spec 071 US5): player A is the bottom seat without · you, no slip, nothing polled, review at the last step", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    window.history.replaceState(null, "", "/en/match/m1");
+    const replace = vi.spyOn(window.history, "replaceState");
     render(<MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="stranger" matchId="m1" playerProfiles={profiles} />);
     expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("Alice");
     expect(screen.getByTestId("ledger-header")).not.toHaveTextContent("· you");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
-    expect(await screen.findByTestId("slip-lobby")).toBeInTheDocument();
-    expect(screen.queryByTestId("slip-rematch")).toBeNull();
-    expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
+    await waitFor(() => expect(replace.mock.calls.some((c) => String(c[2]).endsWith("?review=last"))).toBe(true));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    expect(screen.getByTestId("room")).toHaveTextContent("this match is over · Alice – Bob");
+    const fetches = vi.mocked(fetch).mock.calls.map((c) => String(c[0]));
+    expect(fetches.some((url) => url.includes("/state"))).toBe(false);
+    replace.mockRestore();
   });
 
   it("opponent disconnect: sub-line counts down from the server anchor, lane dashed, the clock runs on, no overlay while you still play", () => {
