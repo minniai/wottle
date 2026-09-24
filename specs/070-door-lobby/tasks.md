@@ -274,7 +274,7 @@
   - the send errors are written on the row;
   - `again in 0:52` counts down to `challenge ▸`.
 - [X] T065 [P] [US3] Write a failing unit test in `tests/unit/components/standing/useHeldOutcome.spec.ts`: a terminal status is held for 4s (400ms for `accepted`, followed by the navigation callback); a newer outcome replaces an older one; it is idempotent under repeated reads.
-- [ ] T066 [US3] Write a failing Playwright spec `tests/integration/ui/lobby-challenge.spec.ts` (two players):
+- [X] T066 [US3] Write a failing Playwright spec `tests/integration/ui/lobby-challenge.spec.ts` (two players):
   - A composes and sees the stakes;
   - A sends: the slot shows the sent state with a drain, and B's row reads `sent`;
   - B declines: A sees `declined` for 4s, then `again in`, and a resend is refused;
@@ -337,7 +337,7 @@
   - `result ▸`.
   
   Also `BottomSlot.spec.tsx` for the phone: a 104px call, a 64px status, a 56px primary, the safe-area padding, and the primary hidden while a call is up.
-- [ ] T082 [US4] Write a failing Playwright spec `tests/integration/ui/line-slot.spec.ts`:
+- [X] T082 [US4] Write a failing Playwright spec `tests/integration/ui/line-slot.spec.ts`:
   - B is on `/rules` with the tab hidden when A challenges: B's title becomes `(1) A challenges you · …` and the favicon swaps;
   - B returns and accepts on `/rules`: both are at the table;
   - A's sent state follows A from the lobby to `/profile`;
@@ -456,7 +456,7 @@
 
 - [X] T109 [P] [US9] Write a failing test in `tests/unit/lib/match/rematchBroadcast.spec.ts`: no broadcast carries `newMatchId`, and both players are poked with `rematch`. Update `tests/unit/lib/room/useRematchNegotiation.spec.ts`: on a `rematch` poke it reads the match state route and navigates only to an id from that response.
 - [X] T110 [US9] Change `lib/match/rematchBroadcast.ts`, `lib/match/rematchAnnouncements.ts` and `lib/room/useRematchNegotiation.ts` accordingly (T109). Add the `seat` and `table` pokes to `lib/match/tableService.ts` and the `match` poke to match completion, each with a unit test.
-- [ ] T111 [US9] Add the timing assertions to `tests/integration/ui/line-slot.spec.ts`: with the socket up the call appears within 1s, and with `NEXT_PUBLIC_DISABLE_REALTIME=1` it appears within 3s. Add a unit test that the poll slows to 12s once the channel is joined and returns to 3s when it errors.
+- [X] T111 [US9] Add the timing assertions to `tests/integration/ui/line-slot.spec.ts`: with the socket up the call appears within 1s, and with `NEXT_PUBLIC_DISABLE_REALTIME=1` it appears within 3s. Add a unit test that the poll slows to 12s once the channel is joined and returns to 3s when it errors.
 
 ---
 

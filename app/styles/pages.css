@@ -508,7 +508,8 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
-  min-height: 60px;
+  /* Tall enough for the filled primary and its note, so the slot's states never move what is below (SC-006). */
+  min-height: 72px;
 }
 .lobby-block__name {
   display: flex;
@@ -534,6 +535,20 @@
 }
 .lobby-block__note {
   margin: 0;
+}
+/* Find is the same height as a primary or a secondary, so the note under it never moves (SC-006). */
+.lobby-block__find {
+  box-sizing: border-box;
+  width: 212px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+}
+.lobby-block__find.page-link {
+  justify-content: flex-end;
+  padding-right: 0;
 }
 .form-strip {
   display: flex;

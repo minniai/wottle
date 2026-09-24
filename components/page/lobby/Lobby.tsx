@@ -74,7 +74,7 @@ export function Lobby({ viewer, rows, overview, recent, onFind, onSend, standing
   const model = primaryFor ? primaryFor(composing) : { find: composing ? ("secondary" as const) : ("primary" as const), note: null };
   const primary =
     model.find === "hidden" ? null : (
-      <button type="button" className={model.find === "secondary" ? "page-link page-link--ink" : "action-primary page-primary"} onClick={onFind} data-testid="lobby-find">
+      <button type="button" className={`lobby-block__find ${model.find === "secondary" ? "page-link page-link--ink" : "action-primary page-primary"}`} onClick={onFind} data-testid="lobby-find">
         {copy.FIND_OPPONENT}
       </button>
     );
