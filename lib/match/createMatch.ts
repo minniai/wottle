@@ -15,7 +15,7 @@ export type MatchOrigin = "queue" | "challenge" | "crossed_challenge" | "rematch
 export type CreateMatchResult =
   | { status: "created"; matchId: string }
   | { status: "busy"; playerId: string }
-  | { status: "not_pending" | "not_recipient" | "expired" | "not_completed" | "not_searching" | "gone" }
+  | { status: "not_pending" | "not_recipient" | "expired" | "not_completed" | "not_searching" | "gone" | "own" }
   | { status: "invalid"; reason: string };
 
 type RpcClient = TableDeps["client"];
@@ -23,7 +23,7 @@ type RpcClient = TableDeps["client"];
 const replySchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("created"), match_id: z.string(), seats: z.object({ a: z.boolean(), b: z.boolean() }).optional() }),
   z.object({ status: z.literal("busy"), player_id: z.string() }),
-  z.object({ status: z.enum(["not_pending", "not_recipient", "expired", "not_completed", "not_searching", "gone"]) }),
+  z.object({ status: z.enum(["not_pending", "not_recipient", "expired", "not_completed", "not_searching", "gone", "own"]) }),
   z.object({ status: z.literal("invalid"), reason: z.string() }),
 ]);
 
@@ -60,6 +60,11 @@ export function pairFromQueue(
   input: { selfId: string; opponentId: string; language: Language },
 ): Promise<CreateMatchResult> {
   return callCreation(client, "pair_from_queue", "queue", { p_self: input.selfId, p_opponent: input.opponentId, p_language: input.language });
+}
+
+/** Spec 072: a friend's accept of an invite link; the link is used by compare-and-set in `accept_link`. */
+export function acceptLink(client: RpcClient, input: { tokenHashHex: string; actorId: string }): Promise<CreateMatchResult> {
+  return callCreation(client, "accept_link", "link", { p_token_hash: input.tokenHashHex, p_actor: input.actorId });
 }
 
 async function callCreation(client: RpcClient, fn: string, origin: MatchOrigin, args: Record<string, unknown>): Promise<CreateMatchResult> {

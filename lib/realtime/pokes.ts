@@ -13,7 +13,7 @@ import type { Language } from "@/lib/types/game-config";
  * A player's topic is an HMAC of their id, so another player cannot listen
  * on it. Delivery is best-effort: the fallback poll covers a lost poke.
  */
-export type PlayerPokeKind = "challenge" | "outcome" | "table" | "seat" | "rematch" | "match";
+export type PlayerPokeKind = "challenge" | "outcome" | "table" | "seat" | "rematch" | "match" | "link";
 
 const TOPIC_HEX = 32;
 

@@ -135,6 +135,7 @@ export const pagesEn = {
     search: "switching cancels your search",
     outgoing: "switching withdraws your challenge",
     incoming: "switching answers your challenges",
+    link: "switching cancels your link",
   },
   SWITCH: "switch ▸",
   LOBBY_NAME_IS: "Icelandic",

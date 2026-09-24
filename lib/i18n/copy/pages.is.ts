@@ -141,6 +141,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
     search: "leitin hættir ef þú skiptir", // native-read
     outgoing: "áskorunin þín fellur niður", // native-read
     incoming: "áskorunum til þín er svarað", // native-read
+    link: "tengillinn þinn fellur úr gildi", // native-read
   },
   SWITCH: "skipta ▸",
   LOBBY_NAME_IS: "íslenska",
