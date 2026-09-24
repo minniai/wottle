@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import { useIsPhone } from "@/components/room/hooks/useIsPhone";
@@ -22,13 +22,15 @@ interface DoorProps {
   more: number;
   returning: ReturningPlayer | null;
   next: string | null;
+  /** Spec 072: the invite door puts its invitation in place of the name form. */
+  entry?: ReactNode;
 }
 
 /**
  * The door (spec 070 US1, game flow A1 and F1): the lockup, the promise and
  * one field to enter; who is here and how it plays. No field on the page.
  */
-export function Door({ here, more, returning, next }: DoorProps) {
+export function Door({ here, more, returning, next, entry }: DoorProps) {
   const copy = useCopy();
   const locale = useLocale();
   const [anotherName, setAnotherName] = useState(false);
@@ -59,11 +61,7 @@ export function Door({ here, more, returning, next }: DoorProps) {
         <p className="page-lede door__lede">{words.lede}</p>
       </div>
       <div className="page-col-b door__entry">
-        {returning && !anotherName ? (
-          <ReturningForm returning={returning} next={next} onAnotherName={() => setAnotherName(true)} />
-        ) : (
-          <NameForm next={next} />
-        )}
+        {entry ?? (returning && !anotherName ? <ReturningForm returning={returning} next={next} onAnotherName={() => setAnotherName(true)} /> : <NameForm next={next} />)}
         <HereNowList here={here} more={more} />
         <HowItPlays />
       </div>

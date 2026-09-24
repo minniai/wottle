@@ -179,17 +179,17 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Tests first
 
-- [ ] T031 [P] [US2] Write failing unit tests for `inviteDoorModel` in `tests/unit/lib/pages/inviteDoor.spec.ts`:
+- [X] T031 [P] [US2] Write failing unit tests for `inviteDoorModel` in `tests/unit/lib/pages/inviteDoor.spec.ts`:
   - valid EN and IS band lines, `1265 · English words · link valid 9:12`;
   - the countdown reaching 0 switches to expired;
   - expired: `this link has expired`, primary `enter the lobby ▸`, no secondary and no consequence;
   - the returning state keeps the band.
-- [ ] T032 [P] [US2] Write the failing contract test `tests/contract/link-get.contract.test.ts` (R4):
+- [X] T032 [P] [US2] Write the failing contract test `tests/contract/link-get.contract.test.ts` (R4):
   - 20 GETs of `/c/<token>`, including `User-Agent: Slackbot-LinkExpanding 1.0`, `Purpose: prefetch` and `Sec-Purpose: prefetch`, leave `match_links`, `matches` and `players` unchanged, and the link stays pending;
   - the response has `Cache-Control: private, no-store`, `Referrer-Policy: no-referrer` and a `noindex` robots meta;
   - an Icelandic link under `/en/c/` returns 307 to `/c/`;
   - a malformed token renders the expired band without querying (spy).
-- [ ] T033 [P] [US2] Write failing unit tests for `acceptLinkAction` in `tests/unit/actions/link/accept.test.ts`, with the service and sign-in mocked:
+- [X] T033 [P] [US2] Write failing unit tests for `acceptLinkAction` in `tests/unit/actions/link/accept.test.ts`, with the service and sign-in mocked:
   - a malformed token → `expired` with no calls;
   - an invalid link → `expired` with no sign-in;
   - `name` mode with a taken name → `sign_in_failed` with `name_taken`, and `accept` is not called;
@@ -200,7 +200,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
   - `own` → a lobby redirect;
   - the rate limits `auth:login` and `link:accept`;
   - the pokes (`table` to both, `link` to the sender).
-- [ ] T034 [P] [US2] Write failing component tests in `tests/unit/components/page/door/InviteDoor.spec.tsx`:
+- [X] T034 [P] [US2] Write failing component tests in `tests/unit/components/page/door/InviteDoor.spec.tsx`:
   - the band as a call (`--tint`, a 3px left rule, an `--opp` square);
   - column B order: band, label, input, error line, `accept ▸`, `enter the lobby instead`, consequence, here now, how it plays, `how to play ▸`;
   - the returning state (a name with a `--you` square, `not Birna? · use another name`);
@@ -210,10 +210,10 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Implementation
 
-- [ ] T035 [US2] Implement `inviteDoorModel` in `lib/pages/inviteDoor.ts`. Makes T031 pass.
-- [ ] T036 [US2] Implement `acceptLinkAction` in `app/actions/link/accept.ts` per the contract (Zod input union, R5 steps). Makes T033 pass.
-- [ ] T037 [US2] Build `components/page/door/InviteBand.tsx` and `InviteDoor.tsx`. They reuse `Door.tsx`'s column A, masthead and folio and `DoorForm.tsx`'s input and error line; the form posts to `acceptLinkAction` in `name` or `returning` mode; `enter the lobby instead` runs the door's normal entry, then navigates to `/{locale}?invite=<token>` (so the call stays, Story 2.5); the band ticks each second (`useNowTick`). Makes T034 pass.
-- [ ] T038 [US2] Add the route `app/[locale]/(pages)/c/[token]/page.tsx`:
+- [X] T035 [US2] Implement `inviteDoorModel` in `lib/pages/inviteDoor.ts`. Makes T031 pass.
+- [X] T036 [US2] Implement `acceptLinkAction` in `app/actions/link/accept.ts` per the contract (Zod input union, R5 steps). Makes T033 pass.
+- [X] T037 [US2] Build `components/page/door/InviteBand.tsx` and `InviteDoor.tsx`. They reuse `Door.tsx`'s column A, masthead and folio and `DoorForm.tsx`'s input and error line; the form posts to `acceptLinkAction` in `name` or `returning` mode; `enter the lobby instead` runs the door's normal entry, then navigates to `/{locale}?invite=<token>` (so the call stays, Story 2.5); the band ticks each second (`useNowTick`). Makes T034 pass.
+- [X] T038 [US2] Add the route `app/[locale]/(pages)/c/[token]/page.tsx`:
   - `parseLinkToken`, then `linkService.read`;
   - the locale mismatch → `redirect` to the link's locale;
   - signed in → the R7 redirects (live match → the match; otherwise `/{locale}?invite=<token>`);
@@ -221,13 +221,13 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
   - `generateMetadata` (title `Kári challenges you · Wottle`, `robots: {index:false, follow:false}`);
   - the response headers via `headers()` in `next.config` `headers()` for `/:locale?/c/:token*`.
   Check Context7 for Next.js 16 `robots` and route `headers` first. Makes T032 pass.
-- [ ] T039 [P] [US2] Add the door strings to `lib/i18n/copy/pages.{en,is}.ts`:
+- [X] T039 [P] [US2] Add the door strings to `lib/i18n/copy/pages.{en,is}.ts`:
   - band line 1 and line 2;
   - `this link has expired`, `accept ▸`, `enter the lobby instead`;
   - the consequence line;
   - the page title.
   Mark `// native-read` on `bara inn í lobbíið` and the Icelandic consequence.
-- [ ] T040 [P] [US2] Add page fixtures `invite-door`, `is-invite-door`, `invite-door-expired` and `invite-door-returning`, and the phone view `phone-invite-door` (390×844, 390×664, 360×640), with baselines.
+- [X] T040 [P] [US2] Add page fixtures `invite-door`, `is-invite-door`, `invite-door-expired` and `invite-door-returning`, and the phone view `phone-invite-door` (390×844, 390×664, 360×640), with baselines.
 - [ ] T041 [US2] Write the Playwright spec `tests/integration/ui/invite-link-flow.spec.ts` (tagged `@two-player-playtest`, part 1):
   - A makes a link and B (a fresh context) opens it, sees the band, enters a free name and accepts;
   - B lands on `/match/:id` seated;

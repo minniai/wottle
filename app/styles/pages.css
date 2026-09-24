@@ -582,6 +582,26 @@
   width: 100%;
   max-width: 480px;
 }
+/* Spec 072 A2: the invite door's call band sits at the top of column B, in the slot's call grammar. */
+.invite-band.line-slot {
+  position: static;
+  height: auto;
+  min-height: 64px;
+  margin: 0 0 24px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  padding-right: 16px;
+}
+.invite-band .line-slot__line2 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.invite-entry__consequence {
+  margin: 12px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
 /* Spec 072: `invite a friend ▸` below the here-now table, with its note. */
 .lobby-invite {
   display: flex;

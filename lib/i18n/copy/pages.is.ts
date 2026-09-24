@@ -191,6 +191,12 @@ export const pagesIs: Widen<typeof pagesEn> = {
   FINDING_CANCELS_LINK: "tengillinn þinn fellur úr gildi", // native-read
   titleLink: (leftMmSs: string): string => `tengill úti · ${leftMmSs}`, // native-read
   LINK_EXPIRED_NOTE: "þessi tengill er útrunninn",
+  inviteLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · tengill gildir í ${leftMmSs}`,
+  ENTER_LOBBY_INSTEAD: "bara inn í lobbíið", // native-read
+  acceptSignsYouIn: (name: string): string => `Ef þú samþykkir skráirðu þig inn með þessu nafni og sest við borðið · ${name}`, // native-read (name-safe)
+  acceptSeatsYou: (name: string): string => `Ef þú samþykkir sestu við borðið · ${name}`, // native-read (name-safe)
+  inviteTitle: (name: string, wordmark: string): string => `${name} skorar á þig · ${wordmark}`,
+  LINK_BUSY: "þú ert í viðureign",
   LINK_ERRORS: {
     busy_sender: "ljúktu fyrst viðureigninni",
     rate_limited: "of margar áskoranir · bíddu í mínútu",

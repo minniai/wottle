@@ -186,6 +186,12 @@ export const pagesEn = {
   FINDING_CANCELS_LINK: "finding cancels your link",
   titleLink: (leftMmSs: string): string => `link out · ${leftMmSs}`,
   LINK_EXPIRED_NOTE: "this link has expired",
+  inviteLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · link valid ${leftMmSs}`,
+  ENTER_LOBBY_INSTEAD: "enter the lobby instead",
+  acceptSignsYouIn: (name: string): string => `Accepting signs you in with this name and seats you at ${name}'s table.`,
+  acceptSeatsYou: (name: string): string => `Accepting seats you at ${name}'s table.`,
+  inviteTitle: (name: string, wordmark: string): string => `${name} challenges you · ${wordmark}`,
+  LINK_BUSY: "you are in a match",
   LINK_ERRORS: {
     busy_sender: "finish your match first",
     rate_limited: "too many challenges · wait a minute",
