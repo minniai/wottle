@@ -454,8 +454,8 @@
 
 **Independent test**: SC-001, measured in `line-slot.spec.ts` with Realtime on (the call within 1s) and with `NEXT_PUBLIC_DISABLE_REALTIME=1` (within 3s).
 
-- [ ] T109 [P] [US9] Write a failing test in `tests/unit/lib/match/rematchBroadcast.spec.ts`: no broadcast carries `newMatchId`, and both players are poked with `rematch`. Update `tests/unit/lib/room/useRematchNegotiation.spec.ts`: on a `rematch` poke it reads the match state route and navigates only to an id from that response.
-- [ ] T110 [US9] Change `lib/match/rematchBroadcast.ts`, `lib/match/rematchAnnouncements.ts` and `lib/room/useRematchNegotiation.ts` accordingly (T109). Add the `seat` and `table` pokes to `lib/match/tableService.ts` and the `match` poke to match completion, each with a unit test.
+- [X] T109 [P] [US9] Write a failing test in `tests/unit/lib/match/rematchBroadcast.spec.ts`: no broadcast carries `newMatchId`, and both players are poked with `rematch`. Update `tests/unit/lib/room/useRematchNegotiation.spec.ts`: on a `rematch` poke it reads the match state route and navigates only to an id from that response.
+- [X] T110 [US9] Change `lib/match/rematchBroadcast.ts`, `lib/match/rematchAnnouncements.ts` and `lib/room/useRematchNegotiation.ts` accordingly (T109). Add the `seat` and `table` pokes to `lib/match/tableService.ts` and the `match` poke to match completion, each with a unit test.
 - [ ] T111 [US9] Add the timing assertions to `tests/integration/ui/line-slot.spec.ts`: with the socket up the call appears within 1s, and with `NEXT_PUBLIC_DISABLE_REALTIME=1` it appears within 3s. Add a unit test that the poll slows to 12s once the channel is joined and returns to 3s when it errors.
 
 ---

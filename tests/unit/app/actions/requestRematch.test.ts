@@ -13,6 +13,7 @@ vi.mock("@/lib/rate-limiting/middleware", () => ({
 vi.mock("@/lib/match/logWriter", () => ({
   writeMatchLog: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("@/lib/realtime/pokes", () => ({ pokePlayers: vi.fn(async () => undefined) }));
 vi.mock("@/lib/match/rematchBroadcast", () => ({
   broadcastRematchEvent: vi.fn().mockResolvedValue(undefined),
 }));

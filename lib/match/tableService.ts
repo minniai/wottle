@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { TABLE_LEAD_MS } from "@/lib/constants/table";
+import { pokePlayers, type PlayerPokeKind } from "@/lib/realtime/pokes";
 import type { Language } from "@/lib/types/game-config";
 
 import { MATCH_CLOCK_MS, startingBoardFor } from "./startingBoard";
@@ -49,6 +50,16 @@ async function boardOf(client: TableClient, matchId: string): Promise<string[][]
   return startingBoardFor(data as { id: string; board_seed: string | null; language: Language | null });
 }
 
+/** Every tab of both players hears the table change (spec 070 US9); a failed read or poke is not the seat's failure. */
+async function pokeBoth(client: TableClient, matchId: string, kind: PlayerPokeKind): Promise<void> {
+  try {
+    const { data } = await client.from("matches").select("player_a_id, player_b_id").eq("id", matchId).maybeSingle();
+    if (data) await pokePlayers([data.player_a_id as string, data.player_b_id as string], kind);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "table.poke.failed", matchId, kind, error: error instanceof Error ? error.message : String(error) }));
+  }
+}
+
 function log(event: string, fields: Record<string, unknown>): void {
   console.info(JSON.stringify({ event, ...fields }));
 }
@@ -62,7 +73,10 @@ export async function seatPlayer(deps: TableDeps, matchId: string, playerId: str
   if (reply.status === "late") return voidDueTable(deps, matchId) as Promise<SeatOutcome>;
   if (reply.status === "seated") log("table.seated", { matchId, playerId });
   if (reply.status === "started") log("table.started", { matchId, playerId, startedAt: reply.startedAt });
-  if (reply.status === "seated" || reply.status === "started") await deps.publish?.(matchId);
+  if (reply.status === "seated" || reply.status === "started") {
+    await deps.publish?.(matchId);
+    await pokeBoth(deps.client, matchId, "seat");
+  }
   return reply as SeatOutcome;
 }
 
@@ -77,6 +91,7 @@ async function voidTable(deps: TableDeps, matchId: string, reason: "not_seated" 
   if (reply.status !== "void") return { status: reply.status === "invalid" ? "not_pending" : reply.status };
   log("table.void", { matchId, reason: reply.reason, voidedBy: reply.voidedBy });
   await deps.publish?.(matchId);
+  await pokeBoth(deps.client, matchId, "table");
   return { status: "void" };
 }
 

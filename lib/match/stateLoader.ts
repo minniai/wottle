@@ -294,6 +294,13 @@ async function disconnectFacts(client: AnyClient, match: MatchRow) {
   };
 }
 
+/** Spec 070 FR-034: where an accepted rematch went, read with the old match rather than broadcast. */
+async function rematchOf(client: AnyClient, match: MatchRow): Promise<string | null> {
+  if (match.state !== "completed") return null;
+  const { data } = await client.from("rematch_requests").select("new_match_id").eq("match_id", match.id).eq("status", "accepted").limit(1).maybeSingle();
+  return (data?.new_match_id as string | null | undefined) ?? null;
+}
+
 // ─── The loader ──────────────────────────────────────────────────────
 
 export async function loadMatchState(client: AnyClient, matchId: string): Promise<MatchState | null> {
@@ -329,6 +336,7 @@ export async function loadMatchState(client: AnyClient, matchId: string): Promis
     completedAt: match.completed_at ?? null,
     table: tableOf(match),
     stakes: match.state === "pending" ? await stakesOf(client, match) : null,
+    rematchMatchId: await rematchOf(client, match),
   };
 }
 

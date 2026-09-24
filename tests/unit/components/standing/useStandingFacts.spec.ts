@@ -62,4 +62,14 @@ describe("useStandingFacts", () => {
     await settle(1_000);
     expect(fetchMock.mock.calls.length).toBe(before + 1);
   });
+
+  it("returns to 3s when the channel errors (spec 070 T111)", async () => {
+    renderHook(() => useStandingFacts(attention));
+    await settle();
+    act(() => channel.onJoined!(true));
+    act(() => channel.onJoined!(false));
+    const before = fetchMock.mock.calls.length;
+    await settle(3_000);
+    expect(fetchMock.mock.calls.length).toBe(before + 1);
+  });
 });

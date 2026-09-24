@@ -14,6 +14,7 @@ import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
 import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { trackMatchResult } from "@/lib/observability/log";
 import { markUnseenResult } from "@/lib/match/unseenResult";
+import { pokePlayers } from "@/lib/realtime/pokes";
 import { calculateElo, determineKFactor } from "@/lib/rating/calculateElo";
 import { persistRatingChanges } from "@/lib/rating/persistRatingChanges";
 import type { RatingChange, MatchRatingResult } from "@/lib/types/match";
@@ -236,6 +237,8 @@ export async function completeMatchInternal(
 
   await publishMatchState(matchId);
   await markUnseenResult(matchId);
+  // Spec 070 US9: every tab of both players hears the match end, whatever page it is on.
+  await pokePlayers([match.player_a_id, match.player_b_id], "match");
 
   trackMatchResult({
     matchId,

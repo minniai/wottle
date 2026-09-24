@@ -11,6 +11,7 @@ vi.mock("@/lib/rating/playerRatings", async (importOriginal) => {
 });
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
 vi.mock("@/lib/match/unseenResult", () => ({ markUnseenResult: vi.fn(async () => undefined) }));
+vi.mock("@/lib/realtime/pokes", () => ({ pokePlayers: vi.fn(async () => undefined) }));
 vi.mock("@/lib/match/statePublisher", () => ({
   publishMatchState: vi.fn().mockResolvedValue(undefined),
 }));
@@ -25,7 +26,9 @@ vi.mock("@/lib/rating/persistRatingChanges", () => ({
 }));
 
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
+import { markUnseenResult } from "@/lib/match/unseenResult";
 import { persistRatingChanges } from "@/lib/rating/persistRatingChanges";
+import { pokePlayers } from "@/lib/realtime/pokes";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 const MATCH_ID = "00000000-0000-0000-0000-000000000099";
@@ -149,6 +152,9 @@ describe("completeMatchInternal — abandoned reason", () => {
       winner_id: null,
       ended_reason: "abandoned",
     });
+    // Spec 070 US8/US9: the result is held for a player who was away, and both players' tabs hear it.
+    expect(markUnseenResult).toHaveBeenCalledWith(MATCH_ID);
+    expect(pokePlayers).toHaveBeenCalledWith([expect.any(String), expect.any(String)], "match");
   });
 
   test("does not write match_ratings for abandoned matches", async () => {

@@ -1,6 +1,5 @@
 import "server-only";
 
-import { pokePlayers } from "@/lib/realtime/pokes";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
 /**
@@ -9,13 +8,8 @@ import { getServiceRoleClient } from "@/lib/supabase/server";
  * `mark_unseen_result` and `clear_unseen_result`.
  */
 export async function markUnseenResult(matchId: string): Promise<void> {
-  const { data, error } = await getServiceRoleClient().rpc("mark_unseen_result", { p_match: matchId });
-  if (error) {
-    console.warn(JSON.stringify({ event: "match.unseen_result.failed", matchId, error: error.message }));
-    return;
-  }
-  const away = (data as string[] | null) ?? [];
-  if (away.length) await pokePlayers(away, "match");
+  const { error } = await getServiceRoleClient().rpc("mark_unseen_result", { p_match: matchId });
+  if (error) console.warn(JSON.stringify({ event: "match.unseen_result.failed", matchId, error: error.message }));
 }
 
 /** Opening the result, or signing out, clears it. With no match id, whatever is held. */

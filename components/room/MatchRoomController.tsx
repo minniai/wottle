@@ -313,6 +313,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // standing provider's, one poll for the whole app, and the void slip reads it.
   const standing = useStandingSlot().machine;
   const requeued = standing?.slot.kind === "search" ? standing.slot.search : null;
+  // Spec 070 FR-034: a rematch reaches this page as a poke on the player's topic; the id is read, never carried.
+  const onPoke = standing?.onPoke;
+  const checkRematch = rematch.check;
+  useEffect(() => onPoke?.((kind) => kind === "rematch" && void checkRematch()), [onPoke, checkRematch]);
   const derivedSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
   const tableSlip = derivedSlip?.kind === "void" && requeued?.kind === "searching" && table.youRequeued
     ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeued.elapsedSeconds * 1000)}` } }
