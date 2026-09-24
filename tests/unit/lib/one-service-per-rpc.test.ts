@@ -15,6 +15,10 @@ const DOORS: Record<string, string[]> = {
   "lib/matchmaking/headToHead.ts": ["head_to_head"],
   "lib/match/unseenResult.ts": ["mark_unseen_result", "clear_unseen_result"],
   // Spec 071: accept_rematch stays with the other creation functions in lib/match/createMatch.ts.
+  // Spec 072: accept_link stays with the other creation functions in lib/match/createMatch.ts.
+  "lib/matchmaking/linkService.ts": ["create_link", "read_link", "cancel_link", "expire_links"],
+  "lib/match/createMatch.ts": ["accept_link"],
+  "lib/profile/profileRepository.ts": ["best_words", "presence_word"],
   "lib/match/rematchService.ts": ["request_rematch", "decline_rematch", "withdraw_rematch", "expire_due_rematches", "pair_cooldown_until", "player_on_match", "rematch_series"],
 };
 

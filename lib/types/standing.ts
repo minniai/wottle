@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { outgoingLinkSchema } from "./link";
+
 /**
  * Spec 070: presence, the lobby's rows, the viewer's standing facts and the
  * line slot. Server responses are parsed with these schemas; the slot state
@@ -106,7 +108,7 @@ export type MatchFact = z.infer<typeof matchFactSchema>;
 export const switchPendingSchema = z.object({
   to: lobbyLanguageSchema,
   from: lobbyLanguageSchema,
-  pending: z.array(z.enum(["search", "outgoing", "incoming"])),
+  pending: z.array(z.enum(["search", "outgoing", "incoming", "link"])),
 });
 export type SwitchPending = z.infer<typeof switchPendingSchema>;
 
@@ -121,6 +123,8 @@ export const standingFactsSchema = z.object({
   tableCooldownUntil: z.string().nullable(),
   match: matchFactSchema.nullable(),
   switchPending: switchPendingSchema.nullable(),
+  /** Spec 072: the viewer's invite link, pending or its outcome for 10s. Absent in older fixtures. */
+  link: outgoingLinkSchema.nullish(),
   /** Spec 069: said once after a table the viewer did not sit down at. */
   notice: z.enum(["table_missed"]).nullable(),
   /** The viewer's lobby's numbers and the other lobby's here count (S10): the slot, the search line and the masthead switch. */
