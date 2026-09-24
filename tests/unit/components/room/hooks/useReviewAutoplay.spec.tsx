@@ -29,10 +29,12 @@ describe("useReviewAutoplay (spec 071 FR-035, R16)", () => {
   });
 
   it("stops at the last step", () => {
-    const { hook, onStep } = play(5, 5);
+    const { hook, onStep } = play(4, 5);
     act(() => hook.result.current.toggle());
     act(() => vi.advanceTimersByTime(1000));
-    expect(onStep).not.toHaveBeenCalled();
+    hook.rerender({ s: 5 });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(onStep).toHaveBeenCalledTimes(1);
     expect(hook.result.current.playing).toBe(false);
   });
 
