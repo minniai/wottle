@@ -178,7 +178,7 @@ describe("claimWinAction", () => {
     expect((result as { status: "ok"; matchId: string }).matchId).toBe(MATCH_ID);
     // Spec 050 FR-012: no forced winner. The caller has ten moves and the
     // absent opponent does not, so the rules give the caller the win.
-    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "natural");
+    expect(completeMatchInternal).toHaveBeenCalledWith(MATCH_ID, "ended_early");
   });
 
   test("returns not_done while the caller is short of the move limit (spec 050 FR-012)", async () => {
