@@ -391,7 +391,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
   Retire `app/actions/player/getPlayerProfileByHandle.ts`. Makes T069 pass.
 - [X] T074 [P] [US6] Add the strings: presence words, stakes, `YOUR MATCHES` / `ÞÍNAR VIÐUREIGNIR`, `sent · 0:41`. Mark `// native-read` on `fjarverandi` and `í enska lobbíinu`.
 - [X] T075 [P] [US6] Add page fixtures `profile-public`, `profile-public-sent`, `profile-public-in-match`, `profile-public-away` and `is-profile-public`, and the phone view `phone-profile-public` (the pinned `skora á ▸` with stakes above), with baselines.
-- [ ] T076 [US6] Write the Playwright spec `tests/integration/ui/profile.spec.ts` (part 1): the own profile renders; from the English lobby, click a name; `CHALLENGE ▸`; `send challenge ▸`; the sent state and `withdraw ▸`; the other browser's slot shows the call.
+- [X] T076 [US6] Write the Playwright spec `tests/integration/ui/profile.spec.ts` (part 1): the own profile renders; from the English lobby, click a name; `CHALLENGE ▸`; `send challenge ▸`; the sent state and `withdraw ▸`; the other browser's slot shows the call.
 
 **Checkpoint**: challenging from a profile works.
 
@@ -410,7 +410,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
   Extend `tests/unit/styles/locale-links-grep.test.ts` if new link sites are added.
 - [X] T078 [US7] Implement the handle normalisation in `lib/profile/readHandle.ts` and a `profilePath` helper in `lib/i18n/locales.ts`, used by `HereNowTable`, `ProfileMatches`, the masthead and the recent-match rows. Makes T077 pass.
 - [X] T079 [US7] Handle the signed-out case in `ProfilePublicPage` (the owner in `--you`, no stakes, primary `enter the lobby ▸` → `/{locale}?next=/profile/<handle>`), and add the fixtures `profile-public-signed-out` and `profile-missing`, with baselines.
-- [ ] T080 [US7] Extend `tests/integration/ui/profile.spec.ts` (part 2):
+- [X] T080 [US7] Extend `tests/integration/ui/profile.spec.ts` (part 2):
   - signed out, a public profile renders, and `enter the lobby ▸` then entering returns to it;
   - `/profile` signed out redirects to the door with `?next`;
   - the viewer's own handle redirects to `/profile`;
@@ -443,7 +443,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 - [X] T085 [US8] Update `components/room/RoomMenu.tsx` (rules `?from`, the review `copy link ▸`), `components/page/PageMenu.tsx` (`how to play ▸`) and `components/page/Masthead.tsx` (`aria-current`). Makes T082 pass.
 - [X] T086 [P] [US8] Fix `components/rules/content/en.tsx` and `is.tsx`: the `10moves` typo, and the clock line describing today's clock (it darkens under a minute and counts the last 15 seconds in words; nothing flashes). Add a unit test that renders both and asserts no `10moves` and no `flash`/`blikk`.
 - [X] T087 [P] [US8] Add the strings `close this tab ▸` / `loka flipanum ▸`, `copy link ▸` / `afrita tengil ▸` and `link copied` / `tengill afritaður`. Add fixtures `rules`, `is-rules`, `rules-from-match` and the room phase `review-copy-link`, with baselines.
-- [ ] T088 [US8] Write the Playwright spec `tests/integration/ui/rules-links.spec.ts`:
+- [X] T088 [US8] Write the Playwright spec `tests/integration/ui/rules-links.spec.ts`:
   - `how to play ▸` reaches `/rules` (or `/en/rules`) from the door, the invite door, the lobby, both profiles, the phone `⋯`, and the match `⋯` (a new tab, the match tab's URL unchanged);
   - the new tab's `close this tab ▸` closes it.
 
