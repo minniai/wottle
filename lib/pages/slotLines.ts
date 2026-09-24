@@ -141,7 +141,8 @@ function linkCallModel(slot: Extract<SlotState, { kind: "linkCall" }>, copy: Cop
   return {
     style: "call",
     square: "opp",
-    line1: copy.pages.linkCallLine1(view.senderName),
+    // A phone has no room for `invites you by link` beside a long name; the call reads as any call, the link on line 2.
+    line1: (ctx.phone ? copy.pages.callLine1 : copy.pages.linkCallLine1)(view.senderName),
     line2,
     primary: { label: copy.ACCEPT, action: "acceptLink" },
     secondaries: [{ label: copy.pages.NOT_NOW, action: "dismissLink" }],

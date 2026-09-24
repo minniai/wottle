@@ -578,7 +578,9 @@
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--rule);
-  padding: 2px 0;
+  padding: 0;
+  height: 13px;
+  line-height: 13px;
   width: 100%;
   max-width: 480px;
 }
