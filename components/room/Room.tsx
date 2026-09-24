@@ -7,6 +7,7 @@ import type { SlipState } from "@/lib/room/slip";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { PlayerIdentity } from "@/lib/types/match";
 import { useFieldGeometry, type RoomLayout } from "./hooks/useFieldSize";
+import { useIsPhone } from "./hooks/useIsPhone";
 import { Slip } from "./Slip";
 
 /** Below this the design's 18% value numeral is unreadable (spec 045 decision 3). */
@@ -52,6 +53,7 @@ export function Room({ matchId, layout = "bars", topBar, field, bottomBar, ledge
   const roomRef = useRef<HTMLElement | null>(null);
   const { cell, field: fieldSize } = useFieldGeometry(roomRef, layout);
   const style = roomStyle(layout, fieldSize, cell);
+  const phone = useIsPhone();
 
   return (
     // The room is the page's main landmark (axe landmark-one-main); the ledger is its aside.
@@ -65,7 +67,7 @@ export function Room({ matchId, layout = "bars", topBar, field, bottomBar, ledge
           data-slipped={slip ? "true" : undefined}
         >
           {field}
-          {slip ? <Slip slip={slip} onAction={onSlipAction ?? NO_ACTION} /> : null}
+          {slip ? <Slip slip={slip} onAction={onSlipAction ?? NO_ACTION} compact={phone} /> : null}
         </div>
         {layout === "bars" || bottomBar ? <div data-testid="room-slot-bottom">{bottomBar}</div> : null}
       </div>

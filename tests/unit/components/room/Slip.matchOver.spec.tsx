@@ -44,8 +44,12 @@ describe("Slip · match over (spec 048 US1)", () => {
   });
 
   describe("actions", () => {
-    beforeEach(() => vi.useFakeTimers());
-    afterEach(() => vi.useRealTimers());
+    beforeEach(() => {
+    vi.useFakeTimers();
+  });
+    afterEach(() => {
+    vi.useRealTimers();
+  });
 
     it("lays out rematch ▸ · new opponent ▸, then review the match ▸ · lobby", () => {
       render(<Slip slip={OVER} onAction={() => {}} />);

@@ -4,8 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActivationGuard } from "@/components/room/hooks/useActivationGuard";
 
 describe("useActivationGuard (game flow §5.0 guards, spec 071 FR-002)", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("ignores activation for 500ms after the control appears", () => {
     const { result } = renderHook(() => useActivationGuard("rematch:rematch ▸"));

@@ -4,6 +4,8 @@ import { useId, useRef, type ReactNode, type RefObject } from "react";
 
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 import { useCopy } from "@/components/i18n/LocaleProvider";
+import { useActivationGuard } from "@/components/room/hooks/useActivationGuard";
+import { resultHeadline } from "@/lib/room/tabTitle";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
 import type { SlipState } from "@/lib/room/slip";
@@ -12,6 +14,8 @@ import type { VoidAction } from "@/lib/room/tableSlip";
 export interface SlipProps {
   slip: SlipState;
   onAction: (action: LedgerAction) => void;
+  /** A phone: the match-over detail keeps its first two clauses (game flow F4). */
+  compact?: boolean;
 }
 
 /** Escape maps to each kind's cancel; the sign-in slip has none (contracts/slip.md). */
@@ -30,15 +34,26 @@ function cancelActionFor(slip: SlipState): LedgerAction | null {
   }
 }
 
-/** A control that has just appeared ignores activation for 500ms (game flow §5.0 guards). */
-const GUARD_MS = 500;
+interface ActionProps {
+  label: string;
+  action: LedgerAction;
+  testId: string;
+  onAction: (a: LedgerAction) => void;
+  /** Ignore activation for 500ms after it appears or changes meaning (game flow §5.0 guards). */
+  guarded?: boolean;
+}
 
-function Primary({ label, action, testId, onAction, guarded = false }: { label: string; action: LedgerAction; testId: string; onAction: (a: LedgerAction) => void; guarded?: boolean }) {
-  const shownAt = useRef(Date.now());
-  const activate = () => {
-    if (guarded && Date.now() - shownAt.current < GUARD_MS) return;
+function useGuardedActivate({ label, action, onAction, guarded = false }: ActionProps): () => void {
+  const ready = useActivationGuard(`${action}:${label}`);
+  return () => {
+    if (guarded && !ready()) return;
     onAction(action);
   };
+}
+
+function Primary(props: ActionProps) {
+  const { label, testId } = props;
+  const activate = useGuardedActivate(props);
   return (
     <button type="button" className="action-primary" data-testid={testId} data-slip-primary onClick={activate}>
       {label}
@@ -46,9 +61,11 @@ function Primary({ label, action, testId, onAction, guarded = false }: { label: 
   );
 }
 
-function Secondary({ label, action, testId, onAction }: { label: string; action: LedgerAction; testId: string; onAction: (a: LedgerAction) => void }) {
+function Secondary(props: ActionProps) {
+  const { label, testId } = props;
+  const activate = useGuardedActivate(props);
   return (
-    <button type="button" className="action-secondary" data-testid={testId} onClick={() => onAction(action)}>
+    <button type="button" className="action-secondary" data-testid={testId} onClick={activate}>
       {label}
     </button>
   );
@@ -210,33 +227,53 @@ function MatchOverActions({ slip, onAction }: { slip: Extract<SlipState, { kind:
   if (slip.rematch === "waiting" || slip.rematch === "requesting") {
     return <span className="slip__label" data-testid="slip-rematch-waiting">{waitingForRematch(slip.opponentName)}</span>;
   }
+  // Game flow D1: row 1 the next match, row 2 what else; the game raised the slip, so nothing is focused but its headline.
   return (
     <>
-      <div className="slip__actions">
-        <Primary label={REMATCH} action="rematch" testId="slip-rematch" onAction={onAction} />
-        <Secondary label={NEW_OPPONENT} action="newOpponent" testId="slip-new-opponent" onAction={onAction} />
-        <Secondary label={REVIEW_FIELD} action="reviewField" testId="slip-review-field" onAction={onAction} />
+      <div className="slip__actions" data-testid="slip-action-row">
+        <Primary label={REMATCH} action="rematch" testId="slip-rematch" onAction={onAction} guarded />
+        <Secondary label={NEW_OPPONENT} action="newOpponent" testId="slip-new-opponent" onAction={onAction} guarded />
       </div>
-      <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} />
+      <div className="slip__actions" data-testid="slip-action-row">
+        <Secondary label={REVIEW_FIELD} action="reviewField" testId="slip-review-field" onAction={onAction} guarded />
+        <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} guarded />
+      </div>
     </>
   );
 }
 
-function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "matchOver" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
-  const { DRAW, matchOverLabel, winsHeadline, points } = useCopy();
+interface MatchOverBodyProps {
+  slip: Extract<SlipState, { kind: "matchOver" }>;
+  onAction: (a: LedgerAction) => void;
+  headlineId: string;
+  headlineRef: RefObject<HTMLHeadingElement | null>;
+  compact: boolean;
+}
+
+/** Why the match ended, said once (spec 071 FR-004); a phone keeps the first two clauses (F4). */
+function detailOf(verdict: Extract<SlipState, { kind: "matchOver" }>["verdict"], compact: boolean): string {
+  const clauses = verdict.detailClauses;
+  if (!clauses) return verdict.detailLine;
+  return (compact ? clauses.slice(0, 2) : clauses).join(" · ");
+}
+
+function MatchOverBody({ slip, onAction, headlineId, headlineRef, compact }: MatchOverBodyProps) {
+  const copy = useCopy();
+  const { matchOverLabel, points, bestWordLine } = copy;
   const winner = slip.verdict.winnerSeat;
-  const headline = winner === null ? DRAW : winsHeadline(winner === "you" ? slip.viewerName : slip.opponentName);
+  const headline = resultHeadline(winner === null ? null : winner === "you" ? slip.viewerName : slip.opponentName, copy);
   const first = winner === "opp" ? "opp" : "you";
   const second = first === "you" ? "opp" : "you";
   return (
     <>
       <div role="status" aria-live="assertive" className="slip__head">
         <span className="slip__label">{matchOverLabel(slip.durationMmSs)}</span>
-        <h2 id={headlineId} className="slip__headline" data-seat={winner ?? undefined}>{headline}</h2>
+        <h2 id={headlineId} ref={headlineRef} tabIndex={-1} className="slip__headline" data-seat={winner ?? undefined}>{headline}</h2>
         <span className="slip__score" data-testid="slip-score">
           <span data-seat={first}>{points(slip.scores[first])}</span> – <span data-seat={second}>{points(slip.scores[second])}</span>
         </span>
-        <span className="slip__label">{slip.verdict.detailLine}</span>
+        <span className="slip__label" data-testid="slip-detail">{detailOf(slip.verdict, compact)}</span>
+        {slip.bestWord ? <span className="slip__label" data-testid="slip-best-word">{bestWordLine(slip.bestWord.word, slip.bestWord.points)}</span> : null}
       </div>
       <div className="slip__rule" />
       <div className="slip__ratings" data-testid="slip-ratings">
@@ -254,7 +291,7 @@ function MatchOverBody({ slip, onAction, headlineId }: { slip: Extract<SlipState
   );
 }
 
-function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, headlineId: string, headlineRef: RefObject<HTMLHeadingElement | null>): ReactNode {
+function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, headlineId: string, headlineRef: RefObject<HTMLHeadingElement | null>, compact: boolean): ReactNode {
   switch (slip.kind) {
     case "ready":
       return <ReadyBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
@@ -267,7 +304,7 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, headlineI
     case "endEarly":
       return <EndEarlyBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
     case "matchOver":
-      return <MatchOverBody slip={slip} onAction={onAction} headlineId={headlineId} />;
+      return <MatchOverBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} compact={compact} />;
   }
 }
 
@@ -276,7 +313,7 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, headlineI
  * the field, the one overlay the room permits. Focus is trapped inside it, the
  * headline is announced once, and Escape is the kind's cancel.
  */
-export function Slip({ slip, onAction }: SlipProps) {
+export function Slip({ slip, onAction, compact = false }: SlipProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const headlineId = useId();
   const headlineRef = useRef<HTMLHeadingElement | null>(null);
@@ -294,7 +331,7 @@ export function Slip({ slip, onAction }: SlipProps) {
       data-kind={slip.kind}
       data-field-safe
     >
-      {bodyFor(slip, onAction, headlineId, headlineRef)}
+      {bodyFor(slip, onAction, headlineId, headlineRef, compact)}
     </div>
   );
 }
