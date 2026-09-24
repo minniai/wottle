@@ -143,7 +143,7 @@
 
 ### Tests first
 
-- [ ] T025 [P] [US2] Write failing integration tests in `tests/integration/db/rematch.test.ts` (harness from `tests/integration/db/harness.ts`):
+- [X] T025 [P] [US2] Write failing integration tests in `tests/integration/db/rematch.test.ts` (harness from `tests/integration/db/harness.ts`):
   - `request_rematch` refuses: `not_completed` (live, void, abandoned), `not_participant`, `window_closed` (`completed_at` 121s ago), `opponent_left` and `self_left` (no fresh tab on the match), `already_requested`;
   - a hidden fresh tab counts (Q2);
   - a sent request has `expires_at = now + 30s`;
@@ -154,46 +154,46 @@
   - `expire_due_rematches` returns the match ids and sets `responded_at = expires_at`;
   - a busy player's accept is refused and the request becomes `superseded`;
   - a responder with no fresh tab on the match: `expire_due_rematches` marks the request `superseded`, and `pair_cooldown_until` stays null.
-- [ ] T026 [P] [US2] Write failing tests in `tests/integration/db/pair-cooldown.test.ts`:
+- [X] T026 [P] [US2] Write failing tests in `tests/integration/db/pair-cooldown.test.ts`:
   - a declined or expired rematch from A to B makes `send_challenge(A→B)` return `declined_recently` for 60s;
   - B→A is not held;
   - three rematch declines do not trigger `challenger_silenced`;
   - a withdrawn request starts no cooldown.
-- [ ] T027 [P] [US2] Write a failing race test in `tests/integration/db/rematch.race.test.ts`: 100 rounds of both players calling `request_rematch` at once. Each round creates exactly one match, and neither player sees an error.
-- [ ] T028 [P] [US2] Write failing unit tests for `deriveRematchView` in `tests/unit/lib/room/rematchView.spec.ts`: every row of the contract table, the countdown and drain at 24s and at 0, `challenge again` enabled or disabled by the cooldown, EN and IS lines, and the name-safe IS strings.
-- [ ] T029 [P] [US2] Write failing unit tests for `readRematchOffer` in `tests/unit/match/rematchOffer.spec.ts`, with the Supabase client mocked, plus a test that `loadMatchState`'s result has no `rematch` key:
+- [X] T027 [P] [US2] Write a failing race test in `tests/integration/db/rematch.race.test.ts`: 100 rounds of both players calling `request_rematch` at once. Each round creates exactly one match, and neither player sees an error.
+- [X] T028 [P] [US2] Write failing unit tests for `deriveRematchView` in `tests/unit/lib/room/rematchView.spec.ts`: every row of the contract table, the countdown and drain at 24s and at 0, `challenge again` enabled or disabled by the cooldown, EN and IS lines, and the name-safe IS strings.
+- [X] T029 [P] [US2] Write failing unit tests for `readRematchOffer` in `tests/unit/match/rematchOffer.spec.ts`, with the Supabase client mocked, plus a test that `loadMatchState`'s result has no `rematch` key:
   - `offered` only with no request, inside the window and with both on the match;
   - `reason` for each refusal;
   - `cooldownUntil` from `pair_cooldown_until`;
   - `expire_due_rematches` is called before the read.
-- [ ] T030 [P] [US2] Write a failing grep test `tests/unit/match/rematch-one-caller.test.ts`: only `lib/match/rematchService.ts` may name the RPCs `request_rematch`, `accept_rematch`, `decline_rematch`, `withdraw_rematch` and `expire_due_rematches`.
-- [ ] T031 [P] [US2] Update `tests/unit/components/room/Slip.matchOver.spec.tsx` and `tests/unit/components/room/Ledger.call.spec.tsx` so they fail on the new rows:
+- [X] T030 [P] [US2] Write a failing grep test `tests/unit/match/rematch-one-caller.test.ts`: only `lib/match/rematchService.ts` may name the RPCs `request_rematch`, `accept_rematch`, `decline_rematch`, `withdraw_rematch` and `expire_due_rematches`.
+- [X] T031 [P] [US2] Update `tests/unit/components/room/Slip.matchOver.spec.tsx` and `tests/unit/components/room/Ledger.call.spec.tsx` so they fail on the new rows:
   - the negotiation row for `sent` (line, drain, `cancel ▸` at the row end), `incoming` (`accept ▸` primary, unfocused and guarded; `decline`) and `closed` (`new opponent ▸` primary);
   - with the slip lifted, the rematch is the ledger's first call line with `accept ▸` and `decline`;
   - in `tests/unit/components/room/MatchRoomController.rematch.spec.tsx`: an incoming request with the slip lifted sets the title `(1) Kári asks for a rematch · Wottle`, sets the favicon to the opponent's seat, plays the `challenge` cue once and writes a polite announcement; nothing fires for your own sent request.
 
 ### Implementation
 
-- [ ] T032 [US2] Rewrite `lib/match/rematchService.ts` as the only caller of the rematch RPCs: `requestRematch`, `acceptRematch`, `declineRematch`, `withdrawRematch` and `expireDueRematches`, each returning typed results. Keep `walkRematchChain` and `deriveSeriesContext`, which are pure. Drop the TypeScript `validateRematchRequest`, now decided in SQL, and its tests. Point `lib/match/createMatch.ts` `acceptRematch` at the service. T025–T027 and T030 pass.
-- [ ] T033 [US2] Reshape the actions:
+- [X] T032 [US2] Rewrite `lib/match/rematchService.ts` as the only caller of the rematch RPCs: `requestRematch`, `acceptRematch`, `declineRematch`, `withdrawRematch` and `expireDueRematches`, each returning typed results. Keep `walkRematchChain` and `deriveSeriesContext`, which are pure. Drop the TypeScript `validateRematchRequest`, now decided in SQL, and its tests. Point `lib/match/createMatch.ts` `acceptRematch` at the service. T025–T027 and T030 pass.
+- [X] T033 [US2] Reshape the actions:
   - `app/actions/match/requestRematch.ts` becomes a thin caller with rate limit `match:rematch`;
   - `respondToRematch.ts` handles accept and decline (drop the TypeScript 30s check);
   - new `withdrawRematch.ts`, and delete `cancelRematch.ts`.
 
   Each logs `match.rematch.*` and calls `pokePlayers(players, "rematch")`. Update `lib/match/rematchAnnouncements.ts` so no broadcast carries an id. Add unit tests beside the existing action specs.
-- [ ] T034 [US2] Implement `lib/match/rematchOffer.ts` `readRematchOffer(client, matchId, viewerId)`: lazy `expire_due_rematches`, the request row, the window, `player_on_match` for both players, `pair_cooldown_until(viewer, opponent)` and `opponentHere` from presence. Attach it in `app/api/match/[matchId]/state/route.ts` and `app/[locale]/(room)/match/[matchId]/page.tsx` for participants only; never in `loadMatchState` or the publisher. T029 passes.
-- [ ] T035 [US2] Have `useTabPresence` in `components/standing/hooks/useTabPresence.ts` send `matchId` when on `/match/:id`. Add it to `app/api/presence/beat/route.ts` (Zod) and `lib/presence/presenceService.ts`. Extend `tests/unit/components/standing/useTabPresence.spec.tsx`.
-- [ ] T036 [US2] Add the sweep step `expire_due_rematches` plus pokes to `app/api/cron/sweep-stale-matches/route.ts`, with a unit test in its existing spec.
-- [ ] T037 [P] [US2] Implement `lib/room/rematchView.ts` and the copy (EN and IS: `rematch sent`, `asks for a rematch`, `accepted`, `declined`, `no answer`, `withdrew`, `started another match`, `has left`; IS name-safe). T028 passes.
-- [ ] T038 [US2] Thin `lib/room/useRematchNegotiation.ts` down to commands only (request, accept, decline, withdraw), plus navigation with `router.replace` to the new match (R4). Remove the local 30s timer and the event handlers. The view comes from `deriveRematchView(matchState.rematch, …, now)` with a 1s tick. Update `tests/unit/lib/room/useRematchNegotiation.test.ts`.
-- [ ] T039 [US2] Render the negotiation in `components/room/Slip.tsx`. It replaces action row 1 only, and every changed action is guarded by its key. `new opponent ▸` and `lobby` withdraw first. Then `lib/room/ledgerCallLine.ts` takes the rematch view (incoming first), and `MatchRoomController.tsx` passes it when the slip is lifted and retires `rematchLine` notices. An incoming request sets the title `(1) Kári asks for a rematch · <wordmark>`, the favicon in `--opp` and the challenge cue through the standing hooks, and gets a polite announcement. T031 passes.
-- [ ] T040 [US2] Series:
+- [X] T034 [US2] Implement `lib/match/rematchOffer.ts` `readRematchOffer(client, matchId, viewerId)`: lazy `expire_due_rematches`, the request row, the window, `player_on_match` for both players, `pair_cooldown_until(viewer, opponent)` and `opponentHere` from presence. Attach it in `app/api/match/[matchId]/state/route.ts` and `app/[locale]/(room)/match/[matchId]/page.tsx` for participants only; never in `loadMatchState` or the publisher. T029 passes.
+- [X] T035 [US2] Have `useTabPresence` in `components/standing/hooks/useTabPresence.ts` send `matchId` when on `/match/:id`. Add it to `app/api/presence/beat/route.ts` (Zod) and `lib/presence/presenceService.ts`. Extend `tests/unit/components/standing/useTabPresence.spec.tsx`.
+- [X] T036 [US2] Add the sweep step `expire_due_rematches` plus pokes to `app/api/cron/sweep-stale-matches/route.ts`, with a unit test in its existing spec.
+- [X] T037 [P] [US2] Implement `lib/room/rematchView.ts` and the copy (EN and IS: `rematch sent`, `asks for a rematch`, `accepted`, `declined`, `no answer`, `withdrew`, `started another match`, `has left`; IS name-safe). T028 passes.
+- [X] T038 [US2] Thin `lib/room/useRematchNegotiation.ts` down to commands only (request, accept, decline, withdraw), plus navigation with `router.replace` to the new match (R4). Remove the local 30s timer and the event handlers. The view comes from `deriveRematchView(matchState.rematch, …, now)` with a 1s tick. Update `tests/unit/lib/room/useRematchNegotiation.test.ts`.
+- [X] T039 [US2] Render the negotiation in `components/room/Slip.tsx`. It replaces action row 1 only, and every changed action is guarded by its key. `new opponent ▸` and `lobby` withdraw first. Then `lib/room/ledgerCallLine.ts` takes the rematch view (incoming first), and `MatchRoomController.tsx` passes it when the slip is lifted and retires `rematchLine` notices. An incoming request sets the title `(1) Kári asks for a rematch · <wordmark>`, the favicon in `--opp` and the challenge cue through the standing hooks, and gets a polite announcement. T031 passes.
+- [X] T040 [US2] Series:
   - `rematch_series` is read in `lib/match/rematchRepository.ts`, replacing `fetchMatchChainForSeries`;
   - `MatchState.series` comes from `deriveSeriesContext` in the loader when `table.rematchOf` is set;
   - the scoreboard sub-line appends `· match 2 · Birna 1–0` in `lib/room/scoreboard.ts`.
 
   Unit tests in `tests/unit/lib/room/scoreboard.spec.ts` and `tests/unit/match/rematchRepository.spec.ts`.
-- [ ] T041 [US2] Remove `MatchState.rematchMatchId` and its readers (`useRematchNegotiation`, the loader's `rematchOf()`), reading `rematch.request.newMatchId` instead. Update `tests/unit/match/stateLoader*.spec.ts`.
+- [X] T041 [US2] Remove `MatchState.rematchMatchId` and its readers (`useRematchNegotiation`, the loader's `rematchOf()`), reading `rematch.request.newMatchId` instead. Update `tests/unit/match/stateLoader*.spec.ts`.
 - [ ] T042 [US2] Fill the `rematch-sent`, `rematch-in`, `rematch-in-review` (the RematchIncoming artboard: review at step 7 with the ledger call line at 0:24) and `rematch-declined` fixtures, and take baselines.
 - [ ] T043 [US2] Write `tests/integration/ui/rematch-flow.spec.ts` (tagged `@two-player-playtest`):
   - send, cancel, and send refused;
@@ -423,3 +423,11 @@
 4. **Increment 4:** US6, US8 and US7, then US9 and polish.
 
 Commit each passing test separately (`test(071): …`, then `feat(071): …`), per CLAUDE.md.
+
+## Notes from implementation
+
+- **The series is on the scoreboard's clock row** (T040), under the label when no pace is shown (`match 2 · Birna 1–0`). The final rating lines leave no room on the player rows, and the design system puts facts about the match on the clock row. GAME_FLOW_SPEC §7.8 said "both bars", but the bars are gone since spec 068.
+- **The rematch actions take the match id**, not the request id: there is one request per match, so the server finds it (`pendingRequestOf`).
+- **T030** extends `tests/unit/lib/one-service-per-rpc.test.ts` rather than adding a grep test. `accept_rematch` stays with the creation functions in `lib/match/createMatch.ts`.
+- **Busy accepts** end the request as `superseded` (spec 067 left it pending); `tests/integration/db/accept-rematch.test.ts` was updated.
+- **The live guard steps back past every guard entry** at completion, the table's included (each entry records its depth), so one Back from the result reaches the lobby.
