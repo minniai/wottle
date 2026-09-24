@@ -163,7 +163,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     initialOffer: initialState.rematch ?? null,
     onNewMatch,
   });
-  const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs);
+  const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, readOnly ? "reader" : "participant");
   // Back after an outage: line 2 says how long you were away, for four seconds (spec 068 FR-038).
   const [backAwayMs, setBackAwayMs] = useState<number | null>(null);
   useEffect(() => {
@@ -201,7 +201,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const wordmark = copy.WORDMARK;
   useEffect(() => () => void (document.title = wordmark), [wordmark]);
   // Spec 071 (US3): review is `?review=n` on this page; the step drives the field, scoreboard and ledger.
-  const review = useMatchReview({ matchId, completed, live: match.state === "in_progress" || match.state === "pending" });
+  const review = useMatchReview({ matchId, completed, live: match.state === "in_progress" || match.state === "pending", reader: readOnly });
   const reviewStep = review.reviewing ? review.step : null;
   const frozenTiles = reviewStep?.frozen ?? match.frozenTiles;
   // Each player's last swap, ticked in their colour until its letters freeze (spec 068 FR-027).
@@ -719,6 +719,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         completed={completed}
         caption={reviewStep ? copy.review.caption(formatClock(durationMs)) : completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
         review={reviewProps}
+        hint={readOnly && completed ? copy.review.overLine(names.a, names.b) : undefined}
         verdict={verdict ?? undefined}
         readOnly={readOnly}
         footActions={
@@ -736,8 +737,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
               </button>
             </>
           ) : readOnly ? (
-            <button type="button" className="action-secondary" data-testid="ledger-lobby" onClick={() => handleAction("lobby")}>
-              ◂ {LOBBY}
+            // Spec 071 (FR-039): a signed-out reader's way in is the door.
+            <button type="button" className={currentPlayerId ? "action-secondary" : "action-primary"} data-testid="ledger-lobby" onClick={() => handleAction("lobby")}>
+              {currentPlayerId ? `◂ ${LOBBY}` : copy.ENTER_LOBBY}
             </button>
           ) : undefined
         }

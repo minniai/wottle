@@ -297,6 +297,7 @@ export const copyIs = {
     cellName: (move: number, name: string): string => `leikur ${move}, ${name}`,
     NOT_YET_REACHED: "ekki komið að", // native-read
     SCRUBBER: "skref yfirferðar", // native-read
+    overLine: (a: string, b: string): string => `viðureigninni er lokið · ${a} – ${b}`,
     FIRST: "fyrst",
     BACK: "aftur",
     PLAY: "spila ▸",
