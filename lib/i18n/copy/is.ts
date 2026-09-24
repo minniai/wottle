@@ -74,7 +74,7 @@ export const copyIs = {
   NO_ACCOUNT_NEEDED: "skráning óþörf",
   THIS_BROWSER_KEEPS_YOUR_NAME: "þessi vafri geymir nafnið þitt",
   WELCOME_BACK: "gaman að sjá þig aftur",
-  ENTER_LOBBY: "inn í lobbíið ▸",
+  ENTER_LOBBY: "spila Orðustu ▸",
   notYou: (name: string): string => `ekki ${name}? · annað nafn`,
   returningLine: (rating: number | null): string => (rating === null ? "íslenska" : `${rating} · íslenska`),
   YOU: "þú",
