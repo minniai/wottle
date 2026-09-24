@@ -7,6 +7,7 @@ import { playerPresence } from "@/lib/presence/presenceService";
 import { topicFor } from "@/lib/realtime/pokes";
 import { readEloRatings, readRatings } from "@/lib/rating/playerRatings";
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import type { OutgoingLink } from "@/lib/types/link";
 import type { HeadToHead, InviteStatus, LobbyLanguage, LobbyRow, MatchFact, PresenceState, StandingFacts } from "@/lib/types/standing";
 
 /**
@@ -114,16 +115,33 @@ async function overFact(ctx: Context, matchId: string): Promise<MatchFact | null
   };
 }
 
+/** Spec 072: the viewer's newest link, while pending or within 10s of ending; never its hash. */
+async function linkFact(ctx: Context): Promise<OutgoingLink | null> {
+  const { data } = await ctx.client
+    .from("match_links")
+    .select("id, status, expires_at, responded_at, match_id")
+    .eq("sender_id", ctx.viewerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const respondedAt = (data.responded_at as string | null) ?? null;
+  const standing = data.status === "pending" || (respondedAt !== null && Date.now() - Date.parse(respondedAt) < OUTCOME_WINDOW_MS);
+  if (!standing) return null;
+  return { id: data.id as string, status: data.status as OutgoingLink["status"], expiresAt: data.expires_at as string, respondedAt, matchId: (data.match_id as string | null) ?? null };
+}
+
 export async function readStanding(viewerId: string): Promise<StandingFacts> {
   const client = getServiceRoleClient();
   const { data: me } = await client.from("players").select("status, lobby_language, queued_at, search_paused, unseen_result_match_id").eq("id", viewerId).single();
   const language: LobbyLanguage = me?.lobby_language === "en" ? "en" : "is";
   const ctx: Context = { client, viewerId, language };
-  const [mine, match, table, counts] = await Promise.all([
+  const [mine, match, table, counts, link] = await Promise.all([
     invites(ctx),
     matchFact(ctx, (me?.unseen_result_match_id as string | null) ?? null),
     readTableStatus(client, viewerId),
     lobbyCounts(language),
+    linkFact(ctx),
   ]);
   const own = (await readRatings(client, [viewerId], language)).get(viewerId);
   const ids = [...new Set([...mine.incoming.map((i) => i.sender_id), ...(mine.outgoing ? [mine.outgoing.recipient_id] : [])])];
@@ -144,6 +162,7 @@ export async function readStanding(viewerId: string): Promise<StandingFacts> {
     tableCooldownUntil: table.cooldownUntil,
     match,
     switchPending: null,
+    link,
     notice: table.notice,
     counts: { here: counts.here, searching: counts.searching, playing: counts.playersInMatch, otherHere: counts.other.here },
     viewer: { rating: own?.eloRating ?? NEWCOMER_RATING, gamesPlayed: own?.gamesPlayed ?? 0 },

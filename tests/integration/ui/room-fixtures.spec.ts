@@ -37,8 +37,7 @@ test.describe("@visual the room, from fixtures", () => {
 
       // Application state, not font state: Playwright already awaits
       // document.fonts.ready before every screenshot.
-      if (phase === "profile") await expect(page.getByTestId("profile-page")).toBeVisible();
-      else if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
+      if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
       else await expect(page.getByTestId("field")).toBeVisible();
 
       if (phase === "phone-sheet") {
@@ -562,7 +561,7 @@ test.describe("@visual one owner, one colour", () => {
   test("reveal: the L where LEK crosses GILT is the opponent's; no phase has a shared cell", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "visual-1440x900", "one viewport is enough for an attribute");
     for (const phase of ROOM_PHASES) {
-      if (phase === "rules" || phase === "profile") continue;
+      if (phase === "rules") continue;
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByTestId("field")).toBeVisible();
       await expect(page.locator('[data-testid="field-cell"][data-state="shared"]')).toHaveCount(0);
@@ -614,15 +613,14 @@ test.describe("@visual room clarity", () => {
  * pins the Icelandic lines fitting it — the longest strings, the slips, the
  * final verdict, the profile and the rules.
  */
-const ICELANDIC_PHASES = ["picking", "reveal", "done-waiting", "final", "over-slip", "profile", "rules"] as const;
+const ICELANDIC_PHASES = ["picking", "reveal", "done-waiting", "final", "over-slip", "rules"] as const;
 
 test.describe("@visual @is the room in Icelandic", () => {
   for (const phase of ICELANDIC_PHASES) {
     test(`${phase} (is) matches its baseline`, async ({ page }) => {
       await page.goto(`/dev/room?phase=${phase}`);
       await expect(page.locator("html")).toHaveAttribute("lang", "is");
-      if (phase === "profile") await expect(page.getByTestId("profile-page")).toBeVisible();
-      else if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
+      if (phase === "rules") await expect(page.getByTestId("rules-page")).toBeVisible();
       else await expect(page.getByTestId("field")).toBeVisible();
       await expect(page).toHaveScreenshot(`is-${phase}.png`, { fullPage: phase === "rules" });
     });

@@ -7,7 +7,6 @@ import type { CellState } from "@/components/room/FieldCell";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { PageFrame } from "@/components/page/PageFrame";
-import { ProfilePage } from "@/components/profile/ProfilePage";
 import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { Seat } from "@/lib/constants/seatColors";
@@ -22,7 +21,7 @@ import { tableFacts } from "@/components/room/hooks/useTable";
 import { ReviewFixture, type ReviewPhase } from "./ReviewFixture";
 import { BLANK_BOARD } from "@/lib/constants/board";
 import type { Coordinate } from "@/lib/types/board";
-import type { MatchResult, MatchState } from "@/lib/types/match";
+import type { MatchState } from "@/lib/types/match";
 import {
   BIRNA,
   CLOCK_MS,
@@ -62,7 +61,6 @@ import {
   OPP_REVEAL_WORD,
   PICKED_CELL,
   PICKED_LIVE,
-  PROFILE_FIXTURE,
   QUEUE_ELAPSED,
   QUEUE_LETTERS_LANDED,
   RECENT_GAMES,
@@ -204,8 +202,8 @@ const IDLE: MatchPhaseSpec = { live: { kind: "idle" }, marks: {}, moveState: YOU
 const PICKING: MatchPhaseSpec = { live: PICKED_LIVE, marks: { picked: PICKED_CELL }, moveState: YOUR_MOVE };
 const DONE_SEATS = { you: { moves: 10, score: 134 }, opp: { moves: 8, score: 88 } };
 
-type TablePhase = "table" | "table-seated" | "void" | "void-queue";
-type MatchPhase = Exclude<RoomPhase, "profile" | "rules" | TablePhase | ReviewPhase>;
+type TablePhase = "table" | "table-seated" | "void" | "void-queue" | "table-link-waits";
+type MatchPhase = Exclude<RoomPhase, "rules" | TablePhase | ReviewPhase>;
 
 /** Every match-state phase as literals (spec 047 amendment P2, spec 050). */
 const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
@@ -270,7 +268,6 @@ function isReviewPhase(phase: string): phase is ReviewPhase {
 }
 
 const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = {
-  profile: "lobby",
   final: "final",
   "over-slip": "final",
   ...Object.fromEntries([...RESULT_PHASES, ...REMATCH_PHASES, ...REVIEW_PHASES].map((p) => [p, "final" as const])),
@@ -304,34 +301,12 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     return () => clearTimeout(id);
   }, [phase]);
 
-  if (phase === "profile") {
-    const profile = {
-      identity: { ...BIRNA, createdAt: "2026-03-02T09:00:00.000Z" },
-      stats: { eloRating: 1204, gamesPlayed: 34, wins: 19, losses: 15, draws: 0, winRate: 19 / 34 },
-      ratingTrend: [1197, 1216, 1186, 1199, 1204],
-      bestWord: { word: "BORÐA", points: 38, opponentName: KARI.displayName },
-      form: ["W", "L", "W", "W", "L", "W", "L", "W", "W", "L"] as MatchResult[],
-      peakRating: 1216,
-      ratingHistory: PROFILE_FIXTURE.ratingHistory.map((rating, i) => ({
-        rating,
-        recordedAt: `2026-0${1 + Math.floor(i / 6)}-${String(1 + (i % 6) * 5).padStart(2, "0")}T12:00:00.000Z`,
-      })),
-    };
-    return (
-      <RoomShell viewer={BIRNA}>
-        {/* A page since spec 070: the frame gives it the masthead and the one main. */}
-        <PageFrame variant="signedIn" place="profile" viewer={{ displayName: BIRNA.displayName, handle: BIRNA.username }} otherLobbyHere={null}>
-          <ProfilePage profile={profile} words={[...PROFILE_FIXTURE.bestWords]} matches={RECENT_GAMES} isSelf />
-        </PageFrame>
-      </RoomShell>
-    );
-  }
 
 
 
   if (isReviewPhase(phase)) return <ReviewFixture phase={phase} />;
 
-  if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue") {
+  if (phase === "table" || phase === "table-seated" || phase === "void" || phase === "void-queue" || phase === "table-link-waits") {
     return <TableFixture phase={phase} copy={copy} />;
   }
 
@@ -379,9 +354,18 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   );
 }
 
+function tableFixtureState(phase: TablePhase) {
+  const seated = { a: "2026-09-23T12:00:01.000Z", b: null };
+  if (phase === "table") return tableState({ a: null, b: null });
+  if (phase === "table-seated") return tableState(seated);
+  // Spec 072: the table waits for the link's sender until the link would have expired.
+  if (phase === "table-link-waits") return tableState(seated, { table: { ...tableState(seated).table, origin: "link", deadlineAt: new Date(TABLE_NOW_MS + 552_000).toISOString() }, stakes: null });
+  return voidState(phase === "void" ? "challenge" : "queue");
+}
+
 /** Spec 069 (canvas Table, Void): the table and the void, over the empty ruled field. */
 function TableFixture({ phase, copy }: { phase: TablePhase; copy: Copy }) {
-  const state = phase === "table" ? tableState({ a: null, b: null }) : phase === "table-seated" ? tableState({ a: "2026-09-23T12:00:01.000Z", b: null }) : voidState(phase === "void" ? "challenge" : "queue");
+  const state = tableFixtureState(phase);
   const voided = phase === "void" || phase === "void-queue";
   const derived = tableSlipFor({ match: state, viewerSlot: "player_a", you: { name: BIRNA.displayName, rating: BIRNA.eloRating ?? null }, opp: { name: KARI.displayName, rating: KARI.eloRating ?? null }, nowMs: TABLE_NOW_MS, copy });
   const slip = derived?.kind === "void" && phase === "void-queue" ? { ...derived, model: { ...derived.model, searching: `${copy.SEARCHING} · ${VOID_SEARCHING_ELAPSED}` } } : derived;

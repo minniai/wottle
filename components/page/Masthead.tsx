@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
@@ -53,6 +54,7 @@ export function SignedInMasthead({ viewer, otherLobbyHere, menu }: SignedInMasth
   const locale = useLocale();
   const to = useLocalePath();
   const isPhone = useIsPhone();
+  const onRules = /\/rules$/.test(usePathname() ?? "");
   return (
     <div className="page-masthead">
       <div className="page-masthead__left">
@@ -61,7 +63,7 @@ export function SignedInMasthead({ viewer, otherLobbyHere, menu }: SignedInMasth
         </Link>
       </div>
       <nav className="page-masthead__nav" data-testid="masthead-nav">
-        <Link href={to("/rules")} className="page-link">
+        <Link href={to("/rules")} className="page-link" aria-current={onRules ? "page" : undefined} data-testid="masthead-rules">
           {copy.HOW_TO_PLAY}
         </Link>
         <LanguageSwitch variant="signedIn" otherLobbyHere={otherLobbyHere} />

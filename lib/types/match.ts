@@ -395,46 +395,6 @@ export interface MatchRatingResult {
   matchResult: "win" | "loss" | "draw";
 }
 
-export interface PlayerStats {
-  eloRating: number;
-  gamesPlayed: number;
-  wins: number;
-  losses: number;
-  draws: number;
-  /** wins / (wins + losses), null if no decisive games */
-  winRate: number | null;
-}
-
-export interface BestWord {
-  word: string;
-  points: number;
-  /** Opponent in the match where it scored (profile `best words` ledger). */
-  opponentName?: string;
-}
-
-export type MatchResult = "W" | "L" | "D";
-
-export interface RatingHistoryEntry {
-  /** ISO timestamp */
-  recordedAt: string;
-  rating: number;
-}
-
-export interface PlayerProfile {
-  identity: PlayerIdentity;
-  stats: PlayerStats;
-  /** Last 5 rating_after values, oldest first */
-  ratingTrend: number[];
-  /** Highest-points word this player has ever scored (null if they never scored one) */
-  bestWord: BestWord | null;
-  /** Last 10 match outcomes, newest first */
-  form: MatchResult[];
-  /** Max rating_after across all match_ratings (falls back to current eloRating) */
-  peakRating: number;
-  /** Full rating history oldest → newest */
-  ratingHistory: RatingHistoryEntry[];
-}
-
 export interface RatingChange {
   playerADelta: number;
   playerBDelta: number;

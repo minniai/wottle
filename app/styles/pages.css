@@ -570,6 +570,48 @@
   justify-content: flex-end;
   padding-right: 0;
 }
+/* Spec 072: a link the clipboard refused, shown to select by hand (not uppercased: it is a URL). */
+.line-slot__url {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 0;
+  height: 13px;
+  line-height: 13px;
+  width: 100%;
+  max-width: 480px;
+}
+/* Spec 072 A2: the invite door's call band sits at the top of column B, in the slot's call grammar. */
+.invite-band.line-slot {
+  position: static;
+  height: auto;
+  min-height: 64px;
+  margin: 0 0 24px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  padding-right: 16px;
+}
+.invite-band .line-slot__line2 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.invite-entry__consequence {
+  margin: 12px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+/* Spec 072: `invite a friend ▸` below the here-now table, with its note. */
+.lobby-invite {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 16px 0 0;
+  min-height: 44px;
+}
 .form-strip {
   display: flex;
   align-items: center;
@@ -941,6 +983,11 @@
 
 /* ---------- Phone (§5.0 phone page frame) ---------- */
 @media (max-width: 900px) {
+  .lobby-invite {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
   .page {
     --page-width: calc(100vw - 32px);
   }
@@ -996,7 +1043,11 @@
   }
   /* F2, F6: the pinned primary shows only while find is the page's primary. */
   .lobby[data-composing="true"] .lobby-block__primary,
-  .lobby:not([data-find="primary"]) .lobby-block__primary {
+  .lobby:not([data-find="primary"]):not([data-invite="primary"]) .lobby-block__primary {
+    display: none;
+  }
+  /* An empty lobby pins `invite a friend ▸`; find stays in the block's note line. */
+  .lobby[data-invite="primary"] .lobby-block__primary .lobby-block__find.page-link {
     display: none;
   }
   .lobby-block__note {
@@ -1190,5 +1241,305 @@
   }
   .page--door .page-main {
     padding-bottom: 32px;
+  }
+}
+
+/* ─── Profiles (spec 072: E1, E2, F9) ─────────────────────────────────── */
+.page-caption--ink {
+  color: var(--ink);
+}
+.profile-head__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.profile-head__name {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-board);
+  font-weight: 600;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.profile-head__rating {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 56px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.profile-head__sub {
+  margin: 14px 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.profile-head__handle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.profile-presence {
+  margin: 8px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.profile-presence[data-state="in_match"],
+.profile-presence[data-state="away"],
+.profile-presence[data-state="other_lobby"],
+.profile-presence[data-state="not_here"] {
+  color: var(--muted);
+}
+.profile-chart {
+  margin: 16px 0 0;
+}
+.profile-chart__svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.profile-chart__phone {
+  display: none;
+}
+.profile-chart__rule {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+.profile-chart__axis {
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+.profile-chart__line {
+  fill: none;
+  stroke-width: 1.5;
+}
+.seat-stroke-you {
+  stroke: var(--you);
+}
+.seat-stroke-opp {
+  stroke: var(--opp);
+}
+.profile-chart__tick {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--muted);
+}
+.profile-chart__edge {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.profile .form-strip {
+  margin-top: 20px;
+}
+.profile[data-seat="opp"] .form-strip__cell[data-result="W"] {
+  box-shadow: inset 0 -3px 0 var(--opp);
+}
+.profile-record {
+  margin-top: 12px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.profile-record__row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.profile-record__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0 10px 12px;
+  border-left: 1px solid var(--rule);
+}
+.profile-record__cell:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.profile-record__value {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 40px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.profile-words {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-words .page-caption {
+  margin-bottom: 8px;
+}
+.word-strip {
+  --cell: 36px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 48px;
+}
+.word-strip__cells {
+  position: relative;
+  display: flex;
+}
+.word-strip__cell {
+  position: relative;
+  width: var(--cell);
+  height: var(--cell);
+  box-sizing: border-box;
+  border: 1px solid var(--rule);
+  margin-left: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-board);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--you);
+}
+.word-strip__cell:first-of-type {
+  margin-left: 0;
+}
+.word-strip__value {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1;
+}
+.word-strip__band {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.word-strip__tint {
+  fill: color-mix(in srgb, var(--you) 14%, transparent);
+}
+.word-strip__chevron {
+  fill: none;
+  stroke: var(--you);
+  stroke-width: 1.5;
+}
+.word-strip__points {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.word-strip[data-seat="opp"] .word-strip__cell {
+  color: var(--opp);
+}
+.word-strip[data-seat="opp"] .word-strip__value {
+  color: var(--opp-text);
+}
+.word-strip[data-seat="opp"] .word-strip__tint {
+  fill: color-mix(in srgb, var(--opp) 14%, transparent);
+}
+.word-strip[data-seat="opp"] .word-strip__chevron {
+  stroke: var(--opp);
+}
+.profile-primary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-height: 48px;
+}
+.profile-primary .page-primary {
+  min-height: 48px;
+  padding: 0 18px;
+}
+.profile-matches {
+  margin-top: 16px;
+  border-top: 0;
+  padding-top: 0;
+}
+.profile-other {
+  margin: 16px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+}
+.profile-sign-out {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.profile-stakes {
+  margin: 8px 0 0;
+  text-align: right;
+}
+@media (max-width: 900px) {
+  .profile-head__name-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .profile-head__name,
+  .profile-head__rating {
+    font-size: 32px;
+  }
+  .profile-head__rating {
+    text-align: right;
+  }
+  .profile-head__sub {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .profile-chart__desktop {
+    display: none;
+  }
+  .profile-chart__phone {
+    display: block;
+  }
+  .profile-record__value {
+    font-size: 28px;
+  }
+  .word-strip {
+    --cell: 32px;
+  }
+  .word-strip__cell {
+    font-size: 18px;
+  }
+  /* F9: the primary is pinned to the bottom edge, above the slot. */
+  .profile-primary {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: var(--bottom-slot-h, 0px);
+    z-index: 10;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    align-items: stretch;
+  }
+  .profile-primary .page-primary {
+    width: 100%;
+    height: 56px;
+  }
+  .profile-primary:not(:has(.page-primary)) {
+    display: none;
   }
 }

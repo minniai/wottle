@@ -23,6 +23,10 @@ export function pageTitle(slot: SlotState, copy: Copy, ctx: { nowMs: number; cal
       return slot.match.kind === "running" ? `${copy.pages.titleRunning(left(slot.match.deadlineAt))} · ${wm}` : `${copy.table.titleTable(slot.match.opponent)} · ${wm}`;
     case "sent":
       return slot.outgoing?.status === "pending" && !slot.held ? `${copy.pages.titleSent(left(slot.outgoing.expiresAt))} · ${wm}` : null;
+    case "linkCall":
+      return `${copy.pages.linkCallLine1(slot.call.view.senderName)} · ${wm}`;
+    case "link":
+      return slot.link?.status === "pending" && !slot.held ? `${copy.pages.titleLink(left(slot.link.expiresAt))} · ${wm}` : null;
     case "search":
       return slot.search.kind === "searching" ? `${copy.table.titleSearching(formatClock(slot.search.elapsedSeconds * 1000))} · ${wm}` : null;
     default:

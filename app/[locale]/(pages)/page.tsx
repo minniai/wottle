@@ -14,13 +14,14 @@ import { lobbyRows } from "@/lib/lobby/lobbyRows";
 import { publicOverview, viewerOverview } from "@/lib/lobby/overview";
 import { readRatings } from "@/lib/rating/playerRatings";
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import { readLinkSeed } from "@/lib/matchmaking/linkSeed";
 import { enterLobby } from "@/lib/matchmaking/lobbyLanguage";
 import { healStuckInMatchStatus, readLobbySession } from "@/lib/matchmaking/profile";
 import type { LobbyLanguage } from "@/lib/types/standing";
 
 interface PageProps {
   params?: LocaleParams;
-  searchParams?: Promise<{ next?: string }>;
+  searchParams?: Promise<{ next?: string; invite?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps = {}): Promise<Metadata> {
@@ -51,14 +52,14 @@ export default async function HomePage({ params, searchParams }: PageProps = {})
   const language = getLocale(locale).language as LobbyLanguage;
   const session = await readLobbySession();
   // Signed in, a `?next=` is spent: to its page when it is safe, else to the plain lobby (FR-004).
-  const next = session ? (await (searchParams ?? Promise.resolve({ next: undefined }))).next : undefined;
+  const query = await (searchParams ?? Promise.resolve({ next: undefined, invite: undefined }));
+  const next = session ? query.next : undefined;
   if (next !== undefined) redirect(nextParam(next) ?? localePath(locale, "/"));
-  if (session) return <SignedInLobby playerId={session.player.id} displayName={session.player.displayName} handle={session.player.username} language={language} />;
-  const [overview, returning, preferOther, query] = await Promise.all([
+  if (session) return <SignedInLobby playerId={session.player.id} displayName={session.player.displayName} handle={session.player.username} language={language} invite={query.invite} />;
+  const [overview, returning, preferOther] = await Promise.all([
     publicOverview(language).catch(() => ({ counts: { here: 0, searching: 0, playersInMatch: 0, matchesOn: 0, other: { language, here: 0 } }, here: [], more: 0 })),
     readReturningPlayer(language),
     prefersOther(locale),
-    searchParams ?? Promise.resolve({ next: undefined }),
   ]);
   return <DoorPage overview={overview} returning={returning} next={nextParam(query.next ?? null)} preferOther={preferOther} />;
 }
@@ -68,21 +69,24 @@ interface SignedInLobbyProps {
   displayName: string;
   handle: string;
   language: LobbyLanguage;
+  /** Spec 072: a link opened while signed in (research R6). */
+  invite?: string;
 }
 
 /** The lobby's first paint, read on the server: your standing, who is here, your last match and matches. */
-async function SignedInLobby({ playerId, displayName, handle, language }: SignedInLobbyProps) {
+async function SignedInLobby({ playerId, displayName, handle, language, invite }: SignedInLobbyProps) {
   await healStuckInMatchStatus(playerId);
   const client = getServiceRoleClient();
   // Entering this lobby makes it the player's lobby language, or asks first when something is out (US7).
   const entered = await enterLobby(playerId, language);
-  const [ratings, rows, overview, recent] = await Promise.all([
+  const [ratings, rows, overview, recent, linkSeed] = await Promise.all([
     readRatings(client, [playerId], language),
     lobbyRows(playerId, language).catch(() => []),
     viewerOverview(playerId, language),
     getRecentGames({ playerId, limit: 4, language }).catch(() => ({ games: [] })),
+    readLinkSeed(invite, playerId).catch(() => ({ call: null, own: null })),
   ]);
   const record = ratings.get(playerId)!;
   const viewer = { displayName, handle, rating: record.eloRating, gamesPlayed: record.gamesPlayed, wins: record.wins, losses: record.losses, draws: record.draws };
-  return <LobbyPage viewer={viewer} rows={rows} overview={overview} recent={recent.games} switchPending={entered.status === "needs_confirm" ? entered.pending : null} />;
+  return <LobbyPage viewer={viewer} rows={rows} overview={overview} recent={recent.games} switchPending={entered.status === "needs_confirm" ? entered.pending : null} linkSeed={linkSeed} />;
 }

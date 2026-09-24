@@ -8,6 +8,7 @@ import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useArrivalWatch } from "@/components/standing/hooks/useArrivalWatch";
 import { useLobbyList } from "@/components/standing/hooks/useLobbyList";
 import { useStandingSlot } from "@/components/standing/StandingProvider";
+import type { LinkCall } from "@/lib/types/link";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { LobbyLanguage, LobbyRow, Overview, SwitchPending } from "@/lib/types/standing";
 
@@ -24,10 +25,12 @@ export interface LobbyPageProps {
   recent: RecentGameRow[];
   /** This lobby is not yet the player's: something would be cancelled by switching (US7.4). */
   switchPending?: SwitchPending | null;
+  /** Spec 072: a link opened here, handed to the slot; the URL drops its `?invite`. */
+  linkSeed?: { call: LinkCall | null; own: LinkCall | null };
 }
 
 /** `/` signed in (spec 070 US2): the lobby in its page frame; who is here follows the lobby's pokes. */
-export function LobbyPage({ viewer, rows: initialRows, overview, recent, switchPending = null }: LobbyPageProps) {
+export function LobbyPage({ viewer, rows: initialRows, overview, recent, switchPending = null, linkSeed }: LobbyPageProps) {
   const locale = useLocale();
   const language = locale.language as LobbyLanguage;
   const to = useLocalePath();
@@ -40,6 +43,14 @@ export function LobbyPage({ viewer, rows: initialRows, overview, recent, switchP
     setSwitchPending?.(switchPending);
     return () => setSwitchPending?.(null);
   }, [switchPending, setSwitchPending]);
+  const seedLink = machine?.seedLink;
+  useEffect(() => {
+    if (!linkSeed || (!linkSeed.call && !linkSeed.own)) return;
+    seedLink?.(linkSeed);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("invite");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [linkSeed, seedLink]);
   const onFind = useCallback(() => machine?.search.start(), [machine]);
   const arrival = useArrivalWatch(rows, machine?.announceArrival ?? NO_ARRIVAL);
   const onSend = useCallback(
@@ -72,9 +83,10 @@ export function LobbyPage({ viewer, rows: initialRows, overview, recent, switchP
         recent={recent}
         onFind={onFind}
         onSend={onSend}
+        onInvite={machine?.inviteFriend}
         standing={
           machine
-            ? { searching: machine.slot.kind === "search", outgoing: machine.facts?.outgoing?.status === "pending", callUp: machine.slot.kind === "call", overlays: machine.overlays, closed: machine.closed }
+            ? { searching: machine.slot.kind === "search", outgoing: machine.facts?.outgoing?.status === "pending", callUp: machine.slot.kind === "call" || machine.slot.kind === "linkCall", overlays: machine.overlays, closed: machine.closed, link: machine.linkOut }
             : undefined
         }
         primaryFor={machine?.primaryFor}

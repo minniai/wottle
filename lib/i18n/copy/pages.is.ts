@@ -141,6 +141,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
     search: "leitin hættir ef þú skiptir", // native-read
     outgoing: "áskorunin þín fellur niður", // native-read
     incoming: "áskorunum til þín er svarað", // native-read
+    link: "tengillinn þinn fellur úr gildi", // native-read
   },
   SWITCH: "skipta ▸",
   LOBBY_NAME_IS: "íslenska",
@@ -168,6 +169,60 @@ export const pagesIs: Widen<typeof pagesEn> = {
     gone: "sá leikmaður er ekki lengur hér", // native-read (no gendered participle, §8 item 13)
     rate_limited: "of margar áskoranir · bíddu í mínútu",
     failed: "áskorun fór ekki · reyndu aftur", // native-read
+  },
+
+  // Profiles (spec 072: E1, E2, F9)
+  profileRatingLine: (languageName: string, peak: number, week: string | null): string =>
+    `elo · ${languageName} · hæst ${peak}${week ? ` · ${week} í vikunni` : ""}`,
+
+  CHART_START: "fyrir 30 dögum",
+  CHART_END: "í dag",
+  chartEmpty: (rating: number): string => `${rating} · engar viðureignir síðustu 30 daga`,
+  OTHER_LANGUAGE_EMPTY: { is: "engar viðureignir á íslensku enn", en: "engar viðureignir á ensku enn" },
+  YOUR_MATCHES: "þínar viðureignir",
+  PRESENCE: { here: "hér núna", away: "fjarverandi", not_here: "ekki hér" }, // native-read (fjarverandi)
+  presenceInMatch: (moves: number, limit: number): string => `í viðureign · ${moves} af ${limit}`,
+  presenceOtherLobby: (languageName: string): string => `í ${languageName === "enska" ? "enska" : "íslenska"} lobbíinu`, // native-read
+  wordStripAria: (word: string, points: number): string => `${word}, ${points}`,
+  profileTitle: (name: string, wordmark: string): string => `${name} · ${wordmark}`,
+
+  NO_SUCH_PLAYER: "Enginn leikmaður með þetta nafn.",
+  CLOSE_TAB: "loka flipanum ▸",
+  COPY_LINK: "afrita tengil ▸",
+  LINK_COPIED_SHORT: "tengill afritaður",
+  CHALLENGE_PRIMARY: "skora á ▸",
+  profileStakes: (words: string, win: number, draw: number, loss: number): string => `${words} · sigur ${signed(win)} · jafntefli ${signed(draw)} · tap ${signed(loss)}`,
+
+  // Invite links (spec 072: B9, T6, T64)
+  INVITE_A_FRIEND: "bjóða vini ▸",
+  linkWorksFor: (minutes: number): string => `tengill sem gildir í ${minutes} mínútur`,
+  linkCopied: (leftMmSs: string): string => `Tengill afritaður · gildir í ${leftMmSs}`,
+  linkOut: (leftMmSs: string): string => `Tengill úti · gildir í ${leftMmSs}`, // native-read
+  linkReady: (leftMmSs: string): string => `Tengill tilbúinn · gildir í ${leftMmSs}`, // native-read
+  COPY_AGAIN: "afrita aftur ▸",
+  NEW_LINK: "nýr tengill ▸", // native-read
+  CANCEL_LINK: "ógilda tengil ▸", // native-read
+  COPY: "afrita ▸",
+  LINK_OUTCOMES: { cancelled: "tengill ógiltur", expired: "tengillinn rann út" }, // native-read
+  OWN_LINK: "þetta er tengillinn þinn",
+  ownLinkLine2: (leftMmSs: string): string => `gildir í ${leftMmSs}`,
+  linkCallLine1: (name: string): string => `${name} býður þér með tengli`, // native-read
+  linkCallLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · tengill gildir í ${leftMmSs}`,
+  linkCallAnnounce: (name: string): string => `${name} býður þér með tengli`, // native-read
+  SENDING_CANCELS_LINK: "tengillinn þinn fellur úr gildi", // native-read
+  FINDING_CANCELS_LINK: "tengillinn þinn fellur úr gildi", // native-read
+  titleLink: (leftMmSs: string): string => `tengill úti · ${leftMmSs}`, // native-read
+  LINK_EXPIRED_NOTE: "þessi tengill er útrunninn",
+  inviteLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · tengill gildir í ${leftMmSs}`,
+  ENTER_LOBBY_INSTEAD: "bara inn í lobbíið", // native-read
+  acceptSignsYouIn: (name: string): string => `Ef þú samþykkir skráirðu þig inn með þessu nafni og sest við borðið · ${name}`, // native-read (name-safe)
+  acceptSeatsYou: (name: string): string => `Ef þú samþykkir sestu við borðið · ${name}`, // native-read (name-safe)
+  inviteTitle: (name: string, wordmark: string): string => `${name} skorar á þig · ${wordmark}`,
+  LINK_BUSY: "þú ert í viðureign",
+  LINK_ERRORS: {
+    busy_sender: "ljúktu fyrst viðureigninni",
+    rate_limited: "of margar áskoranir · bíddu í mínútu",
+    failed: "enginn tengill búinn til · reyndu aftur", // native-read
   },
 
   leaveLabel: (move: number, limit: number, leftMmSs: string): string => `leikur ${move} af ${limit} · ${leftMmSs} eftir`,

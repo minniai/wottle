@@ -1,3 +1,4 @@
+import { LINK_TTL_MS } from "@/lib/constants/links";
 import type { Copy } from "@/lib/i18n/copy/types";
 
 import type { SlotState } from "./standingSlot";
@@ -17,7 +18,10 @@ export interface PagePrimaryModel {
 export function pagePrimary(slot: SlotState, copy: Copy, opts: { composing: boolean }): PagePrimaryModel {
   switch (slot.kind) {
     case "call":
+    case "linkCall":
       return { find: "secondary", note: null };
+    case "link":
+      return slot.link && !slot.held ? { find: "secondary", note: copy.pages.FINDING_CANCELS_LINK } : { find: opts.composing ? "secondary" : "primary", note: null };
     case "match":
       return slot.match.kind === "over" ? { find: "secondary", note: null } : { find: "hidden", note: copy.pages.FINISH_FIRST };
     case "switch":
@@ -30,4 +34,44 @@ export function pagePrimary(slot: SlotState, copy: Copy, opts: { composing: bool
     default:
       return { find: opts.composing ? "secondary" : "primary", note: null };
   }
+}
+
+export interface LobbyPrimaryModel {
+  /** `invite a friend ▸` (spec 072 B1): the primary of an empty lobby, a secondary otherwise. */
+  invite: "primary" | "secondary" | "hidden";
+  find: PagePrimaryModel;
+  /** Under a secondary invite: `a link that works for 10 minutes`. */
+  inviteNote: string | null;
+}
+
+/**
+ * The lobby block's two ways to play (spec 072 FR-001): with no one else here,
+ * `invite a friend ▸` takes the primary and find steps down; with others here,
+ * find keeps it. Invite never rises over a slot that has held find down.
+ */
+export function lobbyPrimary(input: { othersHere: number; find: PagePrimaryModel; copy: Copy }): LobbyPrimaryModel {
+  const { othersHere, find, copy } = input;
+  if (find.find === "hidden") return { invite: "hidden", find, inviteNote: null };
+  const note = copy.pages.linkWorksFor(Math.round(LINK_TTL_MS / 60_000));
+  if (othersHere === 0 && find.find === "primary") return { invite: "primary", find: { find: "secondary", note: find.note }, inviteNote: null };
+  if (othersHere === 0) return { invite: "secondary", find, inviteNote: null };
+  return { invite: "secondary", find, inviteNote: note };
+}
+
+export type RulesPrimary =
+  | { kind: "closeTab"; label: string; back: string }
+  | { kind: "find"; label: string }
+  | { kind: "enterLobby"; label: string }
+  | { kind: "none" };
+
+/**
+ * The rules page's primary (spec 072 FR-061, game flow E3): opened from a
+ * match it closes its own tab; signed in with nothing standing it is find;
+ * signed out it is the lobby. A call or a standing state in the slot outranks it.
+ */
+export function rulesPrimary(slot: SlotState, copy: Copy, ctx: { signedIn: boolean; from: string | null }): RulesPrimary {
+  if (slot.kind === "call" || slot.kind === "linkCall") return { kind: "none" };
+  if (ctx.from) return { kind: "closeTab", label: copy.pages.CLOSE_TAB, back: ctx.from };
+  if (!ctx.signedIn) return { kind: "enterLobby", label: copy.ENTER_LOBBY };
+  return slot.kind === "empty" ? { kind: "find", label: copy.FIND_OPPONENT } : { kind: "none" };
 }

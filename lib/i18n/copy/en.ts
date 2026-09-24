@@ -245,13 +245,13 @@ const NO_RATED_MATCHES = "no rated matches in the last 30 days";
 const ratingChartAria = (min: number, max: number): string => `rating over the last 30 days, ${min} to ${max}`;
 const profileUnavailable = (reason: string | null): string =>
   `profile unavailable · ${(reason ?? "try again in a moment").toLowerCase()}`;
-const noSuchPlayer = (handle: string): string => `No such player · @${handle} has not played a round here yet`;
 // Messages the server sends back, by code (research R4)
 // The table (spec 069, game flow C1–C3, B7)
 /** `+8`, `0`, `−8`: a rating change at stake, in ink (never `--err`). */
 const stake = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
 const table = {
   label: (mmSs: string): string => `opponent found · ${mmSs}`,
+  tableWaits: (mmSs: string): string => `the table waits · ${mmSs}`,
   CONTEXT: "opponent found",
   facts: (words: string, moves: number, clockMmSs: string): string => `${words} · ${moves} moves each · one ${clockMmSs} clock`,
   stakes: (win: number, draw: number, loss: number): string => `win ${stake(win)} · draw ${stake(draw)} · loss ${stake(loss)}`,
@@ -547,7 +547,6 @@ export const copyEn = {
   NO_RATED_MATCHES,
   ratingChartAria,
   profileUnavailable,
-  noSuchPlayer,
   table,
   rematch,
   review,

@@ -46,7 +46,11 @@ export function LineSlot({ model, onAction, announcement, counts = null, variant
           <span className={`page-square page-square--${model.square ?? "you"}`} aria-hidden="true" />
           <div className="line-slot__lines">
             <p className="line-slot__line1" data-testid="line-slot-line1">{model.line1}</p>
-            {model.line2 ? <p className="page-label line-slot__line2" data-testid="line-slot-line2">{model.line2}</p> : null}
+            {model.line2IsUrl ? (
+              <input className="line-slot__url" readOnly value={model.line2} aria-label={model.line1} onFocus={(e) => e.currentTarget.select()} data-testid="line-slot-url" />
+            ) : model.line2 ? (
+              <p className="page-label line-slot__line2" data-testid="line-slot-line2">{model.line2}</p>
+            ) : null}
           </div>
           <div className="line-slot__actions" id={variant === "desktop" ? SLOT_ACTIONS_ID : undefined}>
             {model.primary ? (

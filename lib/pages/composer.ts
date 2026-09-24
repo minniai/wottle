@@ -12,6 +12,8 @@ export interface ComposerFacts {
   outgoing: boolean;
   /** A call is up: it outranks the send (US3.2). */
   callUp: boolean;
+  /** Spec 072: the viewer has a link out; sending cancels it. */
+  link?: boolean;
 }
 
 export interface ComposerModel {
@@ -36,6 +38,12 @@ export function composerModel(facts: ComposerFacts, copy: Copy, layout: "desktop
     layout === "phone"
       ? copy.pages.composerTermsPhone(stakes.win, stakes.draw, stakes.loss, words, TOTAL_MOVES)
       : [copy.pages.composerTerms(stakes.win, stakes.draw, stakes.loss, words, TOTAL_MOVES, formatClock(MATCH_CLOCK_BUDGET_MS))];
-  const consequence = facts.searching ? copy.pages.SENDING_CANCELS_SEARCH : facts.outgoing ? copy.pages.SENDING_WITHDRAWS_OTHER : null;
+  const consequence = facts.searching
+    ? copy.pages.SENDING_CANCELS_SEARCH
+    : facts.outgoing
+      ? copy.pages.SENDING_WITHDRAWS_OTHER
+      : facts.link
+        ? copy.pages.SENDING_CANCELS_LINK
+        : null;
   return { terms, consequence, sendDrawnAs: facts.callUp ? "secondary" : "primary" };
 }

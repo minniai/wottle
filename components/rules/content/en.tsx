@@ -75,12 +75,12 @@ export function RulesEn({ clock, totalMoves, copy }: RulesContentProps) {
           <span className="rules__label">5 · the clock</span>
           <h2>Five minutes for the whole match.</h2>
           <p>
-            One clock of {clock} for both players, at the top of the ledger. It starts when the match starts and never
-            pauses, not while you wait for a score and not while anyone is away. Under 1:00 it blinks. A move that reaches
+            One clock of {clock} for both players, in the scoreboard above the field. It starts when the match starts and never
+            pauses, not while you wait for a score and not while anyone is away. Under 1:00 it darkens, and the last 15 seconds are counted in words; nothing flashes. A move that reaches
             the server before 0:00 counts, even if its score lands after.
           </p>
           <p>
-            Your bar counts down your {totalMoves} moves: ten marks along its edge, one emptied for each move
+            Your bar counts down your {`${totalMoves} moves`}: ten marks along its edge, one emptied for each move
             played. Your opponent&apos;s bar counts theirs.
           </p>
         </div>

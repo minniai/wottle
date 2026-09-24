@@ -140,8 +140,12 @@ export async function expireChallenges(): Promise<number> {
   return rows.length;
 }
 
-/** Starting a search withdraws the player's challenge (§7.5 invariant 3); its recipient hears of it. */
+/**
+ * Starting a search withdraws the player's challenge and their invite link
+ * (§7.5 invariant 3, spec 072); the recipient and the sender's other tabs hear of it.
+ */
 export async function withdrawOutgoing(senderId: string): Promise<void> {
+  await withdrawLink(senderId);
   const { data } = await getServiceRoleClient()
     .from("match_invitations")
     .update({ status: "withdrawn", responded_at: new Date().toISOString() })
@@ -152,5 +156,18 @@ export async function withdrawOutgoing(senderId: string): Promise<void> {
   if (recipients.length > 0) {
     log("challenge.withdrawn", { senderId, by: "search" });
     await pokePlayers(recipients, "outcome");
+  }
+}
+
+async function withdrawLink(senderId: string): Promise<void> {
+  const { data } = await getServiceRoleClient()
+    .from("match_links")
+    .update({ status: "withdrawn", responded_at: new Date().toISOString() })
+    .eq("sender_id", senderId)
+    .eq("status", "pending")
+    .select("id");
+  if ((data ?? []).length > 0) {
+    log("link.withdrawn", { senderId, by: "search" });
+    await pokePlayer(senderId, "link");
   }
 }

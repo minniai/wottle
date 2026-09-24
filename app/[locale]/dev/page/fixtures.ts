@@ -2,7 +2,9 @@ import type { LobbyViewer } from "@/components/page/lobby/YourBlock";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { HeldOutcome } from "@/lib/pages/heldOutcome";
 import type { SlotState } from "@/lib/pages/standingSlot";
-import type { Band, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
+import type { LinkView } from "@/lib/types/link";
+import type { ProfileView } from "@/lib/types/profile";
+import type { Band, FormResult, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
 
 /**
  * Page fixtures (spec 070 T017, R17): every state of the door and the lobby,
@@ -27,6 +29,31 @@ export const PAGE_PHASES = [
   "match-over-away",
   "searching",
   "switch-confirm",
+  // Spec 072 US1: invite a friend ▸ and the link in the slot.
+  "lobby-link-out",
+  "is-lobby-link-out",
+  "lobby-link-refused",
+  // Spec 072 US2: the invite door (DoorInvite).
+  "invite-door",
+  "is-invite-door",
+  "invite-door-expired",
+  "invite-door-returning",
+  // Spec 072 US3: a link opened while signed in, and the sender's own.
+  "lobby-link-call",
+  "is-lobby-link-call",
+  "lobby-own-link",
+  // Spec 072 US5: your profile (ProfileOwn), a new player's, and with a call up.
+  "profile-own",
+  "is-profile-own",
+  "profile-own-new",
+  "profile-own-call",
+  // Spec 072 US6, US7: another player's profile (ProfilePublic, EN-L).
+  "profile-public",
+  "is-profile-public",
+  "profile-public-sent",
+  "profile-public-in-match",
+  "profile-public-away",
+  "profile-public-signed-out",
 ] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
@@ -165,6 +192,9 @@ export interface StandingFixture {
   slot: SlotState;
   facts: StandingFacts;
   held: HeldOutcome | null;
+  /** Spec 072: the link text this browser kept, and a refused clipboard. */
+  linkText?: { linkId: string; url: string } | null;
+  clipboardRefused?: boolean;
 }
 
 function facts(language: "is" | "en", extra: Partial<StandingFacts> = {}): StandingFacts {
@@ -237,6 +267,131 @@ export function searching(): StandingFixture {
 export function switchConfirm(): StandingFixture {
   const switchPending = { to: "en" as const, from: "is" as const, pending: ["search" as const] };
   return { now: FIXED_NOW, slot: { kind: "switch", pending: switchPending }, facts: facts("is", { switchPending }), held: null };
+}
+
+/** B9 (spec 072): a link copied 2s ago, 9:58 left; `refused`: the clipboard said no. */
+export function linkOut(language: "is" | "en", refused = false): StandingFixture {
+  const link = { id: id(910), status: "pending" as const, expiresAt: at(598_000), respondedAt: null };
+  const url = `https://wottle.app${language === "en" ? "/en" : ""}/c/Xq7Vt2pLm9KcR4sWn8BjYd3HfA6gZe1uQo5iNw0bTyE`;
+  return {
+    now: FIXED_NOW,
+    slot: { kind: "link", link, held: null, own: null },
+    facts: facts(language, { link }),
+    held: null,
+    linkText: { linkId: link.id, url },
+    clipboardRefused: refused,
+  };
+}
+
+/** DoorInvite (spec 072 A2): Kári's link, 9:12 left (EN-L; IS-T1 for the Icelandic door). */
+export const INVITE_TOKEN = "Xq7Vt2pLm9KcR4sWn8BjYd3HfA6gZe1uQo5iNw0bTyE";
+export function inviteView(language: "is" | "en", valid = true): LinkView {
+  return {
+    valid,
+    senderId: id(920),
+    senderName: "Kári",
+    senderHandle: "kári",
+    senderRating: language === "en" ? 1265 : 1187,
+    language,
+    expiresAt: at(552_000),
+  };
+}
+
+/** T6: Hekla's link opened by a signed-in Birna (EN-L; IS-T1 names Kári). */
+export function linkCallIn(language: "is" | "en"): StandingFixture {
+  const call = { token: INVITE_TOKEN, view: { ...inviteView(language), senderName: language === "en" ? "Hekla" : "Kári", senderRating: language === "en" ? 1250 : 1179 } };
+  return { now: FIXED_NOW, slot: { kind: "linkCall", call, more: 0 }, facts: facts(language), held: null };
+}
+
+/** T64: Birna opens her own link, 9:12 left; it is her pending link. */
+export function ownLinkOpened(): StandingFixture {
+  const own = { token: INVITE_TOKEN, view: { ...inviteView("en"), senderName: "Birna", senderHandle: "birna" } };
+  const link = { id: id(910), status: "pending" as const, expiresAt: at(552_000), respondedAt: null };
+  return { now: FIXED_NOW, slot: { kind: "link", link, held: null, own }, facts: facts("en", { link }), held: null };
+}
+
+const DAY = 86_400_000;
+const ratingWalk = [1196, 1188, 1203, 1209, 1200, 1214, 1216, 1205, 1196, 1204, 1208, 1212];
+
+/** ProfileOwn (IS-T1): Birna 1212, 35 matches since March, 20–15–0, the last ten, three best words. */
+export function profileView(language: "is" | "en"): ProfileView {
+  const is = language === "is";
+  const lastTen: FormResult[] = ["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"];
+  const opponents = ["Kári", "Embla", "Jónas", "Kári", "Sóley", "Hekla", "Ragnar", "Katla"];
+  const scores: Array<[number, number, "win" | "loss" | "draw"]> = [[134, 88, "win"], [184, 150, "win"], [132, 171, "loss"], [166, 159, "win"], [120, 120, "draw"], [158, 141, "win"], [149, 162, "loss"], [171, 133, "win"]];
+  return {
+    playerId: id(930),
+    handle: "birna",
+    displayName: "Birna",
+    language,
+    rating: is ? 1212 : 1310,
+    peak: is ? 1216 : 1318,
+    weekChange: is ? 16 : -4,
+    matches: is ? 35 : 22,
+    firstPlayedAt: "2026-03-04T10:00:00.000Z",
+    record: is ? { won: 20, lost: 15, drawn: 0, winRate: 20 / 35 } : { won: 13, lost: 9, drawn: 0, winRate: 13 / 22 },
+    lastTen,
+    chart: ratingWalk.map((rating, i) => ({ at: new Date(FIXED_NOW - (30 - (i * 30) / 11) * DAY).toISOString(), rating: is ? rating : rating + 98 })),
+    chartEmpty: false,
+    bestWords: is
+      ? [word("HESTAR", 32, [4, 3, 1, 2, 1, 1]), word("BORÐA", 29, [5, 5, 1, 2, 1]), word("SKÍRN", 24, [1, 2, 4, 1, 1])]
+      : [word("FJORD", 31, [4, 8, 1, 1, 2]), word("QUILT", 29, [10, 1, 1, 1, 1]), word("BRISK", 26, [3, 1, 1, 1, 5])],
+    otherLanguage: is ? { language: "en", rating: 1310, matches: 22 } : { language: "is", rating: 1212, matches: 35 },
+    matchesList: opponents.map((name, i) => ({
+      matchId: id(940 + i), result: scores[i][2], opponentId: id(950 + i), opponentUsername: name.toLowerCase(), opponentDisplayName: name,
+      yourScore: scores[i][0], opponentScore: scores[i][1], wordsFound: 0, completedAt: new Date(FIXED_NOW - (i + 1) * DAY).toISOString(),
+    })),
+    presence: null,
+  };
+}
+
+function word(text: string, points: number, values: number[]): ProfileView["bestWords"][number] {
+  return { word: text, points, tiles: Array.from(text, (letter, i) => ({ letter, value: values[i] ?? 1 })) };
+}
+
+/** A player with no match in this language: 1200, a flat chart, ten empty cells. */
+export function profileViewNew(): ProfileView {
+  const base = profileView("en");
+  return {
+    ...base, rating: 1200, peak: 1200, weekChange: 0, matches: 0, firstPlayedAt: null, record: { won: 0, lost: 0, drawn: 0, winRate: null }, lastTen: [],
+    chart: [{ at: new Date(FIXED_NOW - 30 * DAY).toISOString(), rating: 1200 }, { at: new Date(FIXED_NOW).toISOString(), rating: 1200 }], chartEmpty: true,
+    bestWords: [], matchesList: [], otherLanguage: { language: "is", rating: 1200, matches: 0 },
+  };
+}
+
+/** ProfilePublic (EN-L): Kári 1265, 41 matches since April, peak 1281, −4 this week; Birna's matches against him. */
+export function publicProfileView(language: "is" | "en" = "en"): ProfileView {
+  const base = profileView(language);
+  return {
+    ...base,
+    playerId: id(960),
+    handle: "kári",
+    displayName: "Kári",
+    rating: language === "en" ? 1265 : 1179,
+    peak: language === "en" ? 1281 : 1204,
+    weekChange: -4,
+    matches: 41,
+    firstPlayedAt: "2026-04-11T10:00:00.000Z",
+    record: { won: 21, lost: 19, drawn: 1, winRate: 21 / 41 },
+    lastTen: ["L", "W", "L", "W", "L", "W", "L", "W", "W", "L"],
+    chart: base.chart.map((p, i) => ({ ...p, rating: p.rating - 45 + (i % 3) * 6 })),
+    bestWords: language === "en"
+      ? [word("FJORD", 31, [4, 8, 1, 1, 2]), word("QUILT", 29, [10, 1, 1, 1, 1]), word("BRISK", 26, [3, 1, 1, 1, 5])]
+      : [word("HESTAR", 32, [4, 3, 1, 2, 1, 1]), word("SKÓR", 22, [1, 2, 3, 1]), word("TAK", 10, [2, 1, 2])],
+    matchesList: [
+      { matchId: id(970), result: "win", opponentId: id(960), opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 128, opponentScore: 117, wordsFound: 0, completedAt: new Date(FIXED_NOW - DAY).toISOString() },
+      { matchId: id(971), result: "loss", opponentId: id(960), opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 140, opponentScore: 152, wordsFound: 0, completedAt: "2026-09-14T18:00:00.000Z" },
+      { matchId: id(972), result: "win", opponentId: id(960), opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 171, opponentScore: 118, wordsFound: 0, completedAt: "2026-09-09T18:00:00.000Z" },
+    ],
+    presence: { state: "here", movesPlayed: null },
+  };
+}
+
+/** Birna's challenge to Kári is out: the slot carries withdraw ▸, the profile's primary slot the countdown. */
+export function sentToKari(): StandingFixture {
+  const kari = { playerId: id(960), displayName: "Kári", handle: "kári", rating: 1265, state: "here" as const, movesPlayed: null, record: null };
+  const outgoing = { inviteId: id(961), to: kari, status: "pending" as const, createdAt: new Date(FIXED_NOW - 19_000).toISOString(), expiresAt: new Date(FIXED_NOW + 41_000).toISOString(), respondedAt: null, matchId: null };
+  return { ...outgoingChallenge(), slot: { kind: "sent", outgoing, held: null } };
 }
 
 /** The longest names a player may take (24 characters, wide letters), for the overflow test (SC-007). */

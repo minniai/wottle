@@ -6,24 +6,13 @@
   font-family: var(--font-board);
   color: var(--ink);
 }
-.rules__header,
-.rules__footer {
+/* Spec 072 E3: the page's one primary closes the page, under a rule. */
+.rules__primary {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 20px;
-}
-.rules__footer {
   justify-content: flex-start;
-  align-items: center;
   border-top: 1.5px solid var(--ink);
   padding-top: 24px;
-}
-.rules__wordmark {
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--ink);
-  text-decoration: none;
+  margin-top: 24px;
 }
 .rules__lede {
   border-top: 1.5px solid var(--ink);
@@ -115,7 +104,7 @@
   .rules__title {
     font-size: 30px;
   }
-  .rules__footer {
-    flex-wrap: wrap;
+  .rules__primary .page-primary {
+    width: 100%;
   }
 }

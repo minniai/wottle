@@ -35,13 +35,14 @@ export const ROOM_PHASES = [
   "table-seated",
   "void",
   "void-queue",
+  // Spec 072: a link table, the friend seated, the sender not yet come (9:12 of the link left).
+  "table-link-waits",
   "idle",
   "picking",
   "illegal",
   "reveal",
   "final",
   "disconnect",
-  "profile",
   "phone-sheet",
   // Spec 048: the slips, one phase each.
   "resign",
@@ -409,17 +410,3 @@ export function resultSlip(phase: ResultPhase, copy: Copy): SlipState {
 export const QUEUE_LETTERS_LANDED = 58;
 export const QUEUE_ELAPSED = "0:07";
 
-export const PROFILE_FIXTURE = {
-  player: BIRNA,
-  rating: 1204,
-  played: 34,
-  won: 19,
-  lost: 15,
-  ratingHistory: [1188, 1176, 1193, 1201, 1190, 1208, 1215, 1199, 1186, 1197, 1216, 1204],
-  bestWords: [
-    { word: "BORÐA", points: 38 },
-    { word: "GILTUR", points: 31 },
-    { word: "SKÁLIN", points: 27 },
-  ],
-  recentMatches: RECENT_GAMES,
-} as const;

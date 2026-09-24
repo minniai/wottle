@@ -264,8 +264,6 @@ export const copyIs = {
     reason
       ? "prófíll ekki tiltækur · reyndu aftur eftir smástund"
       : "prófíll ekki tiltækur",
-  noSuchPlayer: (handle: string): string =>
-    `Enginn slíkur leikmaður · @${handle} hefur ekki spilað hér`,
   // The table (spec 069, game flow C1–C3, B7)
   seriesLine: (ordinal: number, leader: string | null, hi: number, lo: number): string =>
     leader ? `viðureign ${ordinal} · ${leader} ${hi}–${lo}` : `viðureign ${ordinal} · ${hi}–${lo}`,
@@ -315,6 +313,7 @@ export const copyIs = {
   },
   table: {
     label: (mmSs: string): string => `mótspilari fundinn · ${mmSs}`,
+    tableWaits: (mmSs: string): string => `borðið bíður · ${mmSs}`, // native-read
     CONTEXT: "mótspilari fundinn",
     facts: (words: string, moves: number, clockMmSs: string): string => `${words} · ${moves} leikir hvor · ein ${clockMmSs} klukka`, // native-read
     stakes: (win: number, draw: number, loss: number): string => `sigur ${stakeIs(win)} · jafntefli ${stakeIs(draw)} · tap ${stakeIs(loss)}`,

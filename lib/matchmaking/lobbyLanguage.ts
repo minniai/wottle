@@ -13,7 +13,7 @@ import type { LobbyLanguage, SwitchPending } from "@/lib/types/standing";
  */
 const enterReplySchema = z.discriminatedUnion("status", [
   z.object({ status: z.enum(["same", "switched", "invalid"]) }),
-  z.object({ status: z.literal("needs_confirm"), pending: z.array(z.enum(["search", "outgoing", "incoming"])), from: z.enum(["is", "en"]) }),
+  z.object({ status: z.literal("needs_confirm"), pending: z.array(z.enum(["search", "outgoing", "incoming", "link"])), from: z.enum(["is", "en"]) }),
 ]);
 
 export type EnterLobbyResult = { status: "same" | "switched" } | { status: "needs_confirm"; pending: SwitchPending };

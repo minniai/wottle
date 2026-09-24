@@ -10,6 +10,7 @@ import type { Copy } from "@/lib/i18n/copy/types";
 import type { ComposerFacts } from "@/lib/pages/composer";
 import { rowModel, visibleRows, type RowModel } from "@/lib/pages/lobbyRows";
 import type { RowOverlay } from "@/lib/pages/rowOverlays";
+import { profileHandlePath } from "@/lib/profile/readHandle";
 import { formatClock } from "@/lib/room/clock";
 import type { LobbyRow } from "@/lib/types/standing";
 
@@ -33,7 +34,7 @@ interface HereNowTableProps {
 
 const COLUMNS = 5;
 
-function sendError(result: SendChallengeActionResult, copy: Copy): RowOverlay["action"] | null {
+export function sendError(result: SendChallengeActionResult, copy: Copy): RowOverlay["action"] | null {
   switch (result.status) {
     case "sent":
     case "crossed":
@@ -73,7 +74,7 @@ function Row({ model, overlay, now, onOpen, buttonRef }: { model: RowModel; over
   return (
     <tr className="lobby-row" data-muted={model.muted} data-testid="lobby-row">
       <th scope="row" className="lobby-row__name">
-        <Link href={to(`/profile/${encodeURIComponent(model.handle)}`)} className="lobby-row__link">
+        <Link href={to(profileHandlePath(model.handle))} className="lobby-row__link">
           {model.name}
           <span className="lobby-row__handle">@{model.handle}</span>
         </Link>
