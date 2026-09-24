@@ -1,4 +1,5 @@
 import type { Copy } from "@/lib/i18n/copy/types";
+import { LINK_TTL_MS } from "@/lib/constants/links";
 import { CHALLENGE_TTL_MS } from "@/lib/presence/constants";
 import { stakesFor } from "@/lib/rating/stakes";
 import { formatClock } from "@/lib/room/clock";
@@ -9,7 +10,23 @@ import type { MatchFact } from "@/lib/types/standing";
 import { recordText } from "./lobbyRows";
 import type { SlotState } from "./standingSlot";
 
-export type SlotAction = "accept" | "decline" | "withdraw" | "cancelSearch" | "resume" | "keepSearching" | "findAgain" | "backToMatch" | "result" | "switch";
+export type SlotAction =
+  | "accept"
+  | "decline"
+  | "withdraw"
+  | "cancelSearch"
+  | "resume"
+  | "keepSearching"
+  | "findAgain"
+  | "backToMatch"
+  | "result"
+  | "switch"
+  | "copyLink"
+  | "newLink"
+  | "cancelLink"
+  | "copyOwnLink"
+  | "acceptLink"
+  | "dismissLink";
 
 export interface SlotButton {
   label: string;
@@ -36,6 +53,9 @@ export interface SlotContext {
   searchingCount: number;
   /** The lobby's language, named beside a rating (US7.5): a call can reach a page in the other locale. */
   languageName?: string;
+  /** Spec 072: the link text this browser kept (research R2), and whether the clipboard refused it. */
+  linkText?: { linkId: string; url: string } | null;
+  clipboardRefused?: boolean;
 }
 
 const ALONE_AFTER_S = 30;
@@ -94,6 +114,38 @@ function sentModel(slot: Extract<SlotState, { kind: "sent" }>, copy: Copy, ctx: 
   return status(line1, line2, { secondaries: [{ label: copy.pages.WITHDRAW, action: "withdraw" }], bar: { kind: "drain", fraction: clamp(ms / CHALLENGE_TTL_MS) } });
 }
 
+function linkModel(slot: Extract<SlotState, { kind: "link" }>, copy: Copy, ctx: SlotContext): SlotModel {
+  if (slot.held) return status(copy.pages.LINK_OUTCOMES[slot.held], "");
+  if (!slot.link && slot.own) {
+    const ms = left(slot.own.view.expiresAt, ctx.nowMs);
+    return status(copy.pages.OWN_LINK, copy.pages.ownLinkLine2(formatClock(ms)), { secondaries: [{ label: copy.pages.COPY, action: "copyOwnLink" }] });
+  }
+  const link = slot.link!;
+  const ms = left(link.expiresAt, ctx.nowMs);
+  const clock = formatClock(ms);
+  const bar = { kind: "drain" as const, fraction: clamp(ms / LINK_TTL_MS) };
+  const cancel: SlotButton = { label: copy.pages.CANCEL_LINK, action: "cancelLink" };
+  const kept = ctx.linkText?.linkId === link.id ? ctx.linkText : null;
+  if (kept && ctx.clipboardRefused) return status(copy.pages.linkReady(clock), kept.url, { secondaries: [cancel], bar });
+  if (kept) return status(copy.pages.linkCopied(clock), "", { secondaries: [{ label: copy.pages.COPY_AGAIN, action: "copyLink" }, cancel], bar });
+  return status(copy.pages.linkOut(clock), "", { secondaries: [{ label: copy.pages.NEW_LINK, action: "newLink" }, cancel], bar });
+}
+
+function linkCallModel(slot: Extract<SlotState, { kind: "linkCall" }>, copy: Copy, ctx: SlotContext): SlotModel {
+  const { view } = slot.call;
+  const ms = left(view.expiresAt, ctx.nowMs);
+  const line2 = [copy.pages.linkCallLine2(String(view.senderRating), copy.LANGUAGE_WORDS, formatClock(ms)), slot.more > 0 ? `+${slot.more}` : null].filter(Boolean).join(" · ");
+  return {
+    style: "call",
+    square: "opp",
+    line1: copy.pages.linkCallLine1(view.senderName),
+    line2,
+    primary: { label: copy.ACCEPT, action: "acceptLink" },
+    secondaries: [{ label: copy.pages.NOT_NOW, action: "dismissLink" }],
+    bar: { kind: "drain", fraction: clamp(ms / LINK_TTL_MS) },
+  };
+}
+
 function searchModel(search: MatchmakingState, copy: Copy, ctx: SlotContext): SlotModel {
   const cancel: SlotButton = { label: copy.CANCEL, action: "cancelSearch" };
   switch (search.kind) {
@@ -130,6 +182,10 @@ export function slotLines(slot: SlotState, copy: Copy, ctx: SlotContext): SlotMo
   switch (slot.kind) {
     case "call":
       return callModel(slot, copy, ctx);
+    case "linkCall":
+      return linkCallModel(slot, copy, ctx);
+    case "link":
+      return linkModel(slot, copy, ctx);
     case "match":
       return matchModel(slot.match, copy, ctx);
     case "switch": {
