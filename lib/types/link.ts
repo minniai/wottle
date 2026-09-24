@@ -2,7 +2,9 @@ import { z } from "zod";
 
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 
-import { lobbyLanguageSchema, type LobbyLanguage } from "./standing";
+/** The link's language; not `lobbyLanguageSchema`, which `standing.ts` builds on this module. */
+const linkLanguageSchema = z.enum(["is", "en"]);
+type LinkLanguage = z.infer<typeof linkLanguageSchema>;
 
 /**
  * Spec 072: invite links. A link has no recipient until it is used; the
@@ -28,7 +30,7 @@ export const linkViewSchema = z.object({
   senderName: z.string(),
   senderHandle: z.string(),
   senderRating: z.number(),
-  language: lobbyLanguageSchema,
+  language: linkLanguageSchema,
   expiresAt: z.string(),
 });
 export type LinkView = z.infer<typeof linkViewSchema>;
@@ -45,6 +47,6 @@ export type CreateLinkResult =
   | { status: "cooldown"; until: string };
 
 export type AcceptLinkResult =
-  | { status: "created"; matchId: string; language: LobbyLanguage }
+  | { status: "created"; matchId: string; language: LinkLanguage }
   | { status: "expired" | "own" | "busy" | "unauthenticated" | "error" }
   | { status: "sign_in_failed"; code: ErrorCode };

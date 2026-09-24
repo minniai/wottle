@@ -125,25 +125,25 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Tests first
 
-- [ ] T018 [P] [US1] Write failing unit tests in `tests/unit/lib/pages/standingSlot.link.spec.ts`:
+- [X] T018 [P] [US1] Write failing unit tests in `tests/unit/lib/pages/standingSlot.link.spec.ts`:
   - a pending `facts.link` gives `{kind:"link"}` below `sent` and above `search`;
   - a call, a match or a switch outranks it;
   - a held `cancelled` or `expired` outcome shows for 4s;
   - `ownLink` with no pending link gives the own-link state.
-- [ ] T019 [P] [US1] Write failing unit tests in `tests/unit/lib/pages/slotLines.link.spec.ts` for every row of the link table in contracts/page-derivations.md, in both languages:
+- [X] T019 [P] [US1] Write failing unit tests in `tests/unit/lib/pages/slotLines.link.spec.ts` for every row of the link table in contracts/page-derivations.md, in both languages:
   - the countdown `9:58` from `expiresAt`;
   - `copy again ▸` when the stored link id matches, else `new link ▸`;
   - clipboard refused shows the URL on line 2;
   - a 10:00 drain;
   - no primary.
-- [ ] T020 [P] [US1] Write failing unit tests in `tests/unit/lib/pages/pagePrimary.lobby.spec.ts` (`lobbyPrimary`):
+- [X] T020 [P] [US1] Write failing unit tests in `tests/unit/lib/pages/pagePrimary.lobby.spec.ts` (`lobbyPrimary`):
   - with no other rows, `invite a friend ▸` is the primary and `find an opponent ▸` a secondary;
   - otherwise `find` is the primary and `invite` a secondary with `a link that works for 10 minutes`.
   Also in `tests/unit/lib/pages/composer.link.spec.ts`: line 3 `sending cancels your link` when a link is pending, and the find consequence `finding cancels your link`.
-- [ ] T021 [P] [US1] Write failing contract tests in `tests/contract/standing-link.contract.test.ts`:
+- [X] T021 [P] [US1] Write failing contract tests in `tests/contract/standing-link.contract.test.ts`:
   - `GET /api/standing` returns `link` for a pending link, and for 10s after it leaves `pending`, else `null`;
   - the response never contains a token or `token_hash`.
-- [ ] T022 [P] [US1] Write failing unit tests for the actions in `tests/unit/actions/link/create.test.ts` and `cancel.test.ts` (with the service mocked):
+- [X] T022 [P] [US1] Write failing unit tests for the actions in `tests/unit/actions/link/create.test.ts` and `cancel.test.ts` (with the service mocked):
   - unauthenticated;
   - rate limited;
   - refusals mapped to the send `ErrorCode`s;
@@ -153,19 +153,19 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Implementation
 
-- [ ] T023 [US1] Implement `createLinkAction` in `app/actions/link/create.ts` and `cancelLinkAction` in `app/actions/link/cancel.ts`, per contracts/routes-and-actions.md. Makes T022 pass.
-- [ ] T024 [US1] Add the `link` fact to `lib/standing/readStanding.ts` (the newest link: pending, or responded within 10s). Makes T021 pass.
-- [ ] T025 [US1] Extend `SlotState` and `standingSlot` in `lib/pages/standingSlot.ts`, `slotLines` in `lib/pages/slotLines.ts` (new `SlotAction`s: `copyLink`, `newLink`, `cancelLink`, `copyOwnLink`), and `lobbyPrimary` and the composer consequence in `lib/pages/pagePrimary.ts` and `lib/pages/composer.ts`. Makes T018–T020 pass.
-- [ ] T026 [P] [US1] Add the link strings to `lib/i18n/copy/pages.en.ts` and `pages.is.ts` (and `Copy` types): slot lines, outcomes, `invite a friend ▸`, `a link that works for 10 minutes`, and the consequences. Mark `// native-read` on `ógilda tengil ▸`, `tengillinn þinn fellur úr gildi` and `Tengill úti`.
-- [ ] T027 [US1] Wire the link in `components/standing/useStandingMachine.ts` and `StandingProvider.tsx`:
+- [X] T023 [US1] Implement `createLinkAction` in `app/actions/link/create.ts` and `cancelLinkAction` in `app/actions/link/cancel.ts`, per contracts/routes-and-actions.md. Makes T022 pass.
+- [X] T024 [US1] Add the `link` fact to `lib/standing/readStanding.ts` (the newest link: pending, or responded within 10s). Makes T021 pass.
+- [X] T025 [US1] Extend `SlotState` and `standingSlot` in `lib/pages/standingSlot.ts`, `slotLines` in `lib/pages/slotLines.ts` (new `SlotAction`s: `copyLink`, `newLink`, `cancelLink`, `copyOwnLink`), and `lobbyPrimary` and the composer consequence in `lib/pages/pagePrimary.ts` and `lib/pages/composer.ts`. Makes T018–T020 pass.
+- [X] T026 [P] [US1] Add the link strings to `lib/i18n/copy/pages.en.ts` and `pages.is.ts` (and `Copy` types): slot lines, outcomes, `invite a friend ▸`, `a link that works for 10 minutes`, and the consequences. Mark `// native-read` on `ógilda tengil ▸`, `tengillinn þinn fellur úr gildi` and `Tengill úti`.
+- [X] T027 [US1] Wire the link in `components/standing/useStandingMachine.ts` and `StandingProvider.tsx`:
   - `createLink()` calls the action, writes `{linkId, url, expiresAt}` to `localStorage[LINK_STORAGE_KEY]` (try/catch), and copies via `navigator.clipboard.writeText`; on refusal it sets `clipboardRefused` and, on touch devices where `navigator.share` exists, offers share;
   - `copyAgain`, `newLink` (cancel then create) and `cancelLink`;
   - storage is cleared at expiry or on any non-pending status;
   - the held outcome reuses `useHeldOutcome`.
   Unit tests go in `tests/unit/components/standing/useStandingMachine.link.spec.tsx` with fake timers and a mocked clipboard.
-- [ ] T028 [US1] Render the link states in `components/page/LineSlot.tsx` (status style, 4px drain, the selectable URL fallback) and the phone bottom slot (64px). Put `invite a friend ▸` in `components/page/lobby/Lobby.tsx` / `HereNowTable.tsx` as the primary for an empty lobby and a secondary below the table otherwise, and the consequence line in `ComposerRow.tsx`. Component tests go in `tests/unit/components/page/LineSlot.link.spec.tsx`.
-- [ ] T029 [US1] Add link expiry to `app/api/cron/sweep-stale-matches/route.ts` (`linkService.expireDue()`, a `link` poke per sender), with a test in `tests/unit/api/sweep.links.test.ts`.
-- [ ] T030 [P] [US1] Add page fixtures `lobby-link-out`, `lobby-empty-invite` and `is-lobby-link-out` (plus a `lobby-link-refused-clipboard` state) to `app/[locale]/dev/page/fixtures.ts` and `PageFixture.tsx`, and record baselines with `pnpm test:visual --update-snapshots` for those phases only.
+- [X] T028 [US1] Render the link states in `components/page/LineSlot.tsx` (status style, 4px drain, the selectable URL fallback) and the phone bottom slot (64px). Put `invite a friend ▸` in `components/page/lobby/Lobby.tsx` / `HereNowTable.tsx` as the primary for an empty lobby and a secondary below the table otherwise, and the consequence line in `ComposerRow.tsx`. Component tests go in `tests/unit/components/page/LineSlot.link.spec.tsx`.
+- [X] T029 [US1] Add link expiry to `app/api/cron/sweep-stale-matches/route.ts` (`linkService.expireDue()`, a `link` poke per sender), with a test in `tests/unit/api/sweep.links.test.ts`.
+- [X] T030 [P] [US1] Add page fixtures `lobby-link-out`, `lobby-empty-invite` and `is-lobby-link-out` (plus a `lobby-link-refused-clipboard` state) to `app/[locale]/dev/page/fixtures.ts` and `PageFixture.tsx`, and record baselines with `pnpm test:visual --update-snapshots` for those phases only.
 
 **Checkpoint**: links can be made, copied, cancelled and expire; nothing yet accepts them.
 

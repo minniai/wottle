@@ -27,6 +27,10 @@ export const PAGE_PHASES = [
   "match-over-away",
   "searching",
   "switch-confirm",
+  // Spec 072 US1: invite a friend ▸ and the link in the slot.
+  "lobby-link-out",
+  "is-lobby-link-out",
+  "lobby-link-refused",
 ] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
@@ -165,6 +169,9 @@ export interface StandingFixture {
   slot: SlotState;
   facts: StandingFacts;
   held: HeldOutcome | null;
+  /** Spec 072: the link text this browser kept, and a refused clipboard. */
+  linkText?: { linkId: string; url: string } | null;
+  clipboardRefused?: boolean;
 }
 
 function facts(language: "is" | "en", extra: Partial<StandingFacts> = {}): StandingFacts {
@@ -237,6 +244,20 @@ export function searching(): StandingFixture {
 export function switchConfirm(): StandingFixture {
   const switchPending = { to: "en" as const, from: "is" as const, pending: ["search" as const] };
   return { now: FIXED_NOW, slot: { kind: "switch", pending: switchPending }, facts: facts("is", { switchPending }), held: null };
+}
+
+/** B9 (spec 072): a link copied 2s ago, 9:58 left; `refused`: the clipboard said no. */
+export function linkOut(language: "is" | "en", refused = false): StandingFixture {
+  const link = { id: id(910), status: "pending" as const, expiresAt: at(598_000), respondedAt: null };
+  const url = `https://wottle.app${language === "en" ? "/en" : ""}/c/Xq7Vt2pLm9KcR4sWn8BjYd3HfA6gZe1uQo5iNw0bTyE`;
+  return {
+    now: FIXED_NOW,
+    slot: { kind: "link", link, held: null, own: null },
+    facts: facts(language, { link }),
+    held: null,
+    linkText: { linkId: link.id, url },
+    clipboardRefused: refused,
+  };
 }
 
 /** The longest names a player may take (24 characters, wide letters), for the overflow test (SC-007). */
