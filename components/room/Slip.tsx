@@ -220,17 +220,19 @@ type Act = (a: LedgerAction) => void;
 function NegotiationRow({ view, onAction }: { view: Extract<RematchView, { kind: "sent" | "incoming" }>; onAction: Act }) {
   const { ACCEPT, DECLINE, rematch } = useCopy();
   return (
-    <div className="slip__actions slip__negotiation" data-testid="slip-action-row">
+    <div className="slip__negotiation" data-testid="slip-action-row">
       <span className="slip__label" data-testid="slip-rematch-line" aria-live="polite">{view.line}</span>
-      {view.kind === "incoming" ? (
-        <>
-          <Primary label={ACCEPT} action="acceptRematch" testId="slip-accept-rematch" onAction={onAction} guarded />
-          <Secondary label={DECLINE} action="declineRematch" testId="slip-decline-rematch" onAction={onAction} guarded />
-        </>
-      ) : (
-        <Secondary label={rematch.CANCEL} action="withdrawRematch" testId="slip-withdraw-rematch" onAction={onAction} guarded />
-      )}
       <span className="slip__row-drain" data-testid="slip-rematch-drain" style={{ transform: `scaleX(${view.drain})` }} />
+      <div className="slip__actions">
+        {view.kind === "incoming" ? (
+          <>
+            <Primary label={ACCEPT} action="acceptRematch" testId="slip-accept-rematch" onAction={onAction} guarded />
+            <Secondary label={DECLINE} action="declineRematch" testId="slip-decline-rematch" onAction={onAction} guarded />
+          </>
+        ) : (
+          <Secondary label={rematch.CANCEL} action="withdrawRematch" testId="slip-withdraw-rematch" onAction={onAction} guarded />
+        )}
+      </div>
     </div>
   );
 }

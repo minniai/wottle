@@ -76,6 +76,10 @@ export const ROOM_PHASES = [
   "result-both",
   "result-forfeit",
   "result-early",
+  // Spec 071 (D2): the rematch negotiation on the slip.
+  "rematch-sent",
+  "rematch-in",
+  "rematch-declined",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -372,6 +376,23 @@ export function resultVerdict(phase: ResultPhase, copy: Copy): Verdict {
     },
     copy,
   );
+}
+
+/** Spec 071 (D2, artboard RematchIncoming): the negotiation on the slip, at 0:24, as literals. */
+export const REMATCH_PHASES = ["rematch-sent", "rematch-in", "rematch-declined"] as const;
+export type RematchPhase = (typeof REMATCH_PHASES)[number];
+
+export function isRematchPhase(phase: string): phase is RematchPhase {
+  return (REMATCH_PHASES as readonly string[]).includes(phase);
+}
+
+export function rematchSlip(phase: RematchPhase, copy: Copy): SlipState {
+  const views = {
+    "rematch-sent": { kind: "sent", line: copy.rematch.sent("0:24"), secondsLeft: 24, drain: 0.8 },
+    "rematch-in": { kind: "incoming", line: copy.rematch.asks(KARI.displayName, "0:24"), secondsLeft: 24, drain: 0.8 },
+    "rematch-declined": { kind: "closed", line: copy.rematch.declined(KARI.displayName), challengeAgain: { enabled: false, label: copy.pages.againIn("0:52") } },
+  } as const;
+  return { ...resultSlip("result-moves", copy), rematch: views[phase] } as SlipState;
 }
 
 export function resultSlip(phase: ResultPhase, copy: Copy): SlipState {
