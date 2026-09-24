@@ -34,7 +34,7 @@ const input: MatchOverSlipInput = {
   viewerName: "Birna",
   opponentName: "Kári",
   ratings: null,
-  rematch: "idle",
+  rematch: null,
   busy: false,
   revealed: true,
 };
@@ -82,8 +82,9 @@ describe("useMatchOverSlip (spec 048 FR-003)", () => {
     const { rerender } = renderHook((p: MatchOverSlipInput) => useMatchOverSlip(p), { initialProps: input });
     act(() => vi.advanceTimersByTime(MATCH_OVER_DELAY_MS));
     useRoomStore.getState().dismissSlip();
-    rerender({ ...input, rematch: "incoming" });
-    expect(useRoomStore.getState().slip).toMatchObject({ kind: "matchOver", rematch: "incoming" });
+    const incoming = { kind: "incoming" as const, line: "Kári asks for a rematch · 0:24", secondsLeft: 24, drain: 0.8 };
+    rerender({ ...input, rematch: incoming });
+    expect(useRoomStore.getState().slip).toMatchObject({ kind: "matchOver", rematch: incoming });
     expect(useRoomStore.getState().slipDismissed).toBe(true);
   });
 
