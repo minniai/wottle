@@ -1363,14 +1363,12 @@
 }
 /* Spec 071 (D2): a rematch request's 30s, under its line in the slip's first action row. */
 .slip__negotiation {
-  position: relative;
-  padding-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .slip__row-drain {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  display: block;
   height: 4px;
   background: var(--ink);
   transform-origin: left center;

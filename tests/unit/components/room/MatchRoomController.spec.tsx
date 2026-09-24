@@ -353,7 +353,8 @@ describe("MatchRoomController (spec 050)", () => {
     expect(mockPush).not.toHaveBeenCalled();
     expect(screen.getByTestId("field")).toBeInTheDocument();
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
+    // Spec 071: the ledger's one line keeps the detail's first two clauses; the slip carries all three.
+    expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0");
     // The scoreboard says the match is over and how long it ran; the caption holds the actions (spec 068).
     expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:52 of 5:00");
     expect(screen.getByTestId("ledger-caption-actions")).toHaveTextContent("lobby");

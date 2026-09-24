@@ -7,7 +7,7 @@ import { getSeatColors } from "@/lib/constants/seatColors";
 import { foldRows } from "@/lib/room/ledgerRows";
 import { noticeKey, noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
-import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
+import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell, Verdict } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
 import { PointsLost } from "./PointsLost";
@@ -166,6 +166,14 @@ function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: 
       )}
     </div>
   );
+}
+
+/**
+ * The grid's state row has one line under the verdict (spec 068): the detail's first two
+ * clauses, which say why the match ended; the slip carries the rest (spec 071).
+ */
+function gridDetail(verdict: Verdict): string {
+  return verdict.detailClauses ? verdict.detailClauses.slice(0, 2).join(" · ") : verdict.detailLine;
 }
 
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
@@ -335,7 +343,7 @@ export function Ledger(props: LedgerProps) {
             {model.verdict ? (
               <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
                 <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
-                {latestNotice ?? <div className="ledger__mono">{model.verdict.detailLine}</div>}
+                {latestNotice ?? <div className="ledger__mono" data-testid="ledger-verdict-detail">{gridDetail(model.verdict)}</div>}
               </div>
             ) : (
               <>
