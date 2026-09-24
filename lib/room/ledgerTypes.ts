@@ -99,12 +99,17 @@ export type LedgerAction =
   | "sitDown"
   | "leaveTable"
   | "challengeAgain"
+  /** Spec 070 B6: a call answered from the result screen's ledger line. */
+  | "acceptCall"
+  | "declineCall"
   | { challenge: string };
 
 export type Notice =
   | { kind: "pickCleared"; byName: string; expiresAt: number }
   | { kind: "rematchRequest"; requesterName: string }
-  | { kind: "text"; text: string };
+  | { kind: "text"; text: string }
+  /** Spec 070 B6: a third party's call on the result screen. */
+  | { kind: "call"; inviteId: string; text: string };
 
 export const EMPTY_TERRITORY: Territory = { you: 0, opp: 0, free: 100 };
 

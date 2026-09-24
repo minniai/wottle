@@ -9,6 +9,7 @@ export function noticeText(notice: Notice, copy: Copy): string {
     case "rematchRequest":
       return copy.rematchRequest(notice.requesterName);
     case "text":
+    case "call":
       return notice.text;
   }
 }

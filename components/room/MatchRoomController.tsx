@@ -28,6 +28,7 @@ import type { Line2Extras } from "@/lib/room/moveState";
 import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
+import { ledgerCallLine } from "@/lib/room/ledgerCallLine";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
@@ -530,6 +531,9 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
       else if (action === "reviewField") dismissSlip();
+      // B6: a third party's call answered from the result screen goes through the standing machine.
+      else if (action === "acceptCall") standing?.onAction("accept");
+      else if (action === "declineCall") standing?.onAction("decline");
       else if (action === "result" && !voided) restoreSlip();
       else if (action === "newOpponent") {
         // Spec 070: a search runs in the line slot, from the lobby.
@@ -602,6 +606,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
 
   const rematchLine =
     rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.phase === "busy" ? copy.opponentBusy(opp.displayName) : rematch.error ? copy.errors[rematch.error] : null;
+  const callLine = completed && !slipUp ? ledgerCallLine(null, standing?.slot.kind === "call" ? standing.slot.call : null, copy) : null;
   // Steady transport lines first, pushed notices last: on the desktop grid the state row shows the
   // latest one, so a fresh error or rematch line is never hidden behind `realtime lost` (spec 068).
   const allNotices: Notice[] = [
@@ -609,6 +614,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
     ...notices,
+    // B6: once the result's slip is lifted, a third party's call is the ledger's line.
+    ...(callLine ? [callLine] : []),
   ];
   void dismiss;
 

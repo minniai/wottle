@@ -168,9 +168,22 @@ function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: 
   );
 }
 
-function NoticeLine({ notice }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
+function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
   const copy = useCopy();
-  return <>{noticeText(notice, copy)}</>;
+  if (notice.kind !== "call") return <>{noticeText(notice, copy)}</>;
+  // A call on the result screen (B6): the line and its two secondaries.
+  return (
+    <>
+      {notice.text} ·{" "}
+      <button type="button" className="action-secondary" data-testid="ledger-call-accept" onClick={() => onAction("acceptCall")}>
+        {copy.ACCEPT}
+      </button>{" "}
+      ·{" "}
+      <button type="button" className="action-secondary" data-testid="ledger-call-decline" onClick={() => onAction("declineCall")}>
+        {copy.DECLINE}
+      </button>
+    </>
+  );
 }
 
 /**
@@ -272,6 +285,10 @@ export function Ledger(props: LedgerProps) {
   const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
 
   const latestNotice = noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null;
+  // On a phone a call cannot wait in the closed sheet: it sits under the live row (B6).
+  const callIndex = notices.findIndex((n) => n.kind === "call");
+  const phoneCall = callIndex >= 0 ? noticeLines[callIndex] : null;
+  const sheetNotices = noticeLines.filter((_, i) => i !== callIndex);
 
   // Desktop match and final (spec 068): the ledger sits on the scoreboard's grid.
   // Its first three rows mirror the scoreboard's, and each move row is one cell tall.
@@ -359,10 +376,11 @@ export function Ledger(props: LedgerProps) {
               {offerOf(collapsedLive)!.label}
             </button>
           ) : null}
+          {phoneCall}
           <div className="ledger__territory-block">{territoryBlock}</div>
           <LedgerSheet open={sheetOpen} onClose={closeSheet}>
             {showsTable ? table : body}
-            {noticeLines}
+            {sheetNotices}
             <LedgerFoot variant={menuVariant(variant)} actions={footActions} onAction={onAction} menu={false} />
           </LedgerSheet>
           {/* Pinned to the bottom edge with the safe area, always visible (spec 068 FR-015). */}
