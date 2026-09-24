@@ -25,6 +25,7 @@ import {
   matchRunning,
   searching,
   switchConfirm,
+  linkOut,
   type LobbyFixture,
   type PagePhase,
   type StandingFixture,
@@ -37,7 +38,7 @@ const SENT = async () => ({ status: "sent" as const, inviteId: "00000000-0000-40
 function LobbyFixturePage({ fixture, openRow = null }: { fixture: LobbyFixture; openRow?: string | null }) {
   return (
     <PageFrame variant="signedIn" place="lobby" viewer={{ displayName: fixture.viewer.displayName, handle: fixture.viewer.handle }} otherLobbyHere={fixture.overview.counts.other.here}>
-      <Lobby viewer={fixture.viewer} rows={fixture.rows} overview={fixture.overview} recent={fixture.recent} onFind={NO_OP} onSend={SENT} initialOpenId={openRow} />
+      <Lobby viewer={fixture.viewer} rows={fixture.rows} overview={fixture.overview} recent={fixture.recent} onFind={NO_OP} onSend={SENT} onInvite={NO_OP} initialOpenId={openRow} />
     </PageFrame>
   );
 }
@@ -52,7 +53,7 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
   const phone = useIsPhone();
   const { slot, facts, held, now } = standing;
   const languageName = facts.lobbyLanguage === "is" ? copy.pages.LANGUAGE_NAME_IS : copy.pages.LANGUAGE_NAME_EN;
-  const model = slotLines(slot, copy, { nowMs: now, phone, viewer: facts.viewer, searchingCount: facts.counts.searching, languageName });
+  const model = slotLines(slot, copy, { nowMs: now, phone, viewer: facts.viewer, searchingCount: facts.counts.searching, languageName, linkText: standing.linkText ?? null, clipboardRefused: standing.clipboardRefused ?? false });
   const counts = { here: facts.counts.here, playing: facts.counts.playing };
   // LobbyIncoming shows the skip link focused: it is the page's first stop while a call is up.
   useEffect(() => {
@@ -82,7 +83,9 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
           callUp: slot.kind === "call",
           overlays: rowOverlays(facts, held, now, copy),
           closed: challengesClosed(facts) || slot.kind === "switch",
+          link: facts.link?.status === "pending",
         }}
+        onInvite={NO_OP}
         primaryFor={(composing) => pagePrimary(slot, copy, { composing })}
       />
     </PageFrame>
@@ -125,5 +128,11 @@ export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: 
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(searching())} />;
     case "switch-confirm":
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(switchConfirm())} />;
+    case "lobby-link-out":
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkOut("en"))} />;
+    case "is-lobby-link-out":
+      return <StandingFixturePage fixture={L(lobbyIs())} standing={L(linkOut("is"))} />;
+    case "lobby-link-refused":
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkOut("en", true))} />;
   }
 }

@@ -961,6 +961,11 @@
 
 /* ---------- Phone (§5.0 phone page frame) ---------- */
 @media (max-width: 900px) {
+  .lobby-invite {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
   .page {
     --page-width: calc(100vw - 32px);
   }
