@@ -32,12 +32,13 @@ async function fetchHistory(matchId: string): Promise<HistoryWord[] | null> {
  * more than one — a missed broadcast — never on the move path. `null` until
  * loaded or when the request fails; the ledger then fills from broadcasts alone.
  */
-export function useWordHistory(matchId: string, resolvedSeq: number): HistoryWord[] | null {
+/** `matchId` null reads nothing: a signed-out reader's words come from the review's steps (spec 071). */
+export function useWordHistory(matchId: string | null, resolvedSeq: number): HistoryWord[] | null {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const stale = loaded?.matchId !== matchId || resolvedSeq - loaded.resolvedSeq > 1;
 
   useEffect(() => {
-    if (!stale) return;
+    if (!stale || !matchId) return;
     let active = true;
     void fetchHistory(matchId).then((words) => {
       if (active && words) setLoaded({ matchId, resolvedSeq, words });
