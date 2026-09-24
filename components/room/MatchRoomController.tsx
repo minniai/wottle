@@ -21,6 +21,7 @@ import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { tabTitle } from "@/lib/room/tabTitle";
+import { bestWordOf } from "@/lib/room/bestWord";
 import { tableSlipFor } from "@/lib/room/tableSlip";
 import { lastMoves } from "@/lib/room/lastMoves";
 import { PICK_CLEARED_HOLD_MS } from "@/lib/room/notices";
@@ -300,10 +301,6 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   );
   // The tab says the table, the count, or the clock and your move (spec 068 FR-025, spec 069 FR-026).
   const tableTitle = moveState.kind === "table" ? { opponentName: opp.displayName } : moveState.kind === "starting" ? { opponentName: opp.displayName, startsIn: moveState.seconds } : undefined;
-  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1), table: readOnly ? undefined : tableTitle }, copy);
-  useEffect(() => {
-    document.title = title;
-  }, [title]);
 
   // The table (spec 069): its slip is derived from the match and the server-corrected second.
   const atTable = !readOnly && (match.state === "pending" || voided || msToStart > 0);
@@ -464,6 +461,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const recordedWinnerSeat = match.winnerId ? (match.winnerId === youFacts.playerId ? "you" : "opp") : null;
   const youScoreWins = recordedWinnerSeat ? recordedWinnerSeat === "you" : youScore > oppScore;
   const draw = recordedWinnerSeat ? false : youScore === oppScore;
+  const endClock = clockAtEnd(match);
   const verdict = useMemo(
     () =>
       completed
@@ -479,10 +477,17 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
             territory: buildTerritory(frozenTiles, viewerSlot),
             winnerSeat: recordedWinnerSeat,
             endedReason: match.endedReason,
+            endClock,
           }, copy)
         : null,
-    [copy, completed, you.displayName, opp.displayName, youScore, oppScore, words, youFacts.playerId, oppFacts.playerId, youFacts.movesPlayed, oppFacts.movesPlayed, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason],
+    [copy, completed, you.displayName, opp.displayName, youScore, oppScore, words, youFacts.playerId, oppFacts.playerId, youFacts.movesPlayed, oppFacts.movesPlayed, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason, endClock],
   );
+  // Spec 071 (FR-008): once it is over the tab names the winner.
+  const result = verdict ? { winnerName: verdict.winnerSeat === null ? null : verdict.winnerSeat === "you" ? you.displayName : opp.displayName } : undefined;
+  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1), table: readOnly ? undefined : tableTitle, result }, copy);
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
   const durationMs = match.clock.startedAt
     ? Math.max(0, new Date(match.completedAt ?? match.clock.deadlineAt ?? match.clock.startedAt).getTime() - new Date(match.clock.startedAt).getTime())
     : 0;
@@ -506,6 +511,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     rematch: rematch.phase,
     busy: revealing || holdMove !== null,
     revealed: revealedOnce,
+    bestWord: bestWordOf(words, youFacts.playerId),
   });
 
   // The slip counts the window on this device's clock; the server's record can
@@ -525,7 +531,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     () => setSlip({ kind: "leave", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), limit: match.moveLimit, clockMs }),
     [setSlip, youFacts.movesPlayed, match.moveLimit, clockMs],
   );
-  const liveGuard = useLiveBackGuard({ live: !readOnly && inProgress && msToStart <= 0, onBack: raiseLeave });
+  const liveGuard = useLiveBackGuard({ live: !readOnly && inProgress && msToStart <= 0, completed, onBack: raiseLeave });
   const handleAction = useCallback(
     (action: LedgerAction) => {
       if (action === "rematch") void rematch.request();
@@ -708,4 +714,11 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       ) : null}
     </>
   );
+}
+
+/** The clock as it read when the match ended (`3:12`), for a resignation's detail (spec 071, D1). */
+function clockAtEnd(match: MatchState): string | null {
+  const { deadlineAt } = match.clock;
+  if (!deadlineAt || !match.completedAt) return null;
+  return formatClock(Math.max(0, Date.parse(deadlineAt) - Date.parse(match.completedAt)));
 }
