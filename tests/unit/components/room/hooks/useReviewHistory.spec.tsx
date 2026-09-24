@@ -4,14 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useReviewHistory } from "@/components/room/hooks/useReviewHistory";
 
 describe("useReviewHistory (spec 071 FR-030, R4)", () => {
-  let push: ReturnType<typeof vi.spyOn>;
-  let replace: ReturnType<typeof vi.spyOn>;
-  let back: ReturnType<typeof vi.spyOn>;
+  type HistorySpy = ReturnType<typeof vi.fn>;
+  let push: HistorySpy;
+  let replace: HistorySpy;
+  let back: HistorySpy;
   beforeEach(() => {
     window.history.replaceState({ kind: "result" }, "", "/en/match/m1");
-    push = vi.spyOn(window.history, "pushState");
-    replace = vi.spyOn(window.history, "replaceState");
-    back = vi.spyOn(window.history, "back").mockImplementation(() => undefined);
+    push = vi.spyOn(window.history, "pushState") as unknown as HistorySpy;
+    replace = vi.spyOn(window.history, "replaceState") as unknown as HistorySpy;
+    back = vi.spyOn(window.history, "back").mockImplementation(() => undefined) as unknown as HistorySpy;
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -45,8 +46,8 @@ describe("useReviewHistory (spec 071 FR-030, R4)", () => {
     window.history.replaceState(null, "", "/en/match/m1?review=abc");
     const { result } = renderHook(() => useReviewHistory());
     act(() => result.current.correct("20"));
-    expect(replace).toHaveBeenLastCalledWith(expect.anything(), "", "/en/match/m1?review=20");
+    expect(replace.mock.lastCall?.[2]).toBe("/en/match/m1?review=20");
     act(() => result.current.drop());
-    expect(replace).toHaveBeenLastCalledWith(expect.anything(), "", "/en/match/m1");
+    expect(replace.mock.lastCall?.[2]).toBe("/en/match/m1");
   });
 });
