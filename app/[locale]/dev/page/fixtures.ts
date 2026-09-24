@@ -37,6 +37,10 @@ export const PAGE_PHASES = [
   "is-invite-door",
   "invite-door-expired",
   "invite-door-returning",
+  // Spec 072 US3: a link opened while signed in, and the sender's own.
+  "lobby-link-call",
+  "is-lobby-link-call",
+  "lobby-own-link",
 ] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
@@ -278,6 +282,19 @@ export function inviteView(language: "is" | "en", valid = true): LinkView {
     language,
     expiresAt: at(552_000),
   };
+}
+
+/** T6: Hekla's link opened by a signed-in Birna (EN-L; IS-T1 names Kári). */
+export function linkCallIn(language: "is" | "en"): StandingFixture {
+  const call = { token: INVITE_TOKEN, view: { ...inviteView(language), senderName: language === "en" ? "Hekla" : "Kári", senderRating: language === "en" ? 1250 : 1179 } };
+  return { now: FIXED_NOW, slot: { kind: "linkCall", call, more: 0 }, facts: facts(language), held: null };
+}
+
+/** T64: Birna opens her own link, 9:12 left; it is her pending link. */
+export function ownLinkOpened(): StandingFixture {
+  const own = { token: INVITE_TOKEN, view: { ...inviteView("en"), senderName: "Birna", senderHandle: "birna" } };
+  const link = { id: id(910), status: "pending" as const, expiresAt: at(552_000), respondedAt: null };
+  return { now: FIXED_NOW, slot: { kind: "link", link, held: null, own }, facts: facts("en", { link }), held: null };
 }
 
 /** The longest names a player may take (24 characters, wide letters), for the overflow test (SC-007). */

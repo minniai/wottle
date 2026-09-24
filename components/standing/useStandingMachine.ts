@@ -7,6 +7,7 @@ import { respondChallengeAction } from "@/app/actions/challenge/respond";
 import { withdrawChallengeAction } from "@/app/actions/challenge/withdraw";
 import { confirmLobbySwitchAction } from "@/app/actions/lobby/confirmSwitch";
 import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { localePath } from "@/lib/i18n/locales";
 import { useAttention } from "@/components/room/hooks/useAttention";
 import { useIsPhone } from "@/components/room/hooks/useIsPhone";
 import { useNowTick } from "@/components/room/hooks/useNowTick";
@@ -164,7 +165,19 @@ export function useStandingMachine(): StandingMachine {
   const held = useHeldOutcome(facts?.outgoing ?? null, (matchId) => router.push(to(`/match/${matchId}`)));
   const search = run && searchApi ? searchApi.state : null;
   const [switchPending, setSwitchPending] = useState<SwitchPending | null>(null);
-  const link = useLinkSlot(facts?.link ?? null, refresh);
+  const flash = useCallback((line: string) => {
+    setNote(line);
+    setTimeout(() => setNote(null), OUTCOME_HOLD_MS);
+  }, []);
+
+  const onLinkAccepted = useCallback(
+    (matchId: string, matchLanguage: "is" | "en") => {
+      endSearch();
+      router.push(localePath(matchLanguage, `/match/${matchId}`));
+    },
+    [endSearch, router],
+  );
+  const link = useLinkSlot(facts?.link ?? null, refresh, { onAccepted: onLinkAccepted, flash });
   const slot = standingSlot({ facts: facts && switchPending ? { ...facts, switchPending } : facts, held, search, link: link.inputs });
   const nowMs = useNowTick(TICKING.has(slot.kind));
   const viewer = facts?.viewer ?? { rating: 1200, gamesPlayed: 0 };
@@ -190,11 +203,6 @@ export function useStandingMachine(): StandingMachine {
   useWakeLock(Boolean(search && (search.kind === "searching" || search.kind === "stillSearching")) || facts?.outgoing?.status === "pending" || linkOut);
   useFavicon(locale.id, (facts?.incoming.length ?? 0) > 0);
   useTabTitle(page === "match" ? null : pageTitle(slot, copy, { nowMs, calls: facts?.incoming.length ?? 0, arrival }));
-
-  const flash = useCallback((line: string) => {
-    setNote(line);
-    setTimeout(() => setNote(null), OUTCOME_HOLD_MS);
-  }, []);
 
   const accept = useCallback(async () => {
     if (slot.kind !== "call") return;

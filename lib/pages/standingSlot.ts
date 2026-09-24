@@ -49,9 +49,10 @@ const live = (call: LinkCall | null | undefined, nowMs: number): LinkCall | null
 function linkState(facts: StandingFacts | null, link: LinkInputs, nowMs: number): SlotState | null {
   const pending = facts?.link?.status === "pending" && Date.parse(facts.link.expiresAt) > nowMs ? facts.link : null;
   if (link.held) return { kind: "link", link: facts?.link ?? null, held: link.held, own: null };
-  if (pending) return { kind: "link", link: pending, held: null, own: null };
+  // The sender's own link, opened (T64): it is their one pending link, so it names that link.
   const own = live(link.own, nowMs);
-  return own ? { kind: "link", link: null, held: null, own } : null;
+  if (pending || own) return { kind: "link", link: pending, held: null, own };
+  return null;
 }
 
 export function standingSlot({ facts, held, search, link = {} }: SlotInputs, nowMs = Date.now()): SlotState {

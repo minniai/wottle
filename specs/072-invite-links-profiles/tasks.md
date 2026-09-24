@@ -246,14 +246,14 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Tests first
 
-- [ ] T042 [P] [US3] Write failing unit tests in `tests/unit/lib/pages/standingSlot.linkCall.spec.ts`:
+- [X] T042 [P] [US3] Write failing unit tests in `tests/unit/lib/pages/standingSlot.linkCall.spec.ts`:
   - `linkCall` is a call (precedence 1) after challenge calls, and `more` counts it;
   - line 1 `Hekla invites you by link` / `Hekla býður þér með tengli`;
   - line 2 `1250 · English words · link valid 9:12`;
   - `accept ▸` is the page primary;
   - it drops at `expiresAt`;
   - the own-link state is `this is your link` / `valid 9:12` / `copy ▸`.
-- [ ] T043 [P] [US3] Write failing tests for the lobby page's `?invite` handling in `tests/unit/app/lobbyInvite.test.ts`:
+- [X] T043 [P] [US3] Write failing tests for the lobby page's `?invite` handling in `tests/unit/app/lobbyInvite.test.ts`:
   - a valid token yields `linkCall`;
   - the sender's own token yields `ownLink`;
   - an invalid token yields neither;
@@ -262,10 +262,10 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Implementation
 
-- [ ] T044 [US3] Read `searchParams.invite` in `app/[locale]/(pages)/page.tsx` via `linkService.read`, and pass `linkCall` / `ownLink` into `LobbyPage` → `StandingProvider` (a new `seedLinkCall` API). Makes T043's page half pass.
-- [ ] T045 [US3] Hold `linkCall` and `ownLink` in `useStandingMachine` state (per tab, dropped at expiry or on dismiss), feed them to `standingSlot`, and wire the call's `accept ▸` to `acceptLinkAction({ token, mode: "session" })` with `useActivationGuard`, navigating on `created` and showing a held `this link has expired` outcome on `expired`. Makes T042 and T043 pass.
-- [ ] T046 [P] [US3] Add the call and own-link strings to `lib/i18n/copy/pages.{en,is}.ts`, and render the call in `components/page/LineSlot.tsx` (call style, 104px on phones, a drain to expiry).
-- [ ] T047 [P] [US3] Add page fixtures `lobby-link-call`, `is-lobby-link-call` and `lobby-own-link`, with baselines.
+- [X] T044 [US3] Read `searchParams.invite` in `app/[locale]/(pages)/page.tsx` via `linkService.read`, and pass `linkCall` / `ownLink` into `LobbyPage` → `StandingProvider` (a new `seedLinkCall` API). Makes T043's page half pass.
+- [X] T045 [US3] Hold `linkCall` and `ownLink` in `useStandingMachine` state (per tab, dropped at expiry or on dismiss), feed them to `standingSlot`, and wire the call's `accept ▸` to `acceptLinkAction({ token, mode: "session" })` with `useActivationGuard`, navigating on `created` and showing a held `this link has expired` outcome on `expired`. Makes T042 and T043 pass.
+- [X] T046 [P] [US3] Add the call and own-link strings to `lib/i18n/copy/pages.{en,is}.ts`, and render the call in `components/page/LineSlot.tsx` (call style, 104px on phones, a drain to expiry).
+- [X] T047 [P] [US3] Add page fixtures `lobby-link-call`, `is-lobby-link-call` and `lobby-own-link`, with baselines.
 - [ ] T048 [US3] Extend `tests/integration/ui/invite-link-flow.spec.ts` (part 2):
   - B, signed in, opens A's link: the URL becomes `/`, the call shows, and accept goes to the table;
   - A opens its own link and sees `this is your link · copy ▸`;
