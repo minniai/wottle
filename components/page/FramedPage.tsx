@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import type { MastheadViewer } from "./Masthead";
 import { PageFrame } from "./PageFrame";
 import type { PagePlace } from "./Folio";
-import { useStandingSlot } from "@/components/standing/StandingProvider";
+import { useStandingSlot } from "@/components/standing/standingContext";
 import { readHandle } from "@/lib/profile/readHandle";
 
 function placeOf(pathname: string): PagePlace {

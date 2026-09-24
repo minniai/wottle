@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
-import { useStandingSlot } from "@/components/standing/StandingProvider";
+import { useStandingSlot } from "@/components/standing/standingContext";
 import { rulesPrimary } from "@/lib/pages/pagePrimary";
 
 const CLOSE_FALLBACK_MS = 150;

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { logoutAction } from "@/app/actions/auth/logout";
 import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { FormStrip } from "@/components/page/lobby/FormStrip";
-import { useStandingSlot } from "@/components/standing/StandingProvider";
+import { useStandingSlot } from "@/components/standing/standingContext";
 import { localePath, type Locale } from "@/lib/i18n/locales";
 import type { PagePrimaryModel } from "@/lib/pages/pagePrimary";
 import type { ProfileView } from "@/lib/types/profile";
