@@ -20,6 +20,14 @@ const SLOTS = [
   ".composer-row__actions",
   ".lobby-block__sub-line",
   ".lobby-block__primary",
+  // Spec 072: the invite band, the link's slot, the invite control and the profile's fixed lines.
+  ".invite-band .line-slot__line1",
+  ".lobby-invite",
+  ".profile-presence",
+  ".profile-stakes",
+  ".profile-sent",
+  ".profile-head__sub .page-label",
+  ".profile-primary",
 ];
 
 const VIEWPORTS = [
