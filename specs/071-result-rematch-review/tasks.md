@@ -82,16 +82,16 @@
 
 ### Tests first
 
-- [ ] T012 [P] [US1] Write failing unit tests for `resultDetail` in `tests/unit/lib/room/resultDetail.spec.ts`:
+- [X] T012 [P] [US1] Write failing unit tests for `resultDetail` in `tests/unit/lib/room/resultDetail.spec.ts`:
   - every reason in the contract table, in EN and IS;
   - a draw drops the margin;
   - the phone form keeps two clauses;
   - no clause appears twice.
-- [ ] T013 [P] [US1] Write failing unit tests for `bestWordOf` (the viewer's highest scoring word, or null) in `tests/unit/lib/room/bestWord.spec.ts`, and for `resultTitle` (`Birna wins · Wottle`, `Draw · Orðusta`) in `tests/unit/lib/room/resultTitle.spec.ts`.
-- [ ] T014 [P] [US1] Write failing unit tests for `useActivationGuard(key, 500)` in `tests/unit/components/room/hooks/useActivationGuard.spec.tsx`, under fake timers:
+- [X] T013 [P] [US1] Write failing unit tests for `bestWordOf` (the viewer's highest scoring word, or null) in `tests/unit/lib/room/bestWord.spec.ts`, and for the result title (`Birna wins · Wottle`, `Draw · Orðusta`) in `tests/unit/lib/room/tabTitle.spec.ts` (`tabTitle` takes `result`).
+- [X] T014 [P] [US1] Write failing unit tests for `useActivationGuard(key, 500)` in `tests/unit/components/room/hooks/useActivationGuard.spec.tsx`, under fake timers:
   - activation is ignored before 500ms and allowed after;
   - a new key restarts the guard.
-- [ ] T015 [P] [US1] Update `tests/unit/components/room/Slip.matchOver.spec.tsx` so it fails:
+- [X] T015 [P] [US1] Update `tests/unit/components/room/Slip.matchOver.spec.tsx` so it fails:
   - focus is on the headline (`tabIndex=-1`), not `rematch ▸`;
   - every action is ignored for 500ms;
   - the detail line renders `resultDetail`;
@@ -99,16 +99,16 @@
   - action row 1 is `rematch ▸` · `new opponent ▸`, and row 2 is `review the match ▸` · `lobby`;
   - the headline is in an assertive live region, announced once;
   - the winner's scoreboard sub-line ends `· wins` / `· vann`, and a draw adds nothing (`tests/unit/lib/room/scoreboard.spec.ts`).
-- [ ] T016 [P] [US1] Write failing tests for the history kinds in `tests/unit/components/room/useLiveBackGuard.spec.tsx`:
+- [X] T016 [P] [US1] Write failing tests for the history kinds in `tests/unit/components/room/useLiveBackGuard.spec.tsx`:
   - on completion the guard entry is replaced by `{kind:"result"}` and `beforeunload` is removed;
   - a popstate after completion raises no leave slip.
 
 ### Implementation
 
-- [ ] T017 [P] [US1] Implement `lib/room/resultDetail.ts` and the copy in `lib/i18n/copy/en.ts` and `is.ts`: the clause strings, plus `YOUR_BEST_WORD`, `resultTitle` and the IS early-end string marked `// native-read`. Retire the detail branch of `buildVerdict` in `lib/room/ledgerRows.ts` so the ledger verdict and the slip share one source. T012 passes.
-- [ ] T018 [P] [US1] Implement `lib/room/bestWord.ts` and `lib/room/resultTitle.ts`. T013 passes.
-- [ ] T019 [P] [US1] Implement `components/room/hooks/useActivationGuard.ts`, and use it for the existing guarded primaries in `components/room/Slip.tsx` so there is one guard. T014 passes.
-- [ ] T020 [US1] Rework the matchOver branch of `components/room/Slip.tsx`:
+- [X] T017 [P] [US1] Implement `lib/room/resultDetail.ts` and the copy in `lib/i18n/copy/en.ts` and `is.ts`: the clause strings, plus `YOUR_BEST_WORD`, `resultTitle` and the IS early-end string marked `// native-read`. Retire the detail branch of `buildVerdict` in `lib/room/ledgerRows.ts` so the ledger verdict and the slip share one source. T012 passes.
+- [X] T018 [P] [US1] Implement `lib/room/bestWord.ts` and `lib/room/resultTitle.ts`. T013 passes.
+- [X] T019 [P] [US1] Implement `components/room/hooks/useActivationGuard.ts`, and use it for the existing guarded primaries in `components/room/Slip.tsx` so there is one guard. T014 passes.
+- [X] T020 [US1] Rework the matchOver branch of `components/room/Slip.tsx`:
   - headline ref and `tabIndex=-1`;
   - detail from props;
   - the best-word line;
@@ -116,15 +116,15 @@
   - fix the doubled `accept ▸ · decline` by trimming `rematchRequest` in both copy files.
 
   Extend `lib/room/slip.ts` `matchOver` with `detail: string[]` and `bestWord`. Remove the unused `EndReason` and `endReasonFor` from `lib/room/slip.ts` and `components/room/hooks/useMatchOverSlip.ts`. T015 passes.
-- [ ] T021 [US1] Wire the result in `components/room/MatchRoomController.tsx`:
+- [X] T021 [US1] Wire the result in `components/room/MatchRoomController.tsx`:
   - build `detail` from `matchState.endedReason` and the facts (words and territory from the ledger, the resignation time `completed_at − started_at`);
   - build `bestWord` from the accumulated words;
   - the tab title via `resultTitle`;
   - `· wins` appended to the winner's final sub-line in `lib/room/scoreboard.ts`, not on a draw;
   - `readOnly` viewers get no slip (`useMatchOverSlip` skips them).
-- [ ] T022 [US1] Update `components/room/hooks/useLiveBackGuard.ts`: replace the guard with `{kind:"result"}` on completion, and never re-arm. T016 passes.
-- [ ] T023 [US1] Fill the `result-moves`, `result-incomplete`, `result-both`, `result-forfeit` and `result-early` phases in `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`. Add them to `tests/integration/ui/room-fixtures.spec.ts`, and take baselines with `pnpm test:visual --update-snapshots` on a production build.
-- [ ] T024 [US1] Extend `tests/integration/ui/match-completion.spec.ts`:
+- [X] T022 [US1] Update `components/room/hooks/useLiveBackGuard.ts`: replace the guard with `{kind:"result"}` on completion, and never re-arm. T016 passes.
+- [X] T023 [US1] Fill the `result-moves`, `result-incomplete`, `result-both`, `result-forfeit` and `result-early` phases in `app/[locale]/dev/room/fixtures.ts` and `RoomFixture.tsx`. Add them to `tests/integration/ui/room-fixtures.spec.ts`, and take baselines with `pnpm test:visual --update-snapshots` on a production build.
+- [X] T024 [US1] Extend `tests/integration/ui/match-completion.spec.ts`:
   - the slip appears 500–700ms after the final settle;
   - `document.activeElement` is the headline;
   - an Enter within 500ms does nothing;
