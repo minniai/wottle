@@ -34,6 +34,8 @@ export interface SlotContext {
   viewer: { rating: number; gamesPlayed: number };
   /** How many search in this lobby, for the search's line 2. */
   searchingCount: number;
+  /** The lobby's language, named beside a rating (US7.5): a call can reach a page in the other locale. */
+  languageName?: string;
 }
 
 const ALONE_AFTER_S = 30;
@@ -48,7 +50,8 @@ function callModel(slot: Extract<SlotState, { kind: "call" }>, copy: Copy, ctx: 
   const { from, expiresAt } = slot.call;
   const ms = left(expiresAt, ctx.nowMs);
   const record = from.record && recordText(from.record) !== "—" ? recordText(from.record) : null;
-  const base = (ctx.phone ? copy.pages.callLine2Phone : copy.pages.callLine2)(from.rating, record, formatClock(ms));
+  const rating = ctx.languageName ? `${from.rating} ${ctx.languageName}` : String(from.rating);
+  const base = (ctx.phone ? copy.pages.callLine2Phone : copy.pages.callLine2)(rating, record, formatClock(ms));
   const line2 = [base, slot.more > 0 ? `+${slot.more}` : null, slot.searching ? copy.pages.ACCEPTING_CANCELS_SEARCH : null].filter(Boolean).join(" · ");
   return {
     style: "call",

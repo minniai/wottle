@@ -1,5 +1,5 @@
 /**
- * Spec 044 US7 — sign out lives in the ledger's ⋯ menu; the room returns to the empty seat.
+ * Spec 044 US7, spec 070: sign out lives in the masthead's ⋯ menu; the page returns to the door.
  */
 import { expect, test } from "@playwright/test";
 
@@ -9,22 +9,23 @@ test.describe("@lobby-logout sign out from the ⋯ menu", () => {
   test("user A signs out and user B signs in on the same page", async ({ page }) => {
     const userA = generateTestUsername("out-a");
     const userB = generateTestUsername("out-b");
+    const lobbyName = page.getByRole("heading", { level: 1 });
     await page.goto("/en");
-    await page.getByTestId("player-bar-name-input").fill(userA);
-    await page.getByTestId("player-bar-action-play").click();
-    // The bar shows the display name (first letter capitalised by formatDisplayName); compare case-insensitively.
-    await expect(page.getByTestId("player-bar-bottom")).toContainText(userA, { timeout: 15_000, ignoreCase: true });
+    await page.getByTestId("door-name").fill(userA);
+    await page.getByTestId("door-enter").click();
+    // The lobby's h1 is the display name (first letter capitalised); compare case-insensitively.
+    await expect(lobbyName).toContainText(userA, { timeout: 15_000, ignoreCase: true });
 
-    await page.getByTestId("ledger-menu-trigger").click();
-    await page.getByTestId("ledger-menu-item-signout").click();
+    await page.getByTestId("page-menu").getByRole("button", { name: "menu" }).click();
+    await page.getByTestId("page-menu-sign-out").click();
     // Spec 067: the door greets this browser's player; another name is one press away.
-    await expect(page.getByTestId("slip-returning-name")).toContainText(userA, { timeout: 15_000, ignoreCase: true });
-    await page.getByTestId("slip-use-another-name").click();
-    await expect(page.getByTestId("player-bar-name-input")).toBeVisible();
+    await expect(page.getByTestId("door-returning")).toContainText(userA, { timeout: 15_000, ignoreCase: true });
+    await page.getByTestId("door-another-name").click();
+    await expect(page.getByTestId("door-name")).toBeVisible();
 
-    await page.getByTestId("player-bar-name-input").fill(userB);
-    await page.getByTestId("player-bar-action-play").click();
-    await expect(page.getByTestId("player-bar-bottom")).toContainText(userB, { timeout: 15_000, ignoreCase: true });
-    await expect(page.getByTestId("player-bar-bottom")).not.toContainText(userA, { ignoreCase: true });
+    await page.getByTestId("door-name").fill(userB);
+    await page.getByTestId("door-enter").click();
+    await expect(lobbyName).toContainText(userB, { timeout: 15_000, ignoreCase: true });
+    await expect(lobbyName).not.toContainText(userA, { ignoreCase: true });
   });
 });

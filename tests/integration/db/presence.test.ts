@@ -113,6 +113,16 @@ describe.skipIf(!db)("presence per tab (spec 070 US6)", () => {
     expect((await presence()).has(a)).toBe(true);
   });
 
+  it("a closing tab's hidden beat landing after its leave does not cancel it", async () => {
+    const [a] = await createPlayers(["A"]);
+    const tab = crypto.randomUUID();
+    await beat(a, tab);
+    await client().rpc("leave_tab", { p_player: a, p_tab: tab });
+    await beat(a, tab, false);
+    await age(tab, { leaving_at: ago(9_000) });
+    expect((await presence()).has(a)).toBe(false);
+  });
+
   it("reads searching from the search, and in a match from a pending or live match with its move count", async () => {
     const [a, b, c] = await createPlayers(["A", "B", "C"]);
     for (const p of [a, b, c]) await beat(p, crypto.randomUUID());

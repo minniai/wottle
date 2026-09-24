@@ -160,7 +160,8 @@ begin
          last_input_at = greatest(t.last_input_at, excluded.last_input_at),
          cadence_ms = excluded.cadence_ms,
          beat_at = now(),
-         leaving_at = null
+         -- A closing tab's last beat is hidden and may land after its leave; only a visible beat (a reload) cancels it.
+         leaving_at = case when excluded.visible then null else t.leaving_at end
    where t.player_id = p_player;
 
   insert into public.lobby_presence (player_id, connection_id, mode, invite_token, expires_at, updated_at, language)

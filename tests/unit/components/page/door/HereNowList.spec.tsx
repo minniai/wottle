@@ -14,7 +14,8 @@ describe("HereNowList", () => {
         <HereNowList here={[row("Embla", 1242), row("Ragnar", 1096, "searching")]} more={0} />
       </LocaleProvider>,
     );
-    expect(screen.getByText("hér núna · 2")).toBeTruthy();
+    // The ratings are this lobby's: the caption names its language (US7.5).
+    expect(screen.getByText("hér núna · 2 · elo · íslenska")).toBeTruthy();
     expect(screen.getByText("Embla")).toBeTruthy();
     expect(screen.getByText("leitar")).toBeTruthy();
     expect(screen.getByText("farðu inn í lobbíið til að skora á einhvern")).toBeTruthy();
@@ -28,7 +29,7 @@ describe("HereNowList", () => {
         <HereNowList here={eight} more={22} />
       </LocaleProvider>,
     );
-    expect(screen.getByText("here now · 30")).toBeTruthy();
+    expect(screen.getByText("here now · 30 · rating · english")).toBeTruthy();
     expect(screen.getAllByTestId("door-here-row")).toHaveLength(8);
     expect(screen.getByText("+ 22 more").tagName).not.toBe("A");
   });

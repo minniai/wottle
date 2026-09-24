@@ -135,7 +135,7 @@ export const copyIs = {
   IF_UNPLAYED: "ef óleiknir",
   NOTHING_TO_LOSE: "engu að tapa",
   frozenWord: (word: string, owner: string): string => `frosinn · ${word} · ${owner} · veldu annan`,
-  backAway: (mmSs: string): string => `tenging komin · ${mmSs} án tengingar`,
+  backAway: (mmSs: string): string => `aftur í sambandi · ${mmSs} án tengingar`, // native-read
   // The name stays in the nominative (game flow §8 item 13).
   oppAnnouncement: (name: string, words: string[], delta: number, moves: number): string =>
     words.length > 0 ? `${name} ${words.join(" · ")} ${signed(delta)} · ${moves} af 10` : `${name} ekkert orð ${points(delta)} · ${moves} af 10`,
@@ -151,12 +151,7 @@ export const copyIs = {
 
   rematchRequest: (name: string): string =>
     `${name} vill aðra viðureign · samþykkja ▸ · hafna`,
-  waitingForRematch: (name: string): string => `bíður eftir ${name}`,
-  challengeNotice: (name: string): string => `${name} skorar á þig · þiggja ▸ · hafna`,
-  challengeSent: (name: string): string => `áskorun send · bíður eftir ${name}`,
-  challengeDeclined: (name: string): string => `${name} hafnaði áskoruninni`,
-  challengeUnanswered: (name: string): string => `${name} svaraði ekki`,
-  challengeTaken: (name: string): string => `${name} þáði aðra áskorun`,
+  waitingForRematch: (name: string): string => `${name} · beðið svars`, // native-read (spec 070: no name after a preposition)
   opponentBusy: (name: string): string => `${name} getur ekki spilað núna`,
 
   TAGLINE: "tveir leikmenn · eitt borð · íslensk orð",
@@ -265,7 +260,7 @@ export const copyIs = {
   WIN_RATE: "sigurhlutfall",
   BEST_WORDS: "bestu orðin",
   RECENT_MATCHES: "nýlegar viðureignir",
-  versus: (name: string): string => `gegn ${name}`,
+  versus: (name: string): string => `mótspilari · ${name}`, // native-read
   matchResult: (result: "win" | "loss" | "draw"): string =>
     result === "win" ? "sigur" : result === "loss" ? "tap" : "jafnt",
   BACK_LOBBY: "◂ lobbí",

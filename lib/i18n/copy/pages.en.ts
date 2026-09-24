@@ -37,6 +37,7 @@ export const pagesEn = {
     `Swap two letters to make words. Every word you score freezes in your colour. Most points in ${numberWord(minutes)} minutes wins.`,
   NAME_LABEL: "your name",
   hereNow: (n: number): string => `here now · ${n}`,
+  hereNowRated: (n: number, languageName: string): string => `here now · ${n} · rating · ${languageName}`,
   more: (n: number): string => `+ ${n} more`,
   ENTER_TO_CHALLENGE: "enter the lobby to challenge someone",
   NO_ONE_YET: "No one here yet.",
@@ -96,9 +97,9 @@ export const pagesEn = {
   // Line slot (B3–B8)
   CHALLENGES_REGION: "challenges",
   callLine1: (name: string): string => `${name} challenges you`,
-  callLine2: (rating: number, record: string | null, leftMmSs: string): string =>
+  callLine2: (rating: string, record: string | null, leftMmSs: string): string =>
     `${rating}${record ? ` · your record ${record}` : ""} · ${leftMmSs} to answer`,
-  callLine2Phone: (rating: number, record: string | null, leftMmSs: string): string =>
+  callLine2Phone: (rating: string, record: string | null, leftMmSs: string): string =>
     `${rating}${record ? ` · ${record}` : ""} · ${leftMmSs} to answer`,
   ACCEPTING_CANCELS_SEARCH: "accepting cancels your search",
   skipToCall: (name: string): string => `answer the challenge from ${name}`,

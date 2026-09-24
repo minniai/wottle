@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
+vi.mock("@/lib/match/heartbeatRepository", () => ({ readParticipants: vi.fn(async () => ({ stale: null, steppedOut: null })) }));
 vi.mock("@/lib/match/disconnectStore", () => ({
   getDisconnectedAt: vi.fn(),
   RECONNECT_WINDOW_MS: 90_000,
@@ -13,6 +14,7 @@ vi.mock("@/app/actions/match/completeMatch", () => ({
 import { claimWinAction } from "@/app/actions/match/claimWin";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
 import { getDisconnectedAt } from "@/lib/match/disconnectStore";
+import { readParticipants } from "@/lib/match/heartbeatRepository";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { resetRateLimitStoreForTests } from "@/lib/rate-limiting/middleware";
 import { getServiceRoleClient } from "@/lib/supabase/server";
@@ -139,6 +141,20 @@ describe("claimWinAction", () => {
 
     const result = await claimWinAction(MATCH_ID);
 
+    expect(result.status).toBe("not_disconnected");
+  });
+
+  test("the heartbeat's stale opponent counts as disconnected, as the loader reads it (spec 070)", async () => {
+    vi.mocked(getDisconnectedAt).mockReturnValue(null);
+    vi.mocked(readParticipants).mockResolvedValueOnce({ stale: { playerId: PLAYER_B, disconnectedAt: new Date(Date.now() - 95_000).toISOString() }, steppedOut: null });
+    const result = await claimWinAction(MATCH_ID);
+    expect(result.status).toBe("ok");
+  });
+
+  test("an opponent who only stepped out to a page is not disconnected (spec 070 US8)", async () => {
+    vi.mocked(getDisconnectedAt).mockReturnValue(Date.now() - 95_000);
+    vi.mocked(readParticipants).mockResolvedValueOnce({ stale: null, steppedOut: PLAYER_B });
+    const result = await claimWinAction(MATCH_ID);
     expect(result.status).toBe("not_disconnected");
   });
 

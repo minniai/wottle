@@ -85,20 +85,9 @@ export async function startMatchWithDirectInvite(
   // Stabilisation wait: presence store churns while realtime sync settles.
   await safeWait(pageA, 1500);
 
-  // Player A: `challenge ▸` on Player B's row opens the composer (spec 070 B2); send.
-  const remainingForChallenge = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const targetRow = pageA.getByTestId("lobby-row").filter({ hasText: `@${playerBUsername}` });
-  await targetRow.waitFor({ state: "visible", timeout: remainingForChallenge });
-  await targetRow.getByRole("button", { name: /challenge/i }).click();
-  await safeWait(pageA, GUARD_MS);
-  await pageA.getByTestId("composer-send").click();
-
-  // Player B: the challenge arrives in the line slot as a call; accept ▸ (after its 500ms guard).
-  const remainingForNotice = Math.max(5_000, timeoutMs - (Date.now() - startTime));
-  const accept = pageB.getByTestId("slot-accept").first();
-  await accept.waitFor({ state: "visible", timeout: remainingForNotice });
-  await safeWait(pageB, GUARD_MS);
-  await accept.click();
+  // Player A challenges B from B's row; B accepts the call in the line slot.
+  await challenge(pageA, playerBUsername, Math.max(5_000, timeoutMs - (Date.now() - startTime)));
+  await acceptCall(pageB, Math.max(5_000, timeoutMs - (Date.now() - startTime)));
 
   // Both players: wait for the match shell.
   const remainingForMatch = Math.max(5_000, timeoutMs - (Date.now() - startTime));
@@ -109,6 +98,23 @@ export async function startMatchWithDirectInvite(
   );
 
   return [matchIdA, matchIdB];
+}
+
+/** `challenge ▸` on the named player's row opens the composer (spec 070 B2); send it. */
+export async function challenge(page: Page, username: string, timeoutMs = 30_000): Promise<void> {
+  const row = page.getByTestId("lobby-row").filter({ hasText: `@${username}` });
+  await row.waitFor({ state: "visible", timeout: timeoutMs });
+  await row.getByRole("button", { name: /challenge/i }).click();
+  await safeWait(page, GUARD_MS);
+  await page.getByTestId("composer-send").click();
+}
+
+/** The call arrives in the line slot (spec 070 B5); `accept ▸` after its 500ms guard. */
+export async function acceptCall(page: Page, timeoutMs = 30_000): Promise<void> {
+  const accept = page.locator("[data-testid=slot-accept]:visible").first();
+  await accept.waitFor({ state: "visible", timeout: timeoutMs });
+  await safeWait(page, GUARD_MS);
+  await accept.click();
 }
 
 /**

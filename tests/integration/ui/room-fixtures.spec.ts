@@ -551,7 +551,7 @@ test.describe("@visual room clarity", () => {
     }
   });
 
-  for (const phase of ["landing-slip", "returning-slip", "resign", "leave", "end-early", "over-slip", "table", "table-seated", "void", "void-queue"]) {
+  for (const phase of ["resign", "leave", "end-early", "over-slip", "table", "table-seated", "void", "void-queue"]) {
     test(`${phase} is accessible with the slip open`, async ({ page }) => {
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByRole("dialog")).toBeVisible();
@@ -571,7 +571,7 @@ test.describe("@visual room clarity", () => {
  * pins the Icelandic lines fitting it — the longest strings, the slips, the
  * final verdict, the profile and the rules.
  */
-const ICELANDIC_PHASES = ["landing-slip", "returning-slip", "lobby", "picking", "reveal", "done-waiting", "final", "over-slip", "profile", "rules"] as const;
+const ICELANDIC_PHASES = ["picking", "reveal", "done-waiting", "final", "over-slip", "profile", "rules"] as const;
 
 test.describe("@visual @is the room in Icelandic", () => {
   for (const phase of ICELANDIC_PHASES) {

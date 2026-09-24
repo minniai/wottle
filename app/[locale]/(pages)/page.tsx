@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { getRecentGames } from "@/app/actions/match/getRecentGames";
 import { DoorPage } from "@/components/page/door/DoorPage";
@@ -7,7 +8,7 @@ import { LobbyPage } from "@/components/page/lobby/LobbyPage";
 import { nextParam } from "@/lib/auth/nextParam";
 import { readReturningPlayer } from "@/lib/auth/returningPlayer";
 import { getCopy } from "@/lib/i18n/getCopy";
-import { getLocale, type Locale } from "@/lib/i18n/locales";
+import { getLocale, localePath, type Locale } from "@/lib/i18n/locales";
 import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
 import { lobbyRows } from "@/lib/lobby/lobbyRows";
 import { publicOverview, viewerOverview } from "@/lib/lobby/overview";
@@ -49,6 +50,9 @@ export default async function HomePage({ params, searchParams }: PageProps = {})
   const locale = await readLocaleParam(params);
   const language = getLocale(locale).language as LobbyLanguage;
   const session = await readLobbySession();
+  // Signed in, a `?next=` is spent: to its page when it is safe, else to the plain lobby (FR-004).
+  const next = session ? (await (searchParams ?? Promise.resolve({ next: undefined }))).next : undefined;
+  if (next !== undefined) redirect(nextParam(next) ?? localePath(locale, "/"));
   if (session) return <SignedInLobby playerId={session.player.id} displayName={session.player.displayName} handle={session.player.username} language={language} />;
   const [overview, returning, preferOther, query] = await Promise.all([
     publicOverview(language).catch(() => ({ counts: { here: 0, searching: 0, playersInMatch: 0, matchesOn: 0, other: { language, here: 0 } }, here: [], more: 0 })),

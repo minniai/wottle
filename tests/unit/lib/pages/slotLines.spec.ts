@@ -17,17 +17,18 @@ const is = getCopy("is");
 describe("slotLines", () => {
   it("writes a call with the record and the time to answer, accept primary, and a 60s drain", () => {
     const slot: SlotState = { kind: "call", call: { inviteId: "i", from: KARI, expiresAt: at(47_000) }, more: 0, searching: false };
-    const m = slotLines(slot, is, ctx());
-    expect(m).toMatchObject({ style: "call", square: "opp", line1: "Kári skorar á þig", line2: "1179 · þinn ferill 3–1 · 0:47 til að svara" });
+    // The rating names its language (US7.5): the call can reach a page in the other locale.
+    const m = slotLines(slot, is, ctx({ languageName: "íslenska" }));
+    expect(m).toMatchObject({ style: "call", square: "opp", line1: "Kári skorar á þig", line2: "1179 íslenska · þinn ferill 3–1 · 0:47 til að svara" });
     expect(m.primary).toEqual({ label: "samþykkja ▸", action: "accept" });
     expect(m.secondaries).toEqual([{ label: "hafna", action: "decline" }]);
     expect(m.bar).toEqual({ kind: "drain", fraction: 47 / 60 });
-    expect(slotLines(slot, is, ctx({ phone: true })).line2).toBe("1179 · 3–1 · 0:47 til að svara");
+    expect(slotLines(slot, is, ctx({ phone: true, languageName: "íslenska" })).line2).toBe("1179 íslenska · 3–1 · 0:47 til að svara");
   });
 
   it("leaves the record out when there is none, and adds +1 and the search consequence", () => {
     const slot: SlotState = { kind: "call", call: { inviteId: "i", from: EMBLA, expiresAt: at(30_000) }, more: 1, searching: true };
-    expect(slotLines(slot, en, ctx()).line2).toBe("1342 · 0:30 to answer · +1 · accepting cancels your search");
+    expect(slotLines(slot, en, ctx({ languageName: "english" })).line2).toBe("1342 english · 0:30 to answer · +1 · accepting cancels your search");
   });
 
   it("writes your running match, the table, and the match that ended while you were away", () => {

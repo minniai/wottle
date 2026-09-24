@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { enterAsReturningAction } from "@/app/actions/auth/enterAsReturning";
 import { loginAction, type LoginActionState } from "@/app/actions/auth/login";
-import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 import type { ReturningPlayer } from "@/lib/types/lobby";
 
 const INITIAL: LoginActionState = { status: "idle" };
@@ -14,9 +14,9 @@ const INITIAL: LoginActionState = { status: "idle" };
 /** Signed in: the lobby at the same URL, or the validated `?next=`, replacing the door's entry (T1, T57). */
 function useEnter(next: string | null): () => void {
   const router = useRouter();
-  const to = useLocalePath();
   return () => {
-    router.replace(next ?? to("/"));
+    // Without a `next` the lobby is this same page, read again signed in; it spends a refused `?next=` itself.
+    if (next) router.replace(next);
     router.refresh();
   };
 }

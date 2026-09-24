@@ -99,24 +99,12 @@ export type LedgerAction =
   | "sitDown"
   | "leaveTable"
   | "challengeAgain"
-  | { challenge: string }
-  | { acceptChallenge: string }
-  | { declineChallenge: string };
+  | { challenge: string };
 
 export type Notice =
   | { kind: "pickCleared"; byName: string; expiresAt: number }
   | { kind: "rematchRequest"; requesterName: string }
-  | { kind: "challenge"; fromName: string; inviteId: string }
-  | { kind: "challengeSent"; toName: string; inviteId: string }
   | { kind: "text"; text: string };
-
-/** The viewer's latest challenge as the lobby poll reports it (GET /api/lobby/invite). */
-export interface OutgoingChallenge {
-  id: string;
-  status: "pending" | "accepted" | "declined" | "expired" | "withdrawn" | "superseded";
-  recipientName: string;
-  recipientInMatch: boolean;
-}
 
 export const EMPTY_TERRITORY: Territory = { you: 0, opp: 0, free: 100 };
 

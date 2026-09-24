@@ -35,6 +35,8 @@ test.describe("one lobby language (spec 070 US7)", () => {
       await pageA.goto("/");
       await pageA.getByTestId("lobby-find").click();
       await expect(pageA.getByTestId("line-slot-line1").first()).toContainText("Leitar að mótspilara", { timeout: 10_000 });
+      // The slot reads the search before the queue write lands; wait until the server holds it.
+      await expect.poll(async () => (await (await pageA.request.get("/api/standing")).json()).search, { timeout: 10_000 }).not.toBeNull();
 
       await pageA.goto("/en");
       const slot = pageA.getByTestId("line-slot-desktop");

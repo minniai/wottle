@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn() }) }));
+vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn(), getChannels: () => [] }) }));
 vi.mock("@/lib/realtime/matchChannel", () => ({
   subscribeToMatchChannel: (_c: unknown, _m: string, cb: { onMoveResolved?: (r: MoveResolution) => void; onState?: (s: MatchState) => void; onRematchEvent?: (e: import("@/lib/types/match").RematchEvent) => void }) => {
     mockCallbacks.onMoveResolved = cb.onMoveResolved ?? null;

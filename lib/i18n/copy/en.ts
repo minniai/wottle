@@ -129,12 +129,6 @@ const profileOpensInNewTab = (name: string): string => `${name}, profile opens i
 const rematchRequest = (name: string): string =>
   `${name} asks for a rematch · accept ▸ · decline`;
 const waitingForRematch = (name: string): string => `waiting for ${name}`;
-const challengeNotice = (name: string): string =>
-  `${name} challenges you · accept ▸ · decline`;
-const challengeSent = (name: string): string => `challenge sent · waiting for ${name}`;
-const challengeDeclined = (name: string): string => `${name} declined your challenge`;
-const challengeUnanswered = (name: string): string => `${name} did not answer`;
-const challengeTaken = (name: string): string => `${name} took another challenge`;
 // Accepting a challenge from someone who is now in another match (spec 067 FR-019)
 const opponentBusy = (name: string): string => `${name} can't play right now`;
 
@@ -421,11 +415,6 @@ export const copyEn = {
   tabTitle,
   rematchRequest,
   waitingForRematch,
-  challengeNotice,
-  challengeSent,
-  challengeDeclined,
-  challengeUnanswered,
-  challengeTaken,
   opponentBusy,
   TAGLINE,
   NEW_HERE_HOW_TO_PLAY,

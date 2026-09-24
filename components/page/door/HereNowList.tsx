@@ -1,6 +1,6 @@
 "use client";
 
-import { useCopy } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
 
 export interface DoorHereRow {
   displayName: string;
@@ -15,9 +15,10 @@ export interface DoorHereRow {
  */
 export function HereNowList({ here, more }: { here: DoorHereRow[]; more: number }) {
   const copy = useCopy();
+  const locale = useLocale();
   return (
     <section className="door-here" aria-labelledby="door-here-label">
-      <h2 id="door-here-label" className="page-caption">{copy.pages.hereNow(here.length + more)}</h2>
+      <h2 id="door-here-label" className="page-caption">{here.length === 0 ? copy.pages.hereNow(0) : copy.pages.hereNowRated(here.length + more, locale.id === "is" ? copy.pages.LANGUAGE_NAME_IS : copy.pages.LANGUAGE_NAME_EN)}</h2>
       {here.length === 0 ? (
         <p className="page-sentence">{copy.pages.NO_ONE_YET}</p>
       ) : (

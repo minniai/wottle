@@ -168,22 +168,8 @@ function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: 
   );
 }
 
-function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
+function NoticeLine({ notice }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
   const copy = useCopy();
-  if (notice.kind === "challenge") {
-    return (
-      <>
-        {notice.fromName} {copy.CHALLENGES_YOU} ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-accept-challenge" onClick={() => onAction({ acceptChallenge: notice.inviteId })}>
-          {copy.ACCEPT}
-        </button>{" "}
-        ·{" "}
-        <button type="button" className="action-secondary" data-testid="notice-decline-challenge" onClick={() => onAction({ declineChallenge: notice.inviteId })}>
-          {copy.DECLINE}
-        </button>
-      </>
-    );
-  }
   return <>{noticeText(notice, copy)}</>;
 }
 

@@ -46,6 +46,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
     `Skiptu á tveimur stöfum og myndaðu orð. Orð sem gefa stig frjósa í þínum lit. Flest stig á ${word(MINUTE_WORDS, minutes)} mínútum vinnur.`, // native-read
   NAME_LABEL: "nafn",
   hereNow: (n: number): string => `hér núna · ${n}`,
+  hereNowRated: (n: number, languageName: string): string => `hér núna · ${n} · elo · ${languageName}`,
   more: (n: number): string => `+ ${n} fleiri`,
   ENTER_TO_CHALLENGE: "farðu inn í lobbíið til að skora á einhvern", // native-read
   NO_ONE_YET: "Enginn hér enn.",
@@ -102,9 +103,9 @@ export const pagesIs: Widen<typeof pagesEn> = {
 
   CHALLENGES_REGION: "áskoranir",
   callLine1: (name: string): string => `${name} skorar á þig`,
-  callLine2: (rating: number, record: string | null, leftMmSs: string): string =>
+  callLine2: (rating: string, record: string | null, leftMmSs: string): string =>
     `${rating}${record ? ` · þinn ferill ${record}` : ""} · ${leftMmSs} til að svara`,
-  callLine2Phone: (rating: number, record: string | null, leftMmSs: string): string =>
+  callLine2Phone: (rating: string, record: string | null, leftMmSs: string): string =>
     `${rating}${record ? ` · ${record}` : ""} · ${leftMmSs} til að svara`,
   ACCEPTING_CANCELS_SEARCH: "leitin hættir ef þú samþykkir", // native-read
   skipToCall: (name: string): string => `svara áskoruninni · ${name}`,
@@ -162,7 +163,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   againIn: (mmSs: string): string => `aftur eftir ${mmSs}`,
   SEND_ERRORS: {
     in_match: "sá leikmaður er í viðureign",
-    gone: "sá leikmaður er farinn",
+    gone: "sá leikmaður er ekki lengur hér", // native-read (no gendered participle, §8 item 13)
     rate_limited: "of margar áskoranir · bíddu í mínútu",
     failed: "áskorun fór ekki · reyndu aftur", // native-read
   },

@@ -33,14 +33,14 @@ test.describe("@rules the how-to-play page", () => {
     expect(scrollWidth).toBeLessThanOrEqual(390);
   });
 
-  test("the sign-in slip and the lobby foot link to it in the same tab", async ({ page }) => {
+  test("the door and the lobby's masthead link to it in the same tab", async ({ page }) => {
     await page.goto("/en");
-    await expect(page.getByTestId("slip-how-to-play")).toHaveAttribute("href", "/en/rules");
+    await expect(page.getByRole("main").getByRole("link", { name: "how to play ▸" })).toHaveAttribute("href", "/en/rules");
     await loginViaSlip(page, generateTestUsername("rules"));
-    await page.getByTestId("ledger-how-to-play").click();
+    await page.getByTestId("masthead-nav").getByRole("link", { name: "how to play ▸" }).click();
     await expect(page).toHaveURL(/\/rules$/);
     await page.getByTestId("rules-back-top").click();
-    await expect(page).toHaveURL(/\/lobby$/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/en$/, { timeout: 15_000 });
   });
 
   test("opened from a live match's menu, the page comes up in a new tab and the match keeps running", async ({ browser }) => {

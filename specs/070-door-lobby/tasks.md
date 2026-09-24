@@ -164,7 +164,7 @@
 - [X] T036 [US6] Add `beat_tab`, `leave_tab`, `player_presence` (replacing US1's minimal version) and `settle_gone_players` to the migration. Make T031 and T032 pass.
 - [X] T037 [US6] Implement `lib/presence/presenceService.ts`: `beat`, `leave`, `playerPresence` and `lobbyCounts`, with RPCs parsed by Zod and structured logs `presence.transition` and `presence.gone`.
 - [X] T038 [US6] Implement `app/api/presence/beat/route.ts` and `app/api/presence/leave/route.ts` per the contract. Beat pokes `lobby:{language}` on a transition. Leave pokes with `recheckInMs: 8500`. Make T034 pass for presence.
-- [ ] T039 [US6] Implement `components/standing/hooks/useTabPresence.ts` (T033) and wire it into `StandingProvider`. Retire the 60s heartbeat in `lib/matchmaking/presenceStore.ts`, and delete `app/api/lobby/presence/route.ts` and its unit test `tests/unit/lib/matchmaking/presenceHeartbeat.test.ts`, replacing them with the new tests.
+- [X] T039 [US6] Implement `components/standing/hooks/useTabPresence.ts` (T033) and wire it into `StandingProvider`. Retire the 60s heartbeat in `lib/matchmaking/presenceStore.ts`, and delete `app/api/lobby/presence/route.ts` and its unit test `tests/unit/lib/matchmaking/presenceHeartbeat.test.ts`, replacing them with the new tests.
 - [X] T040 [US6] Point the attention recording in `lib/matchmaking/attention.ts` at the best of the player's fresh tabs as well, so that seating (spec 069) reads any signed-in page. Add a case to `tests/unit/lib/matchmaking/attention.spec.ts`.
 - [X] T041 [US6] Add `expire` of challenges (placeholder until US3), `settle_gone_players` and pruning `presence_tabs` stale for more than 10 minutes to `app/api/cron/sweep-stale-matches/route.ts`. Poke the affected counterparts (`outcome`) and lobbies (`presence`). Extend `tests/unit/app/api/sweepStaleMatches.test.ts`.
 - [X] T042 [US6] Write a perf bench `tests/perf/heartbeat.bench.ts` for `POST /api/presence/beat` p95 under 100ms on local Supabase. Make T035 pass.
@@ -226,7 +226,7 @@
 
 - [X] T052 [US2] Rewrite `app/api/lobby/players/route.ts` and `lib/matchmaking/profile.ts` `fetchLobbySnapshot` over `player_presence` joined with ratings and `head_to_head`. Update the unit tests that mocked the old snapshot.
 - [X] T053 [P] [US2] Implement `lib/pages/lobbyRows.ts`, `formStrip.ts` and `bandMap.ts` (T047–T049).
-- [ ] T054 [US2] Implement `components/standing/hooks/useLobbyList.ts` (T051). Remove the Supabase Presence half of `lib/matchmaking/presenceStore.ts`, and delete `lib/realtime/presenceChannel.ts` and `presenceChannel.polling.ts` with their tests.
+- [X] T054 [US2] Implement `components/standing/hooks/useLobbyList.ts` (T051). Remove the Supabase Presence half of `lib/matchmaking/presenceStore.ts`, and delete `lib/realtime/presenceChannel.ts` and `presenceChannel.polling.ts` with their tests.
 - [X] T055 [US2] Implement `components/page/lobby/Lobby.tsx`, `YourBlock.tsx`, `FormStrip.tsx`, `HereNowTable.tsx` (hover and focus states, the 8-row cap, frozen order), `BandMap.tsx`, `LastMatch.tsx` and `RecentMatches.tsx`, with the desktop and phone (F2) layouts in `pages.css`. Make T050 pass.
 - [X] T056 [US2] Add the lobby strings to `lib/i18n/copy/{en,is}.ts`:
   - the block's sub-lines, the form strip, the table caption and columns;
@@ -235,7 +235,7 @@
 
   Retire the lobby strings §5 lists as replaced (`Enginn andstæðingur enn`, `No runs yet…`, raw `WIN`/`LOSS`, and so on).
 - [X] T057 [US2] Render the lobby from `app/[locale]/(pages)/page.tsx` when signed in. On the server, read the players, the overview and the viewer for the first paint (SC-008). Call `enterLobbyAction` as a placeholder that always returns `same` until US7.
-- [ ] T058 [US2] Add the 308 redirects for `/lobby`, `/matchmaking`, `/en/lobby` and `/en/matchmaking` to `next.config.ts`, and delete `app/[locale]/(room)/lobby/page.tsx`. Keep `app/[locale]/(room)/matchmaking/page.tsx` until US5 (the redirect wins), then delete it in T088. Add a test `tests/unit/config/redirects.spec.ts`.
+- [X] T058 [US2] Add the 308 redirects for `/lobby`, `/matchmaking`, `/en/lobby` and `/en/matchmaking` to `next.config.ts`, and delete `app/[locale]/(room)/lobby/page.tsx`. Keep `app/[locale]/(room)/matchmaking/page.tsx` until US5 (the redirect wins), then delete it in T088. Add a test `tests/unit/config/redirects.spec.ts`.
 - [X] T059 [US2] Add the page phases `lobby-signed-in`, `is-lobby`, `lobby-new` and `lobby-empty` (LobbyEmpty EN-L) to `app/[locale]/dev/page/fixtures.ts`, generate the baselines, and review them against the Lobby, LobbyEmpty and PhoneLobby artboards.
 
 **Checkpoint**: The lobby page renders from real data. Challenges still go through the old invite action until US3; the old `LobbyRoomController` is no longer mounted.
@@ -376,7 +376,7 @@
   - `components/room/hooks/useLobbyInvites.ts` and `useTableCheck.ts`;
   - `app/[locale]/(room)/LobbyRoomPage.tsx` and `app/[locale]/(room)/matchmaking/page.tsx`;
   - the `/dev/room` phases `lobby`, `queue`, `searching-paused` and `void-queue`, and their baselines. Re-home each phase's states as page phases where the spec keeps them.
-- [ ] T094 [US4] Migrate the two-player Playwright specs off `/matchmaking`. Add the helpers `findOpponent(page)`, `challenge(page, name)` and `acceptCall(page)` to `tests/integration/ui/helpers/matchmaking.ts`, and update `matchmaking.spec.ts`, `moves-flow.spec.ts`, `room-flow.spec.ts`, `reconnect-flow.spec.ts`, `match-completion.spec.ts`, `disconnect-claim.spec.ts`, `deadline-flow.spec.ts`, `table.spec.ts`, `cross-language-queue.spec.ts` and `lobby-presence.spec.ts`. Run them in chromium one file at a time. Same commit as T088; the suite must pass at this commit.
+- [X] T094 [US4] Migrate the two-player Playwright specs off `/matchmaking`. Add the helpers `findOpponent(page)`, `challenge(page, name)` and `acceptCall(page)` to `tests/integration/ui/helpers/matchmaking.ts`, and update `matchmaking.spec.ts`, `moves-flow.spec.ts`, `room-flow.spec.ts`, `reconnect-flow.spec.ts`, `match-completion.spec.ts`, `disconnect-claim.spec.ts`, `deadline-flow.spec.ts`, `table.spec.ts`, `cross-language-queue.spec.ts` and `lobby-presence.spec.ts`. Run them in chromium one file at a time. Same commit as T088; the suite must pass at this commit.
 
   Remove `useTableCheck` from `components/profile/ProfilePage.tsx`. Make spec 069's void slip queue action push `/` with the search running (`lib/room/tableSlip.ts`, `MatchRoomController.tsx`). Run the acceptance grep test and extend it with the deleted names.
 - [ ] T089 [US4] B6: while a match's final state is shown with the slip lifted, a third-party call is the ledger's first line in live-row style, with the secondary `accept ▸` and `decline`, in the ledger's first line. It goes through a slot model `ledgerCallLine(rematch, call)`, which ranks a rematch first once stage 5 provides one; the unit test covers the call-only case. Add this to `components/room/Ledger.tsx` and the phone live row, reading the provider's standing facts. Add a unit test in `tests/unit/components/room/Ledger.call.spec.tsx`.
@@ -410,7 +410,7 @@
 - [X] T097 [US7] Add `enter_lobby` and `confirm_lobby_switch` to the migration. Implement `lib/matchmaking/lobbyLanguage.ts` and `app/actions/lobby/{enterLobby,confirmSwitch}.ts` with pokes (T096).
 - [X] T098 [US7] Replace T057's placeholder `enterLobbyAction`. On `needs_confirm` the lobby renders with find and every `challenge ▸` off. The standing read returns `switchPending`, and the slot shows `switch` (`you are in the Icelandic lobby · switching cancels your search · switch ▸` / `þú ert í íslenska lobbíinu · …`). The masthead switch shows the same consequence line first when something is out (T3). Add a unit test in `tests/unit/components/page/LanguageSwitch.spec.tsx`.
 - [ ] T099 [US7] Name the language beside every rating on pages (FR-033, US7.5). Add the switch strings, and the page phase `switch-confirm`.
-- [ ] T100 [US7] Write the Playwright spec `tests/integration/ui/lobby-language.spec.ts` for quickstart §5: `/en/rules` does not move the player; typing `/en` with a search out asks first; confirming switches the lists.
+- [X] T100 [US7] Write the Playwright spec `tests/integration/ui/lobby-language.spec.ts` for quickstart §5: `/en/rules` does not move the player; typing `/en` with a search out asks first; confirming switches the lists.
 
 ---
 
@@ -439,7 +439,7 @@
 - [X] T105 [US8] Add the `stepped out` / `brá sér frá` sub-line to `lib/room/scoreboard.ts` and `components/room/Scoreboard.tsx`, with a unit test in `tests/unit/lib/room/scoreboard.steppedOut.spec.ts`.
 - [X] T106 [US8] Implement `components/room/hooks/useLiveBackGuard.ts` (T102). Add the leave slip to `lib/room/slip.ts` and `components/room/Slip.tsx`, with `stay ▸` focused through `initialFocusRef`. Change `RoomMenu.tsx`'s `leave` to `go to the lobby`, which opens the leave slip. Make `confirmResign` reachable only from `⋯ resign`. Wire all of this into `MatchRoomController.tsx` (T101).
 - [X] T107 [US8] Add the leave slip's strings and the `/dev/room` phase `leave` (desktop and phone, F8), and generate the baselines.
-- [ ] T108 [US8] Write the Playwright spec `tests/integration/ui/leave-slip.spec.ts`:
+- [X] T108 [US8] Write the Playwright spec `tests/integration/ui/leave-slip.spec.ts`:
   - after a pick, Back opens the slip with `stay ▸` focused, and Esc keeps playing;
   - `go to the lobby` leaves the match in progress, and the lobby slot reads `your match · …`;
   - the opponent's scoreboard reads `stepped out`;
@@ -463,9 +463,9 @@
 ## Phase 13: Polish and cross-cutting
 
 - [ ] T112 [P] Write the slot-overflow test `tests/integration/ui/slot-overflow.spec.ts`. It renders every fixed slot (line 1 and 2 of the slot in each style, the row status and action cells, the composer lines, the block primary, the phone bottom slot) with its longest Icelandic and English string at 1440 and 390, and fails on overflow (SC-007).
-- [ ] T113 [P] Add the name-safe grep test `tests/unit/i18n/name-safe-grep.test.ts`. It fails on any Icelandic template that puts a name after eftir, gegn, til, frá, á, við or handa, and on the banned variants `klár`, `komin(n)`, `aftur tengd`, `ekki laus` and `leikur Kára`.
-- [ ] T114 [P] Add a grep test `tests/unit/lib/one-service-per-rpc.test.ts`: the presence functions are called only from `lib/presence/presenceService.ts`, and the challenge functions only from `lib/matchmaking/challengeService.ts`.
-- [ ] T115 [P] Amend `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` per spec §8 items 1, 3, 4, 7, 10 and 13:
+- [X] T113 [P] Add the name-safe grep test `tests/unit/i18n/name-safe-grep.test.ts`. It fails on any Icelandic template that puts a name after eftir, gegn, til, frá, á, við or handa, and on the banned variants `klár`, `komin(n)`, `aftur tengd`, `ekki laus` and `leikur Kára`.
+- [X] T114 [P] Add a grep test `tests/unit/lib/one-service-per-rpc.test.ts`: the presence functions are called only from `lib/presence/presenceService.ts`, and the challenge functions only from `lib/matchmaking/challengeService.ts`.
+- [X] T115 [P] Amend `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` per spec §8 items 1, 3, 4, 7, 10 and 13:
   - "One field", with the three pages;
   - the slip kinds (leave; sign-in retired) and their ranking;
   - primary and focus rules;
@@ -473,7 +473,7 @@
   - the new components (page frame, line slot, lobby block, form strip, band map, composer row, lockup, strip and cell);
   - the phone bottom slot;
   - the Icelandic glossary and the name-safe rule.
-- [ ] T116 [P] Update `CLAUDE.md`:
+- [X] T116 [P] Update `CLAUDE.md`:
   - the Design section (pages, the line slot, the leave slip, the marks);
   - the architecture §7 frontend flow (door → lobby → slot → table);
   - the directory structure (`(pages)`, `components/page`, `components/standing`, `lib/pages`, `lib/presence`, `lib/brand`);

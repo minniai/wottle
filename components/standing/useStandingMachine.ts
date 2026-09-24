@@ -160,7 +160,8 @@ export function useStandingMachine(): StandingMachine {
   const slot = standingSlot({ facts: facts && switchPending ? { ...facts, switchPending } : facts, held, search });
   const nowMs = useNowTick(TICKING.has(slot.kind));
   const viewer = facts?.viewer ?? { rating: 1200, gamesPlayed: 0 };
-  const base = slotLines(slot, copy, { nowMs, phone, viewer, searchingCount: facts?.counts.searching ?? 0 });
+  const languageName = language === "is" ? copy.pages.LANGUAGE_NAME_IS : copy.pages.LANGUAGE_NAME_EN;
+  const base = slotLines(slot, copy, { nowMs, phone, viewer, searchingCount: facts?.counts.searching ?? 0, languageName });
   const model: SlotModel = note ? { style: "status", square: "you", line1: note, line2: "", primary: null, secondaries: [], bar: null } : base;
   const announcement = useAnnouncement(slot, held, nowMs, copy);
 

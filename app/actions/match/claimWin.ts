@@ -8,6 +8,7 @@ import {
   RECONNECT_WINDOW_MS,
   getDisconnectedAt,
 } from "@/lib/match/disconnectStore";
+import { readParticipants } from "@/lib/match/heartbeatRepository";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import {
   assertWithinRateLimit,
@@ -46,7 +47,7 @@ export async function claimWinAction(
     const supabase = getServiceRoleClient();
     const { data: match } = await supabase
       .from("matches")
-      .select("state, player_a_id, player_b_id, player_a_moves, player_b_moves, move_limit")
+      .select("state, player_a_id, player_b_id, player_a_moves, player_b_moves, move_limit, created_at")
       .eq("id", parsed.data.matchId)
       .maybeSingle();
 
@@ -72,7 +73,7 @@ export async function claimWinAction(
       return { status: "not_done", movesPlayed, moveLimit };
     }
 
-    const disconnectedAt = getDisconnectedAt(parsed.data.matchId, opponentId);
+    const disconnectedAt = await opponentGoneSince(supabase, { matchId: parsed.data.matchId, match, opponentId });
     if (disconnectedAt === null) {
       return { status: "not_disconnected" };
     }
@@ -101,6 +102,30 @@ export async function claimWinAction(
       message: error instanceof Error ? error.message : "Claim win failed.",
     };
   }
+}
+
+interface GoneQuery {
+  matchId: string;
+  match: { player_a_id: string; player_b_id: string; created_at: string };
+  opponentId: string;
+}
+
+/**
+ * When the opponent went away, read as the loader reads it (spec 070): the
+ * in-memory record or a stale heartbeat, and never while they have only
+ * stepped out to another page of the app.
+ */
+async function opponentGoneSince(client: ReturnType<typeof getServiceRoleClient>, { matchId, match, opponentId }: GoneQuery): Promise<number | null> {
+  const participants = await readParticipants(client, {
+    matchId,
+    playerAId: match.player_a_id,
+    playerBId: match.player_b_id,
+    matchCreatedAt: new Date(match.created_at),
+  });
+  if (participants.steppedOut === opponentId) return null;
+  const recorded = getDisconnectedAt(matchId, opponentId);
+  if (recorded !== null) return recorded;
+  return participants.stale?.playerId === opponentId ? Date.parse(participants.stale.disconnectedAt) : null;
 }
 
 function checkClaimRate(playerId: string): ClaimWinResult | null {

@@ -169,7 +169,7 @@ async function snap(page: Page, name: string) {
 }
 
 test.describe("@room-layout accessibility and reference screenshots", () => {
-  test("lobby (empty seat), lobby, queue and profile: axe clean at 1440×900 and 390×844", async ({ browser }) => {
+  test("door, lobby, searching and profile: axe clean at 1440×900 and 390×844", async ({ browser }) => {
     for (const viewport of [
       { width: 1440, height: 900, tag: "desktop" },
       { width: 390, height: 844, tag: "phone" },
@@ -178,25 +178,25 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
       const page = await context.newPage();
       try {
         await page.goto("/en");
-        await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby");
-        await expect(page.getByTestId("player-bar-name-input")).toBeVisible();
-        await expectAxeClean(page, `lobby-empty-${viewport.tag}`);
-        await snap(page, `lobby-empty-${viewport.tag}.png`);
+        await expect(page.getByTestId("door-name")).toBeVisible();
+        await expectAxeClean(page, `door-${viewport.tag}`);
+        await snap(page, `door-${viewport.tag}.png`);
 
         await loginViaSlip(page, generateTestUsername(`axe-${viewport.tag[0]}`));
         await expectAxeClean(page, `lobby-${viewport.tag}`);
         await snap(page, `lobby-${viewport.tag}.png`);
 
-        await page.getByTestId("player-bar-action-find").click();
-        await expect(page.getByTestId("room")).toHaveAttribute("data-phase", /queue|found|match/, { timeout: 15_000 });
-        if ((await page.getByTestId("room").getAttribute("data-phase")) === "queue") {
-          await expectAxeClean(page, `queue-${viewport.tag}`);
-          await snap(page, `queue-${viewport.tag}.png`);
-          await page.getByTestId("ledger-cancel-queue").click();
-          await expect(page.getByTestId("room")).toHaveAttribute("data-phase", "lobby", { timeout: 15_000 });
+        await page.getByTestId("lobby-find").click();
+        const searching = page.locator("[data-testid=slot-cancelSearch]:visible").first();
+        await expect(searching.or(page.getByTestId("room"))).toBeVisible({ timeout: 15_000 });
+        if (await searching.isVisible()) {
+          await expectAxeClean(page, `searching-${viewport.tag}`);
+          await snap(page, `searching-${viewport.tag}.png`);
+          await searching.click();
+          await expect(page.getByTestId("lobby-find")).toBeVisible({ timeout: 15_000 });
         } else {
-          // A stray queued player (a failed test's leftover) paired with us; the queue state is covered by matchmaking.spec.
-          test.info().annotations.push({ type: "note", description: `queue skipped at ${viewport.tag}: paired immediately` });
+          // A stray queued player (a failed test's leftover) paired with us; the search is covered by matchmaking.spec.
+          test.info().annotations.push({ type: "note", description: `search skipped at ${viewport.tag}: paired immediately` });
         }
 
         await page.goto("/en/profile");
@@ -232,6 +232,11 @@ test.describe("@room-layout accessibility and reference screenshots", () => {
       await pageA.getByTestId("slip-confirm-resign").click();
       for (const p of [pageA, pageB]) await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
       await expect(pageA.getByTestId("verdict")).toBeVisible();
+      // The match-over slip lands 600ms after the settle and fades in: check contrast once it has.
+      for (const p of [pageA, pageB]) {
+        await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 10_000 });
+        await p.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
+      }
       await expectAxeClean(pageA, "final-desktop");
       await expectAxeClean(pageB, "final-phone");
       await snap(pageA, "final-desktop.png");

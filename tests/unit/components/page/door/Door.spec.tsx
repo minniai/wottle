@@ -95,7 +95,9 @@ describe("Door", () => {
       fireEvent.click(screen.getByRole("button", { name: "enter the lobby ▸" }));
     });
     expect(enterAsReturningAction).toHaveBeenCalledWith("en");
-    expect(replace).toHaveBeenCalledWith("/en");
+    // The lobby is the same page: it reads again signed in.
+    expect(refresh).toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
     replace.mockClear();
   });
 
