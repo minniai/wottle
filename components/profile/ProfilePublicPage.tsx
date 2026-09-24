@@ -11,7 +11,7 @@ import { FormStrip } from "@/components/page/lobby/FormStrip";
 import { sendError } from "@/components/page/lobby/HereNowTable";
 import { useNowTick } from "@/components/room/hooks/useNowTick";
 import { useLobbyList } from "@/components/standing/hooks/useLobbyList";
-import { useStandingSlot } from "@/components/standing/StandingProvider";
+import { useStandingSlot } from "@/components/standing/standingContext";
 import type { Seat } from "@/lib/constants/seatColors";
 import { localePath } from "@/lib/i18n/locales";
 import { challengesClosed, rowOverlays } from "@/lib/pages/rowOverlays";
