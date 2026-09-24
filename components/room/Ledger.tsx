@@ -270,6 +270,11 @@ function gridDetail(verdict: Verdict): string {
   return verdict.detailClauses ? verdict.detailClauses.slice(0, 2).join(" · ") : verdict.detailLine;
 }
 
+/** A line with answers: the rematch first, then a third party's call, then the rest. */
+function answerRank(notice: Notice): number {
+  return notice.kind === "rematch" ? 0 : notice.kind === "call" ? 1 : 2;
+}
+
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
   const copy = useCopy();
   if (notice.kind !== "call" && notice.kind !== "rematch") return <>{noticeText(notice, copy)}</>;
@@ -409,7 +414,9 @@ export function Ledger(props: LedgerProps) {
     </>
   ) : null;
 
-  const noticeLines = notices.map((notice) => (
+  // An incoming rematch outranks a third party's call (spec 071 T41, T65): it always comes first.
+  const ordered = [...notices].sort((a, b) => answerRank(a) - answerRank(b));
+  const noticeLines = ordered.map((notice) => (
     <div key={noticeKey(notice)} className="ledger__notice" data-testid="ledger-notice" data-field-safe data-kind={notice.kind} aria-live="polite">
       {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
     </div>
@@ -418,11 +425,11 @@ export function Ledger(props: LedgerProps) {
   // In review the cursor line takes the live row's place on a phone (F7).
   const collapsedLive: LiveLines | undefined = review ? review.cursor : model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
 
-  const latestNotice = noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null;
+  // Two answers waiting (a rematch and a call) share the state row, one line each (T65).
+  const answers = noticeLines.filter((_, i) => answerRank(ordered[i]) < 2);
+  const latestNotice = answers.length === 2 ? <div className="ledger__answers">{answers}</div> : answers[0] ?? (noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null);
   // On a phone a call cannot wait in the closed sheet: it sits under the live row (B6).
-  // An incoming rematch outranks a third party's call (spec 071 T41, T65).
-  const rematchIndex = notices.findIndex((n) => n.kind === "rematch");
-  const callIndex = rematchIndex >= 0 ? rematchIndex : notices.findIndex((n) => n.kind === "call");
+  const callIndex = ordered.findIndex((n) => answerRank(n) < 2);
   const phoneCall = callIndex >= 0 ? noticeLines[callIndex] : null;
   const sheetNotices = noticeLines.filter((_, i) => i !== callIndex);
 
@@ -465,6 +472,8 @@ export function Ledger(props: LedgerProps) {
           <div className="ledger__state-line" data-testid="ledger-state-line">
             {review ? (
               <div className="ledger__review-controls">{latestNotice ?? review.controls}</div>
+            ) : answers.length === 2 ? (
+              latestNotice
             ) : model.verdict ? (
               <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
                 <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>

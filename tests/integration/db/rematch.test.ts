@@ -143,4 +143,14 @@ describe.skipIf(!db)("request_rematch (spec 071)", () => {
     expect((await f.rpc("accept_rematch", { p_request: sent.request_id, p_actor: kari })).status).toBe("busy");
     expect(await f.statusOf("rematch_requests", sent.request_id as string)).toBe("superseded");
   });
+
+  it("accepting a third party's challenge ends a rematch request waiting for the same player (T65)", async () => {
+    const [birna, kari, match] = await both();
+    const sent = await request(match, birna);
+    const [embla] = await f.players_(["Embla"]);
+    const invite = await f.invite(embla, kari);
+    expect((await f.rpc("accept_invite", { p_invite: invite, p_actor: kari, p_ttl_seconds: 60, p_origin: "challenge" })).status).toBe("created");
+    expect(await f.statusOf("rematch_requests", sent.request_id as string)).toBe("superseded");
+  });
 });
+
