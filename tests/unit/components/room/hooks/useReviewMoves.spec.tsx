@@ -6,7 +6,9 @@ import { useReviewMoves } from "@/components/room/hooks/useReviewMoves";
 import { bothFinished } from "../../../lib/review/reviewFixtures";
 
 describe("useReviewMoves (spec 071 FR-043)", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("loads a completed match's moves once and builds its steps", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(bothFinished()), { status: 200 }));
