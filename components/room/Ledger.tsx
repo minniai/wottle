@@ -43,8 +43,8 @@ type Slot = "player_a" | "player_b";
 export interface LedgerReview {
   /** Whose column is `you`: the viewer's, or player A's for a reader who did not play. */
   viewerSlot: Slot;
-  /** The step's move: its row becomes the cursor line. Null for the closing step. */
-  current: { slot: Slot; move: number } | null;
+  /** The row the cursor line takes: the step's move, or for the closing step the first unplayed row (slot null). */
+  current: { slot: Slot | null; move: number } | null;
   cursor: LiveLines;
   states: Map<string, CellState>;
   names: ReviewNames;
@@ -187,7 +187,7 @@ function ReviewRow({ row, review }: { row: LedgerRow; review: LedgerReview }) {
           <div role="gridcell" tabIndex={-1} className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
             <LiveText live={review.cursor} />
           </div>
-          <SeatWords cell={review.current?.slot === youSlot ? row.opp : row.you} seat={review.current?.slot === youSlot ? "opp" : "you"} showPoints={false} folded />
+          {review.current?.slot ? <SeatWords cell={review.current.slot === youSlot ? row.opp : row.you} seat={review.current.slot === youSlot ? "opp" : "you"} showPoints={false} folded /> : null}
         </>
       ) : (
         <>

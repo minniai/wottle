@@ -1382,7 +1382,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
+  padding-bottom: 8px;
 }
 .ledger__call-text {
   overflow: hidden;
