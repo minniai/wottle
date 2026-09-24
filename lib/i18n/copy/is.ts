@@ -273,6 +273,8 @@ export const copyIs = {
   noSuchPlayer: (handle: string): string =>
     `Enginn slíkur leikmaður · @${handle} hefur ekki spilað hér`,
   // The table (spec 069, game flow C1–C3, B7)
+  seriesLine: (ordinal: number, leader: string | null, hi: number, lo: number): string =>
+    leader ? `viðureign ${ordinal} · ${leader} ${hi}–${lo}` : `viðureign ${ordinal} · ${hi}–${lo}`,
   rematch: {
     sent: (mmSs: string): string => `beiðni send · ${mmSs}`,
     asks: (name: string, mmSs: string): string => `${name} vill aðra viðureign · ${mmSs}`,

@@ -20,6 +20,7 @@ import type {
   PlayerMatchFacts,
   Stakes,
   WordScore,
+  SeriesView,
 } from "@/lib/types/match";
 
 import { getDisconnectRecord, RECONNECT_WINDOW_MS } from "./disconnectStore";
@@ -27,6 +28,8 @@ import { startingBoardFor } from "./startingBoard";
 import { startTableIfSeated, voidDueTable } from "./tableService";
 import { readParticipants } from "./heartbeatRepository";
 import { mapWordScoreRows, type WordScoreEntryRow } from "./wordScoreRow";
+import { rematchSeries } from "./rematchService";
+import { seriesViewOf } from "@/lib/room/series";
 
 type AnyClient = SupabaseClient<any, any, any>;
 
@@ -294,11 +297,11 @@ async function disconnectFacts(client: AnyClient, match: MatchRow) {
   };
 }
 
-/** Spec 070 FR-034: where an accepted rematch went, read with the old match rather than broadcast. */
-async function rematchOf(client: AnyClient, match: MatchRow): Promise<string | null> {
-  if (match.state !== "completed") return null;
-  const { data } = await client.from("rematch_requests").select("new_match_id").eq("match_id", match.id).eq("status", "accepted").limit(1).maybeSingle();
-  return (data?.new_match_id as string | null | undefined) ?? null;
+/** Spec 071 (FR-018): a rematch's place in its series; seat-neutral, so the broadcast may carry it. */
+async function seriesOf(client: AnyClient, match: MatchRow, rematchOf: string | null): Promise<SeriesView | null> {
+  if (!rematchOf) return null;
+  const rows = await rematchSeries(client, match.id);
+  return seriesViewOf(rows, { matchId: match.id, completed: match.state === "completed", winnerId: match.winner_id ?? null }, match.player_a_id);
 }
 
 // ─── The loader ──────────────────────────────────────────────────────
@@ -336,7 +339,7 @@ export async function loadMatchState(client: AnyClient, matchId: string): Promis
     completedAt: match.completed_at ?? null,
     table: tableOf(match),
     stakes: match.state === "pending" ? await stakesOf(client, match) : null,
-    rematchMatchId: await rematchOf(client, match),
+    series: await seriesOf(client, match, tableOf(match).rematchOf),
   };
 }
 

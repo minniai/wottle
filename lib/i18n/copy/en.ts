@@ -297,6 +297,9 @@ const table = {
   titleSearching: (mmSs: string): string => `searching ${mmSs}`,
 };
 /** Spec 071 (D2): the rematch negotiation's lines, on the slip or as the ledger's first line. */
+/** Spec 071 (FR-018): the rematch series, on the scoreboard's clock row. */
+const seriesLine = (ordinal: number, leader: string | null, hi: number, lo: number): string =>
+  leader ? `match ${ordinal} · ${leader} ${hi}–${lo}` : `match ${ordinal} · ${hi}–${lo}`;
 const rematch = {
   sent: (mmSs: string): string => `rematch sent · ${mmSs}`,
   asks: (name: string, mmSs: string): string => `${name} asks for a rematch · ${mmSs}`,
@@ -526,6 +529,7 @@ export const copyEn = {
   noSuchPlayer,
   table,
   rematch,
+  seriesLine,
   pages,
   errors,
   RULES_TITLE,

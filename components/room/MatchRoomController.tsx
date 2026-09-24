@@ -33,6 +33,7 @@ import { penalisesUnplayed } from "@/lib/match/endedReasons";
 import { ledgerCallLine } from "@/lib/room/ledgerCallLine";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
 import { deriveRematchView } from "@/lib/room/rematchView";
+import { seriesLine } from "@/lib/room/series";
 import { useRematchCall } from "./hooks/useRematchCall";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
@@ -658,6 +659,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         msToStart={Math.max(0, msToStart)}
         elapsedMs={completed ? durationMs : undefined}
         penalizeUnplayed={completed && penalisesUnplayed(match.endedReason)}
+        series={match.series ? seriesLine(match.series, { playerA: viewerSlot === "player_a" ? you.displayName : opp.displayName, playerB: viewerSlot === "player_a" ? opp.displayName : you.displayName }, copy) : null}
         moveLimit={match.moveLimit}
         completed={completed}
         caption={completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
