@@ -194,8 +194,8 @@
 
   Unit tests in `tests/unit/lib/room/scoreboard.spec.ts` and `tests/unit/match/rematchRepository.spec.ts`.
 - [X] T041 [US2] Remove `MatchState.rematchMatchId` and its readers (`useRematchNegotiation`, the loader's `rematchOf()`), reading `rematch.request.newMatchId` instead. Update `tests/unit/match/stateLoader*.spec.ts`.
-- [ ] T042 [US2] Fill the `rematch-sent`, `rematch-in`, `rematch-in-review` (the RematchIncoming artboard: review at step 7 with the ledger call line at 0:24) and `rematch-declined` fixtures, and take baselines.
-- [ ] T043 [US2] Write `tests/integration/ui/rematch-flow.spec.ts` (tagged `@two-player-playtest`):
+- [X] T042 [US2] Fill the `rematch-sent`, `rematch-in` and `rematch-declined` fixtures, and take baselines. (`rematch-in-review`, the RematchIncoming artboard, moves to T058: it needs the review fixture.)
+- [X] T043 [US2] Write `tests/integration/ui/rematch-flow.spec.ts` (tagged `@two-player-playtest`):
   - send, cancel, and send refused;
   - decline, then `challenge again` in cooldown;
   - expiry after 30s;
