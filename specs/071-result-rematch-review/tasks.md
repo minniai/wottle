@@ -29,32 +29,32 @@
 
 ### Tests first
 
-- [ ] T003 Write failing integration tests for the migration's schema in `tests/integration/db/result-rematch-review-schema.test.ts`:
+- [X] T003 Write failing integration tests for the migration's schema in `tests/integration/db/result-rematch-review-schema.test.ts`:
   - `presence_tabs.match_id` exists and is nullable;
   - `rematch_requests.expires_at` defaults to `created_at + 30s` and is backfilled;
   - `matches.ended_reason` accepts `'ended_early'`;
   - the functions `player_on_match`, `pair_cooldown_until`, `request_rematch`, `decline_rematch`, `withdraw_rematch`, `expire_due_rematches` and `rematch_series` exist;
   - `beat_tab` accepts `p_match_id`.
-- [ ] T004 [P] Write failing unit tests for `buildReviewSteps` in `tests/unit/lib/review/buildReviewSteps.spec.ts`, from a 20-move fixture (IS-M, with steps 5–6 two consecutive Kári moves):
+- [X] T004 [P] Write failing unit tests for `buildReviewSteps` in `tests/unit/lib/review/buildReviewSteps.spec.ts`, from a 20-move fixture (IS-M, with steps 5–6 two consecutive Kári moves):
   - steps follow `globalSeq`;
   - a refused row is `kind: "refused"`, with the board unchanged, points 0 and no count;
   - `movesPlayed` counts only resolved rows;
   - `clockMs = durationMs − (receivedAt − startedAt)`, floored at 0;
   - a closing step appears for `incomplete`, `both_incomplete` and `ended_early` with unplayed moves, and is absent for `moves_complete` and `forfeit`;
   - **invariant:** the last step's totals equal `finalScores`, and its board equals the final board, for each of the five fixtures.
-- [ ] T005 [P] Write failing contract tests in `tests/contract/match-moves.contract.test.ts` for `GET /api/match/[matchId]/moves`:
+- [X] T005 [P] Write failing contract tests in `tests/contract/match-moves.contract.test.ts` for `GET /api/match/[matchId]/moves`:
   - signed out on a completed match: 200 with the `MovesResponse` shape;
   - a live, pending, void or unknown match: 404 `not_found`, the same body for each;
   - a malformed id: 400;
   - `Cache-Control` is immutable;
   - rejected rows are included and pending rows are not.
-- [ ] T006 [P] Write failing unit tests in `tests/unit/match/completeMatch.endedEarly.spec.ts`:
+- [X] T006 [P] Write failing unit tests in `tests/unit/app/actions/completeMatchAbandoned.test.ts` (its completion harness):
   - `completeMatchInternal(id, "ended_early")` applies timeout penalties like `natural`, decides the winner by the normal rules and writes `ended_reason = 'ended_early'`;
   - `claimWin` calls it with `"ended_early"` (update the existing `claimWin` spec).
 
 ### Implementation
 
-- [ ] T007 Write `supabase/migrations/20260926001_result_rematch_review.sql` per data-model.md:
+- [X] T007 Write `supabase/migrations/20260926001_result_rematch_review.sql` per data-model.md:
   - the column changes and the widened `ended_reason` check;
   - `player_on_match` and `pair_cooldown_until`;
   - `beat_tab` with `p_match_id`;
@@ -65,10 +65,10 @@
   - grants to `service_role` only.
 
   Apply it with `pnpm supabase:migrate`. T003 passes.
-- [ ] T008 [P] Add `RematchRefusal`, `RematchRequestView`, `RematchOffer` and `SeriesView`, `"ended_early"` in `MatchEndedReason`, and `MatchState.rematch?` and `series?` to `lib/types/match.ts`. Add the review types (`ReviewMoveRow`, `ReviewStep`, `ReviewStepKind`, `MovesResponse`) to `lib/types/review.ts`. Keep `rematchMatchId` for now.
-- [ ] T009 Make `ended_early` a natural completion reason in `app/actions/match/completeMatch.ts`, and have `app/actions/match/claimWin.ts` pass it. Add the reason to `lib/room/ledgerRows.ts` `FORCED` / `naturalDetail` so nothing renders `undefined`. T006 passes.
-- [ ] T010 [P] Implement `lib/review/buildReviewSteps.ts`: pure, each function under 20 lines, with helpers `toStep`, `closingStep` and `countMoves`. T004 passes.
-- [ ] T011 Implement `lib/review/movesRepository.ts`: a service-role read of `matches` plus `match_moves` with embedded `word_score_entries`, in `global_seq` order, excluding pending and resolving rows. Map to `MovesResponse`, with `initialBoard` from the first row's `board_before`. Then `app/api/match/[matchId]/moves/route.ts`: Zod on the id, 404 unless completed and not void, immutable cache header, and a `review.moves.served` perf mark. T005 passes.
+- [X] T008 [P] Add `RematchRefusal`, `RematchRequestView`, `RematchOffer` and `SeriesView`, `"ended_early"` in `MatchEndedReason`, and `MatchState.rematch?` and `series?` to `lib/types/match.ts`. Add the review types (`ReviewMoveRow`, `ReviewStep`, `ReviewStepKind`, `MovesResponse`) to `lib/types/review.ts`. Keep `rematchMatchId` for now.
+- [X] T009 Make `ended_early` a natural completion reason in `app/actions/match/completeMatch.ts`, and have `app/actions/match/claimWin.ts` pass it. Add the reason to `lib/room/ledgerRows.ts` `FORCED` / `naturalDetail` so nothing renders `undefined`. T006 passes.
+- [X] T010 [P] Implement `lib/review/buildReviewSteps.ts`: pure, each function under 20 lines, with helpers `toStep`, `closingStep` and `countMoves`. T004 passes.
+- [X] T011 Implement `lib/review/movesRepository.ts`: a service-role read of `matches` plus `match_moves` with embedded `word_score_entries`, in `global_seq` order, excluding pending and resolving rows. Map to `MovesResponse`, with `initialBoard` from the first row's `board_before`. Then `app/api/match/[matchId]/moves/route.ts`: Zod on the id, 404 unless completed and not void, immutable cache header, and a `review.moves.served` perf mark. T005 passes.
 
 **Checkpoint**: `pnpm test:unit`, the contract and schema tests, typecheck and lint pass.
 
