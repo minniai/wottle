@@ -27,7 +27,7 @@ import { useFavicon } from "./hooks/useFavicon";
 import { useHeldOutcome, type HeldOutcome } from "./hooks/useHeldOutcome";
 import { useNotifications, type NotificationsApi } from "./hooks/useNotifications";
 import { useStandingFacts, type PokeListener } from "./hooks/useStandingFacts";
-import { pageOf, useTabPresence } from "./hooks/useTabPresence";
+import { matchOf, pageOf, useTabPresence } from "./hooks/useTabPresence";
 import { useTabTitle } from "./hooks/useTabTitle";
 
 export interface SearchRun {
@@ -111,9 +111,10 @@ export function useStandingMachine(): StandingMachine {
   const locale = useLocale();
   const to = useLocalePath();
   const router = useRouter();
-  const page = pageOf(usePathname() ?? "/");
+  const pathname = usePathname() ?? "/";
+  const page = pageOf(pathname);
   const phone = useIsPhone();
-  useTabPresence(page);
+  useTabPresence(page, matchOf(pathname));
   const attention = useAttention();
   const { facts, refresh, onPoke } = useStandingFacts(attention);
   const notifications = useNotifications();

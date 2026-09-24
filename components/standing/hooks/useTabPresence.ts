@@ -32,19 +32,28 @@ export function pageOf(pathname: string): PresencePage {
   return "other";
 }
 
+const MATCH_PATH = /^(?:\/en)?\/match\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\/|$)/;
+
+/** The match a page is on, so "both players are still on this match" is one test (spec 071 R5). */
+export function matchOf(pathname: string): string | null {
+  return MATCH_PATH.exec(pathname)?.[1] ?? null;
+}
+
 /**
  * This tab's heartbeat (spec 070 US6, FR-027): at once, then every 10s while
  * visible and every 30s while hidden, with the tab's visibility and last input
  * and the page it is on. On `pagehide` a beacon says it is leaving; unless it
  * beats again within 8s, it is gone.
  */
-export function useTabPresence(page: PresencePage): void {
+export function useTabPresence(page: PresencePage, matchId: string | null = null): void {
   const attention = useAttention();
   const id = useRef<string | null>(null);
   const pageRef = useRef(page);
+  const matchRef = useRef(matchId);
   useEffect(() => {
     pageRef.current = page;
-  }, [page]);
+    matchRef.current = matchId;
+  }, [page, matchId]);
 
   useEffect(() => {
     id.current ??= tabId();
@@ -56,7 +65,7 @@ export function useTabPresence(page: PresencePage): void {
         keepalive: true,
         cache: "no-store",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tabId: id.current, visible, inputAgoMs: Math.round(inputAgoMs), page: pageRef.current }),
+        body: JSON.stringify({ tabId: id.current, visible, inputAgoMs: Math.round(inputAgoMs), page: pageRef.current, ...(matchRef.current ? { matchId: matchRef.current } : {}) }),
       }).catch(() => undefined);
       timer = setTimeout(send, visible ? HEARTBEAT_VISIBLE_MS : HEARTBEAT_HIDDEN_MS);
     };
@@ -91,7 +100,7 @@ export function useTabPresence(page: PresencePage): void {
       keepalive: true,
       cache: "no-store",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tabId: id.current, visible, inputAgoMs: Math.round(inputAgoMs), page }),
+      body: JSON.stringify({ tabId: id.current, visible, inputAgoMs: Math.round(inputAgoMs), page, ...(matchId ? { matchId } : {}) }),
     }).catch(() => undefined);
-  }, [page, attention]);
+  }, [page, matchId, attention]);
 }
