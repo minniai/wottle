@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Ledger, type LedgerReview } from "@/components/room/Ledger";
 import { EMPTY_TERRITORY, emptyRows, type LedgerModel } from "@/lib/room/ledgerTypes";
 
-const cell = (word: string, total: number) => ({ words: [{ word, points: total }], total });
+const cell = (word: string, total: number) => ({ words: [{ word, points: total, coordinates: [], direction: "ltr" as const }], total });
 const rows = emptyRows().map((r) => ({ ...r, status: "past" as const, you: cell(`y${r.move}`, 10), opp: cell(`o${r.move}`, 12) }));
 const model: LedgerModel = {
   caption: "review · 4:52",
