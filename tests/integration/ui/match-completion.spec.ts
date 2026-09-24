@@ -120,7 +120,8 @@ test.describe("@match-completion final room state", () => {
       await expect(pageA.getByTestId("slip")).toContainText("asks for a rematch");
       await pageA.waitForTimeout(600);
       await pageA.getByTestId("slip-decline-rematch").click();
-      await expect(pageB.getByTestId("ledger-notice").filter({ hasText: /declined/ })).toBeVisible({ timeout: 15_000 });
+      // Spec 071: the sender reads it on the slip's first row.
+      await expect(pageB.getByTestId("slip-rematch-line")).toHaveText(/declined/, { timeout: 15_000 });
 
       await pageA.waitForTimeout(600);
       await pageA.getByTestId("slip-lobby").click();

@@ -182,16 +182,18 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
   // A call or a rematch on the result screen (B6, spec 071 T41): the line and its two secondaries.
   const [accept, decline, id]: [LedgerAction, LedgerAction, string] =
     notice.kind === "rematch" ? ["acceptRematch", "declineRematch", "ledger-rematch"] : ["acceptCall", "declineCall", "ledger-call"];
+  // Two lines, so a long name never pushes the actions out of the row (spec 071): the call, then its answers.
   return (
     <>
-      {notice.text} ·{" "}
-      <button type="button" className="action-secondary" data-testid={`${id}-accept`} onClick={() => onAction(accept)}>
-        {copy.ACCEPT}
-      </button>{" "}
-      ·{" "}
-      <button type="button" className="action-secondary" data-testid={`${id}-decline`} onClick={() => onAction(decline)}>
-        {copy.DECLINE}
-      </button>
+      <span className="ledger__call-text">{notice.text}</span>
+      <span className="ledger__call-actions">
+        <button type="button" className="action-secondary" data-testid={`${id}-accept`} onClick={() => onAction(accept)}>
+          {copy.ACCEPT}
+        </button>
+        <button type="button" className="action-secondary" data-testid={`${id}-decline`} onClick={() => onAction(decline)}>
+          {copy.DECLINE}
+        </button>
+      </span>
       {notice.kind === "rematch" ? <span className="ledger__drain" data-testid="ledger-rematch-drain" style={{ transform: `scaleX(${notice.drain})` }} /> : null}
     </>
   );
