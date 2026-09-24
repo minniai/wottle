@@ -20,7 +20,7 @@ describe("useLiveBackGuard", () => {
     renderHook(() => useLiveBackGuard({ live: true, onBack: vi.fn() }));
     expect(pushState).not.toHaveBeenCalled();
     pick();
-    expect(pushState).toHaveBeenCalledWith({ kind: "guard" }, "");
+    expect(pushState).toHaveBeenCalledWith({ kind: "guard", guardDepth: 1 }, "");
     pick();
     expect(pushState).toHaveBeenCalledTimes(1);
   });
@@ -70,9 +70,10 @@ describe("useLiveBackGuard", () => {
     const onBack = vi.fn();
     const { rerender } = renderHook(({ live, completed }) => useLiveBackGuard({ live, completed, onBack }), { initialProps: { live: true, completed: false } });
     pick();
-    window.history.replaceState({ kind: "guard" }, "");
+    // The table's guard sits under the live one (spec 069): both are stepped past.
+    window.history.replaceState({ kind: "guard", guardDepth: 2 }, "");
     rerender({ live: false, completed: true });
-    expect(go).toHaveBeenCalledWith(-1);
+    expect(go).toHaveBeenCalledWith(-2);
     back();
     expect(onBack).not.toHaveBeenCalled();
     expect((window.history.state as { kind?: string }).kind).toBe("result");

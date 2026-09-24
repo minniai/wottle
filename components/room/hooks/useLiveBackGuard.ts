@@ -5,9 +5,24 @@ import { useCallback, useEffect, useRef } from "react";
 const GUARD = { kind: "guard" } as const;
 
 type EntryKind = "guard" | "table-guard" | "result" | "review";
+type EntryState = { kind?: EntryKind; guardDepth?: number } | null;
+
+function entryState(): EntryState {
+  return window.history.state as EntryState;
+}
 
 function entryKind(): EntryKind | undefined {
-  return (window.history.state as { kind?: EntryKind } | null)?.kind;
+  return entryState()?.kind;
+}
+
+/**
+ * Push a guard entry at the match's URL (the table's before go, the live match's after the first
+ * pick). Each records how many guard entries sit above the match's own entry, so a completed
+ * match can step back past all of them (spec 071 FR-007).
+ */
+export function pushGuardEntry(kind: "guard" | "table-guard"): void {
+  const below = entryState()?.guardDepth ?? 0;
+  window.history.pushState({ kind, guardDepth: below + 1 }, "");
 }
 
 /** Mark the current entry, keeping whatever the router stored in it (spec 071 R4: guard → result → review). */
@@ -39,8 +54,8 @@ export function useLiveBackGuard({ live, completed = false, onBack }: { live: bo
     const onPick = () => {
       if (pushed.current || !armed.current) return;
       pushed.current = true;
-      if ((window.history.state as { kind?: string } | null)?.kind === GUARD.kind) return;
-      window.history.pushState(GUARD, "");
+      if (entryKind() === GUARD.kind) return;
+      pushGuardEntry("guard");
     };
     window.addEventListener("pointerdown", onPick, { passive: true });
     window.addEventListener("keydown", onPick);
@@ -58,7 +73,7 @@ export function useLiveBackGuard({ live, completed = false, onBack }: { live: bo
         return;
       }
       if (!armed.current || !pushed.current) return;
-      window.history.pushState(GUARD, "");
+      pushGuardEntry("guard");
       back.current();
     };
     window.addEventListener("popstate", onPop);
@@ -78,9 +93,10 @@ export function useLiveBackGuard({ live, completed = false, onBack }: { live: bo
   useEffect(() => {
     if (!completed) return;
     armed.current = false;
-    if (entryKind() === GUARD.kind) {
+    const depth = entryState()?.guardDepth ?? 0;
+    if ((entryKind() === GUARD.kind || entryKind() === "table-guard") && depth > 0) {
       leavingGuard.current = true;
-      window.history.go(-1);
+      window.history.go(-depth);
     } else if (entryKind() !== "review") {
       markEntry("result");
     }

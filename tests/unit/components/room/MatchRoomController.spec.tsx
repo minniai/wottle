@@ -864,10 +864,11 @@ describe("MatchRoomController at the table (spec 069)", () => {
   });
 
   it("Back from the table leaves it: a guard entry is pushed, and popping it voids the table (spec 069 T041)", async () => {
+    window.history.replaceState(null, "");
     const pushState = vi.spyOn(window.history, "pushState");
     renderController(table({ a: null, b: null }));
     await screen.findByTestId("slip");
-    expect(pushState).toHaveBeenCalledWith({ kind: "table-guard" }, "");
+    expect(pushState).toHaveBeenCalledWith({ kind: "table-guard", guardDepth: 1 }, "");
     act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
     await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
@@ -878,7 +879,7 @@ describe("MatchRoomController at the table (spec 069)", () => {
     const pushState = vi.spyOn(window.history, "pushState");
     renderController(state());
     await screen.findByTestId("field");
-    expect(pushState).not.toHaveBeenCalledWith({ kind: "table-guard" }, "");
+    expect(pushState).not.toHaveBeenCalledWith(expect.objectContaining({ kind: "table-guard" }), "");
     act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
     expect(leaveTableAction).not.toHaveBeenCalled();
     pushState.mockRestore();
