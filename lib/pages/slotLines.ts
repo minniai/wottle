@@ -68,7 +68,10 @@ function matchModel(match: MatchFact, copy: Copy, ctx: SlotContext): SlotModel {
   if (match.kind === "over") {
     const verdict = match.winner === "draw" || !match.winnerName ? copy.drawLine(match.you, match.them) : copy.verdictLine(match.winnerName, Math.max(match.you, match.them), Math.min(match.you, match.them));
     const detail = match.winner === "draw" ? "" : copy.marginDetail(Math.abs(match.you - match.them));
-    return status(copy.pages.overLine1(verdict), detail, { primary: { label: copy.RESULT, action: "result" } });
+    const result = { primary: { label: copy.RESULT, action: "result" as const } };
+    // A phone has no room for both: the verdict leads and the fact follows (SC-007).
+    if (ctx.phone) return status(verdict, copy.pages.OVER_PHONE, result);
+    return status(copy.pages.overLine1(verdict), detail, result);
   }
   const line2 = match.kind === "table" ? copy.pages.TABLE_LINE2 : copy.pages.matchLine2(Math.min(match.movesPlayed + 1, match.moveLimit), match.moveLimit, formatClock(match.deadlineAt ? left(match.deadlineAt, ctx.nowMs) : 0));
   return status(copy.pages.matchLine1(match.opponent), line2, { primary: { label: copy.pages.BACK_TO_MATCH, action: "backToMatch" } });
@@ -80,7 +83,7 @@ function sentModel(slot: Extract<SlotState, { kind: "sent" }>, copy: Copy, ctx: 
   const ms = left(out.expiresAt, ctx.nowMs);
   const stakes = stakesFor({ eloRating: ctx.viewer.rating, gamesPlayed: ctx.viewer.gamesPlayed, wins: 0, losses: 0, draws: 0 }, { eloRating: out.to.rating, gamesPlayed: 0, wins: 0, losses: 0, draws: 0 });
   const line1 = (ctx.phone ? copy.pages.sentPhone : copy.pages.sentLine1)(out.to.displayName, formatClock(ms));
-  const line2 = ctx.phone ? copy.pages.KEEP_SCREEN_OPEN : copy.pages.sentLine2(copy.LANGUAGE_WORDS, TOTAL_MOVES, stakes.win, stakes.loss);
+  const line2 = ctx.phone ? copy.pages.SENT_PHONE_LINE2 : copy.pages.sentLine2(copy.LANGUAGE_WORDS, TOTAL_MOVES, stakes.win, stakes.loss);
   return status(line1, line2, { secondaries: [{ label: copy.pages.WITHDRAW, action: "withdraw" }], bar: { kind: "drain", fraction: clamp(ms / CHALLENGE_TTL_MS) } });
 }
 
@@ -135,4 +138,10 @@ export function slotLines(slot: SlotState, copy: Copy, ctx: SlotContext): SlotMo
     case "empty":
       return terms(copy);
   }
+}
+
+/** Pixels the phone bottom slot takes: its actions have a row of their own, so any action makes it taller. */
+export function phoneSlotHeight(model: SlotModel): number {
+  if (model.style === "terms") return 0;
+  return model.primary || model.secondaries.length > 0 ? 104 : 64;
 }

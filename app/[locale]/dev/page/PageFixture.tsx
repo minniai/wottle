@@ -8,10 +8,9 @@ import { LineSlot } from "@/components/page/LineSlot";
 import { Lobby } from "@/components/page/lobby/Lobby";
 import { PageFrame } from "@/components/page/PageFrame";
 import { useIsPhone } from "@/components/room/hooks/useIsPhone";
-import { BOTTOM_HEIGHT } from "@/components/standing/StandingProvider";
 import { pagePrimary } from "@/lib/pages/pagePrimary";
 import { challengesClosed, rowOverlays } from "@/lib/pages/rowOverlays";
-import { slotLines } from "@/lib/pages/slotLines";
+import { phoneSlotHeight, slotLines } from "@/lib/pages/slotLines";
 
 import {
   challengeIn,
@@ -29,6 +28,7 @@ import {
   type LobbyFixture,
   type PagePhase,
   type StandingFixture,
+  withLongNames,
 } from "./fixtures";
 
 const NO_OP = () => undefined;
@@ -66,7 +66,7 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
       otherLobbyHere={fixture.overview.counts.other.here}
       slot={<LineSlot model={model} onAction={NO_OP} announcement="" counts={counts} variant="desktop" />}
       bottomSlot={model.style === "terms" ? null : <LineSlot model={model} onAction={NO_OP} announcement="" variant="phone" />}
-      bottomHeight={BOTTOM_HEIGHT[model.style]}
+      bottomHeight={phoneSlotHeight(model)}
       skipLabel={slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : null}
     >
       <Lobby
@@ -90,38 +90,40 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
 }
 
 /** Renders one page phase from static facts (T017); each story adds its phases. */
-export function PageFixture({ phase }: { phase: PagePhase }) {
+export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: boolean }) {
+  // `long`: every name at the 24-character limit, for the overflow test (SC-007).
+  const L = <T,>(fixture: T): T => (long ? withLongNames(fixture) : fixture);
   switch (phase) {
     case "door":
-      return <DoorPage overview={DOOR_EN} returning={null} next={null} preferOther={false} />;
+      return <DoorPage overview={L(DOOR_EN)} returning={null} next={null} preferOther={false} />;
     case "is-door":
-      return <DoorPage overview={DOOR_IS} returning={null} next={null} preferOther={false} />;
+      return <DoorPage overview={L(DOOR_IS)} returning={null} next={null} preferOther={false} />;
     case "door-returning":
-      return <DoorPage overview={DOOR_EN} returning={{ displayName: "Birna", rating: 1310 }} next={null} preferOther={false} />;
+      return <DoorPage overview={L(DOOR_EN)} returning={L({ displayName: "Birna", rating: 1310 })} next={null} preferOther={false} />;
     case "lobby":
-      return <LobbyFixturePage fixture={lobbyEn()} />;
+      return <LobbyFixturePage fixture={L(lobbyEn())} />;
     case "is-lobby":
-      return <LobbyFixturePage fixture={lobbyIs()} />;
+      return <LobbyFixturePage fixture={L(lobbyIs())} />;
     case "lobby-new":
-      return <LobbyFixturePage fixture={lobbyNew()} />;
+      return <LobbyFixturePage fixture={L(lobbyNew())} />;
     case "lobby-empty":
-      return <LobbyFixturePage fixture={lobbyEmpty()} />;
+      return <LobbyFixturePage fixture={L(lobbyEmpty())} />;
     // LobbyComposer (EN-L) and PhoneComposer (IS-T1): Embla's row open.
     case "composer":
-      return <LobbyFixturePage fixture={lobbyEn()} openRow={lobbyEn().rows[0].playerId} />;
+      return <LobbyFixturePage fixture={L(lobbyEn())} openRow={lobbyEn().rows[0].playerId} />;
     case "is-composer":
-      return <LobbyFixturePage fixture={lobbyIs()} openRow={lobbyIs().rows[0].playerId} />;
+      return <LobbyFixturePage fixture={L(lobbyIs())} openRow={lobbyIs().rows[0].playerId} />;
     case "challenge-sent":
-      return <StandingFixturePage fixture={lobbyEn()} standing={challengeSent()} />;
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(challengeSent())} />;
     case "is-challenge-in":
-      return <StandingFixturePage fixture={lobbyIs()} standing={challengeIn()} focusSkip />;
+      return <StandingFixturePage fixture={L(lobbyIs())} standing={L(challengeIn())} focusSkip />;
     case "match-running":
-      return <StandingFixturePage fixture={lobbyEn()} standing={matchRunning()} />;
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(matchRunning())} />;
     case "match-over-away":
-      return <StandingFixturePage fixture={lobbyEn()} standing={matchOverAway()} />;
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(matchOverAway())} />;
     case "searching":
-      return <StandingFixturePage fixture={lobbyEn()} standing={searching()} />;
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(searching())} />;
     case "switch-confirm":
-      return <StandingFixturePage fixture={lobbyEn()} standing={switchConfirm()} />;
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(switchConfirm())} />;
   }
 }

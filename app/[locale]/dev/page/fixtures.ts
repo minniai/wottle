@@ -238,3 +238,16 @@ export function switchConfirm(): StandingFixture {
   const switchPending = { to: "en" as const, from: "is" as const, pending: ["search" as const] };
   return { now: FIXED_NOW, slot: { kind: "switch", pending: switchPending }, facts: facts("is", { switchPending }), held: null };
 }
+
+/** The longest names a player may take (24 characters, wide letters), for the overflow test (SC-007). */
+const LONG_VIEWER = "Aðalsteinn-Guðmundsson_1";
+const LONG_OTHERS = ["Kári", "Hekla", "Embla", "Sóley", "Ragnar", "Jónas"];
+
+/** Every name in a fixture replaced by a 24-character one; the viewer's is distinct from the rest. */
+export function withLongNames<T>(fixture: T): T {
+  let json = JSON.stringify(fixture).replaceAll('"Birna"', `"${LONG_VIEWER}"`);
+  LONG_OTHERS.forEach((name, i) => {
+    json = json.replaceAll(`"${name}"`, `"Þórhildur-Sigurðardótti${i}"`);
+  });
+  return JSON.parse(json) as T;
+}

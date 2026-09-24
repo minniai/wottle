@@ -462,7 +462,7 @@
 
 ## Phase 13: Polish and cross-cutting
 
-- [ ] T112 [P] Write the slot-overflow test `tests/integration/ui/slot-overflow.spec.ts`. It renders every fixed slot (line 1 and 2 of the slot in each style, the row status and action cells, the composer lines, the block primary, the phone bottom slot) with its longest Icelandic and English string at 1440 and 390, and fails on overflow (SC-007).
+- [X] T112 [P] Write the slot-overflow test `tests/integration/ui/slot-overflow.spec.ts`. It renders every fixed slot (line 1 and 2 of the slot in each style, the row status and action cells, the composer lines, the block primary, the phone bottom slot) with its longest Icelandic and English string at 1440 and 390, and fails on overflow (SC-007).
 - [X] T113 [P] Add the name-safe grep test `tests/unit/i18n/name-safe-grep.test.ts`. It fails on any Icelandic template that puts a name after eftir, gegn, til, frá, á, við or handa, and on the banned variants `klár`, `komin(n)`, `aftur tengd`, `ekki laus` and `leikur Kára`.
 - [X] T114 [P] Add a grep test `tests/unit/lib/one-service-per-rpc.test.ts`: the presence functions are called only from `lib/presence/presenceService.ts`, and the challenge functions only from `lib/matchmaking/challengeService.ts`.
 - [X] T115 [P] Amend `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` per spec §8 items 1, 3, 4, 7, 10 and 13:

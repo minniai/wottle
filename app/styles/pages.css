@@ -1077,8 +1077,12 @@
   .line-slot--phone .line-slot__actions {
     padding-right: 0;
   }
-  .line-slot--phone[data-style="call"] .line-slot__actions {
-    width: 100%;
+  /* The actions take a row of their own, so the lines keep the slot's full width (SC-007). */
+  .line-slot--phone .line-slot__lines {
+    flex: 1 1 0;
+  }
+  .line-slot--phone .line-slot__actions {
+    flex-basis: 100%;
   }
   .line-slot--phone .line-slot__primary {
     flex: 1;

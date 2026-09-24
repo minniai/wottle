@@ -113,7 +113,8 @@ export const pagesIs: Widen<typeof pagesEn> = {
   sentLine1: (name: string, leftMmSs: string): string => `Áskorun send · ${name} · ${leftMmSs}`,
   sentLine2: (words: string, moves: number, win: number, loss: number): string =>
     `${words} · ${moves} leikir hvor · sigur ${signed(win)} · tap ${signed(loss)}`,
-  sentPhone: (name: string, leftMmSs: string): string => `áskorun send · ${name} · ${leftMmSs}`,
+  sentPhone: (name: string, leftMmSs: string): string => `${name} · ${leftMmSs}`,
+  SENT_PHONE_LINE2: "áskorun send · haltu skjánum opnum",
   WITHDRAW: "draga til baka ▸",
   OUTCOMES: {
     accepted: "samþykkt",
@@ -134,6 +135,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   TABLE_LINE2: "mótspilari fundinn",
   BACK_TO_MATCH: "aftur í viðureignina ▸",
   overLine1: (verdict: string): string => `Viðureigninni er lokið · ${verdict}`,
+  OVER_PHONE: "viðureigninni er lokið",
   switchLine1: (languageName: string): string => `þú ert í ${languageName} lobbíinu`, // native-read
   SWITCH_CONSEQUENCE: {
     search: "leitin hættir ef þú skiptir", // native-read

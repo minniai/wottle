@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getCopy } from "@/lib/i18n/getCopy";
-import { slotLines, type SlotContext } from "@/lib/pages/slotLines";
+import { phoneSlotHeight, slotLines, type SlotContext } from "@/lib/pages/slotLines";
 import type { SlotState } from "@/lib/pages/standingSlot";
 import type { LobbyRow } from "@/lib/types/standing";
 
@@ -47,7 +47,7 @@ describe("slotLines", () => {
     expect(m.line2).toMatch(/^english words · 10 moves each · win \+\d+ · loss −\d+$/);
     expect(m.primary).toBeNull();
     expect(m.secondaries).toEqual([{ label: "withdraw ▸", action: "withdraw" }]);
-    expect(slotLines(slot, is, ctx({ phone: true }))).toMatchObject({ line1: "áskorun send · Embla · 0:52", line2: "haltu skjánum opnum" });
+    expect(slotLines(slot, is, ctx({ phone: true }))).toMatchObject({ line1: "Embla · 0:52", line2: "áskorun send · haltu skjánum opnum" });
   });
 
   it("writes what became of your challenge while it is held", () => {
@@ -78,5 +78,29 @@ describe("slotLines", () => {
 
   it("is the terms when nothing stands", () => {
     expect(slotLines({ kind: "empty" }, en, ctx()).style).toBe("terms");
+  });
+});
+
+describe("slotLines on a phone (spec 070 T112, SC-007)", () => {
+  it("writes the result first and says the match is over beneath, so a long name fits", () => {
+    const over: SlotState = { kind: "match", match: { kind: "over", matchId: "m", opponent: "Kári", winner: "opponent", winnerName: "Kári", you: 46, them: 88, endedReason: "moves_complete" } };
+    expect(slotLines(over, en, ctx({ phone: true }))).toMatchObject({ line1: "Kári wins 88–46", line2: "your match is over" });
+    expect(slotLines(over, is, ctx({ phone: true })).line2).toBe("viðureigninni er lokið");
+  });
+
+  it("gives the slot's actions their own row: the phone slot is taller whenever it has any", () => {
+    const running: SlotState = { kind: "match", match: { kind: "running", matchId: "m", opponent: "Kári", movesPlayed: 3, moveLimit: 10, deadlineAt: at(192_000) } };
+    expect(phoneSlotHeight(slotLines(running, en, ctx({ phone: true })))).toBe(104);
+    expect(phoneSlotHeight({ ...slotLines(running, en, ctx({ phone: true })), primary: null, secondaries: [] })).toBe(64);
+    expect(phoneSlotHeight({ ...slotLines(running, en, ctx({ phone: true })), style: "terms" })).toBe(0);
+  });
+});
+
+describe("the sent challenge on a phone (SC-007)", () => {
+  it("leads with the name and countdown; `challenge sent` moves to line 2", () => {
+    const outgoing = { inviteId: "i", to: KARI, status: "pending" as const, createdAt: at(-8_000), expiresAt: at(52_000), respondedAt: null, matchId: null };
+    const slot: SlotState = { kind: "sent", outgoing, held: null };
+    expect(slotLines(slot, en, ctx({ phone: true }))).toMatchObject({ line1: "Kári · 0:52", line2: "challenge sent · keep this screen open" });
+    expect(slotLines(slot, is, ctx({ phone: true }))).toMatchObject({ line1: "Kári · 0:52", line2: "áskorun send · haltu skjánum opnum" });
   });
 });

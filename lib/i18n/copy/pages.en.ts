@@ -107,7 +107,8 @@ export const pagesEn = {
   sentLine1: (name: string, leftMmSs: string): string => `Challenge sent · ${name} · ${leftMmSs}`,
   sentLine2: (words: string, moves: number, win: number, loss: number): string =>
     `${words} · ${moves} moves each · win ${signed(win)} · loss ${signed(loss)}`,
-  sentPhone: (name: string, leftMmSs: string): string => `challenge sent · ${name} · ${leftMmSs}`,
+  sentPhone: (name: string, leftMmSs: string): string => `${name} · ${leftMmSs}`,
+  SENT_PHONE_LINE2: "challenge sent · keep this screen open",
   WITHDRAW: "withdraw ▸",
   OUTCOMES: {
     accepted: "accepted",
@@ -128,6 +129,7 @@ export const pagesEn = {
   TABLE_LINE2: "opponent found",
   BACK_TO_MATCH: "back to the match ▸",
   overLine1: (verdict: string): string => `Your match is over · ${verdict}`,
+  OVER_PHONE: "your match is over",
   switchLine1: (languageName: string): string => `you are in the ${languageName} lobby`,
   SWITCH_CONSEQUENCE: {
     search: "switching cancels your search",

@@ -5,6 +5,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { LineSlot } from "@/components/page/LineSlot";
 import type { SignOutState } from "@/components/page/PageMenu";
+import { phoneSlotHeight } from "@/lib/pages/slotLines";
 
 import { SearchRunner } from "./SearchRunner";
 import { useStandingMachine, type StandingMachine } from "./useStandingMachine";
@@ -35,8 +36,6 @@ const EMPTY: StandingSlotApi = { otherLobbyHere: null, slot: null, bottomSlot: n
 
 const StandingContext = createContext<StandingSlotApi>(EMPTY);
 
-/** Pixels the phone bottom slot takes, by style; fixtures reserve the same. */
-export const BOTTOM_HEIGHT = { call: 104, status: 64, terms: 0 } as const;
 
 function signOutState(machine: StandingMachine, copy: ReturnType<typeof useCopy>): SignOutState {
   const { facts, slot } = machine;
@@ -68,7 +67,7 @@ export function StandingProvider({ children }: { children: ReactNode }) {
     otherLobbyHere: facts?.counts.otherHere ?? null,
     slot: <LineSlot model={model} onAction={machine.onAction} announcement={machine.announcement} counts={counts} variant="desktop" />,
     bottomSlot: model.style === "terms" ? null : <LineSlot model={model} onAction={machine.onAction} announcement="" variant="phone" />,
-    bottomHeight: BOTTOM_HEIGHT[model.style],
+    bottomHeight: phoneSlotHeight(model),
     signOut: signOutState(machine, copy),
     menuExtra: <NotificationsItem machine={machine} />,
     skipLabel: slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : null,

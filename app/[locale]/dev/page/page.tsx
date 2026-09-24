@@ -10,12 +10,12 @@ import { PageFixture } from "./PageFixture";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ phase?: string }>;
+  searchParams: Promise<{ phase?: string; long?: string }>;
 }
 
 export default async function PageFixturePage({ searchParams }: PageProps) {
   if (process.env.NODE_ENV === "production" && !process.env.ROOM_FIXTURES) notFound();
-  const { phase } = await searchParams;
+  const { phase, long } = await searchParams;
   if (!isPagePhase(phase)) notFound();
-  return <PageFixture phase={phase} />;
+  return <PageFixture phase={phase} long={long === "1"} />;
 }
