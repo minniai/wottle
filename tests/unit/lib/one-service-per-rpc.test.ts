@@ -14,6 +14,8 @@ const DOORS: Record<string, string[]> = {
   "lib/lobby/sweepLobby.ts": ["settle_gone_players"],
   "lib/matchmaking/headToHead.ts": ["head_to_head"],
   "lib/match/unseenResult.ts": ["mark_unseen_result", "clear_unseen_result"],
+  // Spec 071: accept_rematch stays with the other creation functions in lib/match/createMatch.ts.
+  "lib/match/rematchService.ts": ["request_rematch", "decline_rematch", "withdraw_rematch", "expire_due_rematches", "pair_cooldown_until", "player_on_match", "rematch_series"],
 };
 
 function sources(dir: string): string[] {
