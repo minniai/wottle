@@ -37,6 +37,8 @@ describe("cursorLines (spec 071 FR-037)", () => {
   it("says a miss and a refusal", () => {
     expect(cursorLines(all[2], NAMES, copyEn)).toEqual({ line1: "move 2 · Kári · no word −5", line2: "Birna leads 33–7" });
     expect(cursorLines(all[3], NAMES, copyEn)).toEqual({ line1: "move 3 · Kári · refused", line2: "refused · frozen" });
+    // A miss floored at 0 costs nothing and says no number.
+    expect(cursorLines({ ...all[2], points: 0 }, NAMES, copyEn).line1).toBe("move 2 · Kári · no word");
     expect(cursorLines(all[3], NAMES, copyIs).line2).toBe("hafnað · frosinn");
   });
 

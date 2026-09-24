@@ -16,7 +16,8 @@ function firstLine(step: ReviewStep, names: ReviewNames, copy: Copy): string {
   if (step.kind === "closing") return `${closingWord(step, copy)} · ${review.notPlayed(signed(closingPoints(step)))}`;
   const head = review.move(step.moveNumber ?? 0, moverName(step, names));
   if (step.kind === "refused") return `${head} · ${review.REFUSED}`;
-  if (!step.words.length) return `${head} · ${review.NO_WORD} ${signed(step.points)}`;
+  // A miss floored at 0 costs nothing, so it says no number (spec 068: a floored 0 is muted).
+  if (!step.words.length) return step.points === 0 ? `${head} · ${review.NO_WORD}` : `${head} · ${review.NO_WORD} ${signed(step.points)}`;
   return `${head} · ${wordsOf(step, " · ")} ${signed(step.points)}`;
 }
 

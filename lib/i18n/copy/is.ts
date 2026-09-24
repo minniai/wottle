@@ -282,6 +282,7 @@ export const copyIs = {
     clockAt: (n: number): string => `klukkan við skref ${n}`,
     CLOCK_THEN: "klukkan þá",
     atStep: (moves: number, limit: number, n: number): string => `${moves} af ${limit} við skref ${n}`,
+    movesOf: (moves: number, limit: number): string => `${moves} af ${limit}`,
     move: (n: number, name: string): string => `leikur ${n} · ${name}`,
     NO_WORD: "ekkert orð",
     REFUSED: "hafnað",

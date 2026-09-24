@@ -701,6 +701,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         },
         onStep: review.go,
         onTogglePlay: review.togglePlay,
+        finalMoves: { you: youFacts.movesPlayed, opp: oppFacts.movesPlayed },
       }
     : undefined;
 

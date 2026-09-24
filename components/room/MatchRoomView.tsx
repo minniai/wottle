@@ -45,6 +45,8 @@ export interface MatchRoomReview {
   ledger: LedgerReview;
   onStep: (step: number) => void;
   onTogglePlay: () => void;
+  /** The ledger shows the whole match; only the scoreboard stands at the step. */
+  finalMoves: { you: number; opp: number };
 }
 
 export interface MatchRoomViewProps {
@@ -112,7 +114,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
   const reducedMotion = useReducedMotion();
   const youScore = useCountUp(you.score, reducedMotion);
   const oppScore = useCountUp(opp.score, reducedMotion);
-  const movesPlayed = useMemo(() => ({ you: you.movesPlayed, opp: opp.movesPlayed }), [you.movesPlayed, opp.movesPlayed]);
+  const finalMoves = props.review?.finalMoves;
+  const movesPlayed = useMemo(() => finalMoves ?? { you: you.movesPlayed, opp: opp.movesPlayed }, [finalMoves, you.movesPlayed, opp.movesPlayed]);
 
   const model = useMemo(() => {
     const base = buildMatchLedger({
