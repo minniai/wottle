@@ -62,13 +62,14 @@ function SignOut() {
       router.replace(to("/"));
       router.refresh();
     });
-  const disabled = Boolean(signOut.disabledReason) || refused;
+  // Spec 067: during a live match sign-out is not offered here at all; the reason stands in its place.
+  if (signOut.disabledReason || refused) return <p className="page-label profile-sign-out">{signOut.disabledReason ?? copy.pages.FINISH_FIRST}</p>;
   return (
     <div className="profile-sign-out">
-      <button type="button" className="page-link page-link--ink" onClick={leave} disabled={disabled} data-testid="profile-sign-out">
+      <button type="button" className="page-link page-link--ink" onClick={leave} data-testid="profile-sign-out">
         {copy.SIGN_OUT}
       </button>
-      {signOut.disabledReason || refused ? <span className="page-label">{signOut.disabledReason ?? copy.pages.FINISH_FIRST}</span> : signOut.consequence ? <span className="page-label">{signOut.consequence}</span> : null}
+      {signOut.consequence ? <span className="page-label">{signOut.consequence}</span> : null}
     </div>
   );
 }
