@@ -32,15 +32,24 @@ import { buildTerritory } from "@/lib/room/ledgerRows";
 import { penalisesUnplayed } from "@/lib/match/endedReasons";
 import { ledgerCallLine } from "@/lib/room/ledgerCallLine";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
-import { deriveRematchView } from "@/lib/room/rematchView";
+import { deriveRematchView, type RematchView } from "@/lib/room/rematchView";
 import { seriesLine } from "@/lib/room/series";
+import { useMatchReview } from "./hooks/useMatchReview";
+import { ReviewControls } from "./ReviewControls";
+import type { MatchRoomReview } from "./MatchRoomView";
+import { cursorLines } from "@/lib/review/cursorLines";
+import { ledgerCellStates } from "@/lib/review/ledgerCells";
+import { scrubberValueText } from "@/lib/review/scrubber";
+import { wordsAtStep } from "@/lib/review/wordsAtStep";
+import type { ReviewStep } from "@/lib/types/review";
+
 import { useRematchCall } from "./hooks/useRematchCall";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import type { Coordinate } from "@/lib/types/board";
-import type { MatchPlayerProfiles, MatchState, MoveRejectionReason, MoveResolution, PlayerSlot } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, MoveRejectionReason, MoveResolution, PlayerSlot, RematchOffer } from "@/lib/types/match";
 import { boardOrBlank } from "@/lib/constants/board";
 import { Field } from "./Field";
 import { useStandingSlot } from "@/components/standing/StandingProvider";
@@ -191,16 +200,20 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const inProgress = match.state === "in_progress";
   const wordmark = copy.WORDMARK;
   useEffect(() => () => void (document.title = wordmark), [wordmark]);
-  const frozenTiles = match.frozenTiles;
+  // Spec 071 (US3): review is `?review=n` on this page; the step drives the field, scoreboard and ledger.
+  const review = useMatchReview({ matchId, completed, live: match.state === "in_progress" || match.state === "pending" });
+  const reviewStep = review.reviewing ? review.step : null;
+  const frozenTiles = reviewStep?.frozen ?? match.frozenTiles;
   // Each player's last swap, ticked in their colour until its letters freeze (spec 068 FR-027).
   const lastResolved = useRoomStore((s) => s.lastResolved);
-  const ticks = useMemo(() => {
+  const liveTicks = useMemo(() => {
     const cells = lastMoves({ you: lastResolved[youFacts.playerId] ?? null, opp: lastResolved[oppFacts.playerId] ?? null }, frozenTiles);
     return [
       ...cells.you.map((at) => ({ at, seat: "you" as const, name: you.displayName })),
       ...cells.opp.map((at) => ({ at, seat: "opp" as const, name: opp.displayName })),
     ];
   }, [lastResolved, youFacts.playerId, oppFacts.playerId, frozenTiles, you.displayName, opp.displayName]);
+  const ticks = reviewStep ? reviewTicks(reviewStep, viewerSlot, { you: you.displayName, opp: opp.displayName }) : liveTicks;
   const frozenKeys = useMemo(() => new Set(Object.keys(frozenTiles)), [frozenTiles]);
   const ownerNames = useMemo(() => ({ player_a: playerProfiles.playerA.displayName, player_b: playerProfiles.playerB.displayName }), [playerProfiles]);
 
@@ -366,14 +379,21 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     fieldDispatch.current = field.dispatch;
   }, [field.dispatch]);
 
-  const displayBoard = useMemo(() => applyLetterSwaps(board, [field.ownPins]), [board, field.ownPins]);
+  const displayBoard = useMemo(() => reviewStep?.board ?? applyLetterSwaps(board, [field.ownPins]), [reviewStep, board, field.ownPins]);
+  // Spec 071 (FR-038): stepping forward by one exchanges the step's letters; back or a jump is instant.
+  const reviewExchange: [Coordinate, Coordinate] | null = reviewStep?.swap && review.previous ? [reviewStep.swap.from, reviewStep.swap.to] : null;
 
+  const reviewWords = useMemo(() => (reviewStep && review.steps ? wordsAtStep(review.steps, reviewStep.index) : null), [reviewStep, review.steps]);
   const bands = useMemo(() => {
+    if (reviewStep && reviewWords) {
+      const live = reviewWords.liveMoveKey;
+      return bandsFromWords({ words: reviewWords.words, board: reviewStep.board, frozenTiles: reviewStep.frozen, viewerSlot, playerAId: match.players.playerA.playerId, liveMoveKey: live, trustMoveKey: live });
+    }
     const all = bandsFromWords({ words, board, frozenTiles, viewerSlot, playerAId: match.players.playerA.playerId, liveMoveKey: revealing ? reveal.moveKey : null, trustMoveKey: reveal.moveKey });
     // New bands of the running reveal go last so `drawnCount` can gate them.
     const fresh = new Set(newIds);
     return [...all.filter((b) => !fresh.has(b.id)), ...all.filter((b) => fresh.has(b.id))];
-  }, [words, board, frozenTiles, viewerSlot, match.players.playerA.playerId, revealing, reveal.moveKey, newIds]);
+  }, [words, board, frozenTiles, viewerSlot, match.players.playerA.playerId, revealing, reveal.moveKey, newIds, reviewStep, reviewWords]);
   const drawnCount = revealing ? bands.length - newIds.length + Math.min(progress.bandsDrawn, newIds.length) : null;
   const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightMove, setHighlightMove] = useState<number | null>(null);
@@ -504,6 +524,13 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const slipDismissed = useRoomStore((s) => s.slipDismissed);
   const dismissSlip = useRoomStore((s) => s.dismissSlip);
   const restoreSlip = useRoomStore((s) => s.restoreSlip);
+  // Spec 071 (FR-030): review keeps the slip down; Back out of review brings the result back up.
+  const wasReviewing = useRef(false);
+  useEffect(() => {
+    if (review.reviewing) dismissSlip();
+    else if (wasReviewing.current) restoreSlip();
+    wasReviewing.current = review.reviewing;
+  }, [review.reviewing, dismissSlip, restoreSlip]);
   // Spec 071 (D2): the rematch as this viewer sees it, drawn from the server's offer each second.
   const rematchNow = useNowTick(completed && !readOnly && rematch.offer !== null);
   const rematchView = completed && !readOnly && rematch.offer ? deriveRematchView({ offer: rematch.offer, viewerId: currentPlayerId, opponentName: opp.displayName, nowMs: rematchNow }, copy) : null;
@@ -554,11 +581,18 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
       else if (action === "withdrawRematch") void rematch.withdraw();
-      else if (action === "reviewField") dismissSlip();
+      else if (action === "reviewField") {
+        dismissSlip();
+        review.enter();
+      }
+      else if (action === "liftSlip") dismissSlip();
       // B6: a third party's call answered from the result screen goes through the standing machine.
       else if (action === "acceptCall") standing?.onAction("accept");
       else if (action === "declineCall") standing?.onAction("decline");
-      else if (action === "result" && !voided) restoreSlip();
+      else if (action === "result" && !voided) {
+        if (review.reviewing) review.leave();
+        restoreSlip();
+      }
       else if (action === "newOpponent") {
         // Spec 071 (T42): a pending request is withdrawn, or answered `started another match`.
         if (rematch.offer?.request?.status === "pending") void rematch.withdraw();
@@ -625,7 +659,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, raiseLeave, liveGuard, oppFacts.playerId, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, review, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, raiseLeave, liveGuard, oppFacts.playerId, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
@@ -647,13 +681,34 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   ];
   void dismiss;
 
+  // Spec 071 (US3): the review's scoreboard row, ledger and controls, from the step.
+  const names = { a: playerProfiles.playerA.displayName, b: playerProfiles.playerB.displayName };
+  const atStep = reviewStep ? seatsAtStep(reviewStep, viewerSlot) : null;
+  const stepCount = review.steps?.length ?? 1;
+  const reviewProps: MatchRoomReview | undefined = reviewStep && review.steps
+    ? {
+        scoreboard: { step: reviewStep.index, stepCount, clockMs: reviewStep.clockMs, valueText: scrubberValueText(reviewStep, stepCount, names, copy) },
+        ledger: {
+          viewerSlot,
+          current: reviewStep.slot && reviewStep.moveNumber !== null && reviewStep.kind === "move" ? { slot: reviewStep.slot, move: reviewStep.moveNumber } : null,
+          cursor: cursorLines(reviewStep, names, copy),
+          states: ledgerCellStates(review.steps, reviewStep.index),
+          names,
+          controls: <ReviewControls step={reviewStep.index} stepCount={stepCount} playing={review.playing} onControl={review.control} />,
+          onJump: review.jump,
+        },
+        onStep: review.go,
+        onTogglePlay: review.togglePlay,
+      }
+    : undefined;
+
   return (
     <>
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut }}
+        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: atStep?.you.moves ?? youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: atStep?.you.score ?? youScore }}
+        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: atStep?.opp.moves ?? oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: atStep?.opp.score ?? oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
         msToStart={Math.max(0, msToStart)}
@@ -662,11 +717,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         series={match.series ? seriesLine(match.series, { playerA: viewerSlot === "player_a" ? you.displayName : opp.displayName, playerB: viewerSlot === "player_a" ? opp.displayName : you.displayName }, copy) : null}
         moveLimit={match.moveLimit}
         completed={completed}
-        caption={completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
+        caption={reviewStep ? copy.review.caption(formatClock(durationMs)) : completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
+        review={reviewProps}
         verdict={verdict ?? undefined}
         readOnly={readOnly}
         footActions={
-          completed && !readOnly ? (
+          reviewStep && !readOnly ? (
+            <ReviewFoot offer={rematch.offer} view={rematchView} onAction={handleAction} />
+          ) : completed && !readOnly ? (
             <>
               {slipDismissed ? (
                 <button type="button" className="action-secondary" data-testid="ledger-result" onClick={() => handleAction("result")}>
@@ -705,19 +763,19 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
           ticks={ticks}
-          disabled={completed || readOnly || !canPick || transport.offline}
+          disabled={completed || readOnly || !canPick || transport.offline || Boolean(reviewStep)}
           turnFrame={completed || readOnly || transport.offline ? null : turnFrameFor(moveState)}
           bands={bands}
           highlightMove={highlightMove}
-          drawnCount={drawnCount}
-          drawingIndex={drawingIndex}
+          drawnCount={reviewStep ? null : drawnCount}
+          drawingIndex={reviewStep ? null : drawingIndex}
           cellStateFor={field.cellStateFor}
           seatFor={field.seatFor}
           shakeAt={field.shakeAt}
           focusAt={field.focusAt}
           onActivate={(at) => field.dispatch({ type: "tap", at })}
           onDrag={(from, to) => field.dispatch({ type: "drag", from, to })}
-          exchange={field.ownPins}
+          exchange={reviewStep ? reviewExchange : field.ownPins}
           onKeyDown={field.onKeyDown}
         />
       </MatchRoomView>
@@ -743,4 +801,44 @@ function clockAtEnd(match: MatchState): string | null {
   const { deadlineAt } = match.clock;
   if (!deadlineAt || !match.completedAt) return null;
   return formatClock(Math.max(0, Date.parse(deadlineAt) - Date.parse(match.completedAt)));
+}
+
+/** Spec 071: each seat's total and moves at a review step. */
+function seatsAtStep(step: ReviewStep, viewerSlot: PlayerSlot): { you: { score: number; moves: number }; opp: { score: number; moves: number } } {
+  const a = { score: step.totals.a, moves: step.movesPlayed.a };
+  const b = { score: step.totals.b, moves: step.movesPlayed.b };
+  return viewerSlot === "player_a" ? { you: a, opp: b } : { you: b, opp: a };
+}
+
+/** Spec 071 (FR-032): the step's swap carries the last-moved tick, in the mover's colour. */
+function reviewTicks(step: ReviewStep, viewerSlot: PlayerSlot, names: { you: string; opp: string }): { at: Coordinate; seat: "you" | "opp"; name: string }[] {
+  if (!step.swap || !step.slot) return [];
+  const seat = step.slot === viewerSlot ? "you" : "opp";
+  return [step.swap.from, step.swap.to].map((at) => ({ at, seat, name: names[seat] }));
+}
+
+/**
+ * Spec 071 (FR-039): the review's foot. `◂ result`, then the one primary by availability: the
+ * rematch while it is offered, else challenge again when they are here, else a new opponent.
+ */
+function ReviewFoot({ offer, view, onAction }: { offer: RematchOffer | null; view: RematchView | null; onAction: (a: LedgerAction) => void }) {
+  const copy = useCopy();
+  const primary = reviewPrimary(offer, view);
+  const labels = { rematch: copy.REMATCH, challengeAgain: copy.table.CHALLENGE_AGAIN, newOpponent: copy.NEW_OPPONENT } as const;
+  return (
+    <>
+      <button type="button" className="action-secondary" data-testid="review-result" onClick={() => onAction("result")}>
+        ◂ {copy.RESULT.replace(/ ▸$/, "")}
+      </button>
+      <button type="button" className="action-primary" data-testid={`review-primary-${primary}`} onClick={() => onAction(primary)}>
+        {labels[primary]}
+      </button>
+    </>
+  );
+}
+
+function reviewPrimary(offer: RematchOffer | null, view: RematchView | null): "rematch" | "challengeAgain" | "newOpponent" {
+  if (offer?.offered) return "rematch";
+  if (view?.kind === "closed" && view.challengeAgain?.enabled) return "challengeAgain";
+  return "newOpponent";
 }

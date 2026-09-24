@@ -29,7 +29,7 @@ function cancelActionFor(slip: SlipState): LedgerAction | null {
     case "endEarly":
       return "keepWaiting";
     case "matchOver":
-      return "reviewField";
+      return "liftSlip";
     default:
       return null;
   }

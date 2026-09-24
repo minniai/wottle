@@ -96,6 +96,8 @@ export type LedgerAction =
   | "stay"
   | "goToLobby"
   | "reviewField"
+  /** Spec 071: Esc lifts the result's slip without entering review. */
+  | "liftSlip"
   | "result"
   | "howToPlay"
   | "findOpponent"
