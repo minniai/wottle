@@ -279,10 +279,12 @@ function FirstRow({ slip, onAction }: { slip: MatchOverSlip; onAction: Act }) {
  * row 2 what else. While a request is out, new opponent ▸ moves down beside the lobby. The game
  * raised the slip, so nothing is focused but its headline.
  */
-function MatchOverActions({ slip, onAction }: { slip: MatchOverSlip; onAction: Act }) {
+function MatchOverActions({ slip, onAction, compact }: { slip: MatchOverSlip; onAction: Act; compact: boolean }) {
   const { LOBBY, NEW_OPPONENT, REVIEW_FIELD } = useCopy();
   if (slip.readOnly) return <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} />;
   const negotiating = slip.rematch?.kind === "sent" || slip.rematch?.kind === "incoming";
+  // F4: on a phone the negotiation takes action row 2's place; the lobby stays in the pinned foot.
+  if (compact && negotiating) return <FirstRow slip={slip} onAction={onAction} />;
   return (
     <>
       <FirstRow slip={slip} onAction={onAction} />
@@ -326,7 +328,7 @@ function MatchOverBody({ slip, onAction, headlineId, headlineRef, compact }: Mat
           <span data-seat={first}>{points(slip.scores[first])}</span> – <span data-seat={second}>{points(slip.scores[second])}</span>
         </span>
         <span className="slip__label" data-testid="slip-detail">{detailOf(slip.verdict, compact)}</span>
-        {slip.bestWord ? <span className="slip__label" data-testid="slip-best-word">{bestWordLine(slip.bestWord.word, slip.bestWord.points)}</span> : null}
+        {slip.bestWord ? <span className="slip__label slip__best-word" data-testid="slip-best-word">{bestWordLine(slip.bestWord.word, slip.bestWord.points)}</span> : null}
       </div>
       <div className="slip__rule" />
       <div className="slip__ratings" data-testid="slip-ratings">
@@ -339,7 +341,7 @@ function MatchOverBody({ slip, onAction, headlineId, headlineRef, compact }: Mat
         ))}
       </div>
       <div className="slip__rule" />
-      <MatchOverActions slip={slip} onAction={onAction} />
+      <MatchOverActions slip={slip} onAction={onAction} compact={compact} />
     </>
   );
 }

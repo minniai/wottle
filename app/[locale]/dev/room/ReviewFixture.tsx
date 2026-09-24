@@ -81,6 +81,7 @@ export function ReviewFixture({ phase }: { phase: ReviewPhase }) {
             states: ledgerCellStates(steps, step.index),
             names: NAMES,
             controls: <ReviewControls step={step.index} stepCount={steps.length} playing={false} onControl={NO_OP} />,
+            phoneControls: <ReviewControls step={step.index} stepCount={steps.length} playing={false} onControl={NO_OP} compact />,
             onJump: NO_OP,
           },
           onStep: NO_OP,

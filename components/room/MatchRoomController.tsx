@@ -697,6 +697,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           states: ledgerCellStates(review.steps, reviewStep.index),
           names,
           controls: <ReviewControls step={reviewStep.index} stepCount={stepCount} playing={review.playing} onControl={review.control} />,
+          phoneControls: <ReviewControls step={reviewStep.index} stepCount={stepCount} playing={review.playing} onControl={review.control} compact />,
           onJump: review.jump,
         },
         onStep: review.go,
