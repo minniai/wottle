@@ -17,7 +17,7 @@ const OVER: Extract<SlipState, { kind: "matchOver" }> = {
     { seat: "opp", name: "Kári", line: "1187 → 1199 · +12" },
     { seat: "you", name: "Birna · you", line: "1204 → 1192 · −12" },
   ],
-  rematch: "idle",
+  rematch: null,
   readOnly: false,
 };
 
@@ -94,13 +94,56 @@ describe("Slip · match over (spec 048 US1)", () => {
     expect(screen.getByTestId("slip")).not.toHaveTextContent("· resigned");
   });
 
-  it("an incoming rematch rewrites the action line; waiting says so; read-only offers lobby only", () => {
-    const { rerender } = render(<Slip slip={{ ...OVER, rematch: "incoming" }} onAction={() => {}} />);
-    expect(screen.getByTestId("slip-rematch-incoming")).toHaveTextContent("Kári asks for a rematch");
-    expect(screen.getByTestId("slip-accept-rematch")).toBeInTheDocument();
-    rerender(<Slip slip={{ ...OVER, rematch: "waiting" }} onAction={() => {}} />);
-    expect(screen.getByTestId("slip-rematch-waiting")).toHaveTextContent("waiting for Kári");
-    rerender(<Slip slip={{ ...OVER, readOnly: true }} onAction={() => {}} />);
+  describe("the rematch negotiation (spec 071 D2)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("a sent request replaces row 1 with its countdown, a drain and cancel ▸; the other actions stay", () => {
+      const onAction = vi.fn();
+      render(<Slip slip={{ ...OVER, rematch: { kind: "sent", line: "rematch sent · 0:24", secondsLeft: 24, drain: 0.8 } }} onAction={onAction} />);
+      const row = screen.getByTestId("slip-rematch-line");
+      expect(row).toHaveTextContent("rematch sent · 0:24");
+      expect(screen.getByTestId("slip-rematch-drain")).toHaveStyle({ transform: "scaleX(0.8)" });
+      expect(screen.queryByTestId("slip-rematch")).toBeNull();
+      for (const id of ["slip-new-opponent", "slip-lobby", "slip-review-field"]) expect(screen.getByTestId(id)).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(500));
+      fireEvent.click(screen.getByTestId("slip-withdraw-rematch"));
+      expect(onAction).toHaveBeenCalledWith("withdrawRematch");
+    });
+
+    it("an incoming request offers accept ▸ as primary, unfocused and guarded, and decline", () => {
+      const onAction = vi.fn();
+      render(<Slip slip={{ ...OVER, rematch: { kind: "incoming", line: "Kári asks for a rematch · 0:24", secondsLeft: 24, drain: 0.8 } }} onAction={onAction} />);
+      expect(screen.getByTestId("slip-rematch-line")).toHaveTextContent("Kári asks for a rematch · 0:24");
+      expect(screen.getByTestId("slip-rematch-line")).not.toHaveTextContent("accept ▸ · decline");
+      const accept = screen.getByTestId("slip-accept-rematch");
+      expect(document.activeElement).not.toBe(accept);
+      fireEvent.click(accept);
+      expect(onAction).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(500));
+      fireEvent.click(accept);
+      fireEvent.click(screen.getByTestId("slip-decline-rematch"));
+      expect(onAction.mock.calls.map((c) => c[0])).toEqual(["acceptRematch", "declineRematch"]);
+    });
+
+    it("once closed, new opponent ▸ leads and challenge again ▸ waits out the cooldown", () => {
+      const { rerender } = render(<Slip slip={{ ...OVER, rematch: { kind: "closed", line: "Kári declined", challengeAgain: { enabled: false, label: "again in 0:52" } } }} onAction={() => {}} />);
+      expect(screen.getByTestId("slip-rematch-line")).toHaveTextContent("Kári declined");
+      expect(screen.queryByTestId("slip-rematch")).toBeNull();
+      expect(screen.getByTestId("slip-new-opponent")).toHaveClass("action-primary");
+      expect(screen.getByTestId("slip-challenge-again")).toBeDisabled();
+      expect(screen.getByTestId("slip-challenge-again")).toHaveTextContent("again in 0:52");
+      rerender(<Slip slip={{ ...OVER, rematch: { kind: "closed", line: null, challengeAgain: null } }} onAction={() => {}} />);
+      expect(screen.queryByTestId("slip-challenge-again")).toBeNull();
+    });
+  });
+
+  it("read-only offers the lobby only", () => {
+    render(<Slip slip={{ ...OVER, readOnly: true }} onAction={() => {}} />);
     expect(screen.queryByTestId("slip-rematch")).toBeNull();
     expect(screen.getByTestId("slip-lobby")).toBeInTheDocument();
   });

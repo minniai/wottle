@@ -16,7 +16,7 @@ const OVER: SlipState = {
   viewerName: "Birna",
   opponentName: "Kári",
   ratings: [],
-  rematch: "idle",
+  rematch: null,
   readOnly: false,
 };
 

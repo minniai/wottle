@@ -19,7 +19,7 @@ const OVER: SlipState = {
     { seat: "opp", name: "Kári", line: "1187 → 1199 · +12" },
     { seat: "you", name: "Birna · you", line: "1204 → 1192 · −12" },
   ],
-  rematch: "idle",
+  rematch: null,
   readOnly: false,
 };
 

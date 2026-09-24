@@ -46,4 +46,17 @@ describe("the call line on a phone", () => {
     expect(screen.getAllByTestId("ledger-notice")).toHaveLength(1);
     expect(screen.getByTestId("ledger-call-accept")).toBeVisible();
   });
+
+  it("an incoming rematch is the first line, with its drain, accept ▸ and decline (spec 071 T41)", () => {
+    const onAction = vi.fn();
+    const rematch = { kind: "rematch" as const, text: "Kári asks for a rematch · 0:24", drain: 0.8 };
+    expect(ledgerCallLine(rematch, CALL, copyEn)).toBe(rematch);
+    render(<Ledger variant="final" model={finalModel} viewerName="Birna" opponentName="Kári" notices={[rematch]} onAction={onAction} />);
+    const line = screen.getByTestId("ledger-notice");
+    expect(line).toHaveAttribute("data-kind", "rematch");
+    expect(line).toHaveTextContent("Kári asks for a rematch · 0:24");
+    fireEvent.click(within(line).getByRole("button", { name: /accept/ }));
+    fireEvent.click(within(line).getByRole("button", { name: /decline/ }));
+    expect(onAction.mock.calls.map((c) => c[0])).toEqual(["acceptRematch", "declineRematch"]);
+  });
 });
