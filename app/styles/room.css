@@ -1705,15 +1705,13 @@
   outline-offset: 2px;
 }
 .review-scrubber__bar {
-  position: relative;
-  display: block;
+  display: flex;
   width: 100%;
   height: 10px;
   background: var(--rule);
 }
 .review-scrubber__fill {
-  position: absolute;
-  inset: 0;
+  flex: 1;
   background: var(--ink);
   transform: scaleX(var(--fraction));
   transform-origin: left center;
