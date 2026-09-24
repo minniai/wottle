@@ -24,7 +24,7 @@ This stage fixes identity and match creation on the server, and adds the two doo
 - Q: When a browser holding Birna's claim enters a different, unclaimed name, what happens to Birna's claim? → A: The device key stays and also claims the new name; the browser can enter as either, and the returning door shows the most recently used name.
 - Q: Should an old unsigned cookie be honoured once at release so its browser can claim its name? → A: No grace. Old cookies count as no session; each player types their name once to claim it; release when no match is in progress.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - My session cannot be forged (Priority: P1)
 
@@ -129,7 +129,7 @@ However a match comes about — the queue pairs two players, a challenge is acce
 - Rate limits on sign-in still apply; `too many tries · wait a minute` precedes `name taken` when both would apply.
 - A crossed challenge where one of the two is not free: no match; the new challenge is refused as usual.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -178,7 +178,7 @@ However a match comes about — the queue pairs two players, a challenge is acce
 - **Match**: gains its origin and a reference to the challenge, rematch request, queue pairing or link that caused it.
 - **Challenge / rematch request**: statuses widen with `withdrawn` and `superseded`.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

@@ -26,7 +26,7 @@ This stage makes the door and the lobby **pages**: places with no field, on the 
 - Q: How many here-now rows does the door show? → A: At most 8, then a plain count `+ 22 fleiri` / `+ 22 more` (not a link), on desktop and phone.
 - Q: Which arrivals does `tell me when someone is here ▸` notify, and for how long? → A: Once. The first player to arrive notifies (`Embla is here` / `Embla er hér`: the cue, and an OS notification if the tab is hidden and permission is granted), then the opt-in ends. Pressing it again in a later empty lobby turns it back on.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - The door (Priority: P1)
 
@@ -34,7 +34,7 @@ A visitor arrives at `/` (Orðusta) or `/en` (Wottle) signed out. They see the g
 
 **Why this priority**: This is every new player's first screen. Today it is an empty grid under a form.
 
-**Independent Test**: Open `/` and `/en` in a fresh browser. Each shows its lockup, headline, lede, name field, `inn í lobbíið ▸` / `enter the lobby ▸` and the here-now list. Entering a free name lands in the lobby at the same URL.
+**Independent Test**: Open `/` and `/en` in a fresh browser. Each shows its lockup, headline, lede, name field, `lobbíið ▸` / `enter the lobby ▸` and the here-now list. Entering a free name lands in the lobby at the same URL.
 
 **Acceptance Scenarios**:
 
@@ -148,13 +148,13 @@ Birna presses `challenge ▸` on Embla's row. The row opens in place and states 
    - On a phone the bottom slot shows `áskorun send · Embla · 0:52` with `draga til baka ▸` and `haltu skjánum opnum` / `keep this screen open`, and the screen is kept awake.
 4. **Given** a challenge is out, **When** it ends, **Then** for 4s both the row's status cell and the line slot show the outcome in mono ink, and it is announced politely, name first (`Embla · declined`). The outcomes are:
 
-   | Outcome | EN | IS |
-   |---|---|---|
-   | declined | `declined` | `hafnaði` |
-   | 60s without an answer | `no answer` | `svaraði ekki` |
-   | the recipient was paired or accepted another | `started another match` | `hóf aðra viðureign` |
-   | the sender or recipient is gone (§7.1) | `left the lobby` | `fór úr lobbíinu` |
-   | withdrawn (withdraw ▸, a new challenge, a search, an accept, a lobby switch, sign-out) | `withdrawn` | `dregin til baka` |
+   | Outcome                                                                                | EN                      | IS                   |
+   | -------------------------------------------------------------------------------------- | ----------------------- | -------------------- |
+   | declined                                                                               | `declined`              | `hafnaði`            |
+   | 60s without an answer                                                                  | `no answer`             | `svaraði ekki`       |
+   | the recipient was paired or accepted another                                           | `started another match` | `hóf aðra viðureign` |
+   | the sender or recipient is gone (§7.1)                                                 | `left the lobby`        | `fór úr lobbíinu`    |
+   | withdrawn (withdraw ▸, a new challenge, a search, an accept, a lobby switch, sign-out) | `withdrawn`             | `dregin til baka`    |
 
 5. **Given** a decline, **When** the outcome has shown, **Then** the row's action cell reads `again in 0:52` / `aftur eftir 0:52` until 60s from the decline, then `challenge ▸`. The server refuses a challenge to that player within the cooldown.
 6. **Given** the recipient accepts, **When** the sender learns of it on any page, **Then** the slot and row read `accepted` / `samþykkt` for 400ms and the sender is taken to the table as a new history entry. The sender is seated by the table's input rule (spec 069).
@@ -193,6 +193,7 @@ Kári challenges Birna while she is on her profile. The line slot under the mast
    6. empty.
 
    A second incoming challenge adds `· +1` to line 2 of the first, and takes the slot when the first is answered or expires.
+
 3. **Given** an incoming challenge (B5), **When** the slot renders it (call style), **Then**:
    - It has the `--tint` ground, a 3px ink left rule and a 12px `--opp` square.
    - Line 1 reads `Kári skorar á þig` / `Kári challenges you`.
@@ -212,8 +213,9 @@ Kári challenges Birna while she is on her profile. The line slot under the mast
    - their search and outgoing challenge are withdrawn;
    - their other incoming challenges are answered `started another match`;
    - they go to the table seated, as a new history entry.
-   
+
    If the sender is no longer free, the slot reads `Kári getur ekki spilað núna` / `Kári can't play right now`. If the sender is gone, it reads `Kári hætti · áskorunin fellur niður` / `Kári has left · challenge withdrawn`.
+
 6. **Given** the call, **When** the viewer declines or 60s pass, **Then** the slot returns to its previous content with no sound.
 7. **Given** a player at a table, in the count or in a live match, **When** anyone looks for them, **Then** they show as `in a match`, and no challenge can be sent to them or arrive for them.
 8. **Given** the viewer is in Result (the lifted final state) and a third party challenges them, **When** it arrives (B6), **Then** it is the ledger's first line in live-row style, with a secondary `accept ▸` and `decline`, and never a slip. The first ledger line is reserved for an incoming rematch (stage 5); until then the challenge takes it.
@@ -266,15 +268,16 @@ Kári opens the lobby in two tabs, reads the rules in a third, then closes all t
 1. **Given** a signed-in page in a tab, **When** it runs, **Then** it reports a heartbeat for that tab: every 10s while visible and every 30s while hidden. The heartbeat carries the tab's identity, its visibility, the time of its last input and the player's lobby language. The player's state is the best state across their tabs.
 2. **Given** the states, **When** a player is listed, **Then** their state is:
 
-   | State | EN / IS | Shown when | Challengeable |
-   |---|---|---|---|
-   | here | `here` / `hér` | any tab visible, or hidden under 2:00; not at a table or in a match | yes |
-   | searching | `searching` / `leitar` | searching in this lobby | yes (accepting cancels their search) |
-   | in a match | `in a match · 6 of 10` / `í viðureign · 6 af 10` | a pending or in-progress match | no |
-   | away | `away` / `fjarverandi` | all tabs hidden for 2:00 or more | no |
-   | gone | (dropped) | no heartbeat for 3 missed beats of the last cadence (35s visible, 95s hidden), or a leaving beacon with no new load within 8s | no |
+   | State      | EN / IS                                          | Shown when                                                                                                                    | Challengeable                        |
+   | ---------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+   | here       | `here` / `hér`                                   | any tab visible, or hidden under 2:00; not at a table or in a match                                                           | yes                                  |
+   | searching  | `searching` / `leitar`                           | searching in this lobby                                                                                                       | yes (accepting cancels their search) |
+   | in a match | `in a match · 6 of 10` / `í viðureign · 6 af 10` | a pending or in-progress match                                                                                                | no                                   |
+   | away       | `away` / `fjarverandi`                           | all tabs hidden for 2:00 or more                                                                                              | no                                   |
+   | gone       | (dropped)                                        | no heartbeat for 3 missed beats of the last cadence (35s visible, 95s hidden), or a leaving beacon with no new load within 8s | no                                   |
 
    Presence is always a mono word, never a coloured dot.
+
 3. **Given** a tab closes, **When** the page hides for the last time, **Then** a beacon marks that tab `leaving`. If no heartbeat from the same session arrives within 8s, the tab is gone. A reload, the language switch or closing a second tab therefore changes nothing.
 4. **Given** a player becomes gone, **When** the server learns of it, **Then** their outgoing challenge is answered `left the lobby` and their incoming challenges `left the lobby`, and their search is cancelled.
 5. **Given** a player is in a live match and on a page, **When** their opponent's scoreboard renders, **Then** it reads `stepped out` / `brá sér frá` for as long as the match heartbeat runs from any app page. The player is not counted as disconnected.
@@ -321,8 +324,9 @@ Mid-match, Birna presses Back. A slip asks `Leave the match?`, tells her the clo
    - the body reads `the clock keeps running · you can come back` / `klukkan gengur áfram · þú getur komið aftur` and `each unplayed move costs up to 5 at 0:00` / `hver óleikinn leikur kostar allt að 5 við 0:00`;
    - the primary `STAY ▸` / `VERA ÁFRAM ▸` is focused (a slip the player opens focuses its safe action);
    - the secondary is `go to the lobby` / `fara í lobbíið`.
-   
+
    It ranks below resign and above ready or void. On a phone it fills the field's square (F8).
+
 4. **Given** the leave slip, **When** the viewer presses `stay ▸` or Esc, **Then** the slip lifts and the match is unchanged. **When** they press `go to the lobby`, **Then** they reach the lobby as a new history entry, the match keeps running, and the slot shows it (US4.9).
 5. **Given** a live match, **When** the tab is closed, **Then** the browser's own leave confirmation is shown. `beforeunload` is armed only while the match is live.
 6. **Given** a match completes, **When** the viewer presses Back, **Then** the guard is disarmed and never shows again. One Back from the result reaches the lobby.
@@ -385,7 +389,7 @@ The lobby's counts, the door's count, the masthead switch's count, Birna's last 
 - **Slot overflow:** every fixed slot is sized from its longest string in either language plus 16px, and a test fails on overflow.
 - **Icelandic names in templates:** a name appears only in the nominative and never after eftir, gegn, til, frá, á, við or handa. No gendered word describes a player. A grep test enforces this, including the banned variants in §8 item 13.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -478,7 +482,7 @@ The lobby's counts, the door's count, the masthead switch's count, Birna's last 
 - **Head-to-head record**: for a viewer, an opponent and a language, the counts of wins, losses and draws over completed rated matches between them. It is derived, not stored.
 - **Lobby overview**: counts per lobby, the viewer's last match (with its scored words), and the last ten results.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
