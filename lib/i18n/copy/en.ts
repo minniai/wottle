@@ -125,12 +125,6 @@ const lastMoveOf = (name: string): string => `${name}'s last move`;
 const tabTitle = (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · move ${move} · ${name}`;
 const profileOpensInNewTab = (name: string): string => `${name}, profile opens in a new tab`;
 
-// Notices (live-row styled lines)
-const rematchRequest = (name: string): string =>
-  `${name} asks for a rematch · accept ▸ · decline`;
-const waitingForRematch = (name: string): string => `waiting for ${name}`;
-// Accepting a challenge from someone who is now in another match (spec 067 FR-019)
-const opponentBusy = (name: string): string => `${name} can't play right now`;
 
 // The slip (spec 048, design system §5.9)
 /** Under /en the game plays English (spec 060); Icelandic says `íslensk orð`. */
@@ -216,8 +210,6 @@ const territoryAria = (you: number, opp: number): string => `territory ${you}–
 const CHALLENGES_YOU = "challenges you";
 const IN_A_MATCH = "in a match";
 const territoryLine = (you: number, free: number, opp: number): string => `${you} · ${free} free · ${opp}`;
-const rematchDeclined = (name: string): string => `${name} declined`;
-const REMATCH_EXPIRED = "rematch request expired";
 const REALTIME_LOST = "realtime lost · polling";
 const UNRATED = "unrated";
 const YOUR_MOVES = "your moves";
@@ -467,9 +459,6 @@ export const copyEn = {
   clockMarkLeft,
   lastMoveOf,
   tabTitle,
-  rematchRequest,
-  waitingForRematch,
-  opponentBusy,
   TAGLINE,
   NEW_HERE_HOW_TO_PLAY,
   SIGN_IN_TO_SET_THE_FIELD,
@@ -529,8 +518,6 @@ export const copyEn = {
   CHALLENGES_YOU,
   IN_A_MATCH,
   territoryLine,
-  rematchDeclined,
-  REMATCH_EXPIRED,
   REALTIME_LOST,
   UNRATED,
   YOUR_MOVES,

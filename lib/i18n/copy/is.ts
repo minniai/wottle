@@ -149,10 +149,6 @@ export const copyIs = {
   oppProgress: (moves: number, state: "playing" | "scoring"): string =>
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,
 
-  rematchRequest: (name: string): string =>
-    `${name} vill aðra viðureign · samþykkja ▸ · hafna`,
-  waitingForRematch: (name: string): string => `${name} · beðið svars`, // native-read (spec 070: no name after a preposition)
-  opponentBusy: (name: string): string => `${name} getur ekki spilað núna`,
 
   TAGLINE: "tveir leikmenn · eitt borð · íslensk orð",
   NEW_HERE_HOW_TO_PLAY: "nýr hér · leiðbeiningar ▸",
@@ -222,8 +218,6 @@ export const copyIs = {
   IN_A_MATCH: "í viðureign",
   territoryLine: (you: number, free: number, opp: number): string =>
     `${you} · ${free} lausir · ${opp}`,
-  rematchDeclined: (name: string): string => `${name} afþakkaði`,
-  REMATCH_EXPIRED: "beiðni um aðra viðureign rann út",
   REALTIME_LOST: "rauntenging rofin · spyr reglulega",
   UNRATED: "ekkert Elo",
   YOUR_MOVES: "leikirnir þínir",
