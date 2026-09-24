@@ -1,6 +1,8 @@
 import type { LobbyViewer } from "@/components/page/lobby/YourBlock";
 import type { RecentGameRow } from "@/lib/types/lobby";
-import type { Band, LobbyRow, Overview } from "@/lib/types/standing";
+import type { HeldOutcome } from "@/lib/pages/heldOutcome";
+import type { SlotState } from "@/lib/pages/standingSlot";
+import type { Band, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
 
 /**
  * Page fixtures (spec 070 T017, R17): every state of the door and the lobby,
@@ -8,7 +10,24 @@ import type { Band, LobbyRow, Overview } from "@/lib/types/standing";
  * page twin of `/dev/room`. Each phase names the artboard it reproduces; an
  * `is-` phase renders at the unprefixed (Icelandic) path.
  */
-export const PAGE_PHASES = ["door", "is-door", "door-returning", "lobby", "is-lobby", "lobby-new", "lobby-empty", "composer", "is-composer"] as const;
+export const PAGE_PHASES = [
+  "door",
+  "is-door",
+  "door-returning",
+  "lobby",
+  "is-lobby",
+  "lobby-new",
+  "lobby-empty",
+  "composer",
+  "is-composer",
+  // The line slot's states (US3–US5, US7): a challenge sent, a call, your match, a search, a switch.
+  "challenge-sent",
+  "is-challenge-in",
+  "match-running",
+  "match-over-away",
+  "searching",
+  "switch-confirm",
+] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
 
@@ -135,4 +154,87 @@ export function lobbyNew(): LobbyFixture {
 export function lobbyEmpty(): LobbyFixture {
   const base = lobbyEn();
   return { ...base, rows: [], overview: { ...base.overview, counts: { ...base.overview.counts, here: 0, searching: 0, playersInMatch: 0 } } };
+}
+
+/**
+ * The viewer's standing for a slot phase: the slot's state, the facts the rows
+ * read, and a held outcome. Times are fixed relative to `now`, so nothing ticks.
+ */
+export interface StandingFixture {
+  now: number;
+  slot: SlotState;
+  facts: StandingFacts;
+  held: HeldOutcome | null;
+}
+
+function facts(language: "is" | "en", extra: Partial<StandingFacts> = {}): StandingFacts {
+  return {
+    now: new Date(FIXED_NOW).toISOString(),
+    topic: "player:fixture",
+    lobbyLanguage: language,
+    incoming: [],
+    outgoing: null,
+    cooldowns: [],
+    search: null,
+    tableCooldownUntil: null,
+    match: null,
+    switchPending: null,
+    notice: null,
+    counts: { here: 5, searching: 2, playing: 1, otherHere: language === "is" ? 7 : 12 },
+    viewer: { rating: language === "is" ? 1212 : 1310, gamesPlayed: language === "is" ? 35 : 22 },
+    ...extra,
+  };
+}
+
+/** A fixed instant: fixtures never depend on the clock. */
+export const FIXED_NOW = Date.parse("2026-09-24T12:00:00.000Z");
+const at = (ms: number) => new Date(FIXED_NOW + ms).toISOString();
+
+/** LobbySent (EN-L): Kári challenged at 0:52 left; Hekla declined and cools down, 0:41. */
+export function challengeSent(): StandingFixture {
+  const rows = lobbyEn().rows;
+  const kari = rows[1];
+  const hekla = rows[2];
+  const outgoing = { inviteId: id(900), to: kari, status: "pending" as const, createdAt: at(-8_000), expiresAt: at(52_000), respondedAt: null, matchId: null };
+  return {
+    now: FIXED_NOW,
+    slot: { kind: "sent", outgoing, held: null },
+    facts: facts("en", { outgoing, cooldowns: [{ playerId: hekla.playerId, until: at(41_000) }] }),
+    held: { inviteId: id(901), playerId: hekla.playerId, name: hekla.displayName, outcome: "declined" },
+  };
+}
+
+/** LobbyIncoming (IS-T1): Kári challenges you, 0:47 to answer. */
+export function challengeIn(): StandingFixture {
+  const kari = lobbyIs().rows[1];
+  const call = { inviteId: id(902), from: kari, expiresAt: at(47_000) };
+  return { now: FIXED_NOW, slot: { kind: "call", call, more: 0, searching: false }, facts: facts("is", { incoming: [call] }), held: null };
+}
+
+/** B8: your match with Kári runs while you are in the lobby (EN-L). */
+export function matchRunning(): StandingFixture {
+  const match = { kind: "running" as const, matchId: id(903), opponent: "Kári", movesPlayed: 3, moveLimit: 10, deadlineAt: at(192_000) };
+  return { now: FIXED_NOW, slot: { kind: "match", match }, facts: facts("en", { match }), held: null };
+}
+
+/** The match ended while you were away: its result waits in the slot (EN-L). */
+export function matchOverAway(): StandingFixture {
+  const match = { kind: "over" as const, matchId: id(903), opponent: "Kári", winner: "you" as const, winnerName: "Birna", you: 128, them: 117, endedReason: "moves_complete" };
+  return { now: FIXED_NOW, slot: { kind: "match", match }, facts: facts("en", { match }), held: null };
+}
+
+/** LobbySearching (EN-L): searching 0:07, two others searching. */
+export function searching(): StandingFixture {
+  return {
+    now: FIXED_NOW,
+    slot: { kind: "search", search: { kind: "searching", elapsedSeconds: 7 } },
+    facts: facts("en", { search: { queuedAt: at(-7_000), paused: false } }),
+    held: null,
+  };
+}
+
+/** US7.4: the English lobby opened with a search out in the Icelandic one. */
+export function switchConfirm(): StandingFixture {
+  const switchPending = { to: "en" as const, from: "is" as const, pending: ["search" as const] };
+  return { now: FIXED_NOW, slot: { kind: "switch", pending: switchPending }, facts: facts("is", { switchPending }), held: null };
 }

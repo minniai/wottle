@@ -895,6 +895,9 @@
 }
 .skip-to-call:focus {
   transform: none;
+  /* Design system §5.5: keyboard focus is a 2px ink outline 3px outside, never the browser's ring. */
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 .page-bottom {
   display: none;

@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-import { PAGE_PHASES } from "../../../app/[locale]/dev/page/fixtures";
+import { FIXED_NOW, PAGE_PHASES } from "../../../app/[locale]/dev/page/fixtures";
 import { ROOM_PHASES } from "../../../app/[locale]/dev/room/fixtures";
 import { copyEn } from "../../../lib/i18n/copy/en";
 import { copyIs } from "../../../lib/i18n/copy/is";
@@ -596,6 +596,8 @@ test.describe("@visual the pages, from fixtures", () => {
       const errors: string[] = [];
       page.on("console", (message) => message.type() === "error" && errors.push(message.text().slice(0, 200)));
       const localePrefix = phase.startsWith("is-") ? "" : "/en";
+      // The fixtures' own instant: a countdown on a row reads the same on every run.
+      await page.clock.setFixedTime(FIXED_NOW);
       await page.goto(`${localePrefix}/dev/page?phase=${phase}`);
       await expect(page.getByRole("main")).toBeVisible();
       await expect(page).toHaveScreenshot(`page-${phase}.png`, { fullPage: true });

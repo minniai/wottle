@@ -35,7 +35,8 @@ const EMPTY: StandingSlotApi = { otherLobbyHere: null, slot: null, bottomSlot: n
 
 const StandingContext = createContext<StandingSlotApi>(EMPTY);
 
-const BOTTOM_HEIGHT = { call: 104, status: 64, terms: 0 } as const;
+/** Pixels the phone bottom slot takes, by style; fixtures reserve the same. */
+export const BOTTOM_HEIGHT = { call: 104, status: 64, terms: 0 } as const;
 
 function signOutState(machine: StandingMachine, copy: ReturnType<typeof useCopy>): SignOutState {
   const { facts, slot } = machine;

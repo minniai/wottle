@@ -291,7 +291,7 @@
 - [X] T071 [P] [US3] Implement `lib/pages/composer.ts` (T063) and `components/standing/hooks/useHeldOutcome.ts` (T065).
 - [X] T072 [US3] Implement `components/page/lobby/ComposerRow.tsx` and wire it into `HereNowTable.tsx`: send, `not now`, the row's status cell (`sent · 0:52`, the outcomes, `challenges you`) and the action cell (`again in`, errors). Add the phone 176px variant (F6). Make T064 pass.
 - [X] T073 [US3] Add the challenge strings to `lib/i18n/copy/{en,is}.ts`: the composer lines, the send and withdraw labels, the outcomes table, the errors, `again in`, `withdraws your challenge`, `accepted`, `Kári can't play right now`, `Kári has left · challenge withdrawn`, and the name-safe Icelandic forms.
-- [ ] T074 [US3] Add the page phases `composer` (LobbyComposer EN-L) and `challenge-sent` (LobbySent: Kári sent at 0:52, Hekla `declined · again in 0:41`, no filled primary) to the fixtures, with their phone variants (PhoneComposer), and generate the baselines.
+- [X] T074 [US3] Add the page phases `composer` (LobbyComposer EN-L) and `challenge-sent` (LobbySent: Kári sent at 0:52, Hekla `declined · again in 0:41`, no filled primary) to the fixtures, with their phone variants (PhoneComposer), and generate the baselines.
 
 ---
 
@@ -380,7 +380,7 @@
 
   Remove `useTableCheck` from `components/profile/ProfilePage.tsx`. Make spec 069's void slip queue action push `/` with the search running (`lib/room/tableSlip.ts`, `MatchRoomController.tsx`). Run the acceptance grep test and extend it with the deleted names.
 - [ ] T089 [US4] B6: while a match's final state is shown with the slip lifted, a third-party call is the ledger's first line in live-row style, with the secondary `accept ▸` and `decline`, in the ledger's first line. It goes through a slot model `ledgerCallLine(rematch, call)`, which ranks a rematch first once stage 5 provides one; the unit test covers the call-only case. Add this to `components/room/Ledger.tsx` and the phone live row, reading the provider's standing facts. Add a unit test in `tests/unit/components/room/Ledger.call.spec.tsx`.
-- [ ] T090 [US4] Add the page phases `challenge-in` (LobbyIncoming IS-T1, with the skip link shown focused), `match-running` and `match-over-away`, and a phone call-line variant (PhoneLobby). Generate the baselines. Make T082 pass.
+- [X] T090 [US4] Add the page phases `challenge-in` (LobbyIncoming IS-T1, with the skip link shown focused), `match-running` and `match-over-away`, and a phone call-line variant (PhoneLobby). Generate the baselines. Make T082 pass.
 
 **Checkpoint**: The MVP social loop works on every page (door → lobby → challenge → call → table).
 
@@ -392,7 +392,7 @@
 
 **Independent test**: quickstart §4.
 
-- [ ] T095 [US5] Add the page phase `searching` (LobbySearching EN-L), with its phone variant, and generate the baselines.
+- [X] T095 [US5] Add the page phase `searching` (LobbySearching EN-L), with its phone variant, and generate the baselines.
 
 ---
 
@@ -409,7 +409,7 @@
   - `send_challenge` refuses `other_lobby`.
 - [X] T097 [US7] Add `enter_lobby` and `confirm_lobby_switch` to the migration. Implement `lib/matchmaking/lobbyLanguage.ts` and `app/actions/lobby/{enterLobby,confirmSwitch}.ts` with pokes (T096).
 - [X] T098 [US7] Replace T057's placeholder `enterLobbyAction`. On `needs_confirm` the lobby renders with find and every `challenge ▸` off. The standing read returns `switchPending`, and the slot shows `switch` (`you are in the Icelandic lobby · switching cancels your search · switch ▸` / `þú ert í íslenska lobbíinu · …`). The masthead switch shows the same consequence line first when something is out (T3). Add a unit test in `tests/unit/components/page/LanguageSwitch.spec.tsx`.
-- [ ] T099 [US7] Name the language beside every rating on pages (FR-033, US7.5). Add the switch strings, and the page phase `switch-confirm`.
+- [X] T099 [US7] Name the language beside every rating on pages (FR-033, US7.5). Add the switch strings, and the page phase `switch-confirm`.
 - [X] T100 [US7] Write the Playwright spec `tests/integration/ui/lobby-language.spec.ts` for quickstart §5: `/en/rules` does not move the player; typing `/en` with a search out asks first; confirming switches the lists.
 
 ---
