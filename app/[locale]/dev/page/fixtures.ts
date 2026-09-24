@@ -2,6 +2,7 @@ import type { LobbyViewer } from "@/components/page/lobby/YourBlock";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { HeldOutcome } from "@/lib/pages/heldOutcome";
 import type { SlotState } from "@/lib/pages/standingSlot";
+import type { LinkView } from "@/lib/types/link";
 import type { Band, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
 
 /**
@@ -31,6 +32,11 @@ export const PAGE_PHASES = [
   "lobby-link-out",
   "is-lobby-link-out",
   "lobby-link-refused",
+  // Spec 072 US2: the invite door (DoorInvite).
+  "invite-door",
+  "is-invite-door",
+  "invite-door-expired",
+  "invite-door-returning",
 ] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
@@ -257,6 +263,20 @@ export function linkOut(language: "is" | "en", refused = false): StandingFixture
     held: null,
     linkText: { linkId: link.id, url },
     clipboardRefused: refused,
+  };
+}
+
+/** DoorInvite (spec 072 A2): Kári's link, 9:12 left (EN-L; IS-T1 for the Icelandic door). */
+export const INVITE_TOKEN = "Xq7Vt2pLm9KcR4sWn8BjYd3HfA6gZe1uQo5iNw0bTyE";
+export function inviteView(language: "is" | "en", valid = true): LinkView {
+  return {
+    valid,
+    senderId: id(920),
+    senderName: "Kári",
+    senderHandle: "kári",
+    senderRating: language === "en" ? 1265 : 1187,
+    language,
+    expiresAt: at(552_000),
   };
 }
 

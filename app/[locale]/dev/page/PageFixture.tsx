@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { DoorPage } from "@/components/page/door/DoorPage";
+import { InviteDoorPage } from "@/components/page/door/InviteDoor";
 import { LineSlot } from "@/components/page/LineSlot";
 import { Lobby } from "@/components/page/lobby/Lobby";
 import { PageFrame } from "@/components/page/PageFrame";
@@ -26,6 +27,9 @@ import {
   searching,
   switchConfirm,
   linkOut,
+  INVITE_TOKEN,
+  FIXED_NOW,
+  inviteView,
   type LobbyFixture,
   type PagePhase,
   type StandingFixture,
@@ -132,6 +136,14 @@ export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: 
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkOut("en"))} />;
     case "is-lobby-link-out":
       return <StandingFixturePage fixture={L(lobbyIs())} standing={L(linkOut("is"))} />;
+    case "invite-door":
+      return <InviteDoorPage overview={L(DOOR_EN)} token={INVITE_TOKEN} view={inviteView("en")} returning={null} renderedAt={FIXED_NOW} />;
+    case "is-invite-door":
+      return <InviteDoorPage overview={L(DOOR_IS)} token={INVITE_TOKEN} view={inviteView("is")} returning={null} renderedAt={FIXED_NOW} />;
+    case "invite-door-expired":
+      return <InviteDoorPage overview={L(DOOR_EN)} token={INVITE_TOKEN} view={inviteView("en", false)} returning={null} renderedAt={FIXED_NOW} />;
+    case "invite-door-returning":
+      return <InviteDoorPage overview={L(DOOR_EN)} token={INVITE_TOKEN} view={inviteView("en")} returning={L({ displayName: "Birna", rating: 1310 })} renderedAt={FIXED_NOW} />;
     case "lobby-link-refused":
       return <StandingFixturePage fixture={L(lobbyEn())} standing={L(linkOut("en", true))} />;
   }

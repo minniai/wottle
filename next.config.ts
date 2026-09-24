@@ -39,6 +39,13 @@ const COMMON_SECURITY_HEADERS = [
   { key: "Permissions-Policy", value: PERMISSIONS_POLICY },
 ];
 
+const INVITE_PATHS = ["/c/:token", "/en/c/:token"];
+const INVITE_HEADERS = [
+  { key: "Cache-Control", value: "private, no-store" },
+  { key: "Referrer-Policy", value: "no-referrer" },
+  { key: "X-Robots-Tag", value: "noindex, nofollow" },
+];
+
 // HSTS is only emitted in production to avoid pinning HTTPS on localhost dev.
 const HSTS_HEADER = {
   key: "Strict-Transport-Security",
@@ -76,6 +83,10 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers,
       },
+      // Spec 072: an invite link's page is never cached, and its token never leaves in a Referer.
+      ...INVITE_PATHS.map((source) => ({ source, headers: INVITE_HEADERS })),
+      // A lobby opened from a link carries the token in `?invite` until the page strips it.
+      ...["/", "/en"].map((source) => ({ source, has: [{ type: "query" as const, key: "invite" }], headers: [{ key: "Referrer-Policy", value: "no-referrer" }] })),
     ];
   },
 };
