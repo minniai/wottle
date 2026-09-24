@@ -48,7 +48,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   hereNow: (n: number): string => `hér núna · ${n}`,
   hereNowRated: (n: number, languageName: string): string => `hér núna · ${n} · elo · ${languageName}`,
   more: (n: number): string => `+ ${n} fleiri`,
-  ENTER_TO_CHALLENGE: "farðu inn í lobbíið til að skora á einhvern", // native-read
+  ENTER_TO_CHALLENGE: "finna mótspilara í lobbíinu ▸", // native-read
   NO_ONE_YET: "Enginn hér enn.",
   HOW_IT_PLAYS: "leiðbeiningar",
   STEPS: ["Skiptu á tveimur stöfum.", "Þrír stafir eða fleiri í beinni línu.", "Stafir í orði frjósa í þínum lit."],
