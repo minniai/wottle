@@ -27,7 +27,8 @@ export function resultDetail(facts: DetailFacts, copy: Copy): string[] {
     case "forfeit":
       return [copy.forcedDetail(facts.loserName, "forfeit"), ...(facts.endClock ? [facts.endClock] : [])];
     case "ended_early":
-      return [copy.ENDED_EARLY, copy.wasGone(facts.loserName)];
+      // The one who was gone is the one short of ten, whoever the totals favour (a 0–0 is a draw).
+      return [copy.ENDED_EARLY, copy.wasGone(facts.short?.name ?? facts.loserName)];
     case "abandoned":
     case "disconnect":
       return [copy.forcedDetail(facts.loserName, "disconnect")];

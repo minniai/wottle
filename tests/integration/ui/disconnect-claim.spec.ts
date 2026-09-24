@@ -44,7 +44,8 @@ test("an absent opponent: after ten moves and the window, end the match early @t
 
     await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
     await expect(slip).toHaveAttribute("data-kind", "matchOver", { timeout: 20_000 });
-    await expect(pageA.getByTestId("verdict")).toContainText(new RegExp(`${userB} played 0 of 10`, "i"));
+    // Spec 071: an early end says so, and names who was gone.
+    await expect(pageA.getByTestId("verdict")).toContainText(new RegExp(`ended early · ${userB} was gone`, "i"));
   } finally {
     await contextA.close();
     await contextB.close().catch(() => undefined);
