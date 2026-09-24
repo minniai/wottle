@@ -433,6 +433,49 @@ test.describe("@visual the room fits a phone", () => {
     });
   }
 
+  // Spec 071 (game flow F4, F7): the phone result is the field's square and never covers the scoreboard;
+  // phone review keeps the field and scoreboard, and pins ◂ result and the step glyphs in the foot.
+  for (const { width, height, name } of [
+    { width: 390, height: 844, name: "phone-result" },
+    { width: 390, height: 664, name: "phone-result-664" },
+    { width: 360, height: 640, name: "phone-result-360" },
+  ]) {
+    test(`${name} (${width}×${height}): the result is the field's square, nothing scrolls`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("/dev/room?phase=result-moves");
+      await expect(page.getByTestId("slip")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const g = await page.evaluate(() => {
+        const rect = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+        return { slip: rect('[data-testid="slip"]'), field: rect('[data-testid="field"]'), scoreboard: rect('[data-testid="scoreboard"]'), scrollHeight: document.scrollingElement!.scrollHeight };
+      });
+      expect(g.scrollHeight).toBeLessThanOrEqual(height);
+      expect(g.slip.top).toBeGreaterThanOrEqual(g.scoreboard.bottom);
+      for (const edge of ["top", "left", "width", "height"] as const) expect(Math.abs(g.slip[edge] - g.field[edge]), edge).toBeLessThanOrEqual(1);
+      for (const id of ["slip-rematch", "slip-review-field"]) await expect(page.getByTestId(id)).toBeInViewport();
+      await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: false });
+    });
+  }
+
+  for (const { width, height, name } of [
+    { width: 390, height: 844, name: "phone-review" },
+    { width: 390, height: 664, name: "phone-review-664" },
+    { width: 360, height: 640, name: "phone-review-360" },
+  ]) {
+    test(`${name} (${width}×${height}): the scrubber, the cursor line and the pinned controls`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("/dev/room?phase=review");
+      await expect(page.getByRole("slider")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const g = await page.evaluate(() => ({ scrollHeight: document.scrollingElement!.scrollHeight, scrollWidth: document.scrollingElement!.scrollWidth }));
+      expect(g.scrollHeight).toBeLessThanOrEqual(height);
+      expect(g.scrollWidth).toBeLessThanOrEqual(width);
+      await expect(page.getByTestId("ledger-live-trigger")).toContainText("leikur 3 · Birna");
+      for (const id of ["ledger-phone-result", "review-first", "review-last"]) await expect(page.getByTestId("ledger-phone-foot").getByTestId(id)).toBeInViewport();
+      await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: false });
+    });
+  }
+
   // Spec 068 FR-018 (game flow F8): a phone slip is exactly the field's square and never crosses the scoreboard.
   // Spec 069 (game flow F5): the table's slips too.
   for (const phase of ["resign", "leave", "end-early", "table", "void"]) {

@@ -21,6 +21,7 @@ import { letterFactsOn, liveStateFor } from "@/lib/room/liveState";
 import { formatClock, RECONNECT_WINDOW_MS_CLIENT } from "@/lib/room/clock";
 import { applyLetterSwaps } from "@/lib/room/displayBoard";
 import { tabTitle } from "@/lib/room/tabTitle";
+import { bestWordOf } from "@/lib/room/bestWord";
 import { tableSlipFor } from "@/lib/room/tableSlip";
 import { lastMoves } from "@/lib/room/lastMoves";
 import { PICK_CLEARED_HOLD_MS } from "@/lib/room/notices";
@@ -28,14 +29,27 @@ import type { Line2Extras } from "@/lib/room/moveState";
 import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { buildVerdict, finalCaption, moveKeyOf, ratingLine, type AccumulatedWord, type LiveState, type RatingRow } from "@/lib/room/ledgerRows";
 import { buildTerritory } from "@/lib/room/ledgerRows";
+import { penalisesUnplayed } from "@/lib/match/endedReasons";
 import { ledgerCallLine } from "@/lib/room/ledgerCallLine";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
+import { deriveRematchView, type RematchView } from "@/lib/room/rematchView";
+import { seriesLine } from "@/lib/room/series";
+import { useMatchReview } from "./hooks/useMatchReview";
+import { ReviewControls } from "./ReviewControls";
+import type { MatchRoomReview } from "./MatchRoomView";
+import { cursorLines } from "@/lib/review/cursorLines";
+import { cursorRow, ledgerCellStates } from "@/lib/review/ledgerCells";
+import { scrubberValueText } from "@/lib/review/scrubber";
+import { wordsAtStep } from "@/lib/review/wordsAtStep";
+import type { ReviewStep } from "@/lib/types/review";
+
+import { useRematchCall } from "./hooks/useRematchCall";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
 import { useSoundEffects } from "@/lib/audio/useSoundEffects";
 import type { Coordinate } from "@/lib/types/board";
-import type { MatchPlayerProfiles, MatchState, MoveRejectionReason, MoveResolution, PlayerSlot } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, MoveRejectionReason, MoveResolution, PlayerSlot, RematchOffer } from "@/lib/types/match";
 import { boardOrBlank } from "@/lib/constants/board";
 import { Field } from "./Field";
 import { useStandingSlot } from "@/components/standing/StandingProvider";
@@ -140,10 +154,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     hydrateMatch(initialState, currentPlayerId);
   }, [initialState, currentPlayerId, hydrateMatch]);
 
-  // A rematch's table is a new page (spec 069): Back from it leaves it.
-  const onNewMatch = useCallback((newMatchId: string) => router.push(to(`/match/${newMatchId}`)), [router, to]);
-  const rematch = useRematchNegotiation({ matchId, currentPlayerId, onNewMatch });
-  const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
+  // Spec 071 (T40): the rematch's table replaces the result in history.
+  const onNewMatch = useCallback((newMatchId: string) => router.replace(to(`/match/${newMatchId}`)), [router, to]);
+  const rematch = useRematchNegotiation({
+    matchId,
+    viewerId: currentPlayerId,
+    active: !readOnly && match.state === "completed" && match.endedReason !== "void",
+    initialOffer: initialState.rematch ?? null,
+    onNewMatch,
+  });
+  const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, readOnly ? "reader" : "participant");
   // Back after an outage: line 2 says how long you were away, for four seconds (spec 068 FR-038).
   const [backAwayMs, setBackAwayMs] = useState<number | null>(null);
   useEffect(() => {
@@ -152,7 +172,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     const timer = setTimeout(() => setBackAwayMs(null), BACK_HOLD_MS);
     return () => clearTimeout(timer);
   }, [transport.awayMs]);
-  const history = useWordHistory(matchId, match.resolvedSeq);
+  const history = useWordHistory(currentPlayerId ? matchId : null, match.resolvedSeq);
   const words = useAccumulatedMoves(match, history);
 
   // Spec 047 FR-002 / spec 049: a record the board does not spell is reported
@@ -180,16 +200,20 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const inProgress = match.state === "in_progress";
   const wordmark = copy.WORDMARK;
   useEffect(() => () => void (document.title = wordmark), [wordmark]);
-  const frozenTiles = match.frozenTiles;
+  // Spec 071 (US3): review is `?review=n` on this page; the step drives the field, scoreboard and ledger.
+  const review = useMatchReview({ matchId, completed, live: match.state === "in_progress" || match.state === "pending", reader: readOnly });
+  const reviewStep = review.reviewing ? review.step : null;
+  const frozenTiles = reviewStep?.frozen ?? match.frozenTiles;
   // Each player's last swap, ticked in their colour until its letters freeze (spec 068 FR-027).
   const lastResolved = useRoomStore((s) => s.lastResolved);
-  const ticks = useMemo(() => {
+  const liveTicks = useMemo(() => {
     const cells = lastMoves({ you: lastResolved[youFacts.playerId] ?? null, opp: lastResolved[oppFacts.playerId] ?? null }, frozenTiles);
     return [
       ...cells.you.map((at) => ({ at, seat: "you" as const, name: you.displayName })),
       ...cells.opp.map((at) => ({ at, seat: "opp" as const, name: opp.displayName })),
     ];
   }, [lastResolved, youFacts.playerId, oppFacts.playerId, frozenTiles, you.displayName, opp.displayName]);
+  const ticks = reviewStep ? reviewTicks(reviewStep, viewerSlot, { you: you.displayName, opp: opp.displayName }) : liveTicks;
   const frozenKeys = useMemo(() => new Set(Object.keys(frozenTiles)), [frozenTiles]);
   const ownerNames = useMemo(() => ({ player_a: playerProfiles.playerA.displayName, player_b: playerProfiles.playerB.displayName }), [playerProfiles]);
 
@@ -299,10 +323,6 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   );
   // The tab says the table, the count, or the clock and your move (spec 068 FR-025, spec 069 FR-026).
   const tableTitle = moveState.kind === "table" ? { opponentName: opp.displayName } : moveState.kind === "starting" ? { opponentName: opp.displayName, startsIn: moveState.seconds } : undefined;
-  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1), table: readOnly ? undefined : tableTitle }, copy);
-  useEffect(() => {
-    document.title = title;
-  }, [title]);
 
   // The table (spec 069): its slip is derived from the match and the server-corrected second.
   const atTable = !readOnly && (match.state === "pending" || voided || msToStart > 0);
@@ -316,8 +336,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const requeued = standing?.slot.kind === "search" ? standing.slot.search : null;
   // Spec 070 FR-034: a rematch reaches this page as a poke on the player's topic; the id is read, never carried.
   const onPoke = standing?.onPoke;
-  const checkRematch = rematch.check;
-  useEffect(() => onPoke?.((kind) => kind === "rematch" && void checkRematch()), [onPoke, checkRematch]);
+  const refreshRematch = rematch.refresh;
+  useEffect(() => onPoke?.((kind) => kind === "rematch" && void refreshRematch()), [onPoke, refreshRematch]);
   const derivedSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
   const tableSlip = derivedSlip?.kind === "void" && requeued?.kind === "searching" && table.youRequeued
     ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeued.elapsedSeconds * 1000)}` } }
@@ -359,14 +379,23 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     fieldDispatch.current = field.dispatch;
   }, [field.dispatch]);
 
-  const displayBoard = useMemo(() => applyLetterSwaps(board, [field.ownPins]), [board, field.ownPins]);
+  const displayBoard = useMemo(() => reviewStep?.board ?? applyLetterSwaps(board, [field.ownPins]), [reviewStep, board, field.ownPins]);
+  // Spec 071 (FR-038): stepping forward by one exchanges the step's letters; back or a jump is instant.
+  const reviewExchange: [Coordinate, Coordinate] | null = reviewStep?.swap && review.previous ? [reviewStep.swap.from, reviewStep.swap.to] : null;
 
+  const reviewWords = useMemo(() => (reviewStep && review.steps ? wordsAtStep(review.steps, reviewStep.index) : null), [reviewStep, review.steps]);
+  // In review the ledger reads every move from the steps, so a signed-out reader's is complete too.
+  const reviewAllWords = useMemo(() => (reviewStep && review.steps ? wordsAtStep(review.steps, review.steps.length).words : null), [reviewStep, review.steps]);
   const bands = useMemo(() => {
+    if (reviewStep && reviewWords) {
+      const live = reviewWords.liveMoveKey;
+      return bandsFromWords({ words: reviewWords.words, board: reviewStep.board, frozenTiles: reviewStep.frozen, viewerSlot, playerAId: match.players.playerA.playerId, liveMoveKey: live, trustMoveKey: live });
+    }
     const all = bandsFromWords({ words, board, frozenTiles, viewerSlot, playerAId: match.players.playerA.playerId, liveMoveKey: revealing ? reveal.moveKey : null, trustMoveKey: reveal.moveKey });
     // New bands of the running reveal go last so `drawnCount` can gate them.
     const fresh = new Set(newIds);
     return [...all.filter((b) => !fresh.has(b.id)), ...all.filter((b) => fresh.has(b.id))];
-  }, [words, board, frozenTiles, viewerSlot, match.players.playerA.playerId, revealing, reveal.moveKey, newIds]);
+  }, [words, board, frozenTiles, viewerSlot, match.players.playerA.playerId, revealing, reveal.moveKey, newIds, reviewStep, reviewWords]);
   const drawnCount = revealing ? bands.length - newIds.length + Math.min(progress.bandsDrawn, newIds.length) : null;
   const drawingIndex = revealing && progress.bandsDrawn > 0 && progress.bandsDrawn <= newIds.length ? bands.length - newIds.length + progress.bandsDrawn - 1 : null;
   const [highlightMove, setHighlightMove] = useState<number | null>(null);
@@ -463,6 +492,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const recordedWinnerSeat = match.winnerId ? (match.winnerId === youFacts.playerId ? "you" : "opp") : null;
   const youScoreWins = recordedWinnerSeat ? recordedWinnerSeat === "you" : youScore > oppScore;
   const draw = recordedWinnerSeat ? false : youScore === oppScore;
+  const endClock = clockAtEnd(match);
   const verdict = useMemo(
     () =>
       completed
@@ -478,10 +508,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
             territory: buildTerritory(frozenTiles, viewerSlot),
             winnerSeat: recordedWinnerSeat,
             endedReason: match.endedReason,
+            endClock,
           }, copy)
         : null,
-    [copy, completed, you.displayName, opp.displayName, youScore, oppScore, words, youFacts.playerId, oppFacts.playerId, youFacts.movesPlayed, oppFacts.movesPlayed, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason],
+    [copy, completed, you.displayName, opp.displayName, youScore, oppScore, words, youFacts.playerId, oppFacts.playerId, youFacts.movesPlayed, oppFacts.movesPlayed, frozenTiles, viewerSlot, recordedWinnerSeat, match.endedReason, endClock],
   );
+  // Spec 071 (FR-008): once it is over the tab names the winner.
+  const result = verdict ? { winnerName: verdict.winnerSeat === null ? null : verdict.winnerSeat === "you" ? you.displayName : opp.displayName } : undefined;
+  const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1), table: readOnly ? undefined : tableTitle, result }, copy);
   const durationMs = match.clock.startedAt
     ? Math.max(0, new Date(match.completedAt ?? match.clock.deadlineAt ?? match.clock.startedAt).getTime() - new Date(match.clock.startedAt).getTime())
     : 0;
@@ -492,6 +526,23 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const slipDismissed = useRoomStore((s) => s.slipDismissed);
   const dismissSlip = useRoomStore((s) => s.dismissSlip);
   const restoreSlip = useRoomStore((s) => s.restoreSlip);
+  // Spec 071 (FR-030): review keeps the slip down; Back out of review brings the result back up.
+  const wasReviewing = useRef(false);
+  useEffect(() => {
+    if (review.reviewing) dismissSlip();
+    else if (wasReviewing.current) restoreSlip();
+    wasReviewing.current = review.reviewing;
+  }, [review.reviewing, dismissSlip, restoreSlip]);
+  // Spec 071 (D2): the rematch as this viewer sees it, drawn from the server's offer each second.
+  const rematchNow = useNowTick(completed && !readOnly && rematch.offer !== null);
+  const rematchView = completed && !readOnly && rematch.offer ? deriveRematchView({ offer: rematch.offer, viewerId: currentPlayerId, opponentName: opp.displayName, nowMs: rematchNow }, copy) : null;
+  const rematchIncoming = rematchView?.kind === "incoming";
+  useRematchCall(rematchIncoming, feedbackRef);
+  // An incoming rematch calls the player in the tab too: `(1) Kári asks for a rematch · Wottle`.
+  const shownTitle = rematchIncoming ? copy.rematch.title(opp.displayName, copy.WORDMARK) : title;
+  useEffect(() => {
+    document.title = shownTitle;
+  }, [shownTitle]);
   useMatchOverSlip({
     match,
     viewerSlot,
@@ -502,9 +553,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     viewerName: you.displayName,
     opponentName: opp.displayName,
     ratings,
-    rematch: rematch.phase,
+    rematch: rematchView,
     busy: revealing || holdMove !== null,
     revealed: revealedOnce,
+    bestWord: bestWordOf(words, youFacts.playerId),
   });
 
   // The slip counts the window on this device's clock; the server's record can
@@ -524,23 +576,34 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     () => setSlip({ kind: "leave", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), limit: match.moveLimit, clockMs }),
     [setSlip, youFacts.movesPlayed, match.moveLimit, clockMs],
   );
-  const liveGuard = useLiveBackGuard({ live: !readOnly && inProgress && msToStart <= 0, onBack: raiseLeave });
+  const liveGuard = useLiveBackGuard({ live: !readOnly && inProgress && msToStart <= 0, completed, onBack: raiseLeave });
   const handleAction = useCallback(
     (action: LedgerAction) => {
       if (action === "rematch") void rematch.request();
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
-      else if (action === "reviewField") dismissSlip();
+      else if (action === "withdrawRematch") void rematch.withdraw();
+      else if (action === "reviewField") {
+        dismissSlip();
+        review.enter();
+      }
+      else if (action === "liftSlip") dismissSlip();
       // B6: a third party's call answered from the result screen goes through the standing machine.
       else if (action === "acceptCall") standing?.onAction("accept");
       else if (action === "declineCall") standing?.onAction("decline");
-      else if (action === "result" && !voided) restoreSlip();
+      else if (action === "result" && !voided) {
+        if (review.reviewing) review.leave();
+        restoreSlip();
+      }
       else if (action === "newOpponent") {
+        // Spec 071 (T42): a pending request is withdrawn, or answered `started another match`.
+        if (rematch.offer?.request?.status === "pending") void rematch.withdraw();
         // Spec 070: a search runs in the line slot, from the lobby.
         standing?.search.start();
         router.replace(to("/"));
       }
       else if (action === "lobby") {
+        if (rematch.offer?.request?.status === "pending") void rematch.withdraw();
         // The slip belongs to the match: take it down before the lobby draws.
         dismissSlip();
         router.replace(to("/"));
@@ -598,14 +661,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, raiseLeave, liveGuard, oppFacts.playerId, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, review, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, raiseLeave, liveGuard, oppFacts.playerId, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
   useRoomHotkeys(handleAction);
 
-  const rematchLine =
-    rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.phase === "busy" ? copy.opponentBusy(opp.displayName) : rematch.error ? copy.errors[rematch.error] : null;
+  const rematchLine = rematch.error ? copy.errors[rematch.error] : null;
+  // Spec 071 (T41): with the slip lifted, an incoming rematch is the ledger's first line; it outranks a call.
+  const rematchNotice: Notice | null = !slipUp && rematchView?.kind === "incoming" ? { kind: "rematch", text: rematchView.line, drain: rematchView.drain } : null;
+  // Both may wait (T65): the rematch first, the third party's call below it.
   const callLine = completed && !slipUp ? ledgerCallLine(null, standing?.slot.kind === "call" ? standing.slot.call : null, copy) : null;
   // Steady transport lines first, pushed notices last: on the desktop grid the state row shows the
   // latest one, so a fresh error or rematch line is never hidden behind `realtime lost` (spec 068).
@@ -614,30 +679,59 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
     ...notices,
-    // B6: once the result's slip is lifted, a third party's call is the ledger's line.
+    // B6: once the result's slip is lifted, a rematch and a third party's call are the ledger's lines.
+    ...(rematchNotice ? [rematchNotice] : []),
     ...(callLine ? [callLine] : []),
   ];
   void dismiss;
+
+  // Spec 071 (US3): the review's scoreboard row, ledger and controls, from the step.
+  const names = { a: playerProfiles.playerA.displayName, b: playerProfiles.playerB.displayName };
+  const atStep = reviewStep ? seatsAtStep(reviewStep, viewerSlot) : null;
+  const stepCount = review.steps?.length ?? 1;
+  const reviewProps: MatchRoomReview | undefined = reviewStep && review.steps
+    ? {
+        scoreboard: { step: reviewStep.index, stepCount, clockMs: reviewStep.clockMs, valueText: scrubberValueText(reviewStep, stepCount, names, copy) },
+        ledger: {
+          viewerSlot,
+          current: cursorRow(reviewStep, match.moveLimit),
+          cursor: cursorLines(reviewStep, names, copy),
+          states: ledgerCellStates(review.steps, reviewStep.index),
+          names,
+          controls: <ReviewControls step={reviewStep.index} stepCount={stepCount} playing={review.playing} onControl={review.control} />,
+          phoneControls: <ReviewControls step={reviewStep.index} stepCount={stepCount} playing={review.playing} onControl={review.control} compact />,
+          onJump: review.jump,
+        },
+        onStep: review.go,
+        onTogglePlay: review.togglePlay,
+        finalMoves: { you: youFacts.movesPlayed, opp: oppFacts.movesPlayed },
+      }
+    : undefined;
 
   return (
     <>
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut }}
+        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: atStep?.you.moves ?? youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: atStep?.you.score ?? youScore }}
+        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: atStep?.opp.moves ?? oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: atStep?.opp.score ?? oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut, left: completed && rematch.offer?.opponentOnMatch === false }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
         msToStart={Math.max(0, msToStart)}
         elapsedMs={completed ? durationMs : undefined}
-        penalizeUnplayed={completed && (match.endedReason === "incomplete" || match.endedReason === "both_incomplete")}
+        penalizeUnplayed={completed && penalisesUnplayed(match.endedReason)}
+        series={match.series ? seriesLine(match.series, { playerA: viewerSlot === "player_a" ? you.displayName : opp.displayName, playerB: viewerSlot === "player_a" ? opp.displayName : you.displayName }, copy) : null}
         moveLimit={match.moveLimit}
         completed={completed}
-        caption={completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
+        caption={reviewStep ? copy.review.caption(formatClock(durationMs)) : completed ? finalCaption(durationMs, copy) : moveState.kind === "table" ? copy.table.CONTEXT : voided ? copy.table.VOID_LABEL : undefined}
+        review={reviewProps}
+        hint={readOnly && completed ? copy.review.overLine(names.a, names.b) : undefined}
         verdict={verdict ?? undefined}
         readOnly={readOnly}
         footActions={
-          completed && !readOnly ? (
+          reviewStep && !readOnly ? (
+            <ReviewFoot offer={rematch.offer} view={rematchView} onAction={handleAction} />
+          ) : completed && !readOnly ? (
             <>
               {slipDismissed ? (
                 <button type="button" className="action-secondary" data-testid="ledger-result" onClick={() => handleAction("result")}>
@@ -649,12 +743,13 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
               </button>
             </>
           ) : readOnly ? (
-            <button type="button" className="action-secondary" data-testid="ledger-lobby" onClick={() => handleAction("lobby")}>
-              ◂ {LOBBY}
+            // Spec 071 (FR-039): a signed-out reader's way in is the door.
+            <button type="button" className={currentPlayerId ? "action-secondary" : "action-primary"} data-testid="ledger-lobby" onClick={() => handleAction("lobby")}>
+              {currentPlayerId ? `◂ ${LOBBY}` : copy.ENTER_LOBBY}
             </button>
           ) : undefined
         }
-        words={words}
+        words={reviewAllWords ?? words}
         hiddenWordIds={hiddenWordIds}
         playerAId={match.players.playerA.playerId}
         frozenTiles={frozenTiles}
@@ -676,19 +771,19 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
           viewerSlot={viewerSlot}
           ownerNames={ownerNames}
           ticks={ticks}
-          disabled={completed || readOnly || !canPick || transport.offline}
+          disabled={completed || readOnly || !canPick || transport.offline || Boolean(reviewStep)}
           turnFrame={completed || readOnly || transport.offline ? null : turnFrameFor(moveState)}
           bands={bands}
           highlightMove={highlightMove}
-          drawnCount={drawnCount}
-          drawingIndex={drawingIndex}
+          drawnCount={reviewStep ? null : drawnCount}
+          drawingIndex={reviewStep ? null : drawingIndex}
           cellStateFor={field.cellStateFor}
           seatFor={field.seatFor}
           shakeAt={field.shakeAt}
           focusAt={field.focusAt}
           onActivate={(at) => field.dispatch({ type: "tap", at })}
           onDrag={(from, to) => field.dispatch({ type: "drag", from, to })}
-          exchange={field.ownPins}
+          exchange={reviewStep ? reviewExchange : field.ownPins}
           onKeyDown={field.onKeyDown}
         />
       </MatchRoomView>
@@ -707,4 +802,51 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       ) : null}
     </>
   );
+}
+
+/** The clock as it read when the match ended (`3:12`), for a resignation's detail (spec 071, D1). */
+function clockAtEnd(match: MatchState): string | null {
+  const { deadlineAt } = match.clock;
+  if (!deadlineAt || !match.completedAt) return null;
+  return formatClock(Math.max(0, Date.parse(deadlineAt) - Date.parse(match.completedAt)));
+}
+
+/** Spec 071: each seat's total and moves at a review step. */
+function seatsAtStep(step: ReviewStep, viewerSlot: PlayerSlot): { you: { score: number; moves: number }; opp: { score: number; moves: number } } {
+  const a = { score: step.totals.a, moves: step.movesPlayed.a };
+  const b = { score: step.totals.b, moves: step.movesPlayed.b };
+  return viewerSlot === "player_a" ? { you: a, opp: b } : { you: b, opp: a };
+}
+
+/** Spec 071 (FR-032): the step's swap carries the last-moved tick, in the mover's colour. */
+function reviewTicks(step: ReviewStep, viewerSlot: PlayerSlot, names: { you: string; opp: string }): { at: Coordinate; seat: "you" | "opp"; name: string }[] {
+  if (!step.swap || !step.slot) return [];
+  const seat = step.slot === viewerSlot ? "you" : "opp";
+  return [step.swap.from, step.swap.to].map((at) => ({ at, seat, name: names[seat] }));
+}
+
+/**
+ * Spec 071 (FR-039): the review's foot. `◂ result`, then the one primary by availability: the
+ * rematch while it is offered, else challenge again when they are here, else a new opponent.
+ */
+function ReviewFoot({ offer, view, onAction }: { offer: RematchOffer | null; view: RematchView | null; onAction: (a: LedgerAction) => void }) {
+  const copy = useCopy();
+  const primary = reviewPrimary(offer, view);
+  const labels = { rematch: copy.REMATCH, challengeAgain: copy.table.CHALLENGE_AGAIN, newOpponent: copy.NEW_OPPONENT } as const;
+  return (
+    <>
+      <button type="button" className="action-secondary" data-testid="review-result" onClick={() => onAction("result")}>
+        ◂ {copy.RESULT.replace(/ ▸$/, "")}
+      </button>
+      <button type="button" className="action-primary" data-testid={`review-primary-${primary}`} onClick={() => onAction(primary)}>
+        {labels[primary]}
+      </button>
+    </>
+  );
+}
+
+function reviewPrimary(offer: RematchOffer | null, view: RematchView | null): "rematch" | "challengeAgain" | "newOpponent" {
+  if (offer?.offered) return "rematch";
+  if (view?.kind === "closed" && view.challengeAgain?.enabled) return "challengeAgain";
+  return "newOpponent";
 }

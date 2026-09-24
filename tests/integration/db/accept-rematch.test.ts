@@ -55,14 +55,15 @@ describe.skipIf(!db)("accept_rematch (spec 067)", () => {
     expect((await accept(request, birna)).status).toBe("not_recipient");
   });
 
-  it("should refuse when either player is in another match, and leave the request pending", async () => {
+  // Spec 071: a busy accept ends the request as `superseded` (`started another match`), not pending.
+  it("should refuse when either player is in another match, and end the request as superseded", async () => {
     const [birna, kari, embla] = await f.players_(["Birna", "Kari", "Embla"]);
     const old = await f.match(birna, kari, "completed");
     const request = await f.rematchRequest(old, birna, kari);
     await f.match(kari, embla, "in_progress");
 
     expect(await accept(request, kari)).toEqual({ status: "busy", player_id: kari });
-    expect(await f.statusOf("rematch_requests", request)).toBe("pending");
+    expect(await f.statusOf("rematch_requests", request)).toBe("superseded");
     expect(await f.liveMatchesOf(birna)).toBe(0);
   });
 });

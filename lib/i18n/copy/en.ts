@@ -125,12 +125,6 @@ const lastMoveOf = (name: string): string => `${name}'s last move`;
 const tabTitle = (clockMmSs: string, move: number, name: string): string => `${clockMmSs} · move ${move} · ${name}`;
 const profileOpensInNewTab = (name: string): string => `${name}, profile opens in a new tab`;
 
-// Notices (live-row styled lines)
-const rematchRequest = (name: string): string =>
-  `${name} asks for a rematch · accept ▸ · decline`;
-const waitingForRematch = (name: string): string => `waiting for ${name}`;
-// Accepting a challenge from someone who is now in another match (spec 067 FR-019)
-const opponentBusy = (name: string): string => `${name} can't play right now`;
 
 // The slip (spec 048, design system §5.9)
 /** Under /en the game plays English (spec 060); Icelandic says `íslensk orð`. */
@@ -180,8 +174,12 @@ const marginDetail = (margin: number): string => `by ${margin} points`;
 const SPINE_HEADER = "move";
 const TOTAL_LABEL = "total";
 const NOT_PLAYED = "not played";
-const verdictDetail = (margin: number, wordsA: number, wordsB: number, terrA: number, terrB: number) =>
-  `by ${margin} points · ${wordsA} words to ${wordsB} · territory ${terrA}–${terrB}`;
+/** Spec 071: the detail line's clauses, joined with ` · ` (a phone shows the first two). */
+const wordsDetail = (a: number, b: number): string => `${a} words to ${b}`;
+const territoryDetail = (a: number, b: number): string => `territory ${a}–${b}`;
+const ENDED_EARLY = "ended early";
+const wasGone = (name: string): string => `${name} was gone`;
+const bestWordLine = (word: string, points: number): string => `your best word · ${word} ${points}`;
 
 // Foot actions
 const REMATCH = "rematch ▸";
@@ -212,8 +210,6 @@ const territoryAria = (you: number, opp: number): string => `territory ${you}–
 const CHALLENGES_YOU = "challenges you";
 const IN_A_MATCH = "in a match";
 const territoryLine = (you: number, free: number, opp: number): string => `${you} · ${free} free · ${opp}`;
-const rematchDeclined = (name: string): string => `${name} declined`;
-const REMATCH_EXPIRED = "rematch request expired";
 const REALTIME_LOST = "realtime lost · polling";
 const UNRATED = "unrated";
 const YOUR_MOVES = "your moves";
@@ -291,6 +287,56 @@ const table = {
   titleTable: (name: string): string => `${name} · opponent found`,
   titleStarting: (n: number, name: string): string => `${n} · ${name}`,
   titleSearching: (mmSs: string): string => `searching ${mmSs}`,
+};
+/** Spec 071 (D2): the rematch negotiation's lines, on the slip or as the ledger's first line. */
+/** Spec 071 (FR-018): the rematch series, on the scoreboard's clock row. */
+const seriesLine = (ordinal: number, leader: string | null, hi: number, lo: number): string =>
+  leader ? `match ${ordinal} · ${leader} ${hi}–${lo}` : `match ${ordinal} · ${hi}–${lo}`;
+/** Spec 071 (D3, F7): review, one step at a time. */
+const review = {
+  step: (n: number, total: number): string => `step ${n} of ${total}`,
+  caption: (mmSs: string): string => `review · ${mmSs}`,
+  clockAt: (n: number): string => `the clock at step ${n}`,
+  CLOCK_THEN: "the clock then",
+  atStep: (moves: number, limit: number, n: number): string => `${moves} of ${limit} at step ${n}`,
+  movesOf: (moves: number, limit: number): string => `${moves} of ${limit}`,
+  move: (n: number, name: string): string => `move ${n} · ${name}`,
+  NO_WORD: "no word",
+  REFUSED: "refused",
+  refusedWhy: (reason: "frozen" | "moved"): string => `refused · ${reason}`,
+  TIME: "time",
+  ENDED_EARLY: "ended early",
+  notPlayed: (points: string): string => `${points} not played`,
+  froze: (n: number): string => `froze ${n}`,
+  leads: (name: string, hi: number, lo: number): string => `${name} leads ${hi}–${lo}`,
+  level: (a: number, b: number): string => `level ${a}–${b}`,
+  valueText: (n: number, total: number, who: string, what: string): string => `step ${n} of ${total}, ${who}, ${what}`,
+  plus: (n: number): string => `plus ${n}`,
+  minus: (n: number): string => `minus ${n}`,
+  cellName: (move: number, name: string): string => `move ${move}, ${name}`,
+  NOT_YET_REACHED: "not yet reached",
+  SCRUBBER: "review step",
+  /** Spec 071 (FR-042): a reader's line, above a match they did not play. */
+  overLine: (a: string, b: string): string => `this match is over · ${a} – ${b}`,
+  FIRST: "first",
+  BACK: "back",
+  PLAY: "play ▸",
+  PAUSE: "pause",
+  NEXT: "next",
+  LAST: "last",
+};
+const rematch = {
+  sent: (mmSs: string): string => `rematch sent · ${mmSs}`,
+  asks: (name: string, mmSs: string): string => `${name} asks for a rematch · ${mmSs}`,
+  accepted: (name: string): string => `${name} accepted`,
+  declined: (name: string): string => `${name} declined`,
+  NO_ANSWER: "no answer",
+  withdrew: (name: string): string => `${name} withdrew`,
+  startedAnother: (name: string): string => `${name} started another match`,
+  hasLeft: (name: string): string => `${name} has left`,
+  HAS_LEFT: "has left",
+  CANCEL: "cancel ▸",
+  title: (name: string, wordmark: string): string => `(1) ${name} asks for a rematch · ${wordmark}`,
 };
 const errors = {
   rate_limited: "too many tries · wait a minute",
@@ -413,9 +459,6 @@ export const copyEn = {
   clockMarkLeft,
   lastMoveOf,
   tabTitle,
-  rematchRequest,
-  waitingForRematch,
-  opponentBusy,
   TAGLINE,
   NEW_HERE_HOW_TO_PLAY,
   SIGN_IN_TO_SET_THE_FIELD,
@@ -448,7 +491,11 @@ export const copyEn = {
   SPINE_HEADER,
   TOTAL_LABEL,
   NOT_PLAYED,
-  verdictDetail,
+  wordsDetail,
+  territoryDetail,
+  ENDED_EARLY,
+  wasGone,
+  bestWordLine,
   REMATCH,
   NEW_OPPONENT,
   LOBBY,
@@ -471,8 +518,6 @@ export const copyEn = {
   CHALLENGES_YOU,
   IN_A_MATCH,
   territoryLine,
-  rematchDeclined,
-  REMATCH_EXPIRED,
   REALTIME_LOST,
   UNRATED,
   YOUR_MOVES,
@@ -504,6 +549,9 @@ export const copyEn = {
   profileUnavailable,
   noSuchPlayer,
   table,
+  rematch,
+  review,
+  seriesLine,
   pages,
   errors,
   RULES_TITLE,

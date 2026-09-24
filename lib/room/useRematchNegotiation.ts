@@ -3,146 +3,111 @@
 import type { ErrorCode } from "@/lib/i18n/copy/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { cancelRematchAction } from "@/app/actions/match/cancelRematch";
 import { requestRematchAction } from "@/app/actions/match/requestRematch";
 import { acceptRematchAction, declineRematchAction } from "@/app/actions/match/respondToRematch";
-import type { RematchEvent } from "@/lib/types/match";
-
-/** `busy`: either player is in another match, so no rematch can start (spec 067). */
-export type RematchPhase = "idle" | "requesting" | "waiting" | "incoming" | "accepted" | "declined" | "expired" | "busy";
-
-export const REMATCH_TIMEOUT_MS = 30_000;
+import { withdrawRematchAction } from "@/app/actions/match/withdrawRematch";
+import type { RematchOffer } from "@/lib/types/match";
 
 export interface RematchOptions {
   matchId: string;
-  currentPlayerId: string;
-  /** Called with the new match id when both sides agreed. */
+  viewerId: string;
+  /** A participant on the result: the offer is read and kept fresh. */
+  active: boolean;
+  /** The offer the page was served (the match page attaches it). */
+  initialOffer: RematchOffer | null;
+  /** Called with the new match id when the rematch starts. */
   onNewMatch: (newMatchId: string) => void;
 }
 
 export interface RematchApi {
-  phase: RematchPhase;
-  /** A failure, as a code the room words in the page's language (spec 060). */
+  /** The server's offer for this viewer; the view is derived from it (`deriveRematchView`). */
+  offer: RematchOffer | null;
   error: ErrorCode | null;
   request: () => Promise<void>;
   accept: () => Promise<void>;
   decline: () => Promise<void>;
-  /** Feed rematch broadcasts from the room's single match channel. */
-  handleEvent: (event: RematchEvent) => void;
-  /** On a `rematch` poke or an accepted event: read where the rematch went, and go (spec 070 FR-034). */
-  check: () => Promise<void>;
+  withdraw: () => Promise<void>;
+  /** On a `rematch` poke: read the offer again, and follow an accepted request. */
+  refresh: () => Promise<void>;
 }
 
-async function readRematchId(matchId: string): Promise<string | null> {
+/** While the window is open or a request is out, the offer is re-read this often (presence changes send no poke). */
+const REFRESH_MS = 5_000;
+
+async function readOffer(matchId: string): Promise<RematchOffer | null> {
   try {
     const res = await fetch(`/api/match/${matchId}/state`, { cache: "no-store" });
     if (!res.ok) return null;
-    const body = (await res.json()) as { rematchMatchId?: string | null };
-    return body.rematchMatchId ?? null;
+    return ((await res.json()) as { rematch?: RematchOffer }).rematch ?? null;
   } catch {
     return null;
   }
 }
 
+function stillMoving(offer: RematchOffer | null, nowMs: number): boolean {
+  if (!offer) return true;
+  return offer.request?.status === "pending" || (offer.request === null && Date.parse(offer.windowEndsAt) > nowMs);
+}
+
 /**
- * Rematch negotiation for the final room state (spec 016 server flow kept;
- * spec 044 renders it as ledger lines). Events arrive through the room's
- * existing channel subscription instead of a second one.
+ * Spec 071 (R9): the rematch for the result screen. The server decides everything (the window,
+ * presence, one request, 30s); this hook holds its answer and sends the four commands.
  */
-export function useRematchNegotiation({ matchId, currentPlayerId, onNewMatch }: RematchOptions): RematchApi {
-  const [phase, setPhase] = useState<RematchPhase>("idle");
+export function useRematchNegotiation({ matchId, viewerId, active, initialOffer, onNewMatch }: RematchOptions): RematchApi {
+  const [offer, setOffer] = useState<RematchOffer | null>(initialOffer);
   const [error, setError] = useState<ErrorCode | null>(null);
-  const phaseRef = useRef(phase);
-  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const offerRef = useRef(offer);
   const onNewMatchRef = useRef(onNewMatch);
   useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
+    offerRef.current = offer;
+  }, [offer]);
   useEffect(() => {
     onNewMatchRef.current = onNewMatch;
   }, [onNewMatch]);
 
-  const clearTimer = () => {
-    if (timeout.current) clearTimeout(timeout.current);
-    timeout.current = null;
-  };
+  const refresh = useCallback(async () => {
+    const next = await readOffer(matchId);
+    if (!next) return;
+    setOffer(next);
+    if (next.request?.status === "accepted" && next.request.newMatchId) onNewMatchRef.current(next.request.newMatchId);
+  }, [matchId]);
 
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => {
+      if (stillMoving(offerRef.current, Date.now())) void refresh();
+    }, REFRESH_MS);
+    return () => clearInterval(id);
+  }, [active, refresh]);
+
+  // A request that is still ours when the room goes away is withdrawn (FR-012).
   useEffect(
     () => () => {
-      clearTimer();
-      if (phaseRef.current === "waiting") cancelRematchAction(matchId).catch(() => undefined);
+      const pending = offerRef.current?.request;
+      if (pending?.status === "pending" && pending.requesterId === viewerId) withdrawRematchAction(matchId).catch(() => undefined);
     },
-    [matchId],
+    [matchId, viewerId],
   );
 
-  const check = useCallback(async () => {
-    const newMatchId = await readRematchId(matchId);
-    if (!newMatchId) return;
-    clearTimer();
-    setPhase("accepted");
-    onNewMatchRef.current(newMatchId);
-  }, [matchId]);
-
-  const handleEvent = useCallback(
-    (event: RematchEvent) => {
-      const mine = event.requesterId === currentPlayerId;
-      if (event.type === "rematch-accepted") {
-        void check();
-      } else if (event.type === "rematch-declined") {
-        clearTimer();
-        setPhase("declined");
-      } else if (event.type === "rematch-expired") {
-        clearTimer();
-        setPhase("expired");
-      } else if (event.type === "rematch-request" && !mine) {
-        setPhase("incoming");
+  const run = useCallback(
+    async (command: () => Promise<{ status: string; matchId?: string }>, failure: ErrorCode) => {
+      setError(null);
+      try {
+        const result = await command();
+        if (result.status === "accepted" && result.matchId) return onNewMatchRef.current(result.matchId);
+        await refresh();
+      } catch (e) {
+        console.warn("[rematch] command failed", e);
+        setError(failure);
       }
     },
-    [currentPlayerId, check],
+    [refresh],
   );
 
-  const request = useCallback(async () => {
-    if (phaseRef.current !== "idle" && phaseRef.current !== "declined" && phaseRef.current !== "expired") return;
-    setPhase("requesting");
-    setError(null);
-    try {
-      const result = await requestRematchAction(matchId);
-      if (result.status === "accepted") {
-        setPhase("accepted");
-        onNewMatchRef.current(result.matchId);
-        return;
-      }
-      if (result.status === "busy") return setPhase("busy");
-      setPhase("waiting");
-      timeout.current = setTimeout(() => setPhase("expired"), REMATCH_TIMEOUT_MS);
-    } catch (e) {
-      setPhase("idle");
-      console.warn("[rematch] request failed", e);
-      setError("rematch_failed");
-    }
-  }, [matchId]);
+  const request = useCallback(() => run(() => requestRematchAction(matchId), "rematch_failed"), [run, matchId]);
+  const accept = useCallback(() => run(() => acceptRematchAction(matchId), "accept_failed"), [run, matchId]);
+  const decline = useCallback(() => run(() => declineRematchAction(matchId), "rematch_failed"), [run, matchId]);
+  const withdraw = useCallback(() => run(() => withdrawRematchAction(matchId), "rematch_failed"), [run, matchId]);
 
-  const accept = useCallback(async () => {
-    if (phaseRef.current !== "incoming") return;
-    setPhase("requesting");
-    try {
-      const result = await acceptRematchAction(matchId);
-      if (result.status === "accepted") {
-        setPhase("accepted");
-        onNewMatchRef.current(result.matchId);
-      } else setPhase(result.status === "busy" ? "busy" : "expired");
-    } catch (e) {
-      setPhase("incoming");
-      console.warn("[rematch] accept failed", e);
-      setError("accept_failed");
-    }
-  }, [matchId]);
-
-  const decline = useCallback(async () => {
-    if (phaseRef.current !== "incoming") return;
-    setPhase("declined");
-    await declineRematchAction(matchId).catch(() => undefined);
-  }, [matchId]);
-
-  return { phase, error, request, accept, decline, handleEvent, check };
+  return { offer, error, request, accept, decline, withdraw, refresh };
 }

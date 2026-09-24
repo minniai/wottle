@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { getSeatColors } from "@/lib/constants/seatColors";
+import { getNextRovingIndex } from "@/lib/a11y/rovingFocus";
 import { foldRows } from "@/lib/room/ledgerRows";
+import { cellName, type CellState } from "@/lib/review/ledgerCells";
+import type { ReviewNames } from "@/lib/review/stepFacts";
 import { noticeKey, noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
-import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell } from "@/lib/room/ledgerTypes";
+import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell, Verdict } from "@/lib/room/ledgerTypes";
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
 import { PointsLost } from "./PointsLost";
@@ -31,6 +34,25 @@ export interface LedgerProps {
   onRowHover?: (move: number | null) => void;
   onAction: (action: LedgerAction) => void;
   renderNotice?: (notice: Notice) => ReactNode;
+  /** Spec 071: the ledger in review; cells jump to their step. */
+  review?: LedgerReview;
+}
+
+type Slot = "player_a" | "player_b";
+
+export interface LedgerReview {
+  /** Whose column is `you`: the viewer's, or player A's for a reader who did not play. */
+  viewerSlot: Slot;
+  /** The row the cursor line takes: the step's move, or for the closing step the first unplayed row (slot null). */
+  current: { slot: Slot | null; move: number } | null;
+  cursor: LiveLines;
+  states: Map<string, CellState>;
+  names: ReviewNames;
+  /** The step controls, on the head's state line (desktop). */
+  controls: ReactNode;
+  /** The phone's: five glyphs pinned in the foot beside `◂ result` (game flow F7). */
+  phoneControls?: ReactNode;
+  onJump: (slot: Slot, move: number) => void;
 }
 
 function menuVariant(variant: LedgerVariant): RoomMenuVariant {
@@ -129,6 +151,78 @@ function LiveText({ live, onAction }: { live?: LiveLines; onAction?: (action: Le
   );
 }
 
+function ReviewCell({ slot, row, seat, review }: { slot: Slot; row: LedgerRow; seat: "you" | "opp"; review: LedgerReview }) {
+  const copy = useCopy();
+  const state = review.states.get(`${slot}:${row.move}`);
+  const cell = seat === "you" ? row.you : row.opp;
+  if (!state) return <SeatWords cell={cell} seat={seat} showPoints={false} folded={row.folded ?? false} />;
+  return (
+    <div
+      role="gridcell"
+      tabIndex={-1}
+      className="ledger__review-cell"
+      data-review={state}
+      data-cell={`${slot}:${row.move}`}
+      aria-label={cellName(slot, row.move, review.names, state, copy)}
+      onClick={() => review.onJump(slot, row.move)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          review.onJump(slot, row.move);
+        }
+      }}
+    >
+      <SeatWords cell={cell} seat={seat} showPoints={false} folded={row.folded ?? false} />
+    </div>
+  );
+}
+
+/** Spec 071 (FR-036, FR-037): a row in review; the step's move is the cursor line, in the live row's style. */
+function ReviewRow({ row, review }: { row: LedgerRow; review: LedgerReview }) {
+  const youSlot = review.viewerSlot;
+  const oppSlot: Slot = youSlot === "player_a" ? "player_b" : "player_a";
+  const cursorHere = review.current?.move === row.move;
+  return (
+    <div role="row" className={`ledger__row ledger__row--${cursorHere ? "settled" : "past"}`} data-testid={`ledger-row-${row.move}`} data-status={cursorHere ? "settled" : "past"}>
+      {cursorHere ? (
+        <>
+          <div role="gridcell" tabIndex={-1} className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
+            <LiveText live={review.cursor} />
+          </div>
+          {review.current?.slot ? <SeatWords cell={review.current.slot === youSlot ? row.opp : row.you} seat={review.current.slot === youSlot ? "opp" : "you"} showPoints={false} folded /> : null}
+        </>
+      ) : (
+        <>
+          <ReviewCell slot={youSlot} row={row} seat="you" review={review} />
+          <div className="ledger__move" aria-hidden="true">{row.move}</div>
+          <ReviewCell slot={oppSlot} row={row} seat="opp" review={review} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** One grid, one tab stop (FR-036): the arrows and Home/End move among its cells. */
+function useRovingGrid(): [RefObject<HTMLDivElement | null>, (e: KeyboardEvent<HTMLDivElement>) => void] {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const cells = () => Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="gridcell"]') ?? []);
+  useEffect(() => {
+    const all = cells();
+    const current = all.find((c) => c.getAttribute("data-review") === "current") ?? all.find((c) => c.dataset.testid === "ledger-live-row") ?? all[0];
+    all.forEach((c) => (c.tabIndex = c === current ? 0 : -1));
+  });
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const all = cells();
+    const index = all.indexOf(document.activeElement as HTMLElement);
+    if (index < 0 || !["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+    e.preventDefault();
+    const next = all[getNextRovingIndex(index, all.length, e.key)];
+    all.forEach((c) => (c.tabIndex = c === next ? 0 : -1));
+    next.focus();
+  };
+  return [ref, onKeyDown];
+}
+
 function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: boolean; onRowHover?: (move: number | null) => void; onAction?: (action: LedgerAction) => void }) {
   const liveOrHeld = row.status === "live" || row.status === "settled";
   return (
@@ -168,22 +262,59 @@ function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: 
   );
 }
 
+/**
+ * The grid's state row has one line under the verdict (spec 068): the detail's first two
+ * clauses, which say why the match ended; the slip carries the rest (spec 071).
+ */
+function gridDetail(verdict: Verdict): string {
+  return verdict.detailClauses ? verdict.detailClauses.slice(0, 2).join(" · ") : verdict.detailLine;
+}
+
+/** A line with answers: the rematch first, then a third party's call, then the rest. */
+function answerRank(notice: Notice): number {
+  return notice.kind === "rematch" ? 0 : notice.kind === "call" ? 1 : 2;
+}
+
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
   const copy = useCopy();
-  if (notice.kind !== "call") return <>{noticeText(notice, copy)}</>;
-  // A call on the result screen (B6): the line and its two secondaries.
+  if (notice.kind !== "call" && notice.kind !== "rematch") return <>{noticeText(notice, copy)}</>;
+  // A call or a rematch on the result screen (B6, spec 071 T41): the line and its two secondaries.
+  const [accept, decline, id]: [LedgerAction, LedgerAction, string] =
+    notice.kind === "rematch" ? ["acceptRematch", "declineRematch", "ledger-rematch"] : ["acceptCall", "declineCall", "ledger-call"];
+  // Two lines, so a long name never pushes the actions out of the row (spec 071): the call, then its answers.
   return (
     <>
-      {notice.text} ·{" "}
-      <button type="button" className="action-secondary" data-testid="ledger-call-accept" onClick={() => onAction("acceptCall")}>
-        {copy.ACCEPT}
-      </button>{" "}
-      ·{" "}
-      <button type="button" className="action-secondary" data-testid="ledger-call-decline" onClick={() => onAction("declineCall")}>
-        {copy.DECLINE}
-      </button>
+      <span className="ledger__call-text">{notice.text}</span>
+      <span className="ledger__call-actions">
+        <button type="button" className="action-secondary" data-testid={`${id}-accept`} onClick={() => onAction(accept)}>
+          {copy.ACCEPT}
+        </button>
+        <button type="button" className="action-secondary" data-testid={`${id}-decline`} onClick={() => onAction(decline)}>
+          {copy.DECLINE}
+        </button>
+      </span>
+      {notice.kind === "rematch" ? <span className="ledger__drain" data-testid="ledger-rematch-drain" style={{ transform: `scaleX(${notice.drain})` }} /> : null}
     </>
   );
+}
+
+/**
+ * The phone foot's right end (spec 071, F4, F7): in review `◂ result` and the five step glyphs;
+ * at the result its actions (`result ▸` once the slip is lifted); the language otherwise.
+ */
+function phoneFootEnd(variant: LedgerVariant, review: LedgerReview | undefined, footActions: ReactNode, words: { language: string; result: string }, onAction: (a: LedgerAction) => void): ReactNode {
+  if (review) {
+    return (
+      <span className="ledger__phone-review">
+        <button type="button" className="action-secondary" data-testid="ledger-phone-result" onClick={() => onAction("result")}>
+          ◂ {words.result}
+        </button>
+        {review.phoneControls}
+      </span>
+    );
+  }
+  if (variant === "final" && footActions) return <span className="ledger__phone-actions">{footActions}</span>;
+  return <span className="ledger__mono">{words.language}</span>;
 }
 
 /**
@@ -191,8 +322,9 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
-  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, LANGUAGE_WORDS, territoryAria, territoryLine, YOU } = useCopy();
-  const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
+  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, LANGUAGE_WORDS, RESULT, territoryAria, territoryLine, YOU } = useCopy();
+  const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice, review } = props;
+  const [gridRef, onGridKeyDown] = useRovingGrid();
   const showsTable = variant === "match" || variant === "final";
   /**
    * Only a ledger with a rounds table collapses. The lobby's body is the here-now
@@ -236,7 +368,13 @@ export function Ledger(props: LedgerProps) {
       </div>
   );
 
-  const rows10 = (
+  const rows10 = review ? (
+    <div ref={gridRef} className="ledger__rows" data-testid="ledger-rows" role="grid" aria-label={LEDGER} onKeyDown={onGridKeyDown}>
+      {rows.map((row) => (
+        <ReviewRow key={row.move} row={row} review={review} />
+      ))}
+    </div>
+  ) : (
     <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
       {rows.map((row) => (
         <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} onAction={onAction} />
@@ -276,17 +414,22 @@ export function Ledger(props: LedgerProps) {
     </>
   ) : null;
 
-  const noticeLines = notices.map((notice) => (
+  // An incoming rematch outranks a third party's call (spec 071 T41, T65): it always comes first.
+  const ordered = [...notices].sort((a, b) => answerRank(a) - answerRank(b));
+  const noticeLines = ordered.map((notice) => (
     <div key={noticeKey(notice)} className="ledger__notice" data-testid="ledger-notice" data-field-safe data-kind={notice.kind} aria-live="polite">
       {renderNotice ? renderNotice(notice) : <NoticeLine notice={notice} onAction={onAction} />}
     </div>
   ));
 
-  const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
+  // In review the cursor line takes the live row's place on a phone (F7).
+  const collapsedLive: LiveLines | undefined = review ? review.cursor : model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
 
-  const latestNotice = noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null;
+  // Two answers waiting (a rematch and a call) share the state row, one line each (T65).
+  const answers = noticeLines.filter((_, i) => answerRank(ordered[i]) < 2);
+  const latestNotice = answers.length === 2 ? <div className="ledger__answers">{answers}</div> : answers[0] ?? (noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null);
   // On a phone a call cannot wait in the closed sheet: it sits under the live row (B6).
-  const callIndex = notices.findIndex((n) => n.kind === "call");
+  const callIndex = ordered.findIndex((n) => answerRank(n) < 2);
   const phoneCall = callIndex >= 0 ? noticeLines[callIndex] : null;
   const sheetNotices = noticeLines.filter((_, i) => i !== callIndex);
 
@@ -297,7 +440,7 @@ export function Ledger(props: LedgerProps) {
   const verdictBlock = model.verdict ? (
     <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
       <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
-      <div className="ledger__mono">{model.verdict.detailLine}</div>
+      <div className="ledger__mono">{gridDetail(model.verdict)}</div>
     </div>
   ) : null;
 
@@ -327,10 +470,14 @@ export function Ledger(props: LedgerProps) {
           {caption}
           {/* The state's line: territory (or the verdict), whose second line a notice takes while it shows. */}
           <div className="ledger__state-line" data-testid="ledger-state-line">
-            {model.verdict ? (
+            {review ? (
+              <div className="ledger__review-controls">{latestNotice ?? review.controls}</div>
+            ) : answers.length === 2 ? (
+              latestNotice
+            ) : model.verdict ? (
               <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
                 <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
-                {latestNotice ?? <div className="ledger__mono">{model.verdict.detailLine}</div>}
+                {latestNotice ?? <div className="ledger__mono" data-testid="ledger-verdict-detail">{gridDetail(model.verdict)}</div>}
               </div>
             ) : (
               <>
@@ -386,7 +533,7 @@ export function Ledger(props: LedgerProps) {
           {/* Pinned to the bottom edge with the safe area, always visible (spec 068 FR-015). */}
           <div className="ledger__phone-foot" data-testid="ledger-phone-foot" data-field-safe>
             <RoomMenu variant={menuVariant(variant)} onAction={onAction} />
-            <span className="ledger__mono">{LANGUAGE_WORDS}</span>
+            {phoneFootEnd(variant, review, footActions, { language: LANGUAGE_WORDS, result: RESULT.replace(/ ▸$/, "") }, onAction)}
           </div>
         </>
       ) : (

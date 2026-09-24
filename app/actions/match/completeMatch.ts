@@ -35,8 +35,16 @@ interface MatchRow {
   language: Language | null;
 }
 
-/** `natural` means: decide by the rules (spec 050 FR-010); the reason comes out of the decision. */
+/**
+ * `natural` means: decide by the rules (spec 050 FR-010); the reason comes out of the decision.
+ * `ended_early` (spec 071) settles the same way but records that the match was ended early.
+ */
 export type CompletionReason = MatchEndedReason | "natural";
+
+/** Unplayed moves are penalised, as at 0:00, for a natural end and for an early end. */
+function settlesNaturally(reason: CompletionReason): boolean {
+  return reason === "natural" || reason === "ended_early";
+}
 
 export interface CompleteMatchResult {
   matchId: string;
@@ -209,14 +217,14 @@ export async function completeMatchInternal(
     return existingResult(match, fallback);
   }
 
-  const settled = reason === "natural" ? withTimeoutPenalties(match) : match;
+  const settled = settlesNaturally(reason) ? withTimeoutPenalties(match) : match;
   const decision = decide(settled, reason, forcedWinnerId);
   const scores = scoresOf(settled);
 
   // Three triggers may race here (the resolver, a state poll, the cron sweep,
   // the orphan sweep). Whoever flips the row first owns the ratings; the rest
   // return what was written.
-  if (!(await flipToCompleted(supabase, matchId, decision, reason === "natural" ? scores : null))) {
+  if (!(await flipToCompleted(supabase, matchId, decision, settlesNaturally(reason) ? scores : null))) {
     return existingResult(await fetchMatch(supabase, matchId), fallback);
   }
 

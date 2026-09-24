@@ -228,3 +228,18 @@ describe("completeMatchInternal — the completion compare-and-set (spec 050 FR-
     expect(result.matchId).toBe(MATCH_ID);
   });
 });
+
+describe("completeMatchInternal — ended early (spec 071)", () => {
+  test("settles like a natural end, penalising the absent player's unplayed moves, and says it ended early", async () => {
+    const state = freshState();
+    Object.assign(state.match, { player_a_score: 90, player_b_score: 60, player_a_moves: 10, player_b_moves: 6 });
+    vi.mocked(getServiceRoleClient).mockReturnValue(buildSupabase(state) as never);
+
+    const result = await completeMatchInternal(MATCH_ID, "ended_early");
+
+    expect(result.endedReason).toBe("ended_early");
+    expect(result.winnerId).toBe(PLAYER_A);
+    expect(result.scores).toEqual({ playerA: 90, playerB: 40 });
+    expect(state.matchUpdatePayloads[0]).toMatchObject({ ended_reason: "ended_early", player_a_score: 90, player_b_score: 40 });
+  });
+});

@@ -9,6 +9,14 @@ describe("fixture phases (spec 048, spec 050)", () => {
     expect(isRoomPhase(phase)).toBe(true);
   });
 
+  it.each(["result-moves", "result-incomplete", "result-both", "result-forfeit", "result-early"])("lists the result %s (spec 071)", (phase) => {
+    expect(isRoomPhase(phase)).toBe(true);
+  });
+
+  it.each(["rematch-sent", "rematch-in", "rematch-declined", "review", "review-refused", "review-time", "review-public", "rematch-in-review"])("lists the rematch %s (spec 071)", (phase) => {
+    expect(isRoomPhase(phase)).toBe(true);
+  });
+
   it("no longer lists a letters-first landing", () => {
     expect(ROOM_PHASES).not.toContain("landing");
     expect(isRoomPhase("landing")).toBe(false);

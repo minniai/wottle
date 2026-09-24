@@ -16,7 +16,7 @@ const OVER: SlipState = {
   viewerName: "Birna",
   opponentName: "Kári",
   ratings: [],
-  rematch: "idle",
+  rematch: null,
   readOnly: false,
 };
 
@@ -89,9 +89,10 @@ describe("roomStore slip", () => {
     expect(s().slipDismissed).toBe(false);
     // Ratings arriving update the same slip without re-showing a reviewed result.
     s().dismissSlip();
-    s().setSlip({ ...OVER, rematch: "waiting" });
+    const sent = { kind: "sent" as const, line: "rematch sent · 0:24", secondsLeft: 24, drain: 0.8 };
+    s().setSlip({ ...OVER, rematch: sent });
     expect(s().slipDismissed).toBe(true);
-    expect(s().slip).toMatchObject({ kind: "matchOver", rematch: "waiting" });
+    expect(s().slip).toMatchObject({ kind: "matchOver", rematch: sent });
   });
 
   it("hydrating another match resets the slip, the dismissal and the hold", () => {

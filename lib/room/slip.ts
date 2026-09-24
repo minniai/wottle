@@ -1,6 +1,6 @@
 import type { Verdict } from "./ledgerTypes";
 import type { RatingRow } from "./ledgerRows";
-import type { RematchPhase } from "./useRematchNegotiation";
+import type { RematchView } from "./rematchView";
 import type { ReadySlipModel, VoidSlipModel } from "./tableSlip";
 
 /**
@@ -32,8 +32,11 @@ export type SlipState =
       viewerName: string;
       opponentName: string;
       ratings: SlipRatingRow[];
-      rematch: RematchPhase;
+      /** Spec 071 (D2): the negotiation as the viewer sees it; null before the offer is read. */
+      rematch: RematchView | null;
       readOnly: boolean;
+      /** Spec 071: the viewer's highest-scoring word; null when they scored none. */
+      bestWord?: { word: string; points: number } | null;
     };
 
 export type SlipKind = SlipState["kind"];

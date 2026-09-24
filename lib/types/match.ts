@@ -33,6 +33,8 @@ export type MatchEndedReason =
   | "incomplete"
   /** Spec 050: both were short of ten; a draw. */
   | "both_incomplete"
+  /** Spec 071: ended early by the player with ten moves once the other was gone; settled like `incomplete`. */
+  | "ended_early"
   | "disconnect"
   | "forfeit"
   | "abandoned"
@@ -154,8 +156,13 @@ export interface MatchState {
   reconnectWindowMs?: number;
   /** Spec 070 US8: a player whose app is open on another page. Their row reads `stepped out`, never reconnecting. */
   steppedOutPlayerId?: string | null;
-  /** Spec 070 FR-034: a completed match's accepted rematch, read here rather than broadcast. */
-  rematchMatchId?: string | null;
+  /**
+   * Spec 071: the rematch as the caller sees it. Never set by `loadMatchState` (its result is
+   * broadcast to both players); `readRematchOffer` attaches it for the caller.
+   */
+  rematch?: RematchOffer;
+  /** Spec 071: the series this match belongs to, when it is a rematch. Seat-neutral. */
+  series?: SeriesView | null;
   /** Frozen tile map for visual rendering and swap validation */
   frozenTiles: FrozenTileMap;
   /**
@@ -292,6 +299,52 @@ export interface RematchRequest {
   newMatchId: string | null;
   createdAt: string;
   respondedAt: string | null;
+}
+
+/** Spec 071: why `rematch ▸` is not offered, or why a request was refused (one set for both). */
+export type RematchRefusal =
+  | "not_completed"
+  | "not_participant"
+  | "window_closed"
+  | "opponent_left"
+  | "self_left"
+  | "already_requested"
+  | "declined"
+  | "expired"
+  | "withdrawn"
+  | "superseded"
+  | "busy";
+
+export interface RematchRequestView {
+  id: string;
+  requesterId: string;
+  status: RematchRequestStatus;
+  createdAt: string;
+  expiresAt: string;
+  newMatchId: string | null;
+}
+
+/** Spec 071: the rematch for one viewer, computed on the server (FR-010). */
+export interface RematchOffer {
+  /** The viewer may press `rematch ▸` now. */
+  offered: boolean;
+  reason: RematchRefusal | null;
+  request: RematchRequestView | null;
+  /** `completed_at` + 2:00. */
+  windowEndsAt: string;
+  /** The viewer's pair cooldown against the opponent (`pair_cooldown_until`). */
+  cooldownUntil: string | null;
+  /** The opponent has a fresh tab on this match; `has left` otherwise. */
+  opponentOnMatch: boolean;
+  /** The opponent is present anywhere; gates `challenge again ▸`. */
+  opponentHere: boolean;
+}
+
+/** Spec 071: a rematch series, seat-neutral so it can be broadcast. `ordinal` is this match's number. */
+export interface SeriesView {
+  ordinal: number;
+  wins: { playerA: number; playerB: number };
+  draws: number;
 }
 
 export type RematchEventType =

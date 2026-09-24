@@ -46,6 +46,8 @@ export interface ScoreboardSeat {
   offline?: boolean;
   /** Match over: the rating line (`1204 → 1212 · +8 · wins`, or `rating pending`). */
   finalLine?: string;
+  /** Spec 071 (FR-020): the opponent has left the result, so no rematch will come. */
+  left?: boolean;
 }
 
 export interface ScoreboardInput {
@@ -66,9 +68,21 @@ export interface ScoreboardInput {
   opp: ScoreboardSeat;
   /** The table and the void (spec 069). */
   table?: ScoreboardTable;
+  /** Spec 071: `match 2 · Birna 1–0`, a fact about the match, under the clock's label when nothing else is. */
+  series?: string | null;
+  /** Spec 071 (FR-033): review at a step; the seats carry each player's total and moves at it. */
+  review?: ScoreboardReview;
 }
 
-export type ScoreboardClockPhase = ClockRowPhase | "table" | "void" | "starting" | "over";
+export interface ScoreboardReview {
+  step: number;
+  stepCount: number;
+  /** The clock as it read when the step's move was received. */
+  clockMs: number;
+  valueText: string;
+}
+
+export type ScoreboardClockPhase = ClockRowPhase | "table" | "void" | "starting" | "over" | "review";
 
 export interface ClockRow {
   phase: ScoreboardClockPhase;
@@ -79,6 +93,8 @@ export interface ClockRow {
   numeral: string;
   ticksLeft: number;
   blocks: number[];
+  /** Spec 071: in review the track is the scrubber, at `step / stepCount`. */
+  review?: { step: number; stepCount: number; fraction: number; valueText: string };
 }
 
 export interface PlayerRow {
@@ -140,12 +156,28 @@ function stillClock(input: ScoreboardInput, phase: "table" | "void", copy: Copy)
   return { phase, label: copy.MATCH_CLOCK, detail, numeral: formatClock(input.clockLengthMs), ticksLeft: FULL_TICKS, blocks: clockBlocks(FULL_TICKS) };
 }
 
+/** Spec 071 (FR-033): the clock row as the review's scrubber: the step, and the clock when its move came in. */
+function reviewClock(review: ScoreboardReview, input: ScoreboardInput, copy: Copy): ClockRow {
+  const ticks = ticksLeft(review.clockMs);
+  const { step, stepCount, valueText } = review;
+  return {
+    phase: "review",
+    label: input.compact ? copy.review.step(step, stepCount).split(" ").slice(0, 2).join(" ") : copy.review.step(step, stepCount),
+    detail: input.compact ? copy.review.CLOCK_THEN : copy.review.clockAt(step),
+    numeral: formatClock(review.clockMs),
+    ticksLeft: ticks,
+    blocks: clockBlocks(ticks),
+    review: { step, stepCount, fraction: step / stepCount, valueText },
+  };
+}
+
 function clockRowFor(input: ScoreboardInput, copy: Copy): ClockRow {
-  if (input.phase === "table" || input.phase === "void") return stillClock(input, input.phase, copy);
+  if (input.review) return reviewClock(input.review, input, copy);
+  if (input.phase === "table" || input.phase === "void") return withSeries(stillClock(input, input.phase, copy), input);
   if (input.phase === "starting") {
     const ticks = startingTicks(input.msToStart ?? 0);
     const label = copy.startsIn(Math.max(1, Math.ceil((input.msToStart ?? 0) / 1000)));
-    return { phase: "starting", label, detail: "", numeral: formatClock(input.clockLengthMs), ticksLeft: ticks, blocks: clockBlocks(ticks) };
+    return withSeries({ phase: "starting", label, detail: "", numeral: formatClock(input.clockLengthMs), ticksLeft: ticks, blocks: clockBlocks(ticks) }, input);
   }
   const ticks = ticksLeft(input.remainingMs);
   const numeral = formatClock(input.remainingMs);
@@ -154,7 +186,12 @@ function clockRowFor(input: ScoreboardInput, copy: Copy): ClockRow {
     return { phase: "over", label: copy.MATCH_OVER, detail, numeral, ticksLeft: ticks, blocks: clockBlocks(ticks) };
   }
   const phase = clockRowPhase(input.remainingMs);
-  return { phase, label: liveLabel(input, phase, copy), detail: liveDetail(input, phase, copy), numeral, ticksLeft: ticks, blocks: clockBlocks(ticks) };
+  return withSeries({ phase, label: liveLabel(input, phase, copy), detail: liveDetail(input, phase, copy), numeral, ticksLeft: ticks, blocks: clockBlocks(ticks) }, input);
+}
+
+/** The series fills the detail line only when it is empty: the pace outranks it. */
+function withSeries(row: ClockRow, input: ScoreboardInput): ClockRow {
+  return row.detail || !input.series ? row : { ...row, detail: input.series };
 }
 
 interface Sub {
@@ -213,8 +250,12 @@ function tableSub(input: ScoreboardInput, seat: Seat, copy: Copy): Sub {
 }
 
 function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy): Sub {
+  if (input.review) {
+    const moves = input[seat].movesPlayed;
+    return plain(input.compact ? copy.review.movesOf(moves, input.moveLimit) : copy.review.atStep(moves, input.moveLimit, input.review.step));
+  }
   if (input.phase === "table" || input.phase === "void") return tableSub(input, seat, copy);
-  if (input.phase === "over") return plain(null);
+  if (input.phase === "over") return plain(seat === "opp" && input.opp.left ? copy.rematch.HAS_LEFT : null);
   if (input.phase === "starting") return plain(copy.READY);
   if (input.compact) return compactSub(input, seat, behind, copy);
   return seat === "opp" ? oppSub(input, copy) : youSub(input, behind, copy);
@@ -222,6 +263,7 @@ function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy)
 
 function mutedFor(input: ScoreboardInput, seat: Seat, sub: Sub, copy: Copy): string {
   const facts = input[seat];
+  if (input.review) return input.compact ? "" : String(facts.rating ?? copy.UNRATED);
   if (input.phase === "over" && facts.finalLine) return facts.finalLine;
   if (input.compact) return "";
   const rating = String(facts.rating ?? copy.UNRATED);

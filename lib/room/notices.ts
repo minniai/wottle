@@ -6,9 +6,8 @@ export function noticeText(notice: Notice, copy: Copy): string {
   switch (notice.kind) {
     case "pickCleared":
       return copy.pickClearedMoved(notice.byName);
-    case "rematchRequest":
-      return copy.rematchRequest(notice.requesterName);
     case "text":
+    case "rematch":
     case "call":
       return notice.text;
   }

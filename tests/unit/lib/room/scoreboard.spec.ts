@@ -40,6 +40,17 @@ describe("deriveScoreboard: the clock row", () => {
     expect(clock.phase).toBe("running");
   });
 
+  it("names the series under the label when there is no pace to show (spec 071 FR-018)", () => {
+    const series = "match 2 · Birna 1–0";
+    expect(board({ series, moveState: { kind: "scoring", move: 4, opponentName: K } }).clock.detail).toBe(series);
+    expect(board({ series, phase: "starting", msToStart: 2_000 }).clock.detail).toBe(series);
+    // At the table the detail says when it starts; that comes first.
+    expect(board({ series, phase: "table" }).clock.detail).toBe("starts when both sit");
+    // The pace, while the move is yours, outranks it; at the end the match's length does.
+    expect(board({ series }).clock.detail).toMatch(/a move$/);
+    expect(board({ series, phase: "over", elapsedMs: 292_000 }).clock.detail).toBe("4:52 of 5:00");
+  });
+
   it("gives no pace when the move is not yours", () => {
     expect(board({ moveState: { kind: "scoring", move: 4, opponentName: K } }).clock).toMatchObject({ label: "match clock", detail: "" });
     expect(board({ moveState: null }).clock.detail).toBe("");
@@ -160,3 +171,40 @@ describe("deriveScoreboard in Icelandic", () => {
     expect(view.opp.suffix).toBe("8 af 10 · án tengingar í 2:04");
   });
 });
+
+describe("deriveScoreboard: review (spec 071 FR-033)", () => {
+  const review = { step: 7, stepCount: 20, clockMs: 211_000, valueText: "step 7 of 20, Birna, LEK ÆSKU plus 33" };
+  const at7 = (over: Partial<ScoreboardInput> = {}) =>
+    board({ phase: "over", review, you: seat({ movesPlayed: 3, score: 51 }), opp: seat({ name: K, rating: 1187, movesPlayed: 4, score: 18 }), ...over });
+
+  it("turns the clock row into the scrubber: the step, the clock when the move came in, the fraction", () => {
+    expect(at7().clock).toMatchObject({
+      phase: "review",
+      label: "step 7 of 20",
+      detail: "the clock at step 7",
+      numeral: "3:31",
+      review: { step: 7, stepCount: 20, fraction: 7 / 20, valueText: review.valueText },
+    });
+  });
+
+  it("gives each player their total and moves at the step", () => {
+    const view = at7();
+    expect(view.you).toMatchObject({ total: 51, suffix: "3 of 10 at step 7", behindPace: false });
+    expect(view.opp).toMatchObject({ total: 18, suffix: "4 of 10 at step 7" });
+    expect(view.you.segments.filter((s) => s === "spent").length).toBe(3);
+  });
+
+  it("keeps the phone's row short", () => {
+    const view = deriveScoreboard(input({ phase: "over", compact: true, review, you: seat({ movesPlayed: 3 }) }), copyIs);
+    expect(view.clock).toMatchObject({ label: "skref 7", detail: "klukkan þá" });
+  });
+});
+
+describe("deriveScoreboard: an opponent who has left the result (spec 071 FR-020)", () => {
+  it("says so on their row, after the rating line", () => {
+    const over = board({ phase: "over", elapsedMs: 292_000, opp: seat({ name: K, finalLine: "1187 → 1179 · −8", left: true }) });
+    expect(over.opp).toMatchObject({ muted: "1187 → 1179 · −8", suffix: "has left" });
+    expect(board({ phase: "over", elapsedMs: 292_000, opp: seat({ name: K, finalLine: "x" }) }).opp.suffix).toBeNull();
+  });
+});
+

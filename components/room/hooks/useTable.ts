@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { ScoreboardTable } from "@/lib/room/scoreboard";
 import type { MatchState, PlayerSlot } from "@/lib/types/match";
+import { pushGuardEntry } from "./useLiveBackGuard";
 
 /** A beat past the table's deadline, so the server's lazy void has run when we read (spec 069 SC-005). */
 const DEADLINE_READ_SLACK_MS = 150;
@@ -64,7 +65,7 @@ export function useTableBackGuard(beforeGo: boolean, onLeave: () => void): void 
   useEffect(() => {
     if (!beforeGo || pushed.current) return;
     pushed.current = true;
-    window.history.pushState({ kind: "table-guard" }, "");
+    pushGuardEntry("table-guard");
   }, [beforeGo]);
   useEffect(() => {
     const onPop = () => {

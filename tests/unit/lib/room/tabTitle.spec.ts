@@ -15,4 +15,11 @@ describe("tabTitle", () => {
     expect(tabTitle({ live: false, clockMs: 0, move: 10 }, copyEn)).toBe("Wottle");
     expect(tabTitle({ live: false, clockMs: 0, move: 1 }, copyIs)).toBe("Orðusta");
   });
+
+  it("names the winner once the match is over (spec 071 FR-008)", () => {
+    expect(tabTitle({ live: false, clockMs: 0, move: 10, result: { winnerName: "Birna" } }, copyEn)).toBe("Birna wins · Wottle");
+    expect(tabTitle({ live: false, clockMs: 0, move: 10, result: { winnerName: "Birna" } }, copyIs)).toBe("Birna vann · Orðusta");
+    expect(tabTitle({ live: false, clockMs: 0, move: 10, result: { winnerName: null } }, copyEn)).toBe("Draw · Wottle");
+    expect(tabTitle({ live: false, clockMs: 0, move: 10, result: { winnerName: null } }, copyIs)).toBe("Jafntefli · Orðusta");
+  });
 });

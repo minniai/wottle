@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MatchPlayerProfiles, MatchState, MoveResolution, PlayerMatchFacts, WordScore } from "@/lib/types/match";
+import type { MatchPlayerProfiles, MatchState, MoveResolution, PlayerMatchFacts, RematchOffer, WordScore } from "@/lib/types/match";
 
 const mockCallbacks = vi.hoisted(() => ({
   onMoveResolved: null as ((r: MoveResolution) => void) | null,
@@ -11,6 +11,11 @@ const mockCallbacks = vi.hoisted(() => ({
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
 
+const { mockPlayChallenge } = vi.hoisted(() => ({ mockPlayChallenge: vi.fn() }));
+vi.mock("@/lib/audio/useSoundEffects", async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import("@/lib/audio/useSoundEffects");
+  return { ...actual, useSoundEffects: (enabled: boolean) => ({ ...actual.useSoundEffects(enabled), playChallenge: mockPlayChallenge }) };
+});
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
@@ -29,9 +34,9 @@ vi.mock("@/app/actions/match/resignMatch", () => ({ resignMatch: vi.fn().mockRes
 vi.mock("@/app/actions/match/claimWin", () => ({ claimWinAction: vi.fn().mockResolvedValue({ status: "ok", matchId: "m1" }) }));
 vi.mock("@/app/actions/match/settleMatch", () => ({ settleMatch: vi.fn().mockResolvedValue({ status: "ok", outcome: "not_due" }) }));
 vi.mock("@/app/actions/match/getMatchRatings", () => ({ getMatchRatings: vi.fn() }));
-vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.fn().mockResolvedValue({ status: "pending" }) }));
+vi.mock("@/app/actions/match/requestRematch", () => ({ requestRematchAction: vi.fn().mockResolvedValue({ status: "sent", expiresAt: "2099-01-01T00:00:00.000Z" }) }));
 vi.mock("@/app/actions/match/respondToRematch", () => ({ acceptRematchAction: vi.fn().mockResolvedValue({ status: "accepted", matchId: "m2" }), declineRematchAction: vi.fn().mockResolvedValue({ status: "declined" }) }));
-vi.mock("@/app/actions/match/cancelRematch", () => ({ cancelRematchAction: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/app/actions/match/withdrawRematch", () => ({ withdrawRematchAction: vi.fn().mockResolvedValue({ status: "withdrawn" }) }));
 vi.mock("@/app/actions/auth/logout", () => ({ logoutAction: vi.fn().mockResolvedValue({ status: "ok" }) }));
 vi.mock("@/app/actions/match/seat", () => ({ seatAction: vi.fn().mockResolvedValue({ status: "seated" }) }));
 vi.mock("@/app/actions/match/leaveTable", () => ({ leaveTableAction: vi.fn().mockResolvedValue({ status: "void" }) }));
@@ -113,11 +118,25 @@ function renderController(initial = state()) {
   return render(<MatchRoomController initialState={initial} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
 }
 
+const OFFERED: RematchOffer = { offered: true, reason: null, request: null, windowEndsAt: "2099-01-01T00:00:00.000Z", cooldownUntil: null, opponentOnMatch: true, opponentHere: true };
+
+/** A pending request from `requesterId`, 24s left. */
+function offerWith({ requesterId }: { requesterId: string }): RematchOffer {
+  const expiresAt = new Date(Date.now() + 24_000).toISOString();
+  return { ...OFFERED, offered: false, request: { id: "r1", requesterId, status: "pending", createdAt: new Date().toISOString(), expiresAt, newMatchId: null } };
+}
+
+/** Spec 071 FR-002: the result slip's actions ignore activation for their first 500ms. */
+async function waitPastGuard(): Promise<void> {
+  await act(() => new Promise((resolve) => setTimeout(resolve, 510)));
+}
+
 describe("MatchRoomController (spec 050)", () => {
   beforeEach(() => {
     useRoomStore.getState().leaveToLobby();
     mockPush.mockClear();
     mockReplace.mockClear();
+    mockPlayChallenge.mockClear();
     vi.mocked(claimWinAction).mockClear();
     vi.mocked(settleMatch).mockClear();
     vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
@@ -334,7 +353,8 @@ describe("MatchRoomController (spec 050)", () => {
     expect(mockPush).not.toHaveBeenCalled();
     expect(screen.getByTestId("field")).toBeInTheDocument();
     expect(screen.getByTestId("verdict")).toHaveTextContent("Alice wins 170–127");
-    expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0 · territory 1–1");
+    // Spec 071: the ledger's one line keeps the detail's first two clauses; the slip carries all three.
+    expect(screen.getByTestId("verdict")).toHaveTextContent("by 43 points · 0 words to 0");
     // The scoreboard says the match is over and how long it ran; the caption holds the actions (spec 068).
     expect(screen.getByTestId("scoreboard-clock")).toHaveTextContent("4:52 of 5:00");
     expect(screen.getByTestId("ledger-caption-actions")).toHaveTextContent("lobby");
@@ -352,6 +372,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("slip-new-opponent")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
     expect(screen.queryByTestId("ledger-result")).toBeNull();
+    await waitPastGuard();
     fireEvent.click(screen.getByTestId("slip-review-field"));
     expect(screen.queryByTestId("slip")).toBeNull();
     fireEvent.click(screen.getByTestId("ledger-result"));
@@ -374,40 +395,58 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("verdict")).toHaveTextContent("neither finished · by 30 points");
   });
 
-  it("final: an incoming rematch request rewrites the slip's action line; accept ▸ moves to the new match; rematch ▸ asks", async () => {
+  it("final: an incoming rematch rewrites the slip's first row; accept ▸ replaces the result with the new match (spec 071)", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
-    renderController(state({ state: "completed" }));
-    const event: RematchEvent = { type: "rematch-request", matchId: "m1", requesterId: "player-2", status: "pending" };
-    act(() => mockCallbacks.onRematch!(event));
+    renderController(state({ state: "completed", completedAt: new Date().toISOString(), rematch: offerWith({ requesterId: "player-2" }) }));
     expect(await screen.findByTestId("slip-accept-rematch")).toBeInTheDocument();
-    expect(screen.getByTestId("slip")).toHaveTextContent("Bob asks for a rematch");
+    expect(screen.getByTestId("slip-rematch-line")).toHaveTextContent(/Bob asks for a rematch · 0:\d\d/);
     expect(screen.queryByTestId("ledger-notice")).toBeNull();
+    await waitPastGuard();
     await act(async () => {
       fireEvent.click(screen.getByTestId("slip-accept-rematch"));
     });
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en/match/m2"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/en/match/m2"));
   });
 
-  it("final: rematch ▸ sends the request and shows waiting for the opponent", async () => {
+  it("final: rematch ▸ sends the request, and the row counts it down", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
-    renderController(state({ state: "completed" }));
+    const sent = { ...offerWith({ requesterId: "player-1" }) };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => (String(url).includes("/state") ? { ...state({ state: "completed" }), rematch: sent } : { matchId: "m1", words: [] }) })));
+    renderController(state({ state: "completed", completedAt: new Date().toISOString(), rematch: OFFERED }));
     const rematchButton = await screen.findByTestId("slip-rematch");
+    await waitPastGuard();
     await act(async () => {
       fireEvent.click(rematchButton);
     });
     expect(requestRematchAction).toHaveBeenCalledWith("m1");
-    await waitFor(() => expect(screen.getByTestId("slip-rematch-waiting")).toHaveTextContent("waiting for Bob"));
+    await waitFor(() => expect(screen.getByTestId("slip-rematch-line")).toHaveTextContent(/rematch sent · 0:\d\d/));
   });
 
-  it("read-only non-participant: player A is the bottom seat without · you, field disabled, only ◂ lobby", async () => {
+  it("final: with the slip lifted, an incoming rematch is the ledger's first line and calls in the tab (spec 071 FR-014)", async () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    renderController(state({ state: "completed", completedAt: new Date().toISOString(), rematch: offerWith({ requesterId: "player-2" }) }));
+    await screen.findByTestId("slip");
+    act(() => useRoomStore.getState().dismissSlip());
+    expect(await screen.findByTestId("ledger-rematch-accept")).toBeInTheDocument();
+    expect(screen.queryByTestId("slip")).toBeNull();
+    expect(document.title).toBe("(1) Bob asks for a rematch · Wottle");
+    expect(mockPlayChallenge).toHaveBeenCalledTimes(1);
+  });
+
+  it("read-only reader (spec 071 US5): player A is the bottom seat without · you, no slip, nothing polled, review at the last step", async () => {
+    vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
+    window.history.replaceState(null, "", "/en/match/m1");
+    const replace = vi.spyOn(window.history, "replaceState");
     render(<MatchRoomController initialState={state({ state: "completed" })} currentPlayerId="stranger" matchId="m1" playerProfiles={profiles} />);
     expect(screen.getByTestId("scoreboard-row-you")).toHaveTextContent("Alice");
     expect(screen.getByTestId("ledger-header")).not.toHaveTextContent("· you");
     expect(screen.getByTestId("field")).toHaveAttribute("data-disabled", "true");
-    expect(await screen.findByTestId("slip-lobby")).toBeInTheDocument();
-    expect(screen.queryByTestId("slip-rematch")).toBeNull();
-    expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
+    await waitFor(() => expect(replace.mock.calls.some((c) => String(c[2]).endsWith("?review=last"))).toBe(true));
+    expect(screen.queryByTestId("slip")).toBeNull();
+    expect(screen.getByTestId("room")).toHaveTextContent("this match is over · Alice – Bob");
+    const fetches = vi.mocked(fetch).mock.calls.map((c) => String(c[0]));
+    expect(fetches.some((url) => url.includes("/state"))).toBe(false);
+    replace.mockRestore();
   });
 
   it("opponent disconnect: sub-line counts down from the server anchor, lane dashed, the clock runs on, no overlay while you still play", () => {
@@ -617,6 +656,7 @@ describe("MatchRoomController (spec 050)", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
     await screen.findByTestId("slip", {}, { timeout: 3_000 });
+    await waitPastGuard();
     fireEvent.click(screen.getByTestId("slip-lobby"));
     expect(screen.queryByTestId("slip")).toBeNull();
     expect(mockReplace).toHaveBeenCalledWith("/en");
@@ -856,10 +896,11 @@ describe("MatchRoomController at the table (spec 069)", () => {
   });
 
   it("Back from the table leaves it: a guard entry is pushed, and popping it voids the table (spec 069 T041)", async () => {
+    window.history.replaceState(null, "");
     const pushState = vi.spyOn(window.history, "pushState");
     renderController(table({ a: null, b: null }));
     await screen.findByTestId("slip");
-    expect(pushState).toHaveBeenCalledWith({ kind: "table-guard" }, "");
+    expect(pushState).toHaveBeenCalledWith({ kind: "table-guard", guardDepth: 1 }, "");
     act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
     await waitFor(() => expect(leaveTableAction).toHaveBeenCalledWith("m1"));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/en"));
@@ -870,7 +911,7 @@ describe("MatchRoomController at the table (spec 069)", () => {
     const pushState = vi.spyOn(window.history, "pushState");
     renderController(state());
     await screen.findByTestId("field");
-    expect(pushState).not.toHaveBeenCalledWith({ kind: "table-guard" }, "");
+    expect(pushState).not.toHaveBeenCalledWith(expect.objectContaining({ kind: "table-guard" }), "");
     act(() => void window.dispatchEvent(new PopStateEvent("popstate", { state: null })));
     expect(leaveTableAction).not.toHaveBeenCalled();
     pushState.mockRestore();

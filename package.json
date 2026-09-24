@@ -34,6 +34,8 @@
     "perf:seat": "vitest run --config vitest.perf.config.ts tests/perf/seat.bench.ts",
     "perf:heartbeat": "vitest run --config vitest.perf.config.ts tests/perf/heartbeat.bench.ts",
     "perf:standing": "vitest run --config vitest.perf.config.ts tests/perf/standing.bench.ts",
+    "perf:review-moves": "vitest run --config vitest.perf.config.ts tests/perf/review-moves.bench.ts",
+    "perf:rematch": "vitest run --config vitest.perf.config.ts tests/perf/rematch.bench.ts",
     "test:visual": "playwright test room-fixtures --project=visual-1440x900 --project=visual-1280x800 --project=visual-390x844"
   },
   "dependencies": {

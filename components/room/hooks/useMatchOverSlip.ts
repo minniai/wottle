@@ -7,7 +7,7 @@ import type { Verdict } from "@/lib/room/ledgerTypes";
 import { MATCH_OVER_DELAY_MS } from "@/lib/room/revealSequence";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { EndReason, SlipRatingRow, SlipState } from "@/lib/room/slip";
-import type { RematchPhase } from "@/lib/room/useRematchNegotiation";
+import type { RematchView } from "@/lib/room/rematchView";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { MatchState, PlayerSlot } from "@/lib/types/match";
@@ -22,11 +22,13 @@ export interface MatchOverSlipInput {
   viewerName: string;
   opponentName: string;
   ratings: RatingRow[] | null;
-  rematch: RematchPhase;
+  rematch: RematchView | null;
   /** A reveal or the move hold is still running; the slip waits for it. */
   busy: boolean;
   /** A reveal ran in this session, so the slip lands after the delay rather than at once. */
   revealed: boolean;
+  /** Spec 071: the viewer's highest-scoring word, or null. */
+  bestWord?: { word: string; points: number } | null;
 }
 
 /**
@@ -80,6 +82,7 @@ export function buildMatchOverSlip(input: MatchOverSlipInput, copy: Copy): SlipS
     ratings: ratingRows(input, copy),
     rematch,
     readOnly,
+    bestWord: input.bestWord ?? null,
   };
 }
 
@@ -101,7 +104,8 @@ export function useMatchOverSlip(input: MatchOverSlipInput): void {
   const key = slip ? JSON.stringify(slip) : null;
 
   useEffect(() => {
-    if (!completed || busy || !key) return;
+    // Spec 071 (FR-042): a reader of a finished match gets no result slip; review is theirs.
+    if (!completed || busy || !key || input.readOnly) return;
     const next = JSON.parse(key) as SlipState;
     if (landed.current) {
       setSlip(next);
@@ -112,5 +116,5 @@ export function useMatchOverSlip(input: MatchOverSlipInput): void {
       setSlip(next);
     }, revealed ? MATCH_OVER_DELAY_MS : 0);
     return () => clearTimeout(timer);
-  }, [matchId, completed, busy, key, revealed, setSlip]);
+  }, [matchId, completed, busy, key, revealed, setSlip, input.readOnly]);
 }

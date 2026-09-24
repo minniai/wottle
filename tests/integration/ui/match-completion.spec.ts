@@ -83,6 +83,11 @@ test.describe("@match-completion final room state", () => {
         // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });
         await expect(p.getByTestId("slip")).toContainText(/wins|draw/);
+        // Spec 071 (FR-001, FR-004, FR-008): the game raised it, so its headline has focus;
+        // the detail says once why it ended; the tab names the winner.
+        await expect(p.getByTestId("slip").getByRole("heading")).toBeFocused();
+        await expect(p.getByTestId("slip-detail")).toHaveText(/resigned · \d:\d\d/i);
+        await expect(p).toHaveTitle(/ wins · Wottle$/);
         // The final field is the played board, not the starting one, and every
         // settled band spells its word on it (spec 049 FR-001/FR-003).
         const finalBoard = await readField(p);
@@ -93,25 +98,43 @@ test.describe("@match-completion final room state", () => {
       // Every match is rated (spec 048 US6): an invite-created match writes rating rows too.
       await expect(pageB.getByTestId("scoreboard-row-you").getByTestId("scoreboard-subline")).toContainText(/\d+ → \d+ · [+−]\d+/, { timeout: 15_000 });
 
-      // review the match ▸ lifts the slip; result ▸ in the foot brings it back.
-      await pageA.getByTestId("slip-review-field").click();
+      // Spec 071 (FR-002): every action on the slip ignores activation for its first 500ms.
+      await pageA.waitForTimeout(600);
+      await pageB.waitForTimeout(600);
+      // Esc lifts the slip (FR-006); result ▸ in the foot brings it back.
+      await pageA.keyboard.press("Escape");
       await expect(pageA.getByTestId("slip")).toHaveCount(0);
       await pageA.getByTestId("ledger-result").click();
       await expect(pageA.getByTestId("slip")).toBeVisible();
+      await pageA.waitForTimeout(600);
+      // review the match ▸ opens review (spec 071); ◂ result brings the slip back.
+      await pageA.getByTestId("slip-review-field").click();
+      await expect(pageA.getByTestId("slip")).toHaveCount(0);
+      await expect(pageA).toHaveURL(/\?review=\d+$/);
+      await pageA.getByTestId("review-result").click();
+      await expect(pageA.getByTestId("slip")).toBeVisible();
+      await pageA.waitForTimeout(600);
 
       // Rematch: B asks on the slip, A's slip rewrites its action line and A declines; then A returns to the lobby.
       await pageB.getByTestId("slip-rematch").click();
       await expect(pageA.getByTestId("slip-accept-rematch")).toBeVisible({ timeout: 15_000 });
       await expect(pageA.getByTestId("slip")).toContainText("asks for a rematch");
+      await pageA.waitForTimeout(600);
       await pageA.getByTestId("slip-decline-rematch").click();
-      await expect(pageB.getByTestId("ledger-notice").filter({ hasText: /declined/ })).toBeVisible({ timeout: 15_000 });
+      // Spec 071: the sender reads it on the slip's first row.
+      await expect(pageB.getByTestId("slip-rematch-line")).toHaveText(/declined/, { timeout: 15_000 });
 
+      await pageA.waitForTimeout(600);
       await pageA.getByTestId("slip-lobby").click();
       // Spec 070: the lobby is a page at the language's root, not a state of the room.
       await expect(pageA).toHaveURL(/\/en\/?$/, { timeout: 15_000 });
       await expect(pageA.getByTestId("lobby-find")).toBeVisible();
       // Reported 2026-09-21: the match-over slip stayed up over the lobby.
       await expect(pageA.getByTestId("slip")).toHaveCount(0);
+
+      // Spec 071 (FR-007): the live guard is gone, so one Back from the result reaches the lobby.
+      await pageB.goBack();
+      await expect(pageB).toHaveURL(/\/en\/?$/, { timeout: 15_000 });
     } finally {
       await contextA.close();
       await contextB.close();

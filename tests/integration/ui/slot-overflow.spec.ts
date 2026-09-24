@@ -66,3 +66,49 @@ for (const viewport of VIEWPORTS) {
     }
   });
 }
+
+/**
+ * Spec 071 T076: the result, rematch and review lines fit their slots in both languages, at 1440
+ * and 390: the detail line, the negotiation line, the cursor lines, the scrubber's label and the
+ * controls. No database.
+ */
+const ROOM_SLOTS = [
+  ".slip__label",
+  ".slip__actions",
+  ".scoreboard__label",
+  ".scoreboard__detail",
+  ".ledger__live-line1",
+  ".ledger__live-line2",
+  ".review-controls",
+  ".ledger__call-text",
+];
+const ROOM_PHASES_071 = ["result-moves", "result-incomplete", "result-both", "result-forfeit", "result-early", "rematch-sent", "rematch-in", "rematch-declined", "review", "review-refused", "review-time", "rematch-in-review"];
+
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+  test.describe(`room slots at ${viewport.width} (spec 071)`, () => {
+    test.use({ viewport });
+    for (const phase of ROOM_PHASES_071) {
+      for (const prefix of ["", "/en"]) {
+        test(`${phase} ${prefix ? "en" : "is"} fits`, async ({ page }) => {
+          await page.goto(`${prefix}/dev/room?phase=${phase}`);
+          await expect(page.getByTestId("room")).toBeVisible();
+          await page.evaluate(() => document.fonts.ready);
+          const clipped = await page.evaluate((selectors) => {
+            const out: string[] = [];
+            for (const selector of selectors) {
+              for (const el of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
+                const box = el.getBoundingClientRect();
+                if (box.width === 0 || getComputedStyle(el).visibility === "hidden" || getComputedStyle(el).textOverflow === "ellipsis") continue;
+                if (el.scrollWidth > el.clientWidth + 1) out.push(`${selector} clips "${(el.textContent ?? "").trim().slice(0, 60)}"`);
+              }
+            }
+            const page = document.scrollingElement!;
+            if (page.scrollWidth > page.clientWidth + 1) out.push(`the page is wider than the window (${page.scrollWidth} > ${page.clientWidth})`);
+            return out;
+          }, ROOM_SLOTS);
+          expect(clipped).toEqual([]);
+        });
+      }
+    }
+  });
+}

@@ -149,10 +149,6 @@ export const copyIs = {
   oppProgress: (moves: number, state: "playing" | "scoring"): string =>
     `${moves} af 10 · ${state === "playing" ? "að leika" : "reiknast"}`,
 
-  rematchRequest: (name: string): string =>
-    `${name} vill aðra viðureign · samþykkja ▸ · hafna`,
-  waitingForRematch: (name: string): string => `${name} · beðið svars`, // native-read (spec 070: no name after a preposition)
-  opponentBusy: (name: string): string => `${name} getur ekki spilað núna`,
 
   TAGLINE: "tveir leikmenn · eitt borð · íslensk orð",
   NEW_HERE_HOW_TO_PLAY: "nýr hér · leiðbeiningar ▸",
@@ -174,7 +170,7 @@ export const copyIs = {
   matchOverLabel: (durationMmSs: string): string => `${MATCH_OVER} · ${durationMmSs}`,
   winsHeadline: (winnerName: string): string => `${winnerName} vann`,
   DRAW: "jafntefli",
-  REVIEW_FIELD: "skoða borðið ▸",
+  REVIEW_FIELD: "yfirfara viðureignina ▸",
   RESULT: "úrslit ▸",
   HOW_TO_PLAY: "leiðbeiningar ▸",
   ACCEPT: "samþykkja ▸",
@@ -187,18 +183,16 @@ export const copyIs = {
   forcedDetail: (loserName: string, reason: "forfeit" | "disconnect"): string =>
     reason === "forfeit" ? `${loserName} gafst upp` : `${loserName} fór`,
   incompleteDetail: (name: string, moves: number): string => `${name} lék ${moves} af 10`,
-  NEITHER_FINISHED: "hvorugur kláraði",
+  NEITHER_FINISHED: "hvorugt kláraði",
   marginDetail: (margin: number): string => byPoints(margin),
   SPINE_HEADER: "leikur",
   TOTAL_LABEL: "samtals",
   NOT_PLAYED: "ekki leikinn",
-  verdictDetail: (
-    margin: number,
-    wordsA: number,
-    wordsB: number,
-    terrA: number,
-    terrB: number,
-  ) => `${byPoints(margin)} · ${wordsA} orð gegn ${wordsB} · svæði ${terrA}–${terrB}`,
+  wordsDetail: (a: number, b: number): string => `${a} orð gegn ${b}`,
+  territoryDetail: (a: number, b: number): string => `svæði ${a}–${b}`,
+  ENDED_EARLY: "lokið snemma",
+  wasGone: (name: string): string => `${name} hætti að spila`, // native-read
+  bestWordLine: (word: string, points: number): string => `besta orðið þitt · ${word} ${points}`,
 
   REMATCH: "annan leik? ▸",
   NEW_OPPONENT: "nýr mótspilari ▸",
@@ -224,8 +218,6 @@ export const copyIs = {
   IN_A_MATCH: "í viðureign",
   territoryLine: (you: number, free: number, opp: number): string =>
     `${you} · ${free} lausir · ${opp}`,
-  rematchDeclined: (name: string): string => `${name} afþakkaði`,
-  REMATCH_EXPIRED: "beiðni um aðra viðureign rann út",
   REALTIME_LOST: "rauntenging rofin · spyr reglulega",
   UNRATED: "ekkert Elo",
   YOUR_MOVES: "leikirnir þínir",
@@ -275,6 +267,52 @@ export const copyIs = {
   noSuchPlayer: (handle: string): string =>
     `Enginn slíkur leikmaður · @${handle} hefur ekki spilað hér`,
   // The table (spec 069, game flow C1–C3, B7)
+  seriesLine: (ordinal: number, leader: string | null, hi: number, lo: number): string =>
+    leader ? `viðureign ${ordinal} · ${leader} ${hi}–${lo}` : `viðureign ${ordinal} · ${hi}–${lo}`,
+  review: {
+    step: (n: number, total: number): string => `skref ${n} af ${total}`,
+    caption: (mmSs: string): string => `yfirferð · ${mmSs}`,
+    clockAt: (n: number): string => `klukkan við skref ${n}`,
+    CLOCK_THEN: "klukkan þá",
+    atStep: (moves: number, limit: number, n: number): string => `${moves} af ${limit} við skref ${n}`,
+    movesOf: (moves: number, limit: number): string => `${moves} af ${limit}`,
+    move: (n: number, name: string): string => `leikur ${n} · ${name}`,
+    NO_WORD: "ekkert orð",
+    REFUSED: "hafnað",
+    refusedWhy: (reason: "frozen" | "moved"): string => `hafnað · ${reason === "frozen" ? "frosinn" : "færður"}`, // native-read
+    TIME: "tími",
+    ENDED_EARLY: "lokið snemma",
+    notPlayed: (points: string): string => `${points} óleikið`, // native-read
+    froze: (n: number): string => `${n} frosnir`,
+    leads: (name: string, hi: number, lo: number): string => `${name} leiðir ${hi}–${lo}`,
+    level: (a: number, b: number): string => `jafnt ${a}–${b}`,
+    valueText: (n: number, total: number, who: string, what: string): string => `skref ${n} af ${total}, ${who}, ${what}`,
+    plus: (n: number): string => `plús ${n}`,
+    minus: (n: number): string => `mínus ${n}`,
+    cellName: (move: number, name: string): string => `leikur ${move}, ${name}`,
+    NOT_YET_REACHED: "ekki komið að", // native-read
+    SCRUBBER: "skref yfirferðar", // native-read
+    overLine: (a: string, b: string): string => `viðureigninni er lokið · ${a} – ${b}`,
+    FIRST: "fyrst",
+    BACK: "aftur",
+    PLAY: "spila ▸",
+    PAUSE: "hlé",
+    NEXT: "næst",
+    LAST: "síðast",
+  },
+  rematch: {
+    sent: (mmSs: string): string => `beiðni send · ${mmSs}`,
+    asks: (name: string, mmSs: string): string => `${name} vill aðra viðureign · ${mmSs}`,
+    accepted: (name: string): string => `${name} samþykkti`,
+    declined: (name: string): string => `${name} hafnaði`,
+    NO_ANSWER: "ekkert svar",
+    withdrew: (name: string): string => `${name} hætti við`, // native-read
+    startedAnother: (name: string): string => `${name} hóf aðra viðureign`, // native-read
+    hasLeft: (name: string): string => `${name} fór`, // native-read
+    HAS_LEFT: "fór", // native-read
+    CANCEL: "hætta við ▸",
+    title: (name: string, wordmark: string): string => `(1) ${name} vill aðra viðureign · ${wordmark}`,
+  },
   table: {
     label: (mmSs: string): string => `mótspilari fundinn · ${mmSs}`,
     CONTEXT: "mótspilari fundinn",

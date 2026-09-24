@@ -1082,6 +1082,9 @@
 .ledger__territory-opp { background: var(--opp); }
 .ledger__hint {
   padding: 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Match-level lines only; during a match there is usually nothing to say. */
 .ledger__hint:empty {
@@ -1360,6 +1363,45 @@
 }
 .slip__seat[data-seated="true"] .slip__mono {
   color: var(--ink);
+}
+/* Spec 071 (D2): a rematch request's 30s, under its line in the slip's first action row. */
+.slip__negotiation {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.slip__row-drain {
+  display: block;
+  height: 4px;
+  background: var(--ink);
+  transform-origin: left center;
+}
+/* A call or a rematch in the ledger (spec 070 B6, spec 071 T41): the line, then its answers. */
+.ledger__notice[data-kind="call"],
+.ledger__notice[data-kind="rematch"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 8px;
+}
+.ledger__call-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ledger__call-actions {
+  display: flex;
+  gap: 16px;
+}
+.ledger__drain {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--ink);
+  transform-origin: left center;
 }
 .slip__drain {
   position: absolute;
@@ -1647,4 +1689,144 @@
 }
 .profile__match-link:hover {
   text-decoration: underline;
+}
+
+/* Spec 071 (FR-033): review's scrubber takes the clock row's track. A 10px bar (4px on a
+   phone) in the scoreboard's ink, inside a hit area the height of the row. */
+.review-scrubber {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  touch-action: none;
+}
+.review-scrubber:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.review-scrubber__bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  background: var(--rule);
+}
+.review-scrubber__fill {
+  flex: 1;
+  background: var(--ink);
+  transform: scaleX(var(--fraction));
+  transform-origin: left center;
+}
+.scoreboard[data-compact="true"] .review-scrubber__bar {
+  height: 4px;
+}
+
+/* Spec 071 (FR-036): the ledger in review. A cell is a way to its step; one not yet reached
+   is muted, and named so. */
+.ledger__review-cell {
+  display: contents;
+  cursor: pointer;
+}
+.ledger__review-cell > .ledger__words {
+  cursor: pointer;
+}
+.ledger__review-cell:focus-visible > .ledger__words {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+.ledger__review-cell[data-review="ahead"] > .ledger__words {
+  --seat-ink: var(--muted);
+  color: var(--muted);
+}
+.ledger__review-cell[data-review="ahead"] .points-lost {
+  color: var(--muted);
+}
+.ledger__review-controls {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+}
+.review-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.review-controls__glyph {
+  min-width: 44px;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+}
+.review-controls__glyph:disabled,
+.review-controls .action-secondary:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* Spec 071 (F4, F7): the phone foot at the result and in review. */
+.ledger__phone-actions,
+.ledger__phone-review {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ledger__phone-actions .action-secondary,
+.ledger__phone-review .action-secondary {
+  min-height: 44px;
+}
+.review-controls--compact {
+  gap: 0;
+}
+
+/* Spec 071 (F4): on a phone the result slip is exactly the field's square and never covers the
+   scoreboard; its actions keep their rows; the best word stays on the desktop slip. */
+@media (max-width: 900px) {
+  .room[data-layout="scoreboard"] .slip[data-kind="matchOver"] {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 16px 20px;
+    gap: 6px;
+    overflow: hidden;
+  }
+  .room[data-layout="scoreboard"] .slip[data-kind="matchOver"] .slip__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 16px;
+  }
+  .room[data-layout="scoreboard"] .slip[data-kind="matchOver"] .slip__best-word {
+    display: none;
+  }
+  .room[data-layout="scoreboard"] .slip[data-kind="matchOver"] .slip__score {
+    font-size: 32px;
+  }
+  .room[data-layout="scoreboard"] .slip[data-kind="matchOver"] .slip__ratings {
+    gap: 2px;
+  }
+}
+
+/* Spec 071 (T65): a rematch and a call both waiting share the state row, one line each. */
+.ledger__answers {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+.ledger__answers .ledger__notice {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 10px;
+  margin: 0;
+}
+.ledger__answers .ledger__call-text {
+  flex: 1;
+  min-width: 0;
+}
+.ledger__answers .ledger__drain {
+  display: none;
 }

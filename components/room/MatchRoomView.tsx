@@ -6,11 +6,11 @@ import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import { buildMatchLedger, type AccumulatedWord, type LiveState } from "@/lib/room/ledgerRows";
 import type { Line2Extras, MoveState } from "@/lib/room/moveState";
-import { deriveScoreboard, type ScoreboardPhase, type ScoreboardTable } from "@/lib/room/scoreboard";
+import { deriveScoreboard, type ScoreboardPhase, type ScoreboardReview, type ScoreboardTable } from "@/lib/room/scoreboard";
 import type { SlipState } from "@/lib/room/slip";
 import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
-import { Ledger } from "./Ledger";
+import { Ledger, type LedgerReview } from "./Ledger";
 import { useIsPhone } from "./hooks/useIsPhone";
 import { Room } from "./Room";
 import { Scoreboard } from "./Scoreboard";
@@ -31,6 +31,8 @@ export interface SeatFacts {
   goneForMs?: number | null;
   /** Spec 070 US8: this player's app is open on another page. */
   steppedOut?: boolean;
+  /** Spec 071: the opponent has left the result. */
+  left?: boolean;
   /** The viewer's own transport has lost the match (spec 068). */
   offline?: boolean;
   /** Final: `1191 → 1203 · +12 · wins` or `rating pending`. */
@@ -38,6 +40,15 @@ export interface SeatFacts {
   /** The player's profile; opened in a new tab while the match is live. */
   profileHref?: string;
   profileInNewTab?: boolean;
+}
+
+export interface MatchRoomReview {
+  scoreboard: ScoreboardReview;
+  ledger: LedgerReview;
+  onStep: (step: number) => void;
+  onTogglePlay: () => void;
+  /** The ledger shows the whole match; only the scoreboard stands at the step. */
+  finalMoves: { you: number; opp: number };
 }
 
 export interface MatchRoomViewProps {
@@ -76,6 +87,10 @@ export interface MatchRoomViewProps {
   readOnly?: boolean;
   /** Spec 069: who has sat down, and why a void was void. */
   table?: ScoreboardTable;
+  /** Spec 071: `match 2 · Birna 1–0` for a rematch. */
+  series?: string | null;
+  /** Spec 071 (US3): review at a step; the seats carry the totals and moves at it. */
+  review?: MatchRoomReview;
   /** Spec 069: the table's slip, derived from the match (ready or void). */
   tableSlip?: SlipState | null;
   notices?: Notice[];
@@ -101,7 +116,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
   const reducedMotion = useReducedMotion();
   const youScore = useCountUp(you.score, reducedMotion);
   const oppScore = useCountUp(opp.score, reducedMotion);
-  const movesPlayed = useMemo(() => ({ you: you.movesPlayed, opp: opp.movesPlayed }), [you.movesPlayed, opp.movesPlayed]);
+  const finalMoves = props.review?.finalMoves;
+  const movesPlayed = useMemo(() => finalMoves ?? { you: you.movesPlayed, opp: opp.movesPlayed }, [finalMoves, you.movesPlayed, opp.movesPlayed]);
 
   const model = useMemo(() => {
     const base = buildMatchLedger({
@@ -140,12 +156,14 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           readOnly,
           compact: isPhone,
           you: { name: you.name, rating: you.rating, movesPlayed: you.movesPlayed, inFlight: Boolean(you.scoring), score: you.score, offline: you.offline, finalLine: you.finalLine },
-          opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, steppedOut: opp.steppedOut, finalLine: opp.finalLine },
+          opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, steppedOut: opp.steppedOut, finalLine: opp.finalLine, left: opp.left },
           table: props.table,
+          series: props.series,
+          review: props.review?.scoreboard,
         },
         copy,
       ),
-    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, isPhone, you, opp, props.table, copy],
+    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, isPhone, you, opp, props.table, props.series, props.review?.scoreboard, copy],
   );
 
   return (
@@ -161,6 +179,8 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           profiles={{ you: you.profileHref, opp: opp.profileHref }}
           profileInNewTab={Boolean(opp.profileInNewTab)}
           compact={isPhone}
+          onReviewStep={props.review?.onStep}
+          onReviewTogglePlay={props.review?.onTogglePlay}
         />
       }
       field={
@@ -184,6 +204,7 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           footActions={footActions}
           onRowHover={onRowHover}
           onAction={onAction}
+          review={props.review?.ledger}
         />
       }
     />

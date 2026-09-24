@@ -14,6 +14,7 @@ vi.mock("@/lib/match/tableService", () => ({ voidDueTable: vi.fn() }));
 vi.mock("@/lib/match/statePublisher", () => ({ publishMatchState: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn(() => ({})) }));
 vi.mock("@/lib/lobby/sweepLobby", () => ({ sweepLobby: vi.fn(async () => ({ gone: [], expired: 0, pruned: 0 })) }));
+vi.mock("@/lib/match/rematchSweep", () => ({ sweepRematches: vi.fn(async () => ({ ended: [] })) }));
 
 import { POST } from "@/app/api/cron/sweep-stale-matches/route";
 import { completeMatchInternal } from "@/app/actions/match/completeMatch";
@@ -23,6 +24,7 @@ import { settleMatchIfDue } from "@/lib/match/matchSettlement";
 import { findDueTables } from "@/lib/match/findDueTables";
 import { voidDueTable } from "@/lib/match/tableService";
 import { sweepLobby } from "@/lib/lobby/sweepLobby";
+import { sweepRematches } from "@/lib/match/rematchSweep";
 
 const ORIGINAL_SECRET = process.env.CRON_SECRET;
 
@@ -86,7 +88,7 @@ describe("POST /api/cron/sweep-stale-matches", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [], voided: [], voidFailed: [], lobby: { gone: [], expired: 0, pruned: 0 } });
+    expect(body).toEqual({ swept: [], failed: [], settled: [], settleFailed: [], voided: [], voidFailed: [], lobby: { gone: [], expired: 0, pruned: 0 }, rematches: { ended: [] } });
     expect(completeMatchInternal).not.toHaveBeenCalled();
   });
 
@@ -177,4 +179,17 @@ test("settles the lobby too, and a lobby failure does not fail the sweep (spec 0
   const failed = await POST(buildRequest("Bearer s3cret"));
   expect(failed.status).toBe(200);
   expect((await failed.json()).lobby).toEqual({ error: "db down" });
+});
+
+test("ends rematch requests that ran out or whose players left, and a failure does not fail the sweep (spec 071 T036)", async () => {
+  process.env.CRON_SECRET = "s3cret";
+  vi.mocked(findOrphanedMatches).mockResolvedValue([]);
+  vi.mocked(findDueMatches).mockResolvedValue([]);
+  vi.mocked(findDueTables).mockResolvedValue([]);
+  vi.mocked(sweepRematches).mockResolvedValueOnce({ ended: ["m1"] });
+  expect((await (await POST(buildRequest("Bearer s3cret"))).json()).rematches).toEqual({ ended: ["m1"] });
+  vi.mocked(sweepRematches).mockRejectedValueOnce(new Error("db down"));
+  const failed = await POST(buildRequest("Bearer s3cret"));
+  expect(failed.status).toBe(200);
+  expect((await failed.json()).rematches).toEqual({ error: "db down" });
 });
