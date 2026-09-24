@@ -1,5 +1,8 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/en/rules" }));
+vi.mock("@/lib/matchmaking/profile", () => ({ readLobbySession: vi.fn(async () => null) }));
 
 import RulesPage from "@/app/[locale]/(pages)/(framed)/rules/page";
 import { scoringRowsFor } from "@/components/rules/ScoringTable";
@@ -40,8 +43,8 @@ describe("/rules parity", () => {
     expect(screen.getByTestId("rules-figure-words").querySelector(".field")).toHaveAttribute("aria-label", "the field");
     expect(screen.getByTestId("rules-figure-words").querySelector('[aria-hidden="true"]')).toBeTruthy();
     expect(screen.getByTestId("rules-figure-words").querySelector(".rules__field")).toHaveAttribute("inert");
-    expect(screen.getByTestId("rules-play")).toHaveAttribute("href", "/en");
-    expect(screen.getByTestId("rules-back-top")).toHaveAttribute("href", "/en");
+    // Spec 072 E3: signed out, the one primary is the lobby; the frame carries the way home.
+    expect(screen.getByTestId("rules-enterLobby")).toHaveTextContent("enter the lobby ▸");
   });
 
   it("minimum word length is three, as the page says", () => {

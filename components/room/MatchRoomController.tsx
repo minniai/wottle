@@ -13,6 +13,7 @@ import { seatAction } from "@/app/actions/match/seat";
 import { sendChallengeAction } from "@/app/actions/challenge/send";
 import { useLocalePath } from "@/components/i18n/LocaleProvider";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
+import { profileHandlePath } from "@/lib/profile/readHandle";
 import { useHapticFeedback } from "@/lib/haptics/useHapticFeedback";
 import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { bandIdForWord, bandsFromWords } from "@/lib/room/bandGeometry";
@@ -713,8 +714,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       <MatchRoomView
         matchId={matchId}
         viewerSlot={viewerSlot}
-        you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: atStep?.you.moves ?? youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: atStep?.you.score ?? youScore }}
-        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: atStep?.opp.moves ?? oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: atStep?.opp.score ?? oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut, left: completed && rematch.offer?.opponentOnMatch === false }}
+        you={{ name: you.displayName, profileHref: to(profileHandlePath(you.username)), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: atStep?.you.moves ?? youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: atStep?.you.score ?? youScore }}
+        opp={{ name: opp.displayName, profileHref: to(profileHandlePath(opp.username)), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: atStep?.opp.moves ?? oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: atStep?.opp.score ?? oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut, left: completed && rematch.offer?.opponentOnMatch === false }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
         msToStart={Math.max(0, msToStart)}

@@ -182,6 +182,9 @@ export const pagesEn = {
   profileTitle: (name: string, wordmark: string): string => `${name} · ${wordmark}`,
 
   NO_SUCH_PLAYER: "No player by that name.",
+  CLOSE_TAB: "close this tab ▸",
+  COPY_LINK: "copy link ▸",
+  LINK_COPIED_SHORT: "link copied",
   CHALLENGE_PRIMARY: "challenge ▸",
   profileStakes: (words: string, win: number, draw: number, loss: number): string => `${words} · win ${signed(win)} · draw ${signed(draw)} · loss ${signed(loss)}`,
 

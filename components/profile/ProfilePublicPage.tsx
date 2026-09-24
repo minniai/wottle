@@ -16,6 +16,7 @@ import type { Seat } from "@/lib/constants/seatColors";
 import { localePath } from "@/lib/i18n/locales";
 import { challengesClosed, rowOverlays } from "@/lib/pages/rowOverlays";
 import { presenceFromRow, presenceLine } from "@/lib/profile/presenceLine";
+import { profileHandlePath } from "@/lib/profile/readHandle";
 import { publicPrimary, type PublicPrimary } from "@/lib/profile/publicPrimary";
 import type { LobbyLanguage } from "@/lib/types/standing";
 import type { PresenceWord, ProfileView } from "@/lib/types/profile";
@@ -78,7 +79,7 @@ function PrimarySlot({ model, view }: { model: PublicPrimary; view: ProfileView 
     case "enterLobby":
       return (
         <div className="profile-primary">
-          <Link href={`${localePath(locale, "/")}?next=${encodeURIComponent(localePath(locale, `/profile/${encodeURIComponent(view.handle)}`))}`} className="action-primary page-primary" data-testid="profile-enter-lobby">
+          <Link href={`${localePath(locale, "/")}?next=${encodeURIComponent(localePath(locale, profileHandlePath(view.handle)))}`} className="action-primary page-primary" data-testid="profile-enter-lobby">
             {model.label}
           </Link>
         </div>

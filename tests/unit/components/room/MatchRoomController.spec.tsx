@@ -19,6 +19,7 @@ vi.mock("@/lib/audio/useSoundEffects", async (importOriginal) => {
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/en/match/m1",
 }));
 vi.mock("@/lib/supabase/browser", () => ({ getBrowserSupabaseClient: () => ({ removeChannel: vi.fn(), getChannels: () => [] }) }));
 vi.mock("@/lib/realtime/matchChannel", () => ({

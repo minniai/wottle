@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { isRoomPhase, type RoomPhase } from "./fixtures";
 import { RoomFixture } from "./RoomFixture";
 import RulesPage from "@/app/[locale]/(pages)/(framed)/rules/page";
+import { FramedPage } from "@/components/page/FramedPage";
 
 /**
  * The fixture route (spec 045 US1). Renders any room state from static data so
@@ -25,6 +26,7 @@ export default async function RoomFixturePage({ params, searchParams }: PageProp
   const { phase } = await searchParams;
   const resolved: RoomPhase = isRoomPhase(phase) ? phase : "picking";
 
-  if (resolved === "rules") return <RulesPage params={params} />;
+  // Spec 072 E3: the rules are a page; the fixture wears the frame the route's layout gives it, signed out.
+  if (resolved === "rules") return <FramedPage viewer={null} place="rules">{await RulesPage({ params })}</FramedPage>;
   return <RoomFixture phase={resolved} />;
 }

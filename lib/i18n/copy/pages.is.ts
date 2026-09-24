@@ -187,6 +187,9 @@ export const pagesIs: Widen<typeof pagesEn> = {
   profileTitle: (name: string, wordmark: string): string => `${name} · ${wordmark}`,
 
   NO_SUCH_PLAYER: "Enginn leikmaður með þetta nafn.",
+  CLOSE_TAB: "loka flipanum ▸",
+  COPY_LINK: "afrita tengil ▸",
+  LINK_COPIED_SHORT: "tengill afritaður",
   CHALLENGE_PRIMARY: "skora á ▸",
   profileStakes: (words: string, win: number, draw: number, loss: number): string => `${words} · sigur ${signed(win)} · jafntefli ${signed(draw)} · tap ${signed(loss)}`,
 

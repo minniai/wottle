@@ -403,13 +403,13 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 **Independent Test**: signed out, open `/profile/k%C3%A1ri`. Kári's page renders in `--you`, with presence, no stakes, and `enter the lobby ▸` returning to the profile after entry.
 
-- [ ] T077 [P] [US7] Write failing unit tests in `tests/unit/lib/profile/readHandle.spec.ts`:
+- [X] T077 [P] [US7] Write failing unit tests in `tests/unit/lib/profile/readHandle.spec.ts`:
   - `k%C3%A1ri`, `kári` and `KÁRI` (NFC and NFD) resolve alike;
   - a double-encoded handle does not;
   - the link builder `profilePath(locale, handle)` percent-encodes.
   Extend `tests/unit/styles/locale-links-grep.test.ts` if new link sites are added.
-- [ ] T078 [US7] Implement the handle normalisation in `lib/profile/readHandle.ts` and a `profilePath` helper in `lib/i18n/locales.ts`, used by `HereNowTable`, `ProfileMatches`, the masthead and the recent-match rows. Makes T077 pass.
-- [ ] T079 [US7] Handle the signed-out case in `ProfilePublicPage` (the owner in `--you`, no stakes, primary `enter the lobby ▸` → `/{locale}?next=/profile/<handle>`), and add the fixtures `profile-public-signed-out` and `profile-missing`, with baselines.
+- [X] T078 [US7] Implement the handle normalisation in `lib/profile/readHandle.ts` and a `profilePath` helper in `lib/i18n/locales.ts`, used by `HereNowTable`, `ProfileMatches`, the masthead and the recent-match rows. Makes T077 pass.
+- [X] T079 [US7] Handle the signed-out case in `ProfilePublicPage` (the owner in `--you`, no stakes, primary `enter the lobby ▸` → `/{locale}?next=/profile/<handle>`), and add the fixtures `profile-public-signed-out` and `profile-missing`, with baselines.
 - [ ] T080 [US7] Extend `tests/integration/ui/profile.spec.ts` (part 2):
   - signed out, a public profile renders, and `enter the lobby ▸` then entering returns to it;
   - `/profile` signed out redirects to the door with `?next`;
@@ -424,25 +424,25 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 **Independent Test**: follow `how to play ▸` from each page. Each reaches `/rules`; from a match it opens a new tab whose primary `close this tab ▸` closes it.
 
-- [ ] T081 [P] [US8] Write failing unit tests in `tests/unit/lib/pages/pagePrimary.rules.spec.ts` (`rulesPrimary`):
+- [X] T081 [P] [US8] Write failing unit tests in `tests/unit/lib/pages/pagePrimary.rules.spec.ts` (`rulesPrimary`):
   - a call → `accept ▸`;
   - `from` → `close this tab ▸`;
   - signed in and empty → `find an opponent ▸`;
   - signed out → `enter the lobby ▸`.
   In `tests/unit/auth/nextParam.rules.spec.ts`: `from` accepts only same-origin `/match/<uuid>` paths in either locale.
-- [ ] T082 [P] [US8] Write failing component tests:
+- [X] T082 [P] [US8] Write failing component tests:
   - `tests/unit/components/room/RoomMenu.rules.spec.tsx`: the match `⋯` rules link carries `?from=<match path>` and `target="_blank"`, and the review variant has `copy link ▸`, which writes `origin + /match/:id?review=last` (locale-aware) and shows `link copied` for 2s;
   - `tests/unit/components/page/PageMenu.rules.spec.tsx`: the phone `⋯` has `how to play ▸`;
   - `tests/unit/components/page/Masthead.rules.spec.tsx`: on `/rules`, `how to play ▸` has `aria-current="page"`.
-- [ ] T083 [US8] Implement `rulesPrimary` in `lib/pages/pagePrimary.ts` and extend `lib/auth/nextParam.ts`. Makes T081 pass.
-- [ ] T084 [US8] Rewrite `app/[locale]/(pages)/(framed)/rules/page.tsx`:
+- [X] T083 [US8] Implement `rulesPrimary` in `lib/pages/pagePrimary.ts` and extend `lib/auth/nextParam.ts`. Makes T081 pass.
+- [X] T084 [US8] Rewrite `app/[locale]/(pages)/(framed)/rules/page.tsx`:
   - the content inside the frame, with the old `rules__header` and `rules__footer` links removed;
   - the primary from `rulesPrimary`;
   - `close this tab ▸` as a client component calling `window.close()` with a 150ms fallback `router.push(from)`.
   Update `app/styles/rules.css`.
-- [ ] T085 [US8] Update `components/room/RoomMenu.tsx` (rules `?from`, the review `copy link ▸`), `components/page/PageMenu.tsx` (`how to play ▸`) and `components/page/Masthead.tsx` (`aria-current`). Makes T082 pass.
-- [ ] T086 [P] [US8] Fix `components/rules/content/en.tsx` and `is.tsx`: the `10moves` typo, and the clock line describing today's clock (it darkens under a minute and counts the last 15 seconds in words; nothing flashes). Add a unit test that renders both and asserts no `10moves` and no `flash`/`blikk`.
-- [ ] T087 [P] [US8] Add the strings `close this tab ▸` / `loka flipanum ▸`, `copy link ▸` / `afrita tengil ▸` and `link copied` / `tengill afritaður`. Add fixtures `rules`, `is-rules`, `rules-from-match` and the room phase `review-copy-link`, with baselines.
+- [X] T085 [US8] Update `components/room/RoomMenu.tsx` (rules `?from`, the review `copy link ▸`), `components/page/PageMenu.tsx` (`how to play ▸`) and `components/page/Masthead.tsx` (`aria-current`). Makes T082 pass.
+- [X] T086 [P] [US8] Fix `components/rules/content/en.tsx` and `is.tsx`: the `10moves` typo, and the clock line describing today's clock (it darkens under a minute and counts the last 15 seconds in words; nothing flashes). Add a unit test that renders both and asserts no `10moves` and no `flash`/`blikk`.
+- [X] T087 [P] [US8] Add the strings `close this tab ▸` / `loka flipanum ▸`, `copy link ▸` / `afrita tengil ▸` and `link copied` / `tengill afritaður`. Add fixtures `rules`, `is-rules`, `rules-from-match` and the room phase `review-copy-link`, with baselines.
 - [ ] T088 [US8] Write the Playwright spec `tests/integration/ui/rules-links.spec.ts`:
   - `how to play ▸` reaches `/rules` (or `/en/rules`) from the door, the invite door, the lobby, both profiles, the phone `⋯`, and the match `⋯` (a new tab, the match tab's URL unchanged);
   - the new tab's `close this tab ▸` closes it.

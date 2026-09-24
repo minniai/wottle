@@ -91,13 +91,13 @@ export function RulesIs({ clock, totalMoves, copy }: RulesContentProps) {
           <span className="rules__label">5 · klukkan</span>
           <h2>Fimm mínútur fyrir alla viðureignina.</h2>
           <p>
-            Ein klukka, {clock}, fyrir báða leikmenn, efst í leikskránni. Hún fer af stað
+            Ein klukka, {clock}, fyrir báða leikmenn, í stigatöflunni fyrir ofan borðið. Hún fer af stað
             þegar viðureignin hefst og stöðvast aldrei, hvorki meðan þú bíður eftir stigum
-            né meðan einhver er fjarverandi. Undir 1:00 blikkar hún. Leikur sem berst
+            né meðan einhver er fjarverandi. Undir 1:00 dökknar hún og síðustu 15 sekúndurnar eru taldar í orðum; ekkert blikkar. Leikur sem berst
             þjóninum fyrir 0:00 gildir, jafnvel þótt stigin birtist eftir það.
           </p>
           <p>
-            Spjaldið þitt telur niður {totalMoves} leikina þína: tíu merki á brúninni,
+            Spjaldið þitt telur niður {`${totalMoves} leikina`} þína: tíu merki á brúninni,
             eitt tæmist fyrir hvern leik. Spjald andstæðingsins telur hans.
           </p>
         </div>

@@ -21,13 +21,13 @@ function folioDetail(pathname: string, viewer: MastheadViewer | null): string | 
 }
 
 /** The frame around profile and rules, which share one layout; the folio names the page by its path. */
-export function FramedPage({ viewer, children }: { viewer: MastheadViewer | null; children: ReactNode }) {
+export function FramedPage({ viewer, place, children }: { viewer: MastheadViewer | null; place?: PagePlace; children: ReactNode }) {
   const pathname = usePathname() ?? "";
   const standing = useStandingSlot();
   return (
     <PageFrame
       variant="signedIn"
-      place={placeOf(pathname)}
+      place={place ?? placeOf(pathname)}
       viewer={viewer}
       otherLobbyHere={standing.otherLobbyHere}
       slot={standing.slot}
