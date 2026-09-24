@@ -24,9 +24,10 @@ import type { SlipState } from "@/lib/room/slip";
 import type { MoveState } from "@/lib/room/moveState";
 import type { Coordinate } from "@/lib/types/board";
 import type { Territory, Verdict } from "@/lib/room/ledgerTypes";
-import type { FrozenTileMap, MatchState, MoveResolution, PlayerIdentity } from "@/lib/types/match";
+import type { FrozenTileMap, MatchEndedReason, MatchState, MoveResolution, PlayerIdentity } from "@/lib/types/match";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import { SEATED_TABLE } from "@/lib/match/table";
+import { buildVerdict } from "@/lib/room/ledgerRows";
 
 export const ROOM_PHASES = [
   // Spec 069: the table replaces the queue's own `found` moment; the void; a paused search.
@@ -69,6 +70,12 @@ export const ROOM_PHASES = [
   "offline",
   // Spec 070 (C7): Back in a live match; the leave slip never resigns.
   "leave",
+  // Spec 071 (D1): the result slip, one phase per reason the match ended.
+  "result-moves",
+  "result-incomplete",
+  "result-both",
+  "result-forfeit",
+  "result-early",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -324,6 +331,52 @@ export function overSlip(copy: Copy): SlipState {
 }
 
 export const OVER_SLIP: SlipState = overSlip(copyEn);
+
+/** Spec 071 (D1): the result by the reason the match ended. Birna wins 134–88 each time. */
+export const RESULT_PHASES = ["result-moves", "result-incomplete", "result-both", "result-forfeit", "result-early"] as const;
+export type ResultPhase = (typeof RESULT_PHASES)[number];
+const RESULT_FACTS: Record<ResultPhase, { reason: MatchEndedReason; you: number; opp: number }> = {
+  "result-moves": { reason: "moves_complete", you: 10, opp: 10 },
+  "result-incomplete": { reason: "incomplete", you: 10, opp: 8 },
+  "result-both": { reason: "both_incomplete", you: 9, opp: 8 },
+  "result-forfeit": { reason: "forfeit", you: 6, opp: 5 },
+  "result-early": { reason: "ended_early", you: 10, opp: 6 },
+};
+
+export function isResultPhase(phase: string): phase is ResultPhase {
+  return (RESULT_PHASES as readonly string[]).includes(phase);
+}
+
+export function resultState(phase: ResultPhase): MatchState {
+  const f = RESULT_FACTS[phase];
+  return { ...FINAL_STATE, endedReason: f.reason, players: { playerA: facts(YOU_ID, f.you, 134), playerB: facts(OPP_ID, f.opp, 88) } };
+}
+
+/** The verdict from the same function the room uses, so the fixture says what a match would. */
+export function resultVerdict(phase: ResultPhase, copy: Copy): Verdict {
+  const f = RESULT_FACTS[phase];
+  return buildVerdict(
+    {
+      viewerName: BIRNA.displayName,
+      opponentName: KARI.displayName,
+      viewerScore: 134,
+      opponentScore: 88,
+      viewerWords: 10,
+      opponentWords: 8,
+      viewerMoves: f.you,
+      opponentMoves: f.opp,
+      territory: { you: 27, opp: 21, free: 52 },
+      winnerSeat: "you",
+      endedReason: f.reason,
+      endClock: "3:12",
+    },
+    copy,
+  );
+}
+
+export function resultSlip(phase: ResultPhase, copy: Copy): SlipState {
+  return { ...(overSlip(copy) as Extract<SlipState, { kind: "matchOver" }>), verdict: resultVerdict(phase, copy), bestWord: { word: "borða", points: 29 } };
+}
 
 /** Queue: 58 of 100 placeholder letters have landed. */
 export const QUEUE_LETTERS_LANDED = 58;
