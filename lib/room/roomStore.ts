@@ -107,6 +107,7 @@ function mergeSnapshot(previous: MatchState | null, snapshot: MatchState): Match
       disconnectedPlayerId: snapshot.disconnectedPlayerId,
       disconnectedAt: snapshot.disconnectedAt,
       reconnectWindowMs: snapshot.reconnectWindowMs,
+      steppedOutPlayerId: snapshot.steppedOutPlayerId,
     };
   }
   const scores =

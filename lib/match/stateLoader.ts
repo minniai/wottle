@@ -25,7 +25,7 @@ import type {
 import { getDisconnectRecord, RECONNECT_WINDOW_MS } from "./disconnectStore";
 import { startingBoardFor } from "./startingBoard";
 import { startTableIfSeated, voidDueTable } from "./tableService";
-import { findStaleParticipantDetail } from "./heartbeatRepository";
+import { readParticipants } from "./heartbeatRepository";
 import { mapWordScoreRows, type WordScoreEntryRow } from "./wordScoreRow";
 
 type AnyClient = SupabaseClient<any, any, any>;
@@ -271,22 +271,26 @@ function playerFacts(match: MatchRow, playerId: string, facts: MoveFacts): Playe
 // ─── Disconnect ──────────────────────────────────────────────────────
 
 async function disconnectFacts(client: AnyClient, match: MatchRow) {
-  const inMemory =
-    getDisconnectRecord(match.id, match.player_a_id) ?? getDisconnectRecord(match.id, match.player_b_id) ?? null;
-  const stale =
-    !inMemory && match.state === "in_progress"
-      ? await findStaleParticipantDetail(client, {
+  const participants =
+    match.state === "in_progress"
+      ? await readParticipants(client, {
           matchId: match.id,
           playerAId: match.player_a_id,
           playerBId: match.player_b_id,
           matchCreatedAt: new Date(match.created_at),
         })
-      : null;
-  const disconnectedPlayerId = inMemory?.playerId ?? stale?.playerId ?? null;
+      : { stale: null, steppedOut: null };
+  const steppedOut = participants.steppedOut;
+  // A player who left the match page for the lobby closed its tab's beacon: they stepped out, not away (spec 070 US8).
+  const recorded = getDisconnectRecord(match.id, match.player_a_id) ?? getDisconnectRecord(match.id, match.player_b_id) ?? null;
+  const inMemory = recorded && recorded.playerId !== steppedOut ? recorded : null;
+  const gone = inMemory ?? participants.stale;
+  const disconnectedPlayerId = gone?.playerId ?? null;
   return {
     disconnectedPlayerId,
-    disconnectedAt: inMemory?.disconnectedAt ?? stale?.disconnectedAt ?? null,
+    disconnectedAt: gone?.disconnectedAt ?? null,
     reconnectWindowMs: disconnectedPlayerId ? RECONNECT_WINDOW_MS : undefined,
+    steppedOutPlayerId: steppedOut,
   };
 }
 

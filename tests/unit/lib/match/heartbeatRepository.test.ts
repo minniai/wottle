@@ -47,6 +47,8 @@ describe("heartbeatRepository", () => {
           match_id: MATCH_ID,
           player_id: PLAYER_A,
           last_seen_at: "2026-04-23T12:00:00.000Z",
+          source: "match",
+          cadence_ms: 2_000,
         },
         { onConflict: "match_id,player_id" },
       );

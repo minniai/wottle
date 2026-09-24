@@ -3,13 +3,13 @@ import "server-only";
 import { z } from "zod";
 
 import { pokeLobby } from "@/lib/realtime/pokes";
-import { LEAVING_RECHECK_MS } from "@/lib/presence/constants";
+import { HEARTBEAT_HIDDEN_MS, HEARTBEAT_VISIBLE_MS, LEAVING_RECHECK_MS } from "@/lib/presence/constants";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 import { lobbyLanguageSchema, presencePageSchema, presenceStateSchema, type LobbyLanguage, type PresencePage, type PresenceState } from "@/lib/types/standing";
 
 /**
  * Presence per tab (spec 070 US6, research R1). The only TypeScript caller of
- * `beat_tab`, `leave_tab`, `player_presence` and `lobby_counts`. The database
+ * `beat_tab`, `leave_tab`, `beat_match_from_page`, `player_presence` and `lobby_counts`. The database
  * decides every state; this module parses and logs.
  */
 
@@ -42,11 +42,21 @@ export async function beat(playerId: string, input: BeatInput): Promise<BeatResu
   });
   if (error) throw new Error(`beat_tab: ${error.message}`);
   const row = beatRowSchema.parse((data as unknown[])[0]);
+  if (input.page !== "match") await keepMatchBeat(playerId, input.visible);
   if (row.transition) {
     log("presence.transition", { playerId, visible: input.visible });
     await pokeLobby(row.language);
   }
   return row;
+}
+
+/** A player in a live match on another page has stepped out, not gone (spec 070 US8). */
+async function keepMatchBeat(playerId: string, visible: boolean): Promise<void> {
+  const { error } = await getServiceRoleClient().rpc("beat_match_from_page", {
+    p_player: playerId,
+    p_cadence_ms: visible ? HEARTBEAT_VISIBLE_MS : HEARTBEAT_HIDDEN_MS,
+  });
+  if (error) log("presence.match_beat.failed", { playerId, error: error.message });
 }
 
 export async function leave(playerId: string, tabId: string): Promise<void> {

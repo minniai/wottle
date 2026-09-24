@@ -13,6 +13,7 @@ import type { MatchEndedReason, ScoreTotals, FrozenTileMap } from "@/lib/types/m
 import { computeFrozenTileCountByPlayer } from "@/lib/match/matchSummary";
 import { timeoutPenalty } from "@/lib/scoring/missPenalty";
 import { trackMatchResult } from "@/lib/observability/log";
+import { markUnseenResult } from "@/lib/match/unseenResult";
 import { calculateElo, determineKFactor } from "@/lib/rating/calculateElo";
 import { persistRatingChanges } from "@/lib/rating/persistRatingChanges";
 import type { RatingChange, MatchRatingResult } from "@/lib/types/match";
@@ -234,6 +235,7 @@ export async function completeMatchInternal(
   });
 
   await publishMatchState(matchId);
+  await markUnseenResult(matchId);
 
   trackMatchResult({
     matchId,

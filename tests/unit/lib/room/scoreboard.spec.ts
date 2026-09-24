@@ -103,6 +103,13 @@ describe("deriveScoreboard: the player rows", () => {
     expect(board().opp.laneMode).toBe("moves");
   });
 
+  it("the opponent stepped out to a page reads `stepped out`, lane not outlined (spec 070 US8)", () => {
+    const out = board({ opp: seat({ name: K, rating: 1265, movesPlayed: 6, steppedOut: true }) });
+    expect(out.opp).toMatchObject({ muted: "1265", suffix: "6 of 10 · stepped out", laneMode: "moves" });
+    expect(deriveScoreboard({ ...input({ opp: seat({ name: K, movesPlayed: 6, steppedOut: true }) }), compact: true }, copyEn).opp.suffix).toBe("stepped out");
+    expect(deriveScoreboard(input({ opp: seat({ name: K, movesPlayed: 6, steppedOut: true }) }), copyIs).opp.suffix).toBe("6 af 10 · brá sér frá");
+  });
+
   it("both seats read `ready` while starting", () => {
     const start = board({ phase: "starting", msToStart: 2_000, moveState: { kind: "starting", seconds: 2, opponentName: K }, you: seat({ movesPlayed: 0 }), opp: seat({ name: K, movesPlayed: 0 }) });
     expect(start.you.suffix).toBe("ready");

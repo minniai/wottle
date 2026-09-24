@@ -47,6 +47,7 @@ import { useFieldInteraction } from "./hooks/useFieldInteraction";
 import { useMatchTransport } from "./hooks/useMatchTransport";
 import { useNotices } from "./hooks/useNotices";
 import { useNowTick } from "./hooks/useNowTick";
+import { useLiveBackGuard } from "./hooks/useLiveBackGuard";
 import { tableFacts, useSeatAnnouncement, useTableBackGuard, useTableDeadlineRead } from "./hooks/useTable";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { useRoomHotkeys } from "./hooks/useRoomHotkeys";
@@ -420,6 +421,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // elapsed and the viewer has all their moves, ending early is put on a slip.
   const opponentGone = match.disconnectedPlayerId === oppFacts.playerId && inProgress;
   const disconnectedAt = opponentGone ? match.disconnectedAt ?? null : null;
+  const opponentSteppedOut = !opponentGone && inProgress && match.steppedOutPlayerId === oppFacts.playerId;
   // Measured on the server-corrected clock: a wrong device clock must not move the 90s window (spec 068 R9).
   const now = useNowTick(Boolean(disconnectedAt)) + serverDrift;
   const windowMs = match.reconnectWindowMs ?? RECONNECT_WINDOW_MS_CLIENT;
@@ -512,6 +514,12 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     [matchId, push],
   );
 
+  // Spec 070 US8: after go, Back opens the leave slip; leaving never resigns and the clock runs on.
+  const raiseLeave = useCallback(
+    () => setSlip({ kind: "leave", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), limit: match.moveLimit, clockMs }),
+    [setSlip, youFacts.movesPlayed, match.moveLimit, clockMs],
+  );
+  const liveGuard = useLiveBackGuard({ live: !readOnly && inProgress && msToStart <= 0, onBack: raiseLeave });
   const handleAction = useCallback(
     (action: LedgerAction) => {
       if (action === "rematch") void rematch.request();
@@ -558,7 +566,14 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         });
       }
       else if (action === "result" && voided && match.table.rematchOf) router.push(to(`/match/${match.table.rematchOf}`));
-      else if (action === "resign" || action === "leave") {
+      else if (action === "leave") raiseLeave();
+      else if (action === "stay") clearSlip("leave");
+      else if (action === "goToLobby") {
+        clearSlip("leave");
+        liveGuard.release();
+        router.push(to("/"));
+      }
+      else if (action === "resign") {
         // The loss stake the table showed (spec 069 US8); none after a mid-match reload.
         const loss = useRoomStore.getState().stakes?.[youFacts.playerId]?.loss;
         setSlip({ kind: "resign", move: Math.min(youFacts.movesPlayed + 1, match.moveLimit), clockMs, opponentName: opp.displayName, ...(loss === undefined ? {} : { loss }) });
@@ -575,7 +590,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         endEarly(0);
       }
     },
-    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, oppFacts.playerId, voided, match.table.rematchOf],
+    [copy, endEarly, matchId, push, rematch, router, to, dismissSlip, restoreSlip, setSlip, clearSlip, youFacts.movesPlayed, youFacts.playerId, match.moveLimit, clockMs, opp.displayName, refreshMatch, leaveTheTable, standing, raiseLeave, liveGuard, oppFacts.playerId, voided, match.table.rematchOf],
   );
 
   // `M` mutes; rules are reached through the menu (design system §9).
@@ -599,7 +614,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
         matchId={matchId}
         viewerSlot={viewerSlot}
         you={{ name: you.displayName, profileHref: to(`/profile/${you.username}`), profileInNewTab: !completed, offline: transport.offline && !completed, rating: you.eloRating ?? null, finalLine: completed ? ratingLine(ratings, youFacts.playerId, youScoreWins, copy) : undefined, movesPlayed: youFacts.movesPlayed, scoring: youFacts.inFlight !== null, score: youScore }}
-        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs }}
+        opp={{ name: opp.displayName, profileHref: to(`/profile/${opp.username}`), profileInNewTab: !completed, rating: opp.eloRating ?? null, finalLine: completed ? ratingLine(ratings, oppFacts.playerId, !youScoreWins && !draw, copy) : undefined, movesPlayed: oppFacts.movesPlayed, scoring: oppFacts.inFlight !== null, score: oppScore, reconnectMsLeft, goneForMs, steppedOut: opponentSteppedOut }}
         clockMs={clockMs}
         clockLengthMs={clockLengthMs ?? undefined}
         msToStart={Math.max(0, msToStart)}

@@ -21,7 +21,8 @@ export function pagePrimary(slot: SlotState, copy: Copy, opts: { composing: bool
     case "match":
       return slot.match.kind === "over" ? { find: "secondary", note: null } : { find: "hidden", note: copy.pages.FINISH_FIRST };
     case "switch":
-      return { find: "secondary", note: null };
+      // In the other lobby with something out: nothing can start here until the switch is confirmed (US7.4).
+      return { find: "hidden", note: null };
     case "sent":
       return slot.held ? { find: opts.composing ? "secondary" : "primary", note: null } : { find: "secondary", note: copy.pages.WITHDRAWS_YOUR_CHALLENGE };
     case "search":

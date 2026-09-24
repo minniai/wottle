@@ -35,7 +35,8 @@ function itemsFor(variant: RoomMenuVariant, { sound, rulesHref, copy }: MenuStat
       ...shared,
       { key: "howToPlay", label: copy.MENU_HOW_TO_PLAY, href: rulesHref },
       { key: "resign", label: copy.MENU_RESIGN, action: "resign" },
-      { key: "leave", label: copy.MENU_LEAVE, action: "leave" },
+      // Spec 070: `go to the lobby` opens the leave slip; it never resigns.
+      { key: "leave", label: copy.pages.GO_TO_LOBBY, action: "leave" },
     ];
   }
   // After a match the rules stay one step away (the desktop final ledger has no foot, spec 068).

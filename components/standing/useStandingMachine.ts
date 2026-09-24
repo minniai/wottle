@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { respondChallengeAction } from "@/app/actions/challenge/respond";
 import { withdrawChallengeAction } from "@/app/actions/challenge/withdraw";
+import { confirmLobbySwitchAction } from "@/app/actions/lobby/confirmSwitch";
 import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { useAttention } from "@/components/room/hooks/useAttention";
 import { useIsPhone } from "@/components/room/hooks/useIsPhone";
@@ -20,7 +21,7 @@ import { usePreferencesStore } from "@/lib/preferences/preferencesStore";
 import { OUTCOME_HOLD_MS } from "@/lib/presence/constants";
 import type { MatchmakingApi } from "@/lib/room/useMatchmaking";
 import type { Language } from "@/lib/types/game-config";
-import type { StandingFacts } from "@/lib/types/standing";
+import type { StandingFacts, SwitchPending } from "@/lib/types/standing";
 
 import { useFavicon } from "./hooks/useFavicon";
 import { useHeldOutcome, type HeldOutcome } from "./hooks/useHeldOutcome";
@@ -50,6 +51,8 @@ export interface StandingMachine {
   onPoke: (listener: PokeListener) => () => void;
   /** Read the standing now (after the viewer's own act, which pokes only the other side). */
   refresh: () => void;
+  /** The lobby page, opened in the other lobby with something out, asks before switching (US7.4). */
+  setSwitchPending: (pending: SwitchPending | null) => void;
 }
 
 const TICKING = new Set<SlotState["kind"]>(["call", "match", "sent", "search"]);
@@ -153,7 +156,8 @@ export function useStandingMachine(): StandingMachine {
 
   const held = useHeldOutcome(facts?.outgoing ?? null, (matchId) => router.push(to(`/match/${matchId}`)));
   const search = run && searchApi ? searchApi.state : null;
-  const slot = standingSlot({ facts, held, search });
+  const [switchPending, setSwitchPending] = useState<SwitchPending | null>(null);
+  const slot = standingSlot({ facts: facts && switchPending ? { ...facts, switchPending } : facts, held, search });
   const nowMs = useNowTick(TICKING.has(slot.kind));
   const viewer = facts?.viewer ?? { rating: 1200, gamesPlayed: 0 };
   const base = slotLines(slot, copy, { nowMs, phone, viewer, searchingCount: facts?.counts.searching ?? 0 });
@@ -217,10 +221,16 @@ export function useStandingMachine(): StandingMachine {
         case "result":
           return void (matchId && router.push(to(`/match/${matchId}`)));
         case "switch":
-          return refresh();
+          if (!switchPending) return refresh();
+          return void confirmLobbySwitchAction({ language: switchPending.to }).then(() => {
+            endSearch();
+            setSwitchPending(null);
+            refresh();
+            router.refresh();
+          });
       }
     },
-    [slot, accept, refresh, searchApi, start, router, to, endSearch],
+    [slot, accept, refresh, searchApi, start, router, to, endSearch, switchPending],
   );
 
   const announceArrival = useCallback(
@@ -241,7 +251,7 @@ export function useStandingMachine(): StandingMachine {
     announcement,
     held,
     overlays,
-    closed: challengesClosed(facts),
+    closed: challengesClosed(facts) || slot.kind === "switch",
     primaryFor: (composing) => pagePrimary(slot, copy, { composing }),
     onAction,
     search: { run, language, start, onState: onSearchState },
@@ -249,5 +259,6 @@ export function useStandingMachine(): StandingMachine {
     announceArrival,
     onPoke,
     refresh,
+    setSwitchPending,
   };
 }

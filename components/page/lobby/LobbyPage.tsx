@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import { sendChallengeAction } from "@/app/actions/challenge/send";
 import { useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
@@ -9,7 +9,7 @@ import { useArrivalWatch } from "@/components/standing/hooks/useArrivalWatch";
 import { useLobbyList } from "@/components/standing/hooks/useLobbyList";
 import { useStandingSlot } from "@/components/standing/StandingProvider";
 import type { RecentGameRow } from "@/lib/types/lobby";
-import type { LobbyLanguage, LobbyRow, Overview } from "@/lib/types/standing";
+import type { LobbyLanguage, LobbyRow, Overview, SwitchPending } from "@/lib/types/standing";
 
 import { PageFrame } from "../PageFrame";
 import { Lobby } from "./Lobby";
@@ -22,10 +22,12 @@ export interface LobbyPageProps {
   rows: LobbyRow[];
   overview: Overview;
   recent: RecentGameRow[];
+  /** This lobby is not yet the player's: something would be cancelled by switching (US7.4). */
+  switchPending?: SwitchPending | null;
 }
 
 /** `/` signed in (spec 070 US2): the lobby in its page frame; who is here follows the lobby's pokes. */
-export function LobbyPage({ viewer, rows: initialRows, overview, recent }: LobbyPageProps) {
+export function LobbyPage({ viewer, rows: initialRows, overview, recent, switchPending = null }: LobbyPageProps) {
   const locale = useLocale();
   const language = locale.language as LobbyLanguage;
   const to = useLocalePath();
@@ -33,6 +35,11 @@ export function LobbyPage({ viewer, rows: initialRows, overview, recent }: Lobby
   const standing = useStandingSlot();
   const rows = useLobbyList(language, initialRows);
   const machine = standing.machine;
+  const setSwitchPending = machine?.setSwitchPending;
+  useEffect(() => {
+    setSwitchPending?.(switchPending);
+    return () => setSwitchPending?.(null);
+  }, [switchPending, setSwitchPending]);
   const onFind = useCallback(() => machine?.search.start(), [machine]);
   const arrival = useArrivalWatch(rows, machine?.announceArrival ?? NO_ARRIVAL);
   const onSend = useCallback(

@@ -101,6 +101,8 @@ const OFFLINE_RECONNECTING = "offline · reconnecting";
 const movesOf = (moves: number): string => `${moves} of 10`;
 const compactMove = (move: number): string => `move ${move}`;
 const goneForShort = (mmSs: string): string => `gone for ${mmSs}`;
+const steppedOut = (moves: number): string => `${moves} of 10 · stepped out`;
+const STEPPED_OUT = "stepped out";
 const BEHIND_PACE = "behind pace";
 const OFFLINE = "offline";
 // The live row's second line (spec 068 FR-028–FR-031, FR-038)
@@ -400,6 +402,8 @@ export const copyEn = {
   movesOf,
   compactMove,
   goneForShort,
+  steppedOut,
+  STEPPED_OUT,
   BEHIND_PACE,
   OFFLINE,
   moveNoWord,

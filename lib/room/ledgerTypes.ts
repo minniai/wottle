@@ -88,6 +88,9 @@ export type LedgerAction =
   | "endEarly"
   | "keepWaiting"
   | "keepPlaying"
+  /** Spec 070: the leave slip's safe action and its way out. */
+  | "stay"
+  | "goToLobby"
   | "reviewField"
   | "result"
   | "howToPlay"

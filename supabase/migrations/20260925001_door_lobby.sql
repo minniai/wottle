@@ -700,3 +700,170 @@ revoke all on function public.expire_challenges() from public, anon, authenticat
 grant execute on function public.expire_challenges() to service_role;
 revoke all on function public.player_in_live_match(uuid) from public, anon, authenticated;
 revoke all on function public.challenger_silenced(uuid, uuid) from public, anon, authenticated;
+
+-- ─── Lobby language (US7) ──────────────────────────────────────────────
+-- The last lobby a player entered. Entering switches at once with nothing
+-- out; with a search or a challenge out it asks first (clarification Q1).
+
+create or replace function public.lobby_pending(p_player uuid)
+returns text[]
+language sql
+stable
+set search_path = ''
+as $$
+  select array_remove(array[
+    case when exists (select 1 from public.players p where p.id = p_player and p.status = 'matchmaking') then 'search' end,
+    case when exists (select 1 from public.match_invitations i where i.sender_id = p_player and i.status = 'pending') then 'outgoing' end,
+    case when exists (select 1 from public.match_invitations i where i.recipient_id = p_player and i.status = 'pending') then 'incoming' end
+  ], null);
+$$;
+
+create or replace function public.move_to_lobby(p_player uuid, p_language text)
+returns void
+language sql
+set search_path = ''
+as $$
+  update public.players set lobby_language = p_language where id = p_player;
+  update public.presence_tabs set language = p_language where player_id = p_player;
+  update public.lobby_presence set language = p_language, updated_at = now() where player_id = p_player;
+$$;
+
+create or replace function public.enter_lobby(p_player uuid, p_language text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_current text;
+  v_pending text[];
+begin
+  if p_language not in ('is', 'en') then
+    return jsonb_build_object('status', 'invalid');
+  end if;
+  select lobby_language into v_current from public.players where id = p_player for update;
+  if v_current = p_language then
+    return jsonb_build_object('status', 'same');
+  end if;
+  v_pending := case when v_current is null then '{}' else public.lobby_pending(p_player) end;
+  if cardinality(v_pending) > 0 then
+    return jsonb_build_object('status', 'needs_confirm', 'pending', to_jsonb(v_pending), 'from', v_current);
+  end if;
+  perform public.move_to_lobby(p_player, p_language);
+  return jsonb_build_object('status', 'switched');
+end;
+$$;
+
+create or replace function public.confirm_lobby_switch(p_player uuid, p_language text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_counterparts uuid[];
+begin
+  if p_language not in ('is', 'en') then
+    return jsonb_build_object('status', 'invalid');
+  end if;
+  perform 1 from public.players where id = p_player for update;
+  update public.players
+     set status = 'available', queue_language = null, queued_at = null, search_paused = false
+   where id = p_player and status = 'matchmaking';
+  with ended as (
+    update public.match_invitations i
+       set status = case when i.sender_id = p_player then 'withdrawn' else 'left' end,
+           responded_at = now()
+     where i.status = 'pending' and (i.sender_id = p_player or i.recipient_id = p_player)
+    returning case when i.sender_id = p_player then i.recipient_id else i.sender_id end as other_id
+  )
+  select coalesce(array_agg(distinct other_id), '{}') into v_counterparts from ended;
+  perform public.move_to_lobby(p_player, p_language);
+  return jsonb_build_object('status', 'switched', 'counterparts', to_jsonb(v_counterparts));
+end;
+$$;
+
+revoke all on function public.enter_lobby(uuid, text) from public, anon, authenticated;
+grant execute on function public.enter_lobby(uuid, text) to service_role;
+revoke all on function public.confirm_lobby_switch(uuid, text) from public, anon, authenticated;
+grant execute on function public.confirm_lobby_switch(uuid, text) to service_role;
+revoke all on function public.move_to_lobby(uuid, text) from public, anon, authenticated;
+revoke all on function public.lobby_pending(uuid) from public, anon, authenticated;
+
+-- ─── Stepped out (US8) ─────────────────────────────────────────────────
+-- A tab on another page keeps its player's live match heartbeat, marked
+-- 'page', so the opponent reads `stepped out` rather than `reconnecting`.
+-- A fresh beat from the match page itself (under 10s) is never overwritten.
+
+create or replace function public.beat_match_from_page(p_player uuid, p_cadence_ms integer)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_match uuid;
+begin
+  select m.id into v_match
+    from public.matches m
+   where m.state = 'in_progress' and (m.player_a_id = p_player or m.player_b_id = p_player)
+   limit 1;
+  if v_match is null then
+    return null;
+  end if;
+  insert into public.match_heartbeats as h (match_id, player_id, last_seen_at, source, cadence_ms)
+  values (v_match, p_player, now(), 'page', p_cadence_ms)
+  on conflict (match_id, player_id) do update
+     set last_seen_at = excluded.last_seen_at, source = 'page', cadence_ms = excluded.cadence_ms
+   where h.source = 'page' or h.last_seen_at < now() - interval '10 seconds';
+  return v_match;
+end;
+$$;
+
+revoke all on function public.beat_match_from_page(uuid, integer) from public, anon, authenticated;
+grant execute on function public.beat_match_from_page(uuid, integer) to service_role;
+
+-- ─── Match over while away (US8) ───────────────────────────────────────
+-- A player whose last match beat is not a fresh one from the match page did
+-- not see the result: their line slot holds it until they open it.
+
+create or replace function public.mark_unseen_result(p_match uuid)
+returns uuid[]
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_away uuid[];
+begin
+  with away as (
+    update public.players p
+       set unseen_result_match_id = p_match
+      from public.matches m
+     where m.id = p_match and m.state = 'completed' and coalesce(m.ended_reason, '') <> 'void'
+       and p.id in (m.player_a_id, m.player_b_id)
+       and not exists (
+         select 1 from public.match_heartbeats h
+          where h.match_id = p_match and h.player_id = p.id
+            and h.source = 'match' and h.last_seen_at > now() - interval '10 seconds')
+    returning p.id
+  )
+  select coalesce(array_agg(id), '{}') into v_away from away;
+  return v_away;
+end;
+$$;
+
+create or replace function public.clear_unseen_result(p_player uuid, p_match uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.players set unseen_result_match_id = null
+   where id = p_player and (p_match is null or unseen_result_match_id = p_match);
+$$;
+
+revoke all on function public.mark_unseen_result(uuid) from public, anon, authenticated;
+grant execute on function public.mark_unseen_result(uuid) to service_role;
+revoke all on function public.clear_unseen_result(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.clear_unseen_result(uuid, uuid) to service_role;

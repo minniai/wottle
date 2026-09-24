@@ -20,6 +20,8 @@ export type SlipState =
   | { kind: "void"; model: VoidSlipModel }
   /** `loss`: the viewer's loss stake, kept from the table (spec 069 US8); absent after a mid-match reload. */
   | { kind: "resign"; move: number; clockMs: number; opponentName: string; loss?: number }
+  /** Spec 070 (C7): Back or `⋯ go to the lobby` in a live match. Never resigns; the clock keeps running. */
+  | { kind: "leave"; move: number; limit: number; clockMs: number }
   | { kind: "endEarly"; opponentName: string; opponentMoves: number; clockMs: number }
   | {
       kind: "matchOver";
@@ -44,8 +46,8 @@ export interface SlipRatingRow {
   rating?: RatingRow;
 }
 
-// Spec 069 (design system §5.9): match over > end early > resign > ready or void.
-const RANK: Record<SlipKind, number> = { ready: 1, void: 1, resign: 2, endEarly: 3, matchOver: 4 };
+// Spec 070 (design system §5.9, §8 item 2): match over > end early > resign > leave > ready or void.
+const RANK: Record<SlipKind, number> = { ready: 1, void: 1, leave: 2, resign: 3, endEarly: 4, matchOver: 5 };
 
 export function slipPrecedence(kind: SlipKind): number {
   return RANK[kind];

@@ -402,13 +402,13 @@
 
 **Independent test**: quickstart §5. `tests/integration/ui/lobby-language.spec.ts` passes.
 
-- [ ] T096 [P] [US7] Write failing integration tests in `tests/integration/db/lobby-language.test.ts`:
+- [X] T096 [P] [US7] Write failing integration tests in `tests/integration/db/lobby-language.test.ts`:
   - `enter_lobby` returns `same`, `switched`, or `needs_confirm` with the pending list;
   - `confirm_lobby_switch` cancels the search, withdraws the outgoing challenge, ends incoming challenges as `left`, and switches;
   - heartbeats never change `lobby_language`;
   - `send_challenge` refuses `other_lobby`.
-- [ ] T097 [US7] Add `enter_lobby` and `confirm_lobby_switch` to the migration. Implement `lib/matchmaking/lobbyLanguage.ts` and `app/actions/lobby/{enterLobby,confirmSwitch}.ts` with pokes (T096).
-- [ ] T098 [US7] Replace T057's placeholder `enterLobbyAction`. On `needs_confirm` the lobby renders with find and every `challenge ▸` off. The standing read returns `switchPending`, and the slot shows `switch` (`you are in the Icelandic lobby · switching cancels your search · switch ▸` / `þú ert í íslenska lobbíinu · …`). The masthead switch shows the same consequence line first when something is out (T3). Add a unit test in `tests/unit/components/page/LanguageSwitch.spec.tsx`.
+- [X] T097 [US7] Add `enter_lobby` and `confirm_lobby_switch` to the migration. Implement `lib/matchmaking/lobbyLanguage.ts` and `app/actions/lobby/{enterLobby,confirmSwitch}.ts` with pokes (T096).
+- [X] T098 [US7] Replace T057's placeholder `enterLobbyAction`. On `needs_confirm` the lobby renders with find and every `challenge ▸` off. The standing read returns `switchPending`, and the slot shows `switch` (`you are in the Icelandic lobby · switching cancels your search · switch ▸` / `þú ert í íslenska lobbíinu · …`). The masthead switch shows the same consequence line first when something is out (T3). Add a unit test in `tests/unit/components/page/LanguageSwitch.spec.tsx`.
 - [ ] T099 [US7] Name the language beside every rating on pages (FR-033, US7.5). Add the switch strings, and the page phase `switch-confirm`.
 - [ ] T100 [US7] Write the Playwright spec `tests/integration/ui/lobby-language.spec.ts` for quickstart §5: `/en/rules` does not move the player; typing `/en` with a search out asks first; confirming switches the lists.
 
@@ -420,8 +420,8 @@
 
 **Independent test**: quickstart §6. `tests/integration/ui/leave-slip.spec.ts` passes.
 
-- [ ] T101 [P] [US8] Write a failing test in `tests/unit/lib/room/slip.leave.spec.ts`: the `leave` kind ranks below resign and above ready and void; the model's label is `move 4 of 10 · 3:12 left`; its headline, body, primary (`stay ▸`) and secondary; and its phone square content.
-- [ ] T102 [P] [US8] Write a failing hook test in `tests/unit/components/room/useLiveBackGuard.spec.ts`:
+- [X] T101 [P] [US8] Write a failing test in `tests/unit/lib/room/slip.leave.spec.ts`: the `leave` kind ranks below resign and above ready and void; the model's label is `move 4 of 10 · 3:12 left`; its headline, body, primary (`stay ▸`) and secondary; and its phone square content.
+- [X] T102 [P] [US8] Write a failing hook test in `tests/unit/components/room/useLiveBackGuard.spec.ts`:
   - no guard before the first pick;
   - the first pick pushes a guard with `history.state.kind = "guard"`;
   - popstate raises the leave slip and re-pushes the guard;
@@ -429,15 +429,15 @@
   - returning to the match replaces the guard instead of stacking one;
   - after completion the guard is disarmed and skipped;
   - `beforeunload` is armed only while the match is in progress.
-- [ ] T103 [P] [US8] Write failing integration tests in `tests/integration/db/stepped-out.test.ts`:
+- [X] T103 [P] [US8] Write failing integration tests in `tests/integration/db/stepped-out.test.ts`:
   - a page heartbeat writes `match_heartbeats (source 'page', cadence)`;
   - the loader reports `steppedOutPlayerId` while it is fresh by the presence rule, and `reconnecting` only when neither source is fresh;
   - `completeMatchInternal` sets `unseen_result_match_id` for a player whose last match heartbeat is not a fresh match source;
   - a read of the completed match clears it;
   - sign-out clears it.
-- [ ] T104 [US8] Implement the heartbeat source and cadence in `lib/match/heartbeatRepository.ts`. Write the page heartbeat from `app/api/presence/beat/route.ts`. Add `steppedOutPlayerId` to `lib/match/stateLoader.ts` and the `MatchState` type. Set and clear `unseen_result_match_id` in `app/actions/match/completeMatch.ts`, `app/api/match/[matchId]/state/route.ts` and `app/actions/auth/logout.ts`. Make T103 pass.
-- [ ] T105 [US8] Add the `stepped out` / `brá sér frá` sub-line to `lib/room/scoreboard.ts` and `components/room/Scoreboard.tsx`, with a unit test in `tests/unit/lib/room/scoreboard.steppedOut.spec.ts`.
-- [ ] T106 [US8] Implement `components/room/hooks/useLiveBackGuard.ts` (T102). Add the leave slip to `lib/room/slip.ts` and `components/room/Slip.tsx`, with `stay ▸` focused through `initialFocusRef`. Change `RoomMenu.tsx`'s `leave` to `go to the lobby`, which opens the leave slip. Make `confirmResign` reachable only from `⋯ resign`. Wire all of this into `MatchRoomController.tsx` (T101).
+- [X] T104 [US8] Implement the heartbeat source and cadence in `lib/match/heartbeatRepository.ts`. Write the page heartbeat from `app/api/presence/beat/route.ts`. Add `steppedOutPlayerId` to `lib/match/stateLoader.ts` and the `MatchState` type. Set and clear `unseen_result_match_id` in `app/actions/match/completeMatch.ts`, `app/api/match/[matchId]/state/route.ts` and `app/actions/auth/logout.ts`. Make T103 pass.
+- [X] T105 [US8] Add the `stepped out` / `brá sér frá` sub-line to `lib/room/scoreboard.ts` and `components/room/Scoreboard.tsx`, with a unit test in `tests/unit/lib/room/scoreboard.steppedOut.spec.ts`.
+- [X] T106 [US8] Implement `components/room/hooks/useLiveBackGuard.ts` (T102). Add the leave slip to `lib/room/slip.ts` and `components/room/Slip.tsx`, with `stay ▸` focused through `initialFocusRef`. Change `RoomMenu.tsx`'s `leave` to `go to the lobby`, which opens the leave slip. Make `confirmResign` reachable only from `⋯ resign`. Wire all of this into `MatchRoomController.tsx` (T101).
 - [ ] T107 [US8] Add the leave slip's strings and the `/dev/room` phase `leave` (desktop and phone, F8), and generate the baselines.
 - [ ] T108 [US8] Write the Playwright spec `tests/integration/ui/leave-slip.spec.ts`:
   - after a pick, Back opens the slip with `stay ▸` focused, and Esc keeps playing;

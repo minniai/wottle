@@ -10,7 +10,7 @@ vi.mock("@/lib/match/tableService", () => ({
   voidDueTable: vi.fn(async () => ({ status: "void" })),
   startTableIfSeated: vi.fn(async () => ({ status: "started" })),
 }));
-vi.mock("@/lib/match/heartbeatRepository", () => ({ findStaleParticipantDetail: vi.fn(async () => null) }));
+vi.mock("@/lib/match/heartbeatRepository", () => ({ readParticipants: vi.fn(async () => ({ stale: null, steppedOut: null })) }));
 
 import { startTableIfSeated, voidDueTable } from "@/lib/match/tableService";
 import { loadMatchState } from "@/lib/match/stateLoader";

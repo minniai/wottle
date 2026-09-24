@@ -13,6 +13,7 @@ import { lobbyRows } from "@/lib/lobby/lobbyRows";
 import { publicOverview, viewerOverview } from "@/lib/lobby/overview";
 import { readRatings } from "@/lib/rating/playerRatings";
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import { enterLobby } from "@/lib/matchmaking/lobbyLanguage";
 import { healStuckInMatchStatus, readLobbySession } from "@/lib/matchmaking/profile";
 import type { LobbyLanguage } from "@/lib/types/standing";
 
@@ -69,8 +70,8 @@ interface SignedInLobbyProps {
 async function SignedInLobby({ playerId, displayName, handle, language }: SignedInLobbyProps) {
   await healStuckInMatchStatus(playerId);
   const client = getServiceRoleClient();
-  // The lobby entered is the player's lobby language (spec 070 FR-033); US7 adds the confirmation.
-  await client.from("players").update({ lobby_language: language }).eq("id", playerId);
+  // Entering this lobby makes it the player's lobby language, or asks first when something is out (US7).
+  const entered = await enterLobby(playerId, language);
   const [ratings, rows, overview, recent] = await Promise.all([
     readRatings(client, [playerId], language),
     lobbyRows(playerId, language).catch(() => []),
@@ -79,5 +80,5 @@ async function SignedInLobby({ playerId, displayName, handle, language }: Signed
   ]);
   const record = ratings.get(playerId)!;
   const viewer = { displayName, handle, rating: record.eloRating, gamesPlayed: record.gamesPlayed, wins: record.wins, losses: record.losses, draws: record.draws };
-  return <LobbyPage viewer={viewer} rows={rows} overview={overview} recent={recent.games} />;
+  return <LobbyPage viewer={viewer} rows={rows} overview={overview} recent={recent.games} switchPending={entered.status === "needs_confirm" ? entered.pending : null} />;
 }

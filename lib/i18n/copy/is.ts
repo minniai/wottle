@@ -124,6 +124,8 @@ export const copyIs = {
   movesOf: (moves: number): string => `${moves} af 10`,
   compactMove: (move: number): string => `leikur ${move}`,
   goneForShort: (mmSs: string): string => `án tengingar í ${mmSs}`,
+  steppedOut: (moves: number): string => `${moves} af 10 · brá sér frá`,
+  STEPPED_OUT: "brá sér frá",
   BEHIND_PACE: "á eftir áætlun",
   OFFLINE: "án tengingar",
   moveNoWord: (move: number): string => `leikur ${move} · ekkert orð`,

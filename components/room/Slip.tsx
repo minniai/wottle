@@ -19,6 +19,8 @@ function cancelActionFor(slip: SlipState): LedgerAction | null {
   switch (slip.kind) {
     case "resign":
       return "keepPlaying";
+    case "leave":
+      return "stay";
     case "endEarly":
       return "keepWaiting";
     case "matchOver":
@@ -66,6 +68,27 @@ function ResignBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, {
       <div className="slip__actions" data-stacked="true">
         <Primary label={KEEP_PLAYING} action="keepPlaying" testId="slip-keep-playing" onAction={onAction} />
         <Secondary label={YES_RESIGN} action="confirmResign" testId="slip-confirm-resign" onAction={onAction} />
+      </div>
+    </>
+  );
+}
+
+/** Spec 070 (C7, F8): leaving never resigns; the slip the player opens focuses its safe action. */
+function LeaveBody({ slip, onAction, headlineId }: { slip: Extract<SlipState, { kind: "leave" }>; onAction: (a: LedgerAction) => void; headlineId: string }) {
+  const { pages } = useCopy();
+  return (
+    <>
+      <div className="slip__head">
+        <span className="slip__label">{pages.leaveLabel(slip.move, slip.limit, formatClock(slip.clockMs))}</span>
+        <h2 id={headlineId} className="slip__headline">{pages.LEAVE_HEADLINE}</h2>
+        {pages.LEAVE_BODY.map((line) => (
+          <span key={line} className="slip__label">{line}</span>
+        ))}
+      </div>
+      <div className="slip__rule" />
+      <div className="slip__actions" data-stacked="true">
+        <Primary label={pages.STAY} action="stay" testId="slip-stay" onAction={onAction} />
+        <Secondary label={pages.GO_TO_LOBBY} action="goToLobby" testId="slip-go-to-lobby" onAction={onAction} />
       </div>
     </>
   );
@@ -239,6 +262,8 @@ function bodyFor(slip: SlipState, onAction: (a: LedgerAction) => void, headlineI
       return <VoidBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
     case "resign":
       return <ResignBody slip={slip} onAction={onAction} headlineId={headlineId} />;
+    case "leave":
+      return <LeaveBody slip={slip} onAction={onAction} headlineId={headlineId} />;
     case "endEarly":
       return <EndEarlyBody slip={slip} onAction={onAction} headlineId={headlineId} headlineRef={headlineRef} />;
     case "matchOver":

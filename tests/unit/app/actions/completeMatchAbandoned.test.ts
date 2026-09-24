@@ -10,6 +10,7 @@ vi.mock("@/lib/rating/playerRatings", async (importOriginal) => {
   };
 });
 vi.mock("@/lib/supabase/server", () => ({ getServiceRoleClient: vi.fn() }));
+vi.mock("@/lib/match/unseenResult", () => ({ markUnseenResult: vi.fn(async () => undefined) }));
 vi.mock("@/lib/match/statePublisher", () => ({
   publishMatchState: vi.fn().mockResolvedValue(undefined),
 }));

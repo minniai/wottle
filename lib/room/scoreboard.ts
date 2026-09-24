@@ -40,6 +40,8 @@ export interface ScoreboardSeat {
   reconnectMsLeft?: number | null;
   /** The window is spent and the opponent is still away: how long. */
   goneForMs?: number | null;
+  /** Spec 070 US8: the opponent's app is open on another page. */
+  steppedOut?: boolean;
   /** The viewer's own transport has lost the match. */
   offline?: boolean;
   /** Match over: the rating line (`1204 → 1212 · +8 · wins`, or `rating pending`). */
@@ -168,6 +170,7 @@ function oppSub(input: ScoreboardInput, copy: Copy): Sub {
   const { opp, moveLimit } = input;
   if (opp.reconnectMsLeft != null && opp.reconnectMsLeft > 0) return { suffix: copy.reconnecting(formatClock(opp.reconnectMsLeft)), tone: "muted", alert: true };
   if (opp.goneForMs != null) return { suffix: copy.goneFor(opp.movesPlayed, formatClock(opp.goneForMs)), tone: "muted", alert: true };
+  if (opp.steppedOut) return { suffix: copy.steppedOut(opp.movesPlayed), tone: "muted", alert: true };
   if (opp.movesPlayed >= moveLimit) return plain(copy.DONE_SUFFIX);
   return plain(copy.oppProgress(opp.movesPlayed, opp.inFlight ? "scoring" : "playing"));
 }
@@ -190,6 +193,7 @@ function compactSub(input: ScoreboardInput, seat: Seat, behind: boolean, copy: C
   if (seat === "opp") {
     if (facts.reconnectMsLeft != null && facts.reconnectMsLeft > 0) return plain(copy.reconnecting(formatClock(facts.reconnectMsLeft)));
     if (facts.goneForMs != null) return plain(copy.goneForShort(formatClock(facts.goneForMs)));
+    if (facts.steppedOut) return plain(copy.STEPPED_OUT);
     return plain(copy.movesOf(facts.movesPlayed));
   }
   if (facts.offline) return plain(copy.OFFLINE);
