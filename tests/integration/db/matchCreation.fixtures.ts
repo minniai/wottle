@@ -68,6 +68,40 @@ export class Fixtures {
     return data.id as string;
   }
 
+  /** Spec 071: a match that ended `agoMs` ago, as the rematch window reads it. */
+  async completed(a: string, b: string, options: { agoMs?: number; endedReason?: string; language?: "is" | "en" } = {}): Promise<string> {
+    const { data, error } = await this.db.client
+      .from("matches")
+      .insert({
+        board_seed: crypto.randomUUID(),
+        player_a_id: a,
+        player_b_id: b,
+        state: "completed",
+        language: options.language ?? "is",
+        ended_reason: options.endedReason ?? "moves_complete",
+        completed_at: new Date(Date.now() - (options.agoMs ?? 0)).toISOString(),
+        ...SEATED_NOW(),
+      })
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(`matches.insert: ${error?.message}`);
+    return data.id as string;
+  }
+
+  /** Spec 071: a fresh tab of this player on this match's page (hidden when asked). */
+  async onMatch(playerId: string, matchId: string, visible = true): Promise<void> {
+    const { error } = await this.db.client.from("presence_tabs").insert({
+      tab_id: crypto.randomUUID(),
+      player_id: playerId,
+      language: "is",
+      page: "match",
+      visible,
+      cadence_ms: visible ? 10_000 : 30_000,
+      match_id: matchId,
+    });
+    if (error) throw new Error(`presence_tabs.insert: ${error.message}`);
+  }
+
   async rematchRequest(matchId: string, requesterId: string, responderId: string, ageMs = 0): Promise<string> {
     const { data, error } = await this.db.client
       .from("rematch_requests")
@@ -123,6 +157,7 @@ export class Fixtures {
     const { data: matches } = await this.db.client.from("matches").select("id").or(or);
     const matchIds = (matches ?? []).map((m) => m.id as string);
     await this.db.client.from("match_invitations").delete().in("sender_id", ids);
+    await this.db.client.from("presence_tabs").delete().in("player_id", ids);
     if (matchIds.length) {
       await this.db.client.from("rematch_requests").delete().in("match_id", matchIds);
       await this.db.client.from("matches").update({ rematch_of: null }).in("id", matchIds);
