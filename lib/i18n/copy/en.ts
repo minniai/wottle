@@ -296,6 +296,19 @@ const table = {
   titleStarting: (n: number, name: string): string => `${n} · ${name}`,
   titleSearching: (mmSs: string): string => `searching ${mmSs}`,
 };
+/** Spec 071 (D2): the rematch negotiation's lines, on the slip or as the ledger's first line. */
+const rematch = {
+  sent: (mmSs: string): string => `rematch sent · ${mmSs}`,
+  asks: (name: string, mmSs: string): string => `${name} asks for a rematch · ${mmSs}`,
+  accepted: (name: string): string => `${name} accepted`,
+  declined: (name: string): string => `${name} declined`,
+  NO_ANSWER: "no answer",
+  withdrew: (name: string): string => `${name} withdrew`,
+  startedAnother: (name: string): string => `${name} started another match`,
+  hasLeft: (name: string): string => `${name} has left`,
+  CANCEL: "cancel ▸",
+  title: (name: string, wordmark: string): string => `(1) ${name} asks for a rematch · ${wordmark}`,
+};
 const errors = {
   rate_limited: "too many tries · wait a minute",
   invalid_name: "3 to 24 letters, digits, - or _",
@@ -513,6 +526,7 @@ export const copyEn = {
   profileUnavailable,
   noSuchPlayer,
   table,
+  rematch,
   pages,
   errors,
   RULES_TITLE,

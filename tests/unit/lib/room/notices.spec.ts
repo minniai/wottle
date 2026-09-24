@@ -16,14 +16,14 @@ describe("notices (design system §5.4, §8)", () => {
     let list = addNotice([], pickClearedNotice("Kári", 0));
     list = addNotice(list, pickClearedNotice("Elín", 0));
     expect(list.map((n) => n.kind)).toEqual(["pickCleared"]);
-    list = addNotice(list, { kind: "rematchRequest", requesterName: "Kári" });
-    list = addNotice(list, { kind: "rematchRequest", requesterName: "Elín" });
-    expect(list.filter((n) => n.kind === "rematchRequest")).toHaveLength(1);
-    expect(removeKey(list, "rematchRequest").map((n) => n.kind)).toEqual(["pickCleared"]);
+    list = addNotice(list, { kind: "rematch", text: "Kári asks for a rematch · 0:24", drain: 0.8 });
+    list = addNotice(list, { kind: "rematch", text: "Elín asks for a rematch · 0:23", drain: 0.77 });
+    expect(list.filter((n) => n.kind === "rematch")).toHaveLength(1);
+    expect(removeKey(list, "rematch").map((n) => n.kind)).toEqual(["pickCleared"]);
   });
 
   it("every fixed string is exclamation-free", () => {
-    for (const n of [pickClearedNotice("K", 0), { kind: "rematchRequest" as const, requesterName: "K" }]) {
+    for (const n of [pickClearedNotice("K", 0), { kind: "rematch" as const, text: "K asks for a rematch · 0:24", drain: 0.8 }]) {
       expect(noticeText(n, copyEn)).not.toContain("!");
     }
   });

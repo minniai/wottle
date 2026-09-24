@@ -81,6 +81,8 @@ export type LedgerAction =
   | "rematch"
   | "acceptRematch"
   | "declineRematch"
+  /** Spec 071: the sender's `cancel ▸`. */
+  | "withdrawRematch"
   | "newOpponent"
   | "lobby"
   | "cancelQueue"
@@ -108,7 +110,8 @@ export type LedgerAction =
 
 export type Notice =
   | { kind: "pickCleared"; byName: string; expiresAt: number }
-  | { kind: "rematchRequest"; requesterName: string }
+  /** Spec 071 (T41): an incoming rematch once the slip is lifted or in review; accept ▸ and decline. */
+  | { kind: "rematch"; text: string; drain: number }
   | { kind: "text"; text: string }
   /** Spec 070 B6: a third party's call on the result screen. */
   | { kind: "call"; inviteId: string; text: string };

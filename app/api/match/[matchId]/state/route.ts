@@ -4,6 +4,7 @@ import { attentionFromQuery, recordAttention } from "@/lib/matchmaking/attention
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { loadMatchState } from "@/lib/match/stateLoader";
 import { recordHeartbeat } from "@/lib/match/heartbeatRepository";
+import { readRematchOffer } from "@/lib/match/rematchOffer";
 import { clearUnseenResult } from "@/lib/match/unseenResult";
 import { getServiceRoleClient } from "@/lib/supabase/server";
 
@@ -58,5 +59,7 @@ export async function GET(
   const attention = attentionFromQuery(new URL(request.url).searchParams);
   if (attention) void recordAttention(supabase, playerId, attention);
 
-  return NextResponse.json(state, { status: 200, headers: NO_CACHE_HEADERS });
+  // Spec 071 (R8): the rematch as this caller sees it; never in the broadcast state.
+  const rematch = await readRematchOffer(supabase, state, playerId);
+  return NextResponse.json(rematch ? { ...state, rematch } : state, { status: 200, headers: NO_CACHE_HEADERS });
 }

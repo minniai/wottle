@@ -170,18 +170,21 @@ function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: 
 
 function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: LedgerAction) => void }) {
   const copy = useCopy();
-  if (notice.kind !== "call") return <>{noticeText(notice, copy)}</>;
-  // A call on the result screen (B6): the line and its two secondaries.
+  if (notice.kind !== "call" && notice.kind !== "rematch") return <>{noticeText(notice, copy)}</>;
+  // A call or a rematch on the result screen (B6, spec 071 T41): the line and its two secondaries.
+  const [accept, decline, id]: [LedgerAction, LedgerAction, string] =
+    notice.kind === "rematch" ? ["acceptRematch", "declineRematch", "ledger-rematch"] : ["acceptCall", "declineCall", "ledger-call"];
   return (
     <>
       {notice.text} ·{" "}
-      <button type="button" className="action-secondary" data-testid="ledger-call-accept" onClick={() => onAction("acceptCall")}>
+      <button type="button" className="action-secondary" data-testid={`${id}-accept`} onClick={() => onAction(accept)}>
         {copy.ACCEPT}
       </button>{" "}
       ·{" "}
-      <button type="button" className="action-secondary" data-testid="ledger-call-decline" onClick={() => onAction("declineCall")}>
+      <button type="button" className="action-secondary" data-testid={`${id}-decline`} onClick={() => onAction(decline)}>
         {copy.DECLINE}
       </button>
+      {notice.kind === "rematch" ? <span className="ledger__drain" data-testid="ledger-rematch-drain" style={{ transform: `scaleX(${notice.drain})` }} /> : null}
     </>
   );
 }
@@ -286,7 +289,9 @@ export function Ledger(props: LedgerProps) {
 
   const latestNotice = noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null;
   // On a phone a call cannot wait in the closed sheet: it sits under the live row (B6).
-  const callIndex = notices.findIndex((n) => n.kind === "call");
+  // An incoming rematch outranks a third party's call (spec 071 T41, T65).
+  const rematchIndex = notices.findIndex((n) => n.kind === "rematch");
+  const callIndex = rematchIndex >= 0 ? rematchIndex : notices.findIndex((n) => n.kind === "call");
   const phoneCall = callIndex >= 0 ? noticeLines[callIndex] : null;
   const sheetNotices = noticeLines.filter((_, i) => i !== callIndex);
 
