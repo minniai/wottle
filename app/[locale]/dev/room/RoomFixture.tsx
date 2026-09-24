@@ -34,7 +34,12 @@ import {
   FIXTURE_BOARD,
   finalLines,
   finalVerdict,
+  isResultPhase,
   overSlip,
+  RESULT_PHASES,
+  resultSlip,
+  resultState,
+  resultVerdict,
   FIXTURE_FROZEN,
   FIXTURE_WORDS,
   HOLD_MOVE,
@@ -221,6 +226,9 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   leave: IDLE,
   "end-early": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: 72_000, state: { ...DISCONNECT_STATE, ...DONE_STATE, disconnectedPlayerId: OPP_ID }, seats: DONE_SEATS },
   "over-slip": { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
+  ...(Object.fromEntries(
+    RESULT_PHASES.map((p) => [p, { live: { kind: "idle" }, marks: {}, state: resultState(p), seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS }]),
+  ) as Record<(typeof RESULT_PHASES)[number], MatchPhaseSpec>),
   // Spec 068 (Phase B): the missed beat held, the stakes under a minute, pick cleared on line 2, the ticks.
   missed: { live: { kind: "idle" }, marks: {}, moveState: MISSED_M4, holdMove: HOLD_MOVE, seats: { you: { moves: 4, score: 41 } } },
   stakes: { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE_8, clockMs: LOW_CLOCK_MS, seats: { you: { moves: 7, score: 69 }, opp: { moves: 9, score: 41 } }, extras: { stakes: { movesLeft: 3, penalty: -15 } } },
@@ -244,11 +252,16 @@ function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
     leave: LEAVE_SLIP,
     "over-slip": overSlip(copy),
   };
-  return slips[phase];
+  return isResultPhase(phase) ? resultSlip(phase, copy) : slips[phase];
 }
 
 /** The store phase each fixture phase seeds; everything not listed is a match state. */
-const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = { profile: "lobby", final: "final", "over-slip": "final" };
+const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = {
+  profile: "lobby",
+  final: "final",
+  "over-slip": "final",
+  ...Object.fromEntries(RESULT_PHASES.map((p) => [p, "final" as const])),
+};
 
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
@@ -307,7 +320,8 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     return <TableFixture phase={phase} copy={copy} />;
   }
 
-  const completed = phase === "final" || phase === "over-slip";
+  const result = isResultPhase(phase) ? phase : null;
+  const completed = phase === "final" || phase === "over-slip" || result !== null;
   const disconnected = phase === "disconnect" || phase === "end-early";
   const spec = MATCH_PHASES[phase];
   const state = spec.state ?? MATCH_STATE;
@@ -338,7 +352,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
         moveState={spec.moveState}
         line2Extras={spec.extras}
         holdMove={spec.holdMove ?? null}
-        verdict={completed ? finalVerdict(copy) : undefined}
+        verdict={result ? resultVerdict(result, copy) : completed ? finalVerdict(copy) : undefined}
         caption={completed ? copy.finalContext("4:52") : undefined}
         notices={[]}
         hint={disconnected ? `${KARI.displayName} · ${OPPONENT}` : undefined}

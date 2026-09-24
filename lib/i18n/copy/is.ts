@@ -174,7 +174,7 @@ export const copyIs = {
   matchOverLabel: (durationMmSs: string): string => `${MATCH_OVER} · ${durationMmSs}`,
   winsHeadline: (winnerName: string): string => `${winnerName} vann`,
   DRAW: "jafntefli",
-  REVIEW_FIELD: "skoða borðið ▸",
+  REVIEW_FIELD: "yfirfara viðureignina ▸",
   RESULT: "úrslit ▸",
   HOW_TO_PLAY: "leiðbeiningar ▸",
   ACCEPT: "samþykkja ▸",
