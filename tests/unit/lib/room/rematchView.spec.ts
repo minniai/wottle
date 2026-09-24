@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { copyEn } from "@/lib/i18n/copy/en";
 import { copyIs } from "@/lib/i18n/copy/is";
+import type { Copy } from "@/lib/i18n/copy/types";
 import { deriveRematchView } from "@/lib/room/rematchView";
 import type { RematchOffer, RematchRequestView } from "@/lib/types/match";
 
@@ -23,7 +24,7 @@ function request(over: Partial<RematchRequestView>): RematchRequestView {
   return { id: "r1", requesterId: ME, status: "pending", createdAt: "2026-09-24T12:00:00.000Z", expiresAt: "2026-09-24T12:00:30.000Z", newMatchId: null, ...over };
 }
 
-const view = (offer: Partial<RematchOffer>, copy = copyEn, nowMs = NOW) => deriveRematchView({ offer: { ...OFFER, ...offer }, viewerId: ME, opponentName: "Kári", nowMs }, copy);
+const view = (offer: Partial<RematchOffer>, copy: Copy = copyEn, nowMs = NOW) => deriveRematchView({ offer: { ...OFFER, ...offer }, viewerId: ME, opponentName: "Kári", nowMs }, copy);
 
 describe("deriveRematchView (spec 071, contracts/room-derivations.md)", () => {
   it("offers rematch ▸ while nothing has been asked", () => {

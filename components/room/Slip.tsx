@@ -8,6 +8,7 @@ import { useActivationGuard } from "@/components/room/hooks/useActivationGuard";
 import { resultHeadline } from "@/lib/room/tabTitle";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
+import type { RematchView } from "@/lib/room/rematchView";
 import type { SlipState } from "@/lib/room/slip";
 import type { VoidAction } from "@/lib/room/tableSlip";
 
@@ -212,29 +213,79 @@ function useVoidLabels() {
   return { CANCEL, CHALLENGE_AGAIN: table.CHALLENGE_AGAIN, LOBBY, RESULT };
 }
 
-function MatchOverActions({ slip, onAction }: { slip: Extract<SlipState, { kind: "matchOver" }>; onAction: (a: LedgerAction) => void }) {
-  const { ACCEPT, DECLINE, LOBBY, NEW_OPPONENT, REMATCH, rematchRequest, REVIEW_FIELD, waitingForRematch } = useCopy();
-  if (slip.readOnly) return <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} />;
-  if (slip.rematch === "incoming") {
-    return (
-      <div className="slip__actions" data-testid="slip-rematch-incoming">
-        <span className="slip__label">{rematchRequest(slip.opponentName)}</span>
-        <Primary label={ACCEPT} action="acceptRematch" testId="slip-accept-rematch" onAction={onAction} />
-        <Secondary label={DECLINE} action="declineRematch" testId="slip-decline-rematch" onAction={onAction} />
-      </div>
-    );
-  }
-  if (slip.rematch === "waiting" || slip.rematch === "requesting") {
-    return <span className="slip__label" data-testid="slip-rematch-waiting">{waitingForRematch(slip.opponentName)}</span>;
-  }
-  // Game flow D1: row 1 the next match, row 2 what else; the game raised the slip, so nothing is focused but its headline.
+type MatchOverSlip = Extract<SlipState, { kind: "matchOver" }>;
+type Act = (a: LedgerAction) => void;
+
+/** Row 1 of the result while a request is out (D2): its line, a 4px drain, and what may be done about it. */
+function NegotiationRow({ view, onAction }: { view: Extract<RematchView, { kind: "sent" | "incoming" }>; onAction: Act }) {
+  const { ACCEPT, DECLINE, rematch } = useCopy();
+  return (
+    <div className="slip__actions slip__negotiation" data-testid="slip-action-row">
+      <span className="slip__label" data-testid="slip-rematch-line" aria-live="polite">{view.line}</span>
+      {view.kind === "incoming" ? (
+        <>
+          <Primary label={ACCEPT} action="acceptRematch" testId="slip-accept-rematch" onAction={onAction} guarded />
+          <Secondary label={DECLINE} action="declineRematch" testId="slip-decline-rematch" onAction={onAction} guarded />
+        </>
+      ) : (
+        <Secondary label={rematch.CANCEL} action="withdrawRematch" testId="slip-withdraw-rematch" onAction={onAction} guarded />
+      )}
+      <span className="slip__row-drain" data-testid="slip-rematch-drain" style={{ transform: `scaleX(${view.drain})` }} />
+    </div>
+  );
+}
+
+/** Row 1 once rematch is not offered: why, then new opponent ▸ and, when they are here, challenge again ▸. */
+function ClosedRow({ view, onAction }: { view: Extract<RematchView, { kind: "closed" }>; onAction: Act }) {
+  const { NEW_OPPONENT } = useCopy();
   return (
     <>
+      {view.line ? <span className="slip__label" data-testid="slip-rematch-line" aria-live="polite">{view.line}</span> : null}
       <div className="slip__actions" data-testid="slip-action-row">
-        <Primary label={REMATCH} action="rematch" testId="slip-rematch" onAction={onAction} guarded />
-        <Secondary label={NEW_OPPONENT} action="newOpponent" testId="slip-new-opponent" onAction={onAction} guarded />
+        <Primary label={NEW_OPPONENT} action="newOpponent" testId="slip-new-opponent" onAction={onAction} guarded />
+        {view.challengeAgain ? <ChallengeAgainButton {...view.challengeAgain} onAction={onAction} /> : null}
       </div>
+    </>
+  );
+}
+
+function ChallengeAgainButton({ enabled, label, onAction }: { enabled: boolean; label: string; onAction: Act }) {
+  const ready = useActivationGuard(`challengeAgain:${label}`);
+  return (
+    <button type="button" className="action-secondary" data-testid="slip-challenge-again" disabled={!enabled} onClick={() => enabled && ready() && onAction("challengeAgain")}>
+      {label}
+    </button>
+  );
+}
+
+function FirstRow({ slip, onAction }: { slip: MatchOverSlip; onAction: Act }) {
+  const { NEW_OPPONENT, REMATCH } = useCopy();
+  const view = slip.rematch;
+  if (view?.kind === "sent" || view?.kind === "incoming") return <NegotiationRow view={view} onAction={onAction} />;
+  if (view?.kind === "closed") return <ClosedRow view={view} onAction={onAction} />;
+  if (view?.kind === "accepted") return <span className="slip__label" data-testid="slip-rematch-line">{view.line}</span>;
+  return (
+    <div className="slip__actions" data-testid="slip-action-row">
+      <Primary label={REMATCH} action="rematch" testId="slip-rematch" onAction={onAction} guarded />
+      <Secondary label={NEW_OPPONENT} action="newOpponent" testId="slip-new-opponent" onAction={onAction} guarded />
+    </div>
+  );
+}
+
+/**
+ * Game flow D1, D2: row 1 is the next match (rematch ▸ · new opponent ▸, or the negotiation),
+ * row 2 what else. While a request is out, new opponent ▸ moves down beside the lobby. The game
+ * raised the slip, so nothing is focused but its headline.
+ */
+function MatchOverActions({ slip, onAction }: { slip: MatchOverSlip; onAction: Act }) {
+  const { LOBBY, NEW_OPPONENT, REVIEW_FIELD } = useCopy();
+  if (slip.readOnly) return <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} />;
+  const negotiating = slip.rematch?.kind === "sent" || slip.rematch?.kind === "incoming";
+  return (
+    <>
+      <FirstRow slip={slip} onAction={onAction} />
       <div className="slip__actions" data-testid="slip-action-row">
+        {negotiating ? <Secondary label={NEW_OPPONENT} action="newOpponent" testId="slip-new-opponent" onAction={onAction} guarded /> : null}
         <Secondary label={REVIEW_FIELD} action="reviewField" testId="slip-review-field" onAction={onAction} guarded />
         <Secondary label={LOBBY} action="lobby" testId="slip-lobby" onAction={onAction} guarded />
       </div>

@@ -7,6 +7,7 @@ import { getLocale, localeForLanguage, localePath } from "@/lib/i18n/locales";
 import { readLocaleParam, type LocaleParams } from "@/lib/i18n/params";
 import { readLobbySession } from "@/lib/matchmaking/profile";
 import { getServiceRoleClient } from "@/lib/supabase/server";
+import { readRematchOffer } from "@/lib/match/rematchOffer";
 
 interface MatchPageParams {
   matchId: string;
@@ -63,6 +64,10 @@ export default async function MatchPage({
     redirect(localePath(locale, "/"));
   }
 
+  // Spec 071 (R8): the first paint knows the viewer's rematch offer.
+  const rematch = participants.includes(session.player.id) ? await readRematchOffer(supabase, matchState, session.player.id) : undefined;
+  const initialState = rematch ? { ...matchState, rematch } : matchState;
+
   const playerProfiles = await loadMatchPlayerProfiles(
     supabase,
     matchState.players.playerA.playerId,
@@ -73,7 +78,7 @@ export default async function MatchPage({
   return (
     <MatchRoomController
       currentPlayerId={session.player.id}
-      initialState={matchState}
+      initialState={initialState}
       matchId={matchId}
       playerProfiles={playerProfiles}
     />

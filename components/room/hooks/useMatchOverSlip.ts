@@ -7,7 +7,7 @@ import type { Verdict } from "@/lib/room/ledgerTypes";
 import { MATCH_OVER_DELAY_MS } from "@/lib/room/revealSequence";
 import { useRoomStore } from "@/lib/room/roomStore";
 import type { EndReason, SlipRatingRow, SlipState } from "@/lib/room/slip";
-import type { RematchPhase } from "@/lib/room/useRematchNegotiation";
+import type { RematchView } from "@/lib/room/rematchView";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { MatchState, PlayerSlot } from "@/lib/types/match";
@@ -22,7 +22,7 @@ export interface MatchOverSlipInput {
   viewerName: string;
   opponentName: string;
   ratings: RatingRow[] | null;
-  rematch: RematchPhase;
+  rematch: RematchView | null;
   /** A reveal or the move hold is still running; the slip waits for it. */
   busy: boolean;
   /** A reveal ran in this session, so the slip lands after the delay rather than at once. */

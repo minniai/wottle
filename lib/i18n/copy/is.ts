@@ -273,6 +273,18 @@ export const copyIs = {
   noSuchPlayer: (handle: string): string =>
     `Enginn slíkur leikmaður · @${handle} hefur ekki spilað hér`,
   // The table (spec 069, game flow C1–C3, B7)
+  rematch: {
+    sent: (mmSs: string): string => `beiðni send · ${mmSs}`,
+    asks: (name: string, mmSs: string): string => `${name} vill aðra viðureign · ${mmSs}`,
+    accepted: (name: string): string => `${name} samþykkti`,
+    declined: (name: string): string => `${name} hafnaði`,
+    NO_ANSWER: "ekkert svar",
+    withdrew: (name: string): string => `${name} hætti við`, // native-read
+    startedAnother: (name: string): string => `${name} hóf aðra viðureign`, // native-read
+    hasLeft: (name: string): string => `${name} fór`, // native-read
+    CANCEL: "hætta við ▸",
+    title: (name: string, wordmark: string): string => `(1) ${name} vill aðra viðureign · ${wordmark}`,
+  },
   table: {
     label: (mmSs: string): string => `mótspilari fundinn · ${mmSs}`,
     CONTEXT: "mótspilari fundinn",

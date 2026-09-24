@@ -32,6 +32,8 @@ import { buildTerritory } from "@/lib/room/ledgerRows";
 import { penalisesUnplayed } from "@/lib/match/endedReasons";
 import { ledgerCallLine } from "@/lib/room/ledgerCallLine";
 import { useRematchNegotiation } from "@/lib/room/useRematchNegotiation";
+import { deriveRematchView } from "@/lib/room/rematchView";
+import { useRematchCall } from "./hooks/useRematchCall";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { LedgerAction, Notice } from "@/lib/room/ledgerTypes";
 import { useRoomStore } from "@/lib/room/roomStore";
@@ -142,10 +144,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     hydrateMatch(initialState, currentPlayerId);
   }, [initialState, currentPlayerId, hydrateMatch]);
 
-  // A rematch's table is a new page (spec 069): Back from it leaves it.
-  const onNewMatch = useCallback((newMatchId: string) => router.push(to(`/match/${newMatchId}`)), [router, to]);
-  const rematch = useRematchNegotiation({ matchId, currentPlayerId, onNewMatch });
-  const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs, rematch.handleEvent);
+  // Spec 071 (T40): the rematch's table replaces the result in history.
+  const onNewMatch = useCallback((newMatchId: string) => router.replace(to(`/match/${newMatchId}`)), [router, to]);
+  const rematch = useRematchNegotiation({
+    matchId,
+    viewerId: currentPlayerId,
+    active: !readOnly && match.state === "completed" && match.endedReason !== "void",
+    initialOffer: initialState.rematch ?? null,
+    onNewMatch,
+  });
+  const transport = useMatchTransport(matchId, currentPlayerId, pollIntervalMs);
   // Back after an outage: line 2 says how long you were away, for four seconds (spec 068 FR-038).
   const [backAwayMs, setBackAwayMs] = useState<number | null>(null);
   useEffect(() => {
@@ -314,8 +322,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const requeued = standing?.slot.kind === "search" ? standing.slot.search : null;
   // Spec 070 FR-034: a rematch reaches this page as a poke on the player's topic; the id is read, never carried.
   const onPoke = standing?.onPoke;
-  const checkRematch = rematch.check;
-  useEffect(() => onPoke?.((kind) => kind === "rematch" && void checkRematch()), [onPoke, checkRematch]);
+  const refreshRematch = rematch.refresh;
+  useEffect(() => onPoke?.((kind) => kind === "rematch" && void refreshRematch()), [onPoke, refreshRematch]);
   const derivedSlip = atTable ? tableSlipFor({ match, viewerSlot, you: { name: you.displayName, rating: you.eloRating ?? null }, opp: { name: opp.displayName, rating: opp.eloRating ?? null }, nowMs: tableNow, copy }) : null;
   const tableSlip = derivedSlip?.kind === "void" && requeued?.kind === "searching" && table.youRequeued
     ? { ...derivedSlip, model: { ...derivedSlip.model, searching: `${copy.SEARCHING} · ${formatClock(requeued.elapsedSeconds * 1000)}` } }
@@ -485,9 +493,6 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // Spec 071 (FR-008): once it is over the tab names the winner.
   const result = verdict ? { winnerName: verdict.winnerSeat === null ? null : verdict.winnerSeat === "you" ? you.displayName : opp.displayName } : undefined;
   const title = tabTitle({ live: inProgress && !readOnly, clockMs, move: Math.min(match.moveLimit, youFacts.movesPlayed + 1), table: readOnly ? undefined : tableTitle, result }, copy);
-  useEffect(() => {
-    document.title = title;
-  }, [title]);
   const durationMs = match.clock.startedAt
     ? Math.max(0, new Date(match.completedAt ?? match.clock.deadlineAt ?? match.clock.startedAt).getTime() - new Date(match.clock.startedAt).getTime())
     : 0;
@@ -498,6 +503,16 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const slipDismissed = useRoomStore((s) => s.slipDismissed);
   const dismissSlip = useRoomStore((s) => s.dismissSlip);
   const restoreSlip = useRoomStore((s) => s.restoreSlip);
+  // Spec 071 (D2): the rematch as this viewer sees it, drawn from the server's offer each second.
+  const rematchNow = useNowTick(completed && !readOnly && rematch.offer !== null);
+  const rematchView = completed && !readOnly && rematch.offer ? deriveRematchView({ offer: rematch.offer, viewerId: currentPlayerId, opponentName: opp.displayName, nowMs: rematchNow }, copy) : null;
+  const rematchIncoming = rematchView?.kind === "incoming";
+  useRematchCall(rematchIncoming, feedbackRef);
+  // An incoming rematch calls the player in the tab too: `(1) Kári asks for a rematch · Wottle`.
+  const shownTitle = rematchIncoming ? copy.rematch.title(opp.displayName, copy.WORDMARK) : title;
+  useEffect(() => {
+    document.title = shownTitle;
+  }, [shownTitle]);
   useMatchOverSlip({
     match,
     viewerSlot,
@@ -508,7 +523,7 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     viewerName: you.displayName,
     opponentName: opp.displayName,
     ratings,
-    rematch: rematch.phase,
+    rematch: rematchView,
     busy: revealing || holdMove !== null,
     revealed: revealedOnce,
     bestWord: bestWordOf(words, youFacts.playerId),
@@ -537,17 +552,21 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
       if (action === "rematch") void rematch.request();
       else if (action === "acceptRematch") void rematch.accept();
       else if (action === "declineRematch") void rematch.decline();
+      else if (action === "withdrawRematch") void rematch.withdraw();
       else if (action === "reviewField") dismissSlip();
       // B6: a third party's call answered from the result screen goes through the standing machine.
       else if (action === "acceptCall") standing?.onAction("accept");
       else if (action === "declineCall") standing?.onAction("decline");
       else if (action === "result" && !voided) restoreSlip();
       else if (action === "newOpponent") {
+        // Spec 071 (T42): a pending request is withdrawn, or answered `started another match`.
+        if (rematch.offer?.request?.status === "pending") void rematch.withdraw();
         // Spec 070: a search runs in the line slot, from the lobby.
         standing?.search.start();
         router.replace(to("/"));
       }
       else if (action === "lobby") {
+        if (rematch.offer?.request?.status === "pending") void rematch.withdraw();
         // The slip belongs to the match: take it down before the lobby draws.
         dismissSlip();
         router.replace(to("/"));
@@ -611,9 +630,10 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   // `M` mutes; rules are reached through the menu (design system §9).
   useRoomHotkeys(handleAction);
 
-  const rematchLine =
-    rematch.phase === "declined" ? copy.rematchDeclined(opp.displayName) : rematch.phase === "expired" ? copy.REMATCH_EXPIRED : rematch.phase === "busy" ? copy.opponentBusy(opp.displayName) : rematch.error ? copy.errors[rematch.error] : null;
-  const callLine = completed && !slipUp ? ledgerCallLine(null, standing?.slot.kind === "call" ? standing.slot.call : null, copy) : null;
+  const rematchLine = rematch.error ? copy.errors[rematch.error] : null;
+  // Spec 071 (T41): with the slip lifted, an incoming rematch is the ledger's first line; it outranks a call.
+  const rematchNotice: Notice | null = !slipUp && rematchView?.kind === "incoming" ? { kind: "rematch", text: rematchView.line, drain: rematchView.drain } : null;
+  const callLine = completed && !slipUp ? ledgerCallLine(rematchNotice, standing?.slot.kind === "call" ? standing.slot.call : null, copy) : null;
   // Steady transport lines first, pushed notices last: on the desktop grid the state row shows the
   // latest one, so a fresh error or rematch line is never hidden behind `realtime lost` (spec 068).
   const allNotices: Notice[] = [

@@ -36,6 +36,9 @@ describe("a void is in no history (spec 069 FR-016)", () => {
   });
 
   it("a rematch of a void is refused", () => {
-    expect(readFileSync("app/actions/match/requestRematch.ts", "utf8")).toMatch(/ended_reason[\s\S]*["']void["']/);
+    // Spec 071: request_rematch decides, in the database.
+    const sql = readFileSync("supabase/migrations/20260926001_result_rematch_review.sql", "utf8");
+    const fn = sql.slice(sql.indexOf("function public.request_rematch"));
+    expect(fn).toMatch(/ended_reason in \('void', 'abandoned', 'error'\)/);
   });
 });

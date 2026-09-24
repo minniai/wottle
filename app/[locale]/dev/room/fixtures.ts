@@ -325,7 +325,7 @@ export function overSlip(copy: Copy): SlipState {
       { seat: "you", name: `${BIRNA.displayName} · ${copy.YOU}`, line: copy.ratingSubline(1204, 1216, 12, false) },
       { seat: "opp", name: KARI.displayName, line: copy.ratingSubline(1187, 1175, -12, false) },
     ],
-    rematch: "idle",
+    rematch: null,
     readOnly: false,
   };
 }
