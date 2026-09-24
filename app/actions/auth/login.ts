@@ -2,26 +2,10 @@
 
 import "server-only";
 
-import { cookies, headers } from "next/headers";
-
-import { deviceKeyFor, rememberEntry } from "@/lib/auth/device";
-import { hashDeviceKey } from "@/lib/auth/deviceKey";
-import { redirect } from "next/navigation";
-
-import type { PlayerIdentity } from "@/lib/types/match";
-import {
-  LoginValidationError,
-  performUsernameLogin,
-  persistLobbySession,
-} from "@/lib/matchmaking/profile";
 import type { ErrorCode } from "@/lib/i18n/copy/types";
-import { loginErrorCode } from "@/lib/i18n/errorCodes";
 import { playableLanguageSchema } from "@/lib/game-engine/languagePack";
-import {
-  RateLimitExceededError,
-  assertWithinRateLimit,
-  resolveClientIp,
-} from "@/lib/rate-limiting/middleware";
+import { signInWithName } from "@/lib/auth/signIn";
+import type { PlayerIdentity } from "@/lib/types/match";
 
 export interface LoginActionState {
   status: "idle" | "success" | "error";
@@ -31,46 +15,13 @@ export interface LoginActionState {
   player?: PlayerIdentity;
 }
 
+/** Spec 067: the door's name form. The steps live in `lib/auth/signIn.ts`, shared with the invite door (spec 072). */
 export async function loginAction(
   _prevState: LoginActionState,
   formData: FormData
 ): Promise<LoginActionState> {
   const username = formData.get("username");
-  const ipHeaders = await headers();
-  const ipAddress = resolveClientIp(ipHeaders);
-
-  try {
-    assertWithinRateLimit({
-      identifier: ipAddress,
-      scope: "auth:login",
-      limit: 5,
-      windowMs: 60_000,
-      errorMessage:
-        "Too many login attempts. Please wait up to one minute and try again.",
-    });
-
-    const language = playableLanguageSchema.safeParse(formData.get("language") ?? undefined);
-    const store = await cookies();
-    const deviceKey = deviceKeyFor(store);
-    const { player } = await performUsernameLogin(
-      typeof username === "string" ? username : "",
-      language.success ? language.data : "is",
-      hashDeviceKey(deviceKey),
-    );
-    await persistLobbySession({ player }, store);
-    rememberEntry(store, deviceKey);
-
-    // No revalidatePath("/"): the room converts the bar in place and rewrites the URL to /lobby
-    // (spec 044 US7). A server re-render of / here would hit its signed-in redirect and remount the field.
-    // performUsernameLogin already read the rating of the lobby they signed in to (spec 060 US4).
-    return { status: "success", player };
-  } catch (error) {
-    console.error("[loginAction] sign-in failed", error);
-
-    const code = loginErrorCode(error);
-    if (error instanceof RateLimitExceededError || error instanceof LoginValidationError || error instanceof Error) {
-      return { status: "error", code, message: error.message };
-    }
-    return { status: "error", code, message: "Unable to log in right now. Please try again." };
-  }
+  const language = playableLanguageSchema.safeParse(formData.get("language") ?? undefined);
+  // No revalidatePath("/"): the same URL reads again as the lobby on the client's refresh (spec 070).
+  return signInWithName(typeof username === "string" ? username : "", language.success ? language.data : "is");
 }
