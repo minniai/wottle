@@ -200,3 +200,11 @@ describe("deriveScoreboard: review (spec 071 FR-033)", () => {
   });
 });
 
+describe("deriveScoreboard: an opponent who has left the result (spec 071 FR-020)", () => {
+  it("says so on their row, after the rating line", () => {
+    const over = board({ phase: "over", elapsedMs: 292_000, opp: seat({ name: K, finalLine: "1187 → 1179 · −8", left: true }) });
+    expect(over.opp).toMatchObject({ muted: "1187 → 1179 · −8", suffix: "has left" });
+    expect(board({ phase: "over", elapsedMs: 292_000, opp: seat({ name: K, finalLine: "x" }) }).opp.suffix).toBeNull();
+  });
+});
+

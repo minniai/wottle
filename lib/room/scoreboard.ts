@@ -46,6 +46,8 @@ export interface ScoreboardSeat {
   offline?: boolean;
   /** Match over: the rating line (`1204 → 1212 · +8 · wins`, or `rating pending`). */
   finalLine?: string;
+  /** Spec 071 (FR-020): the opponent has left the result, so no rematch will come. */
+  left?: boolean;
 }
 
 export interface ScoreboardInput {
@@ -253,7 +255,7 @@ function subFor(input: ScoreboardInput, seat: Seat, behind: boolean, copy: Copy)
     return plain(input.compact ? copy.review.movesOf(moves, input.moveLimit) : copy.review.atStep(moves, input.moveLimit, input.review.step));
   }
   if (input.phase === "table" || input.phase === "void") return tableSub(input, seat, copy);
-  if (input.phase === "over") return plain(null);
+  if (input.phase === "over") return plain(seat === "opp" && input.opp.left ? copy.rematch.HAS_LEFT : null);
   if (input.phase === "starting") return plain(copy.READY);
   if (input.compact) return compactSub(input, seat, behind, copy);
   return seat === "opp" ? oppSub(input, copy) : youSub(input, behind, copy);
