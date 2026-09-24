@@ -71,7 +71,15 @@ export class Fixtures {
   async rematchRequest(matchId: string, requesterId: string, responderId: string, ageMs = 0): Promise<string> {
     const { data, error } = await this.db.client
       .from("rematch_requests")
-      .insert({ match_id: matchId, requester_id: requesterId, responder_id: responderId, status: "pending", created_at: new Date(Date.now() - ageMs).toISOString() })
+      .insert({
+        match_id: matchId,
+        requester_id: requesterId,
+        responder_id: responderId,
+        status: "pending",
+        created_at: new Date(Date.now() - ageMs).toISOString(),
+        // Spec 071: a request lasts 30s from when it was made.
+        expires_at: new Date(Date.now() - ageMs + 30_000).toISOString(),
+      })
       .select("id")
       .single();
     if (error || !data) throw new Error(`rematch_requests.insert: ${error?.message}`);
