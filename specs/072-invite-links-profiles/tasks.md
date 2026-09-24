@@ -20,14 +20,14 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `lib/constants/links.ts`:
+- [X] T001 Add `lib/constants/links.ts`:
   - `LINK_TTL_MS = 600_000`;
   - `LINK_TOKEN_BYTES = 32`;
   - `LINK_CREATE_LIMIT = { limit: 6, windowMs: 60_000 }`;
   - `LINK_ACCEPT_LIMIT = { limit: 10, windowMs: 60_000 }`;
   - `LINK_STORAGE_KEY = "wottle-link"`.
   Each has a JSDoc naming its source (§7.1 link TTL, spec 070 FR-023).
-- [ ] T002 [P] Create empty module folders `lib/profile/` (keep `readHandle.ts`) and `app/actions/link/`. There are no placeholder fixture phases: each story adds its own phases with their baselines, as spec 071 did.
+- [X] T002 [P] Create empty module folders `lib/profile/` (keep `readHandle.ts`) and `app/actions/link/`. There are no placeholder fixture phases: each story adds its own phases with their baselines, as spec 071 did.
 
 ---
 
@@ -37,13 +37,13 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Tests first
 
-- [ ] T003 Write failing integration tests for the schema in `tests/integration/db/invite-links-schema.test.ts`:
+- [X] T003 Write failing integration tests for the schema in `tests/integration/db/invite-links-schema.test.ts`:
   - `match_links` has the columns and checks of data-model.md;
   - `token_hash` is unique;
   - a second `pending` link for one sender violates the partial unique index;
   - RLS is on and the anon role can't select;
   - the functions `create_link`, `read_link`, `accept_link`, `cancel_link`, `expire_links`, `best_words` and `presence_word` exist and are executable by `service_role` only.
-- [ ] T004 [P] Write failing integration tests for the link functions in `tests/integration/db/link.test.ts`, using two seeded players and `pnpm supabase:reset` fixtures:
+- [X] T004 [P] Write failing integration tests for the link functions in `tests/integration/db/link.test.ts`, using two seeded players and `pnpm supabase:reset` fixtures:
   - `create_link`:
     - refuses `busy_sender` (a pending match);
     - refuses `cooldown` (two `left` voids);
@@ -64,38 +64,38 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
     - a gone sender is not refused (R10).
   - `cancel_link`: `pending` → `cancelled`, then `not_pending`.
   - `expire_links` returns and marks only overdue pending links.
-- [ ] T005 [P] Write failing integration tests for one outgoing challenge in `tests/integration/db/link-one-outgoing.test.ts`. A pending link becomes `withdrawn` after each of:
+- [X] T005 [P] Write failing integration tests for one outgoing challenge in `tests/integration/db/link-one-outgoing.test.ts`. A pending link becomes `withdrawn` after each of:
   - `send_challenge` by its sender;
   - `create_match_between` involving the sender (a queue pairing, and accepting someone else's challenge);
   - `sign_out_player`;
   - `confirm_lobby_switch`.
   Also: `lobby_pending` includes `'link'` while one is pending, and `send_challenge`'s rate limit counts links.
-- [ ] T006 [P] Write failing integration tests for the Q1 void in `tests/integration/db/link-table-void.test.ts`:
+- [X] T006 [P] Write failing integration tests for the Q1 void in `tests/integration/db/link-table-void.test.ts`:
   - on a link table with only the accepter seated, `void_table(m,'left',accepter)` records `void_reason='not_seated'`, `voided_by=sender`;
   - the sender's `table_missed_at` is set;
   - `table_leave_cooldown_until(accepter)` stays null after two such leaves within 10 minutes;
   - a `left` by the sender, or on a non-link table, is unchanged (`left`, voided by the leaver).
-- [ ] T007 [P] Write failing integration tests for `best_words` and `presence_word` in `tests/integration/db/best-words.test.ts`:
+- [X] T007 [P] Write failing integration tests for `best_words` and `presence_word` in `tests/integration/db/best-words.test.ts`:
   - distinct words, case-insensitive, each at its highest points;
   - a tie goes to the earlier match's `completed_at`;
   - void, abandoned and other-language matches are excluded;
   - `p_limit` is honoured;
   - `tiles` is returned in reading order;
   - `presence_word` returns `here`, `in_match` (with `moves_played`), `away`, `other_lobby` and `not_here`, and its JSON has no timestamp key.
-- [ ] T008 [P] Write failing unit tests for the token module in `tests/unit/matchmaking/linkToken.test.ts`:
+- [X] T008 [P] Write failing unit tests for the token module in `tests/unit/matchmaking/linkToken.test.ts`:
   - `makeLinkToken()` returns 43 base64url characters and a 32-byte `sha256` Buffer;
   - `hashLinkToken(token)` is deterministic;
   - `parseLinkToken` rejects wrong length, padding and non-URL-safe characters (Zod), and never throws.
-- [ ] T009 [P] Write failing grep tests:
+- [X] T009 [P] Write failing grep tests:
   - `tests/unit/matchmaking/link-one-caller.test.ts`: `create_link`, `read_link`, `accept_link`, `cancel_link` and `expire_links` appear in `.rpc(` calls only in `lib/matchmaking/linkService.ts`. Extend `tests/unit/lib/one-service-per-rpc.test.ts` if that is where the rule lives.
   - `tests/unit/matchmaking/link-cancel-everywhere.test.ts`: the latest definitions of `send_challenge`, `create_match_between`, `sign_out_player` and `confirm_lobby_switch` in `supabase/migrations/` each mention `match_links`.
-- [ ] T010 [P] Write failing unit tests for the extracted sign-in in `tests/unit/auth/signIn.test.ts`:
+- [X] T010 [P] Write failing unit tests for the extracted sign-in in `tests/unit/auth/signIn.test.ts`:
   - `signInWithName(name, language, store)` and `signInAsReturning(store)` produce the same cookies and errors as the current `loginAction` and `enterAsReturningAction`;
   - the existing `tests/unit/actions/auth/*` suites stay green unchanged.
 
 ### Implementation
 
-- [ ] T011 Write `supabase/migrations/20260927001_invite_links_profiles.sql`:
+- [X] T011 Write `supabase/migrations/20260927001_invite_links_profiles.sql`:
   - the `match_links` table, indexes and RLS of data-model.md;
   - `create_link`, `read_link` (`stable`), `accept_link` (R3, R8, R10), `cancel_link` and `expire_links`;
   - `best_words` (R14) and `presence_word` (R15);
@@ -106,12 +106,12 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
   - `lobby_pending` and `confirm_lobby_switch` from `20260925001_door_lobby.sql`;
   - the `revoke`/`grant` for every function.
   Make T003–T007 pass.
-- [ ] T012 [P] Implement `lib/matchmaking/linkToken.ts` (`makeLinkToken`, `hashLinkToken`, `parseLinkToken`) with `node:crypto`. Makes T008 pass.
-- [ ] T013 [P] Add the types to `lib/types/link.ts`: `LinkStatus`, `LinkView`, `OutgoingLink`, `CreateLinkResult`, `AcceptLinkResult`, `LinkCall`. Also add `link: outgoingLinkSchema.nullable()` to `standingFactsSchema` in `lib/types/standing.ts`, with Zod schemas for each.
-- [ ] T014 [P] Add `lib/types/profile.ts` (`ProfileView`, `PresenceWord`, `ProfileWord`, `ProfileMatchRow`) per data-model.md.
-- [ ] T015 Implement `lib/matchmaking/linkService.ts` (server-only): `create(senderId, tokenHash)`, `read(tokenHash)`, `accept(tokenHash, actorId)`, `cancel(senderId, linkId)` and `expireDue()`. It maps the RPC JSON to typed results, logs `link.*` events with no token or hash (`logWriter`), and puts a `performance.mark` around `accept`. Makes T009 pass.
-- [ ] T016 Extract `lib/auth/signIn.ts` (`signInWithName`, `signInAsReturning`) from `app/actions/auth/login.ts` and `app/actions/auth/enterAsReturning.ts`, and make both actions call it. Makes T010 pass.
-- [ ] T017 Add `"link"` to `PlayerPokeKind` in `lib/realtime/pokes.ts`, and extend `withdrawOutgoing(senderId)` in `lib/matchmaking/challengeService.ts` to also cancel the sender's pending link (via `linkService.cancel` of the pending id), with a unit test in `tests/unit/matchmaking/challengeService.withdraw.test.ts`.
+- [X] T012 [P] Implement `lib/matchmaking/linkToken.ts` (`makeLinkToken`, `hashLinkToken`, `parseLinkToken`) with `node:crypto`. Makes T008 pass.
+- [X] T013 [P] Add the types to `lib/types/link.ts`: `LinkStatus`, `LinkView`, `OutgoingLink`, `CreateLinkResult`, `AcceptLinkResult`, `LinkCall`. Also add `link: outgoingLinkSchema.nullable()` to `standingFactsSchema` in `lib/types/standing.ts`, with Zod schemas for each.
+- [X] T014 [P] Add `lib/types/profile.ts` (`ProfileView`, `PresenceWord`, `ProfileWord`, `ProfileMatchRow`) per data-model.md.
+- [X] T015 Implement `lib/matchmaking/linkService.ts` (server-only): `create(senderId, tokenHash)`, `read(tokenHash)`, `accept(tokenHash, actorId)`, `cancel(senderId, linkId)` and `expireDue()`. It maps the RPC JSON to typed results, logs `link.*` events with no token or hash (`logWriter`), and puts a `performance.mark` around `accept`. Makes T009 pass.
+- [X] T016 Extract `lib/auth/signIn.ts` (`signInWithName`, `signInAsReturning`) from `app/actions/auth/login.ts` and `app/actions/auth/enterAsReturning.ts`, and make both actions call it. Makes T010 pass.
+- [X] T017 Add `"link"` to `PlayerPokeKind` in `lib/realtime/pokes.ts`, and extend `withdrawOutgoing(senderId)` in `lib/matchmaking/challengeService.ts` to also cancel the sender's pending link (via `linkService.cancel` of the pending id), with a unit test in `tests/unit/matchmaking/challengeService.withdraw.test.ts`.
 
 **Checkpoint**: the link SQL is proven by integration tests; stories can start.
 
