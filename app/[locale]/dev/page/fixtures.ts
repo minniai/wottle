@@ -191,7 +191,7 @@ export const FIXED_NOW = Date.parse("2026-09-24T12:00:00.000Z");
 const at = (ms: number) => new Date(FIXED_NOW + ms).toISOString();
 
 /** LobbySent (EN-L): Kári challenged at 0:52 left; Hekla declined and cools down, 0:41. */
-export function challengeSent(): StandingFixture {
+export function outgoingChallenge(): StandingFixture {
   const rows = lobbyEn().rows;
   const kari = rows[1];
   const hekla = rows[2];

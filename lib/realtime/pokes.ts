@@ -23,15 +23,18 @@ export function topicFor(playerId: string): string {
 }
 
 async function send(topic: string, event: string, payload: Record<string, number>): Promise<void> {
-  const supabase = getServiceRoleClient();
-  const channel = supabase.channel(topic);
+  // A poke is a hint to re-read; it never fails the act that sent it.
   try {
-    const result = await channel.httpSend(event, payload);
-    if (!result.success) logFailure(topic, event, `status ${result.status}`);
+    const supabase = getServiceRoleClient();
+    const channel = supabase.channel(topic);
+    try {
+      const result = await channel.httpSend(event, payload);
+      if (!result.success) logFailure(topic, event, `status ${result.status}`);
+    } finally {
+      void supabase.removeChannel(channel);
+    }
   } catch (error) {
     logFailure(topic, event, error instanceof Error ? error.message : String(error));
-  } finally {
-    void supabase.removeChannel(channel);
   }
 }
 

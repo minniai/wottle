@@ -38,9 +38,16 @@ describe.skipIf(!db)("the queue by language (spec 060)", () => {
       startAutoQueue(db!.client, { playerId: anna, language: "en" }),
       startAutoQueue(db!.client, { playerId: kari, language: "is" }),
     ]);
-    expect(again.map((r) => r.status)).toEqual(["queued", "queued"]);
-    const { data } = await db!.client.from("players").select("id, status, queue_language").in("id", players);
-    expect(Object.fromEntries((data ?? []).map((p) => [p.id, p.queue_language]))).toEqual({ [kari]: "is", [anna]: "en" });
+    // The queue is shared with other suites running at once, so Kári may meet another Icelandic
+    // searcher; what must never happen is Kári and Anna meeting each other.
+    expect(again[0].status).toBe("queued");
+    const { data: between } = await db!.client
+      .from("matches")
+      .select("id")
+      .or(`and(player_a_id.eq.${kari},player_b_id.eq.${anna}),and(player_a_id.eq.${anna},player_b_id.eq.${kari})`);
+    expect(between).toEqual([]);
+    const { data } = await db!.client.from("players").select("id, queue_language").eq("id", anna).single();
+    expect(data?.queue_language).toBe("en");
   });
 
   it("two English players are paired, into an English match, and leave the queue", async () => {

@@ -8,8 +8,13 @@ import { getServiceRoleClient } from "@/lib/supabase/server";
  * `mark_unseen_result` and `clear_unseen_result`.
  */
 export async function markUnseenResult(matchId: string): Promise<void> {
-  const { error } = await getServiceRoleClient().rpc("mark_unseen_result", { p_match: matchId });
-  if (error) console.warn(JSON.stringify({ event: "match.unseen_result.failed", matchId, error: error.message }));
+  // Best effort after the result is written: a failure here never fails the completion.
+  try {
+    const { error } = await getServiceRoleClient().rpc("mark_unseen_result", { p_match: matchId });
+    if (error) console.warn(JSON.stringify({ event: "match.unseen_result.failed", matchId, error: error.message }));
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "match.unseen_result.failed", matchId, error: error instanceof Error ? error.message : String(error) }));
+  }
 }
 
 /** Opening the result, or signing out, clears it. With no match id, whatever is held. */

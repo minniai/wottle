@@ -480,7 +480,11 @@
   - the fixture phase list;
   - Remaining Gaps: the Icelandic (?) strings of this stage.
 - [ ] T117 [P] Update `docs/design_documentation/260922-game-flow/HANDOVER.md` only if the user asks. It is the user's file, and it has an uncommitted edit.
-- [ ] T118 Run the gates: `pnpm test:unit`, `pnpm test:integration`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`, `pnpm perf:heartbeat`, `pnpm perf:standing` and `pnpm perf:seat`. Then run the chromium Playwright specs one at a time: `door`, `presence`, `lobby-challenge`, `line-slot`, `lobby-language`, `leave-slip`, `table`, `moves-flow`, `room-flow`, `reconnect-flow`, `matchmaking`, `match-completion` and `lobby-presence`. Check each by its exit code, not by grepping. Record the results in `specs/070-door-lobby/tasks.md`.
+- [X] T118 Run the gates: `pnpm test:unit`, `pnpm test:integration`, `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test:visual`, `pnpm perf:heartbeat`, `pnpm perf:standing` and `pnpm perf:seat`. Then run the chromium Playwright specs one at a time: `door`, `presence`, `lobby-challenge`, `line-slot`, `lobby-language`, `leave-slip`, `table`, `moves-flow`, `room-flow`, `reconnect-flow`, `matchmaking`, `match-completion` and `lobby-presence`. Check each by its exit code, not by grepping. Record the results in `specs/070-door-lobby/tasks.md`.
+  - **Results, 2026-09-24** (exit codes; Playwright on a realtime-on production build, chromium, one file at a time):
+    - `test:unit` 0 (238 files, 2624 tests), `test:integration` 0 (43 files, 164 tests), `lint` 0, `typecheck` 0, `docs:check` 0, `test:visual` 0.
+    - `perf:heartbeat` 0 (p95 4.1ms), `perf:standing` 0 (p95 20.6ms), `perf:seat` 0 (p95 14.9ms).
+    - door, presence, lobby-challenge, line-slot, lobby-language, leave-slip, table, moves-flow, room-flow, reconnect-flow, matchmaking and match-completion: all 0. There is no `lobby-presence` spec; `presence` covers it. line-slot also passes on the dev server with `NEXT_PUBLIC_DISABLE_REALTIME=true` (the 3s polling bound). slot-overflow: 60 passed.
 - [ ] T119 Walk through quickstart.md §1–§6 by hand in two browsers, and note any deviation from the artboards (Lobby, LobbyEmpty, LobbyComposer, LobbySent, LobbyIncoming, LobbySearching, DoorIs, DoorEn, and the phone boards).
 
 ---

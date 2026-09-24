@@ -14,7 +14,7 @@ import { phoneSlotHeight, slotLines } from "@/lib/pages/slotLines";
 
 import {
   challengeIn,
-  challengeSent,
+  outgoingChallenge,
   DOOR_EN,
   DOOR_IS,
   lobbyEmpty,
@@ -114,7 +114,7 @@ export function PageFixture({ phase, long = false }: { phase: PagePhase; long?: 
     case "is-composer":
       return <LobbyFixturePage fixture={L(lobbyIs())} openRow={lobbyIs().rows[0].playerId} />;
     case "challenge-sent":
-      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(challengeSent())} />;
+      return <StandingFixturePage fixture={L(lobbyEn())} standing={L(outgoingChallenge())} />;
     case "is-challenge-in":
       return <StandingFixturePage fixture={L(lobbyIs())} standing={L(challengeIn())} focusSkip />;
     case "match-running":
