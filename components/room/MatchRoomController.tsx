@@ -670,7 +670,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
   const rematchLine = rematch.error ? copy.errors[rematch.error] : null;
   // Spec 071 (T41): with the slip lifted, an incoming rematch is the ledger's first line; it outranks a call.
   const rematchNotice: Notice | null = !slipUp && rematchView?.kind === "incoming" ? { kind: "rematch", text: rematchView.line, drain: rematchView.drain } : null;
-  const callLine = completed && !slipUp ? ledgerCallLine(rematchNotice, standing?.slot.kind === "call" ? standing.slot.call : null, copy) : null;
+  // Both may wait (T65): the rematch first, the third party's call below it.
+  const callLine = completed && !slipUp ? ledgerCallLine(null, standing?.slot.kind === "call" ? standing.slot.call : null, copy) : null;
   // Steady transport lines first, pushed notices last: on the desktop grid the state row shows the
   // latest one, so a fresh error or rematch line is never hidden behind `realtime lost` (spec 068).
   const allNotices: Notice[] = [
@@ -678,7 +679,8 @@ export function MatchRoomController({ initialState, currentPlayerId, matchId, pl
     ...(transport.pollError ? [{ kind: "text", text: transport.pollError } as Notice] : []),
     ...(completed && rematchLine ? [{ kind: "text", text: rematchLine } as Notice] : []),
     ...notices,
-    // B6: once the result's slip is lifted, a third party's call is the ledger's line.
+    // B6: once the result's slip is lifted, a rematch and a third party's call are the ledger's lines.
+    ...(rematchNotice ? [rematchNotice] : []),
     ...(callLine ? [callLine] : []),
   ];
   void dismiss;

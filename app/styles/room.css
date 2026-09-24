@@ -1810,3 +1810,25 @@
     gap: 2px;
   }
 }
+
+/* Spec 071 (T65): a rematch and a call both waiting share the state row, one line each. */
+.ledger__answers {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+.ledger__answers .ledger__notice {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 10px;
+  margin: 0;
+}
+.ledger__answers .ledger__call-text {
+  flex: 1;
+  min-width: 0;
+}
+.ledger__answers .ledger__drain {
+  display: none;
+}
