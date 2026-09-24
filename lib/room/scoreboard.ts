@@ -66,6 +66,8 @@ export interface ScoreboardInput {
   opp: ScoreboardSeat;
   /** The table and the void (spec 069). */
   table?: ScoreboardTable;
+  /** Spec 071: `match 2 · Birna 1–0`, a fact about the match, under the clock's label when nothing else is. */
+  series?: string | null;
 }
 
 export type ScoreboardClockPhase = ClockRowPhase | "table" | "void" | "starting" | "over";
@@ -141,11 +143,11 @@ function stillClock(input: ScoreboardInput, phase: "table" | "void", copy: Copy)
 }
 
 function clockRowFor(input: ScoreboardInput, copy: Copy): ClockRow {
-  if (input.phase === "table" || input.phase === "void") return stillClock(input, input.phase, copy);
+  if (input.phase === "table" || input.phase === "void") return withSeries(stillClock(input, input.phase, copy), input);
   if (input.phase === "starting") {
     const ticks = startingTicks(input.msToStart ?? 0);
     const label = copy.startsIn(Math.max(1, Math.ceil((input.msToStart ?? 0) / 1000)));
-    return { phase: "starting", label, detail: "", numeral: formatClock(input.clockLengthMs), ticksLeft: ticks, blocks: clockBlocks(ticks) };
+    return withSeries({ phase: "starting", label, detail: "", numeral: formatClock(input.clockLengthMs), ticksLeft: ticks, blocks: clockBlocks(ticks) }, input);
   }
   const ticks = ticksLeft(input.remainingMs);
   const numeral = formatClock(input.remainingMs);
@@ -154,7 +156,12 @@ function clockRowFor(input: ScoreboardInput, copy: Copy): ClockRow {
     return { phase: "over", label: copy.MATCH_OVER, detail, numeral, ticksLeft: ticks, blocks: clockBlocks(ticks) };
   }
   const phase = clockRowPhase(input.remainingMs);
-  return { phase, label: liveLabel(input, phase, copy), detail: liveDetail(input, phase, copy), numeral, ticksLeft: ticks, blocks: clockBlocks(ticks) };
+  return withSeries({ phase, label: liveLabel(input, phase, copy), detail: liveDetail(input, phase, copy), numeral, ticksLeft: ticks, blocks: clockBlocks(ticks) }, input);
+}
+
+/** The series fills the detail line only when it is empty: the pace outranks it. */
+function withSeries(row: ClockRow, input: ScoreboardInput): ClockRow {
+  return row.detail || !input.series ? row : { ...row, detail: input.series };
 }
 
 interface Sub {

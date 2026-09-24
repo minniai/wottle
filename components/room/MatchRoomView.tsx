@@ -76,6 +76,8 @@ export interface MatchRoomViewProps {
   readOnly?: boolean;
   /** Spec 069: who has sat down, and why a void was void. */
   table?: ScoreboardTable;
+  /** Spec 071: `match 2 · Birna 1–0` for a rematch. */
+  series?: string | null;
   /** Spec 069: the table's slip, derived from the match (ready or void). */
   tableSlip?: SlipState | null;
   notices?: Notice[];
@@ -142,10 +144,11 @@ export function MatchRoomView(props: MatchRoomViewProps) {
           you: { name: you.name, rating: you.rating, movesPlayed: you.movesPlayed, inFlight: Boolean(you.scoring), score: you.score, offline: you.offline, finalLine: you.finalLine },
           opp: { name: opp.name, rating: opp.rating, movesPlayed: opp.movesPlayed, inFlight: Boolean(opp.scoring), score: opp.score, reconnectMsLeft: opp.reconnectMsLeft, goneForMs: opp.goneForMs, steppedOut: opp.steppedOut, finalLine: opp.finalLine },
           table: props.table,
+          series: props.series,
         },
         copy,
       ),
-    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, isPhone, you, opp, props.table, copy],
+    [completed, moveState, readOnly, clockMs, clockLengthMs, props.msToStart, props.elapsedMs, moveLimit, isPhone, you, opp, props.table, props.series, copy],
   );
 
   return (

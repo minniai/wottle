@@ -156,8 +156,6 @@ export interface MatchState {
   reconnectWindowMs?: number;
   /** Spec 070 US8: a player whose app is open on another page. Their row reads `stepped out`, never reconnecting. */
   steppedOutPlayerId?: string | null;
-  /** Spec 070 FR-034: a completed match's accepted rematch, read here rather than broadcast. */
-  rematchMatchId?: string | null;
   /**
    * Spec 071: the rematch as the caller sees it. Never set by `loadMatchState` (its result is
    * broadcast to both players); `readRematchOffer` attaches it for the caller.
