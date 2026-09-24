@@ -435,7 +435,7 @@ test.describe("@visual the room fits a phone", () => {
 
   // Spec 068 FR-018 (game flow F8): a phone slip is exactly the field's square and never crosses the scoreboard.
   // Spec 069 (game flow F5): the table's slips too.
-  for (const phase of ["resign", "end-early", "table", "void"]) {
+  for (const phase of ["resign", "leave", "end-early", "table", "void"]) {
     test(`the ${phase} slip fills the field's square`, async ({ page }) => {
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByTestId("slip")).toBeVisible();
@@ -551,7 +551,7 @@ test.describe("@visual room clarity", () => {
     }
   });
 
-  for (const phase of ["landing-slip", "returning-slip", "resign", "end-early", "over-slip", "table", "table-seated", "void", "void-queue"]) {
+  for (const phase of ["landing-slip", "returning-slip", "resign", "leave", "end-early", "over-slip", "table", "table-seated", "void", "void-queue"]) {
     test(`${phase} is accessible with the slip open`, async ({ page }) => {
       await page.goto(`/en/dev/room?phase=${phase}`);
       await expect(page.getByRole("dialog")).toBeVisible();

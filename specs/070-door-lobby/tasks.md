@@ -438,7 +438,7 @@
 - [X] T104 [US8] Implement the heartbeat source and cadence in `lib/match/heartbeatRepository.ts`. Write the page heartbeat from `app/api/presence/beat/route.ts`. Add `steppedOutPlayerId` to `lib/match/stateLoader.ts` and the `MatchState` type. Set and clear `unseen_result_match_id` in `app/actions/match/completeMatch.ts`, `app/api/match/[matchId]/state/route.ts` and `app/actions/auth/logout.ts`. Make T103 pass.
 - [X] T105 [US8] Add the `stepped out` / `brá sér frá` sub-line to `lib/room/scoreboard.ts` and `components/room/Scoreboard.tsx`, with a unit test in `tests/unit/lib/room/scoreboard.steppedOut.spec.ts`.
 - [X] T106 [US8] Implement `components/room/hooks/useLiveBackGuard.ts` (T102). Add the leave slip to `lib/room/slip.ts` and `components/room/Slip.tsx`, with `stay ▸` focused through `initialFocusRef`. Change `RoomMenu.tsx`'s `leave` to `go to the lobby`, which opens the leave slip. Make `confirmResign` reachable only from `⋯ resign`. Wire all of this into `MatchRoomController.tsx` (T101).
-- [ ] T107 [US8] Add the leave slip's strings and the `/dev/room` phase `leave` (desktop and phone, F8), and generate the baselines.
+- [X] T107 [US8] Add the leave slip's strings and the `/dev/room` phase `leave` (desktop and phone, F8), and generate the baselines.
 - [ ] T108 [US8] Write the Playwright spec `tests/integration/ui/leave-slip.spec.ts`:
   - after a pick, Back opens the slip with `stay ▸` focused, and Esc keeps playing;
   - `go to the lobby` leaves the match in progress, and the lobby slot reads `your match · …`;

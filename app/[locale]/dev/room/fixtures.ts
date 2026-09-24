@@ -67,6 +67,8 @@ export const ROOM_PHASES = [
   // Spec 068 (US8): the opponent gone past the window with the offer on line 2; your own outage.
   "gone",
   "offline",
+  // Spec 070 (C7): Back in a live match; the leave slip never resigns.
+  "leave",
 ] as const;
 
 export type RoomPhase = (typeof ROOM_PHASES)[number];
@@ -302,6 +304,7 @@ export const HOLD_MOVE = 4;
 
 /** The three match slips (spec 048 §5.9, spec 050), as literals. */
 export const RESIGN_SLIP: SlipState = { kind: "resign", move: 4, clockMs: CLOCK_MS, opponentName: KARI.displayName };
+export const LEAVE_SLIP: SlipState = { kind: "leave", move: 4, limit: 10, clockMs: CLOCK_MS };
 export const END_EARLY_SLIP: SlipState = { kind: "endEarly", opponentName: KARI.displayName, opponentMoves: 8, clockMs: LOW_CLOCK_MS };
 export function overSlip(copy: Copy): SlipState {
   return {

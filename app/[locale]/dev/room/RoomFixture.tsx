@@ -29,6 +29,7 @@ import {
   DONE,
   DONE_STATE,
   END_EARLY_SLIP,
+  LEAVE_SLIP,
   FINAL_STATE,
   FIXTURE_BOARD,
   finalLines,
@@ -217,6 +218,7 @@ const MATCH_PHASES: Record<MatchPhase, MatchPhaseSpec> = {
   final: { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
   disconnect: { live: { kind: "idle" }, marks: {}, moveState: YOUR_MOVE, state: DISCONNECT_STATE },
   resign: IDLE,
+  leave: IDLE,
   "end-early": { live: { kind: "idle" }, marks: {}, moveState: DONE, clockMs: 72_000, state: { ...DISCONNECT_STATE, ...DONE_STATE, disconnectedPlayerId: OPP_ID }, seats: DONE_SEATS },
   "over-slip": { live: { kind: "idle" }, marks: {}, state: FINAL_STATE, seats: DONE_SEATS, clockMs: FINAL_CLOCK_MS, elapsedMs: FINAL_ELAPSED_MS },
   // Spec 068 (Phase B): the missed beat held, the stakes under a minute, pick cleared on line 2, the ticks.
@@ -239,6 +241,7 @@ function slipFor(phase: RoomPhase, copy: Copy): SlipState | undefined {
   const slips: Partial<Record<RoomPhase, SlipState>> = {
     resign: RESIGN_SLIP,
     "end-early": END_EARLY_SLIP,
+    leave: LEAVE_SLIP,
     "over-slip": overSlip(copy),
   };
   return slips[phase];
@@ -262,8 +265,9 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
     store.setBoard(FIXTURE_BOARD);
     store.setPhase(STORE_PHASE[phase] ?? "match");
     const slip = slipFor(phase, copy);
-    if (slip) store.setSlip(slip);
-    else if (store.slip) store.clearSlip(store.slip.kind);
+    // Slips rank; a fixture shows exactly its own, so the previous one goes first.
+    if (store.slip) store.clearSlip(store.slip.kind);
+    if (slip) useRoomStore.getState().setSlip(slip);
   }, [phase, copy, language]);
 
   // The reveal phase holds mid-draw so the band, chevron and count-up are all captured.
