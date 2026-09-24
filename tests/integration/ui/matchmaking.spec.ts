@@ -71,7 +71,9 @@ test.describe("@matchmaking queue → found → match in the room", () => {
         await expect(p.getByTestId("scoreboard-row-opp")).not.toContainText("Finding an opponent");
       }
 
-      // new opponent ▸ from that result goes back to a fresh search, in the lobby.
+      // new opponent ▸ from that result goes back to a fresh search, in the lobby. Spec 071: the
+      // result's actions ignore their first 500ms.
+      await a.page.waitForTimeout(600);
       await a.page.getByTestId("slip-new-opponent").click();
       await expect(a.page).toHaveURL(/\/en$/, { timeout: 15_000 });
       await expect(a.page.getByTestId("line-slot-line1").first()).toContainText("Searching for an opponent", { timeout: 15_000 });

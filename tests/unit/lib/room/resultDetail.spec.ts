@@ -43,4 +43,9 @@ describe("resultDetail (spec 071 FR-004)", () => {
       expect(new Set(clauses).size).toBe(clauses.length);
     }
   });
+
+  it("names the player who was gone in an early end, even when the totals are level", () => {
+    expect(resultDetail({ ...WIN, endedReason: "ended_early", winnerName: null, margin: 0, loserName: "Birna", short: { name: "Kári", moves: 0 } }, en)).toEqual(["ended early", "Kári was gone"]);
+  });
 });
+

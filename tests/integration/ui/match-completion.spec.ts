@@ -107,10 +107,11 @@ test.describe("@match-completion final room state", () => {
       await pageA.getByTestId("ledger-result").click();
       await expect(pageA.getByTestId("slip")).toBeVisible();
       await pageA.waitForTimeout(600);
-      // review the match ▸ lifts the slip; result ▸ in the foot brings it back.
+      // review the match ▸ opens review (spec 071); ◂ result brings the slip back.
       await pageA.getByTestId("slip-review-field").click();
       await expect(pageA.getByTestId("slip")).toHaveCount(0);
-      await pageA.getByTestId("ledger-result").click();
+      await expect(pageA).toHaveURL(/\?review=\d+$/);
+      await pageA.getByTestId("review-result").click();
       await expect(pageA.getByTestId("slip")).toBeVisible();
       await pageA.waitForTimeout(600);
 
