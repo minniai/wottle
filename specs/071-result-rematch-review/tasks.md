@@ -18,8 +18,8 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `lib/review/` and `tests/unit/lib/review/`. Add the `match:rematch` scope (6/min per player) to the rate-limit scope table in `lib/rate-limiting/` with a unit test in its existing spec file.
-- [ ] T002 [P] Add the fixture phase names from research R17 to `ROOM_PHASES` in `app/[locale]/dev/room/fixtures.ts`, each rendering the `final` phase for now, so later stories only fill them in. Leave `room-fixtures.spec.ts` unchanged until each story's baseline task.
+- [X] T001 Add `lib/constants/rematch.ts` (the request's 30s, the 2:00 window, and the `match:rematch` limit of 6/min). The repo has no rate-limit scope table; each action passes its limit inline, so the actions read this constant. `lib/review/` is created with its first module.
+- [X] T002 No placeholder phases: `room-fixtures.spec.ts` snapshots every entry of `ROOM_PHASES`, so each story adds its own phases in its fixture task, with their baselines.
 
 ---
 
