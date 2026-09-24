@@ -1717,3 +1717,49 @@
 .scoreboard[data-compact="true"] .review-scrubber__bar {
   height: 4px;
 }
+
+/* Spec 071 (FR-036): the ledger in review. A cell is a way to its step; one not yet reached
+   is muted, and named so. */
+.ledger__review-cell {
+  display: contents;
+  cursor: pointer;
+}
+.ledger__review-cell > .ledger__words {
+  cursor: pointer;
+}
+.ledger__review-cell:focus-visible > .ledger__words {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+.ledger__review-cell[data-review="ahead"] > .ledger__words {
+  --seat-ink: var(--muted);
+  color: var(--muted);
+}
+.ledger__review-cell[data-review="ahead"] .points-lost {
+  color: var(--muted);
+}
+.ledger__review-controls {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+}
+.review-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.review-controls__glyph {
+  min-width: 44px;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+}
+.review-controls__glyph:disabled,
+.review-controls .action-secondary:disabled {
+  color: var(--muted);
+  cursor: default;
+}

@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { getSeatColors } from "@/lib/constants/seatColors";
+import { getNextRovingIndex } from "@/lib/a11y/rovingFocus";
 import { foldRows } from "@/lib/room/ledgerRows";
+import { cellName, type CellState } from "@/lib/review/ledgerCells";
+import type { ReviewNames } from "@/lib/review/stepFacts";
 import { noticeKey, noticeText } from "@/lib/room/notices";
 import { useMeasuredLines } from "./hooks/useMeasuredLines";
 import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell, Verdict } from "@/lib/room/ledgerTypes";
@@ -31,6 +34,23 @@ export interface LedgerProps {
   onRowHover?: (move: number | null) => void;
   onAction: (action: LedgerAction) => void;
   renderNotice?: (notice: Notice) => ReactNode;
+  /** Spec 071: the ledger in review; cells jump to their step. */
+  review?: LedgerReview;
+}
+
+type Slot = "player_a" | "player_b";
+
+export interface LedgerReview {
+  /** Whose column is `you`: the viewer's, or player A's for a reader who did not play. */
+  viewerSlot: Slot;
+  /** The step's move: its row becomes the cursor line. Null for the closing step. */
+  current: { slot: Slot; move: number } | null;
+  cursor: LiveLines;
+  states: Map<string, CellState>;
+  names: ReviewNames;
+  /** The step controls, on the head's state line (desktop). */
+  controls: ReactNode;
+  onJump: (slot: Slot, move: number) => void;
 }
 
 function menuVariant(variant: LedgerVariant): RoomMenuVariant {
@@ -129,6 +149,78 @@ function LiveText({ live, onAction }: { live?: LiveLines; onAction?: (action: Le
   );
 }
 
+function ReviewCell({ slot, row, seat, review }: { slot: Slot; row: LedgerRow; seat: "you" | "opp"; review: LedgerReview }) {
+  const copy = useCopy();
+  const state = review.states.get(`${slot}:${row.move}`);
+  const cell = seat === "you" ? row.you : row.opp;
+  if (!state) return <SeatWords cell={cell} seat={seat} showPoints={false} folded={row.folded ?? false} />;
+  return (
+    <div
+      role="gridcell"
+      tabIndex={-1}
+      className="ledger__review-cell"
+      data-review={state}
+      data-cell={`${slot}:${row.move}`}
+      aria-label={cellName(slot, row.move, review.names, state, copy)}
+      onClick={() => review.onJump(slot, row.move)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          review.onJump(slot, row.move);
+        }
+      }}
+    >
+      <SeatWords cell={cell} seat={seat} showPoints={false} folded={row.folded ?? false} />
+    </div>
+  );
+}
+
+/** Spec 071 (FR-036, FR-037): a row in review; the step's move is the cursor line, in the live row's style. */
+function ReviewRow({ row, review }: { row: LedgerRow; review: LedgerReview }) {
+  const youSlot = review.viewerSlot;
+  const oppSlot: Slot = youSlot === "player_a" ? "player_b" : "player_a";
+  const cursorHere = review.current?.move === row.move;
+  return (
+    <div role="row" className={`ledger__row ledger__row--${cursorHere ? "settled" : "past"}`} data-testid={`ledger-row-${row.move}`} data-status={cursorHere ? "settled" : "past"}>
+      {cursorHere ? (
+        <>
+          <div role="gridcell" tabIndex={-1} className="ledger__live-text" data-testid="ledger-live-row" aria-live="polite">
+            <LiveText live={review.cursor} />
+          </div>
+          <SeatWords cell={review.current?.slot === youSlot ? row.opp : row.you} seat={review.current?.slot === youSlot ? "opp" : "you"} showPoints={false} folded />
+        </>
+      ) : (
+        <>
+          <ReviewCell slot={youSlot} row={row} seat="you" review={review} />
+          <div className="ledger__move" aria-hidden="true">{row.move}</div>
+          <ReviewCell slot={oppSlot} row={row} seat="opp" review={review} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** One grid, one tab stop (FR-036): the arrows and Home/End move among its cells. */
+function useRovingGrid(): [RefObject<HTMLDivElement | null>, (e: KeyboardEvent<HTMLDivElement>) => void] {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const cells = () => Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="gridcell"]') ?? []);
+  useEffect(() => {
+    const all = cells();
+    const current = all.find((c) => c.getAttribute("data-review") === "current") ?? all.find((c) => c.dataset.testid === "ledger-live-row") ?? all[0];
+    all.forEach((c) => (c.tabIndex = c === current ? 0 : -1));
+  });
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const all = cells();
+    const index = all.indexOf(document.activeElement as HTMLElement);
+    if (index < 0 || !["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+    e.preventDefault();
+    const next = all[getNextRovingIndex(index, all.length, e.key)];
+    all.forEach((c) => (c.tabIndex = c === next ? 0 : -1));
+    next.focus();
+  };
+  return [ref, onKeyDown];
+}
+
 function Row({ row, hovered, onRowHover, onAction }: { row: LedgerRow; hovered: boolean; onRowHover?: (move: number | null) => void; onAction?: (action: LedgerAction) => void }) {
   const liveOrHeld = row.status === "live" || row.status === "settled";
   return (
@@ -205,7 +297,8 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
  */
 export function Ledger(props: LedgerProps) {
   const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, LANGUAGE_WORDS, territoryAria, territoryLine, YOU } = useCopy();
-  const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice } = props;
+  const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice, review } = props;
+  const [gridRef, onGridKeyDown] = useRovingGrid();
   const showsTable = variant === "match" || variant === "final";
   /**
    * Only a ledger with a rounds table collapses. The lobby's body is the here-now
@@ -249,7 +342,13 @@ export function Ledger(props: LedgerProps) {
       </div>
   );
 
-  const rows10 = (
+  const rows10 = review ? (
+    <div ref={gridRef} className="ledger__rows" data-testid="ledger-rows" role="grid" aria-label={LEDGER} onKeyDown={onGridKeyDown}>
+      {rows.map((row) => (
+        <ReviewRow key={row.move} row={row} review={review} />
+      ))}
+    </div>
+  ) : (
     <div ref={rowsRef} className="ledger__rows" data-testid="ledger-rows">
       {rows.map((row) => (
         <Row key={row.move} row={row} hovered={hovered === row.move} onRowHover={hover} onAction={onAction} />
@@ -342,7 +441,9 @@ export function Ledger(props: LedgerProps) {
           {caption}
           {/* The state's line: territory (or the verdict), whose second line a notice takes while it shows. */}
           <div className="ledger__state-line" data-testid="ledger-state-line">
-            {model.verdict ? (
+            {review ? (
+              <div className="ledger__review-controls">{latestNotice ?? review.controls}</div>
+            ) : model.verdict ? (
               <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
                 <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
                 {latestNotice ?? <div className="ledger__mono" data-testid="ledger-verdict-detail">{gridDetail(model.verdict)}</div>}
