@@ -104,7 +104,8 @@ export function useMatchOverSlip(input: MatchOverSlipInput): void {
   const key = slip ? JSON.stringify(slip) : null;
 
   useEffect(() => {
-    if (!completed || busy || !key) return;
+    // Spec 071 (FR-042): a reader of a finished match gets no result slip; review is theirs.
+    if (!completed || busy || !key || input.readOnly) return;
     const next = JSON.parse(key) as SlipState;
     if (landed.current) {
       setSlip(next);
@@ -115,5 +116,5 @@ export function useMatchOverSlip(input: MatchOverSlipInput): void {
       setSlip(next);
     }, revealed ? MATCH_OVER_DELAY_MS : 0);
     return () => clearTimeout(timer);
-  }, [matchId, completed, busy, key, revealed, setSlip]);
+  }, [matchId, completed, busy, key, revealed, setSlip, input.readOnly]);
 }

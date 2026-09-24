@@ -323,6 +323,8 @@ const review = {
   cellName: (move: number, name: string): string => `move ${move}, ${name}`,
   NOT_YET_REACHED: "not yet reached",
   SCRUBBER: "review step",
+  /** Spec 071 (FR-042): a reader's line, above a match they did not play. */
+  overLine: (a: string, b: string): string => `this match is over · ${a} – ${b}`,
   FIRST: "first",
   BACK: "back",
   PLAY: "play ▸",

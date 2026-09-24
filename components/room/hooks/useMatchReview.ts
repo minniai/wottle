@@ -32,7 +32,7 @@ export interface MatchReview {
  * Spec 071 (US3, US4): review as a state of the match page. The URL is the source of truth: the
  * step is `?review=n`, corrected in place, and dropped from a match that is not over.
  */
-export function useMatchReview({ matchId, completed, live }: { matchId: string; completed: boolean; live: boolean }): MatchReview {
+export function useMatchReview({ matchId, completed, live, reader = false }: { matchId: string; completed: boolean; live: boolean; reader?: boolean }): MatchReview {
   const raw = useSearchParams().get("review");
   const { steps } = useReviewMoves(matchId, completed && raw !== null);
   const parsed = steps ? parseReviewParam(raw, steps.length) : null;
@@ -41,9 +41,11 @@ export function useMatchReview({ matchId, completed, live }: { matchId: string; 
   const step = steps && index ? steps[index - 1] : null;
 
   useEffect(() => {
-    if (raw !== null && live) history.drop();
+    // A reader of a finished match opens its review (game flow T54), at the last step.
+    if (raw === null && reader && completed) history.correct("last");
+    else if (raw !== null && live) history.drop();
     else if (parsed && parsed.canonical !== raw) history.correct(parsed.canonical);
-  }, [raw, live, parsed, history]);
+  }, [raw, live, reader, completed, parsed, history]);
 
   // Which step came before this one, kept as state so the forward step's motion can be told apart.
   const [track, setTrack] = useState<{ index: number | null; prev: number | null }>({ index, prev: null });
