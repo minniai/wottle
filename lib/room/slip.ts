@@ -34,6 +34,8 @@ export type SlipState =
       ratings: SlipRatingRow[];
       rematch: RematchPhase;
       readOnly: boolean;
+      /** Spec 071: the viewer's highest-scoring word; null when they scored none. */
+      bestWord?: { word: string; points: number } | null;
     };
 
 export type SlipKind = SlipState["kind"];

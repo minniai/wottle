@@ -113,6 +113,11 @@ function renderController(initial = state()) {
   return render(<MatchRoomController initialState={initial} currentPlayerId="player-1" matchId="m1" playerProfiles={profiles} />);
 }
 
+/** Spec 071 FR-002: the result slip's actions ignore activation for their first 500ms. */
+async function waitPastGuard(): Promise<void> {
+  await act(() => new Promise((resolve) => setTimeout(resolve, 510)));
+}
+
 describe("MatchRoomController (spec 050)", () => {
   beforeEach(() => {
     useRoomStore.getState().leaveToLobby();
@@ -352,6 +357,7 @@ describe("MatchRoomController (spec 050)", () => {
     expect(screen.getByTestId("slip-new-opponent")).toBeInTheDocument();
     expect(screen.getByTestId("ledger-lobby")).toBeInTheDocument();
     expect(screen.queryByTestId("ledger-result")).toBeNull();
+    await waitPastGuard();
     fireEvent.click(screen.getByTestId("slip-review-field"));
     expect(screen.queryByTestId("slip")).toBeNull();
     fireEvent.click(screen.getByTestId("ledger-result"));
@@ -392,6 +398,7 @@ describe("MatchRoomController (spec 050)", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed" }));
     const rematchButton = await screen.findByTestId("slip-rematch");
+    await waitPastGuard();
     await act(async () => {
       fireEvent.click(rematchButton);
     });
@@ -617,6 +624,7 @@ describe("MatchRoomController (spec 050)", () => {
     vi.mocked(getMatchRatings).mockResolvedValue({ status: "not_found" });
     renderController(state({ state: "completed", scores: { playerA: 88, playerB: 124 }, winnerId: "player-2", endedReason: "moves_complete" }, { movesPlayed: 10 }, { movesPlayed: 10 }));
     await screen.findByTestId("slip", {}, { timeout: 3_000 });
+    await waitPastGuard();
     fireEvent.click(screen.getByTestId("slip-lobby"));
     expect(screen.queryByTestId("slip")).toBeNull();
     expect(mockReplace).toHaveBeenCalledWith("/en");
