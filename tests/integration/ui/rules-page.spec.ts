@@ -57,7 +57,7 @@ test.describe("@rules the how-to-play page", () => {
       const clockBefore = await pageA.getByTestId("scoreboard-clock").textContent();
       await pageA.getByTestId("ledger-menu-trigger").click();
       const [rulesTab] = await Promise.all([contextA.waitForEvent("page"), pageA.getByTestId("ledger-menu-item-howToPlay").click()]);
-      await expect(rulesTab).toHaveURL(/\/rules$/);
+      await expect(rulesTab).toHaveURL(/\/rules\?from=%2Fen%2Fmatch%2F[0-9a-f-]{36}$/);
       await expect(rulesTab.getByTestId("rules-page")).toBeVisible();
       await expect(pageA.getByTestId("room")).toHaveAttribute("data-phase", "match");
       await expect
