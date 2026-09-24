@@ -35,6 +35,8 @@ export const ROOM_PHASES = [
   "table-seated",
   "void",
   "void-queue",
+  // Spec 072: a link table, the friend seated, the sender not yet come (9:12 of the link left).
+  "table-link-waits",
   "idle",
   "picking",
   "illegal",

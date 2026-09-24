@@ -252,6 +252,7 @@ const noSuchPlayer = (handle: string): string => `No such player · @${handle} h
 const stake = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
 const table = {
   label: (mmSs: string): string => `opponent found · ${mmSs}`,
+  tableWaits: (mmSs: string): string => `the table waits · ${mmSs}`,
   CONTEXT: "opponent found",
   facts: (words: string, moves: number, clockMmSs: string): string => `${words} · ${moves} moves each · one ${clockMmSs} clock`,
   stakes: (win: number, draw: number, loss: number): string => `win ${stake(win)} · draw ${stake(draw)} · loss ${stake(loss)}`,

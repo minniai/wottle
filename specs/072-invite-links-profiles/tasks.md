@@ -228,7 +228,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
   - the page title.
   Mark `// native-read` on `bara inn í lobbíið` and the Icelandic consequence.
 - [X] T040 [P] [US2] Add page fixtures `invite-door`, `is-invite-door`, `invite-door-expired` and `invite-door-returning`, and the phone view `phone-invite-door` (390×844, 390×664, 360×640), with baselines.
-- [ ] T041 [US2] Write the Playwright spec `tests/integration/ui/invite-link-flow.spec.ts` (tagged `@two-player-playtest`, part 1):
+- [X] T041 [US2] Write the Playwright spec `tests/integration/ui/invite-link-flow.spec.ts` (tagged `@two-player-playtest`, part 1):
   - A makes a link and B (a fresh context) opens it, sees the band, enters a free name and accepts;
   - B lands on `/match/:id` seated;
   - B reopens the link and sees the expired band;
@@ -266,7 +266,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 - [X] T045 [US3] Hold `linkCall` and `ownLink` in `useStandingMachine` state (per tab, dropped at expiry or on dismiss), feed them to `standingSlot`, and wire the call's `accept ▸` to `acceptLinkAction({ token, mode: "session" })` with `useActivationGuard`, navigating on `created` and showing a held `this link has expired` outcome on `expired`. Makes T042 and T043 pass.
 - [X] T046 [P] [US3] Add the call and own-link strings to `lib/i18n/copy/pages.{en,is}.ts`, and render the call in `components/page/LineSlot.tsx` (call style, 104px on phones, a drain to expiry).
 - [X] T047 [P] [US3] Add page fixtures `lobby-link-call`, `is-lobby-link-call` and `lobby-own-link`, with baselines.
-- [ ] T048 [US3] Extend `tests/integration/ui/invite-link-flow.spec.ts` (part 2):
+- [X] T048 [US3] Extend `tests/integration/ui/invite-link-flow.spec.ts` (part 2):
   - B, signed in, opens A's link: the URL becomes `/`, the call shows, and accept goes to the table;
   - A opens its own link and sees `this is your link · copy ▸`;
   - an Icelandic link under `/en/c/` redirects to `/c/`.
@@ -283,26 +283,26 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Tests first
 
-- [ ] T049 [P] [US4] Write failing unit tests in `tests/unit/lib/room/tableSlip.link.spec.ts`:
+- [X] T049 [P] [US4] Write failing unit tests in `tests/unit/lib/room/tableSlip.link.spec.ts`:
   - `origin: "link"`, the viewer seated and the other seat empty → label `THE TABLE WAITS · 9:12` / `BORÐIÐ BÍÐUR · 9:12`, counting to `deadlineAt`;
   - otherwise the existing `OPPONENT FOUND · 0:14` is unchanged.
-- [ ] T050 [P] [US4] Write failing unit tests in `tests/unit/components/standing/useNotifications.link.spec.tsx`:
+- [X] T050 [P] [US4] Write failing unit tests in `tests/unit/components/standing/useNotifications.link.spec.tsx`:
   - a transition from slot `link` (pending) to a match fact whose table origin is `link` fires the `challenge` cue once, sets the title, and calls `Notification` when hidden and permission is granted;
   - it does not fire for a queue table.
-- [ ] T051 [P] [US4] Write the failing race test `tests/integration/db/link.race.test.ts`:
+- [X] T051 [P] [US4] Write the failing race test `tests/integration/db/link.race.test.ts`:
   - 100 rounds of two concurrent `accept_link` calls by two different players on one fresh link: exactly one `created` and one `expired` each round, and one match;
   - plus 20 rounds of one player's double accept.
 
 ### Implementation
 
-- [ ] T052 [US4] Extend `readySlipModel` in `lib/room/tableSlip.ts` for link tables, and add the copy keys (`BORÐIÐ BÍÐUR` marked `// native-read`). Makes T049 pass.
-- [ ] T053 [US4] Detect "link opened" in `components/standing/hooks/useNotifications.ts` (and the cue in the standing machine), per R12. Makes T050 pass.
-- [ ] T054 [US4] Confirm the push: the sender's `useTableCheck` and the `table` poke route them to `/match/:id` on a link table. Add a regression unit test in `tests/unit/components/room/hooks/useTableCheck.link.spec.tsx` if the origin filter excludes `link`, and fix it.
-- [ ] T055 [P] [US4] Add the room fixture `table-link-waits` (the friend seated, the sender absent, 9:12 left) to `app/[locale]/dev/room/fixtures.ts`, with baselines.
-- [ ] T056 [US4] Extend `tests/integration/ui/invite-link-flow.spec.ts` (part 3):
+- [X] T052 [US4] Extend `readySlipModel` in `lib/room/tableSlip.ts` for link tables, and add the copy keys (`BORÐIÐ BÍÐUR` marked `// native-read`). Makes T049 pass.
+- [X] T053 [US4] Detect "link opened" in `components/standing/hooks/useNotifications.ts` (and the cue in the standing machine), per R12. Makes T050 pass.
+- [X] T054 [US4] Confirm the push: the sender's `useTableCheck` and the `table` poke route them to `/match/:id` on a link table. Add a regression unit test in `tests/unit/components/room/hooks/useTableCheck.link.spec.tsx` if the origin filter excludes `link`, and fix it.
+- [X] T055 [P] [US4] Add the room fixture `table-link-waits` (the friend seated, the sender absent, 9:12 left) to `app/[locale]/dev/room/fixtures.ts`, with baselines.
+- [X] T056 [US4] Extend `tests/integration/ui/invite-link-flow.spec.ts` (part 3):
   - A's tab is hidden (`page.evaluate` to dispatch `visibilitychange`), B accepts, A's title changes and A reaches the table, presses `ready ▸`, and the match starts;
   - in a second run, A closes the tab, B sees `THE TABLE WAITS`, presses `leave`, and can start a search at once (no cooldown line).
-- [ ] T057 [US4] Add `scripts/perf/link-accept.ts` and `pnpm perf:link-accept` in `package.json` (100 accepts on a local Supabase; assert p95 < 200ms, following `perf:seat`).
+- [X] T057 [US4] Add `scripts/perf/link-accept.ts` and `pnpm perf:link-accept` in `package.json` (100 accepts on a local Supabase; assert p95 < 200ms, following `perf:seat`).
 
 **Checkpoint**: the whole link flow works end to end (the P1 set).
 

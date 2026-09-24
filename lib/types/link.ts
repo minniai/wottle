@@ -20,6 +20,8 @@ export const outgoingLinkSchema = z.object({
   status: linkStatusSchema,
   expiresAt: z.string(),
   respondedAt: z.string().nullable(),
+  /** The table a used link made; the sender goes to it. */
+  matchId: z.string().uuid().nullish(),
 });
 export type OutgoingLink = z.infer<typeof outgoingLinkSchema>;
 

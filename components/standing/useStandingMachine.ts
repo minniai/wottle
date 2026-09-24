@@ -177,7 +177,7 @@ export function useStandingMachine(): StandingMachine {
     },
     [endSearch, router],
   );
-  const link = useLinkSlot(facts?.link ?? null, refresh, { onAccepted: onLinkAccepted, flash });
+  const link = useLinkSlot(facts?.link ?? null, refresh, { onAccepted: onLinkAccepted, flash, language: language === "en" ? "en" : "is" });
   const slot = standingSlot({ facts: facts && switchPending ? { ...facts, switchPending } : facts, held, search, link: link.inputs });
   const nowMs = useNowTick(TICKING.has(slot.kind));
   const viewer = facts?.viewer ?? { rating: 1200, gamesPlayed: 0 };
