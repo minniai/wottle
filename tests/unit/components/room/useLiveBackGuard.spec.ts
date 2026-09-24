@@ -64,4 +64,28 @@ describe("useLiveBackGuard", () => {
     back();
     expect(onBack).not.toHaveBeenCalled();
   });
+
+  it("steps off its guard when the match completes, so one Back from the result reaches the lobby (spec 071 FR-007)", () => {
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => undefined);
+    const onBack = vi.fn();
+    const { rerender } = renderHook(({ live, completed }) => useLiveBackGuard({ live, completed, onBack }), { initialProps: { live: true, completed: false } });
+    pick();
+    window.history.replaceState({ kind: "guard" }, "");
+    rerender({ live: false, completed: true });
+    expect(go).toHaveBeenCalledWith(-1);
+    back();
+    expect(onBack).not.toHaveBeenCalled();
+    expect((window.history.state as { kind?: string }).kind).toBe("result");
+    go.mockRestore();
+  });
+
+  it("marks the entry as the result when the match completes with no guard to leave", () => {
+    const go = vi.spyOn(window.history, "go");
+    const { rerender } = renderHook(({ completed }) => useLiveBackGuard({ live: false, completed, onBack: vi.fn() }), { initialProps: { completed: false } });
+    rerender({ completed: true });
+    expect(go).not.toHaveBeenCalled();
+    expect((window.history.state as { kind?: string }).kind).toBe("result");
+    go.mockRestore();
+  });
 });
+
