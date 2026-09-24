@@ -8,7 +8,7 @@ import { useCallback, useRef } from "react";
  * is used because the App Router keeps `useSearchParams` in step with it, so nothing remounts.
  */
 export function useReviewHistory(): {
-  enter: (step: number) => void;
+  enter: (step: number | "last") => void;
   stepTo: (step: number) => void;
   leave: () => void;
   correct: (canonical: string) => void;
@@ -23,7 +23,7 @@ export function useReviewHistory(): {
   };
   const state = (kind: "review" | "result") => ({ ...(window.history.state as object | null), kind });
 
-  const enter = useCallback((step: number) => {
+  const enter = useCallback((step: number | "last") => {
     entered.current = true;
     window.history.pushState(state("review"), "", urlWith(String(step)));
   }, []);

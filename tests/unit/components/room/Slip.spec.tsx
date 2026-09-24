@@ -55,7 +55,7 @@ describe("Slip shell (spec 048 contracts/slip.md)", () => {
   it.each([
     [RESIGN, "keepPlaying"],
     [CLAIM, "keepWaiting"],
-    [OVER, "reviewField"],
+    [OVER, "liftSlip"],
   ])("Escape is the cancel of %o", (slip, expected) => {
     const onAction = vi.fn();
     render(<Slip slip={slip} onAction={onAction} />);
