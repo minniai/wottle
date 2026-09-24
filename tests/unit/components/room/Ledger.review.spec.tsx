@@ -68,4 +68,15 @@ describe("the ledger in review (spec 071 FR-036, FR-037)", () => {
     expect(document.activeElement).not.toBe(first);
     expect((document.activeElement as HTMLElement).getAttribute("role")).toBe("gridcell");
   });
+
+  it("on a phone the cursor line takes the live row, and the foot pins ◂ result and the step glyphs (F7)", () => {
+    const onAction = vi.fn();
+    render(<Ledger variant="final" collapsed model={model} viewerName="Birna" opponentName="Kári" review={review({ phoneControls: <span data-testid="phone-controls" /> })} onAction={onAction} />);
+    expect(screen.getByTestId("ledger-live-trigger")).toHaveTextContent("move 3 · Birna · LEK · ÆSKU +33");
+    const foot = screen.getByTestId("ledger-phone-foot");
+    expect(within(foot).getByTestId("phone-controls")).toBeInTheDocument();
+    fireEvent.click(within(foot).getByTestId("ledger-phone-result"));
+    expect(onAction).toHaveBeenCalledWith("result");
+  });
 });
+

@@ -13,7 +13,7 @@ export interface ReviewControlsProps {
   onControl: (control: ReviewControl) => void;
 }
 
-const GLYPHS: Record<ReviewControl, string> = { first: "|◂", back: "◂", play: "▸", next: "▸", last: "▸|" };
+const GLYPHS: Record<ReviewControl, string> = { first: "◂◂", back: "◂", play: "▶", next: "▸", last: "▸▸" };
 const PAUSE_GLYPH = "‖";
 
 /**

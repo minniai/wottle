@@ -39,7 +39,7 @@ describe("ReviewControls (spec 071 FR-035)", () => {
     controls({ compact: true }, "is");
     const buttons = screen.getAllByRole("button");
     expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(["fyrst", "aftur", "spila", "næst", "síðast"]);
-    expect(buttons.map((b) => b.textContent)).toEqual(["|◂", "◂", "▸", "▸", "▸|"]);
+    expect(buttons.map((b) => b.textContent)).toEqual(["◂◂", "◂", "▶", "▸", "▸▸"]);
     for (const b of buttons) expect(b).toHaveClass("review-controls__glyph");
   });
 });

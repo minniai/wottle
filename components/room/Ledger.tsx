@@ -50,6 +50,8 @@ export interface LedgerReview {
   names: ReviewNames;
   /** The step controls, on the head's state line (desktop). */
   controls: ReactNode;
+  /** The phone's: five glyphs pinned in the foot beside `◂ result` (game flow F7). */
+  phoneControls?: ReactNode;
   onJump: (slot: Slot, move: number) => void;
 }
 
@@ -292,11 +294,30 @@ function NoticeLine({ notice, onAction }: { notice: Notice; onAction: (action: L
 }
 
 /**
+ * The phone foot's right end (spec 071, F4, F7): in review `◂ result` and the five step glyphs;
+ * at the result its actions (`result ▸` once the slip is lifted); the language otherwise.
+ */
+function phoneFootEnd(variant: LedgerVariant, review: LedgerReview | undefined, footActions: ReactNode, words: { language: string; result: string }, onAction: (a: LedgerAction) => void): ReactNode {
+  if (review) {
+    return (
+      <span className="ledger__phone-review">
+        <button type="button" className="action-secondary" data-testid="ledger-phone-result" onClick={() => onAction("result")}>
+          ◂ {words.result}
+        </button>
+        {review.phoneControls}
+      </span>
+    );
+  }
+  if (variant === "final" && footActions) return <span className="ledger__phone-actions">{footActions}</span>;
+  return <span className="ledger__mono">{words.language}</span>;
+}
+
+/**
  * Every fact about the match (design system §5.4): caption → seat header →
  * ten rows (one live) → territory → hint → notices → foot. It never scrolls.
  */
 export function Ledger(props: LedgerProps) {
-  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, LANGUAGE_WORDS, territoryAria, territoryLine, YOU } = useCopy();
+  const { HISTORY, points, SPINE_HEADER, TOTAL_LABEL, WORDMARK, LEDGER, LANGUAGE_WORDS, RESULT, territoryAria, territoryLine, YOU } = useCopy();
   const { variant, model, collapsed: collapsedProp = false, notices = [], viewerName, opponentName, readOnly = false, body, footActions, onRowHover, onAction, renderNotice, review } = props;
   const [gridRef, onGridKeyDown] = useRovingGrid();
   const showsTable = variant === "match" || variant === "final";
@@ -394,7 +415,8 @@ export function Ledger(props: LedgerProps) {
     </div>
   ));
 
-  const collapsedLive: LiveLines | undefined = model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
+  // In review the cursor line takes the live row's place on a phone (F7).
+  const collapsedLive: LiveLines | undefined = review ? review.cursor : model.live ? { line1: model.live, line2: "" } : rows.find((row) => row.status === "live" || row.status === "settled")?.live;
 
   const latestNotice = noticeLines.length > 0 ? noticeLines[noticeLines.length - 1] : null;
   // On a phone a call cannot wait in the closed sheet: it sits under the live row (B6).
@@ -411,7 +433,7 @@ export function Ledger(props: LedgerProps) {
   const verdictBlock = model.verdict ? (
     <div className="ledger__verdict" data-testid="verdict" aria-live="assertive">
       <div className="ledger__verdict-line">{model.verdict.scoreLine}</div>
-      <div className="ledger__mono">{model.verdict.detailLine}</div>
+      <div className="ledger__mono">{gridDetail(model.verdict)}</div>
     </div>
   ) : null;
 
@@ -502,7 +524,7 @@ export function Ledger(props: LedgerProps) {
           {/* Pinned to the bottom edge with the safe area, always visible (spec 068 FR-015). */}
           <div className="ledger__phone-foot" data-testid="ledger-phone-foot" data-field-safe>
             <RoomMenu variant={menuVariant(variant)} onAction={onAction} />
-            <span className="ledger__mono">{LANGUAGE_WORDS}</span>
+            {phoneFootEnd(variant, review, footActions, { language: LANGUAGE_WORDS, result: RESULT.replace(/ ▸$/, "") }, onAction)}
           </div>
         </>
       ) : (

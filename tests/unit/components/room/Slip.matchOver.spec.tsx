@@ -130,6 +130,13 @@ describe("Slip · match over (spec 048 US1)", () => {
       expect(onAction.mock.calls.map((c) => c[0])).toEqual(["acceptRematch", "declineRematch"]);
     });
 
+    it("on a phone the negotiation takes action row 2's place (F4)", () => {
+      render(<Slip slip={{ ...OVER, rematch: { kind: "incoming", line: "Kári asks for a rematch · 0:24", secondsLeft: 24, drain: 0.8 } }} onAction={() => {}} compact />);
+      expect(screen.getByTestId("slip-accept-rematch")).toBeInTheDocument();
+      expect(screen.queryByTestId("slip-review-field")).toBeNull();
+      expect(screen.queryByTestId("slip-lobby")).toBeNull();
+    });
+
     it("once closed, new opponent ▸ leads and challenge again ▸ waits out the cooldown", () => {
       const { rerender } = render(<Slip slip={{ ...OVER, rematch: { kind: "closed", line: "Kári declined", challengeAgain: { enabled: false, label: "again in 0:52" } } }} onAction={() => {}} />);
       expect(screen.getByTestId("slip-rematch-line")).toHaveTextContent("Kári declined");
