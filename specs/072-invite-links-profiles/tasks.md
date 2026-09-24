@@ -451,17 +451,17 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ## Phase 11: Polish and cross-cutting
 
-- [ ] T089 [P] Extend `tests/integration/ui/slot-overflow.spec.ts` with every new slot, band, presence and stakes string in both languages at 1440 and 390, and fix any overflow in the copy.
-- [ ] T090 [P] Extend the copy-parity and name-safe tests (`tests/unit/i18n/*`) to the new keys, and list every new `// native-read` string in CLAUDE.md's remaining gaps.
-- [ ] T091 [P] Add axe checks for `/c/<token>` (valid, expired), `/profile`, `/profile/<handle>` (signed in, out) and `/rules` at 1440×900 and 390×844 in both languages, in `tests/integration/ui/pages-a11y.spec.ts`.
-- [ ] T092 [P] Update `docs/prd_and_requirements/wottle_game_rules.md` §12 (rows for the invite link, the link table's wait, and the profile's facts) and `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (word strip, profile layout, link slot states, the invite band).
-- [ ] T093 Update `CLAUDE.md`:
+- [X] T089 [P] Extend `tests/integration/ui/slot-overflow.spec.ts` with every new slot, band, presence and stakes string in both languages at 1440 and 390, and fix any overflow in the copy.
+- [X] T090 [P] Extend the copy-parity and name-safe tests (`tests/unit/i18n/*`) to the new keys, and list every new `// native-read` string in CLAUDE.md's remaining gaps.
+- [X] T091 [P] Add axe checks for `/c/<token>` (valid, expired), `/profile`, `/profile/<handle>` (signed in, out) and `/rules` at 1440×900 and 390×844 in both languages, in `tests/integration/ui/pages-a11y.spec.ts`.
+- [X] T092 [P] Update `docs/prd_and_requirements/wottle_game_rules.md` §12 (rows for the invite link, the link table's wait, and the profile's facts) and `docs/design_documentation/260914-wottle-new-design/WOTTLE_DESIGN_SYSTEM.md` (word strip, profile layout, link slot states, the invite band).
+- [X] T093 Update `CLAUDE.md`:
   - the spec 072 paragraph (links, profiles, rules);
   - the page fixture list;
   - `perf:link-accept` in Performance Testing;
   - the retired profile modules removed from the directory map.
   Then run `pnpm docs:check`.
-- [ ] T094 Run the gates in quickstart.md: lint, typecheck, unit, the integration db suites, the Playwright specs one file at a time, `pnpm test:visual`, `perf:link-accept`, `docs:check` and `guard:no-service-role`. Record the results under "Notes from implementation" in this file.
+- [X] T094 Run the gates in quickstart.md: lint, typecheck, unit, the integration db suites, the Playwright specs one file at a time, `pnpm test:visual`, `perf:link-accept`, `docs:check` and `guard:no-service-role`. Record the results under "Notes from implementation" in this file.
 - [ ] T095 Walk quickstart.md steps 1–13 by hand in two browsers and note any deviation.
 
 ---
@@ -498,4 +498,30 @@ Commit each passing test separately (`test(072): …`, then `feat(072): …`), p
 
 ## Notes from implementation
 
-(Filled in by T094.)
+- **Analysis remediations folded in.** `best_words` and `presence_word` have one caller, `lib/profile/profileRepository.ts` (U1). The lobby sets `Referrer-Policy: no-referrer` while `?invite` is present, and `/c/:token` is no-store, no-referrer and noindex (S1). The application never logs a token or hash, though request paths reach platform logs (accepted: 10 minutes, single use). The room's `profile` fixture and its baselines are gone (G1). A searching player reads `here now` and can be challenged (A1). The actions carry JSDoc (C2). Not done: the polling-only run of the invite flow (C1). It needs a dev server started with `NEXT_PUBLIC_DISABLE_REALTIME=true`.
+- **`accept_link` lives in `lib/match/createMatch.ts`** with the other creation functions, so a table full at creation starts there, and the one-way-to-make-a-match grep holds.
+- **The sender goes to a used link's table** through `OutgoingLink.matchId` (`useLinkSlot`). The table push alone missed it: when both players are seated at creation, the table starts at once and is never `pending` on the sender's side.
+- **T050 and T054:** there is no origin filter anywhere, so a link table gets the existing table push, cue and notification. No new code.
+- **T043 (the `?invite` strip):** covered by Playwright rather than a unit test.
+- **The `10moves` typo** only shows through Next's JSX transform: `{totalMoves} moves` rendered without its space on the server, while Vitest kept it. Both languages now build the string in one expression.
+- **The phone link call** reads the challenge's `Kári challenges you` on line 1; `invites you by link` does not fit a 24-character name at 390.
+- **Profile sign-out during a live match** is not drawn at all (spec 067's rule); its reason stands in its place.
+- **`profile-missing` fixture:** not added. The 404 page is covered by `profile.spec.ts`.
+- **The review's `copy link ▸`** has no room fixture, since the menu is closed in every screenshot. It is covered by `RoomMenu.link.spec.tsx`.
+- **The standing context moved** to `components/standing/standingContext.ts`, so light pages (rules, profiles) do not import the standing machine.
+- **Gates, 2026-09-24:**
+  - Lint, typecheck, `docs:check` and `guard:no-service-role` are clean.
+  - Unit: 3,046 pass, 1 fails. `HereNowList.spec.tsx` already failed at the branch point, from the Icelandic copy commit before this spec.
+  - Integration: 240 pass; the one failure left is `match-locale-redirect` (void table), which already failed before any 072 code.
+  - Database: every `tests/integration/db` suite passes, including the new link, one-outgoing, table-void, best-words, `readProfile`, race and standing tests.
+  - `perf:link-accept` p95: create 5ms, read 3ms, accept 5ms.
+  - Visual: every 072 phase has darwin baselines. `page is-door` still fails, as before this spec.
+  - Accessibility: `pages-a11y` is clean, 38 of 38.
+  - Playwright on the local dev server passes: invite-link-flow 5/5, profile 6/6, rules-links 4/4, rules-page 4/4, door, identity, lobby-challenge, lobby-language, lobby-logout, slot-overflow (258), and line-slot's layout-shift test.
+- **Open:**
+  - `line-slot` "a call reaches a hidden tab on /rules in time" reads the call at about 2.4s against its 1.5s budget, every run, on the long-running dev server.
+  - `no request reaches Supabase` sees Supabase JS chunks load on the fixture route on that server.
+  - A comparison against the branch point was attempted but invalid: a second dev server in a worktree cannot start, because Turbopack refuses a symlinked `node_modules`.
+  - Both need a CI run on a production build before they are called regressions or artifacts.
+  - Linux baselines come from the CI visual job.
+- **T095 (the walk by hand):** not done; it needs a person with two browsers.
