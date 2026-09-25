@@ -11,11 +11,6 @@ import type { pagesEn } from "./pages.en";
 
 const signed = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
 
-/** Masculine nominative, for `leikir` (moves). */
-const MOVE_WORDS = ["núll", "einn", "tveir", "þrír", "fjórir", "fimm", "sex", "sjö", "átta", "níu", "tíu", "ellefu", "tólf"];
-/** Feminine dative, for `mínútum`; five and up do not decline. */
-const MINUTE_WORDS = ["núll", "einni", "tveimur", "þremur", "fjórum", "fimm", "sex", "sjö", "átta", "níu", "tíu", "ellefu", "tólf"];
-const word = (table: string[], n: number): string => table[n] ?? String(n);
 const count = (n: number, one: string, other: string): string => `${n} ${plural("is", n, { one, other })}`;
 
 type Widen<T> = T extends string ? string : T extends (...args: never[]) => unknown ? T : T extends object ? { [K in keyof T]: Widen<T[K]> } : T;
@@ -39,12 +34,13 @@ export const pagesIs: Widen<typeof pagesEn> = {
   doorCount: (here: number, matches: number): string =>
     `${here} hér núna · ${count(matches, "viðureign í gangi", "viðureignir í gangi")}`,
   doorCountPhone: (here: number): string => `${here} hér núna`,
-  KICKER: "orð + orusta · orðaeinvígi fyrir tvo",
-  headline: (moves: number): [string, string] => ["Tveir leikmenn, eitt borð,", `${word(MOVE_WORDS, moves)} leikir hvor.`],
-  headlinePhone: (moves: number): [string, string, string] => ["Tveir leikmenn,", "eitt borð,", `${word(MOVE_WORDS, moves)} leikir hvor.`],
-  lede: (minutes: number): string =>
-    `Skiptu á tveimur stöfum og myndaðu orð. Orð sem gefa stig frjósa í þínum lit. Flest stig á ${word(MINUTE_WORDS, minutes)} mínútum vinnur.`, // native-read
-  NAME_LABEL: "nafn",
+  WELCOME: "Velkomin í Orðustu.",
+  TAGLINE: "Orðaeinvígi fyrir tvo.",
+  NAME_LABEL: "veldu notendanafn",
+  NAME_CHARS: "ekkert bil eða tákn · bara stafir, tölur, - og _", // native-read
+  NAME_LONG: "mest 24 stafir",
+  NAME_SHORT: "minnst 3 stafir",
+  ENTERING: "opna lobbíið",
   hereNow: (n: number): string => `hér núna · ${n}`,
   hereNowRated: (n: number, languageName: string): string => `hér núna · ${n} · elo · ${languageName}`,
   more: (n: number): string => `+ ${n} fleiri`,
@@ -53,7 +49,6 @@ export const pagesIs: Widen<typeof pagesEn> = {
   HOW_IT_PLAYS: "leiðbeiningar",
   STEPS: ["Skiptu á tveimur stöfum.", "Þrír stafir eða fleiri í beinni línu.", "Stafir í orði frjósa í þínum lit."],
   doorTitle: (wordmark: string): string => `${wordmark} · orðaeinvígi fyrir tvo`,
-  LOCKUP_LABEL: "Orðusta, Wottle á ensku",
 
   HERE: "hér",
   SEARCHING: "leitar",
