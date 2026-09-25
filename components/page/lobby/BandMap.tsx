@@ -1,12 +1,25 @@
 "use client";
 
-import { bandMap } from "@/lib/pages/bandMap";
+import { bandMap, mapLetters } from "@/lib/pages/bandMap";
 import type { Band } from "@/lib/types/standing";
 
 const LINES = Array.from({ length: 9 }, (_, i) => (i + 1) * 10);
 
-/** The band map (game flow B1, §8 item 7): a 10×10 grid of rules with the last match's bands, no frame, no letters. */
-export function BandMap({ bands, label }: { bands: Band[]; label: string }) {
+interface BandMapProps {
+  bands: Band[];
+  /** The board as the match ended; without it the map is bands alone. */
+  board: string[][] | null;
+  label: string;
+}
+
+/**
+ * The last match as it ended (game flow B1, amended 2026-09-25): the final
+ * field in the field's own terms. Rules, bands and chevrons in seat colour,
+ * each scored letter in the colour of the player who froze it first, every
+ * other letter muted, inside the field's ink frame.
+ */
+export function BandMap({ bands, board, label }: BandMapProps) {
+  const letters = mapLetters(board, bands);
   return (
     <svg className="band-map" viewBox="0 0 100 100" role="img" aria-label={label} preserveAspectRatio="none">
       {LINES.map((v) => (
@@ -21,6 +34,17 @@ export function BandMap({ bands, label }: { bands: Band[]; label: string }) {
           <path d={b.chevron} className={`mark-chevron mark-chevron--${b.seat} band-map__chevron`} />
         </g>
       ))}
+      {letters.map((l) => (
+        <text
+          key={`${l.x},${l.y}`}
+          x={l.x * 10 + 5}
+          y={l.y * 10 + 5}
+          className={`band-map__letter${l.seat ? ` band-map__letter--${l.seat}` : ""}`}
+        >
+          {l.letter}
+        </text>
+      ))}
+      {letters.length > 0 ? <rect x={0} y={0} width={100} height={100} className="band-map__frame" /> : null}
     </svg>
   );
 }

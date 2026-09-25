@@ -67,7 +67,6 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
   const { slot, facts, held, now } = standing;
   const languageName = facts.lobbyLanguage === "is" ? copy.pages.LANGUAGE_NAME_IS : copy.pages.LANGUAGE_NAME_EN;
   const model = slotLines(slot, copy, { nowMs: now, phone, viewer: facts.viewer, searchingCount: facts.counts.searching, languageName, linkText: standing.linkText ?? null, clipboardRefused: standing.clipboardRefused ?? false });
-  const counts = { here: facts.counts.here, playing: facts.counts.playing };
   // LobbyIncoming shows the skip link focused: it is the page's first stop while a call is up.
   useEffect(() => {
     if (focusSkip) document.querySelector<HTMLElement>('[data-testid="skip-to-call"]')?.focus();
@@ -78,7 +77,7 @@ function StandingFixturePage({ fixture, standing, focusSkip = false }: { fixture
       place="lobby"
       viewer={{ displayName: fixture.viewer.displayName, handle: fixture.viewer.handle }}
       otherLobbyHere={fixture.overview.counts.other.here}
-      slot={<LineSlot model={model} onAction={NO_OP} announcement="" counts={counts} variant="desktop" />}
+      slot={<LineSlot model={model} onAction={NO_OP} announcement="" variant="desktop" />}
       bottomSlot={model.style === "terms" ? null : <LineSlot model={model} onAction={NO_OP} announcement="" variant="phone" />}
       bottomHeight={phoneSlotHeight(model)}
       skipLabel={slot.kind === "call" ? copy.pages.skipToCall(slot.call.from.displayName) : slot.kind === "linkCall" ? copy.pages.skipToCall(slot.call.view.senderName) : null}

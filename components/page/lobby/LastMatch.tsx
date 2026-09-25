@@ -3,16 +3,21 @@
 import Link from "next/link";
 
 import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { rowsAfter } from "@/lib/pages/lastMatches";
 import { formatClock } from "@/lib/room/clock";
+import type { RecentGameRow } from "@/lib/types/lobby";
 import type { LastMatch as LastMatchFacts } from "@/lib/types/standing";
 
 import { BandMap } from "./BandMap";
+import { RecentRows } from "./RecentMatches";
 import { whenWord } from "./when";
 
 interface LastMatchProps {
   last: LastMatchFacts;
   viewerName: string;
   nowMs: number;
+  /** Your recent matches; the ones after the drawn match follow it as rows. */
+  recent: RecentGameRow[];
 }
 
 /**
@@ -35,8 +40,12 @@ function Verdict({ line, winner, youWon, you, them }: { line: string; winner: st
   );
 }
 
-/** Your last match (game flow B1): the band map in one link to its review, the verdict, and who, how long, when. */
-export function LastMatch({ last, viewerName, nowMs }: LastMatchProps) {
+/**
+ * Your last matches (game flow B1, amended 2026-09-25): one list under one
+ * heading. The latest is drawn as its final board in one link to its review,
+ * with the verdict and who, how long, when; the next three follow as rows.
+ */
+export function LastMatch({ last, viewerName, nowMs, recent }: LastMatchProps) {
   const copy = useCopy();
   const locale = useLocale();
   const to = useLocalePath();
@@ -46,9 +55,9 @@ export function LastMatch({ last, viewerName, nowMs }: LastMatchProps) {
   const [first, second] = last.youWon === false ? [last.them, last.you] : [last.you, last.them];
   return (
     <section className="last-match" aria-labelledby="last-match-label">
-      <h2 id="last-match-label" className="page-caption">{copy.pages.LAST_MATCH}</h2>
+      <h2 id="last-match-label" className="page-caption">{copy.pages.LAST_MATCHES}</h2>
       <Link href={href} className="last-match__map" aria-label={copy.pages.REVIEW_LAST}>
-        <BandMap bands={last.bands} label={copy.pages.bandMapAria(viewerName, last.you, last.opponent, last.them, when)} />
+        <BandMap bands={last.bands} board={last.board} label={copy.pages.bandMapAria(viewerName, last.you, last.opponent, last.them, when)} />
       </Link>
       <p className="last-match__verdict" data-testid="last-match-verdict">
         {winner === null ? copy.pages.drawLine(last.you, last.them) : <Verdict line={copy.pages.winsLine(winner, first, second)} winner={winner} youWon={Boolean(last.youWon)} you={last.you} them={last.them} />}
@@ -57,6 +66,7 @@ export function LastMatch({ last, viewerName, nowMs }: LastMatchProps) {
         <span className="page-label">{copy.pages.lastMatchDetail(last.opponent, last.durationMs ? formatClock(last.durationMs) : "", when)}</span>
         <Link href={href} className="page-link page-link--ink">{copy.pages.REVIEW}</Link>
       </p>
+      <RecentRows games={rowsAfter(recent, last.matchId)} />
     </section>
   );
 }
