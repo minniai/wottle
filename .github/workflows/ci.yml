@@ -172,7 +172,9 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
-          version: 2.75.0
+          # The CLI pins the local Realtime image. Pokes (spec 070) use
+          # httpSend's per-topic route, which Realtime 2.73 (CLI 2.75) lacks.
+          version: 2.117.0
       - name: Capture CLI version for Docker cache key
         id: supabase-version
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
@@ -330,7 +332,9 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
-          version: 2.75.0
+          # The CLI pins the local Realtime image. Pokes (spec 070) use
+          # httpSend's per-topic route, which Realtime 2.73 (CLI 2.75) lacks.
+          version: 2.117.0
       - name: Capture CLI version for Docker cache key
         id: supabase-version
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT
@@ -694,7 +698,9 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
-          version: 2.75.0
+          # The CLI pins the local Realtime image. Pokes (spec 070) use
+          # httpSend's per-topic route, which Realtime 2.73 (CLI 2.75) lacks.
+          version: 2.117.0
       - name: Capture CLI version for Docker cache key
         id: supabase-version
         run: echo "version=$(supabase --version)" >> $GITHUB_OUTPUT

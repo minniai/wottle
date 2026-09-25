@@ -55,6 +55,16 @@ describe("useHeldOutcome", () => {
     expect(result.current).toBeNull();
   });
 
+  it("hands over an accepted challenge this tab saw pending, however late the read (a lost poke)", () => {
+    const onAccepted = vi.fn();
+    const { result, rerender } = renderHook(({ o }) => useHeldOutcome(o, onAccepted), { initialProps: { o: outgoing("pending") as OutgoingChallenge | null } });
+    // The poke was lost: the 12s fallback poll reads the outcome long after it was decided.
+    rerender({ o: outgoing("accepted", { matchId: "00000000-0000-4000-8000-000000000009", respondedAt: new Date(Date.now() - 11_000).toISOString() }) });
+    expect(result.current?.outcome).toBe("accepted");
+    act(() => void vi.advanceTimersByTime(400));
+    expect(onAccepted).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000009");
+  });
+
   it("does not show an outcome older than its hold when first read (a reload)", () => {
     const { result } = renderHook(() => useHeldOutcome(outgoing("declined", { respondedAt: new Date(Date.now() - 10_000).toISOString() }), vi.fn()));
     expect(result.current).toBeNull();
