@@ -16,7 +16,7 @@ interface BandMapProps {
  * The last match as it ended (game flow B1, amended 2026-09-25): the final
  * field in the field's own terms. Rules, bands and chevrons in seat colour,
  * each scored letter in the colour of the player who froze it first, every
- * other letter muted, inside the field's ink frame.
+ * other letter muted, inside a hairline edge.
  */
 export function BandMap({ bands, board, label }: BandMapProps) {
   const letters = mapLetters(board, bands);
