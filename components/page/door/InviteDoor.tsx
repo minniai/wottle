@@ -17,6 +17,7 @@ import type { Overview } from "@/lib/types/standing";
 import { PageFrame } from "../PageFrame";
 import { useActivationGuard } from "../useActivationGuard";
 import { Door } from "./Door";
+import { NameField, useNameField } from "./NameField";
 
 interface InviteEntryProps {
   token: string;
@@ -80,8 +81,8 @@ export function InviteEntry({ token, view, returning, renderedAt }: InviteEntryP
   const nowMs = useNowFrom(renderedAt);
   const [expired, setExpired] = useState(false);
   const [anotherName, setAnotherName] = useState(false);
-  const [name, setName] = useState("");
-  const [error, setError] = useState<ErrorCode | null>(null);
+  const field = useNameField();
+  const { name, serverError: error, setServerError: setError } = field;
   const asReturning = Boolean(returning && !anotherName);
   const model = inviteDoorModel(expired ? null : view, nowMs, copy, asReturning ? "returning" : "empty");
   const ready = useActivationGuard(`${model.primary.action}:${asReturning}`);
@@ -89,7 +90,7 @@ export function InviteEntry({ token, view, returning, renderedAt }: InviteEntryP
   const lobbyWithCall = lobbyWithInvite(locale, token);
 
   const onAccept = () => {
-    if (!ready() || pending) return;
+    if (!ready() || pending || (!asReturning && !field.valid)) return;
     accept(asReturning ? { token, mode: "returning" } : { token, mode: "name", name });
   };
   const onLobbyInstead = async () => {
@@ -123,28 +124,22 @@ export function InviteEntry({ token, view, returning, renderedAt }: InviteEntryP
           </span>
         </>
       ) : (
-        <>
-          <label htmlFor="door-name" className="page-caption">{copy.pages.NAME_LABEL}</label>
-          <input
-            id="door-name"
-            name="username"
-            className="door-form__input"
-            placeholder={copy.YOUR_NAME_PLACEHOLDER}
-            autoComplete="username"
-            maxLength={24}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onAccept()}
-            aria-describedby="door-error"
-            aria-invalid={error !== null}
-            data-testid="door-name"
-          />
-        </>
+        <NameField field={field} readOnly={pending} onEnter={onAccept} />
       )}
-      <p id="door-error" className="page-label door-form__error" aria-live="polite" data-testid="door-error" data-error={error !== null}>
-        {error ? copy.errors[error] : asReturning ? null : copy.errors.invalid_name}
-      </p>
-      <button type="button" className="action-primary page-primary page-primary--block" aria-disabled={pending} onClick={onAccept} data-testid="invite-accept">
+      {asReturning ? (
+        <p id="door-error" className="page-label door-form__error" aria-live="polite" data-testid="door-error" data-error={error !== null}>
+          {error ? copy.errors[error] : null}
+        </p>
+      ) : null}
+      <button
+        type="button"
+        className="action-primary page-primary page-primary--block"
+        disabled={!asReturning && !field.valid}
+        aria-disabled={pending}
+        aria-busy={pending}
+        onClick={onAccept}
+        data-testid="invite-accept"
+      >
         {model.primary.label}
       </button>
       <button type="button" className="page-link page-link--ink" onClick={() => void onLobbyInstead()} data-testid="invite-lobby-instead">

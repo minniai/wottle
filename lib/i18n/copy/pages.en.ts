@@ -8,9 +8,6 @@
 const signed = (n: number): string => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
 const s = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
-const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
-const numberWord = (n: number): string => NUMBER_WORDS[n] ?? String(n);
-
 export const pagesEn = {
   // Frame (game flow §5.0)
   switchTo: (count: number | null): string => (count ? `íslenska · ${count} hér ▸` : "íslenska ▸"),
@@ -30,12 +27,13 @@ export const pagesEn = {
   // Door (A1, F1)
   doorCount: (here: number, matches: number): string => `${here} here now · ${s(matches, "match on", "matches on")}`,
   doorCountPhone: (here: number): string => `${here} here now`,
-  KICKER: "word + battle · a word duel for two",
-  headline: (moves: number): [string, string] => ["Two players, one field,", `${numberWord(moves)} moves each.`],
-  headlinePhone: (moves: number): [string, string, string] => ["Two players,", "one field,", `${numberWord(moves)} moves each.`],
-  lede: (minutes: number): string =>
-    `Swap two letters to make words. Every word you score freezes in your colour. Most points in ${numberWord(minutes)} minutes wins.`,
-  NAME_LABEL: "your name",
+  WELCOME: "Welcome to Wottle.",
+  TAGLINE: "A word duel for two.",
+  NAME_LABEL: "pick a username",
+  NAME_CHARS: "no spaces or symbols · letters, digits, - and _",
+  NAME_LONG: "24 characters at most",
+  NAME_SHORT: "at least 3 characters",
+  ENTERING: "opening the lobby",
   hereNow: (n: number): string => `here now · ${n}`,
   hereNowRated: (n: number, languageName: string): string => `here now · ${n} · rating · ${languageName}`,
   more: (n: number): string => `+ ${n} more`,
@@ -44,7 +42,6 @@ export const pagesEn = {
   HOW_IT_PLAYS: "how it plays",
   STEPS: ["Swap two letters.", "Three letters or more, in a line.", "Scored letters freeze in your colour."],
   doorTitle: (wordmark: string): string => `${wordmark} · a word duel for two`,
-  LOCKUP_LABEL: "Wottle, Orðusta in Icelandic",
 
   // Presence (§7.1)
   HERE: "here",

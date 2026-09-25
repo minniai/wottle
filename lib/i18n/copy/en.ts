@@ -35,7 +35,7 @@ const FINDING_OPPONENT = "Finding an opponent";
 const searchingSubline = (elapsedMmSs: string): string =>
   `searching · ${elapsedMmSs} · ${CANCEL}`;
 const startsIn = (seconds: number): string => `starts in ${seconds}`;
-const YOUR_NAME_PLACEHOLDER = "your name";
+const YOUR_NAME_PLACEHOLDER = "e.g. Birna";
 const NO_ACCOUNT_NEEDED = "no account needed";
 // The returning door (spec 067 US3, artboard DoorReturning)
 const THIS_BROWSER_KEEPS_YOUR_NAME = "this browser keeps your name";
