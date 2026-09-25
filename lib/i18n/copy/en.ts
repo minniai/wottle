@@ -36,9 +36,7 @@ const searchingSubline = (elapsedMmSs: string): string =>
   `searching · ${elapsedMmSs} · ${CANCEL}`;
 const startsIn = (seconds: number): string => `starts in ${seconds}`;
 const YOUR_NAME_PLACEHOLDER = "e.g. Birna";
-const NO_ACCOUNT_NEEDED = "no account needed";
 // The returning door (spec 067 US3, artboard DoorReturning)
-const THIS_BROWSER_KEEPS_YOUR_NAME = "this browser keeps your name";
 const WELCOME_BACK = "welcome back";
 const ENTER_LOBBY = "enter the lobby ▸";
 const notYou = (name: string): string => `not ${name}? · use another name`;
@@ -397,8 +395,6 @@ export const copyEn = {
   searchingSubline,
   startsIn,
   YOUR_NAME_PLACEHOLDER,
-  NO_ACCOUNT_NEEDED,
-  THIS_BROWSER_KEEPS_YOUR_NAME,
   WELCOME_BACK,
   ENTER_LOBBY,
   notYou,

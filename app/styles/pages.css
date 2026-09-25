@@ -411,12 +411,6 @@
   font-size: 28px;
   color: var(--ink);
 }
-.door-notes {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 4px 0 0;
-}
 .door-here,
 .door-how {
   margin-top: 28px;

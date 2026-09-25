@@ -35,16 +35,6 @@ function useEntering(): { entering: boolean; run: (action: () => Promise<boolean
   return { entering: pending || entered, run };
 }
 
-function Notes() {
-  const { NO_ACCOUNT_NEEDED, THIS_BROWSER_KEEPS_YOUR_NAME } = useCopy();
-  return (
-    <p className="door-notes">
-      <span className="page-label">{NO_ACCOUNT_NEEDED}</span>
-      <span className="page-label">{THIS_BROWSER_KEEPS_YOUR_NAME}</span>
-    </p>
-  );
-}
-
 /** The one input on the door (A1): the name, its line, one primary that waits for a valid name. */
 export function NameForm({ next }: { next: string | null }) {
   const copy = useCopy();
@@ -71,7 +61,6 @@ export function NameForm({ next }: { next: string | null }) {
       <NameField field={field} readOnly={entering} />
       <input type="hidden" name="language" value={language} />
       <EnterButton label={copy.ENTER_LOBBY} entering={entering} disabled={!field.valid} testId="door-enter" />
-      <Notes />
     </form>
   );
 }
@@ -107,7 +96,6 @@ export function ReturningForm({ returning, next, onAnotherName }: { returning: R
       <button type="button" className="page-link page-link--ink" onClick={onAnotherName} data-testid="door-another-name">
         {copy.notYou(returning.displayName)}
       </button>
-      <Notes />
     </div>
   );
 }
