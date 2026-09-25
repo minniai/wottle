@@ -15,7 +15,7 @@ test.describe("@locale Orðusta at the plain address", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "is");
     await expect(page).toHaveTitle("Orðusta · orðaeinvígi fyrir tvo");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Velkomin í Orðustu.");
-    await expect(page.getByTestId("door-name")).toHaveAttribute("placeholder", "t.d. Kári");
+    await expect(page.getByTestId("door-name")).toHaveAttribute("placeholder", "notandanafn");
   });
 
   test("/is redirects to the unprefixed address, keeping the path", async ({ page }) => {
