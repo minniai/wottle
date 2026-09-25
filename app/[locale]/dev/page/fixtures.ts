@@ -158,7 +158,7 @@ export function lobbyIs(): LobbyFixture {
     overview: {
       counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "en", here: 7 } },
       lastMatch: { matchId: id(101), opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: yesterday(), youWon: true, bands: BANDS, board: LAST_BOARD },
-      form: ["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"],
+      form: ["W", "W", "L", "D", "L", "W", "W", "L", "W", "W"],
     },
     recent: [recent(1, "Kári", 134, 88), recent(2, "Embla", 184, 150), recent(3, "Jónas", 132, 171), recent(4, "Kári", 166, 159)],
   };
