@@ -58,9 +58,18 @@ describe("strip (§6 companion)", () => {
   it("is the locale's name as one word of ink letters, numerals only from 32px cells", () => {
     const s = strip("is", 22);
     expect(s.letters.map((c) => c.letter).join("")).toBe("ORÐUSTA");
-    expect(s).toMatchObject({ width: 154, height: 22, showNumerals: false });
-    expect(strip("en", 40)).toMatchObject({ width: 240, showNumerals: true });
+    expect(s).toMatchObject({ width: 176, height: 22, showNumerals: false });
+    expect(strip("en", 40)).toMatchObject({ width: 280, showNumerals: true });
     expect(strip("en", 40).letters.map((c) => c.value)).toEqual([4, 1, 1, 1, 1, 1]);
+  });
+
+  it("seats the chevron in a cell of its own before the word, centred like a letter", () => {
+    const s = strip("is", 100);
+    expect(s.letters.map((c) => c.col)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(s.band).toMatchObject({ x: 105, y: 20, w: 690, h: 60 });
+    // Cap height tall (34% of a cell), 16% deep, centred on the lead cell.
+    expect(s.chevron).toBe("M42 33 L58 50 L42 67");
+    expect(strip("is", 22).chevron).toBe("M9.2 7.3 L12.8 11 L9.2 14.7");
   });
 });
 
