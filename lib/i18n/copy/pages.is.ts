@@ -36,7 +36,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   doorCountPhone: (here: number): string => `${here} hér núna`,
   WELCOME: "Velkomin í Orðustu.",
   TAGLINE: "Orðaeinvígi fyrir tvo.",
-  NAME_LABEL: "veldu notendanafn",
+  NAME_LABEL: "veldu notandanafn",
   NAME_CHARS: "ekkert bil eða tákn · bara stafir, tölur, - og _", // native-read
   NAME_LONG: "mest 24 stafir",
   NAME_SHORT: "minnst 3 stafir",
@@ -110,7 +110,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
     `${words} · ${moves} leikir hvor · sigur ${signed(win)} · tap ${signed(loss)}`,
   sentPhone: (name: string, leftMmSs: string): string => `${name} · ${leftMmSs}`,
   SENT_PHONE_LINE2: "áskorun send · haltu skjánum opnum",
-  WITHDRAW: "draga til baka ▸",
+  WITHDRAW: "afturkalla ▸",
   OUTCOMES: {
     accepted: "samþykkt",
     declined: "hafnaði",
