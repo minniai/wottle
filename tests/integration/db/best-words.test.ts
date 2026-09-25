@@ -88,7 +88,8 @@ describe.skipIf(!db)("presence_word (spec 072)", () => {
   it("reads here, in a match, away, the other lobby and not here, and never a time", async () => {
     const [here, playing, away, other, gone, opponent] = await f.players_(["Here", "Playing", "Away", "Other", "Gone", "Opponent"]);
     const live = await f.match(playing, opponent, "in_progress");
-    await db!.client.from("matches").update(playing < opponent ? { player_a_moves: 6 } : { player_b_moves: 6 }).eq("id", live);
+    // `f.match` seats its first player as player A.
+    await db!.client.from("matches").update({ player_a_moves: 6 }).eq("id", live);
     await db!.client.from("presence_tabs").update({ hidden_since: new Date(Date.now() - 180_000).toISOString() }).eq("player_id", away);
     await db!.client.from("presence_tabs").update({ language: "en" }).eq("player_id", other);
     await db!.client.from("players").update({ lobby_language: "en" }).eq("id", other);
