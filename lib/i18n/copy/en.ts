@@ -439,6 +439,7 @@ export const copyEn = {
   ACCEPT,
   DECLINE,
   points,
+  scoreSpan,
   verdictLine,
   drawLine,
   forcedDetail,

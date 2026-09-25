@@ -135,7 +135,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   TABLE_LINE2: "mótspilari fundinn",
   BACK_TO_MATCH: "aftur í viðureignina ▸",
   overLine1: (verdict: string): string => `Viðureigninni er lokið · ${verdict}`,
-  OVER_PHONE: "viðureigninni er lokið",
+  overPhoneLine2: (score: string): string => `${score} · viðureigninni er lokið`,
   switchLine1: (languageName: string): string => `þú ert í ${languageName} lobbíinu`, // native-read
   SWITCH_CONSEQUENCE: {
     search: "leitin hættir ef þú skiptir", // native-read

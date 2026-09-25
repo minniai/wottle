@@ -184,6 +184,7 @@ export const copyIs = {
   verdictLine: (winnerName: string, a: number, b: number): string =>
     `${winnerName} vann ${scoreSpan(a, b)}`,
   drawLine: (a: number, b: number): string => `jafntefli ${scoreSpan(a, b)}`,
+  scoreSpan,
   forcedDetail: (loserName: string, reason: "forfeit" | "disconnect"): string =>
     reason === "forfeit" ? `${loserName} gafst upp` : `${loserName} fór`,
   incompleteDetail: (name: string, moves: number): string => `${name} lék ${moves} af 10`,

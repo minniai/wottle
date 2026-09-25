@@ -82,10 +82,18 @@ describe("slotLines", () => {
 });
 
 describe("slotLines on a phone (spec 070 T112, SC-007)", () => {
-  it("writes the result first and says the match is over beneath, so a long name fits", () => {
+  it("writes who won first and the score and that the match is over beneath, so a long name fits", () => {
     const over: SlotState = { kind: "match", match: { kind: "over", matchId: "m", opponent: "Kári", winner: "opponent", winnerName: "Kári", you: 46, them: 88, endedReason: "moves_complete" } };
-    expect(slotLines(over, en, ctx({ phone: true }))).toMatchObject({ line1: "Kári wins 88–46", line2: "your match is over" });
-    expect(slotLines(over, is, ctx({ phone: true })).line2).toBe("viðureigninni er lokið");
+    expect(slotLines(over, en, ctx({ phone: true }))).toMatchObject({ line1: "Kári wins", line2: "88–46 · your match is over" });
+    expect(slotLines(over, is, ctx({ phone: true }))).toMatchObject({ line1: "Kári vann", line2: "88–46 · viðureigninni er lokið" });
+    const draw: SlotState = { kind: "match", match: { ...over.match, winner: "draw", winnerName: null, you: 60, them: 60 } } as SlotState;
+    expect(slotLines(draw, en, ctx({ phone: true }))).toMatchObject({ line1: "draw", line2: "60–60 · your match is over" });
+  });
+
+  it("writes the opponent alone on line 1 of a running match; its action names the match", () => {
+    const running: SlotState = { kind: "match", match: { kind: "running", matchId: "m", opponent: "Kári", movesPlayed: 3, moveLimit: 10, deadlineAt: at(192_000) } };
+    expect(slotLines(running, en, ctx({ phone: true }))).toMatchObject({ line1: "Kári", line2: "move 4 of 10 · 3:12 left", primary: { label: "back to the match ▸" } });
+    expect(slotLines(running, is, ctx({ phone: true }))).toMatchObject({ line1: "Kári", line2: "leikur 4 af 10 · 3:12 eftir" });
   });
 
   it("gives the slot's actions their own row: the phone slot is taller whenever it has any", () => {
