@@ -57,3 +57,10 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
 - **Match clock**: one 5:00 budget per player for the whole match (`matches.player_a/b_timer_ms`, fallback `300_000` in `lib/match/roundEngine.ts`), 10 rounds. `timePerRoundMs` in `lib/constants/game-config.ts` is not read by the live clock.
 - **Two-player Playwright specs**: files tagged `@two-player-playtest` run in CI on the `playtest-firefox` project with `--workers=1`; locally run them one spec file at a time to avoid Realtime contention.
 - **Realtime channel**: Local Supabase Realtime may show as "disconnected" in the lobby UI; the app automatically falls back to HTTP polling (2s interval). This is expected behavior in development.
+
+## Active Technologies
+- TypeScript 5.x, Node.js 22 + Next.js 16, React 19 (073-fix-lobby-empty-state)
+- Existing Supabase match history; no schema change (073-fix-lobby-empty-state)
+
+## Recent Changes
+- 073-fix-lobby-empty-state: Added TypeScript 5.x, Node.js 22 + Next.js 16, React 19
