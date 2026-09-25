@@ -186,7 +186,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
 
   // Invite links (spec 072: B9, T6, T64)
   INVITE_A_FRIEND: "bjóða vini ▸",
-  linkWorksFor: (minutes: number): string => `senda tengil sem gildir í ${minutes} mínútur`,
+  linkWorksFor: (minutes: number): string => `sendu tengil sem gildir í ${minutes} mínútur`,
   linkCopied: (leftMmSs: string): string => `Tengill afritaður · gildir í ${leftMmSs}`,
   linkOut: (leftMmSs: string): string => `Tengill úti · gildir í ${leftMmSs}`, // native-read
   linkReady: (leftMmSs: string): string => `Tengill tilbúinn · gildir í ${leftMmSs}`, // native-read
