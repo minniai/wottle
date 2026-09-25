@@ -137,7 +137,10 @@ function linkModel(slot: Extract<SlotState, { kind: "link" }>, copy: Copy, ctx: 
 function linkCallModel(slot: Extract<SlotState, { kind: "linkCall" }>, copy: Copy, ctx: SlotContext): SlotModel {
   const { view } = slot.call;
   const ms = left(view.expiresAt, ctx.nowMs);
-  const line2 = [copy.pages.linkCallLine2(String(view.senderRating), copy.LANGUAGE_WORDS, formatClock(ms)), slot.more > 0 ? `+${slot.more}` : null].filter(Boolean).join(" · ");
+  const rating = String(view.senderRating);
+  // A phone has no room for the language words beside the time (SC-007), as with a challenge.
+  const base = ctx.phone ? copy.pages.linkCallLine2Phone(rating, formatClock(ms)) : copy.pages.linkCallLine2(rating, copy.LANGUAGE_WORDS, formatClock(ms));
+  const line2 = [base, slot.more > 0 ? `+${slot.more}` : null].filter(Boolean).join(" · ");
   return {
     style: "call",
     square: "opp",
