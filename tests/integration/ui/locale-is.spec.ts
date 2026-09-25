@@ -29,7 +29,7 @@ test.describe("@locale Orðusta at the plain address", () => {
     await page.goto("/en");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page).toHaveTitle("Wottle · a word duel for two");
-    await expect(page.getByRole("img", { name: "Wottle, Orðusta in Icelandic" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome to Wottle.");
   });
 
   test("signed in at /, the lobby is Icelandic and shows no English line", async ({ page }) => {
