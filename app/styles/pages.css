@@ -618,8 +618,11 @@
   font-weight: 600;
   box-shadow: inset 0 -3px 0 var(--opp);
 }
+/* A draw carries a muted bar of the same weight, so every played match is marked. */
 .form-strip__cell[data-result="D"] {
   color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--muted);
 }
 .lobby-table-wrap {
   margin-top: 24px;
