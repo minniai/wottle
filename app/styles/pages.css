@@ -751,6 +751,8 @@
   display: block;
   width: 100%;
   height: 100%;
+  /* The edge line is centred on the box's edge: let its outer half show. */
+  overflow: visible;
 }
 .band-map__rule line {
   stroke: var(--rule);
@@ -778,10 +780,11 @@
   font-weight: 600;
   fill: var(--opp);
 }
+/* The edge is a hairline in the grid's own rule (2026-09-25): a thumbnail, not the field's frame. */
 .band-map__frame {
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 1.5px;
+  stroke: var(--rule);
+  stroke-width: 1px;
   vector-effect: non-scaling-stroke;
 }
 .last-match__verdict {
