@@ -8,25 +8,33 @@ import { generateTestUsername } from "./helpers/matchmaking";
  * short phone the primary stays above the fold.
  */
 test.describe("the door (spec 070 US1)", () => {
-  test("/ and /en are the door: a lockup, a headline, one name field and no field", async ({ page }) => {
+  test("/ and /en are the door: a welcome, one username field and no field", async ({ page }) => {
     for (const [path, headline, label] of [
-      ["/", "Tveir leikmenn, eitt borð,", "Orðusta, Wottle á ensku"],
-      ["/en", "Two players, one field,", "Wottle, Orðusta in Icelandic"],
+      ["/", "Velkomin í Orðustu.", "veldu notendanafn"],
+      ["/en", "Welcome to Wottle.", "pick a username"],
     ] as const) {
       await page.goto(path);
-      await expect(page.getByRole("heading", { level: 1 })).toContainText(headline);
-      await expect(page.getByRole("img", { name: label })).toBeVisible();
-      await expect(page.getByTestId("door-name")).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(headline);
+      await expect(page.getByLabel(label)).toBeVisible();
+      await expect(page.getByTestId("door-enter")).toBeDisabled();
       await expect(page.getByTestId("field")).toHaveCount(0);
     }
   });
 
-  test("a name too short shows the rule as an error", async ({ page }) => {
+  test("a name with a space is named as it is typed and cannot be sent", async ({ page }) => {
+    await page.goto("/en");
+    await page.getByTestId("door-name").fill("ari jo");
+    await expect(page.getByTestId("door-error")).toHaveText("no spaces or symbols · letters, digits, - and _");
+    await expect(page.getByTestId("door-name")).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByTestId("door-enter")).toBeDisabled();
+  });
+
+  test("a name too short shows once the field is left", async ({ page }) => {
     await page.goto("/en");
     await page.getByTestId("door-name").fill("ab");
-    await page.getByTestId("door-enter").click();
+    await page.getByTestId("door-name").blur();
     await expect(page.getByTestId("door-error")).toHaveAttribute("data-error", "true");
-    await expect(page.getByTestId("door-name")).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByTestId("door-enter")).toBeDisabled();
   });
 
   test("entering lands in the lobby at the same URL, replacing the door in history", async ({ page }) => {
@@ -34,6 +42,7 @@ test.describe("the door (spec 070 US1)", () => {
     await page.goto("/en");
     await page.getByTestId("door-name").fill(generateTestUsername("door"));
     await page.getByTestId("door-enter").click();
+    await expect(page.getByTestId("door-enter")).toHaveAttribute("aria-busy", "true");
     await expect(page.getByTestId("door-form")).toHaveCount(0, { timeout: 20_000 });
     await expect(page).toHaveURL(/\/en(\/lobby)?$/);
     await page.goBack();
