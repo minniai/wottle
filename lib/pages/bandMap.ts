@@ -1,4 +1,4 @@
-import { chevronPath, computeBandRect, type BandRect } from "@/lib/room/bandGeometry";
+import { computeBandRect, type BandRect } from "@/lib/room/bandGeometry";
 import { tryDeriveReadingDirection } from "@/lib/game-engine/readingDirection";
 import type { Band } from "@/lib/types/standing";
 
@@ -13,16 +13,46 @@ export interface MapBand {
 /**
  * The band map (spec 070 US2.4, game flow B1): the last match's scored words as
  * bands on a 10×10 grid of rules, in each owner's seat colour, with their
- * chevrons. A word's direction comes from its tile order.
- * The geometry is the field's own (design system §5.2), so it scales with its box.
+ * chevrons. A word's direction comes from its tile order. The field's geometry
+ * (design system §5.2), with the ends inset further (2026-09-25): at 34px a cell,
+ * the field's 5% put a word's chevron on the map's edge line.
  */
 export function bandMap(bands: Band[]): MapBand[] {
   return bands.flatMap((band) => {
     const direction = tryDeriveReadingDirection(band.tiles);
     if (!direction) return [];
-    const rect = computeBandRect(band.tiles, direction);
-    return [{ seat: band.seat, rect, edge: rect.chevronEdge, chevron: chevronPath(rect) }];
+    const rect = insetEnds(computeBandRect(band.tiles, direction));
+    return [{ seat: band.seat, rect, edge: rect.chevronEdge, chevron: mapChevron(rect) }];
   });
+}
+
+/** 14% of a cell at each end, where the field has 5%. */
+const END_INSET = 1.4;
+const FIELD_END_INSET = 0.5;
+/** 12% of a cell deep, sharper than the field's 9%, so it reads as ▸ at this size. */
+const CHEVRON_DEPTH = 1.2;
+
+function insetEnds(rect: BandRect): BandRect {
+  const extra = END_INSET - FIELD_END_INSET;
+  const round = (n: number) => Math.round(n * 10) / 10;
+  return rect.axis === "horizontal"
+    ? { ...rect, x: round(rect.x + extra), w: round(rect.w - 2 * extra) }
+    : { ...rect, y: round(rect.y + extra), h: round(rect.h - 2 * extra) };
+}
+
+function mapChevron({ x, y, w, h, chevronEdge }: BandRect): string {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  const [cx, cy, d] = [r(x + w / 2), r(y + h / 2), CHEVRON_DEPTH];
+  switch (chevronEdge) {
+    case "left":
+      return `M${x} ${y} L${r(x + d)} ${cy} L${x} ${r(y + h)}`;
+    case "right":
+      return `M${r(x + w)} ${y} L${r(x + w - d)} ${cy} L${r(x + w)} ${r(y + h)}`;
+    case "top":
+      return `M${x} ${y} L${cx} ${r(y + d)} L${r(x + w)} ${y}`;
+    case "bottom":
+      return `M${x} ${r(y + h)} L${cx} ${r(y + h - d)} L${r(x + w)} ${r(y + h)}`;
+  }
 }
 
 export interface MapLetter {
