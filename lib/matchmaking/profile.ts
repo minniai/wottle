@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { SESSION_COOKIE_NAME, SESSION_TTL_SECONDS, sessionCookieOptions } from "@/lib/auth/cookies";
+import { NAME_MAX, NAME_MIN, NAME_PATTERN } from "@/lib/names/nameRule";
 import { requireSessionSecret } from "@/lib/auth/sessionSecret";
 import { signSession, verifySession, type SessionRejection } from "@/lib/auth/sessionToken";
 
@@ -46,12 +47,9 @@ const usernameSchema = z
     invalid_type_error: "Username must be a string.",
   })
   .trim()
-  .min(3, "Username must be at least 3 characters long.")
-  .max(24, "Username must be fewer than 25 characters.")
-  .regex(
-    /^[A-Za-zÁÐÉÍÓÚÝÞÆÖáðéíóúýþæö0-9_-]+$/,
-    "Use only letters (including Icelandic), numbers, underscores, or hyphens."
-  );
+  .min(NAME_MIN, "Username must be at least 3 characters long.")
+  .max(NAME_MAX, "Username must be fewer than 25 characters.")
+  .regex(NAME_PATTERN, "Use only letters (including Icelandic), numbers, underscores, or hyphens.");
 
 export class LoginValidationError extends Error {
   constructor(message: string) {
