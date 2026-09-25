@@ -4,7 +4,7 @@ import { useCopy } from "@/components/i18n/LocaleProvider";
 import { formStrip } from "@/lib/pages/formStrip";
 import type { FormResult } from "@/lib/types/standing";
 
-/** The form strip (game flow B1): ten ruled cells, oldest first; a win carries a bar in your colour, a loss one in theirs. Not a lane. */
+/** The form strip (game flow B1): ten ruled cells, oldest first; a win carries a bar in your colour, a loss one in theirs, a draw a muted one. Not a lane. */
 export function FormStrip({ results }: { results: FormResult[] }) {
   const copy = useCopy();
   const strip = formStrip(results, copy);
