@@ -129,7 +129,7 @@ export const pagesEn = {
   TABLE_LINE2: "opponent found",
   BACK_TO_MATCH: "back to the match ▸",
   overLine1: (verdict: string): string => `Your match is over · ${verdict}`,
-  OVER_PHONE: "your match is over",
+  overPhoneLine2: (score: string): string => `${score} · your match is over`,
   switchLine1: (languageName: string): string => `you are in the ${languageName} lobby`,
   SWITCH_CONSEQUENCE: {
     search: "switching cancels your search",

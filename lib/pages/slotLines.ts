@@ -91,12 +91,19 @@ function matchModel(match: MatchFact, copy: Copy, ctx: SlotContext): SlotModel {
     const verdict = match.winner === "draw" || !match.winnerName ? copy.drawLine(match.you, match.them) : copy.verdictLine(match.winnerName, Math.max(match.you, match.them), Math.min(match.you, match.them));
     const detail = match.winner === "draw" ? "" : copy.marginDetail(Math.abs(match.you - match.them));
     const result = { primary: { label: copy.RESULT, action: "result" as const } };
-    // A phone has no room for both: the verdict leads and the fact follows (SC-007).
-    if (ctx.phone) return status(verdict, copy.pages.OVER_PHONE, result);
+    // A phone has no room for a 24-character name and the rest: who won leads, the score follows (SC-007).
+    if (ctx.phone) return status(phoneVerdict(match, copy), copy.pages.overPhoneLine2(copy.scoreSpan(Math.max(match.you, match.them), Math.min(match.you, match.them))), result);
     return status(copy.pages.overLine1(verdict), detail, result);
   }
   const line2 = match.kind === "table" ? copy.pages.TABLE_LINE2 : copy.pages.matchLine2(Math.min(match.movesPlayed + 1, match.moveLimit), match.moveLimit, formatClock(match.deadlineAt ? left(match.deadlineAt, ctx.nowMs) : 0));
-  return status(copy.pages.matchLine1(match.opponent), line2, { primary: { label: copy.pages.BACK_TO_MATCH, action: "backToMatch" } });
+  const back = { primary: { label: copy.pages.BACK_TO_MATCH, action: "backToMatch" as const } };
+  // On a phone the name stands alone: `back to the match ▸` beneath says whose match it is (SC-007).
+  if (ctx.phone) return status(match.opponent, line2, back);
+  return status(copy.pages.matchLine1(match.opponent), line2, back);
+}
+
+function phoneVerdict(match: Extract<MatchFact, { kind: "over" }>, copy: Copy): string {
+  return match.winner === "draw" || !match.winnerName ? copy.DRAW : copy.winsHeadline(match.winnerName);
 }
 
 function sentModel(slot: Extract<SlotState, { kind: "sent" }>, copy: Copy, ctx: SlotContext): SlotModel {
