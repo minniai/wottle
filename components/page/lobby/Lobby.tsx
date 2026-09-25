@@ -65,7 +65,6 @@ function FirstMatch() {
   return (
     <section className="last-match last-match--first">
       <h2 className="page-caption">{copy.pages.LAST_MATCHES}</h2>
-      <RulesFigure kind="swap" caption={copy.pages.STEPS[0]} />
       <p className="page-sentence">{copy.pages.FIRST_MATCH}</p>
       <Link href={to("/rules")} className="page-link page-link--ink">
         {copy.HOW_TO_PLAY}
