@@ -203,6 +203,7 @@ export const pagesEn = {
   ownLinkLine2: (leftMmSs: string): string => `valid ${leftMmSs}`,
   linkCallLine1: (name: string): string => `${name} invites you by link`,
   linkCallLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · link valid ${leftMmSs}`,
+  linkCallLine2Phone: (rating: string, leftMmSs: string): string => `${rating} · link valid ${leftMmSs}`,
   linkCallAnnounce: (name: string): string => `${name} invites you by link`,
   SENDING_CANCELS_LINK: "sending cancels your link",
   FINDING_CANCELS_LINK: "finding cancels your link",
