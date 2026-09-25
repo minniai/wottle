@@ -5,8 +5,6 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
-import { RulesFigure } from "@/components/rules/RulesFigure";
-import "@/app/styles/rules.css";
 import { orderRows } from "@/lib/pages/lobbyRows";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { LobbyRow, Overview } from "@/lib/types/standing";
@@ -48,14 +46,13 @@ function closedOverlays(rows: LobbyRow[]): Map<string, RowOverlay> {
   return new Map(rows.map((r) => [r.playerId, { action: "none" as const }]));
 }
 
-/** A new player's last-match slot (B1): the rules' swap figure, the line, and the rules. */
+/** A new player's last-match slot: no prior match is represented as an empty state. */
 function FirstMatch() {
   const copy = useCopy();
   const to = useLocalePath();
   return (
     <section className="last-match last-match--first">
       <h2 className="page-caption">{copy.pages.LAST_MATCH}</h2>
-      <RulesFigure kind="swap" caption={copy.pages.STEPS[0]} />
       <p className="page-sentence">{copy.pages.FIRST_MATCH}</p>
       <Link href={to("/rules")} className="page-link page-link--ink">{copy.HOW_TO_PLAY}</Link>
     </section>
