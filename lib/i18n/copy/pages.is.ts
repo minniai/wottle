@@ -203,6 +203,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   ownLinkLine2: (leftMmSs: string): string => `gildir í ${leftMmSs}`,
   linkCallLine1: (name: string): string => `${name} býður þér með tengli`, // native-read
   linkCallLine2: (rating: string, words: string, leftMmSs: string): string => `${rating} · ${words} · tengill gildir í ${leftMmSs}`,
+  linkCallLine2Phone: (rating: string, leftMmSs: string): string => `${rating} · tengill gildir í ${leftMmSs}`,
   linkCallAnnounce: (name: string): string => `${name} býður þér með tengli`, // native-read
   SENDING_CANCELS_LINK: "tengillinn þinn fellur úr gildi", // native-read
   FINDING_CANCELS_LINK: "tengillinn þinn fellur úr gildi", // native-read

@@ -18,7 +18,7 @@ describe("HereNowList", () => {
     expect(screen.getByText("hér núna · 2 · elo · íslenska")).toBeTruthy();
     expect(screen.getByText("Embla")).toBeTruthy();
     expect(screen.getByText("leitar")).toBeTruthy();
-    expect(screen.getByText("þú finnur mótspilara í lobbíinu")).toBeTruthy();
+    expect(screen.getByText("finna mótspilara í lobbíinu ▸")).toBeTruthy();
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 
