@@ -55,6 +55,9 @@ test.describe("the door (spec 070 US1)", () => {
     await page.getByTestId("door-enter").click();
     await expect(page).toHaveURL(/\/en\/rules$/, { timeout: 20_000 });
 
+    // Leave the page first: a beat or poll still in flight from /en/rules would bring the
+    // renewed session cookie back after the clear.
+    await page.goto("about:blank");
     await context.clearCookies();
     await page.goto("/en?next=//evil.example");
     await page.getByTestId("door-name").fill(generateTestUsername("evil"));

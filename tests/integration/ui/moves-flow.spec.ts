@@ -65,7 +65,7 @@ test.describe("Move flow", () => {
       for (const p of [pageA, pageB]) {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 45_000 });
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 20_000 });
-        await expect(p.getByTestId("slip")).toContainText(/wins|draw/);
+        await expect(p.getByTestId("slip")).toContainText(/wins|draw/i);
         await expect(rail(p)).toHaveAttribute("aria-valuenow", "0");
         // The scoreboard holds the time that was left (spec 068); the desktop caption holds the final actions.
         await expect(p.getByTestId("scoreboard-clock")).toContainText(/match over/i);

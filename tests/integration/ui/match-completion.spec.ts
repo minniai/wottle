@@ -82,7 +82,7 @@ test.describe("@match-completion final room state", () => {
         await expect(p).toHaveURL(/\/match\/[0-9a-f-]+$/);
         // Spec 048 US1: the result is the one dialog in the room — the slip over the field.
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });
-        await expect(p.getByTestId("slip")).toContainText(/wins|draw/);
+        await expect(p.getByTestId("slip")).toContainText(/wins|draw/i);
         // Spec 071 (FR-001, FR-004, FR-008): the game raised it, so its headline has focus;
         // the detail says once why it ended; the tab names the winner.
         await expect(p.getByTestId("slip").getByRole("heading")).toBeFocused();

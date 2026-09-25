@@ -6,7 +6,8 @@ import type { MatchState } from "@/lib/types/match";
  * alongside Realtime for the case where broadcasts fail silently, so it must
  * catch every signal a broadcast can carry: a move finished (the resolution
  * cursor moved), the match started or ended, a move went in or out of flight,
- * the disconnect flag flipped, a player sat down at the table (spec 069).
+ * the disconnect flag flipped, a player stepped out to another page (spec 070,
+ * which only a poll carries), a player sat down at the table (spec 069).
  */
 export function shouldApplySafetySnapshot(current: MatchState, snapshot: MatchState): boolean {
   return (
@@ -15,6 +16,7 @@ export function shouldApplySafetySnapshot(current: MatchState, snapshot: MatchSt
     (snapshot.clock.startedAt ?? null) !== (current.clock.startedAt ?? null) ||
     inFlightChanged(current, snapshot) ||
     (snapshot.disconnectedPlayerId ?? null) !== (current.disconnectedPlayerId ?? null) ||
+    (snapshot.steppedOutPlayerId ?? null) !== (current.steppedOutPlayerId ?? null) ||
     seatsChanged(current, snapshot)
   );
 }

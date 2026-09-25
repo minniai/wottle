@@ -54,6 +54,12 @@ describe("shouldApplySafetySnapshot", () => {
     expect(shouldApplySafetySnapshot(buildState({ disconnectedPlayerId: "player-b" }), buildState())).toBe(true);
   });
 
+  it("applies when a player steps out to another page or comes back (spec 070 US8)", () => {
+    expect(shouldApplySafetySnapshot(buildState(), buildState({ steppedOutPlayerId: "player-b" }))).toBe(true);
+    expect(shouldApplySafetySnapshot(buildState({ steppedOutPlayerId: "player-b" }), buildState())).toBe(true);
+    expect(shouldApplySafetySnapshot(buildState({ steppedOutPlayerId: "player-b" }), buildState({ steppedOutPlayerId: "player-b" }))).toBe(false);
+  });
+
   it("applies a seat taken at the table (spec 069)", () => {
     const current = buildState();
     const seated = { ...current, table: { ...current.table, seats: { a: current.table.seats.a, b: null } } };
