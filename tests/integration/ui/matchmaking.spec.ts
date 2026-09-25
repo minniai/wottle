@@ -67,7 +67,7 @@ test.describe("@matchmaking queue → found → match in the room", () => {
         await expect(p.getByTestId("room")).toHaveAttribute("data-phase", "final", { timeout: 30_000 });
         await expect(p.getByTestId("room")).toHaveAttribute("data-match-id", idA!);
         await expect(p.getByTestId("slip")).toHaveAttribute("data-kind", "matchOver", { timeout: 15_000 });
-        await expect(p.getByTestId("verdict")).toContainText(/wins|draw/);
+        await expect(p.getByTestId("verdict")).toContainText(/wins|draw/i);
         await expect(p.getByTestId("scoreboard-row-opp")).not.toContainText("Finding an opponent");
       }
 
