@@ -57,6 +57,7 @@ interface LastMatchRow {
   completed_at: string;
   player_a_score: number | null;
   player_b_score: number | null;
+  board: string[][] | null;
   player_a: { display_name: string } | null;
   player_b: { display_name: string } | null;
 }
@@ -65,7 +66,7 @@ async function lastMatch(playerId: string, language: LobbyLanguage): Promise<Las
   const client = getServiceRoleClient();
   const { data, error } = await client
     .from("matches")
-    .select("id, player_a_id, player_b_id, winner_id, started_at, completed_at, player_a_score, player_b_score, player_a:player_a_id (display_name), player_b:player_b_id (display_name)")
+    .select("id, player_a_id, player_b_id, winner_id, started_at, completed_at, player_a_score, player_b_score, board, player_a:player_a_id (display_name), player_b:player_b_id (display_name)")
     .eq("state", "completed")
     .eq("language", language)
     .or("ended_reason.is.null,ended_reason.not.in.(void,abandoned)")
@@ -77,7 +78,7 @@ async function lastMatch(playerId: string, language: LobbyLanguage): Promise<Las
   const row = data as unknown as LastMatchRow | null;
   if (!row) return null;
   const isA = row.player_a_id === playerId;
-  const words = await client.from("word_score_entries").select("player_id, tiles").eq("match_id", row.id);
+  const bands = await bandsInScoringOrder(row.id, playerId);
   return {
     matchId: row.id,
     opponent: (isA ? row.player_b : row.player_a)?.display_name ?? "",
@@ -86,8 +87,26 @@ async function lastMatch(playerId: string, language: LobbyLanguage): Promise<Las
     durationMs: row.started_at ? Date.parse(row.completed_at) - Date.parse(row.started_at) : null,
     completedAt: row.completed_at,
     youWon: row.winner_id === null ? null : row.winner_id === playerId,
-    bands: (words.data ?? []).map((w) => ({ tiles: w.tiles as Array<{ x: number; y: number }>, seat: w.player_id === playerId ? "you" : "opp" })),
+    bands,
+    board: row.board,
   };
+}
+
+interface WordRow {
+  player_id: string;
+  tiles: Array<{ x: number; y: number }>;
+  move: { global_seq: number } | null;
+}
+
+async function bandsInScoringOrder(matchId: string, playerId: string): Promise<LastMatch["bands"]> {
+  const { data } = await getServiceRoleClient()
+    .from("word_score_entries")
+    .select("player_id, tiles, move:move_id (global_seq)")
+    .eq("match_id", matchId);
+  const rows = (data ?? []) as unknown as WordRow[];
+  return rows
+    .sort((a, b) => (a.move?.global_seq ?? 0) - (b.move?.global_seq ?? 0))
+    .map((w) => ({ tiles: w.tiles, seat: w.player_id === playerId ? "you" : "opp" }));
 }
 
 async function form(playerId: string, language: LobbyLanguage): Promise<FormResult[]> {

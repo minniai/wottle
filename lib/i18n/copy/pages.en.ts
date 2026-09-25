@@ -17,9 +17,6 @@ export const pagesEn = {
   PLACE_LOBBY: "lobby",
   PLACE_PROFILE: "profile",
   PLACE_RULES: "rules",
-  slotPlace: (languageName: string, here: number | null, playing: number | null): string =>
-    here === null ? `lobby · ${languageName}` : `lobby · ${languageName} · ${here} here · ${playing ?? 0} playing`,
-  terms: (moves: number, clockMmSs: string): string => `every match rated · ${moves} moves each · one ${clockMmSs} clock`,
   LANGUAGE_NAME_IS: "icelandic",
   LANGUAGE_NAME_EN: "english",
   MAIN: "content",
@@ -61,7 +58,7 @@ export const pagesEn = {
   FORM_LETTERS: { W: "W", L: "L", D: "D" },
   formAria: (won: number, lost: number, drawn: number): string =>
     `last ten: ${won} won, ${lost} lost${drawn ? `, ${drawn} drawn` : ""}`,
-  hereNowCaption: (here: number, playing: number): string => `here now · ${here} · ${playing} playing`,
+  hereNowCaption: (here: number, playing: number): string => `${s(here, "player connected", "players connected")} · ${playing} playing`,
   COL_RATING: "rating",
   COL_RECORD: "your record",
   COL_STATUS: "status",
@@ -72,7 +69,7 @@ export const pagesEn = {
   TELL_ME: "tell me when someone is here ▸",
   WE_WILL_TELL: "we will tell you · cancel",
   arrived: (name: string): string => `${name} is here`,
-  LAST_MATCH: "last match",
+  LAST_MATCHES: "last matches",
   winsLine: (name: string, a: number, b: number): string => `${name} wins ${a}–${b}`,
   drawLine: (a: number, b: number): string => `draw ${a}–${b}`,
   lastMatchDetail: (opponent: string, duration: string, when: string): string => `${opponent} · ${duration} · ${when}`,

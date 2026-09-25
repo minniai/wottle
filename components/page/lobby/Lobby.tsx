@@ -52,7 +52,8 @@ function FirstMatch() {
   const to = useLocalePath();
   return (
     <section className="last-match last-match--first">
-      <h2 className="page-caption">{copy.pages.LAST_MATCH}</h2>
+      <h2 className="page-caption">{copy.pages.LAST_MATCHES}</h2>
+      <RulesFigure kind="swap" caption={copy.pages.STEPS[0]} />
       <p className="page-sentence">{copy.pages.FIRST_MATCH}</p>
       <Link href={to("/rules")} className="page-link page-link--ink">{copy.HOW_TO_PLAY}</Link>
     </section>
@@ -61,7 +62,7 @@ function FirstMatch() {
 
 /**
  * The lobby (spec 070 US2, game flow B1): your block and form, who is here,
- * your last match and your last matches. No field and no hint.
+ * and your last matches, the latest drawn as its board. No field and no hint.
  */
 /** `invite a friend ▸` below the table (spec 072 B1), with its note. */
 function InviteBelow({ onInvite, note, hidden }: { onInvite: () => void; note: string | null; hidden: boolean }) {
@@ -138,8 +139,14 @@ export function Lobby({ viewer, rows, overview, recent, onFind, onSend, onInvite
         {plan.invite !== "primary" && onInvite && !empty ? <InviteBelow onInvite={onInvite} note={plan.inviteNote ?? copy.pages.linkWorksFor(LINK_TTL_MS / 60_000)} hidden={plan.invite === "hidden"} /> : null}
       </div>
       <div className="page-col-b">
-        {overview.lastMatch ? <LastMatch last={overview.lastMatch} viewerName={viewer.displayName} nowMs={nowMs} /> : <FirstMatch />}
-        <RecentMatches recent={recent} />
+        {overview.lastMatch ? (
+          <LastMatch last={overview.lastMatch} viewerName={viewer.displayName} nowMs={nowMs} recent={recent} />
+        ) : (
+          <>
+            <FirstMatch />
+            <RecentMatches recent={recent} />
+          </>
+        )}
       </div>
     </div>
   );

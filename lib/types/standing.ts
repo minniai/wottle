@@ -162,7 +162,10 @@ export const lastMatchSchema = z.object({
   durationMs: z.number().nullable(),
   completedAt: z.string(),
   youWon: z.boolean().nullable(),
+  /** In the order they were scored, so the first to claim a crossing letter keeps it. */
   bands: z.array(bandSchema),
+  /** The board as the match ended; null when it was never dealt. */
+  board: z.array(z.array(z.string())).nullable(),
 });
 export type LastMatch = z.infer<typeof lastMatchSchema>;
 

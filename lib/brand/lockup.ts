@@ -144,21 +144,40 @@ export interface Strip {
   height: number;
   letters: MarkCell[];
   band: MarkBand;
+  /** The reading-start chevron, centred in the lead cell before the word. */
+  chevron: string;
   letterPx: number;
   numeralPx: number;
   showNumerals: boolean;
 }
 
-/** The locale's name as one word on ruled cells: ink letters, a tint band, an ink chevron (the house is not a seat). */
+/** Cap height tall and a sharper angle than a word band's, so at 18px it still reads as ▸, not `)`. */
+const LEAD_CHEVRON_HALF_HEIGHT = 0.17;
+const LEAD_CHEVRON_HALF_DEPTH = 0.08;
+
+function leadChevronPath(cellPx: number): string {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  const mid = cellPx / 2;
+  const [left, right] = [mid - LEAD_CHEVRON_HALF_DEPTH * cellPx, mid + LEAD_CHEVRON_HALF_DEPTH * cellPx];
+  const [top, bottom] = [mid - LEAD_CHEVRON_HALF_HEIGHT * cellPx, mid + LEAD_CHEVRON_HALF_HEIGHT * cellPx];
+  return `M${r(left)} ${r(top)} L${r(right)} ${r(mid)} L${r(left)} ${r(bottom)}`;
+}
+
+/**
+ * The locale's name as one word on ruled cells: ink letters, a tint band, an ink
+ * chevron (the house is not a seat). The chevron has a cell of its own before the
+ * word (2026-09-25), so it sits on the grid like a letter instead of against a rule.
+ */
 export function strip(locale: MarkLocale, cellPx: number): Strip {
   const primary = LAYOUTS[locale].primary;
-  const flat = { ...primary, row: 0, col: 0 };
+  const flat = { ...primary, row: 0, col: 1 };
   return {
     cellPx,
-    width: primary.word.length * cellPx,
+    width: (primary.word.length + 1) * cellPx,
     height: cellPx,
     letters: place(flat),
     band: band(flat, cellPx),
+    chevron: leadChevronPath(cellPx),
     ...typeScale(cellPx),
   };
 }

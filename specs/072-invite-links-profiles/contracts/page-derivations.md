@@ -9,6 +9,7 @@ standingSlot(inputs: SlotInputs & { linkCall: LinkCall | null; ownLink: boolean 
 ```
 
 Precedence (FR-005, §5.0):
+
 1. calls (challenge calls first, then a link call; `more` counts both);
 2. match;
 3. switch;
@@ -18,14 +19,14 @@ Precedence (FR-005, §5.0):
 7. notice;
 8. empty.
 
-| State | Line 1 | Line 2 | Actions | Drain |
-|---|---|---|---|---|
-| link pending, text stored | `Link copied · valid 9:58` / `Tengill afritaður · gildir í 9:58` | — | `copy again ▸`, `cancel link ▸` | 10:00 |
-| link pending, no text stored here | `Link out · valid 9:58` / `Tengill úti · gildir í 9:58` | — | `new link ▸`, `cancel link ▸` | 10:00 |
-| clipboard refused | `Link ready · valid 9:58` | the URL (selectable) | `cancel link ▸` | 10:00 |
-| held `cancelled` / `expired` (4s) | `link cancelled` / `link expired` | — | — | — |
-| link call | `Hekla invites you by link` / `Hekla býður þér með tengli` | `1250 · English words · link valid 9:12` | `accept ▸` (primary), `dismiss` | to expiry |
-| own link opened | `this is your link` / `þetta er tengillinn þinn` | `valid 9:12` | `copy ▸` | to expiry |
+| State                             | Line 1                                                           | Line 2                                   | Actions                         | Drain     |
+| --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------- | ------------------------------- | --------- |
+| link pending, text stored         | `Link copied · valid 9:58` / `Tengill afritaður · gildir í 9:58` | —                                        | `copy again ▸`, `cancel link ▸` | 10:00     |
+| link pending, no text stored here | `Link out · valid 9:58` / `Tengill úti · gildir í 9:58`          | —                                        | `new link ▸`, `cancel link ▸`   | 10:00     |
+| clipboard refused                 | `Link ready · valid 9:58`                                        | the URL (selectable)                     | `cancel link ▸`                 | 10:00     |
+| held `cancelled` / `expired` (4s) | `link cancelled` / `link expired`                                | —                                        | —                               | —         |
+| link call                         | `Hekla invites you by link` / `Hekla býður þér með tengli`       | `1250 · English words · link valid 9:12` | `accept ▸` (primary), `dismiss` | to expiry |
+| own link opened                   | `this is your link` / `þetta er tengillinn þinn`                 | `valid 9:12`                             | `copy ▸`                        | to expiry |
 
 `pagePrimary(slot, copy, { composing, page })`: a link call's `accept ▸` is the page primary on every page. A pending link is a wait, so it has no primary.
 

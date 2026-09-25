@@ -68,8 +68,8 @@ describe("LineSlot", () => {
     expect(document.activeElement).toBe(document.body);
   });
 
-  it("shows the place and the terms when nothing stands", () => {
+  it("is empty when nothing stands, keeping its height for what arrives", () => {
     renderSlot(TERMS);
-    expect(screen.getByTestId("slot-empty").textContent).toContain("every match rated");
+    expect(screen.getByTestId("slot-empty").textContent).toBe("");
   });
 });

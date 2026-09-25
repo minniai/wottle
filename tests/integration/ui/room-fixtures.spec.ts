@@ -641,6 +641,9 @@ test.describe("@visual the pages, from fixtures", () => {
       await page.clock.setFixedTime(FIXED_NOW);
       await page.goto(`${localePrefix}/dev/page?phase=${phase}`);
       await expect(page.getByRole("main")).toBeVisible();
+      // The browser's clock is fixed and the dev server's is not, so a page with dates
+      // can raise Next's dev-only issue badge; it is not part of the page.
+      await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
       await expect(page).toHaveScreenshot(`page-${phase}.png`, { fullPage: true });
       expect(errors, `${phase} logs no errors`).toEqual([]);
     });

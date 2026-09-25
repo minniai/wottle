@@ -23,10 +23,6 @@ export const pagesIs: Widen<typeof pagesEn> = {
   PLACE_LOBBY: "lobbí",
   PLACE_PROFILE: "prófíll",
   PLACE_RULES: "leiðbeiningar",
-  slotPlace: (languageName: string, here: number | null, playing: number | null): string =>
-    here === null ? `lobbí · ${languageName}` : `lobbí · ${languageName} · ${here} hér · ${playing ?? 0} að spila`,
-  terms: (moves: number, clockMmSs: string): string =>
-    `allar viðureignir gilda til elo · ${moves} leikir hvor · ein ${clockMmSs} klukka`, // native-read
   LANGUAGE_NAME_IS: "íslenska",
   LANGUAGE_NAME_EN: "enska",
   MAIN: "efni",
@@ -36,7 +32,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   doorCountPhone: (here: number): string => `${here} hér núna`,
   WELCOME: "Velkomin í Orðustu.",
   TAGLINE: "Orðaeinvígi fyrir tvo.",
-  NAME_LABEL: "veldu notendanafn",
+  NAME_LABEL: "veldu notandanafn",
   NAME_CHARS: "ekkert bil eða tákn · bara stafir, tölur, - og _", // native-read
   NAME_LONG: "mest 24 stafir",
   NAME_SHORT: "minnst 3 stafir",
@@ -66,7 +62,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   FORM_LETTERS: { W: "S", L: "T", D: "J" },
   formAria: (won: number, lost: number, drawn: number): string =>
     `síðustu tíu: ${count(won, "sigur", "sigrar")}, ${count(lost, "tap", "töp")}${drawn ? `, ${count(drawn, "jafntefli", "jafntefli")}` : ""}`,
-  hereNowCaption: (here: number, playing: number): string => `hér núna · ${here} · ${playing} að spila`,
+  hereNowCaption: (here: number, playing: number): string => `${count(here, "spilari tengdur", "spilarar tengdir")} · ${playing} að spila`, // native-read
   COL_RATING: "elo",
   COL_RECORD: "þinn ferill",
   COL_STATUS: "staða",
@@ -77,7 +73,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   TELL_ME: "láta mig vita þegar einhver kemur ▸",
   WE_WILL_TELL: "við látum þig vita · hætta við",
   arrived: (name: string): string => `${name} er hér`,
-  LAST_MATCH: "síðasta viðureign",
+  LAST_MATCHES: "síðustu viðureignir",
   winsLine: (name: string, a: number, b: number): string => `${name} vann ${a}–${b}`,
   drawLine: (a: number, b: number): string => `jafntefli ${a}–${b}`,
   lastMatchDetail: (opponent: string, duration: string, when: string): string => `${opponent} · ${duration} · ${when}`,
@@ -110,7 +106,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
     `${words} · ${moves} leikir hvor · sigur ${signed(win)} · tap ${signed(loss)}`,
   sentPhone: (name: string, leftMmSs: string): string => `${name} · ${leftMmSs}`,
   SENT_PHONE_LINE2: "áskorun send · haltu skjánum opnum",
-  WITHDRAW: "draga til baka ▸",
+  WITHDRAW: "afturkalla ▸",
   OUTCOMES: {
     accepted: "samþykkt",
     declined: "hafnaði",
@@ -190,7 +186,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
 
   // Invite links (spec 072: B9, T6, T64)
   INVITE_A_FRIEND: "bjóða vini ▸",
-  linkWorksFor: (minutes: number): string => `tengill sem gildir í ${minutes} mínútur`,
+  linkWorksFor: (minutes: number): string => `senda tengil sem gildir í ${minutes} mínútur`,
   linkCopied: (leftMmSs: string): string => `Tengill afritaður · gildir í ${leftMmSs}`,
   linkOut: (leftMmSs: string): string => `Tengill úti · gildir í ${leftMmSs}`, // native-read
   linkReady: (leftMmSs: string): string => `Tengill tilbúinn · gildir í ${leftMmSs}`, // native-read
