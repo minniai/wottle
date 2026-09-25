@@ -57,7 +57,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   blockSubLines: (rating: number, languageName: string, matches: number, record: string): [string, string] =>
     [`${rating} · elo · ${languageName}`, `${count(matches, "viðureign", "viðureignir")} · ${record}`],
   blockSubNew: (rating: number, languageName: string): string => `${rating} · elo · ${languageName} · engin viðureign enn`,
-  searchingNow: (n: number): string => (n === 0 ? "enginn leitar núna" : `${n} ${plural("is", n, { one: "leitar", other: "leita" })} núna`),
+  searchingNow: (n: number): string => (n === 0 ? "enginn annar að leita núna" : `${n} ${plural("is", n, { one: "leitar", other: "leita" })} núna`),
   LAST_TEN: "síðustu tíu",
   FORM_LETTERS: { W: "S", L: "T", D: "J" },
   formAria: (won: number, lost: number, drawn: number): string =>
@@ -118,7 +118,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   outcomeAnnounce: (name: string, outcome: string): string => `${name} · ${outcome}`,
   searchLine1: (elapsedMmSs: string): string => `Leitar að mótspilara · ${elapsedMmSs}`,
   searchLine2: (n: number, words: string): string => `${n} ${plural("is", n, { one: "leitar", other: "leita" })} núna · ${words}`,
-  SEARCH_ALONE: "enginn annar leitar · skoraðu á einhvern hér fyrir neðan", // native-read
+  SEARCH_ALONE: "enginn annar að leita · skoraðu á einhvern hér fyrir neðan", // native-read
   searchPhone: (elapsedMmSs: string): string => `leitar · ${elapsedMmSs}`,
   KEEP_SCREEN_OPEN: "haltu skjánum opnum",
   matchLine1: (name: string): string => `Viðureignin þín · ${name}`,
