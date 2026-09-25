@@ -10,7 +10,7 @@ import { generateTestUsername } from "./helpers/matchmaking";
 test.describe("the door (spec 070 US1)", () => {
   test("/ and /en are the door: a welcome, one username field and no field", async ({ page }) => {
     for (const [path, headline, label] of [
-      ["/", "Velkomin í Orðustu.", "veldu notendanafn"],
+      ["/", "Velkomin í Orðustu.", "veldu notandanafn"],
       ["/en", "Welcome to Wottle.", "pick a username"],
     ] as const) {
       await page.goto(path);

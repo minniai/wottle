@@ -70,9 +70,7 @@ export const copyIs = {
   searchingSubline: (elapsedMmSs: string): string =>
     `leitar · ${elapsedMmSs} · ${CANCEL}`,
   startsIn: (seconds: number): string => `hefst eftir ${seconds}`,
-  YOUR_NAME_PLACEHOLDER: "t.d. Kári",
-  NO_ACCOUNT_NEEDED: "skráning óþörf",
-  THIS_BROWSER_KEEPS_YOUR_NAME: "þessi vafri geymir nafnið þitt",
+  YOUR_NAME_PLACEHOLDER: "notandanafn",
   WELCOME_BACK: "gaman að sjá þig aftur",
   ENTER_LOBBY: "spila Orðustu ▸",
   notYou: (name: string): string => `ekki ${name}? · annað nafn`,
