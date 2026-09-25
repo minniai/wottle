@@ -47,6 +47,13 @@ describe("slotLines · links", () => {
     expect(slotLines(slot({ held: "expired" }), copyIs, ctx())).toMatchObject({ line1: "tengillinn rann út", secondaries: [], bar: null });
   });
 
+  it("on a phone, the link call's line 2 drops the language words so it fits (SC-007)", () => {
+    const call: SlotState = { kind: "linkCall", call: linkCall, more: 0 } as SlotState;
+    expect(slotLines(call, copyIs, ctx({ phone: true }))).toMatchObject({ line1: "Hekla skorar á þig", line2: "1250 · tengill gildir í 9:12" });
+    expect(slotLines(call, copyEn, ctx({ phone: true })).line2).toBe("1250 · link valid 9:12");
+    expect(slotLines(call, copyIs, ctx()).line2).toBe("1250 · íslensk orð · tengill gildir í 9:12");
+  });
+
   it("tells the sender their own link, with copy", () => {
     const m = slotLines(slot({ link: null, own: linkCall }), copyEn, ctx());
     expect(m).toMatchObject({ line1: "this is your link", line2: "valid 9:12" });
