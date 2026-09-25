@@ -20,6 +20,7 @@ vi.mock("@/lib/match/stateLoader", () => ({
   loadMatchPlayerProfiles: vi.fn(async () => ({})),
 }));
 vi.mock("@/components/room/MatchRoomController", () => ({ MatchRoomController: () => null }));
+vi.mock("@/lib/match/rematchOffer", () => ({ readRematchOffer: vi.fn(async () => undefined) }));
 
 import MatchPage from "@/app/[locale]/(room)/match/[matchId]/page";
 import { loadMatchState } from "@/lib/match/stateLoader";
