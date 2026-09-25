@@ -10,12 +10,12 @@ import { generateTestUsername } from "./helpers/matchmaking";
  * to an Icelandic player.
  */
 test.describe("@locale Orðusta at the plain address", () => {
-  test("the root is Icelandic: lang, title, lockup and the door", async ({ page }) => {
+  test("the root is Icelandic: lang, title, welcome and the door", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "is");
     await expect(page).toHaveTitle("Orðusta · orðaeinvígi fyrir tvo");
-    await expect(page.getByRole("img", { name: "Orðusta, Wottle á ensku" })).toBeVisible();
-    await expect(page.getByTestId("door-name")).toHaveAttribute("placeholder", "nafn");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Velkomin í Orðustu.");
+    await expect(page.getByTestId("door-name")).toHaveAttribute("placeholder", "t.d. Kári");
   });
 
   test("/is redirects to the unprefixed address, keeping the path", async ({ page }) => {
