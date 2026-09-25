@@ -110,6 +110,20 @@ const BANDS: Band[] = [
   { tiles: [{ x: 9, y: 7 }, { x: 9, y: 8 }, { x: 9, y: 9 }], seat: "you" },
 ];
 
+/** The board those bands ended on: WORD, SKY, FJORD, ARK against LAMP, OWL, BEE. */
+const LAST_BOARD: string[][] = [
+  "QXTNEBLVIU",
+  "HWORDGAZEN",
+  "PICTUSMROA",
+  "ENVHLTPGOI",
+  "SKYEARNTWD",
+  "MUDIOEHCLT",
+  "TAEFJORDNS",
+  "GRONISEUTA",
+  "LOBEEKTIMR",
+  "VENSAUPLOK",
+].map((row) => [...row]);
+
 export interface LobbyFixture {
   viewer: LobbyViewer;
   rows: LobbyRow[];
@@ -143,7 +157,7 @@ export function lobbyIs(): LobbyFixture {
     ],
     overview: {
       counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "en", here: 7 } },
-      lastMatch: { matchId: id(101), opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: yesterday(), youWon: true, bands: BANDS },
+      lastMatch: { matchId: id(101), opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: yesterday(), youWon: true, bands: BANDS, board: LAST_BOARD },
       form: ["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"],
     },
     recent: [recent(1, "Kári", 134, 88), recent(2, "Embla", 184, 150), recent(3, "Jónas", 132, 171), recent(4, "Kári", 166, 159)],
@@ -164,7 +178,7 @@ export function lobbyEn(): LobbyFixture {
     ],
     overview: {
       counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "is", here: 12 } },
-      lastMatch: { matchId: id(101), opponent: "Kári", you: 128, them: 117, durationMs: 298_000, completedAt: yesterday(), youWon: true, bands: BANDS },
+      lastMatch: { matchId: id(101), opponent: "Kári", you: 128, them: 117, durationMs: 298_000, completedAt: yesterday(), youWon: true, bands: BANDS, board: LAST_BOARD },
       form: ["W", "L", "W", "W", "L", "W", "L", "W", "W", "L"],
     },
     recent: [recent(1, "Kári", 128, 117), recent(2, "Embla", 150, 171), recent(3, "Hekla", 139, 120), recent(4, "Sóley", 118, 133)],

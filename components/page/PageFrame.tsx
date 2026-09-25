@@ -8,7 +8,7 @@ import { Folio, type PagePlace } from "./Folio";
 import { DoorMasthead, DoorPreferLine, SignedInMasthead, type MastheadViewer } from "./Masthead";
 import { PageMenu, type SignOutState } from "./PageMenu";
 import { SkipToCall } from "./LineSlot";
-import { SlotTerms } from "./SlotTerms";
+import { SlotEmpty } from "./SlotEmpty";
 
 type PageFrameProps =
   | {
@@ -67,7 +67,7 @@ export function PageFrame(props: PageFrameProps) {
       {props.skipLabel ? <SkipToCall label={props.skipLabel} /> : null}
       <header className="page-head page-head--sticky" role="banner">
         <SignedInMasthead viewer={props.viewer} otherLobbyHere={props.otherLobbyHere} menu={menu} />
-        {props.viewer ? <div className="page-slot" data-testid="line-slot">{props.slot ?? <SlotTerms counts={null} />}</div> : null}
+        {props.viewer ? <div className="page-slot" data-testid="line-slot">{props.slot ?? <SlotEmpty />}</div> : null}
       </header>
       <main className="page-main" aria-label={copy.pages.MAIN}>{props.children}</main>
       <Folio place={props.place} detail={props.folioDetail ?? null} />

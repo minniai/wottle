@@ -38,10 +38,9 @@ export function StandingProvider({ children }: { children: ReactNode }) {
   const copy = useCopy();
   const machine = useStandingMachine();
   const { facts, model, slot } = machine;
-  const counts = facts ? { here: facts.counts.here, playing: facts.counts.playing } : null;
   const value: StandingSlotApi = {
     otherLobbyHere: facts?.counts.otherHere ?? null,
-    slot: <LineSlot model={model} onAction={machine.onAction} announcement={machine.announcement} counts={counts} variant="desktop" />,
+    slot: <LineSlot model={model} onAction={machine.onAction} announcement={machine.announcement} variant="desktop" />,
     bottomSlot: model.style === "terms" ? null : <LineSlot model={model} onAction={machine.onAction} announcement="" variant="phone" />,
     bottomHeight: phoneSlotHeight(model),
     signOut: signOutState(machine, copy),

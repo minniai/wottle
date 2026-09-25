@@ -22,10 +22,13 @@ const BASE: LobbyProps = {
   rows: [row(1, "Embla", 1242, "here", { wins: 1, losses: 0, draws: 0 }), row(2, "Kári", 1179, "here", { wins: 3, losses: 1, draws: 0 }), row(3, "Jónas", 1163, "in_match")],
   overview: {
     counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "en", here: 7 } },
-    lastMatch: { matchId: "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: new Date(Date.now() - 86_400_000).toISOString(), youWon: true, bands: [{ tiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }], seat: "you" }] },
+    lastMatch: { matchId: "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: new Date(Date.now() - 86_400_000).toISOString(), youWon: true, bands: [{ tiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }], seat: "you" }], board: [["S", "K", "Y", ...Array.from({ length: 7 }, () => "A")], ...Array.from({ length: 9 }, () => Array.from({ length: 10 }, () => "E"))] },
     form: ["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"],
   },
-  recent: [{ matchId: "m1", result: "win", opponentId: "k", opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 134, opponentScore: 88, wordsFound: 10, completedAt: new Date().toISOString() }],
+  recent: [
+    { matchId: "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", result: "win", opponentId: "k", opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 134, opponentScore: 88, wordsFound: 10, completedAt: new Date().toISOString() },
+    { matchId: "m2", result: "loss", opponentId: "e", opponentUsername: "embla", opponentDisplayName: "Embla", yourScore: 150, opponentScore: 171, wordsFound: 9, completedAt: new Date().toISOString() },
+  ],
   onFind: vi.fn(),
   onSend: vi.fn(async () => ({ status: "sent" as const, inviteId: "i" })),
 };
@@ -63,7 +66,7 @@ describe("Lobby", () => {
     renderLobby("en");
     const table = screen.getByRole("table");
     expect(within(table).getByRole("columnheader", { name: "your record" })).toBeTruthy();
-    expect(screen.getByText("here now · 2 · 1 playing")).toBeTruthy();
+    expect(screen.getByText("2 players connected · 1 playing")).toBeTruthy();
     expect(within(table).getByText("3–1")).toBeTruthy();
     expect(within(table).getByRole("button", { name: "Kári · challenge" })).toBeTruthy();
     expect(within(table).getByText("in a match · 6 of 10")).toBeTruthy();
@@ -71,13 +74,25 @@ describe("Lobby", () => {
     expect(within(table).getByRole("link", { name: /Kári/ }).getAttribute("href")).toBe("/en/profile/k%C3%A1ri");
   });
 
-  it("draws the last match as a band map inside one link to it, then the verdict and your last matches", () => {
+  it("lists your last matches under one heading: the latest drawn as its board, the rest as rows without it", () => {
     renderLobby("en");
     const link = screen.getByRole("link", { name: "review your last match" });
     expect(link.getAttribute("href")).toBe("/en/match/5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11?review=last");
     expect(within(link).getByRole("img", { name: "Birna 134, Kári 88, yesterday" })).toBeTruthy();
     expect(screen.getByTestId("last-match-verdict").textContent).toBe("Birna wins 134–88");
-    expect(screen.getByText("your last matches")).toBeTruthy();
+    expect(screen.getAllByRole("heading", { name: "last matches" })).toHaveLength(1);
+    expect(screen.queryByText("your last matches")).toBeNull();
+    const rows = document.querySelectorAll(".last-match .recent__row");
+    expect([...rows].map((r) => r.querySelector(".recent__name")!.textContent)).toEqual(["Embla"]);
+  });
+
+  it("draws the final board's letters on the map, a scored letter in its owner's colour", () => {
+    renderLobby("en");
+    const letters = document.querySelectorAll(".band-map__letter");
+    expect(letters).toHaveLength(100);
+    expect(letters[0].textContent).toBe("S");
+    expect(letters[0].getAttribute("class")).toContain("band-map__letter--you");
+    expect(letters[3].getAttribute("class")).not.toContain("--you");
   });
 
   it("shows a new player the first-match state", () => {

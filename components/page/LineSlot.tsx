@@ -3,7 +3,7 @@
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import type { SlotAction, SlotModel } from "@/lib/pages/slotLines";
 
-import { SlotTerms } from "./SlotTerms";
+import { SlotEmpty } from "./SlotEmpty";
 import { useActivationGuard } from "./useActivationGuard";
 
 export const SLOT_ACTIONS_ID = "line-slot-actions";
@@ -13,8 +13,6 @@ interface LineSlotProps {
   onAction: (action: SlotAction) => void;
   /** A polite line said on arrival and at 10s left; never steals focus. */
   announcement: string;
-  /** The place's counts off the lobby page (§5.0 empty slot). */
-  counts?: { here: number; playing: number } | null;
   variant: "desktop" | "phone";
 }
 
@@ -34,13 +32,13 @@ function Bar({ bar }: { bar: SlotModel["bar"] }) {
  * own), with its countdown, its bar and its way out. Its height is reserved,
  * so nothing below moves when it changes (SC-006).
  */
-export function LineSlot({ model, onAction, announcement, counts = null, variant }: LineSlotProps) {
+export function LineSlot({ model, onAction, announcement, variant }: LineSlotProps) {
   const copy = useCopy();
   const ready = useActivationGuard(`${model.primary?.action ?? ""}:${model.line1}`);
   return (
     <div className={`line-slot line-slot--${variant}`} data-style={model.style} role="region" aria-label={copy.pages.CHALLENGES_REGION} data-testid={`line-slot-${variant}`}>
       {model.style === "terms" ? (
-        <SlotTerms counts={counts} />
+        <SlotEmpty />
       ) : (
         <>
           <span className={`page-square page-square--${model.square ?? "you"}`} aria-hidden="true" />

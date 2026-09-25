@@ -40,10 +40,10 @@ describe.skipIf(!db)("the viewer's overview (spec 070 US10)", () => {
     return data.id as string;
   }
 
-  async function word(matchId: string, playerId: string, tiles: Array<{ x: number; y: number }>) {
+  async function word(matchId: string, playerId: string, tiles: Array<{ x: number; y: number }>, globalSeq: number) {
     const move = await client()
       .from("match_moves")
-      .insert({ match_id: matchId, player_id: playerId, global_seq: Math.floor(Math.random() * 1e6), from_x: 0, from_y: 0, to_x: 1, to_y: 0, from_letter: "A", to_letter: "B", status: "resolved" })
+      .insert({ match_id: matchId, player_id: playerId, global_seq: globalSeq, from_x: 0, from_y: 0, to_x: 1, to_y: 0, from_letter: "A", to_letter: "B", status: "resolved" })
       .select("id")
       .single();
     if (move.error) throw new Error(move.error.message);
@@ -66,13 +66,14 @@ describe.skipIf(!db)("the viewer's overview (spec 070 US10)", () => {
     await client().from("players").delete().in("id", players);
   });
 
-  it("gives the last played match with its bands by seat, and the last ten oldest first", async () => {
+  it("gives the last played match with its final board, its bands by seat in scoring order, and the last ten oldest first", async () => {
     const [me, kari] = await createPlayers(["Me", "Kari"]);
     const older = await match(me, kari, { winner_id: kari, started_at: at(60), completed_at: at(55), player_a_score: 40, player_b_score: 60 });
-    const last = await match(kari, me, { winner_id: me, started_at: at(20), completed_at: at(15), player_a_score: 88, player_b_score: 134 });
+    const board = Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => "Á"));
+    const last = await match(kari, me, { winner_id: me, started_at: at(20), completed_at: at(15), player_a_score: 88, player_b_score: 134, board });
     await match(me, kari, { ended_reason: "void", void_reason: "left", completed_at: at(5) });
-    await word(last, me, [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }]);
-    await word(last, kari, [{ x: 5, y: 2 }, { x: 5, y: 3 }, { x: 5, y: 4 }]);
+    await word(last, me, [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }], 2);
+    await word(last, kari, [{ x: 5, y: 2 }, { x: 5, y: 3 }, { x: 5, y: 4 }], 1);
     await client().from("match_ratings").insert([
       { match_id: older, player_id: me, rating_before: 1200, rating_after: 1192, rating_delta: -8, k_factor: 32, match_result: "loss", language: "is", created_at: at(55) },
       { match_id: last, player_id: me, rating_before: 1192, rating_after: 1201, rating_delta: 9, k_factor: 32, match_result: "win", language: "is", created_at: at(15) },
@@ -80,12 +81,11 @@ describe.skipIf(!db)("the viewer's overview (spec 070 US10)", () => {
 
     const overview = await viewerOverview(me, "is");
     expect(overview.lastMatch).toMatchObject({ matchId: last, opponent: "Kari", you: 134, them: 88, youWon: true, durationMs: 5 * 60_000 });
-    expect(overview.lastMatch!.bands).toEqual(
-      expect.arrayContaining([
-        { tiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }], seat: "you" },
-        { tiles: [{ x: 5, y: 2 }, { x: 5, y: 3 }, { x: 5, y: 4 }], seat: "opp" },
-      ]),
-    );
+    expect(overview.lastMatch!.bands).toEqual([
+      { tiles: [{ x: 5, y: 2 }, { x: 5, y: 3 }, { x: 5, y: 4 }], seat: "opp" },
+      { tiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }], seat: "you" },
+    ]);
+    expect(overview.lastMatch!.board).toEqual(board);
     expect(overview.form).toEqual(["L", "W"]);
   });
 
