@@ -1,9 +1,10 @@
-import { chevronPath, strip, type MarkLocale } from "@/lib/brand/lockup";
+import { strip, type MarkLocale } from "@/lib/brand/lockup";
 
 /**
- * The strip logotype (game flow §6): the locale's name as one word on ruled
- * cells, ink letters, a tint band and an ink chevron. The house is not a seat,
- * so no seat colour. Pages only; field states keep the text wordmark.
+ * The strip logotype (game flow §6): a lead cell holding the chevron, then the
+ * locale's name as one word on ruled cells, ink letters and a tint band. The
+ * house is not a seat, so no seat colour. Pages only; field states keep the
+ * text wordmark.
  */
 export function Strip({ locale, cellPx }: { locale: MarkLocale; cellPx: number }) {
   const s = strip(locale, cellPx);
@@ -11,8 +12,9 @@ export function Strip({ locale, cellPx }: { locale: MarkLocale; cellPx: number }
     <span className="mark-strip" style={{ width: s.width, height: s.height }} aria-hidden="true">
       <svg className="mark-strip__art" width={s.width} height={s.height} viewBox={`0 0 ${s.width} ${s.height}`}>
         <rect x={s.band.x} y={s.band.y} width={s.band.w} height={s.band.h} className="mark-band mark-band--house" />
-        <path d={chevronPath(s.band, cellPx)} className="mark-chevron mark-chevron--house" />
+        <path d={s.chevron} className="mark-chevron mark-chevron--house" />
       </svg>
+      <span className="mark-cell mark-cell--house" style={{ left: 0, top: 0, width: cellPx + 1, height: cellPx + 1 }} />
       {s.letters.map((c) => (
         <span
           key={c.col}
