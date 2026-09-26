@@ -99,6 +99,8 @@ describe("Lobby", () => {
     renderLobby("en", { viewer: { ...BASE.viewer, gamesPlayed: 0, wins: 0, losses: 0, rating: 1200 }, overview: { ...BASE.overview, lastMatch: null, form: [] }, recent: [] });
     expect(document.querySelector(".lobby-block__sub")!.textContent).toBe("1200 · rating · english · no matches yet");
     expect(screen.getByText("Your first match will show here.")).toBeTruthy();
+    expect(screen.queryByTestId("rules-figure-swap")).toBeNull();
+    expect(document.querySelector(".last-match--first .field")).toBeNull();
   });
 
   it("in an empty lobby says so, keeps find as the primary and offers to tell you when someone comes", () => {
