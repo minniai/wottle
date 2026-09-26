@@ -9,7 +9,7 @@ import { generateTestUsername, loginViaSlip } from "./helpers/matchmaking";
 const MATCH = "/en/match/0b8f2a1c-3d4e-4f5a-8b6c-7d8e9f0a1b2c";
 
 test.describe("how to play ▸", () => {
-  test("from the door, a profile, the lobby and the phone ⋯", async ({ page }) => {
+  test("from the door, a profile, the lobby and the phone menu", async ({ page }) => {
     await page.goto("/en");
     await expect(page.getByRole("main").getByRole("link", { name: "how to play ▸" })).toHaveAttribute("href", "/en/rules");
     const user = generateTestUsername("rules-l");
@@ -24,7 +24,7 @@ test.describe("how to play ▸", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/en/profile");
-    await page.getByTestId("page-menu").getByRole("button").first().click();
+    await page.getByTestId("page-menu-trigger").click();
     await expect(page.getByTestId("page-menu-rules")).toHaveAttribute("href", "/en/rules");
   });
 

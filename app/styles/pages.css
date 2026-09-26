@@ -142,35 +142,63 @@
   color: var(--muted);
 }
 
-/* The ⋯ menu: a plain list under its trigger. */
+/* The menu, opened from your name (2026-09-26): open, the name and the list
+   are one ruled shape: one 1.5px ink edge, one right edge, the name's paper
+   bottom covering the list's top rule beneath it. The frame's inset
+   (--menu-inset) keeps the name's text on the column edge. */
 .page-menu {
+  --menu-inset: 12px;
   position: relative;
+  display: flex;
 }
 .page-menu__trigger {
-  width: 32px;
-  height: 32px;
-  justify-content: center;
-  color: var(--ink);
+  position: relative;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 var(--menu-inset);
+  margin-right: calc(-1 * var(--menu-inset));
+  border: 1.5px solid transparent;
+}
+.page-menu__trigger[aria-expanded="true"] {
+  z-index: 21;
+  background: var(--paper);
+  border-color: var(--ink);
+  border-bottom-color: var(--paper);
+  text-decoration: none;
 }
 .page-menu__list {
   position: absolute;
-  right: 0;
-  top: 36px;
+  right: calc(-1 * var(--menu-inset));
+  top: calc(100% - 1.5px);
   z-index: 20;
   margin: 0;
   padding: 12px 16px;
   list-style: none;
   min-width: 260px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;
   background: var(--paper);
   border: 1.5px solid var(--ink);
 }
+/* Your profile heads the list; sign out closes it, each set off by a rule. */
+.page-menu__you {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+.page-menu__last {
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
 .page-menu__list li {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+/* The rules and the language switch are in the menu only on a phone (F2). */
+.page-menu__list .page-only-phone {
+  display: none;
 }
 
 /* ---------- Page primary (§5.0) ---------- */
@@ -1203,9 +1231,16 @@
     height: auto;
     aspect-ratio: 1;
   }
+  /* On a phone the frame reaches the screen edge and the list spans it. */
+  .page-menu {
+    --menu-inset: 16px;
+  }
   .page-menu__trigger {
-    width: 44px;
     height: 44px;
+  }
+  .page-menu__list {
+    width: 100vw;
+    min-width: 0;
   }
   .page-head--sticky {
     position: static;
