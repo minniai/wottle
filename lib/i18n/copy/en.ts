@@ -35,7 +35,7 @@ const FINDING_OPPONENT = "Finding an opponent";
 const searchingSubline = (elapsedMmSs: string): string =>
   `searching · ${elapsedMmSs} · ${CANCEL}`;
 const startsIn = (seconds: number): string => `starts in ${seconds}`;
-const YOUR_NAME_PLACEHOLDER = "e.g. Birna";
+const YOUR_NAME_PLACEHOLDER = "username";
 // The returning door (spec 067 US3, artboard DoorReturning)
 const WELCOME_BACK = "welcome back";
 const ENTER_LOBBY = "enter the lobby ▸";

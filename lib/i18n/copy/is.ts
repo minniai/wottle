@@ -73,7 +73,7 @@ export const copyIs = {
   YOUR_NAME_PLACEHOLDER: "notandanafn",
   WELCOME_BACK: "gaman að sjá þig aftur",
   ENTER_LOBBY: "spila Orðustu ▸",
-  notYou: (name: string): string => `ekki ${name}? · annað nafn`,
+  notYou: (name: string): string => `ertu ekki ${name}? · annað nafn`,
   returningLine: (rating: number | null): string => (rating === null ? "íslenska" : `${rating} · íslenska`),
   YOU: "þú",
   OPPONENT: "mótspilari",
