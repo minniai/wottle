@@ -82,8 +82,8 @@ export const pagesIs: Widen<typeof pagesEn> = {
   lastMatchDetail: (opponent: string, duration: string, when: string): string => `${opponent} · ${duration} · ${when}`,
   TODAY: "í dag",
   YESTERDAY: "í gær",
-  shortDate: (day: number, month: number): string =>
-    `${day}. ${["jan.", "feb.", "mar.", "apr.", "maí", "jún.", "júl.", "ágú.", "sep.", "okt.", "nóv.", "des."][month]}`,
+  shortDate: (day: number, monthIndex: number): string =>
+    `${day}. ${["jan.", "feb.", "mar.", "apr.", "maí", "jún.", "júl.", "ágú.", "sep.", "okt.", "nóv.", "des."][monthIndex]}`,
   REVIEW: "skoða ▸",
   REVIEW_LAST: "skoða síðustu viðureign",
   bandMapAria: (you: string, a: number, opp: string, b: number, when: string): string => `${you} ${a}, ${opp} ${b}, ${when}`,

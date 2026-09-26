@@ -78,8 +78,8 @@ export const pagesEn = {
   lastMatchDetail: (opponent: string, duration: string, when: string): string => `${opponent} · ${duration} · ${when}`,
   TODAY: "today",
   YESTERDAY: "yesterday",
-  shortDate: (day: number, month: number): string =>
-    `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month]} ${day}`,
+  shortDate: (day: number, monthIndex: number): string =>
+    `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][monthIndex]} ${day}`,
   REVIEW: "review ▸",
   REVIEW_LAST: "review your last match",
   bandMapAria: (you: string, a: number, opp: string, b: number, when: string): string => `${you} ${a}, ${opp} ${b}, ${when}`,
