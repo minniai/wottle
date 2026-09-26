@@ -148,6 +148,17 @@ export type LobbyCounts = z.infer<typeof lobbyCountsSchema>;
 export const formResultSchema = z.enum(["W", "L", "D"]);
 export type FormResult = z.infer<typeof formResultSchema>;
 
+/** One of your matches in the lobby's form strip: its letter, and what its card says. */
+export const formGameSchema = z.object({
+  matchId: z.string(),
+  result: formResultSchema,
+  opponent: z.string(),
+  you: z.number(),
+  them: z.number(),
+  completedAt: z.string(),
+});
+export type FormGame = z.infer<typeof formGameSchema>;
+
 export const bandSchema = z.object({
   tiles: z.array(z.object({ x: z.number().int(), y: z.number().int() })),
   seat: z.enum(["you", "opp"]),
@@ -174,6 +185,7 @@ export const overviewSchema = z.object({
   here: z.array(z.object({ displayName: z.string(), rating: z.number(), state: z.enum(["here", "searching"]) })).optional(),
   more: z.number().int().optional(),
   lastMatch: lastMatchSchema.nullable().optional(),
-  form: z.array(formResultSchema).optional(),
+  /** Your matches in this lobby's language, oldest first, at most FORM_RUN_MAX. */
+  form: z.array(formGameSchema).optional(),
 });
 export type Overview = z.infer<typeof overviewSchema>;

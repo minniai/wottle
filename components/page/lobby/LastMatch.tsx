@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { rowsAfter } from "@/lib/pages/lastMatches";
 import { formatClock } from "@/lib/room/clock";
 import type { RecentGameRow } from "@/lib/types/lobby";
@@ -47,9 +47,8 @@ function Verdict({ line, winner, youWon, you, them }: { line: string; winner: st
  */
 export function LastMatch({ last, viewerName, nowMs, recent }: LastMatchProps) {
   const copy = useCopy();
-  const locale = useLocale();
   const to = useLocalePath();
-  const when = whenWord(last.completedAt, nowMs, copy, locale.htmlLang);
+  const when = whenWord(last.completedAt, nowMs, copy);
   const href = to(`/match/${last.matchId}?review=last`);
   const winner = last.youWon === null ? null : last.youWon ? viewerName : last.opponent;
   const [first, second] = last.youWon === false ? [last.them, last.you] : [last.you, last.them];

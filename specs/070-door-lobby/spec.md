@@ -104,7 +104,7 @@ Birna is signed in. The lobby is a page. It shows her block (name, rating in thi
    - `find an opponent ▸` stays the primary, with `þú færð mótspilara um leið og einhver kemur` / `you will be paired as soon as someone arrives` beneath it;
    - a secondary `láta mig vita þegar einhver kemur ▸` / `tell me when someone is here ▸` opts in, once, to hearing of the next arrival. The first player to arrive in this lobby plays the `challenge` cue, sets the tab title to `Embla is here · Wottle` / `Embla er hér · Orðusta` and, if the tab is hidden and permission is granted, shows an OS notification. Then the opt-in ends. Pressing it again in a later empty lobby turns it back on. While it is on, the control reads `we will tell you · cancel` / `við látum þig vita · hætta við`.
 7. **Given** the `⋯` menu, **When** it opens, **Then** it holds:
-   - `hljóð · á` / `sound · on`. On first open it adds `sound starts after your first click`.
+   - `hljóð · á` / `sound · on`.
    - `tilkynningar · af` / `notifications · off`.
    - `skrá út` / `sign out`. While a search or challenge is out, the consequence line `útskráning hættir leitinni` / `signing out cancels your search` comes first. During a live match sign-out is disabled with `ljúktu fyrst viðureigninni` / `finish your match first`.
 8. **Given** the lobby, **When** its tab title is read with nothing standing, **Then** it is `lobbí · Orðusta` / `lobby · Wottle`.

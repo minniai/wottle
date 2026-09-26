@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
 import { whenWord } from "@/components/page/lobby/when";
 import type { Seat } from "@/lib/constants/seatColors";
 import { profileHeader } from "@/lib/profile/profileHeader";
@@ -99,7 +99,6 @@ export function BestWords({ view, seat }: { view: ProfileView; seat: Seat }) {
 export function ProfileMatches({ rows, caption, dated }: { rows: RecentGameRow[]; caption: string; dated: boolean }) {
   const copy = useCopy();
   const to = useLocalePath();
-  const { htmlLang } = useLocale();
   const nowMs = Date.now();
   return (
     <section className="recent profile-matches" aria-labelledby="profile-matches-label" data-testid="profile-matches">
@@ -110,7 +109,7 @@ export function ProfileMatches({ rows, caption, dated }: { rows: RecentGameRow[]
         <ul className="recent__rows">
           {rows.map((game) => (
             <li key={game.matchId} className="recent__row">
-              <span className={dated ? "page-label" : "recent__name"}>{dated ? whenWord(game.completedAt, nowMs, copy, htmlLang) : game.opponentDisplayName}</span>
+              <span className={dated ? "page-label" : "recent__name"}>{dated ? whenWord(game.completedAt, nowMs, copy) : game.opponentDisplayName}</span>
               <span className="recent__score">
                 <span className="seat-you">{game.yourScore}</span>–<span className="seat-opp-text">{game.opponentScore}</span>
               </span>

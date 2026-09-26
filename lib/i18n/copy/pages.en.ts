@@ -58,6 +58,9 @@ export const pagesEn = {
   FORM_LETTERS: { W: "W", L: "L", D: "D" },
   formAria: (won: number, lost: number, drawn: number): string =>
     `last ten: ${won} won, ${lost} lost${drawn ? `, ${drawn} drawn` : ""}`,
+  lastN: (n: number): string => `last ${n}`,
+  formRunAria: (n: number, won: number, lost: number, drawn: number): string =>
+    `last ${n}: ${won} won, ${lost} lost${drawn ? `, ${drawn} drawn` : ""}`,
   hereNowCaption: (here: number, playing: number): string => `${s(here, "player connected", "players connected")} · ${playing} playing`,
   COL_RATING: "rating",
   COL_RECORD: "your record",
@@ -75,6 +78,8 @@ export const pagesEn = {
   lastMatchDetail: (opponent: string, duration: string, when: string): string => `${opponent} · ${duration} · ${when}`,
   TODAY: "today",
   YESTERDAY: "yesterday",
+  shortDate: (day: number, monthIndex: number): string =>
+    `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][monthIndex]} ${day}`,
   REVIEW: "review ▸",
   REVIEW_LAST: "review your last match",
   bandMapAria: (you: string, a: number, opp: string, b: number, when: string): string => `${you} ${a}, ${opp} ${b}, ${when}`,
@@ -82,7 +87,6 @@ export const pagesEn = {
   FIRST_MATCH: "Your first match will show here.",
   FINISH_FIRST: "finish your match first",
   WITHDRAWS_YOUR_CHALLENGE: "withdraws your challenge",
-  SOUND_AFTER_CLICK: "sound starts after your first click",
   notificationsToggle: (on: boolean): string => `notifications · ${on ? "on" : "off"}`,
   SIGN_OUT_CANCELS_SEARCH: "signing out cancels your search",
   SIGN_OUT_WITHDRAWS: "signing out withdraws your challenge",

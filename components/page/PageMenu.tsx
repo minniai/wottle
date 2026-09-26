@@ -40,7 +40,6 @@ function useDismiss(open: boolean, close: () => void, root: React.RefObject<HTML
 /** The page masthead's `⋯` (game flow B1): sound, notifications, sign out. A plain list, no dialog. */
 export function PageMenu({ signOut, extra }: PageMenuProps) {
   const [open, setOpen] = useState(false);
-  const [soundHinted, setSoundHinted] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sound = usePreferencesStore((s) => s.soundEnabled);
   const setSound = usePreferencesStore((s) => s.setSoundEnabled);
@@ -50,10 +49,7 @@ export function PageMenu({ signOut, extra }: PageMenuProps) {
   const close = useCallback(() => setOpen(false), []);
   useDismiss(open, close, rootRef);
 
-  const toggle = () => {
-    setOpen((v) => !v);
-    setSoundHinted(true);
-  };
+  const toggle = () => setOpen((v) => !v);
   const doSignOut = () => {
     close();
     // Refused during a live match; it never resigns (spec 067).
@@ -71,12 +67,6 @@ export function PageMenu({ signOut, extra }: PageMenuProps) {
       </button>
       {open ? (
         <ul className="page-menu__list" role="menu">
-          <li role="none">
-            <button type="button" role="menuitem" className="page-link" onClick={() => setSound(!sound)}>
-              {copy.soundToggle(sound)}
-            </button>
-            {soundHinted ? <span className="page-menu__note">{copy.pages.SOUND_AFTER_CLICK}</span> : null}
-          </li>
           {/* Spec 072 FR-060: on a phone the rules are reached from here. */}
           <li role="none" className="page-only-phone">
             <Link role="menuitem" href={to("/rules")} className="page-link" data-testid="page-menu-rules" onClick={close}>
@@ -88,6 +78,11 @@ export function PageMenu({ signOut, extra }: PageMenuProps) {
             <LanguageSwitch variant="signedIn" />
           </li>
           {extra}
+          <li role="none">
+            <button type="button" role="menuitem" className="page-link" onClick={() => setSound(!sound)}>
+              {copy.soundToggle(sound)}
+            </button>
+          </li>
           <li role="none">
             {signOut.consequence ? <span className="page-menu__note">{signOut.consequence}</span> : null}
             {signOut.disabledReason ? (
