@@ -181,6 +181,10 @@ export const pagesEn = {
   wordStripAria: (word: string, points: number): string => `${word}, ${points}`,
   profileTitle: (name: string, wordmark: string): string => `${name} · ${wordmark}`,
 
+  NO_SUCH_PLAYER: "No player by that name.",
+  CHALLENGE_PRIMARY: "challenge ▸",
+  profileStakes: (words: string, win: number, draw: number, loss: number): string => `${words} · win ${signed(win)} · draw ${signed(draw)} · loss ${signed(loss)}`,
+
   // Invite links (spec 072: B9, T6, T64)
   INVITE_A_FRIEND: "invite a friend ▸",
   linkWorksFor: (minutes: number): string => `a link that works for ${minutes} minutes`,

@@ -33,7 +33,7 @@ interface HereNowTableProps {
 
 const COLUMNS = 5;
 
-function sendError(result: SendChallengeActionResult, copy: Copy): RowOverlay["action"] | null {
+export function sendError(result: SendChallengeActionResult, copy: Copy): RowOverlay["action"] | null {
   switch (result.status) {
     case "sent":
     case "crossed":

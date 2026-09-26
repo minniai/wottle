@@ -8,12 +8,61 @@ import { composerModel, type ComposerFacts } from "@/lib/pages/composer";
 
 import { useActivationGuard } from "../useActivationGuard";
 
-interface ComposerRowProps {
+interface ComposerBodyProps {
   opponent: { rating: number };
   facts: Omit<ComposerFacts, "opponent">;
-  columns: number;
   onSend: () => void;
   onClose: () => void;
+}
+
+interface ComposerRowProps extends ComposerBodyProps {
+  columns: number;
+}
+
+/** The composer's terms, consequence, `send challenge ▸` and `not now`; send is focused and guarded 500ms. */
+function ComposerBody({ opponent, facts, onSend, onClose }: ComposerBodyProps) {
+  const copy = useCopy();
+  const isPhone = useIsPhone();
+  const model = composerModel({ ...facts, opponent }, copy, isPhone ? "phone" : "desktop");
+  const sendRef = useRef<HTMLButtonElement | null>(null);
+  const ready = useActivationGuard(model.sendDrawnAs);
+  useEffect(() => sendRef.current?.focus(), []);
+  return (
+    <div className="composer-row__body">
+      <div className="composer-row__lines">
+        {model.terms.map((line) => (
+          <p key={line} className="composer-row__terms">{line}</p>
+        ))}
+        {model.consequence ? <p className="page-label">{model.consequence}</p> : null}
+      </div>
+      <div className="composer-row__actions">
+        <button
+          ref={sendRef}
+          type="button"
+          className={model.sendDrawnAs === "primary" ? "action-primary page-primary composer-row__send" : "page-link page-link--ink"}
+          onClick={() => ready() && onSend()}
+          data-testid="composer-send"
+        >
+          {copy.pages.SEND}
+        </button>
+        <button type="button" className="page-link" onClick={onClose} data-testid="composer-not-now">
+          {copy.pages.NOT_NOW}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Spec 072 E2: the same composer in column B of another player's profile. */
+export function ComposerPanel(props: ComposerBodyProps) {
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") props.onClose();
+  };
+  return (
+    <div className="composer-row composer-panel" data-testid="composer" onKeyDown={onKeyDown}>
+      <ComposerBody {...props} />
+    </div>
+  );
 }
 
 /**
@@ -21,41 +70,14 @@ interface ComposerRowProps {
  * the terms and your stakes, says what sending would cancel, and focuses send.
  * A call outranks it: send is then drawn as a secondary (US3.2).
  */
-export function ComposerRow({ opponent, facts, columns, onSend, onClose }: ComposerRowProps) {
-  const copy = useCopy();
-  const isPhone = useIsPhone();
-  const model = composerModel({ ...facts, opponent }, copy, isPhone ? "phone" : "desktop");
-  const sendRef = useRef<HTMLButtonElement | null>(null);
-  const ready = useActivationGuard(model.sendDrawnAs);
-  useEffect(() => sendRef.current?.focus(), []);
+export function ComposerRow({ columns, ...props }: ComposerRowProps) {
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Escape") onClose();
+    if (e.key === "Escape") props.onClose();
   };
   return (
     <tr className="composer-row" data-testid="composer" onKeyDown={onKeyDown}>
       <td colSpan={columns} className="composer-row__cell">
-        <div className="composer-row__body">
-          <div className="composer-row__lines">
-            {model.terms.map((line) => (
-              <p key={line} className="composer-row__terms">{line}</p>
-            ))}
-            {model.consequence ? <p className="page-label">{model.consequence}</p> : null}
-          </div>
-          <div className="composer-row__actions">
-            <button
-              ref={sendRef}
-              type="button"
-              className={model.sendDrawnAs === "primary" ? "action-primary page-primary composer-row__send" : "page-link page-link--ink"}
-              onClick={() => ready() && onSend()}
-              data-testid="composer-send"
-            >
-              {copy.pages.SEND}
-            </button>
-            <button type="button" className="page-link" onClick={onClose} data-testid="composer-not-now">
-              {copy.pages.NOT_NOW}
-            </button>
-          </div>
-        </div>
+        <ComposerBody {...props} />
       </td>
     </tr>
   );

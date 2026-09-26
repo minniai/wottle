@@ -47,6 +47,13 @@ export const PAGE_PHASES = [
   "is-profile-own",
   "profile-own-new",
   "profile-own-call",
+  // Spec 072 US6, US7: another player's profile (ProfilePublic, EN-L).
+  "profile-public",
+  "is-profile-public",
+  "profile-public-sent",
+  "profile-public-in-match",
+  "profile-public-away",
+  "profile-public-signed-out",
 ] as const;
 
 export type PagePhase = (typeof PAGE_PHASES)[number];
@@ -350,6 +357,41 @@ export function profileViewNew(): ProfileView {
     chart: [{ at: new Date(FIXED_NOW - 30 * DAY).toISOString(), rating: 1200 }, { at: new Date(FIXED_NOW).toISOString(), rating: 1200 }], chartEmpty: true,
     bestWords: [], matchesList: [], otherLanguage: { language: "is", rating: 1200, matches: 0 },
   };
+}
+
+/** ProfilePublic (EN-L): Kári 1265, 41 matches since April, peak 1281, −4 this week; Birna's matches against him. */
+export function publicProfileView(language: "is" | "en" = "en"): ProfileView {
+  const base = profileView(language);
+  return {
+    ...base,
+    playerId: id(960),
+    handle: "kári",
+    displayName: "Kári",
+    rating: language === "en" ? 1265 : 1179,
+    peak: language === "en" ? 1281 : 1204,
+    weekChange: -4,
+    matches: 41,
+    firstPlayedAt: "2026-04-11T10:00:00.000Z",
+    record: { won: 21, lost: 19, drawn: 1, winRate: 21 / 41 },
+    lastTen: ["L", "W", "L", "W", "L", "W", "L", "W", "W", "L"],
+    chart: base.chart.map((p, i) => ({ ...p, rating: p.rating - 45 + (i % 3) * 6 })),
+    bestWords: language === "en"
+      ? [word("FJORD", 31, [4, 8, 1, 1, 2]), word("QUILT", 29, [10, 1, 1, 1, 1]), word("BRISK", 26, [3, 1, 1, 1, 5])]
+      : [word("HESTAR", 32, [4, 3, 1, 2, 1, 1]), word("SKÓR", 22, [1, 2, 3, 1]), word("TAK", 10, [2, 1, 2])],
+    matchesList: [
+      { matchId: id(970), result: "win", opponentId: id(960), opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 128, opponentScore: 117, wordsFound: 0, completedAt: new Date(FIXED_NOW - DAY).toISOString() },
+      { matchId: id(971), result: "loss", opponentId: id(960), opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 140, opponentScore: 152, wordsFound: 0, completedAt: "2026-09-14T18:00:00.000Z" },
+      { matchId: id(972), result: "win", opponentId: id(960), opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 171, opponentScore: 118, wordsFound: 0, completedAt: "2026-09-09T18:00:00.000Z" },
+    ],
+    presence: { state: "here", movesPlayed: null },
+  };
+}
+
+/** Birna's challenge to Kári is out: the slot carries withdraw ▸, the profile's primary slot the countdown. */
+export function sentToKari(): StandingFixture {
+  const kari = { playerId: id(960), displayName: "Kári", handle: "kári", rating: 1265, state: "here" as const, movesPlayed: null, record: null };
+  const outgoing = { inviteId: id(961), to: kari, status: "pending" as const, createdAt: new Date(FIXED_NOW - 19_000).toISOString(), expiresAt: new Date(FIXED_NOW + 41_000).toISOString(), respondedAt: null, matchId: null };
+  return { ...outgoingChallenge(), slot: { kind: "sent", outgoing, held: null } };
 }
 
 /** The longest names a player may take (24 characters, wide letters), for the overflow test (SC-007). */

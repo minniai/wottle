@@ -344,7 +344,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 - [X] T061 [US5] Implement the pure modules in `lib/profile/`: `profileHeader.ts`, `record.ts`, `weekChange.ts`, `chartSeries.ts` and `bestWordStrips.ts`. Makes T058 pass.
 - [X] T062 [US5] Implement `lib/profile/readProfile.ts` (server-only; parallel queries per R13, `best_words` via `linkService`'s sibling `profileRepository` or a direct `.rpc` in `lib/profile/profileRepository.ts`), returning `ProfileView`. Makes T059 pass.
 - [X] T063 [US5] Build `components/profile/ProfileHeader.tsx`, `RecordRow.tsx`, `WordStrip.tsx`, `ProfileChart.tsx` (reworked from `ProfileRatingChart.tsx`: one 1.5px polyline, 708×200 desktop and 358×140 phone, with `30 DAYS AGO` / `TODAY` labels, the flat empty state and a `role="img"` label), `ProfileMatches.tsx` and `ProfileOwnPage.tsx`. Makes T060 pass.
-- [ ] T064 [US5] Rewrite `app/[locale]/(pages)/(framed)/profile/page.tsx` to `readProfile(..., { mode: "own" })` → `ProfileOwnPage`, with the signed-out redirect to `/{locale}?next=/profile` and the tab title. Retire `components/profile/ProfilePage.tsx`, `ProfileRatingChart.tsx`, `deriveProfileChartData.ts`, `app/actions/player/getPlayerProfile.ts`, `getBestWords.ts` and the `PlayerProfile` / `BestWord` / `RatingHistoryEntry` types once nothing imports them (grep, and update or remove their tests).
+- [X] T064 [US5] Rewrite `app/[locale]/(pages)/(framed)/profile/page.tsx` to `readProfile(..., { mode: "own" })` → `ProfileOwnPage`, with the signed-out redirect to `/{locale}?next=/profile` and the tab title. Retire `components/profile/ProfilePage.tsx`, `ProfileRatingChart.tsx`, `deriveProfileChartData.ts`, `app/actions/player/getPlayerProfile.ts`, `getBestWords.ts` and the `PlayerProfile` / `BestWord` / `RatingHistoryEntry` types once nothing imports them (grep, and update or remove their tests).
 - [X] T065 [P] [US5] Add the profile strings (sub-lines, labels, best words, recent matches, results, empty lines, folio) to `lib/i18n/copy/pages.{en,is}.ts`.
 - [X] T066 [P] [US5] Add page fixtures `profile-own`, `is-profile-own`, `profile-own-new` and `profile-own-call` (Embla's call), and the phone view `phone-profile` (390×844, 390×664, 360×640), with baselines. On the phone the name is Zilla 32, the rating on its own line, the sub-lines on two lines, the record in mono 28, 32px strips, and the primary pinned (F9).
 
@@ -360,7 +360,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
 
 ### Tests first
 
-- [ ] T067 [P] [US6] Write failing unit tests:
+- [X] T067 [P] [US6] Write failing unit tests:
   - `tests/unit/lib/profile/presenceLine.spec.ts`: each state in both languages (`in a match · 6 of 10`, `in the Icelandic lobby` / `í enska lobbíinu`), and no digit sequence that looks like a time other than `n of 10`.
   - `tests/unit/lib/profile/publicPrimary.spec.ts`:
     - here → `challenge` with stakes from `calculateElo` (EN-L: `win +7 · draw −1 · loss −9`);
@@ -368,7 +368,7 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
     - cooldown, silenced and rate-limited → `closed` with the lobby row's wording;
     - in a match, away, other lobby or not here → `closed` with a null reason;
     - signed out → `enterLobby`.
-- [ ] T068 [P] [US6] Write failing component tests in `tests/unit/components/profile/ProfilePublicPage.spec.tsx`:
+- [X] T068 [P] [US6] Write failing component tests in `tests/unit/components/profile/ProfilePublicPage.spec.tsx`:
   - the seat colours via `getSeatColors` (name and rating `--opp`, chart and win bars `--opp`, word letters `--opp`, numerals `--opp-text`);
   - the presence line;
   - the one primary `CHALLENGE ▸` with stakes beneath;
@@ -376,21 +376,21 @@ Fixtures used throughout: IS-T1, EN-L and IS-M from GAME_FLOW_SPEC §5.0. String
   - sent state in the primary slot;
   - `YOUR MATCHES` rows with date, score, result and `review ▸`;
   - no head-to-head block, no block, no report.
-- [ ] T069 [P] [US6] Write the failing contract test `tests/contract/profile-no-last-seen.contract.test.ts`: the HTML plus RSC payload of `/profile` and `/profile/<handle>` (signed in and out) contains no `last_seen`, `lastSeen` or `last_seen_at`, and `presence_word`'s JSON has no timestamp.
+- [X] T069 [P] [US6] Write the failing contract test `tests/contract/profile-no-last-seen.contract.test.ts`: the HTML plus RSC payload of `/profile` and `/profile/<handle>` (signed in and out) contains no `last_seen`, `lastSeen` or `last_seen_at`, and `presence_word`'s JSON has no timestamp.
 
 ### Implementation
 
-- [ ] T070 [US6] Implement `lib/profile/presenceLine.ts` and `lib/profile/publicPrimary.ts` (reusing `composerModel`, `rowOverlays` and `challengesClosed`). Makes T067 pass.
-- [ ] T071 [US6] Extend `readProfile` with `mode: "public"`: `presence_word` for players outside this lobby, and `matchesList` = the viewer's matches against the owner in this language (completed, non-void, newest first, up to 8).
-- [ ] T072 [US6] Build `components/profile/PresenceLine.tsx` and `ProfilePublicPage.tsx`. Presence and challengeability come from `useLobbyList` when the owner is in this lobby (live), else from the server `PresenceWord`. Column B holds the primary slot, the composer adapted from `components/page/lobby/ComposerRow.tsx` into a column-B variant (`ComposerPanel`), and `ProfileMatches` in `vs` mode. Makes T068 pass.
-- [ ] T073 [US6] Rewrite `app/[locale]/(pages)/(framed)/profile/[handle]/page.tsx`:
+- [X] T070 [US6] Implement `lib/profile/presenceLine.ts` and `lib/profile/publicPrimary.ts` (reusing `composerModel`, `rowOverlays` and `challengesClosed`). Makes T067 pass.
+- [X] T071 [US6] Extend `readProfile` with `mode: "public"`: `presence_word` for players outside this lobby, and `matchesList` = the viewer's matches against the owner in this language (completed, non-void, newest first, up to 8).
+- [X] T072 [US6] Build `components/profile/PresenceLine.tsx` and `ProfilePublicPage.tsx`. Presence and challengeability come from `useLobbyList` when the owner is in this lobby (live), else from the server `PresenceWord`. Column B holds the primary slot, the composer adapted from `components/page/lobby/ComposerRow.tsx` into a column-B variant (`ComposerPanel`), and `ProfileMatches` in `vs` mode. Makes T068 pass.
+- [X] T073 [US6] Rewrite `app/[locale]/(pages)/(framed)/profile/[handle]/page.tsx`:
   - the self redirect to `/profile`;
   - `readProfile(..., { mode: "public", viewerId })`;
   - a 404 with `no player by that name` (`notFound()` plus a `not-found.tsx` in the page frame);
   - the title.
   Retire `app/actions/player/getPlayerProfileByHandle.ts`. Makes T069 pass.
-- [ ] T074 [P] [US6] Add the strings: presence words, stakes, `YOUR MATCHES` / `ÞÍNAR VIÐUREIGNIR`, `sent · 0:41`. Mark `// native-read` on `fjarverandi` and `í enska lobbíinu`.
-- [ ] T075 [P] [US6] Add page fixtures `profile-public`, `profile-public-sent`, `profile-public-in-match`, `profile-public-away` and `is-profile-public`, and the phone view `phone-profile-public` (the pinned `skora á ▸` with stakes above), with baselines.
+- [X] T074 [P] [US6] Add the strings: presence words, stakes, `YOUR MATCHES` / `ÞÍNAR VIÐUREIGNIR`, `sent · 0:41`. Mark `// native-read` on `fjarverandi` and `í enska lobbíinu`.
+- [X] T075 [P] [US6] Add page fixtures `profile-public`, `profile-public-sent`, `profile-public-in-match`, `profile-public-away` and `is-profile-public`, and the phone view `phone-profile-public` (the pinned `skora á ▸` with stakes above), with baselines.
 - [ ] T076 [US6] Write the Playwright spec `tests/integration/ui/profile.spec.ts` (part 1): the own profile renders; from the English lobby, click a name; `CHALLENGE ▸`; `send challenge ▸`; the sent state and `withdraw ▸`; the other browser's slot shows the call.
 
 **Checkpoint**: challenging from a profile works.
