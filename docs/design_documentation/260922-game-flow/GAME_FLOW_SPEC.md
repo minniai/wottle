@@ -463,7 +463,7 @@ A1 with these changes in column B:
 - Right, mono 11: `LEIÐBEININGAR ▸` · `ENGLISH · 7 HERE ▸` · `■ BIRNA ▸` · `⋯`.
   - The switch is written in the target language, with `lang="en"`, and carries that lobby's count [S10].
 - The `⋯` menu holds:
-  - `hljóð · á` / `sound · on`. On first open it adds `hljóð byrjar eftir fyrsta smell (?)` / `sound starts after your first click`.
+  - `hljóð · á` / `sound · on`.
   - `tilkynningar · af` / `notifications · off`.
   - `skrá út` / `sign out`. While a search or challenge is out, the consequence line `útskráning hættir leitinni` / `signing out cancels your search` comes first. During a live match it is disabled: `ljúktu fyrst viðureigninni` / `finish your match first`.
 
