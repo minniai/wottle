@@ -42,13 +42,13 @@ export function DoorPreferLine({ preferOther }: { preferOther: boolean }): React
 }
 
 interface SignedInMastheadProps {
-  /** Null for a signed-out visitor on a public page (a profile, the rules): no square, no ⋯. */
+  /** Null for a signed-out visitor on a public page (a profile, the rules): no name, no menu. */
   viewer: MastheadViewer | null;
   otherLobbyHere: number | null;
   menu: ReactNode;
 }
 
-/** A signed-in page's masthead (B1): the strip home left; how to play, the other lobby, you and ⋯ right. */
+/** A signed-in page's masthead (B1): the strip home left; how to play, the other lobby and your name, which opens the menu, right. */
 export function SignedInMasthead({ viewer, otherLobbyHere, menu }: SignedInMastheadProps) {
   const copy = useCopy();
   const locale = useLocale();
@@ -67,12 +67,6 @@ export function SignedInMasthead({ viewer, otherLobbyHere, menu }: SignedInMasth
           {copy.HOW_TO_PLAY}
         </Link>
         <LanguageSwitch variant="signedIn" otherLobbyHere={otherLobbyHere} />
-        {viewer ? (
-          <Link href={to("/profile")} className="page-link page-link--you">
-            <span className="page-square page-square--you" aria-hidden="true" />
-            {viewer.displayName} ▸
-          </Link>
-        ) : null}
         {viewer ? menu : null}
       </nav>
     </div>

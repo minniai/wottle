@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }), usePathname: () => "/en" }));
@@ -23,18 +23,30 @@ describe("PageFrame", () => {
     expect(screen.getByRole("contentinfo").textContent).toBe("Wottle · lobby");
   });
 
-  it("orders the signed-in masthead: the strip home, then how to play, the other lobby, you and ⋯", () => {
+  it("orders the signed-in masthead: the strip home, then how to play, the other lobby and you, whose name opens the menu", () => {
     renderIn("is", <PageFrame variant="signedIn" place="lobby" viewer={viewer} otherLobbyHere={7}><h1>Birna</h1></PageFrame>);
     const banner = screen.getByRole("banner");
     const home = within(banner).getByRole("link", { name: /orðusta/i });
     expect(home.getAttribute("href")).toBe("/");
     const nav = within(banner).getByTestId("masthead-nav");
     const labels = Array.from(nav.querySelectorAll("a, button")).map((el) => el.textContent?.trim());
-    expect(labels).toEqual(["leiðbeiningar ▸", "english · 7 here ▸", "Birna ▸", "⋯"]);
+    expect(labels).toEqual(["leiðbeiningar ▸", "english · 7 here ▸", "Birna ▾"]);
     const other = within(nav).getByText("english · 7 here ▸");
     expect(other.getAttribute("lang")).toBe("en");
     expect(other.getAttribute("href")).toBe("/en");
-    expect(within(nav).getByText("Birna ▸").getAttribute("href")).toBe("/profile");
+  });
+
+  it("opens the menu from your name, your profile first and sign out last", () => {
+    renderIn("is", <PageFrame variant="signedIn" place="lobby" viewer={viewer} otherLobbyHere={7}><h1>Birna</h1></PageFrame>);
+    const trigger = screen.getByRole("button", { name: "Birna · valmynd" });
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(trigger.textContent).toBe("Birna ▴");
+    const items = within(screen.getByRole("menu")).getAllByRole("menuitem");
+    expect(items[0].textContent).toBe("prófíll ▸");
+    expect(items[0].getAttribute("href")).toBe("/profile");
+    expect(items[items.length - 1].textContent).toBe("útskráning");
   });
 
   it("reserves the line slot's height on signed-in pages even when it is empty", () => {

@@ -92,7 +92,7 @@ test.describe("@identity this browser keeps your name", () => {
     const second = generateTestUsername("id-back-b");
     const lobbyName = () => page.getByRole("heading", { level: 1 });
     const signOut = async () => {
-      await page.getByTestId("page-menu").getByRole("button", { name: "menu" }).click();
+      await page.getByTestId("page-menu").getByTestId("page-menu-trigger").click();
       await page.getByTestId("page-menu-sign-out").click();
       await expect(page.getByTestId("door-returning")).toBeVisible({ timeout: 15_000 });
     };
