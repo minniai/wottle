@@ -209,7 +209,7 @@ export const copyIs = {
   MENU_RESIGN: "gefast upp",
   MENU_LEAVE: "fara",
   MENU_PROFILE: "prófíll",
-  SIGN_OUT: "skrá út",
+  SIGN_OUT: "útskráning",
   LEDGER: "leikskrá",
   clockAria: (label: string, time: string): string => `${label}, ${time} eftir`,
   territoryAria: (you: number, opp: number): string => `svæði ${you}–${opp}`,

@@ -5,7 +5,7 @@ vi.mock("next/link", () => ({ default: ({ href, children, ...rest }: { href: str
 
 import { LocaleProvider } from "@/components/i18n/LocaleProvider";
 import { Lobby, type LobbyProps } from "@/components/page/lobby/Lobby";
-import type { LobbyRow } from "@/lib/types/standing";
+import type { FormGame, LobbyRow } from "@/lib/types/standing";
 
 const row = (n: number, name: string, rating: number, state: LobbyRow["state"] = "here", record: LobbyRow["record"] = null): LobbyRow => ({
   playerId: `00000000-0000-4000-8000-00000000000${n}`,
@@ -17,13 +17,22 @@ const row = (n: number, name: string, rating: number, state: LobbyRow["state"] =
   record,
 });
 
+const FORM: FormGame[] = (["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"] as const).map((result, i) => ({
+  matchId: `m${i}`,
+  result,
+  opponent: i === 9 ? "Kári" : "Embla",
+  you: 100 + i,
+  them: 90,
+  completedAt: new Date(Date.now() - 86_400_000).toISOString(),
+}));
+
 const BASE: LobbyProps = {
   viewer: { displayName: "Birna", handle: "birna", rating: 1212, gamesPlayed: 35, wins: 20, losses: 15, draws: 0 },
   rows: [row(1, "Embla", 1242, "here", { wins: 1, losses: 0, draws: 0 }), row(2, "Kári", 1179, "here", { wins: 3, losses: 1, draws: 0 }), row(3, "Jónas", 1163, "in_match")],
   overview: {
     counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "en", here: 7 } },
     lastMatch: { matchId: "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: new Date(Date.now() - 86_400_000).toISOString(), youWon: true, bands: [{ tiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }], seat: "you" }], board: [["S", "K", "Y", ...Array.from({ length: 7 }, () => "A")], ...Array.from({ length: 9 }, () => Array.from({ length: 10 }, () => "E"))] },
-    form: ["W", "W", "L", "W", "L", "W", "W", "L", "W", "W"],
+    form: FORM,
   },
   recent: [
     { matchId: "5d2c1c1e-8d0e-4b8e-9d5e-2d8f1d0c7a11", result: "win", opponentId: "k", opponentUsername: "kári", opponentDisplayName: "Kári", yourScore: 134, opponentScore: 88, wordsFound: 10, completedAt: new Date().toISOString() },
@@ -56,10 +65,32 @@ describe("Lobby", () => {
     expect(screen.getByText("2 searching now")).toBeTruthy();
   });
 
-  it("draws the last ten as an image whose letters carry the meaning", () => {
+  it("draws your last matches as links, oldest first, the letter carrying the meaning", () => {
     renderLobby("is");
-    const strip = screen.getByRole("img", { name: "síðustu tíu: 7 sigrar, 3 töp" });
-    expect(within(strip).getAllByText("S")).toHaveLength(7);
+    const strip = screen.getByRole("list", { name: "síðustu 30: 7 sigrar, 3 töp" });
+    expect(screen.getByText("síðustu 30")).toBeTruthy();
+    const cells = within(strip).getAllByRole("link");
+    expect(cells).toHaveLength(10);
+    expect(cells.filter((c) => c.textContent === "S")).toHaveLength(7);
+    expect(cells[9].getAttribute("aria-label")).toBe("sigur · Kári · 109–90 · í gær");
+    expect(cells[9].getAttribute("href")).toBe("/match/m9?review=last");
+  });
+
+  it("opens a card with the opponent, score and date on hover or focus, and closes it on Escape", () => {
+    renderLobby("en");
+    const cell = within(screen.getByRole("list", { name: /^last 30/ })).getAllByRole("link")[9];
+    expect(document.querySelector(".form-run__tip")).toBeNull();
+    fireEvent.mouseEnter(cell);
+    const tip = document.querySelector(".form-run__tip")!;
+    expect(tip.textContent).toContain("Kári");
+    expect(tip.textContent).toContain("109–90");
+    expect(tip.textContent).toContain("yesterday · win");
+    fireEvent.mouseLeave(cell);
+    expect(document.querySelector(".form-run__tip")).toBeNull();
+    fireEvent.focus(cell);
+    expect(document.querySelector(".form-run__tip")).not.toBeNull();
+    fireEvent.keyDown(cell, { key: "Escape" });
+    expect(document.querySelector(".form-run__tip")).toBeNull();
   });
 
   it("lists who is here in a table, with record, status and a challenge labelled name first", () => {

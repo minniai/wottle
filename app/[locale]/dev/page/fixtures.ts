@@ -4,7 +4,7 @@ import type { HeldOutcome } from "@/lib/pages/heldOutcome";
 import type { SlotState } from "@/lib/pages/standingSlot";
 import type { LinkView } from "@/lib/types/link";
 import type { ProfileView } from "@/lib/types/profile";
-import type { Band, FormResult, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
+import type { Band, FormGame, FormResult, LobbyRow, Overview, StandingFacts } from "@/lib/types/standing";
 
 /**
  * Page fixtures (spec 070 T017, R17): every state of the door and the lobby,
@@ -143,6 +143,18 @@ const recent = (n: number, opponent: string, you: number, them: number): RecentG
   completedAt: yesterday(),
 });
 
+const FORM_OPPONENTS = ["Kári", "Embla", "Jónas", "Sóley", "Hekla", "Ragnar"];
+
+/** The form strip's matches, oldest first, one a day up to yesterday; scores follow the result. */
+function formGames(results: FormResult[]): FormGame[] {
+  return results.map((result, i) => {
+    const you = 110 + ((i * 17) % 60);
+    const them = result === "D" ? you : result === "W" ? you - 12 - (i % 20) : you + 9 + (i % 25);
+    const daysAgo = results.length - i;
+    return { matchId: id(300 + i), result, opponent: FORM_OPPONENTS[i % FORM_OPPONENTS.length], you, them, completedAt: new Date(Date.now() - daysAgo * DAY_MS).toISOString() };
+  });
+}
+
 /** §5.0 IS-T1: the Icelandic lobby the next day (artboard Lobby). */
 export function lobbyIs(): LobbyFixture {
   return {
@@ -158,7 +170,7 @@ export function lobbyIs(): LobbyFixture {
     overview: {
       counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "en", here: 7 } },
       lastMatch: { matchId: id(101), opponent: "Kári", you: 134, them: 88, durationMs: 292_000, completedAt: yesterday(), youWon: true, bands: BANDS, board: LAST_BOARD },
-      form: ["W", "W", "L", "D", "L", "W", "W", "L", "W", "W"],
+      form: formGames([..."WLWWLLWWLWWLWLWWLWLLWWLWWLWLWW"] as FormResult[]),
     },
     recent: [recent(1, "Kári", 134, 88), recent(2, "Embla", 184, 150), recent(3, "Jónas", 132, 171), recent(4, "Kári", 166, 159)],
   };
@@ -179,7 +191,7 @@ export function lobbyEn(): LobbyFixture {
     overview: {
       counts: { here: 5, searching: 2, playersInMatch: 1, matchesOn: 1, other: { language: "is", here: 12 } },
       lastMatch: { matchId: id(101), opponent: "Kári", you: 128, them: 117, durationMs: 298_000, completedAt: yesterday(), youWon: true, bands: BANDS, board: LAST_BOARD },
-      form: ["W", "L", "W", "W", "L", "W", "L", "W", "W", "L"],
+      form: formGames([..."LWWLWLWWLWLWWLWWLWLWWL"] as FormResult[]),
     },
     recent: [recent(1, "Kári", 128, 117), recent(2, "Embla", 150, 171), recent(3, "Hekla", 139, 120), recent(4, "Sóley", 118, 133)],
   };

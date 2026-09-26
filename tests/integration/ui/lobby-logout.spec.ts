@@ -1,11 +1,11 @@
 /**
- * Spec 044 US7, spec 070: sign out lives in the masthead's ⋯ menu; the page returns to the door.
+ * Spec 044 US7, spec 070: sign out lives in the menu your name opens; the page returns to the door.
  */
 import { expect, test } from "@playwright/test";
 
 import { generateTestUsername } from "./helpers/matchmaking";
 
-test.describe("@lobby-logout sign out from the ⋯ menu", () => {
+test.describe("@lobby-logout sign out from the menu", () => {
   test("user A signs out and user B signs in on the same page", async ({ page }) => {
     const userA = generateTestUsername("out-a");
     const userB = generateTestUsername("out-b");
@@ -16,7 +16,7 @@ test.describe("@lobby-logout sign out from the ⋯ menu", () => {
     // The lobby's h1 is the display name (first letter capitalised); compare case-insensitively.
     await expect(lobbyName).toContainText(userA, { timeout: 15_000, ignoreCase: true });
 
-    await page.getByTestId("page-menu").getByRole("button", { name: "menu" }).click();
+    await page.getByTestId("page-menu").getByTestId("page-menu-trigger").click();
     await page.getByTestId("page-menu-sign-out").click();
     // Spec 067: the door greets this browser's player; another name is one press away.
     await expect(page.getByTestId("door-returning")).toContainText(userA, { timeout: 15_000, ignoreCase: true });

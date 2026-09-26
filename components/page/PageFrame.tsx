@@ -60,7 +60,7 @@ export function PageFrame(props: PageFrameProps) {
       </div>
     );
   }
-  const menu = <PageMenu signOut={props.signOut ?? {}} extra={props.menuExtra} />;
+  const menu = props.viewer ? <PageMenu viewerName={props.viewer.displayName} signOut={props.signOut ?? {}} extra={props.menuExtra} /> : null;
   const bottom = props.bottomHeight ?? 0;
   return (
     <div className="page page--signed-in" style={{ ["--bottom-slot-h" as string]: `${bottom}px` }} data-bottom-slot={bottom > 0}>

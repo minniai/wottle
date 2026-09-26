@@ -276,7 +276,7 @@ Redirects: `/lobby` and `/matchmaking` → 308 `/`. `/match/:id/summary` → 308
 - **Landmarks.** The masthead and line slot are `banner`. The content is `main`. The folio is `contentinfo`. Each page has exactly one `h1`: the headline on the door, the player's name on the lobby and profiles.
 - **Masthead.** A 1.5px `--ink` rule runs at y=24 across 1104px. The masthead line runs y=28–60 (32px tall; every target is at least 24×24, with 8px between targets).
   - Left: the door shows a mono 11 context line. Other pages show the **strip** logotype (22px cells, y=33–55, links to `/`, `aria-current="page"` on `/`).
-  - Right, in order: `how to play ▸` · language switch · `■ Birna ▸` (12px `--you` square and name, links to your profile) · `⋯` (32×32).
+  - Right, in order: `how to play ▸` · language switch · `■ Birna ▾` (12px `--you` square and name; a button that opens the menu, whose first item is your profile; 26 September 2026, it was `■ Birna ▸` beside a `⋯` too small to see).
 - **Line slot** (signed-in pages only). Always reserved at y=64–128 (64px). Masthead and slot are sticky together (y=0–128, `--paper` ground, 1px `--rule` at y=128), so nothing below ever moves.
   - It shows **one** standing state, by precedence:
     1. incoming challenge
@@ -304,7 +304,7 @@ Redirects: `/lobby` and `/matchmaking` → 308 `/`. `/match/:id/summary` → 308
 - 16px gutters, 358px content.
 - **Masthead:** a 44px line at y=8–52, where every target is 44×44, then a 1.5px `--ink` rule at y=56.
   - Left: the strip at 18px cells (126×18), or the door's context line.
-  - Right: `■ BIRNA` (44px-tall target) and `⋯` (44×44). On the door, the language item.
+  - Right: `■ BIRNA ▾` (44px-tall target) opening the menu. On the door, the language item.
 - Content from y=72.
 - **Bottom slot:** `position: fixed; bottom: 0` with `padding-bottom: env(safe-area-inset-bottom)`, following the same precedence as the desktop line slot, then the page primary.
   - Call line: 104px.
@@ -460,10 +460,11 @@ A1 with these changes in column B:
 
 **Masthead.**
 - Left: the strip `ORÐUSTA` (22px cells, 154×22).
-- Right, mono 11: `LEIÐBEININGAR ▸` · `ENGLISH · 7 HERE ▸` · `■ BIRNA ▸` · `⋯`.
+- Right, mono 11: `LEIÐBEININGAR ▸` · `ENGLISH · 7 HERE ▸` · `■ BIRNA ▾`.
   - The switch is written in the target language, with `lang="en"`, and carries that lobby's count [S10].
-- The `⋯` menu holds:
-  - `hljóð · á` / `sound · on`. On first open it adds `hljóð byrjar eftir fyrsta smell (?)` / `sound starts after your first click`.
+- `■ BIRNA ▾` opens the menu (`▴` while open). Open, the name and the list are one ruled shape: a 1.5px `--ink` frame round the name, its paper bottom joined to the list beneath, one right edge. The menu holds:
+  - `prófíll ▸` / `profile ▸`, then a `--rule` line.
+  - `hljóð · á` / `sound · on`.
   - `tilkynningar · af` / `notifications · off`.
   - `skrá út` / `sign out`. While a search or challenge is out, the consequence line `útskráning hættir leitinni` / `signing out cancels your search` comes first. During a live match it is disabled: `ljúktu fyrst viðureigninni` / `finish your match first`.
 
@@ -1009,7 +1010,7 @@ The negotiation replaces the slip's action row 1. The other actions stay visible
 
 ### F2 · Phone lobby (artboard PhoneLobby, IS, fixture IS-T1, with Kári's call)
 
-- **Masthead:** the strip at 18px cells; `■ BIRNA` (44px) and `⋯` (44×44).
+- **Masthead:** the strip at 18px cells; `■ BIRNA ▾` (44px), whose menu spans the screen.
 - **Your block** from y=72: `Birna` Zilla 600 28 (y=72–104); the sub-line on two lines (y=112–140); the form strip at y=152–172.
 - **Here now:** a rule at y=192, the caption at y=200, then rows of 64px from y=220. Line 1: name + Elo right-aligned. Line 2: status left, action right (44px target).
 - **Then:** the band map at 358², `síðustu viðureignir þínar`, and the folio.

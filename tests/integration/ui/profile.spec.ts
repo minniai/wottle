@@ -18,7 +18,8 @@ async function login(page: Page, prefix: string): Promise<string> {
 test.describe("Profiles", () => {
   test("your own profile: rating, sub-lines, chart, form, record, find ▸ and sign out", async ({ page }) => {
     const username = await login(page, "prof-me");
-    await page.getByTestId("masthead-nav").getByRole("link", { name: /▸$/ }).last().click();
+    await page.getByTestId("page-menu-trigger").click();
+    await page.getByTestId("page-menu-profile").click();
     await expect(page).toHaveURL(/\/en\/profile$/);
     await expect(page.getByTestId("profile-page")).toHaveAttribute("data-seat", "you");
     await expect(page.getByTestId("profile-sub-left")).toHaveText(`@${username}`);
