@@ -62,6 +62,9 @@ export const pagesIs: Widen<typeof pagesEn> = {
   FORM_LETTERS: { W: "S", L: "T", D: "J" },
   formAria: (won: number, lost: number, drawn: number): string =>
     `síðustu tíu: ${count(won, "sigur", "sigrar")}, ${count(lost, "tap", "töp")}${drawn ? `, ${count(drawn, "jafntefli", "jafntefli")}` : ""}`,
+  lastN: (n: number): string => `síðustu ${n}`,
+  formRunAria: (n: number, won: number, lost: number, drawn: number): string =>
+    `síðustu ${n}: ${count(won, "sigur", "sigrar")}, ${count(lost, "tap", "töp")}${drawn ? `, ${count(drawn, "jafntefli", "jafntefli")}` : ""}`,
   hereNowCaption: (here: number, playing: number): string => `${count(here, "spilari tengdur", "spilarar tengdir")} · ${playing} að spila`, // native-read
   COL_RATING: "elo",
   COL_RECORD: "þinn ferill",
@@ -79,6 +82,8 @@ export const pagesIs: Widen<typeof pagesEn> = {
   lastMatchDetail: (opponent: string, duration: string, when: string): string => `${opponent} · ${duration} · ${when}`,
   TODAY: "í dag",
   YESTERDAY: "í gær",
+  shortDate: (day: number, month: number): string =>
+    `${day}. ${["jan.", "feb.", "mar.", "apr.", "maí", "jún.", "júl.", "ágú.", "sep.", "okt.", "nóv.", "des."][month]}`,
   REVIEW: "skoða ▸",
   REVIEW_LAST: "skoða síðustu viðureign",
   bandMapAria: (you: string, a: number, opp: string, b: number, when: string): string => `${you} ${a}, ${opp} ${b}, ${when}`,
@@ -86,7 +91,6 @@ export const pagesIs: Widen<typeof pagesEn> = {
   FIRST_MATCH: "Fyrsta viðureignin þín birtist hér.",
   FINISH_FIRST: "ljúktu fyrst viðureigninni",
   WITHDRAWS_YOUR_CHALLENGE: "áskorunin þín fellur niður", // native-read
-  SOUND_AFTER_CLICK: "hljóð byrjar eftir fyrsta smell", // native-read
   notificationsToggle: (on: boolean): string => `tilkynningar · ${on ? "á" : "af"}`,
   SIGN_OUT_CANCELS_SEARCH: "útskráning hættir leitinni",
   SIGN_OUT_WITHDRAWS: "útskráning dregur áskorunina til baka", // native-read

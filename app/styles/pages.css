@@ -624,6 +624,78 @@
   font-weight: 600;
   box-shadow: inset 0 -3px 0 var(--muted);
 }
+/* The lobby's strip (2026-09-26): as many matches as fit column A; each cell links to its review. */
+.form-run__track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.form-run__cells {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.form-run__slot {
+  display: flex;
+}
+.form-run__slot:first-child .form-strip__cell {
+  margin-left: 0;
+}
+.form-run__cell {
+  position: relative;
+  text-decoration: none;
+}
+.form-run__cell[data-active] {
+  z-index: 1;
+  border-color: var(--ink);
+  background: var(--tint);
+}
+.form-run__cell:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+/* The card under a cell (above it would cover the page primary): paper in a 1px ink frame, opened toward the column's middle; it never takes the pointer. */
+.form-run__tip {
+  position: absolute;
+  top: 28px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  min-width: 200px;
+  max-width: 280px;
+  width: max-content;
+  padding: 8px 12px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  pointer-events: none;
+}
+.form-run__tip-head,
+.form-run__tip-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  white-space: nowrap;
+}
+.form-run__tip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-board);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+}
+.form-run__tip-score {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.form-run__tip-review {
+  color: var(--ink);
+}
 .lobby-table-wrap {
   margin-top: 24px;
   border-top: 1.5px solid var(--ink);

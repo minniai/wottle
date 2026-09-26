@@ -9,7 +9,7 @@ import { orderRows } from "@/lib/pages/lobbyRows";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { LobbyRow, Overview } from "@/lib/types/standing";
 
-import { FormStrip } from "./FormStrip";
+import { FormRun } from "./FormRun";
 import type { SendChallengeActionResult } from "@/app/actions/challenge/send";
 
 import { LINK_TTL_MS } from "@/lib/constants/links";
@@ -196,7 +196,7 @@ export function Lobby({
     >
       <div className="page-col-a">
         <YourBlock viewer={viewer} primary={primary} below={below} />
-        <FormStrip results={overview.form ?? []} />
+        <FormRun games={overview.form ?? []} nowMs={nowMs} />
         <HereNowTable
           rows={ordered}
           here={rows.filter((r) => r.state === "here" || r.state === "searching").length}
