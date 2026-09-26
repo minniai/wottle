@@ -43,7 +43,7 @@ export const pagesIs: Widen<typeof pagesEn> = {
   ENTER_TO_CHALLENGE: "finna mótspilara í lobbíinu ▸", // native-read
   NO_ONE_YET: "Enginn hér enn.",
   HOW_IT_PLAYS: "leiðbeiningar",
-  STEPS: ["Skiptu á tveimur stöfum.", "Þrír stafir eða fleiri í beinni línu.", "Stafir í orði frjósa í þínum lit."],
+  STEPS: ["Skiptu á tveimur stöfum", "Myndaðu orð úr þremur eða fleiri stöfum", "10 umferðir á 5 mínútum"],
   doorTitle: (wordmark: string): string => `${wordmark} · orðaeinvígi fyrir tvo`,
 
   HERE: "hér",
