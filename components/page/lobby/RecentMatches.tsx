@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { profileHandlePath } from "@/lib/profile/readHandle";
 import type { RecentGameRow } from "@/lib/types/lobby";
 
 const SHOWN = 4;
@@ -16,7 +17,7 @@ export function RecentRows({ games }: { games: RecentGameRow[] }) {
     <ul className="recent__rows">
       {games.map((game) => (
         <li key={game.matchId} className="recent__row">
-          <span className="recent__name">{game.opponentDisplayName}</span>
+          <Link href={to(profileHandlePath(game.opponentUsername))} className="recent__name">{game.opponentDisplayName}</Link>
           <span className="recent__score">
             <span className="seat-you">{game.yourScore}</span>–<span className="seat-opp-text">{game.opponentScore}</span>
           </span>

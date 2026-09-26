@@ -377,11 +377,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.scoreboard__name--link {
+/* A player's name links to their profile (scoreboard, ledger header, slips): it keeps
+   its own face and colour and underlines only under the pointer or keyboard focus. */
+.name-link {
   text-decoration: none;
 }
-.scoreboard__name--link:hover,
-.scoreboard__name--link:focus-visible {
+.name-link:hover,
+.name-link:focus-visible {
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;

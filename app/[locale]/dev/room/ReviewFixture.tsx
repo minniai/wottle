@@ -4,7 +4,8 @@ import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { ReviewControls } from "@/components/room/ReviewControls";
 import { RoomShell } from "@/components/room/RoomShell";
 import { Field } from "@/components/room/Field";
-import { useCopy } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { profileHandlePath } from "@/lib/profile/readHandle";
 import { cursorLines } from "@/lib/review/cursorLines";
 import { cursorRow, ledgerCellStates } from "@/lib/review/ledgerCells";
 import { scrubberValueText } from "@/lib/review/scrubber";
@@ -31,6 +32,7 @@ const NAMES = { a: BIRNA.displayName, b: KARI.displayName };
 /** Spec 071 (T058): review at a step from static steps, as the controller composes it. */
 export function ReviewFixture({ phase }: { phase: ReviewPhase }) {
   const copy = useCopy();
+  const to = useLocalePath();
   const setup = SETUP[phase];
   const steps = reviewFixtureSteps(setup.variant);
   const step = steps[(setup.step === "last" ? steps.length : setup.step) - 1];
@@ -45,8 +47,8 @@ export function ReviewFixture({ phase }: { phase: ReviewPhase }) {
       <MatchRoomView
         matchId="fixture-match"
         viewerSlot="player_a"
-        you={{ name: BIRNA.displayName, rating: BIRNA.eloRating ?? null, movesPlayed: step.movesPlayed.a, score: step.totals.a, finalLine: "" }}
-        opp={{ name: KARI.displayName, rating: KARI.eloRating ?? null, movesPlayed: step.movesPlayed.b, score: step.totals.b, finalLine: "" }}
+        you={{ name: BIRNA.displayName, rating: BIRNA.eloRating ?? null, movesPlayed: step.movesPlayed.a, score: step.totals.a, finalLine: "", profileHref: to(profileHandlePath(BIRNA.username)) }}
+        opp={{ name: KARI.displayName, rating: KARI.eloRating ?? null, movesPlayed: step.movesPlayed.b, score: step.totals.b, finalLine: "", profileHref: to(profileHandlePath(KARI.username)) }}
         clockMs={8_000}
         clockLengthMs={300_000}
         elapsedMs={292_000}

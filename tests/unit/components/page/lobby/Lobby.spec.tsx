@@ -86,6 +86,13 @@ describe("Lobby", () => {
     expect([...rows].map((r) => r.querySelector(".recent__name")!.textContent)).toEqual(["Embla"]);
   });
 
+  it("links each opponent in the rows to their profile", () => {
+    renderLobby("en");
+    const name = document.querySelector(".last-match .recent__row .recent__name")!;
+    expect(name.tagName).toBe("A");
+    expect(name.getAttribute("href")).toBe("/en/profile/embla");
+  });
+
   it("draws the final board's letters on the map, a scored letter in its owner's colour", () => {
     renderLobby("en");
     const letters = document.querySelectorAll(".band-map__letter");

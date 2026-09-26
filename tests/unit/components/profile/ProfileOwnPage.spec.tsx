@@ -44,9 +44,17 @@ describe("ProfileOwnPage", () => {
     expect(screen.getByTestId("profile-find").className).toContain("page-primary");
     const rows = within(screen.getByTestId("profile-matches")).getAllByRole("listitem");
     expect(rows).toHaveLength(8);
-    expect(within(rows[0]).getByRole("link").getAttribute("href")).toMatch(/\/match\/.+\?review=last$/);
+    expect(rows[0].querySelector('a[href*="/match/"]')!.getAttribute("href")).toMatch(/\/match\/.+\?review=last$/);
     expect(screen.getByTestId("profile-other-language").getAttribute("href")).toBe("/en/profile");
     expect(screen.getByTestId("profile-sign-out")).not.toBeNull();
+  });
+
+  it("links each recent match's opponent to their profile", () => {
+    renderOwn();
+    const rows = within(screen.getByTestId("profile-matches")).getAllByRole("listitem");
+    const name = rows[0].querySelector(".recent__name")!;
+    expect(name.tagName).toBe("A");
+    expect(name.getAttribute("href")).toMatch(/^\/profile\/.+/);
   });
 
   it("steps find down while a call is up", () => {

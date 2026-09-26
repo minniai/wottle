@@ -7,6 +7,7 @@ import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvi
 import { whenWord } from "@/components/page/lobby/when";
 import type { Seat } from "@/lib/constants/seatColors";
 import { profileHeader } from "@/lib/profile/profileHeader";
+import { profileHandlePath } from "@/lib/profile/readHandle";
 import { recordCells } from "@/lib/profile/record";
 import type { RecentGameRow } from "@/lib/types/lobby";
 import type { ProfileView, ProfileWord } from "@/lib/types/profile";
@@ -110,7 +111,11 @@ export function ProfileMatches({ rows, caption, dated }: { rows: RecentGameRow[]
         <ul className="recent__rows">
           {rows.map((game) => (
             <li key={game.matchId} className="recent__row">
-              <span className={dated ? "page-label" : "recent__name"}>{dated ? whenWord(game.completedAt, nowMs, copy, htmlLang) : game.opponentDisplayName}</span>
+              {dated ? (
+                <span className="page-label">{whenWord(game.completedAt, nowMs, copy, htmlLang)}</span>
+              ) : (
+                <Link href={to(profileHandlePath(game.opponentUsername))} className="recent__name">{game.opponentDisplayName}</Link>
+              )}
               <span className="recent__score">
                 <span className="seat-you">{game.yourScore}</span>–<span className="seat-opp-text">{game.opponentScore}</span>
               </span>

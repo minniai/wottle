@@ -824,6 +824,19 @@
   font-size: 15px;
   color: var(--ink);
 }
+/* The opponent's name is a way to their profile, as in the lobby's rows. */
+a.recent__name {
+  justify-self: start;
+  text-decoration: none;
+}
+a.recent__name:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+a.recent__name:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
 .recent__score {
   font-family: var(--font-mono);
   font-size: 13px;
