@@ -78,6 +78,7 @@ function FirstMatch() {
  * and your last matches, the latest drawn as its board. No field and no hint.
  */
 /** `invite a friend ▸` below the table (spec 072 B1), with its note. */
+<<<<<<< HEAD
 function InviteBelow({
   onInvite,
   note,
@@ -101,6 +102,14 @@ function InviteBelow({
         onClick={onInvite}
         data-testid="lobby-invite"
       >
+=======
+function InviteBelow({ onInvite, note, hidden }: { onInvite: () => void; note: string | null; hidden: boolean }) {
+  const copy = useCopy();
+  // Its line is kept while a standing state holds it back, so nothing below moves (SC-006).
+  return (
+    <p className="lobby-invite" style={hidden ? { visibility: "hidden" } : undefined} aria-hidden={hidden || undefined}>
+      <button type="button" className="page-link page-link--ink" onClick={onInvite} data-testid="lobby-invite">
+>>>>>>> main
         {copy.pages.INVITE_A_FRIEND}
       </button>
       {note ? <span className="page-label lobby-invite__note">{note}</span> : null}
@@ -108,6 +117,7 @@ function InviteBelow({
   );
 }
 
+<<<<<<< HEAD
 export function Lobby({
   viewer,
   rows,
@@ -121,6 +131,9 @@ export function Lobby({
   primaryFor,
   arrival,
 }: LobbyProps) {
+=======
+export function Lobby({ viewer, rows, overview, recent, onFind, onSend, onInvite, standing = NO_STANDING, initialOpenId = null, primaryFor, arrival }: LobbyProps) {
+>>>>>>> main
   const copy = useCopy();
   const [frozen, setFrozen] = useState<string[] | null>(null);
   const [nowMs] = useState(() => Date.now());
@@ -128,6 +141,7 @@ export function Lobby({
   const ordered = orderRows(rows, viewer.rating, frozen);
   const freeze = (on: boolean) => setFrozen(on ? ordered.map((r) => r.playerId) : null);
   const empty = rows.length === 0;
+<<<<<<< HEAD
   const pageModel = primaryFor
     ? primaryFor(composing)
     : { find: composing ? ("secondary" as const) : ("primary" as const), note: null };
@@ -143,6 +157,14 @@ export function Lobby({
         onClick={onInvite}
         data-testid="lobby-invite"
       >
+=======
+  const pageModel = primaryFor ? primaryFor(composing) : { find: composing ? ("secondary" as const) : ("primary" as const), note: null };
+  const plan = onInvite ? lobbyPrimary({ othersHere: rows.length, find: pageModel, copy }) : { invite: "hidden" as const, find: pageModel, inviteNote: null };
+  const model = plan.find;
+  const invitePrimary =
+    plan.invite === "primary" && onInvite ? (
+      <button type="button" className="lobby-block__find action-primary page-primary" onClick={onInvite} data-testid="lobby-invite">
+>>>>>>> main
         {copy.pages.INVITE_A_FRIEND}
       </button>
     ) : null;
@@ -165,6 +187,7 @@ export function Lobby({
   ) : (
     findButton
   );
+<<<<<<< HEAD
   const noteLine =
     model.note ??
     (empty
@@ -172,6 +195,9 @@ export function Lobby({
       : model.find === "hidden"
         ? null
         : copy.pages.searchingNow(overview.counts.searching));
+=======
+  const noteLine = model.note ?? (empty ? copy.pages.PAIRED_ON_ARRIVAL : model.find === "hidden" ? null : copy.pages.searchingNow(overview.counts.searching));
+>>>>>>> main
   const below = (
     <>
       {noteLine ? <p className="page-label lobby-block__note">{noteLine}</p> : null}
@@ -188,12 +214,16 @@ export function Lobby({
     </>
   );
   return (
+<<<<<<< HEAD
     <div
       className="page-columns lobby"
       data-composing={composing}
       data-find={model.find}
       data-invite={plan.invite}
     >
+=======
+    <div className="page-columns lobby" data-composing={composing} data-find={model.find} data-invite={plan.invite}>
+>>>>>>> main
       <div className="page-col-a">
         <YourBlock viewer={viewer} primary={primary} below={below} />
         <FormStrip results={overview.form ?? []} />
@@ -202,6 +232,7 @@ export function Lobby({
           here={rows.filter((r) => r.state === "here" || r.state === "searching").length}
           playing={rows.filter((r) => r.state === "in_match").length}
           onFreeze={freeze}
+<<<<<<< HEAD
           composer={{
             viewer: { rating: viewer.rating, gamesPlayed: viewer.gamesPlayed },
             searching: standing.searching,
@@ -209,11 +240,15 @@ export function Lobby({
             callUp: standing.callUp,
             link: standing.link ?? false,
           }}
+=======
+          composer={{ viewer: { rating: viewer.rating, gamesPlayed: viewer.gamesPlayed }, searching: standing.searching, outgoing: standing.outgoing, callUp: standing.callUp, link: standing.link ?? false }}
+>>>>>>> main
           overlays={standing.closed ? closedOverlays(rows) : standing.overlays}
           onSend={onSend}
           onComposing={setComposing}
           initialOpenId={initialOpenId}
         />
+<<<<<<< HEAD
         {plan.invite !== "primary" && onInvite && !empty ? (
           <InviteBelow
             onInvite={onInvite}
@@ -230,6 +265,13 @@ export function Lobby({
             nowMs={nowMs}
             recent={recent}
           />
+=======
+        {plan.invite !== "primary" && onInvite && !empty ? <InviteBelow onInvite={onInvite} note={plan.inviteNote ?? copy.pages.linkWorksFor(LINK_TTL_MS / 60_000)} hidden={plan.invite === "hidden"} /> : null}
+      </div>
+      <div className="page-col-b">
+        {overview.lastMatch ? (
+          <LastMatch last={overview.lastMatch} viewerName={viewer.displayName} nowMs={nowMs} recent={recent} />
+>>>>>>> main
         ) : (
           <>
             <FirstMatch />
