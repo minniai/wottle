@@ -14,6 +14,7 @@ import type { LedgerAction, LedgerModel, LedgerRow, LiveLines, Notice, SeatCell,
 import { LedgerFoot } from "./LedgerFoot";
 import { LedgerSheet } from "./LedgerSheet";
 import { PointsLost } from "./PointsLost";
+import { SeatName } from "./ProfileName";
 import { RoomMenu, type RoomMenuVariant } from "./RoomMenu";
 
 export type LedgerVariant = "match" | "final" | "lobby" | "queue";
@@ -353,17 +354,21 @@ export function Ledger(props: LedgerProps) {
   };
   const total = Math.max(1, territory.you + territory.opp + territory.free);
 
+  // On a phone the header lives in the sheet, whose controls are 44px; the scoreboard above links the names.
+  const headerName = (seat: "you" | "opp", name: string): ReactNode => (collapsed ? name : <SeatName seat={seat} name={name} />);
   const header = (
       <div className="ledger__header" data-testid="ledger-header">
         <span className="ledger__header-you">
-          {viewerName}
-          {readOnly ? "" : ` · ${YOU}`}
+          <span>
+            {headerName("you", viewerName)}
+            {readOnly ? "" : ` · ${YOU}`}
+          </span>
           <span className="ledger__seat" style={{ background: "var(--you)" }} aria-hidden />
         </span>
         <span className="ledger__header-spine">{SPINE_HEADER}</span>
         <span className="ledger__header-opp">
           <span className="ledger__seat" style={{ background: "var(--opp)" }} aria-hidden />
-          {opponentName ?? "—"}
+          {opponentName ? headerName("opp", opponentName) : "—"}
         </span>
       </div>
   );

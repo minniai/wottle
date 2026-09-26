@@ -7,7 +7,8 @@ import type { CellState } from "@/components/room/FieldCell";
 import { MatchRoomView } from "@/components/room/MatchRoomView";
 import { RoomShell } from "@/components/room/RoomShell";
 import { PageFrame } from "@/components/page/PageFrame";
-import { useCopy, useLocale } from "@/components/i18n/LocaleProvider";
+import { useCopy, useLocale, useLocalePath } from "@/components/i18n/LocaleProvider";
+import { profileHandlePath } from "@/lib/profile/readHandle";
 import type { Copy } from "@/lib/i18n/copy/types";
 import type { Seat } from "@/lib/constants/seatColors";
 import { bandsFromWords } from "@/lib/room/bandGeometry";
@@ -150,9 +151,17 @@ interface SeatOptions {
   you?: { moves: number; score: number; scoring?: boolean };
   opp?: { moves: number; score: number; scoring?: boolean };
   lines: { you: string; opp: string };
+  /** Both players' profiles, as the live room links them. */
+  profiles: { you: string; opp: string };
 }
 
-function matchSeats({ completed, reconnectMsLeft, goneForMs = null, offline = false, you = { moves: 3, score: 46 }, opp = { moves: 6, score: 15 }, lines }: SeatOptions) {
+/** The fixture players' profiles in the page's language. */
+function useFixtureProfiles(): { you: string; opp: string } {
+  const to = useLocalePath();
+  return { you: to(profileHandlePath(BIRNA.username)), opp: to(profileHandlePath(KARI.username)) };
+}
+
+function matchSeats({ completed, reconnectMsLeft, goneForMs = null, offline = false, you = { moves: 3, score: 46 }, opp = { moves: 6, score: 15 }, lines, profiles }: SeatOptions) {
   return {
     you: {
       name: BIRNA.displayName,
@@ -162,6 +171,8 @@ function matchSeats({ completed, reconnectMsLeft, goneForMs = null, offline = fa
       score: you.score,
       offline,
       finalLine: completed ? lines.you : undefined,
+      profileHref: profiles.you,
+      profileInNewTab: !completed,
     },
     opp: {
       name: KARI.displayName,
@@ -172,6 +183,8 @@ function matchSeats({ completed, reconnectMsLeft, goneForMs = null, offline = fa
       reconnectMsLeft,
       goneForMs,
       finalLine: completed ? lines.opp : undefined,
+      profileHref: profiles.opp,
+      profileInNewTab: !completed,
     },
   };
 }
@@ -276,6 +289,7 @@ const STORE_PHASE: Partial<Record<RoomPhase, StorePhase>> = {
 /** The room for one phase, from `fixtures.ts` alone (spec 045 US1). */
 export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   const copy = useCopy();
+  const profiles = useFixtureProfiles();
   const { language } = useLocale();
   const { OPPONENT, TAP_SECOND_LETTER, startsIn, searchingSubline, settingField } = copy;
   const [revealed, setRevealed] = useState<number | null>(phase === "reveal" ? 0 : null);
@@ -316,7 +330,7 @@ export function RoomFixture({ phase }: { phase: Exclude<RoomPhase, "rules"> }) {
   const spec = MATCH_PHASES[phase];
   const state = spec.state ?? MATCH_STATE;
   const gone = phase === "end-early" || phase === "gone";
-  const seats = matchSeats({ completed, reconnectMsLeft: disconnected || gone ? (gone ? 0 : RECONNECT_MS_LEFT) : null, goneForMs: gone ? GONE_FOR_MS : null, offline: phase === "offline", ...spec.seats, lines: finalLines(copy) });
+  const seats = matchSeats({ completed, reconnectMsLeft: disconnected || gone ? (gone ? 0 : RECONNECT_MS_LEFT) : null, goneForMs: gone ? GONE_FOR_MS : null, offline: phase === "offline", ...spec.seats, lines: finalLines(copy), profiles });
   const words = spec.liveWord ? [...FIXTURE_WORDS, spec.liveWord] : FIXTURE_WORDS;
   const bands = spec.liveWord === SCORED_WORD ? SCORING_BANDS : spec.liveWord === OPP_REVEAL_WORD ? OPP_REVEAL_BANDS : BANDS;
   const drawnCount = phase === "reveal" ? revealed : null;
@@ -369,7 +383,7 @@ function TableFixture({ phase, copy }: { phase: TablePhase; copy: Copy }) {
   const voided = phase === "void" || phase === "void-queue";
   const derived = tableSlipFor({ match: state, viewerSlot: "player_a", you: { name: BIRNA.displayName, rating: BIRNA.eloRating ?? null }, opp: { name: KARI.displayName, rating: KARI.eloRating ?? null }, nowMs: TABLE_NOW_MS, copy });
   const slip = derived?.kind === "void" && phase === "void-queue" ? { ...derived, model: { ...derived.model, searching: `${copy.SEARCHING} · ${VOID_SEARCHING_ELAPSED}` } } : derived;
-  const seats = matchSeats({ completed: false, reconnectMsLeft: null, you: { moves: 0, score: 0 }, opp: { moves: 0, score: 0 }, lines: finalLines(copy) });
+  const seats = matchSeats({ completed: false, reconnectMsLeft: null, you: { moves: 0, score: 0 }, opp: { moves: 0, score: 0 }, lines: finalLines(copy), profiles: useFixtureProfiles() });
   return (
     <RoomShell viewer={BIRNA}>
       <MatchRoomView

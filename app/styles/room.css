@@ -377,11 +377,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.scoreboard__name--link {
+/* A player's name links to their profile (scoreboard, ledger header, slips): it keeps
+   its own face and colour and underlines only under the pointer or keyboard focus. */
+.name-link {
   text-decoration: none;
 }
-.scoreboard__name--link:hover,
-.scoreboard__name--link:focus-visible {
+.name-link:hover,
+.name-link:focus-visible {
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
@@ -737,6 +739,35 @@
 }
 .ledger[data-grid] .ledger__caption {
   align-items: center;
+}
+/* The caption is one 40px row: its actions never wrap, and its primary is compact. */
+.ledger[data-grid] .ledger__caption {
+  container-type: inline-size;
+}
+.ledger[data-grid] .ledger__caption .ledger__actions {
+  gap: 12px;
+  white-space: nowrap;
+}
+.ledger[data-grid] .ledger__caption .action-primary {
+  padding: 6px 10px;
+}
+/* A secondary beside the primary (review's `◂ result`) leaves no room for the wordmark in a
+   narrow ledger: the wordmark yields, as on a phone, and under 300px the labels close up. */
+@container (max-width: 379px) {
+  .ledger__caption:has(.ledger__actions > .action-secondary + .action-primary) .ledger__wordmark {
+    display: none;
+  }
+}
+@container (max-width: 299px) {
+  .ledger__actions:has(> .action-secondary + .action-primary) {
+    gap: 8px;
+  }
+  .ledger__actions:has(> .action-secondary + .action-primary) > * {
+    letter-spacing: 0.04em;
+  }
+  .ledger__actions:has(> .action-secondary + .action-primary) > .action-primary {
+    padding: 6px 8px;
+  }
 }
 .ledger[data-grid] .ledger__state-line {
   display: flex;

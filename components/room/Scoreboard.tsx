@@ -7,6 +7,7 @@ import { getSeatColors, type Seat } from "@/lib/constants/seatColors";
 import { TICKS_PER_BLOCK } from "@/lib/room/clock";
 import type { ClockRow, PlayerRow, ScoreboardView } from "@/lib/room/scoreboard";
 
+import { ProfileName } from "./ProfileName";
 import { ReviewScrubber } from "./ReviewScrubber";
 
 const NO_STEP = () => undefined;
@@ -75,20 +76,7 @@ function ClockLine({ clock, compact, onReviewStep, onReviewTogglePlay }: { clock
 }
 
 function PlayerName({ row, href, newTab }: { row: PlayerRow; href?: string; newTab: boolean }) {
-  const { profileOpensInNewTab } = useCopy();
-  if (!href) return <span className="scoreboard__name" data-testid="scoreboard-name">{row.name}</span>;
-  return (
-    <a
-      className="scoreboard__name scoreboard__name--link"
-      data-testid="scoreboard-name"
-      href={href}
-      target={newTab ? "_blank" : undefined}
-      rel={newTab ? "noopener" : undefined}
-      aria-label={newTab ? profileOpensInNewTab(row.name) : undefined}
-    >
-      {row.name}
-    </a>
-  );
+  return <ProfileName name={row.name} href={href} newTab={newTab} className="scoreboard__name" testId="scoreboard-name" />;
 }
 
 function PlayerLine({ row, total, href, newTab, limit }: { row: PlayerRow; total: number; href?: string; newTab: boolean; limit: number }) {

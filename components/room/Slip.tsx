@@ -5,6 +5,7 @@ import { useId, useRef, type ReactNode, type RefObject } from "react";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 import { useCopy } from "@/components/i18n/LocaleProvider";
 import { useActivationGuard } from "@/components/room/hooks/useActivationGuard";
+import { SeatName } from "@/components/room/ProfileName";
 import { resultHeadline } from "@/lib/room/tabTitle";
 import { formatClock } from "@/lib/room/clock";
 import type { LedgerAction } from "@/lib/room/ledgerTypes";
@@ -141,7 +142,7 @@ function ReadyBody({ slip, onAction, headlineId, headlineRef }: { slip: Extract<
         <span className="slip__label" data-testid="slip-table-label">{model.label}</span>
         {/* Raised by the game, so its headline takes focus (game flow §8 item 3). */}
         <h2 id={headlineId} ref={headlineRef} tabIndex={-1} className="slip__headline" data-seat="opp">
-          {model.headline.name} <span className="slip__mono">{model.headline.rating ?? ""}</span>
+          <SeatName seat="opp" name={model.headline.name} guarded /> <span className="slip__mono">{model.headline.rating ?? ""}</span>
         </h2>
       </div>
       <div className="slip__rule" />
@@ -152,7 +153,7 @@ function ReadyBody({ slip, onAction, headlineId, headlineRef }: { slip: Extract<
         {model.seats.map((line) => (
           <div key={line.seat} className="slip__seat" data-testid="slip-seat" data-seat={line.seat} data-seated={String(line.seated)}>
             <span className="slip__square" data-seat={line.seat} />
-            <span className="slip__name">{line.name}</span>
+            <SeatName seat={line.seat} name={line.name} className="slip__name" guarded />
             <span className="slip__mono">{line.status}</span>
           </div>
         ))}
@@ -335,7 +336,7 @@ function MatchOverBody({ slip, onAction, headlineId, headlineRef, compact }: Mat
         {slip.ratings.map((row) => (
           <div key={row.seat} className="slip__rating" data-seat={row.seat}>
             <span className="slip__square" data-seat={row.seat} />
-            <span className="slip__name">{row.name}</span>
+            <SeatName seat={row.seat} name={row.name} className="slip__name" guarded />
             <span className="slip__mono">{row.line}</span>
           </div>
         ))}

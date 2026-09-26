@@ -12,6 +12,7 @@ import type { LedgerAction, Notice, Verdict } from "@/lib/room/ledgerTypes";
 import type { FrozenTileMap, PlayerSlot } from "@/lib/types/match";
 import { Ledger, type LedgerReview } from "./Ledger";
 import { useIsPhone } from "./hooks/useIsPhone";
+import { RoomProfilesProvider } from "./ProfileName";
 import { Room } from "./Room";
 import { Scoreboard } from "./Scoreboard";
 import { useCountUp } from "./hooks/useCountUp";
@@ -167,46 +168,48 @@ export function MatchRoomView(props: MatchRoomViewProps) {
   );
 
   return (
-    <Room
-      matchId={matchId}
-      onSlipAction={onAction}
-      slip={props.tableSlip ?? null}
-      layout="scoreboard"
-      topBar={
-        <Scoreboard
-          view={scoreboard}
-          totals={{ you: youScore, opp: oppScore }}
-          profiles={{ you: you.profileHref, opp: opp.profileHref }}
-          profileInNewTab={Boolean(opp.profileInNewTab)}
-          compact={isPhone}
-          onReviewStep={props.review?.onStep}
-          onReviewTogglePlay={props.review?.onTogglePlay}
-        />
-      }
-      field={
-        <>
-          {children}
-          <div className="sr-only" aria-live="polite" data-testid="room-announcer">
-            {props.announcement ?? ""}
-          </div>
-        </>
-      }
-      bottomBar={null}
-      ledger={
-        <Ledger
-          variant={completed ? "final" : "match"}
-          collapsed={isPhone}
-          model={model}
-          notices={notices}
-          viewerName={you.name}
-          opponentName={opp.name}
-          readOnly={readOnly}
-          footActions={footActions}
-          onRowHover={onRowHover}
-          onAction={onAction}
-          review={props.review?.ledger}
-        />
-      }
-    />
+    <RoomProfilesProvider value={{ you: you.profileHref, opp: opp.profileHref, newTab: Boolean(opp.profileInNewTab) }}>
+      <Room
+        matchId={matchId}
+        onSlipAction={onAction}
+        slip={props.tableSlip ?? null}
+        layout="scoreboard"
+        topBar={
+          <Scoreboard
+            view={scoreboard}
+            totals={{ you: youScore, opp: oppScore }}
+            profiles={{ you: you.profileHref, opp: opp.profileHref }}
+            profileInNewTab={Boolean(opp.profileInNewTab)}
+            compact={isPhone}
+            onReviewStep={props.review?.onStep}
+            onReviewTogglePlay={props.review?.onTogglePlay}
+          />
+        }
+        field={
+          <>
+            {children}
+            <div className="sr-only" aria-live="polite" data-testid="room-announcer">
+              {props.announcement ?? ""}
+            </div>
+          </>
+        }
+        bottomBar={null}
+        ledger={
+          <Ledger
+            variant={completed ? "final" : "match"}
+            collapsed={isPhone}
+            model={model}
+            notices={notices}
+            viewerName={you.name}
+            opponentName={opp.name}
+            readOnly={readOnly}
+            footActions={footActions}
+            onRowHover={onRowHover}
+            onAction={onAction}
+            review={props.review?.ledger}
+          />
+        }
+      />
+    </RoomProfilesProvider>
   );
 }

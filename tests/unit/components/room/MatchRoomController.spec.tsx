@@ -166,8 +166,11 @@ describe("MatchRoomController (spec 050)", () => {
 
   it("links both players to their own profiles", () => {
     renderController();
-    expect(screen.getByRole("link", { name: "Alice, profile opens in a new tab" })).toHaveAttribute("href", "/en/profile/alice");
-    expect(screen.getByRole("link", { name: "Bob, profile opens in a new tab" })).toHaveAttribute("href", "/en/profile/bob");
+    // The scoreboard's row and the ledger's face-off header both name each player.
+    const alice = screen.getAllByRole("link", { name: "Alice, profile opens in a new tab" });
+    const bob = screen.getAllByRole("link", { name: "Bob, profile opens in a new tab" });
+    expect(alice.map((a) => a.getAttribute("href"))).toEqual(["/en/profile/alice", "/en/profile/alice"]);
+    expect(bob.map((a) => a.getAttribute("href"))).toEqual(["/en/profile/bob", "/en/profile/bob"]);
   });
 
   // Spec 049: the report is a warn event in every environment, once per match.
